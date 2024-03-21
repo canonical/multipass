@@ -38,15 +38,18 @@ void attempt_ssh_exec(mp::VirtualMachine& vm, const std::string& cmd)
     }
 }
 
-void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::minutes& time_left)
+void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseconds& time_left)
 {
     if (time_left > std::chrono::milliseconds::zero())
     {
+        auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(time_left);
+        auto minutes_plural = minutes_left != std::chrono::minutes(1); // use plural for 0 and 2+
+
         attempt_ssh_exec(vm,
                          fmt::format("wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
                                      "--cancel {}' to cancel the shutdown.\"",
-                                     time_left.count(),
-                                     time_left > std::chrono::minutes(1) ? "s" : "",
+                                     minutes_left.count(),
+                                     minutes_plural ? "s" : "",
                                      vm.vm_name));
     }
     else
@@ -86,7 +89,7 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
                  fmt::format("Shutdown request delayed for {} minute{}",
                              std::chrono::duration_cast<std::chrono::minutes>(delay).count(),
                              delay > std::chrono::minutes(1) ? "s" : ""));
-        write_shutdown_message(*virtual_machine, std::chrono::duration_cast<std::chrono::minutes>(delay));
+        write_shutdown_message(*virtual_machine, delay);
 
         time_remaining = delay;
         std::chrono::minutes time_elapsed{1};
@@ -96,8 +99,7 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
             if (time_remaining <= std::chrono::minutes(5) ||
                 time_remaining % std::chrono::minutes(5) == std::chrono::minutes::zero())
             {
-                write_shutdown_message(*virtual_machine,
-                                       std::chrono::duration_cast<std::chrono::minutes>(time_remaining));
+                write_shutdown_message(*virtual_machine, time_remaining);
             }
 
             if (time_elapsed >= delay)
@@ -117,7 +119,7 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
     }
     else
     {
-        write_shutdown_message(*virtual_machine, std::chrono::minutes::zero());
+        write_shutdown_message(*virtual_machine, std::chrono::milliseconds::zero());
         shutdown_instance();
     }
 }
