@@ -228,6 +228,8 @@ public:
 
     virtual std::vector<uint8_t> random_bytes(size_t len);
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
+
+    virtual void sleep_for(const std::chrono::milliseconds& ms) const;
 };
 } // namespace multipass
 
@@ -292,9 +294,10 @@ void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chron
         if (try_action(std::forward<Args>(args)...) == TimeoutAction::done)
             return;
 
-        // The < 1s is used for testing so unit tests don't have to sleep to 1 second
-        std::this_thread::sleep_for(timeout < 1s ? timeout : 1s);
+        // retry every second, until timeout - mock this to avoid sleeping at all in tests
+        MP_UTILS.sleep_for(timeout < 1s ? timeout : 1s);
     }
+
     on_timeout();
 }
 

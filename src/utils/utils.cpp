@@ -592,3 +592,8 @@ mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
     else
         return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
 }
+
+void multipass::Utils::sleep_for(const std::chrono::milliseconds& ms) const
+{
+    std::this_thread::sleep_for(ms);
+}
