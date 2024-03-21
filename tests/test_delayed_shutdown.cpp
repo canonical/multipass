@@ -22,6 +22,7 @@
 #include "stub_virtual_machine.h"
 
 #include <multipass/delayed_shutdown_timer.h>
+#include <multipass/exceptions/ssh_exception.h>
 
 #include <QEventLoop>
 
@@ -80,6 +81,25 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
 
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
     loop.exec();
+}
+
+TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
+{
+    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
+
+    EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"))).Times(2).WillRepeatedly(Throw(mp::SSHException("nope")));
+
+    mpt::Signal finished;
+    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
+        loop.quit();
+        finished.signal();
+    });
+
+    delayed_shutdown_timer.start(std::chrono::milliseconds(1));
+    loop.exec();
+
+    EXPECT_TRUE(finished.wait_for(std::chrono::milliseconds(1)));
 }
 
 TEST_F(DelayedShutdown, emits_finished_with_no_timer)
