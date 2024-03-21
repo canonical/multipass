@@ -420,3 +420,14 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
     new_iso.read_from(iso_path.toStdString());
     EXPECT_FALSE(new_iso.contains("network-config"));
 }
+
+TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.write_to(iso_path);
+
+    const mp::NetworkInterface dummy_extra_interface{};
+    EXPECT_NO_THROW(
+        mp::cloudInitIsoUtils::add_extra_interface_to_cloud_init("", dummy_extra_interface, iso_path.toStdString()));
+}
