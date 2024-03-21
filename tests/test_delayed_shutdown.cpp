@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_ssh_test_fixture.h"
+#include "mock_virtual_machine.h"
 #include "signal.h"
 #include "stub_virtual_machine.h"
 
@@ -60,6 +61,25 @@ TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
 
     auto finish_invoked = finished.wait_for(std::chrono::seconds(1));
     EXPECT_TRUE(finish_invoked);
+}
+
+TEST_F(DelayedShutdown, wallsImpendingShutdown)
+{
+    static constexpr auto msg_upcoming = "The system is going down for poweroff in 0 minutes";
+    static constexpr auto msg_now = "The system is going down for poweroff now";
+    static const auto upcoming_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_upcoming));
+    static const auto now_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_now));
+
+    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
+
+    EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher)).Times(1); // as we start
+    EXPECT_CALL(vm, ssh_exec(now_cmd_matcher)).Times(1);      // as we finish
+
+    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this] { loop.quit(); });
+
+    delayed_shutdown_timer.start(std::chrono::milliseconds(1));
+    loop.exec();
 }
 
 TEST_F(DelayedShutdown, emits_finished_with_no_timer)
