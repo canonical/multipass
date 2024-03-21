@@ -119,3 +119,10 @@ ethernets:
 
     EXPECT_EQ(mpu::emit_cloud_config(new_network_node), expected_new_network_config_file_content);
 }
+
+TEST(UtilsTests, addOneExtraInterfaceFalseExtraInterface)
+{
+    const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", false};
+    const auto new_network_node = mpu::add_extra_interface_to_network_config("", extra_interface, "");
+    EXPECT_TRUE(new_network_node.IsNull());
+}
