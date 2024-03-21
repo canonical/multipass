@@ -19,6 +19,7 @@
         <Binary Id="CABinary" SourceFile="$(var.CustomActions.TargetDir)\$(var.CustomActions.TargetName).CA.dll" />
         <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" />
         <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" />
+        <CustomAction Id="SetDriverAction" Impersonate="yes" BinaryRef="CABinary" DllEntry="SetDriver" Return="check" />
 
         <Property Id="VBOX_VERSION">
             <RegistrySearch Id="VBOX_VERSION" Root="HKLM" Key="SOFTWARE\Oracle\VirtualBox" Name="Version" Type="raw" />
@@ -27,6 +28,7 @@
         <InstallExecuteSequence>
             <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;HyperV&quot; AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;HyperV&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
+            <Custom Action="SetDriverAction" After="InstallFinalize" Condition="NOT Installed" />
         </InstallExecuteSequence>
     </Fragment>
 </Wix>

@@ -18,4 +18,5 @@ This file contains the declaration of all the localizable strings.
 
     <String Id="CheckHyperV" Value="Checking if Hyper-V is enabled" />
     <String Id="EnableHyperV" Value="Enabling Hyper-V" />
+    <String Id="SettingDriver" Value="Attempting to set driver to [DRIVER]" />
 </WixLocalization>

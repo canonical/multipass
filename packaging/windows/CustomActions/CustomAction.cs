@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Diagnostics;
 using WixToolset.Dtf.WindowsInstaller;
 
@@ -52,6 +53,50 @@ namespace CustomActions
             {
                 session.Log($"Error enabling Hyper-V: {process.StandardError.ReadToEnd().Trim()}");
                 session["HYPER_V_STATE"] = "Failure";
+            }
+
+            return ActionResult.Success;
+        }
+
+        [CustomAction]
+        public static ActionResult SetDriver(Session session)
+        {
+            session.Log("Begin SetDriver");
+            string command = $"\"\"{session["INSTALLFOLDER"]}bin\\multipass.exe\" set local.driver={session["DRIVER"]}\"";
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {command}",
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            session.Log($"{psi.Arguments}");
+
+            Process process = new Process();
+            process.StartInfo = psi;
+
+            int i = 0;
+            int maxRetries = 30;
+            while (i < maxRetries)
+            {
+                process.Start();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0)
+                    break;
+
+                session.Log("Failed to set driver. Will try again in 1 second");
+                session.Log($"Command error: {process.StandardError.ReadToEnd().Trim()}");
+                Thread.Sleep(1000);
+                i++;
+            }
+
+            if (i >= maxRetries)
+            {
+                session.Log($"Could not successfully set driver to {session["DRIVER"]}");
+                return ActionResult.Failure;
             }
 
             return ActionResult.Success;

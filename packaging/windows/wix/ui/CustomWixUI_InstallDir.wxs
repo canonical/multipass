@@ -34,6 +34,7 @@
 
             <ProgressText Action="CheckHyperVAction" Message="!(loc.CheckHyperV)" />
             <ProgressText Action="EnableHyperVAction" Message="!(loc.EnableHyperV)" />
+            <ProgressText Action="SetDriverAction" Message="!(loc.SettingDriver)" />
 
             <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
 
