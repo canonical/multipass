@@ -26,6 +26,12 @@ namespace mpl = multipass::logging;
 
 namespace
 {
+template <typename T>
+bool num_plural(const T& num)
+{
+    return num != T{1}; // use plural for 0 and 2+
+}
+
 void attempt_ssh_exec(mp::VirtualMachine& vm, const std::string& cmd)
 {
     try
@@ -42,14 +48,13 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseco
 {
     if (time_left > std::chrono::milliseconds::zero())
     {
-        auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(time_left);
-        auto minutes_plural = minutes_left != std::chrono::minutes(1); // use plural for 0 and 2+
+        auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(time_left).count();
 
         attempt_ssh_exec(vm,
                          fmt::format("wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
                                      "--cancel {}' to cancel the shutdown.\"",
-                                     minutes_left.count(),
-                                     minutes_plural ? "s" : "",
+                                     minutes_left,
+                                     num_plural(minutes_left) ? "s" : "",
                                      vm.vm_name));
     }
     else
@@ -85,10 +90,12 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
 
     if (delay > decltype(delay)(0))
     {
-        mpl::log(mpl::Level::info, virtual_machine->vm_name,
-                 fmt::format("Shutdown request delayed for {} minute{}",
-                             std::chrono::duration_cast<std::chrono::minutes>(delay).count(),
-                             delay > std::chrono::minutes(1) ? "s" : ""));
+        auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(delay).count();
+        mpl::log(mpl::Level::info,
+                 virtual_machine->vm_name,
+                 fmt::format("Shutdown request delayed for {} minute{}", // TODO say "under a minute" if < 1 minute
+                             minutes_left,
+                             num_plural(minutes_left) ? "s" : ""));
         write_shutdown_message(*virtual_machine, delay);
 
         time_remaining = delay;
