@@ -1272,7 +1272,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
     EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
 
-    auto timeout = std::chrono::seconds{2};
+    auto timeout = std::chrono::milliseconds{2};
     EXPECT_CALL(vm, ssh_hostname(_))
         .WillOnce(WithoutArgs([this]() {
             std::visit(thrower, GetParam());
@@ -1280,9 +1280,13 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
         }))
         .WillRepeatedly(Return("underworld"));
 
+    // TODO@ricab remove this
     REPLACE(ssh_options_set, [](auto...) { return SSH_OK; });
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, sleep_for(_)).WillRepeatedly(Return());
 
     EXPECT_NO_THROW(vm.wait_until_ssh_up(timeout));
 }
