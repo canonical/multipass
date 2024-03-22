@@ -126,10 +126,11 @@ class DaemonSettingNotifier
   }
 
   void set(String value) {
+    state = AsyncValue.data(value);
     ref
         .read(grpcClientProvider)
         .set(arg, value)
-        .whenComplete(() => Timer(50.milliseconds, ref.invalidateSelf))
+        .onError((_, __) => Timer(100.milliseconds, ref.invalidateSelf))
         .ignore();
   }
 
