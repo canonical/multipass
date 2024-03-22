@@ -50,7 +50,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     try
     {
         // Prefer to use Snap package version first
-        auto sshfs_env{mpu::run_in_ssh_session(session, "snap run multipass-sshfs.env")};
+        auto sshfs_env{MP_UTILS.run_in_ssh_session(session, "snap run multipass-sshfs.env")};
 
         auto ld_library_path = mp::utils::match_line_for(sshfs_env, ld_library_path_key);
         auto snap_path = mp::utils::match_line_for(sshfs_env, snap_path_key);
@@ -66,7 +66,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         // Fallback to looking for distro version if snap is not found
         try
         {
-            sshfs_exec = mpu::run_in_ssh_session(session, "sudo which sshfs");
+            sshfs_exec = MP_UTILS.run_in_ssh_session(session, "sudo which sshfs");
         }
         catch (const std::exception& e)
         {
@@ -78,7 +78,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 
     sshfs_exec = mp::utils::trim_end(sshfs_exec);
 
-    auto version_info{mpu::run_in_ssh_session(session, fmt::format("sudo {} -V", sshfs_exec))};
+    auto version_info{MP_UTILS.run_in_ssh_session(session, fmt::format("sudo {} -V", sshfs_exec))};
 
     sshfs_exec += " -o slave -o transform_symlinks -o allow_other -o Compression=no";
 
@@ -127,12 +127,12 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     // Split the path in existing and missing parts.
     const auto& [leading, missing] = mpu::get_path_split(session, target);
 
-    auto output = mpu::run_in_ssh_session(session, "id -u");
+    auto output = MP_UTILS.run_in_ssh_session(session, "id -u");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_uid = std::stoi(output);
 
-    output = mpu::run_in_ssh_session(session, "id -g");
+    output = MP_UTILS.run_in_ssh_session(session, "id -g");
     mpl::log(mpl::Level::debug, category,
              fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_gid = std::stoi(output);

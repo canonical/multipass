@@ -914,7 +914,7 @@ auto instances_running(const Instances& instances)
 {
     for (const auto& instance : instances)
     {
-        if (mp::utils::is_running(instance.second->current_state()))
+        if (MP_UTILS.is_running(instance.second->current_state()))
             return true;
     }
 
@@ -1832,7 +1832,7 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (request->request_ipv4() && mp::utils::is_running(present_state))
+        if (request->request_ipv4() && MP_UTILS.is_running(present_state))
         {
             std::string management_ip = vm.management_ipv4();
             auto all_ipv4 = vm.get_all_ipv4();
@@ -3136,7 +3136,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     if (vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
 
-    if (!mp::utils::is_running(vm.current_state()))
+    if (!MP_UTILS.is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
@@ -3189,7 +3189,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
     if (vm.current_state() == VirtualMachine::State::unknown)
         throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
-    if (!mp::utils::is_running(vm.current_state()))
+    if (!MP_UTILS.is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name)};
 
     if (vm.state == VirtualMachine::State::delayed_shutdown &&
@@ -3546,7 +3546,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
 
-    if (!no_runtime_info && mp::utils::is_running(present_state))
+    if (!no_runtime_info && MP_UTILS.is_running(present_state))
     {
         instance_info->set_load(vm.ssh_exec("cat /proc/loadavg | cut -d ' ' -f1-3"));
         instance_info->set_memory_usage(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $3}'"));
