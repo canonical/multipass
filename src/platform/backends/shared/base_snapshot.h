@@ -21,6 +21,7 @@
 #include <multipass/snapshot.h>
 
 #include <multipass/memory_size.h>
+#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_mount.h>
 
 #include <QJsonObject>
@@ -40,7 +41,7 @@ public:
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
-    BaseSnapshot(const QString& filename, VirtualMachine& vm);
+    BaseSnapshot(const QString& filename, VirtualMachine& vm, VirtualMachineDescription& desc);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
@@ -77,7 +78,7 @@ protected:
     virtual void apply_impl() = 0;
 
 private:
-    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm);
+    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, VirtualMachineDescription& desc);
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
                  std::shared_ptr<Snapshot> parent,

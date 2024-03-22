@@ -166,27 +166,27 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
     assert(index > 0 && "snapshot indices need to start at 1");
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm)
-    : BaseSnapshot{read_snapshot_json(filename), vm}
+mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, VirtualMachineDescription& desc)
+    : BaseSnapshot{read_snapshot_json(filename), vm, desc}
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm)
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, VirtualMachineDescription& desc)
     : BaseSnapshot{
-          json["name"].toString().toStdString(),                                                  // name
-          json["comment"].toString().toStdString(),                                               // comment
-          find_parent(json, vm),                                                                  // parent
-          json["index"].toInt(),                                                                  // index
-          QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs),        // creation_timestamp
-          json["num_cores"].toInt(),                                                              // num_cores
-          MemorySize{json["mem_size"].toString().toStdString()},                                  // mem_size
-          MemorySize{json["disk_space"].toString().toStdString()},                                // disk_space
-          MP_JSONUTILS.read_extra_interfaces(json).value_or(std::vector<mp::NetworkInterface>{}), // extra_interfaces
-          static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                          // state
-          load_mounts(json["mounts"].toArray()),                                                  // mounts
-          json["metadata"].toObject(),                                                            // metadata
-          vm.instance_directory(),                                                                // storage_dir
-          true}                                                                                   // captured
+          json["name"].toString().toStdString(),                                           // name
+          json["comment"].toString().toStdString(),                                        // comment
+          find_parent(json, vm),                                                           // parent
+          json["index"].toInt(),                                                           // index
+          QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
+          json["num_cores"].toInt(),                                                       // num_cores
+          MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
+          MemorySize{json["disk_space"].toString().toStdString()},                         // disk_space
+          MP_JSONUTILS.read_extra_interfaces(json).value_or(desc.extra_interfaces),        // extra_interfaces
+          static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
+          load_mounts(json["mounts"].toArray()),                                           // mounts
+          json["metadata"].toObject(),                                                     // metadata
+          vm.instance_directory(),                                                         // storage_dir
+          true}                                                                            // captured
 {
 }
 
