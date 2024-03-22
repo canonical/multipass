@@ -1491,6 +1491,11 @@ mp::Daemon::~Daemon()
     });
 }
 
+void mp::Daemon::shutdown_grpc_server()
+{
+    daemon_rpc.shutdown_and_wait();
+}
+
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         std::promise<grpc::Status>* status_promise) // clang-format off
