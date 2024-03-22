@@ -119,10 +119,6 @@ std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string match_line_for(const std::string& output, const std::string& matcher);
 
-// virtual machine helpers
-bool is_running(const VirtualMachine::State& state);
-std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
-
 // enum helpers
 template <typename RegisteredQtEnum>
 QString qenum_to_qstring(RegisteredQtEnum val);
@@ -226,9 +222,13 @@ public:
     // scrypt hash generator
     virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
 
+    // virtual machine helpers
+    [[nodiscard]] virtual bool is_running(const VirtualMachine::State& state) const;
+    virtual std::string run_in_ssh_session(SSHSession& session, const std::string& cmd) const;
+
+    // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
-
     virtual void sleep_for(const std::chrono::milliseconds& ms) const;
 };
 } // namespace multipass

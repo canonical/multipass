@@ -189,7 +189,7 @@ std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
 
         try
         {
-            return mpu::run_in_ssh_session(*ssh_session, cmd);
+            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd);
         }
         catch (const SSHException& e)
         {
@@ -207,7 +207,7 @@ std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
 
 void BaseVirtualMachine::renew_ssh_session()
 {
-    if (!mpu::is_running(current_state())) // spend time updating state only if we need a new session
+    if (!MP_UTILS.is_running(current_state())) // spend time updating state only if we need a new session
         throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
 
     mpl::log(logging::Level::debug,
@@ -252,7 +252,7 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4()
 {
     std::vector<std::string> all_ipv4;
 
-    if (mpu::is_running(current_state()))
+    if (MP_UTILS.is_running(current_state()))
     {
         try
         {

@@ -276,7 +276,7 @@ bool mp::utils::valid_mac_address(const std::string& mac)
 }
 
 // Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
-std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd)
+std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd) const
 {
     auto proc = session.exec(cmd);
 
@@ -467,7 +467,7 @@ std::string mp::utils::match_line_for(const std::string& output, const std::stri
     return std::string{};
 }
 
-bool mp::utils::is_running(const VirtualMachine::State& state)
+bool mp::Utils::is_running(const VirtualMachine::State& state) const
 {
     return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
 }
@@ -538,15 +538,16 @@ std::string mp::utils::get_resolved_target(mp::SSHSession& session, const std::s
     switch (target[0])
     {
     case '~':
-        absolute = mp::utils::run_in_ssh_session(
-            session, fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
+        absolute = MP_UTILS.run_in_ssh_session(
+            session,
+            fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
         break;
     case '/':
         absolute = target;
         break;
     default:
         absolute =
-            mp::utils::run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
+            MP_UTILS.run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
         break;
     }
 
@@ -558,9 +559,10 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 {
     std::string absolute{get_resolved_target(session, target)};
 
-    std::string existing = mp::utils::run_in_ssh_session(
-        session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                             absolute));
+    std::string existing = MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                    absolute));
 
     return {existing,
             QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
@@ -569,8 +571,8 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 // Create a directory on a given root folder.
 void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
 {
-    mp::utils::run_in_ssh_session(
-        session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
+    MP_UTILS.run_in_ssh_session(session,
+                                fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
 }
 
 // Set ownership of all directories on a path starting on a given root.
@@ -578,9 +580,12 @@ void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root
 void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target,
                               int vm_user, int vm_group)
 {
-    mp::utils::run_in_ssh_session(session,
-                                  fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user,
-                                              vm_group, relative_target.substr(0, relative_target.find_first_of('/'))));
+    MP_UTILS.run_in_ssh_session(session,
+                                fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'",
+                                            root,
+                                            vm_user,
+                                            vm_group,
+                                            relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
 mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
