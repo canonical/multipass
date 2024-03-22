@@ -53,21 +53,20 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     MockBaseVirtualMachine(Args&&... args)
         : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
     {
-        auto& self = *this;
-        const auto& const_self = self;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_all_ipv4, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, view_snapshots, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_num_snapshots, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, rename_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, delete_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, restore_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, load_snapshots, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_childrens_names, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_snapshot_count, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
+        const auto& const_self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_all_ipv4, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, view_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_num_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, take_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, rename_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, delete_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, restore_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, load_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_childrens_names, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_snapshot_count, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
         MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(const_self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
-        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self,
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this,
                                                      get_snapshot,
                                                      mp::BaseVirtualMachine,
                                                      (A<const std::string&>()));
@@ -97,26 +96,22 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 
     void simulate_ssh_exec() // use if premocking libssh stuff
     {
-        auto& self = *this;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, ssh_exec, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, ssh_exec, mp::BaseVirtualMachine);
     }
 
     void simulate_waiting_for_ssh() // use if premocking libssh stuff
     {
-        auto& self = *this;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, wait_until_ssh_up, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_until_ssh_up, mp::BaseVirtualMachine);
     }
 
     void simulate_cloud_init()
     {
-        auto& self = *this;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, wait_for_cloud_init, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_for_cloud_init, mp::BaseVirtualMachine);
     }
 
     void simulate_no_snapshots_support() const // doing this here to access protected method on the base
     {
-        auto& self = *this;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, require_snapshots_support, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, require_snapshots_support, mp::BaseVirtualMachine);
     }
 };
 
