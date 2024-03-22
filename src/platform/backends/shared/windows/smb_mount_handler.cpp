@@ -35,7 +35,6 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mpu = multipass::utils;
 
 namespace
 {
@@ -322,7 +321,8 @@ try
     mpl::log(mpl::Level::info, category,
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
+    MP_UTILS.run_in_ssh_session(session,
+                                fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
     smb_manager->remove_share(share_name);
 }
 catch (const std::exception& e)

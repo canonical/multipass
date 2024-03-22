@@ -84,6 +84,8 @@ struct SmbMountHandlerTest : public ::Test
         EXPECT_CALL(logger, log).WillRepeatedly(Return());
         logger.expect_log(mpl::Level::info,
                           fmt::format("Initializing native mount {} => {} in '{}'", source, target, vm.vm_name));
+
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(utils, run_in_ssh_session, mp::Utils);
     }
 
     // the returned lambda will modify `output` so that it can be used to mock ssh_channel_read_timeout
