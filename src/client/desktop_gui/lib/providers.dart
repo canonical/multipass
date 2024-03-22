@@ -39,7 +39,7 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
   // this is to de-duplicate errors received from the stream
   Object? lastError;
   while (true) {
-    final timer = Future.delayed(const Duration(seconds: 1));
+    final timer = Future.delayed(900.milliseconds);
     try {
       yield await grpcClient.info();
       lastError = null;
@@ -49,9 +49,13 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
         yield* Stream.error(error, stackTrace);
       }
       lastError = error;
-    } finally {
-      await timer;
     }
+    await timer;
+    // this is so that if the request takes less than 900 milliseconds, it waits the rest of the 900 that remain plus 100 milliseconds
+    // this is so that there is 1 second pause between requests that take less than 1 second
+    // but if the timer is done before the request completes, it still waits at least 100 milliseconds before the next request
+    // so that it does not spam the daemon if requests take longer to complete
+    await Future.delayed(100.milliseconds);
   }
 });
 
