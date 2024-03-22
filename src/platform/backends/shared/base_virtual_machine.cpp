@@ -19,11 +19,16 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
 
@@ -31,9 +36,16 @@
 
 #include <QDir>
 
+#include <chrono>
+#include <functional>
+#include <mutex>
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -64,6 +76,67 @@ std::string trimmed_contents_of(const QString& file_path)
 {
     return mpu::trim(mpu::contents_of(file_path));
 }
+
+template <typename ExceptionT>
+mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
+                                       const mp::VirtualMachine* vm,
+                                       mpl::Level log_level = mpl::Level::trace)
+{
+    assert(vm);
+    mpl::log(log_level, vm->vm_name, e.what());
+    return mp::utils::TimeoutAction::retry;
+};
+
+std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
+                                                       std::chrono::milliseconds timeout,
+                                                       const mp::SSHKeyProvider& key_provider)
+{
+    static constexpr auto wait_step = 1s;
+    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
+
+    std::optional<mp::SSHSession> session = std::nullopt;
+    auto action = [virtual_machine, &key_provider, &session] {
+        virtual_machine->ensure_vm_is_running();
+        try
+        {
+            session.emplace(virtual_machine->ssh_hostname(wait_step),
+                            virtual_machine->ssh_port(),
+                            virtual_machine->ssh_username(),
+                            key_provider);
+
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+            virtual_machine->state = mp::VirtualMachine::State::running;
+            virtual_machine->update_state();
+            return mp::utils::TimeoutAction::done;
+        }
+        catch (const mp::InternalTimeoutException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const mp::SSHException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const mp::IPUnavailableException& e)
+        {
+            return log_and_retry(e, virtual_machine);
+        }
+        catch (const std::runtime_error& e) // transitioning away from catching generic runtime errors
+        {                                   // TODO remove once we're confident this is an anomaly
+            return log_and_retry(e, virtual_machine, mpl::Level::warning);
+        }
+    };
+
+    auto on_timeout = [virtual_machine] {
+        std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+        virtual_machine->state = mp::VirtualMachine::State::unknown;
+        virtual_machine->update_state();
+        throw std::runtime_error(fmt::format("{}: timed out waiting for response", virtual_machine->vm_name));
+    };
+
+    mp::utils::try_action_for(on_timeout, timeout, action);
+    return session;
+}
 } // namespace
 
 namespace multipass
@@ -71,11 +144,18 @@ namespace multipass
 
 BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
                                        const std::string& vm_name,
-                                       const mp::Path& instance_dir)
-    : VirtualMachine(state, vm_name, instance_dir){};
+                                       const SSHKeyProvider& key_provider,
+                                       const Path& instance_dir)
+    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}
+{
+}
 
-BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name, const mp::Path& instance_dir)
-    : VirtualMachine(vm_name, instance_dir){};
+BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
+                                       const SSHKeyProvider& key_provider,
+                                       const Path& instance_dir)
+    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}
+{
+}
 
 void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
                                                               const std::vector<NetworkInterface>& extra_interfaces)
@@ -88,20 +168,95 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
                                                                        cloud_init_config_iso_file_path);
 }
 
-std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
 {
-    std::vector<std::string> all_ipv4;
+    const std::unique_lock lock{state_mutex};
 
-    if (mpu::is_running(current_state()))
+    std::optional<std::string> log_details = std::nullopt;
+    bool reconnect = true;
+    while (true)
     {
-        QString ip_a_output;
+        assert(reconnect && "we should have thrown otherwise");
+        if ((!ssh_session || !ssh_session->is_connected()) && reconnect)
+        {
+            const auto msg =
+                fmt::format("SSH session disconnected{}", log_details ? fmt::format(": {}", *log_details) : "");
+            mpl::log(logging::Level::info, vm_name, msg);
+
+            reconnect = false; // once only
+            renew_ssh_session();
+        }
 
         try
         {
-            SSHSession session{ssh_hostname(), ssh_port(), ssh_username(), key_provider};
+            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd);
+        }
+        catch (const SSHException& e)
+        {
+            assert(ssh_session);
+            if (ssh_session->is_connected() || !reconnect)
+                throw;
 
-            ip_a_output = QString::fromStdString(
-                mpu::run_in_ssh_session(session, "ip -brief -family inet address show scope global"));
+            log_details = e.what();
+            continue; // disconnections are often only detected after attempted use
+        }
+    }
+
+    assert(false && "we should never reach here");
+}
+
+void BaseVirtualMachine::renew_ssh_session()
+{
+    if (!MP_UTILS.is_running(current_state())) // spend time updating state only if we need a new session
+        throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+
+    mpl::log(logging::Level::debug,
+             vm_name,
+             fmt::format("{} SSH session", ssh_session ? "Renewing cached" : "Caching new"));
+
+    ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+}
+
+void BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
+{
+    drop_ssh_session();
+    ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider);
+    mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
+}
+
+void BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
+{
+    auto action = [this] {
+        ensure_vm_is_running();
+        try
+        {
+            ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
+            return mp::utils::TimeoutAction::done;
+        }
+        catch (const SSHExecFailure& e)
+        {
+            return mp::utils::TimeoutAction::retry;
+        }
+        catch (const std::exception& e) // transitioning away from catching generic runtime errors
+        {                               // TODO remove once we're confident this is an anomaly
+            mpl::log(mpl::Level::warning, vm_name, e.what());
+            return mp::utils::TimeoutAction::retry;
+        }
+    };
+
+    auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
+    mp::utils::try_action_for(on_timeout, timeout, action);
+}
+
+std::vector<std::string> BaseVirtualMachine::get_all_ipv4()
+{
+    std::vector<std::string> all_ipv4;
+
+    if (MP_UTILS.is_running(current_state()))
+    {
+        try
+        {
+            auto ip_a_output = QString::fromStdString(ssh_exec("ip -brief -family inet address show scope global"));
 
             QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*(metric \\d+)?\\s*$"),
                                        QRegularExpression::MultilineOption};
@@ -574,6 +729,15 @@ std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const std::
 std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const QString& /*filename*/)
 {
     throw NotImplementedOnThisBackendException{"snapshots"};
+}
+
+void BaseVirtualMachine::drop_ssh_session()
+{
+    if (ssh_session)
+    {
+        mpl::log(mpl::Level::debug, vm_name, "Dropping cached SSH session");
+        ssh_session.reset();
+    }
 }
 
 } // namespace multipass

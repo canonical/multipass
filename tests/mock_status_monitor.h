@@ -29,7 +29,6 @@ namespace test
 struct MockVMStatusMonitor : public VMStatusMonitor
 {
     MOCK_METHOD(void, on_resume, (), (override));
-    MOCK_METHOD(void, on_stop, (), (override));
     MOCK_METHOD(void, on_shutdown, (), (override));
     MOCK_METHOD(void, on_suspend, (), (override));
     MOCK_METHOD(void, on_restart, (const std::string&), (override));

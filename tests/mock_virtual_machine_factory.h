@@ -31,7 +31,9 @@ namespace test
 {
 struct MockVirtualMachineFactory : public VirtualMachineFactory
 {
-    MOCK_METHOD(VirtualMachine::UPtr, create_virtual_machine, (const VirtualMachineDescription&, VMStatusMonitor&),
+    MOCK_METHOD(VirtualMachine::UPtr,
+                create_virtual_machine,
+                (const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&),
                 (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
 

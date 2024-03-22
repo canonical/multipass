@@ -46,7 +46,6 @@ namespace multipass
 {
 
 // Fwd decl
-class SSHKeyProvider;
 class VirtualMachine;
 
 namespace utils
@@ -119,15 +118,6 @@ std::string escape_char(const std::string& s, char c);
 std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string match_line_for(const std::string& output, const std::string& matcher);
-
-// virtual machine helpers
-bool is_running(const VirtualMachine::State& state);
-void wait_until_ssh_up(
-    VirtualMachine* virtual_machine,
-    std::chrono::milliseconds timeout,
-    const SSHKeyProvider& key_provider,
-    std::function<void()> const& ensure_vm_is_running = []() {});
-std::string run_in_ssh_session(SSHSession& session, const std::string& cmd);
 
 // enum helpers
 template <typename RegisteredQtEnum>
@@ -222,9 +212,6 @@ public:
                                            const int timeout = 30000) const;
     virtual bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000) const;
 
-    // virtual machine helpers
-    virtual void wait_for_cloud_init(VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                     const SSHKeyProvider& key_provider) const;
     virtual Path derive_instances_dir(const Path& data_dir,
                                       const Path& backend_directory_name,
                                       const Path& instances_subdir) const;
@@ -235,8 +222,14 @@ public:
     // scrypt hash generator
     virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
 
+    // virtual machine helpers
+    [[nodiscard]] virtual bool is_running(const VirtualMachine::State& state) const;
+    virtual std::string run_in_ssh_session(SSHSession& session, const std::string& cmd) const;
+
+    // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
+    virtual void sleep_for(const std::chrono::milliseconds& ms) const;
 };
 } // namespace multipass
 
@@ -301,9 +294,10 @@ void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chron
         if (try_action(std::forward<Args>(args)...) == TimeoutAction::done)
             return;
 
-        // The < 1s is used for testing so unit tests don't have to sleep to 1 second
-        std::this_thread::sleep_for(timeout < 1s ? timeout : 1s);
+        // retry every second, until timeout - mock this to avoid sleeping at all in tests
+        MP_UTILS.sleep_for(timeout < 1s ? timeout : 1s);
     }
+
     on_timeout();
 }
 

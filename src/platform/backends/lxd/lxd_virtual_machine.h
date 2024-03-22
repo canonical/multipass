@@ -38,9 +38,9 @@ public:
                       const QUrl& base_url,
                       const QString& bridge_name,
                       const QString& storage_pool,
+                      const SSHKeyProvider& key_provider,
                       const Path& instance_dir);
     ~LXDVirtualMachine() override;
-    void stop() override;
     void start() override;
     void shutdown() override;
     void suspend() override;
@@ -48,11 +48,10 @@ public:
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
-    std::string management_ipv4(const SSHKeyProvider& key_provider) override;
+    std::string management_ipv4() override;
     std::string ipv6() override;
     void ensure_vm_is_running() override;
     void ensure_vm_is_running(const std::chrono::milliseconds& timeout);
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
     void update_state() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
@@ -60,8 +59,7 @@ public:
     void add_network_interface(int index, const NetworkInterface& net) override;
     void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
                                               const std::vector<NetworkInterface>& extra_interfaces) override;
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target, const VMMount& mount) override;
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 private:
     const QString name;

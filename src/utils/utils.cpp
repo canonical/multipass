@@ -15,13 +15,10 @@
  *
  */
 
+#include "multipass/exceptions/ssh_exception.h"
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
-#include <multipass/exceptions/internal_timeout_exception.h>
-#include <multipass/exceptions/ip_unavailable_exception.h>
-#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -54,8 +51,6 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-using namespace std::chrono_literals;
-
 namespace
 {
 constexpr auto category = "utils";
@@ -78,15 +73,6 @@ QString find_autostart_target(const QString& subdir, const QString& autostart_fi
 
     return target_path;
 }
-
-template <typename ExceptionT>
-mp::utils::TimeoutAction log_and_retry(const ExceptionT& e, const mp::VirtualMachine* vm,
-                                       mpl::Level log_level = mpl::Level::trace)
-{
-    assert(vm);
-    mpl::log(log_level, vm->vm_name, e.what());
-    return mp::utils::TimeoutAction::retry;
-};
 } // namespace
 
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
@@ -144,31 +130,6 @@ void mp::Utils::make_file_with_content(const std::string& file_name, const std::
         throw std::runtime_error(fmt::format("failed to write to file '{}'", file_name));
 
     return;
-}
-
-void mp::Utils::wait_for_cloud_init(mp::VirtualMachine* virtual_machine, std::chrono::milliseconds timeout,
-                                    const mp::SSHKeyProvider& key_provider) const
-{
-    auto action = [virtual_machine, &key_provider] {
-        virtual_machine->ensure_vm_is_running();
-        try
-        {
-            mp::SSHSession session{virtual_machine->ssh_hostname(), virtual_machine->ssh_port(),
-                                   virtual_machine->ssh_username(), key_provider};
-
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-            auto ssh_process = session.exec({"[ -e /var/lib/cloud/instance/boot-finished ]"});
-            return ssh_process.exit_code() == 0 ? mp::utils::TimeoutAction::done : mp::utils::TimeoutAction::retry;
-        }
-        catch (const std::exception& e)
-        {
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-            mpl::log(mpl::Level::warning, virtual_machine->vm_name, e.what());
-            return mp::utils::TimeoutAction::retry;
-        }
-    };
-    auto on_timeout = [] { throw std::runtime_error("timed out waiting for initialization to complete"); };
-    mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
 std::string mp::Utils::get_kernel_version() const
@@ -314,66 +275,16 @@ bool mp::utils::valid_mac_address(const std::string& mac)
     return match.hasMatch();
 }
 
-void mp::utils::wait_until_ssh_up(VirtualMachine* virtual_machine,
-                                  std::chrono::milliseconds timeout,
-                                  const mp::SSHKeyProvider& key_provider,
-                                  std::function<void()> const& ensure_vm_is_running)
-{
-    static constexpr auto wait_step = 1s;
-    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
-
-    auto action = [virtual_machine, &key_provider, &ensure_vm_is_running] {
-        ensure_vm_is_running();
-        try
-        {
-            mp::SSHSession session{virtual_machine->ssh_hostname(wait_step),
-                                   virtual_machine->ssh_port(),
-                                   virtual_machine->ssh_username(),
-                                   key_provider};
-
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-            virtual_machine->state = VirtualMachine::State::running;
-            virtual_machine->update_state();
-            return mp::utils::TimeoutAction::done;
-        }
-        catch (const InternalTimeoutException& e)
-        {
-            return log_and_retry(e, virtual_machine);
-        }
-        catch (const SSHException& e)
-        {
-            return log_and_retry(e, virtual_machine);
-        }
-        catch (const IPUnavailableException& e)
-        {
-            return log_and_retry(e, virtual_machine);
-        }
-        catch (const std::runtime_error& e) // transitioning away from catching generic runtime errors
-        {                                   // TODO remove once we're confident this is an anomaly
-            return log_and_retry(e, virtual_machine, mpl::Level::warning);
-        }
-    };
-
-    auto on_timeout = [virtual_machine] {
-        std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-        virtual_machine->state = VirtualMachine::State::unknown;
-        virtual_machine->update_state();
-        throw std::runtime_error(fmt::format("{}: timed out waiting for response", virtual_machine->vm_name));
-    };
-
-    mp::utils::try_action_for(on_timeout, timeout, action);
-}
-
 // Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
-std::string mp::utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd)
+std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd) const
 {
     auto proc = session.exec(cmd);
 
-    if (proc.exit_code() != 0)
+    if (auto ec = proc.exit_code() != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
-        mpl::log(mpl::Level::warning, category, fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
-        throw mp::SSHExecFailure(error_msg);
+        mpl::log(mpl::Level::debug, category, fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
+        throw mp::SSHExecFailure(error_msg, ec);
     }
 
     auto output = proc.read_std_output();
@@ -556,7 +467,7 @@ std::string mp::utils::match_line_for(const std::string& output, const std::stri
     return std::string{};
 }
 
-bool mp::utils::is_running(const VirtualMachine::State& state)
+bool mp::Utils::is_running(const VirtualMachine::State& state) const
 {
     return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
 }
@@ -627,15 +538,16 @@ std::string mp::utils::get_resolved_target(mp::SSHSession& session, const std::s
     switch (target[0])
     {
     case '~':
-        absolute = mp::utils::run_in_ssh_session(
-            session, fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
+        absolute = MP_UTILS.run_in_ssh_session(
+            session,
+            fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
         break;
     case '/':
         absolute = target;
         break;
     default:
         absolute =
-            mp::utils::run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
+            MP_UTILS.run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
         break;
     }
 
@@ -647,9 +559,10 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 {
     std::string absolute{get_resolved_target(session, target)};
 
-    std::string existing = mp::utils::run_in_ssh_session(
-        session, fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                             absolute));
+    std::string existing = MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                    absolute));
 
     return {existing,
             QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
@@ -658,8 +571,8 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 // Create a directory on a given root folder.
 void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
 {
-    mp::utils::run_in_ssh_session(
-        session, fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
+    MP_UTILS.run_in_ssh_session(session,
+                                fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
 }
 
 // Set ownership of all directories on a path starting on a given root.
@@ -667,9 +580,12 @@ void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root
 void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target,
                               int vm_user, int vm_group)
 {
-    mp::utils::run_in_ssh_session(session,
-                                  fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'", root, vm_user,
-                                              vm_group, relative_target.substr(0, relative_target.find_first_of('/'))));
+    MP_UTILS.run_in_ssh_session(session,
+                                fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'",
+                                            root,
+                                            vm_user,
+                                            vm_group,
+                                            relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
 mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
@@ -680,4 +596,9 @@ mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
         return QDir(data_dir).filePath(instances_subdir);
     else
         return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
+}
+
+void multipass::Utils::sleep_for(const std::chrono::milliseconds& ms) const
+{
+    std::this_thread::sleep_for(ms);
 }

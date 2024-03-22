@@ -49,11 +49,13 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                               const SSHKeyProvider& key_provider,
                                                                                VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),
                                                     monitor,
+                                                    key_provider,
                                                     get_instance_directory(desc.vm_name));
 }
 

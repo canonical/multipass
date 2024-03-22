@@ -96,10 +96,10 @@ void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
     // We need to create the part of the path which does not still exist, and set then the correct ownership.
     if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
     {
-        const auto default_uid = std::stoi(mpu::run_in_ssh_session(session, "id -u"));
+        const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -u"));
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, default_uid));
-        const auto default_gid = std::stoi(mpu::run_in_ssh_session(session, "id -g"));
+        const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -g"));
         mpl::log(mpl::Level::debug, category,
                  fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, default_gid));
 
@@ -107,8 +107,9 @@ void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
         mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
     }
 
-    mpu::run_in_ssh_session(
-        session, fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
+    MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912", tag, target));
 }
 
 void QemuMountHandler::deactivate_impl(bool force)
@@ -117,7 +118,8 @@ try
     mpl::log(mpl::Level::info, category,
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    mpu::run_in_ssh_session(session, fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
+    MP_UTILS.run_in_ssh_session(session,
+                                fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
 }
 catch (const std::exception& e)
 {

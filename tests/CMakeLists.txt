@@ -103,6 +103,7 @@ add_executable(multipass_tests
   test_simple_streams_manifest.cpp
   test_singleton.cpp
   test_ssh_client.cpp
+  test_ssh_exec_failure.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
   test_ssh_session.cpp

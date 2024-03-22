@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
 #define MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
 
+#include <multipass/format.h>
+
 #include <cerrno>
 #include <cstring>
 #include <stdexcept>

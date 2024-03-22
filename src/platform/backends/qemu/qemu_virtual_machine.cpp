@@ -212,10 +212,12 @@ void convert_to_qcow2_v3_if_necessary(const mp::Path& image_path, const std::str
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
                                            QemuPlatform* qemu_platform,
                                            VMStatusMonitor& monitor,
-                                           const mp::Path& instance_dir)
+                                           const SSHKeyProvider& key_provider,
+                                           const Path& instance_dir)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
                                                                                                       : State::off,
                          desc.vm_name,
+                         key_provider,
                          instance_dir},
       desc{desc},
       mac_addr{desc.default_mac_address},
@@ -262,12 +264,11 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
         this,
         &QemuVirtualMachine::on_synchronize_clock,
         this,
-        [this](const SSHKeyProvider* key_provider) {
+        [this]() {
             try
             {
                 mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
-                mp::SSHSession session{VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), *key_provider};
-                mp::utils::run_in_ssh_session(session, "sudo timedatectl set-local-rtc 0 --adjust-system-clock");
+                ssh_exec("sudo timedatectl set-local-rtc 0 --adjust-system-clock");
             }
             catch (const std::exception& e)
             {
@@ -342,31 +343,31 @@ void mp::QemuVirtualMachine::start()
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }
 
-void mp::QemuVirtualMachine::stop()
-{
-    shutdown();
-}
-
 void mp::QemuVirtualMachine::shutdown()
 {
     if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
-    else if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
-             vm_process->running())
-    {
-        vm_process->write(qmp_execute_json("system_powerdown"));
-        vm_process->wait_for_finished(timeout);
-    }
     else
     {
-        if (state == State::starting)
-            update_shutdown_status = false;
+        drop_ssh_session();
 
-        if (vm_process)
+        if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
+            vm_process->running())
         {
-            vm_process->kill();
+            vm_process->write(qmp_execute_json("system_powerdown"));
+            vm_process->wait_for_finished(timeout);
+        }
+        else
+        {
+            if (state == State::starting)
+                update_shutdown_status = false;
+
+            if (vm_process)
+            {
+                vm_process->kill();
+            }
         }
     }
 }
@@ -382,6 +383,7 @@ void mp::QemuVirtualMachine::suspend()
             update_shutdown_status = false;
         }
 
+        drop_ssh_session();
         vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
         vm_process->wait_for_finished(timeout);
         vm_process.reset(nullptr);
@@ -423,33 +425,38 @@ void mp::QemuVirtualMachine::on_error()
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    auto current_state = state;
-
-    state = State::off;
-    if (current_state == State::starting)
     {
-        if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
-            saved_error_msg.append("\n");
-        saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
-        state_wait.wait(lock, [this] { return shutdown_while_starting; });
+        std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+        auto current_state = state;
+
+        state = State::off;
+        if (current_state == State::starting)
+        {
+            if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
+                saved_error_msg.append("\n");
+            saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
+            state_wait.wait(lock, [this] { return shutdown_while_starting; });
+        }
+
+        management_ip = std::nullopt;
+        drop_ssh_session();
+        update_state();
+        vm_process.reset(nullptr);
     }
 
-    management_ip = std::nullopt;
-    update_state();
-    vm_process.reset(nullptr);
-    lock.unlock();
     monitor->on_shutdown();
 }
 
 void mp::QemuVirtualMachine::on_suspend()
 {
+    drop_ssh_session();
     state = State::suspended;
     monitor->on_suspend();
 }
 
 void mp::QemuVirtualMachine::on_restart()
 {
+    drop_ssh_session();
     state = State::restarting;
     update_state();
 
@@ -491,7 +498,7 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::QemuVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
+std::string mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
     {
@@ -510,17 +517,14 @@ std::string mp::QemuVirtualMachine::ipv6()
     return {};
 }
 
-void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
+void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    mp::utils::wait_until_ssh_up(this,
-                                 timeout,
-                                 key_provider,
-                                 std::bind(&QemuVirtualMachine::ensure_vm_is_running, this));
+    BaseVirtualMachine::wait_until_ssh_up(timeout);
 
     if (is_starting_from_suspend)
     {
         emit on_delete_memory_snapshot();
-        emit on_synchronize_clock(&key_provider);
+        emit on_synchronize_clock();
     }
 }
 
@@ -646,11 +650,10 @@ void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backe
     return qemu_platform->add_network_interface(desc, net);
 }
 
-mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                                         const std::string& target,
+mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                          const VMMount& mount)
 {
-    return std::make_unique<QemuMountHandler>(this, ssh_key_provider, target, mount);
+    return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
 }
 
 mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()

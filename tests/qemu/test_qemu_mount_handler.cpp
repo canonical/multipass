@@ -38,7 +38,8 @@ namespace
 {
 struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
-    explicit MockQemuVirtualMachine(const std::string& name) : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{name}
+    explicit MockQemuVirtualMachine(const std::string& name)
+        : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{name, mpt::StubSSHKeyProvider{}}
     {
     }
 

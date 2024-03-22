@@ -21,8 +21,6 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
-#include <multipass/ssh/ssh_session.h>
-#include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/linux/backend_utils.h>
@@ -273,12 +271,13 @@ std::string management_ipv4_impl(std::optional<mp::IPAddress>& management_ip,
 }
 } // namespace
 
-mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const mp::VirtualMachineDescription& desc,
+mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const VirtualMachineDescription& desc,
                                                  const std::string& bridge_name,
-                                                 mp::VMStatusMonitor& monitor,
-                                                 const mp::LibvirtWrapper::UPtr& libvirt_wrapper,
-                                                 const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+                                                 VMStatusMonitor& monitor,
+                                                 const LibvirtWrapper::UPtr& libvirt_wrapper,
+                                                 const SSHKeyProvider& key_provider,
+                                                 const Path& instance_dir)
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       username{desc.ssh_username},
       desc{desc},
       monitor{&monitor},
@@ -346,38 +345,38 @@ void mp::LibVirtVirtualMachine::start()
     monitor->on_resume();
 }
 
-void mp::LibVirtVirtualMachine::stop()
-{
-    shutdown();
-}
-
 void mp::LibVirtVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
-    if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
-    {
-        if (!domain || libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
-        {
-            auto warning_string{
-                fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
-            mpl::log(mpl::Level::warning, vm_name, warning_string);
-            throw std::runtime_error(warning_string);
-        }
-
-        state = State::off;
-        update_state();
-    }
-    else if (state == State::starting)
-    {
-        libvirt_wrapper->virDomainDestroy(domain.get());
-        state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        update_state();
-    }
-    else if (state == State::suspended)
+    if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+    }
+    else
+    {
+        drop_ssh_session();
+
+        if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
+        {
+            if (!domain || libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
+            {
+                auto warning_string{
+                    fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
+                mpl::log(mpl::Level::warning, vm_name, warning_string);
+                throw std::runtime_error(warning_string);
+            }
+
+            state = State::off;
+            update_state();
+        }
+        else if (state == State::starting)
+        {
+            libvirt_wrapper->virDomainDestroy(domain.get());
+            state_wait.wait(lock, [this] { return shutdown_while_starting; });
+            update_state();
+        }
     }
 
     lock.unlock();
@@ -390,6 +389,7 @@ void mp::LibVirtVirtualMachine::suspend()
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
     if (state == State::running || state == State::delayed_shutdown)
     {
+        drop_ssh_session();
         if (!domain || libvirt_wrapper->virDomainManagedSave(domain.get(), 0) < 0)
         {
             auto warning_string{
@@ -458,7 +458,7 @@ std::string mp::LibVirtVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LibVirtVirtualMachine::management_ipv4(const SSHKeyProvider& /* not used on this backend */)
+std::string mp::LibVirtVirtualMachine::management_ipv4()
 {
     return management_ipv4_impl(management_ip, mac_addr, libvirt_wrapper);
 }
@@ -466,14 +466,6 @@ std::string mp::LibVirtVirtualMachine::management_ipv4(const SSHKeyProvider& /* 
 std::string mp::LibVirtVirtualMachine::ipv6()
 {
     return {};
-}
-
-void mp::LibVirtVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
-{
-    mp::utils::wait_until_ssh_up(this,
-                                 timeout,
-                                 key_provider,
-                                 std::bind(&LibVirtVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::LibVirtVirtualMachine::update_state()
