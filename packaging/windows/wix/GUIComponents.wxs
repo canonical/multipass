@@ -2,12 +2,12 @@
     <Fragment>
         <ComponentGroup Id="GUIComponents" Directory="INSTALLFOLDER">
             <Component Id="MultipassGUI" Subdirectory="bin">
-                <File Source="bin\multipass.gui.exe" />
+                <File Id="multipass.gui.exe" Source="bin\multipass.gui.exe" />
             </Component>
 
             <Component>
                 <RegistryValue Root="HKCU" Key="SOFTWARE\Canonical\Multipass" Name="installed" Type="integer" Value="1" KeyPath="yes" />
-                <Shortcut Name="Multipass" Directory="ProgramMenuFolder" Icon="mp.exe" />
+                <Shortcut Name="Multipass" Directory="ProgramMenuFolder" Icon="mp.exe" Target="[#multipass.gui.exe]" />
             </Component>
         </ComponentGroup>
     </Fragment>

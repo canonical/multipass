@@ -4,6 +4,7 @@
         <DefineConstants>Version=$(BuildVersion)</DefineConstants>
         <InstallerPlatform>x64</InstallerPlatform>
         <PublishDir>..\..\..\build\_CPack_Packages\win64\NSIS\multipass-1.14.0-dev.1501+g6ea0adfda.win-win64\</PublishDir>
+        <SuppressIces>ICE69</SuppressIces>
     </PropertyGroup>
 
     <ItemGroup>

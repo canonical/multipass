@@ -5,6 +5,10 @@
         <MediaTemplate EmbedCab="yes" />
         <Icon Id="mp.exe" SourceFile="icon.ico" />
         <Property Id="ARPPRODUCTICON" Value="mp.exe" />
+        <Property Id="ARPURLINFOABOUT" Value="https://multipass.run/" />
+        <Property Id="ARPHELPLINK" Value="https://github.com/CanonicalLtd/multipass" />
+
+        <Binary Id="CABinary" SourceFile="$(var.CustomActions.TargetDir)\$(var.CustomActions.TargetName).CA.dll" />
 
         <FeatureRef Id="Main" />
 
@@ -27,9 +31,7 @@
             <File Source="UbuntuMono-R.ttf" TrueType="true" />
             <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
         </Component>
-    </Fragment>
 
-    <Fragment>
         <Component Id="Licence" Directory="INSTALLFOLDER">
             <File Source="UBUNTU-LICENCE.txt" />
         </Component>

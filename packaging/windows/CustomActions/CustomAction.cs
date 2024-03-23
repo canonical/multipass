@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Threading;
 using System.Diagnostics;
 using WixToolset.Dtf.WindowsInstaller;
@@ -9,7 +11,7 @@ namespace CustomActions
         [CustomAction]
         public static ActionResult CheckHyperV(Session session)
         {
-            session.Log("Begin EnableHyperVAction");
+            session.Log("Begin CheckHyperV");
 
             ProcessStartInfo psi = new ProcessStartInfo
             {
@@ -24,10 +26,11 @@ namespace CustomActions
             Process process = Process.Start(psi);
             process.WaitForExit();
 
-            if (process.ExitCode == 0)
-                session["HYPER_V_STATE"] = process.StandardOutput.ReadToEnd().Trim();
-            else if (process.ExitCode != 0)
-                session.Log($"Error enabling Hyper-V: {process.StandardError.ReadToEnd().Trim()}");
+            if (process.ExitCode != 0)
+            {
+                session.Log($"Error checking Hyper-V status: {process.StandardError.ReadToEnd().Trim()}");
+                return ActionResult.Failure;
+            }
 
             return ActionResult.Success;
         }
@@ -35,7 +38,7 @@ namespace CustomActions
         [CustomAction]
         public static ActionResult EnableHyperV(Session session)
         {
-            session.Log("Begin EnableHyperVAction");
+            session.Log("Begin EnableHyperV");
 
             ProcessStartInfo psi = new ProcessStartInfo
             {
@@ -52,7 +55,7 @@ namespace CustomActions
             if (process.ExitCode != 0)
             {
                 session.Log($"Error enabling Hyper-V: {process.StandardError.ReadToEnd().Trim()}");
-                session["HYPER_V_STATE"] = "Failure";
+                return ActionResult.Failure;
             }
 
             return ActionResult.Success;
@@ -96,9 +99,88 @@ namespace CustomActions
             if (i >= maxRetries)
             {
                 session.Log($"Could not successfully set driver to {session["DRIVER"]}");
-                return ActionResult.Failure;
             }
 
+            return ActionResult.Success;
+        }
+
+        [CustomAction]
+        public static ActionResult RemoveData(Session session)
+        {
+            session.Log("Begin RemoveData");
+            string command = $"\"\"{session["INSTALLFOLDER"]}bin\\multipass.exe\" delete -p --all\"";
+
+            Record record = new Record();
+            record.FormatString = session["RemoveDataText"];
+            MessageResult result = session.Message(InstallMessage.Error | (InstallMessage)MessageButtons.YesNo | (InstallMessage)MessageDefaultButton.Button2, record);
+
+            if (result == MessageResult.No || string.Equals(session["REMOVE_DATA"], "NO", StringComparison.OrdinalIgnoreCase))
+                return ActionResult.Success;
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {command}",
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            session.Log($"{psi.Arguments}");
+
+            Process process = new Process();
+            process.StartInfo = psi;
+            process.Start();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+                session.Log($"Failed to delete Multipass instances: {process.StandardError.ReadToEnd().Trim()}");
+
+            string systemDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            var path = Path.Combine(systemDir, "config\\systemprofile\\AppData\\Local\\multipassd");
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+
+            path = Path.Combine(systemDir, "config\\systemprofile\\AppData\\Roaming\\multipassd");
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+
+            path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\multipass";
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+
+            path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\multipass-client-certificate";
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+
+            return ActionResult.Success;
+        }
+
+        [CustomAction]
+        public static ActionResult InstallClientCerts(Session session)
+        {
+            session.Log("Begin InstallClientCerts");
+
+            string command = $"\"\"{session["INSTALLFOLDER"]}bin\\multipassd.exe\" /install\"";
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {command}",
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            session.Log($"{psi.Arguments}");
+
+            Process process = new Process();
+            process.StartInfo = psi;
+            process.Start();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+                session.Log($"Failed to install client certificates: {process.StandardError.ReadToEnd().Trim()}");
+
+            Thread.Sleep(10000);
             return ActionResult.Success;
         }
     }

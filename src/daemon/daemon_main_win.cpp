@@ -23,15 +23,13 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
-
 #include <multipass/utils.h>
 #include <multipass/version.h>
-
-#include <multipass/format.h>
 
 #include <QCoreApplication>
 
@@ -65,79 +63,6 @@ BOOL windows_console_ctrl_handler(DWORD dwCtrlType)
     default:
         return FALSE;
     }
-}
-
-class MessageBuf
-{
-public:
-    ~MessageBuf()
-    {
-        if (buf)
-            LocalFree(buf);
-    }
-    auto data()
-    {
-        return buf;
-    }
-    auto get()
-    {
-        return &buf;
-    }
-
-private:
-    char* buf = nullptr;
-};
-
-std::string last_error_message()
-{
-    auto error = GetLastError();
-    if (error == ERROR_SUCCESS)
-        return std::string();
-
-    MessageBuf buf;
-    auto size = FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<char*>(buf.get()), 0, nullptr);
-
-    std::string message{buf.data(), size};
-    mp::utils::trim_end(message);
-    return message;
-}
-
-class ServiceHandle
-{
-public:
-    ServiceHandle(SC_HANDLE handle, const char* msg) : handle{handle}
-    {
-        if (handle == nullptr)
-            throw std::runtime_error(fmt::format("{} failed: '{}'", msg, last_error_message()));
-    }
-
-    ~ServiceHandle()
-    {
-        if (handle)
-            CloseServiceHandle(handle);
-    }
-
-    SC_HANDLE get() const
-    {
-        return handle;
-    }
-
-private:
-    SC_HANDLE handle;
-};
-
-std::string get_command_to_start_service()
-{
-    std::array<char, MAX_PATH> path;
-
-    DWORD size{static_cast<DWORD>(path.size())};
-    auto ok = GetModuleFileName(nullptr, path.data(), size);
-    if (!ok)
-        throw std::runtime_error(fmt::format("GetModuleFileName failed: '{}'", last_error_message()));
-
-    return fmt::format("\"{}\" /svc --verbosity debug", path.data());
 }
 
 enum class RegisterConsoleHandler

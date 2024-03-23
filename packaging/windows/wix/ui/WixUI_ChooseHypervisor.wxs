@@ -15,8 +15,8 @@
 
                 <Control Id="HypervisorGroup" Type="RadioButtonGroup" X="20" Y="55" Width="330" Height="120" Property="DRIVER">
                     <RadioButtonGroup Property="DRIVER">
-                        <RadioButton Value="HyperV" X="0" Y="0" Width="295" Height="16" Text="!(loc.WixHyperV)" />
-                        <RadioButton Value="VirtualBox" X="0" Y="20" Width="295" Height="16" Text="!(loc.WixVirtualBox)" />
+                        <RadioButton Value="hyperv" X="0" Y="0" Width="295" Height="16" Text="!(loc.WixHyperV)" />
+                        <RadioButton Value="virtualbox" X="0" Y="20" Width="295" Height="16" Text="!(loc.WixVirtualBox)" />
                     </RadioButtonGroup>
                 </Control>
             </Dialog>

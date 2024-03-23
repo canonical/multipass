@@ -6,29 +6,35 @@
                 <ServiceInstall Name="Multipass" DisplayName="Multipass Service" Description="Provides a service to create and manage virtual machines" Arguments="/svc --verbosity debug" Start="auto" Type="ownProcess" ErrorControl="normal">
                     <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" ResetPeriodInDays="49710" />
                 </ServiceInstall>
-                <ServiceControl Name="Multipass" Stop="both" Remove="uninstall" />
+                <ServiceControl Name="Multipass" Start="install" Stop="both" Remove="uninstall" />
 
                 <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="EventMessageFile" Value="%SystemRoot%\\System32\EventCreate.exe" />
-                <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="TypesSupported" Value="7" />
+                <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="TypesSupported" Type="integer" Value="7" />
             </Component>
         </ComponentGroup>
 
-        <Property Id="DRIVER" Value="HyperV" Secure="yes" />
+        <Property Id="DRIVER" Value="hyperv" Secure="yes" />
         <Property Id="HYPER_V_STATE" Value="Disabled" Secure="yes" />
+        <Property Id="REMOVE_DATA" Value="YES" />
+        <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
-        <Binary Id="CABinary" SourceFile="$(var.CustomActions.TargetDir)\$(var.CustomActions.TargetName).CA.dll" />
-        <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" />
-        <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" />
-        <CustomAction Id="SetDriverAction" Impersonate="yes" BinaryRef="CABinary" DllEntry="SetDriver" Return="check" />
+        <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" Execute="deferred" />
+        <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" Execute="deferred" />
+        <CustomAction Id="SetDriverAction" BinaryRef="CABinary" DllEntry="SetDriver" Return="ignore" />
+        <CustomAction Id="RemoveDataAction" BinaryRef="CABinary" DllEntry="RemoveData" Return="ignore" Execute="commit" />
+        <CustomAction Id="InstallClientCertsAction" BinaryRef="CABinary" DllEntry="InstallClientCerts" Return="ignore" Execute="immediate" />
 
         <Property Id="VBOX_VERSION">
             <RegistrySearch Id="VBOX_VERSION" Root="HKLM" Key="SOFTWARE\Oracle\VirtualBox" Name="Version" Type="raw" />
         </Property>
 
         <InstallExecuteSequence>
-            <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;HyperV&quot; AND NOT Installed" />
-            <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;HyperV&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
+            <Custom Action="InstallClientCertsAction" After="InstallFiles" />
+
+            <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
+            <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;hyperv&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
             <Custom Action="SetDriverAction" After="InstallFinalize" Condition="NOT Installed" />
+            <Custom Action="RemoveDataAction" After="InstallInitialize" Condition="Installed AND REMOVE=&quot;ALL&quot;" />
         </InstallExecuteSequence>
     </Fragment>
 </Wix>
