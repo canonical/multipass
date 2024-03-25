@@ -94,6 +94,8 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
+    void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                    const NetworkInterface& extra_interface);
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
