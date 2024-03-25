@@ -84,7 +84,7 @@ ethernets:
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
-    const std::string& default_mac_addr = "52:54:00:56:78:90";
+    const std::string default_mac_addr = "52:54:00:56:78:90";
 
     const auto new_network_node =
         mpu::add_extra_interface_to_network_config(default_mac_addr,

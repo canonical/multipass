@@ -696,7 +696,12 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     }
 }
 
-void mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(
+mp::CloudInitFileOps::CloudInitFileOps(const Singleton<CloudInitFileOps>::PrivatePass& pass) noexcept
+    : Singleton<CloudInitFileOps>::Singleton{pass}
+{
+}
+
+void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
     const std::filesystem::path& cloud_init_path)
@@ -720,9 +725,9 @@ void mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }
 
-void mp::cloudInitIsoUtils::add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
-                                                              const NetworkInterface& extra_interface,
-                                                              const std::filesystem::path& cloud_init_path)
+void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
+                                                             const NetworkInterface& extra_interface,
+                                                             const std::filesystem::path& cloud_init_path)
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);

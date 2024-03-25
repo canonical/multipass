@@ -163,7 +163,7 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
     const std::filesystem::path cloud_init_config_iso_file_path =
         std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
 
-    mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+    MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces(default_mac_addr,
                                                                        extra_interfaces,
                                                                        cloud_init_config_iso_file_path);
 }
