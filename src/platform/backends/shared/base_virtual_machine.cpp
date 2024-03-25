@@ -88,6 +88,17 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
                                                                        cloud_init_config_iso_file_path);
 }
 
+void BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                                    const NetworkInterface& extra_interface)
+{
+    const std::filesystem::path cloud_init_config_iso_file_path =
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+
+    MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
+                                                             extra_interface,
+                                                             cloud_init_config_iso_file_path);
+}
+
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
     std::vector<std::string> all_ipv4;
