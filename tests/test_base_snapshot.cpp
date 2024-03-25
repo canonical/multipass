@@ -95,6 +95,16 @@ struct TestBaseSnapshot : public Test
         return ret;
     }
 
+    static mp::VirtualMachineDescription stub_desc()
+    {
+        mp::VirtualMachineDescription desc{};
+        desc.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
+                                                                  {"eth14", "14:14:14:14:14:14", true},
+                                                                  {"eth15", "15:15:15:15:15:15", true}};
+
+        return desc;
+    }
+
     static QJsonObject test_snapshot_json()
     {
         static auto json_doc = [] {
@@ -107,6 +117,18 @@ struct TestBaseSnapshot : public Test
         }();
 
         return json_doc.object();
+    }
+
+    static QJsonObject test_legacy_snapshot_json()
+    {
+        auto json = test_snapshot_json();
+
+        // Remove the "extra_interfaces" field.
+        auto snapshot_entry = json["snapshot"].toObject();
+        snapshot_entry.remove("extra_interfaces");
+        json["snapshot"] = snapshot_entry;
+
+        return json;
     }
 
     static void mod_snapshot_json(QJsonObject& json, const QString& key, const QJsonValue& new_value)
@@ -135,6 +157,7 @@ struct TestBaseSnapshot : public Test
 
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
+    mp::VirtualMachineDescription desc = stub_desc();
     NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
@@ -297,7 +320,7 @@ TEST_F(TestBaseSnapshot, rejectsNullDiskSize)
 
 TEST_F(TestBaseSnapshot, reconstructsFromJson)
 {
-    MockBaseSnapshot{test_json_file_path, vm};
+    MockBaseSnapshot{test_json_file_path, vm, desc};
 }
 
 TEST_F(TestBaseSnapshot, adoptsNameFromJson)
@@ -306,7 +329,7 @@ TEST_F(TestBaseSnapshot, adoptsNameFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "name", snapshot_name);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_name(), snapshot_name);
 }
 
@@ -316,7 +339,7 @@ TEST_F(TestBaseSnapshot, adoptsCommentFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "comment", snapshot_comment);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_comment(), snapshot_comment);
 }
 
@@ -330,7 +353,7 @@ TEST_F(TestBaseSnapshot, linksToParentFromJson)
     EXPECT_CALL(vm, get_snapshot(TypedEq<int>(parent_idx)))
         .WillOnce(Return(std::make_shared<MockBaseSnapshot>(parent_name, "mock parent snapshot", nullptr, specs, vm)));
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_parents_name(), parent_name);
 }
 
@@ -340,7 +363,7 @@ TEST_F(TestBaseSnapshot, adoptsIndexFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_index(), index);
 }
 
@@ -350,7 +373,7 @@ TEST_F(TestBaseSnapshot, adoptsTimestampFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "creation_timestamp", timestamp);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_creation_timestamp().toString(Qt::ISODateWithMs), timestamp);
 }
 
@@ -360,7 +383,7 @@ TEST_F(TestBaseSnapshot, adoptsNumCoresFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "num_cores", num_cores);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_num_cores(), num_cores);
 }
 
@@ -370,7 +393,7 @@ TEST_F(TestBaseSnapshot, adoptsMemSizeFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "mem_size", mem);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_mem_size().in_bytes(), QString{mem}.toInt());
 }
 
@@ -380,7 +403,7 @@ TEST_F(TestBaseSnapshot, adoptsDiskSpaceFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "disk_space", disk);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_disk_space().in_bytes(), QString{disk}.toInt());
 }
 
@@ -390,8 +413,16 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "extra_interfaces", MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
+}
+
+TEST_F(TestBaseSnapshot, doesNotComplainOnLegacyShapshot)
+{
+    auto json = test_legacy_snapshot_json();
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
+    EXPECT_EQ(snapshot.get_extra_interfaces(), desc.extra_interfaces);
 }
 
 TEST_F(TestBaseSnapshot, adoptsStateFromJson)
@@ -400,7 +431,7 @@ TEST_F(TestBaseSnapshot, adoptsStateFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "state", static_cast<int>(state));
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_state(), state);
 }
 
@@ -422,7 +453,7 @@ TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "metadata", metadata);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_metadata(), metadata);
 }
 
@@ -459,7 +490,7 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "mounts", mounts);
 
-    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     auto snapshot_mounts = snapshot.get_mounts();
 
     ASSERT_THAT(snapshot_mounts, SizeIs(mounts.size()));
@@ -492,7 +523,7 @@ TEST_P(TestSnapshotRejectedNonPositiveIndices, refusesNonPositiveIndexFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm, desc}),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("not positive"), HasSubstr(std::to_string(index)))));
 }
@@ -505,7 +536,7 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm, desc}),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Maximum"), HasSubstr(std::to_string(index)))));
 }
@@ -513,7 +544,7 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
 TEST_F(TestBaseSnapshot, setsName)
 {
     constexpr auto new_name = "Murray";
-    auto snapshot = MockBaseSnapshot{test_json_file_path, vm};
+    auto snapshot = MockBaseSnapshot{test_json_file_path, vm, desc};
 
     snapshot.set_name(new_name);
     EXPECT_EQ(snapshot.get_name(), new_name);
@@ -523,7 +554,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 {
     constexpr auto new_comment = "I once owned a dog that was smarter than you.\n"
                                  "He must have taught you everything you know.";
-    auto snapshot = MockBaseSnapshot{test_json_file_path, vm};
+    auto snapshot = MockBaseSnapshot{test_json_file_path, vm, desc};
 
     snapshot.set_comment(new_comment);
     EXPECT_EQ(snapshot.get_comment(), new_comment);
@@ -531,7 +562,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 
 TEST_F(TestBaseSnapshot, setsParent)
 {
-    auto child = MockBaseSnapshot{test_json_file_path, vm};
+    auto child = MockBaseSnapshot{test_json_file_path, vm, desc};
     auto parent = std::make_shared<MockBaseSnapshot>("parent", "", nullptr, specs, vm);
 
     child.set_parent(parent);
@@ -551,11 +582,11 @@ TEST_P(TestSnapshotPersistence, persistsOnEdition)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
 
-    MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm};
+    MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm, desc};
     setter(snapshot_orig);
 
     const auto file_path = derive_persisted_snapshot_file_path(index);
-    const MockBaseSnapshot snapshot_edited{file_path, vm};
+    const MockBaseSnapshot snapshot_edited{file_path, vm, desc};
     EXPECT_EQ(snapshot_edited, snapshot_orig);
 }
 
@@ -662,7 +693,7 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
         .WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
-        (MockBaseSnapshot{test_json_file_path, vm}),
+        (MockBaseSnapshot{test_json_file_path, vm, desc}),
         std::runtime_error,
         mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(test_json_file_path.toStdString()))));
 }
@@ -670,7 +701,7 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 TEST_F(TestBaseSnapshot, throwsOnEmptyJson)
 {
     const auto snapshot_file_path = plant_snapshot_json(QJsonObject{});
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Empty")));
 }
@@ -690,7 +721,7 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
         "(Murray): Alright, then. ROLL! I shall ROLL through the gates of hell! Must you take the fun out of "
         "everything?");
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Could not parse snapshot JSON")));
 }
@@ -698,7 +729,7 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
 TEST_F(TestBaseSnapshot, throwsOnMissingParent)
 {
     EXPECT_CALL(vm, get_snapshot(An<int>())).WillOnce(Throw(std::out_of_range{"Incognito"}));
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Missing snapshot parent")));
 }
