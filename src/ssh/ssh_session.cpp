@@ -35,7 +35,7 @@ mp::SSHSession::SSHSession(const std::string& host,
                            const std::string& username,
                            const SSHKeyProvider& key_provider,
                            const std::chrono::milliseconds timeout)
-    : session{ssh_new(), ssh_free}
+    : session{ssh_new(), ssh_free}, mut{}
 {
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
@@ -60,6 +60,27 @@ mp::SSHSession::SSHSession(const std::string& host,
                         ssh_userauth_publickey,
                         nullptr,
                         key_provider.private_key());
+}
+
+multipass::SSHSession::SSHSession(multipass::SSHSession&& other)
+    : SSHSession(std::move(other), std::unique_lock{other.mut})
+{
+}
+
+multipass::SSHSession::SSHSession(multipass::SSHSession&& other, std::unique_lock<std::mutex>)
+    : session{std::move(other.session)}, mut{}
+{
+}
+
+multipass::SSHSession& multipass::SSHSession::operator=(multipass::SSHSession&& other)
+{
+    if (this != &other)
+    {
+        std::scoped_lock lock{mut, other.mut};
+        session = std::move(other.session);
+    }
+
+    return *this;
 }
 
 multipass::SSHSession::~SSHSession()
