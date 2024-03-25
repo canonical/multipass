@@ -102,7 +102,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
     // New networks configuration was moved to the instance settings handler, add_network_interface mustn't be called.
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
 
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();

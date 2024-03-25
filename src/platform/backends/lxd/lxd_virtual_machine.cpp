@@ -472,7 +472,9 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
     lxd_request(manager, "PATCH", url(), patch_json);
 }
 
-void mp::LXDVirtualMachine::add_network_interface(int index, const mp::NetworkInterface& net)
+void mp::LXDVirtualMachine::add_network_interface(int index,
+                                                  const std::string& default_mac_addr,
+                                                  const mp::NetworkInterface& net)
 {
     assert(manager);
 

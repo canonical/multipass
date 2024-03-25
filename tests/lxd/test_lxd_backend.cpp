@@ -2386,7 +2386,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     machine->shutdown();
 
-    machine->add_network_interface(1, {"id", "52:54:00:56:78:90", true});
+    machine->add_network_interface(1, "", {"id", "52:54:00:56:78:90", true});
 
     EXPECT_EQ(times_called, 1u);
 }

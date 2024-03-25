@@ -54,7 +54,7 @@ public:
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
     std::vector<std::string> get_all_ipv4() override;
-    void add_network_interface(int index, const NetworkInterface& net) override
+    void add_network_interface(int index, const std::string& default_mac_addr, const NetworkInterface& net) override
     {
         throw NotImplementedOnThisBackendException("networks");
     }
