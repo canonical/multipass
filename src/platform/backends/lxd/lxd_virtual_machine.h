@@ -62,6 +62,8 @@ public:
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 private:
+    void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                    const NetworkInterface& extra_interface);
     const QString name;
     const std::string username;
     std::optional<int> port;

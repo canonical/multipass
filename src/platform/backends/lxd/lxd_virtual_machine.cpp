@@ -518,3 +518,28 @@ std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handl
 
     return std::make_unique<LXDMountHandler>(manager, this, &key_provider, target, mount);
 }
+
+void mp::LXDVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                                       const NetworkInterface& extra_interface)
+{
+    const QJsonObject instance_info = lxd_request(manager, "GET", url());
+    QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
+    QJsonObject config_section = instance_info_metadata["config"].toObject();
+
+    QJsonValueRef meta_data = config_section["user.meta-data"];
+    assert(!meta_data.isNull());
+
+    meta_data = QString::fromStdString(
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data.toString().toStdString())));
+
+    QJsonValueRef network_config_data = config_section["user.network-config"];
+    network_config_data = QString::fromStdString(mpu::emit_cloud_config(
+        mpu::add_extra_interface_to_network_config(default_mac_addr,
+                                                   extra_interface,
+                                                   network_config_data.toString().toStdString())));
+
+    instance_info_metadata["config"] = config_section;
+
+    const QJsonObject json_reply = lxd_request(manager, "PUT", url(), instance_info_metadata);
+    lxd_wait(manager, base_url, json_reply, timeout_milliseconds);
+}
