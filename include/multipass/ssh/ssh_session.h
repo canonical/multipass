@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 
 namespace multipass
@@ -48,16 +49,17 @@ public:
 
     ~SSHSession();
 
-    operator ssh_session();
     SSHProcess exec(const std::string& cmd);
-    void force_shutdown();
-
     [[nodiscard]] bool is_connected() const;
+
+    operator ssh_session(); // careful, not thread safe
+    void force_shutdown();  // careful, not thread safe
 
 private:
     void set_option(ssh_options_e type, const void* value);
 
     std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
+    mutable std::mutex mut;
 };
 } // namespace multipass
 #endif // MULTIPASS_SSH_H
