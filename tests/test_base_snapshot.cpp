@@ -119,6 +119,18 @@ struct TestBaseSnapshot : public Test
         return json_doc.object();
     }
 
+    static QJsonObject test_legacy_snapshot_json()
+    {
+        auto json = test_snapshot_json();
+
+        // Remove the "extra_interfaces" field.
+        auto snapshot_entry = json["snapshot"].toObject();
+        snapshot_entry.remove("extra_interfaces");
+        json["snapshot"] = snapshot_entry;
+
+        return json;
+    }
+
     static void mod_snapshot_json(QJsonObject& json, const QString& key, const QJsonValue& new_value)
     {
         const auto snapshot_key = QStringLiteral("snapshot");
@@ -403,6 +415,14 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
+}
+
+TEST_F(TestBaseSnapshot, doesNotComplainOnLegacyShapshot)
+{
+    auto json = test_legacy_snapshot_json();
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
+    EXPECT_EQ(snapshot.get_extra_interfaces(), desc.extra_interfaces);
 }
 
 TEST_F(TestBaseSnapshot, adoptsStateFromJson)
