@@ -372,7 +372,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
-    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces(default_mac_addr,
                                                                                        extra_interfaces,
                                                                                        iso_path.toStdString()));
 
@@ -413,7 +413,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
-    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
+    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces(default_mac_addr,
                                                                                        empty_extra_interfaces,
                                                                                        iso_path.toStdString()));
     mp::CloudInitIso new_iso;
@@ -429,5 +429,5 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 
     const mp::NetworkInterface dummy_extra_interface{};
     EXPECT_NO_THROW(
-        mp::cloudInitIsoUtils::add_extra_interface_to_cloud_init("", dummy_extra_interface, iso_path.toStdString()));
+        MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init("", dummy_extra_interface, iso_path.toStdString()));
 }

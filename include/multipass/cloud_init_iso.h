@@ -26,9 +26,12 @@
 #include <string>
 #include <vector>
 
+#include <multipass/singleton.h>
+
+#define MP_CLOUD_INIT_FILE_OPS multipass::CloudInitFileOps::instance()
+
 namespace multipass
 {
-struct NetworkInterface;
 class CloudInitIso
 {
 public:
@@ -61,14 +64,18 @@ private:
     std::vector<FileEntry> files;
 };
 
-namespace cloudInitIsoUtils
+struct NetworkInterface;
+class CloudInitFileOps : public Singleton<CloudInitFileOps>
 {
-void update_cloud_init_with_new_extra_interfaces(const std::string& default_mac_addr,
-                                                 const std::vector<NetworkInterface>& extra_interfaces,
-                                                 const std::filesystem::path& cloud_init_path);
-void add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
-                                       const NetworkInterface& extra_interfaces,
-                                       const std::filesystem::path& cloud_init_path);
-}
-}
+public:
+    CloudInitFileOps(const Singleton<CloudInitFileOps>::PrivatePass&) noexcept;
+
+    virtual void update_cloud_init_with_new_extra_interfaces(const std::string& default_mac_addr,
+                                                             const std::vector<NetworkInterface>& extra_interfaces,
+                                                             const std::filesystem::path& cloud_init_path);
+    virtual void add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
+                                                   const NetworkInterface& extra_interfaces,
+                                                   const std::filesystem::path& cloud_init_path);
+};
+} // namespace multipass
 #endif // MULTIPASS_CLOUD_INIT_ISO_H
