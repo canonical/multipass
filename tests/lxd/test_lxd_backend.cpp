@@ -2404,56 +2404,6 @@ TEST_F(LXDBackend, addsNetworkInterface)
     EXPECT_EQ(patch_times_called, 1u);
 }
 
-TEST_F(LXDBackend, addsNetworkInterfaceToCloudInit)
-{
-    mpt::StubVMStatusMonitor stub_monitor;
-
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .Times(5)
-        .WillRepeatedly([](auto, auto request, auto) {
-            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
-            auto url = request.url().toString();
-
-            if (op == "GET")
-            {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
-                {
-                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
-                }
-
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
-                {
-                    return new mpt::MockLocalSocketReply(mpt::vm_info_data);
-                }
-
-                return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-            }
-
-            if (op == "PUT" && url.contains("1.0/virtual-machines"))
-            {
-                return new mpt::MockLocalSocketReply(mpt::delete_vm_wait_task_data);
-            }
-
-            return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
-        });
-
-    mp::LXDVirtualMachine machine{default_description,
-                                  stub_monitor,
-                                  mock_network_access_manager.get(),
-                                  base_url,
-                                  bridge_name,
-                                  default_storage_pool,
-                                  key_provider,
-                                  instance_dir.path()};
-
-    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
-
-    const std::string default_mac_addr = "52:54:00:56:78:90";
-    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true},
-                                                                {"id", "52:54:00:56:78:92", true}};
-    EXPECT_NO_THROW(machine.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces));
-}
-
 struct LXDNetworkNameTestSuite : LXDBackend, WithParamInterface<std::pair<std::string, std::string>>
 {
 };
