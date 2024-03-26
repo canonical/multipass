@@ -486,6 +486,7 @@ void mp::LXDVirtualMachine::add_network_interface(int index,
     QJsonObject patch_json{{"devices", QJsonObject{{net_name, net_config}}}};
 
     lxd_request(manager, "PATCH", url(), patch_json);
+    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
 void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,

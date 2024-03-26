@@ -2348,27 +2348,40 @@ TEST_F(LXDBackend, createsBridgesViaBackendUtils)
 TEST_F(LXDBackend, addsNetworkInterface)
 {
     mpt::StubVMStatusMonitor stub_monitor;
-    unsigned times_called = 0;
+    unsigned patch_times_called = 0;
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
-        .WillRepeatedly([&times_called](auto, auto request, auto outgoingData) {
+        .WillRepeatedly([&patch_times_called](auto, auto request, auto outgoingData) {
             outgoingData->open(QIODevice::ReadOnly);
             auto data = outgoingData->readAll();
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET")
             {
-                return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
+                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+                }
+                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::vm_info_data);
+                }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
-                     data.contains("stop"))
+            if (op == "PUT")
             {
-                return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+                if (url.contains("1.0/virtual-machines/pied-piper-valley/state") && data.contains("stop"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+                }
+                if (url.contains("1.0/virtual-machines"))
+                {
+                    return new mpt::MockLocalSocketReply(mpt::delete_vm_wait_task_data);
+                }
             }
-            else if (op == "PATCH")
+            if (op == "PATCH")
             {
-                ++times_called;
+                ++patch_times_called;
 
                 EXPECT_EQ(data.toStdString(),
                           "{\"devices\":{\"eth2\":{\"hwaddr\":\"52:54:00:56:78:90\",\"name\":"
@@ -2388,7 +2401,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     machine->add_network_interface(1, "", {"id", "52:54:00:56:78:90", true});
 
-    EXPECT_EQ(times_called, 1u);
+    EXPECT_EQ(patch_times_called, 1u);
 }
 
 TEST_F(LXDBackend, addsNetworkInterfaceToCloudInit)
@@ -2415,7 +2428,8 @@ TEST_F(LXDBackend, addsNetworkInterfaceToCloudInit)
 
                 return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines"))
+
+            if (op == "PUT" && url.contains("1.0/virtual-machines"))
             {
                 return new mpt::MockLocalSocketReply(mpt::delete_vm_wait_task_data);
             }
