@@ -80,19 +80,25 @@ mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::uni
     : session_lock{std::move(session_lock)}, // this is held until the exit code is requested or this is destroyed
       session{session},
       cmd{cmd},
-      channel{make_channel(session, cmd)}
+      channel{make_channel(session, cmd)},
+      exit_status{std::nullopt}
 {
     assert(this->session_lock.owns_lock());
 }
 
 int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
+    if (exit_status)
+    {
+        assert(!session_lock.owns_lock());
+        return *exit_status;
+    }
+
     auto unlock_guard = sg::make_scope_guard([this]() noexcept {
         if (session_lock.owns_lock()) // if we timed out on an earlier call, we already unlocked
             session_lock.unlock();
     });
 
-    exit_status = std::nullopt;
     ExitStatusCallback cb{channel.get(), exit_status};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};
