@@ -342,14 +342,29 @@ void mp::QemuVirtualMachine::start()
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }
 
-void mp::QemuVirtualMachine::stop()
+void mp::QemuVirtualMachine::stop(bool force)
 {
-    shutdown();
+    shutdown(force);
 }
 
-void mp::QemuVirtualMachine::shutdown()
+void mp::QemuVirtualMachine::shutdown(bool force)
 {
-    if (state == State::suspended)
+    if (force)
+    {
+        state = State::off;
+        mpl::log(mpl::Level::info, vm_name, "Forced shutdown");
+
+        if (vm_process)
+        {
+            mpl::log(mpl::Level::info, vm_name, "Killing process");
+            vm_process->kill();
+        }
+        else
+        {
+            mpl::log(mpl::Level::info, vm_name, "No process to kill");
+        }
+    }
+    else if (state == State::suspended)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }

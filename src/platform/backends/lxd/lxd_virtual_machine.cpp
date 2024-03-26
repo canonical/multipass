@@ -260,7 +260,7 @@ void mp::LXDVirtualMachine::start()
     update_state();
 }
 
-void mp::LXDVirtualMachine::stop()
+void mp::LXDVirtualMachine::stop(bool force)
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
@@ -270,14 +270,13 @@ void mp::LXDVirtualMachine::stop()
         mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
         return;
     }
-
-    if (present_state == State::suspended)
+    else if (present_state == State::suspended && !force)
     {
         mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
         return;
     }
 
-    request_state("stop");
+    request_state("stop", {{"force", force}});
 
     state = State::stopped;
 
@@ -292,9 +291,9 @@ void mp::LXDVirtualMachine::stop()
         update_state();
 }
 
-void mp::LXDVirtualMachine::shutdown()
+void mp::LXDVirtualMachine::shutdown(bool force)
 {
-    stop();
+    stop(force);
 }
 
 void mp::LXDVirtualMachine::suspend()
@@ -412,9 +411,13 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-void mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject args)
 {
-    const QJsonObject state_json{{"action", new_state}};
+    QJsonObject state_json{{"action", new_state}};
+    for (auto it = args.constBegin(); it != args.constEnd(); it++)
+    {
+        state_json.insert(it.key(), it.value());
+    }
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 

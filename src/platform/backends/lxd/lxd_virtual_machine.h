@@ -40,9 +40,9 @@ public:
                       const QString& storage_pool,
                       const Path& instance_dir);
     ~LXDVirtualMachine() override;
-    void stop() override;
+    void stop(bool force = false) override;
     void start() override;
-    void shutdown() override;
+    void shutdown(bool force = false) override;
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
@@ -78,7 +78,7 @@ private:
     const QUrl url();
     const QUrl state_url();
     const QUrl network_leases_url();
-    void request_state(const QString& new_state);
+    void request_state(const QString& new_state, const QJsonObject args = {});
 };
 } // namespace multipass
 #endif // MULTIPASS_LXD_VIRTUAL_MACHINE_H
