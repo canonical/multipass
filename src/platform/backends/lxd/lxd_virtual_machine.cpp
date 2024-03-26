@@ -474,14 +474,14 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
 
 void mp::LXDVirtualMachine::add_network_interface(int index,
                                                   const std::string& default_mac_addr,
-                                                  const mp::NetworkInterface& net)
+                                                  const mp::NetworkInterface& extra_interface)
 {
     assert(manager);
 
     auto net_name = QStringLiteral("eth%1").arg(index + 1);
     auto net_config = create_bridged_interface_json(net_name,
-                                                    QString::fromStdString(net.id),
-                                                    QString::fromStdString(net.mac_address));
+                                                    QString::fromStdString(extra_interface.id),
+                                                    QString::fromStdString(extra_interface.mac_address));
 
     QJsonObject patch_json{{"devices", QJsonObject{{net_name, net_config}}}};
 
