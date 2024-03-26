@@ -43,7 +43,9 @@ public:
     BaseVirtualMachine(const std::string& vm_name, const Path& instance_dir);
 
     std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
-    void add_network_interface(int index, const std::string& default_mac_addr, const NetworkInterface& net) override
+    void add_network_interface(int index,
+                               const std::string& default_mac_addr,
+                               const NetworkInterface& extra_interface) override
     {
         throw NotImplementedOnThisBackendException("networks");
     }
