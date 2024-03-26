@@ -64,7 +64,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    exit_status_mock.return_exit_code(SSH_ERROR);
+                    exit_status_mock.set_exit_status(exit_status_mock.failure_status);
                 }
             }
             return SSH_OK;
@@ -93,7 +93,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 {
                     *fail_invoked = true;
                 }
-                exit_status_mock.return_exit_code(SSH_ERROR);
+                exit_status_mock.set_exit_status(exit_status_mock.failure_status);
             }
             else if (next_expected_cmd != commands.end())
             {

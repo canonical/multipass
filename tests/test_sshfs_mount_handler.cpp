@@ -73,14 +73,14 @@ struct SSHFSMountHandlerTest : public ::Test
     {
         return [this, expected_cmds, &invoked](ssh_channel, const char* raw_cmd) {
             std::string cmd{raw_cmd};
-            exit_status_mock.return_exit_code(SSH_OK);
+            exit_status_mock.set_exit_status(exit_status_mock.success_status);
 
             for (const auto& expected_cmd : expected_cmds)
             {
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    exit_status_mock.return_exit_code(SSH_ERROR);
+                    exit_status_mock.set_exit_status(exit_status_mock.failure_status);
                     break;
                 }
             }

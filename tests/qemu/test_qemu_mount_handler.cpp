@@ -111,7 +111,7 @@ struct QemuMountHandlerTest : public ::Test
             if (const auto it = command_outputs.find(command); it != command_outputs.end())
             {
                 output = it->second.output;
-                exit_status_mock.return_exit_code(it->second.exit_code);
+                exit_status_mock.set_exit_status(it->second.exit_code);
             }
             else
             {
