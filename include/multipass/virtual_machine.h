@@ -63,7 +63,7 @@ public:
 
     virtual ~VirtualMachine() = default;
     virtual void start() = 0;
-    virtual void shutdown(bool force = false) = 0;
+    virtual void shutdown(const bool force = false) = 0;
     virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;

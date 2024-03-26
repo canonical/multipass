@@ -44,7 +44,7 @@ public:
     ~LibVirtVirtualMachine();
 
     void start() override;
-    void shutdown(bool force = false) override;
+    void shutdown(const bool force = false) override;
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
