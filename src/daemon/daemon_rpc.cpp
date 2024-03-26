@@ -137,6 +137,12 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address, const CertProvider& 
     mpl::log(mpl::Level::info, category, fmt::format("gRPC listening on {}", server_address));
 }
 
+void mp::DaemonRpc::shutdown_and_wait()
+{
+    server->Shutdown();
+    server->Wait();
+}
+
 grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context,
                                    grpc::ServerReaderWriter<CreateReply, CreateRequest>* server)
 {

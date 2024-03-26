@@ -66,6 +66,8 @@ protected:
     QJsonObject retrieve_metadata_for(const std::string& name) override;
 
 public slots:
+    virtual void shutdown_grpc_server();
+
     virtual void create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         std::promise<grpc::Status>* status_promise);

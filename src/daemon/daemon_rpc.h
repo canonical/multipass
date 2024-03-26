@@ -54,6 +54,8 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service, private Disabl
 public:
     DaemonRpc(const std::string& server_address, const CertProvider& cert_provider, CertStore* client_cert_store);
 
+    void shutdown_and_wait();
+
 signals:
     void on_create(const CreateRequest* request, grpc::ServerReaderWriter<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise);
