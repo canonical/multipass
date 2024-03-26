@@ -2179,6 +2179,31 @@ TEST_F(Daemon, setWorksIfUserAuthorizes)
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
+TEST_F(Daemon, set_works_if_bridged_interface_is_empty)
+{
+    const auto key = "local.instance.cpus";
+    const auto value = "8";
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, fmt::format("Succeeded setting {}={}", key, value));
+
+    mp::SetRequest request;
+    request.set_key(key);
+    request.set_val(value);
+    request.set_authorized(true);
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
+
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value))).Times(1);
+
+    auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
+}
+
 TEST_F(Daemon, setDoesNotSetIfUserDeniesAuthorization)
 {
     const std::string key{"local.instance.bridged"}, value{"true"};
