@@ -76,6 +76,7 @@ public:
     virtual void add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
                                                    const NetworkInterface& extra_interfaces,
                                                    const std::filesystem::path& cloud_init_path) const;
+    virtual std::string get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLOUD_INIT_ISO_H
