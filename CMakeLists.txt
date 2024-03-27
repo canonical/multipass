@@ -111,7 +111,7 @@ find_package(gRPC CONFIG REQUIRED)
 add_subdirectory(3rd-party)
 
 # Qt config
-find_package(Qt6 COMPONENTS Core Concurrent Network Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 
 # POCO config
 find_package(Poco REQUIRED COMPONENTS Foundation Zip)
