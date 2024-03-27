@@ -1,6 +1,7 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
-        <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+        <MajorUpgrade AllowDowngrades="yes" />
+        <Launch Condition="WindowsBuild >= 16299" Message="!(loc.FeatureUpdateReqd)" />
 
         <MediaTemplate EmbedCab="yes" />
         <Icon Id="mp.exe" SourceFile="icon.ico" />
