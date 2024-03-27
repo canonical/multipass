@@ -96,9 +96,9 @@ protected:
     void renew_ssh_session();
 
     virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                            const NetworkInterface& extra_interface);
+                                                            const NetworkInterface& extra_interface) const;
     virtual void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                      const std::vector<NetworkInterface>& extra_interfaces);
+                                                      const std::vector<NetworkInterface>& extra_interfaces) const;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;

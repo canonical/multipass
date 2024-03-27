@@ -157,8 +157,9 @@ BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
 {
 }
 
-void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                              const std::vector<NetworkInterface>& extra_interfaces)
+void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(
+    const std::string& default_mac_addr,
+    const std::vector<NetworkInterface>& extra_interfaces) const
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
         std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
@@ -169,7 +170,7 @@ void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string&
 }
 
 void BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                                    const NetworkInterface& extra_interface)
+                                                                    const NetworkInterface& extra_interface) const
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
         std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";

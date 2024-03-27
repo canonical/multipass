@@ -63,9 +63,9 @@ public:
 
 private:
     void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                    const NetworkInterface& extra_interface) override;
+                                                    const NetworkInterface& extra_interface) const override;
     void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                              const std::vector<NetworkInterface>& extra_interfaces) override;
+                                              const std::vector<NetworkInterface>& extra_interfaces) const override;
 
     const QString name;
     const std::string username;
@@ -78,7 +78,7 @@ private:
     const QString mac_addr;
     const QString storage_pool;
 
-    const QUrl url();
+    const QUrl url() const;
     const QUrl state_url();
     const QUrl network_leases_url();
     void request_state(const QString& new_state);
