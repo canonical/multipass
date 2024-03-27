@@ -430,3 +430,12 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
     EXPECT_NO_THROW(
         MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init("", dummy_extra_interface, iso_path.toStdString()));
 }
+
+TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.write_to(iso_path);
+
+    EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()), "vm1");
+}

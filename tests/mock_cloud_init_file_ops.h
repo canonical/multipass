@@ -37,6 +37,7 @@ public:
                 add_extra_interface_to_cloud_init,
                 (const std::string&, const NetworkInterface&, const std::filesystem::path&),
                 (const, override));
+    MOCK_METHOD(std::string, get_instance_id_from_cloud_init, (const std::filesystem::path&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockCloudInitFileOps, CloudInitFileOps);
 };
