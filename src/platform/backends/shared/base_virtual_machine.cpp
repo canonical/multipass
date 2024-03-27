@@ -100,6 +100,14 @@ void BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::s
                                                              cloud_init_config_iso_file_path);
 }
 
+std::string BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
+{
+    const std::filesystem::path cloud_init_config_iso_file_path =
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
+}
+
 std::vector<std::string> BaseVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
 {
     std::vector<std::string> all_ipv4;
