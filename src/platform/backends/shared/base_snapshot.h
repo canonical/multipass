@@ -47,6 +47,7 @@ public:
     int get_index() const noexcept override;
     std::string get_name() const override;
     std::string get_comment() const override;
+    std::string get_instance_id() const noexcept override;
     QDateTime get_creation_timestamp() const noexcept override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
@@ -138,6 +139,12 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 inline int multipass::BaseSnapshot::get_index() const noexcept
 {
     return index;
+}
+
+inline std::string multipass::BaseSnapshot::get_instance_id() const noexcept
+{
+    // return the actual id later
+    return std::string();
 }
 
 inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const noexcept
