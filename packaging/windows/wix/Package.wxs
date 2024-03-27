@@ -36,21 +36,29 @@
             <ComponentGroupRef Id="CLIClientComponents" />
             <ComponentGroupRef Id="DaemonComponents" />
             <ComponentGroupRef Id="GUIComponents" />
-            <ComponentRef Id="Fonts" />
-            <ComponentRef Id="Licence" />
+            <ComponentGroupRef Id="AdditionalComponents" />
             <ComponentGroupRef Id="MultipassSupportComponents" />
         </Feature>
     </Fragment>
 
     <Fragment>
-        <Component Id="Fonts" Directory="FontsFolder">
-            <File Source="UbuntuMono-R.ttf" TrueType="true" />
-            <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
-        </Component>
+        <ComponentGroup Id="AdditionalComponents" Directory="INSTALLFOLDER">
+            <Component Directory="FontsFolder">
+                <File Source="UbuntuMono-R.ttf" TrueType="true" />
+                <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
+            </Component>
 
-        <Component Id="Licence" Directory="INSTALLFOLDER">
-            <File Source="UBUNTU-LICENCE.txt" />
-        </Component>
+            <Component>
+                <File Source="UBUNTU-LICENCE.txt" />
+            </Component>
+
+            <Component>
+                <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\multipass.exe">
+                    <RegistryValue Value="[INSTALLFOLDER]bin\multipass.exe" />
+                    <RegistryValue Name="Path" Value="[INSTALLFOLDER]bin" />
+                </RegistryKey>
+            </Component>
+        </ComponentGroup>
     </Fragment>
 
     <Fragment>
