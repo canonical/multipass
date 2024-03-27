@@ -8,8 +8,10 @@
                 </ServiceInstall>
                 <ServiceControl Name="Multipass" Start="install" Stop="both" Remove="uninstall" />
 
-                <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="EventMessageFile" Value="%SystemRoot%\\System32\EventCreate.exe" />
-                <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass" Name="TypesSupported" Type="integer" Value="7" />
+                <RegistryKey Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Multipass">
+                    <RegistryValue Name="EventMessageFile" Value="%SystemRoot%\\System32\EventCreate.exe" />
+                    <RegistryValue Name="TypesSupported" Type="integer" Value="7" />
+                </RegistryKey>
             </Component>
         </ComponentGroup>
 
