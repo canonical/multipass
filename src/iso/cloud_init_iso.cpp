@@ -735,3 +735,13 @@ void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& 
         mpu::add_extra_interface_to_network_config(default_mac_addr, extra_interface, iso_file["network-config"]));
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }
+
+std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const
+{
+    CloudInitIso iso_file;
+    iso_file.read_from(cloud_init_path);
+    const std::string& meta_data_file_content = iso_file.at("meta-data");
+    const auto meta_data_node = YAML::Load(meta_data_file_content);
+
+    return meta_data_node["instance-id"].as<std::string>();
+}
