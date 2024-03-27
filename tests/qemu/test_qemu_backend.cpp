@@ -757,6 +757,8 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 
     auto snapshot_name = "elvis";
     auto snapshot_comment = "has left the building";
+    auto instance_id = "vm1";
+
     const mp::VMSpecs specs{2,
                             mp::MemorySize{"3.21G"},
                             mp::MemorySize{"4.32M"},
@@ -767,7 +769,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
                             {},
                             false,
                             {}};
-    auto snapshot = machine.make_specific_snapshot(snapshot_name, snapshot_comment, specs, nullptr);
+    auto snapshot = machine.make_specific_snapshot(snapshot_name, snapshot_comment, instance_id, specs, nullptr);
     EXPECT_EQ(snapshot->get_name(), snapshot_name);
     EXPECT_EQ(snapshot->get_comment(), snapshot_comment);
     EXPECT_EQ(snapshot->get_num_cores(), specs.num_cores);

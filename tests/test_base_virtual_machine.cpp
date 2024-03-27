@@ -83,6 +83,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 make_specific_snapshot,
                 (const std::string& snapshot_name,
                  const std::string& comment,
+                 const std::string& instance_id,
                  const mp::VMSpecs& specs,
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
@@ -207,8 +208,8 @@ struct BaseVM : public Test
 {
     void mock_snapshotting()
     {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
-            .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _))
+            .WillRepeatedly(WithArgs<0, 4>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
                 auto ret = std::make_shared<NiceMock<mpt::MockSnapshot>>();
                 EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
                 EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
@@ -379,7 +380,7 @@ TEST_F(BaseVM, takesSnapshots)
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, capture).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
 
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -398,7 +399,7 @@ TEST_F(BaseVM, deletesSnapshots)
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, erase).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
     vm.delete_snapshot("s1");
 
@@ -411,7 +412,7 @@ TEST_F(BaseVM, countsCurrentSnapshots)
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillRepeatedly(Return(snapshot));
 
     vm.take_snapshot(specs, "s1", "");
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -437,7 +438,7 @@ TEST_F(BaseVM, countsTotalSnapshots)
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillRepeatedly(Return(snapshot));
 
     vm.take_snapshot(specs, "s1", "");
     vm.take_snapshot(specs, "s2", "");
@@ -664,7 +665,7 @@ TEST_F(BaseVM, renamesSnapshot)
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name()).WillRepeatedly(ReturnPointee(&current_name));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
 
     vm.take_snapshot({}, old_name, "as ;lklkh afa");
 
@@ -1017,7 +1018,7 @@ TEST_F(BaseVM, takeSnapshotRevertsToNullHeadOnFirstFailure)
 {
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, capture).WillOnce(Throw(std::runtime_error{"intentional"}));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot)).RetiresOnSaturation();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot)).RetiresOnSaturation();
 
     mp::VMSpecs specs{};
     EXPECT_ANY_THROW(vm.take_snapshot(specs, "", ""));
@@ -1049,7 +1050,7 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
         .WillOnce(Throw(std::runtime_error{"intentional"})) // causes persisting to break, after successful capture
         .RetiresOnSaturation();
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(failing_snapshot)).RetiresOnSaturation();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(failing_snapshot)).RetiresOnSaturation();
 
     mp::VMSpecs specs{};
     EXPECT_ANY_THROW(vm.take_snapshot(specs, attempted_name, ""));
@@ -1066,7 +1067,7 @@ TEST_F(BaseVM, renameFailureIsReverted)
     std::string attempted_name = "after";
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name()).WillRepeatedly(Return(current_name));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
 
     vm.take_snapshot({}, current_name, "");
 

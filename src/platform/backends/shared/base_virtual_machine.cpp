@@ -401,7 +401,8 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
     auto rollback_on_failure = make_take_snapshot_rollback(it);
 
     // get instance id from cloud-init file or lxd cloud init config and pass to make_specific_snapshot
-    auto ret = head_snapshot = it->second = make_specific_snapshot(sname, comment, specs, head_snapshot);
+    auto ret = head_snapshot = it->second =
+        make_specific_snapshot(sname, comment, get_instance_id_from_the_cloud_init(), specs, head_snapshot);
     ret->capture();
 
     ++snapshot_count;
@@ -741,6 +742,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
 
 std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const std::string& /*snapshot_name*/,
                                                                      const std::string& /*comment*/,
+                                                                     const std::string& /*instance_id*/,
                                                                      const VMSpecs& /*specs*/,
                                                                      std::shared_ptr<Snapshot> /*parent*/)
 {
