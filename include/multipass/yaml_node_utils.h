@@ -40,8 +40,13 @@ YAML::Node make_cloud_init_meta_config_with_id_tweak(const std::string& file_con
 // when file_content is non-empty, make_cloud_init_network_config constructs the node based on the string and replaces
 // the default mac address and extra interfaces
 YAML::Node make_cloud_init_network_config(const std::string& default_mac_addr,
-                                          const std::vector<multipass::NetworkInterface>& extra_interfaces,
+                                          const std::vector<NetworkInterface>& extra_interfaces,
                                           const std::string& file_content = std::string{});
+// adds one extra interface to the network_config_file_content baseline, it creats the default address node
+// together with the extra interface node when it is empty,
+YAML::Node add_extra_interface_to_network_config(const std::string& default_mac_addr,
+                                                 const NetworkInterface& extra_interface,
+                                                 const std::string& network_config_file_content);
 } // namespace utils
 } // namespace multipass
 #endif // MULTIPASS_YAML_NODE_UTILS_H
