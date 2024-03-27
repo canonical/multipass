@@ -704,7 +704,7 @@ mp::CloudInitFileOps::CloudInitFileOps(const Singleton<CloudInitFileOps>::Privat
 void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
-    const std::filesystem::path& cloud_init_path)
+    const std::filesystem::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
@@ -727,7 +727,7 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces(
 
 void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
                                                              const NetworkInterface& extra_interface,
-                                                             const std::filesystem::path& cloud_init_path)
+                                                             const std::filesystem::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
