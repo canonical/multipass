@@ -13,6 +13,21 @@
         <FeatureRef Id="Main" />
 
         <ui:WixUI Id="CustomWixUI_InstallDir"  InstallDirectory="INSTALLFOLDER" />
+
+        <Property Id="MP_INSTALLED">
+            <RegistrySearch Id="MP_INSTALLED" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Multipass" Name="UninstallString" Type="raw" />
+        </Property>
+        <Property Id="MP_INSTALLED6432">
+            <RegistrySearch Id="MP_INSTALLED6432" Root="HKLM" Key="SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Multipass" Name="UninstallString" Type="raw" />
+        </Property>
+
+        <CustomAction Id="UninstallExeMP.SetProperty" Property="UninstallExeMP" Value="[MP_INSTALLED];[MP_INSTALLED6432]" />
+        <CustomAction Id="UninstallExeMP" BinaryRef="CABinary" DllEntry="UninstallOldMP" Return="check" Execute="deferred" Impersonate="no" />
+
+        <InstallExecuteSequence>
+            <Custom Action="UninstallExeMP.SetProperty" Before="UninstallExeMP" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
+            <Custom Action="UninstallExeMP" After="InstallInitialize" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
+        </InstallExecuteSequence>
     </Package>
 
     <Fragment>

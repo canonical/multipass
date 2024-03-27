@@ -10,11 +10,17 @@ This file contains the declaration of all the localizable strings.
     <String Id="WixHyperV" Value="Microsoft Hyper-V (Recommended)" />
     <String Id="WixVirtualBox" Value="Oracle VM VirtualBox" />
 
+    <String Id="UninstallExeMPDlg_Title" Value="[ProductName] Setup" />
+    <String Id="UninstallExeMPDlgText" Value="[ProductName] is already installed.&#13;&#13;Do you want to uninstall the old version before installing the new one?" />
+    <String Id="UninstallExeMPDlgIcon" Value="WixUI_Ico_Info" />
+    <String Id="UninstallExeMPDlgIconTooltip" Value="Information icon" />
+
     <String Id="ChoosePathInstallDlgTitle" Value="{\WixUI_Font_Title}Add multipass to PATH?" />
     <String Id="ChoosePathInstallDlgDescription" Value="To run Multipass without having to type the full installation path, the PATH variable needs to include multipass." />
     <String Id="WixDoNotAddPath" Value="Do not add multipass to the PATH" />
     <String Id="WixAddToSystemPath" Value="Add multipass to the system PATH for all users" />
     <String Id="WixAddToUserPath" Value="Add multipass to the current user's PATH (Recommended)" />
+    <String Id="UninstallOldMP" Value="Uninstalling previous version of Multipass" />
 
     <String Id="CheckHyperV" Value="Checking if Hyper-V is enabled" />
     <String Id="EnableHyperV" Value="Enabling Hyper-V" />

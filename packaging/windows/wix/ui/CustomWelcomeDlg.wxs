@@ -20,7 +20,7 @@
             </Dialog>
 
             <InstallUISequence>
-                <Show Dialog="CustomWelcomeDlg" Before="ProgressDlg" Overridable="yes" Condition="NOT Installed OR PATCH" />
+                <Show Dialog="CustomWelcomeDlg" Before="ProgressDlg" Overridable="yes" Condition="NOT MP_INSTALLED6432 AND NOT MP_INSTALLED AND NOT Installed OR PATCH" />
             </InstallUISequence>
         </UI>
     </Fragment>
