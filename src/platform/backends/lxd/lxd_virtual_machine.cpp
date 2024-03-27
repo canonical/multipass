@@ -397,7 +397,7 @@ void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout,
     mpu::wait_until_ssh_up(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
 }
 
-const QUrl mp::LXDVirtualMachine::url()
+const QUrl mp::LXDVirtualMachine::url() const
 {
     return QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name);
 }
@@ -495,8 +495,9 @@ void mp::LXDVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                                 const std::vector<NetworkInterface>& extra_interfaces)
+void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(
+    const std::string& default_mac_addr,
+    const std::vector<NetworkInterface>& extra_interfaces) const
 {
     const QJsonObject instance_info = lxd_request(manager, "GET", url());
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
@@ -530,7 +531,7 @@ mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_p
 }
 
 void mp::LXDVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                                       const NetworkInterface& extra_interface)
+                                                                       const NetworkInterface& extra_interface) const
 {
     const QJsonObject instance_info = lxd_request(manager, "GET", url());
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
