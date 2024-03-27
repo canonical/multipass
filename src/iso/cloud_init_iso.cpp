@@ -708,10 +708,6 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces(
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
-    // do not tweak the meta instance id
-    std::string& meta_data_file_content = iso_file.at("meta-data");
-    meta_data_file_content =
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
     if (extra_interfaces.empty())
     {
         iso_file.erase("network-config");
