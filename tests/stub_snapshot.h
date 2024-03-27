@@ -37,6 +37,11 @@ struct StubSnapshot : public Snapshot
         return {};
     }
 
+    std::string get_instance_id() const noexcept override
+    {
+        return {};
+    }
+
     QDateTime get_creation_timestamp() const noexcept override
     {
         return QDateTime{};
