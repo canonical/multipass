@@ -99,6 +99,7 @@ protected:
                                                             const NetworkInterface& extra_interface) const;
     virtual void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
                                                       const std::vector<NetworkInterface>& extra_interfaces) const;
+    virtual std::string get_instance_id_from_the_cloud_init() const;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
