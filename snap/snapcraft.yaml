@@ -344,6 +344,32 @@ parts:
       - clang
       - ninja-build
       - unzip
+    stage:
+      - -**/X11
+      - -usr/include
+      - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libcolordprivate.so.*
+      - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libdconf.so.*
+      - -usr/lib/*/libgirepository-1.0.so.*
+      - -usr/lib/*/libgthread-2.0.so*
+      - -usr/lib/*/libicuio.so.*
+      - -usr/lib/*/libicutest.so.*
+      - -usr/lib/*/libicutu.so.*
+      - -usr/share/apport
+      - -usr/share/bug
+      - -usr/share/*doc*
+      - -usr/share/gettext
+      - -usr/share/icons/Adwaita
+      - -usr/share/icons/DMZ-Black
+      - -usr/share/icons/Humanity*
+      - -usr/share/icons/LoginIcons
+      - -usr/share/icons/hicolor
+      - -usr/share/icons/ubuntu-*
+      - -usr/share/libthai
+      - -usr/share/lintian
+      - -usr/share/man
+      - -usr/share/mime
+      - -usr/share/pkgconfig
+      - -usr/share/thumbnailers
     override-build: |
       craftctl default
       export PATH="/root/parts/desktop-gui/build/flutter-distro/bin:$HOME/.pub-cache/bin:$PATH"
