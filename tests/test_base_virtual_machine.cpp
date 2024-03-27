@@ -18,6 +18,7 @@
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
 #include "file_operations.h"
+#include "mock_cloud_init_file_ops.h"
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
@@ -777,35 +778,40 @@ TEST_F(BaseVM, restoresSnapshots)
     EXPECT_EQ(original_specs, changed_specs);
 }
 
-// temporary comment out until we mock MP_CLOUD_INIT_FILE_OPS
-// TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
-// {
-//     mock_snapshotting();
+TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
+{
+    mock_snapshotting();
 
-//     // default value of VMSpecs::state is off, so restore_snapshot will pass the assert_vm_stopped check, the other
-//     // fields do not matter, and VMSpecs::extra_interfaces is defaulted to be empty, which is we want.
-//     const mp::VMSpecs original_specs{};
-//     const auto* snapshot_name = "snapshot1";
-//     vm.take_snapshot(original_specs, snapshot_name, "");
+    // default value of VMSpecs::state is off, so restore_snapshot will pass the assert_vm_stopped check, the other
+    // fields do not matter, and VMSpecs::extra_interfaces is defaulted to be empty, which is we want.
+    const mp::VMSpecs original_specs{};
+    const auto* snapshot_name = "snapshot1";
+    vm.take_snapshot(original_specs, snapshot_name, "");
 
-//     ASSERT_EQ(snapshot_album.size(), 1);
-//     const auto& snapshot = *snapshot_album[0];
+    ASSERT_EQ(snapshot_album.size(), 1);
+    const auto& snapshot = *snapshot_album[0];
 
-//     mp::VMSpecs new_specs = original_specs;
-//     new_specs.extra_interfaces =
-//         std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true}, {"id", "52:54:00:56:78:92", true}};
+    mp::VMSpecs new_specs = original_specs;
+    new_specs.extra_interfaces =
+        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true}, {"id", "52:54:00:56:78:92", true}};
 
-//     // the ref return functions can not use the default mock behavior, so they need to be specified
-//     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
-//     EXPECT_CALL(snapshot, get_metadata).WillOnce(ReturnRef(original_specs.metadata));
+    // the ref return functions can not use the default mock behavior, so they need to be specified
+    EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
+    EXPECT_CALL(snapshot, get_metadata).WillOnce(ReturnRef(original_specs.metadata));
 
-//     // set the behavior of get_extra_interfaces to cause the difference to the new spece extra interfaces
-//     EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
+    // set the behavior of get_extra_interfaces to cause the difference to the new spece extra interfaces
+    EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
 
-//     // add mock update_cloud_init_with_new_extra_interfaces
-//     vm.restore_snapshot(snapshot_name, new_specs);
-//     EXPECT_EQ(original_specs, new_specs);
-// }
+    const auto [mock_cloud_init_file_ops, _] = mpt::MockCloudInitFileOps::inject();
+    EXPECT_CALL(*mock_cloud_init_file_ops,
+                update_cloud_init_with_new_extra_interfaces(A<const std::string&>(),
+                                                            A<const std::vector<mp::NetworkInterface>&>(),
+                                                            A<const std::filesystem::path&>()))
+        .Times(1);
+
+    vm.restore_snapshot(snapshot_name, new_specs);
+    EXPECT_EQ(original_specs, new_specs);
+}
 
 TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
 {
