@@ -121,7 +121,15 @@ parts:
     - -usr/share/libvirt
     - -usr/share/lintian
 
+  qt-ssl-plugin:
+    plugin: nil
+    stage-packages:
+    - qt6-qpa-plugins
+    prime:
+    - usr/lib/*/qt6/plugins/tls/*
+
   multipass:
+    after: [ qt-ssl-plugin ]
     plugin: cmake
     build-snaps:
     - cmake/3.28/stable
@@ -151,7 +159,6 @@ parts:
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
-    - qt6-qpa-plugins
     stage:
     - -**/glvnd
     - -**/X11
