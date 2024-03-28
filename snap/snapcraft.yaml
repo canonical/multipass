@@ -393,6 +393,5 @@ parts:
 
       flutter pub get
       flutter build linux --release --verbose --target lib/main.dart
-      cp -r build/linux/*/release/bundle/* $CRAFT_PART_INSTALL/
     organize:
       /root/parts/desktop-gui/build/build/linux/x64/release/bundle: bin/
