@@ -30,7 +30,6 @@
 #include <src/daemon/daemon_init_settings.h>
 
 #include <QDir>
-#include <QKeySequence>
 
 namespace mp = multipass;
 namespace mpt = mp::test;
@@ -140,8 +139,7 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSett
 
     inject_default_returning_mock_qsettings();
 
-    expect_setting_values({{mp::petenv_key, "primary"}, {mp::autostart_key, "true"}});
-    EXPECT_EQ(QKeySequence{handler->get(mp::hotkey_key)}, QKeySequence{mp::hotkey_default});
+    expect_setting_values({{mp::petenv_key, "primary"}});
 }
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddingPlatformSettings)
@@ -149,9 +147,7 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddi
     const auto platform_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
                                                               {mp::petenv_key, "secondary"},
                                                               {"client.empty.setting", ""},
-                                                              {mp::autostart_key, "false"},
                                                               {"client.an.int", "-12345"},
-                                                              {mp::hotkey_key, ""},
                                                               {"client.a.float.with.a.long_key", "3.14"}};
 
     EXPECT_CALL(mock_platform, extra_client_settings).WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
@@ -167,30 +163,6 @@ TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemo
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
     assert_unrecognized_keys(mp::driver_key, mp::bridged_interface_key, mp::mounts_key, mp::passphrase_key);
-}
-
-TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatTranslatesHotkey)
-{
-    const auto key = mp::hotkey_key;
-    const auto val = "Alt+X";
-    const auto native_val = mp::platform::interpret_setting(key, val);
-
-    mp::client::register_global_settings_handlers();
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(native_val)));
-    inject_mock_qsettings();
-
-    ASSERT_NO_THROW(handler->set(key, val));
-}
-
-TEST_F(TestGlobalSettingsHandlers, clientsRegisterHandlerThatAcceptsBoolAutostart)
-{
-    mp::client::register_global_settings_handlers();
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::autostart_key), Eq("false")));
-    inject_mock_qsettings();
-
-    ASSERT_NO_THROW(handler->set(mp::autostart_key, "0"));
 }
 
 struct TestGoodPetEnvSetting : public TestGlobalSettingsHandlers, WithParamInterface<const char*>
@@ -219,7 +191,8 @@ TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
     auto key = mp::petenv_key, val = GetParam();
     mp::client::register_global_settings_handlers();
 
-    MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
+    MP_ASSERT_THROW_THAT(handler->set(key, val),
+                         mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 
@@ -278,7 +251,7 @@ TEST_F(TestGlobalSettingsHandlers, daemonDoesNotRegisterPersistentHandlerForClie
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
-    assert_unrecognized_keys(mp::petenv_key, mp::autostart_key, mp::hotkey_key, mp::winterm_key);
+    assert_unrecognized_keys(mp::petenv_key, mp::winterm_key);
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend)
@@ -302,7 +275,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBacke
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
 
-    MP_ASSERT_THROW_THAT(handler->set(key, val), mp::InvalidSettingException,
+    MP_ASSERT_THROW_THAT(handler->set(key, val),
+                         mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 

@@ -51,7 +51,6 @@ void parse_transfer_entry(const QString& entry, QString& path, QString& instance
 int getuid();
 int getgid();
 void open_multipass_shell(const QString& instance_name); // precondition: requires a valid instance name
-QStringList gui_tray_notification_strings();
 } // namespace platform
 } // namespace cli
 } // namespace multipass

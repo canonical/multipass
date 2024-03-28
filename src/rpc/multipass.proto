@@ -152,6 +152,7 @@ message FindReply {
         string release = 2;
         string version = 3;
         repeated AliasInfo aliases_info = 4;
+        string codename = 5;
     }
     bool show_images = 1;
     bool show_blueprints = 2;
@@ -217,6 +218,9 @@ message InstanceDetails {
     repeated string ipv4 = 7;
     repeated string ipv6 = 8;
     optional int32 num_snapshots = 9;
+    string cpu_times = 10;
+    string uptime = 11;
+    google.protobuf.Timestamp creation_timestamp = 12;
 }
 
 message SnapshotFundamentals {

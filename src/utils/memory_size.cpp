@@ -31,8 +31,9 @@ namespace
 constexpr auto kibi = 1024LL;
 constexpr auto mebi = kibi * kibi;
 constexpr auto gibi = mebi * kibi;
+} // namespace
 
-long long in_bytes(const std::string& mem_value)
+long long mp::in_bytes(const std::string& mem_value)
 {
     QRegularExpression regex{
         QRegularExpression::anchoredPattern("\\s*(\\d+)(?:\\.(\\d+)(?=[KMG]))?(?:([KMG])(?:i?B)?|B)?\\s*"),
@@ -77,13 +78,12 @@ long long in_bytes(const std::string& mem_value)
 
     throw mp::InvalidMemorySizeException{mem_value};
 }
-} // namespace
 
 mp::MemorySize::MemorySize() noexcept : bytes{0LL}
 {
 }
 
-mp::MemorySize::MemorySize(const std::string& val) : bytes{::in_bytes(val)}
+mp::MemorySize::MemorySize(const std::string& val) : bytes{mp::in_bytes(val)}
 {
 }
 

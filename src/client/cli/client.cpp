@@ -76,7 +76,7 @@ auto make_handler_unregisterer(mp::SettingsHandler* handler)
 } // namespace
 
 mp::Client::Client(ClientConfig& config)
-    : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, config.cert_provider.get()))},
+    : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, *config.cert_provider))},
       term{config.term},
       aliases{config.term}
 {
@@ -144,8 +144,6 @@ int mp::Client::run(const QStringList& arguments)
 
         try
         {
-            mp::client::pre_setup();
-
             ret = parse_status == ParseCode::Ok ? parser.chosenCommand()->run(&parser)
                                                 : parser.returnCodeFrom(parse_status);
         }
