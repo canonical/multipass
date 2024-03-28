@@ -19,10 +19,12 @@
 #include "dummy_ssh_key_provider.h"
 #include "file_operations.h"
 #include "mock_cloud_init_file_ops.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
 #include "mock_utils.h"
+
 #include "mock_virtual_machine.h"
 #include "temp_dir.h"
 
@@ -254,7 +256,7 @@ struct BaseVM : public Test
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
-
+    mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection = mpt::MockCloudInitFileOps::inject();
     static constexpr bool on_windows =
 #ifdef MULTIPASS_PLATFORM_WINDOWS
         true;

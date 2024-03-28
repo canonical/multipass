@@ -16,8 +16,8 @@
  */
 
 #include "common.h"
+#include "mock_file_ops.h"
 #include "temp_dir.h"
-#include "tests/mock_file_ops.h"
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/network_interface.h>
