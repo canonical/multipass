@@ -376,7 +376,6 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
                                                                                        extra_interfaces,
                                                                                        iso_path.toStdString()));
 
-    // extra new line due to emit_cloud_config appending /n
     constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
 instance-id: vm1
 local-hostname: vm1
@@ -438,4 +437,22 @@ TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
     original_iso.write_to(iso_path);
 
     EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()), "vm1");
+}
+
+TEST_F(CloudInitIso, writeInstanceIdToCloudInit)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.write_to(iso_path);
+
+    MP_CLOUD_INIT_FILE_OPS.write_instance_id_to_cloud_init("vm2", iso_path.toStdString());
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+
+    constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
+instance-id: vm2
+local-hostname: vm1
+cloud-name: multipass
+)";
+    EXPECT_EQ(new_iso.at("meta-data"), expected_modified_meta_data_content);
 }
