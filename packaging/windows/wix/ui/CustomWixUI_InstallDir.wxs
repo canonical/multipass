@@ -36,6 +36,7 @@
             <ProgressText Action="EnableHyperVAction" Message="!(loc.EnableHyperV)" />
             <ProgressText Action="SetDriverAction" Message="!(loc.SettingDriver)" />
             <ProgressText Action="UninstallExeMP" Message="!(loc.UninstallOldMP)" />
+            <ProgressText Action="RemoveDataAction" Message="!(loc.RemoveMPDataText)" />
 
             <Publish Dialog="UninstallExeMPDlg" Control="OK" Event="NewDialog" Value="CustomWelcomeDlg" />
 

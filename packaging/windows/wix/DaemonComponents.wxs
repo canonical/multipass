@@ -17,13 +17,10 @@
 
         <Property Id="DRIVER" Value="hyperv" Secure="yes" />
         <Property Id="HYPER_V_STATE" Value="Disabled" Secure="yes" />
-        <Property Id="REMOVE_DATA" Value="YES" />
-        <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
         <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" Execute="deferred" />
         <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" Execute="deferred" />
         <CustomAction Id="SetDriverAction" BinaryRef="CABinary" DllEntry="SetDriver" Return="ignore" />
-        <CustomAction Id="RemoveDataAction" BinaryRef="CABinary" DllEntry="RemoveData" Return="ignore" Execute="commit" />
         <CustomAction Id="InstallClientCertsAction" BinaryRef="CABinary" DllEntry="InstallClientCerts" Return="ignore" Execute="immediate" />
 
         <Property Id="VBOX_VERSION">
@@ -36,7 +33,6 @@
             <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;hyperv&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
             <Custom Action="SetDriverAction" After="InstallFinalize" Condition="NOT Installed" />
-            <Custom Action="RemoveDataAction" After="InstallInitialize" Condition="Installed AND REMOVE=&quot;ALL&quot;" />
         </InstallExecuteSequence>
     </Fragment>
 </Wix>

@@ -106,52 +106,18 @@ namespace CustomActions
         }
 
         [CustomAction]
-        public static ActionResult RemoveData(Session session)
+        public static ActionResult AskRemoveData(Session session)
         {
-            session.Log("Begin RemoveData");
-            string command = $"\"\"{session["INSTALLFOLDER"]}bin\\multipass.exe\" delete -p --all\"";
+            session.Log("Begin AskRemoveData");
 
             Record record = new Record();
             record.FormatString = session["RemoveDataText"];
             MessageResult result = session.Message(InstallMessage.Error | (InstallMessage)MessageButtons.YesNo | (InstallMessage)MessageDefaultButton.Button2, record);
 
-            if (result == MessageResult.No || string.Equals(session["REMOVE_DATA"], "NO", StringComparison.OrdinalIgnoreCase))
-                return ActionResult.Success;
-
-            ProcessStartInfo psi = new ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = $"/c {command}",
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            session.Log($"{psi.Arguments}");
-
-            Process process = new Process();
-            process.StartInfo = psi;
-            process.Start();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-                session.Log($"Failed to delete Multipass instances: {process.StandardError.ReadToEnd().Trim()}");
-
-            string systemDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            var path = Path.Combine(systemDir, "config\\systemprofile\\AppData\\Local\\multipassd");
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
-
-            path = Path.Combine(systemDir, "config\\systemprofile\\AppData\\Roaming\\multipassd");
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
-
-            path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\multipass";
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
-
-            path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\multipass-client-certificate";
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
+            if (result == MessageResult.Yes)
+                session["REMOVE_DATA"] = "YES";
+            else if (result == MessageResult.No)
+                session["REMOVE_DATA"] = "NO";
 
             return ActionResult.Success;
         }

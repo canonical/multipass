@@ -29,6 +29,22 @@
             <Custom Action="UninstallExeMP.SetProperty" Before="UninstallExeMP" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
             <Custom Action="UninstallExeMP" After="InstallInitialize" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
         </InstallExecuteSequence>
+
+        <!-- Remove Multipass data -->
+        <Property Id="REMOVE_DATA" Value="YES" />
+        <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
+
+        <SetProperty Id="RemoveMPDataScript" Before="RemoveMPDataScript" Sequence="execute"
+            Value ="&quot;[%ComSpec]&quot; /c &apos;&quot;[BinFolder]multipass.exe&quot; delete -p --all &amp;
+            rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;&apos;" />
+
+        <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData" Return="ignore" />
+        <CustomAction Id="RemoveMPDataScript" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+
+        <InstallExecuteSequence>
+            <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
+            <Custom Action="RemoveMPDataScript" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+        </InstallExecuteSequence>
     </Package>
 
     <Fragment>
