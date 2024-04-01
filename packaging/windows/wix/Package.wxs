@@ -45,6 +45,15 @@
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
             <Custom Action="RemoveMPDataScript" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
         </InstallExecuteSequence>
+
+        <!-- Detect Windows edition and set driver -->
+        <Property Id="WINDOWS_EDITION" Secure="yes">
+            <RegistrySearch Id="WINDOWS_EDITION" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
+        </Property>
+        <CustomAction Id="SetWindowsEdition" Property="DRIVER" Value="virtualbox" />
+        <InstallExecuteSequence>
+            <Custom Action="SetWindowsEdition" After="AppSearch" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
+        </InstallExecuteSequence>
     </Package>
 
     <Fragment>
