@@ -123,35 +123,6 @@ namespace CustomActions
         }
 
         [CustomAction]
-        public static ActionResult InstallClientCerts(Session session)
-        {
-            session.Log("Begin InstallClientCerts");
-
-            string command = $"\"\"{session["INSTALLFOLDER"]}bin\\multipassd.exe\" /install\"";
-
-            ProcessStartInfo psi = new ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = $"/c {command}",
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            session.Log($"{psi.Arguments}");
-
-            Process process = new Process();
-            process.StartInfo = psi;
-            process.Start();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-                session.Log($"Failed to install client certificates: {process.StandardError.ReadToEnd().Trim()}");
-
-            Thread.Sleep(10000);
-            return ActionResult.Success;
-        }
-
-        [CustomAction]
         public static ActionResult UninstallOldMP(Session session)
         {
             session.Log("Begin UninstallOldMP");
