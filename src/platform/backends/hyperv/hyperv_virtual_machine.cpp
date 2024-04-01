@@ -20,6 +20,7 @@
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
@@ -209,31 +210,42 @@ void mp::HyperVVirtualMachine::start()
     }
 }
 
-void mp::HyperVVirtualMachine::shutdown()
+void mp::HyperVVirtualMachine::shutdown(const bool force)
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+    std::unique_lock<std::mutex> lock{state_mutex};
     auto present_state = current_state();
 
-    if (present_state == State::running || present_state == State::delayed_shutdown)
+    try
     {
-        power_shell->run({"Stop-VM", "-Name", name});
-        state = State::stopped;
-        drop_ssh_session();
-        ip = std::nullopt;
+        check_state_for_shutdown(force);
     }
-    else if (present_state == State::starting)
+    catch (const VMStateIdempotentException& e)
     {
-        power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
-        state = State::off;
-        state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        drop_ssh_session();
-        ip = std::nullopt;
-    }
-    else if (present_state == State::suspended)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+        mpl::log(mpl::Level::info, vm_name, e.what());
+        return;
     }
 
+    drop_ssh_session();
+
+    if (force)
+    {
+        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
+    }
+    else
+    {
+        power_shell->run({"Stop-VM", "-Name", name});
+    }
+
+    state = State::off;
+
+    // If it wasn't force, we wouldn't be here
+    if (present_state == State::starting)
+    {
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
+    }
+
+    ip = std::nullopt;
     update_state();
     lock.unlock();
 }
