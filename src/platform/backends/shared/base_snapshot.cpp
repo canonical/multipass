@@ -114,8 +114,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                bool captured)
     : name{name},
       comment{comment},
-      instance_id{instance_id},
       parent{std::move(parent)},
+      instance_id{instance_id},
       index{index},
       id{snapshot_template.arg(index)},
       creation_timestamp{std::move(creation_timestamp)},
