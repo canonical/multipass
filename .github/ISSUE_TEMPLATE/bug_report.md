@@ -24,7 +24,7 @@ Please provide logs from the daemon, see [accessing logs](https://multipass.run/
 **Additional info**
  - OS: [e.g. macOS 10.15]
 - `multipass version`
-- `multipass info --all`
+- `multipass info`
 - `multipass get local.driver`
 
 **Additional context**
