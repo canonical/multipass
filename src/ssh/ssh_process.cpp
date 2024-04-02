@@ -74,6 +74,15 @@ auto make_channel(ssh_session session, const std::string& cmd)
     mp::SSH::throw_on_error(channel, session, "[ssh proc] exec request failed", ssh_channel_request_exec, cmd.c_str());
     return channel;
 }
+
+auto make_unlock_guard(std::unique_lock<std::mutex>& session_lock)
+{
+    return sg::make_scope_guard([&session_lock]() noexcept {
+        if (session_lock.owns_lock()) // if we timed out on an earlier call, we already unlocked
+            session_lock.unlock();
+    });
+}
+
 } // namespace
 
 mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::unique_lock<std::mutex> session_lock)
@@ -94,11 +103,7 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
         return *exit_status;
     }
 
-    auto unlock_guard = sg::make_scope_guard([this]() noexcept {
-        if (session_lock.owns_lock()) // if we timed out on an earlier call, we already unlocked
-            session_lock.unlock();
-    });
-
+    auto unlock_guard = make_unlock_guard(session_lock);
     ExitStatusCallback cb{channel.get(), exit_status};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};
@@ -180,5 +185,6 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 
 ssh_channel mp::SSHProcess::release_channel()
 {
+    auto unlock_guard = make_unlock_guard(session_lock); // callers are on their own to ensure thread safety
     return channel.release();
 }
