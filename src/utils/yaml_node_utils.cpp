@@ -66,11 +66,19 @@ YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name, const
     return meta_data;
 }
 
-YAML::Node mp::utils::make_cloud_init_meta_config_with_id_tweak(const std::string& file_content)
+YAML::Node mp::utils::make_cloud_init_meta_config_with_id_tweak(const std::string& file_content,
+                                                                const std::string& new_instance_id)
 {
     YAML::Node meta_data = YAML::Load(file_content);
 
-    meta_data["instance-id"] = YAML::Node{meta_data["instance-id"].as<std::string>() + "_e"};
+    if (new_instance_id.empty())
+    {
+        meta_data["instance-id"] = YAML::Node{meta_data["instance-id"].as<std::string>() + "_e"};
+    }
+    else
+    {
+        meta_data["instance-id"] = YAML::Node{new_instance_id};
+    }
 
     return meta_data;
 }

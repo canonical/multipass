@@ -34,9 +34,10 @@ std::string emit_cloud_config(const YAML::Node& node);
 // when file_content is non-empty, make_cloud_init_meta_config constructs the node based on the string and replaces
 // the original name occurrences with the input name
 YAML::Node make_cloud_init_meta_config(const std::string& name, const std::string& file_content = std::string{});
-// load the file_content to construct the node and tweak the instance-id, this is a hack to make cloud-init-config.iso
-// re-run, it will no longer be needed once cloud-init-config.iso has proper re-run external controlled mechanism
-YAML::Node make_cloud_init_meta_config_with_id_tweak(const std::string& file_content);
+// load the file_content to construct the node and overwrite the instance-id, when the new_instance_id is provided, then
+// it is used, if not, then there will be a generated new instance id to be used
+YAML::Node make_cloud_init_meta_config_with_id_tweak(const std::string& file_content,
+                                                     const std::string& new_instance_id = std::string());
 // when file_content is non-empty, make_cloud_init_network_config constructs the node based on the string and replaces
 // the default mac address and extra interfaces
 YAML::Node make_cloud_init_network_config(const std::string& default_mac_addr,

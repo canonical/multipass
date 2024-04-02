@@ -19,7 +19,6 @@
 #include "dummy_ssh_key_provider.h"
 #include "file_operations.h"
 #include "mock_cloud_init_file_ops.h"
-#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
