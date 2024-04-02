@@ -379,9 +379,10 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
                                                                                       iso_path.toStdString()));
 
     constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
-instance-id: vm1
+instance-id: vm2
 local-hostname: vm1
-cloud-name: multipass)";
+cloud-name: multipass
+)";
     constexpr std::string_view expected_generated_network_config_data_content = R"(#cloud-config
 version: 2
 ethernets:
