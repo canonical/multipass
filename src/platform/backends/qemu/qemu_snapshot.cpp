@@ -61,7 +61,9 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
                                const VMSpecs& specs,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot{name, comment, std::move(parent), specs, vm}, desc{desc}, image_path{desc.image.image_path}
+    : BaseSnapshot{name, comment, instance_id, std::move(parent), specs, vm},
+      desc{desc},
+      image_path{desc.image.image_path}
 {
 }
 

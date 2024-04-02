@@ -39,6 +39,7 @@ class BaseSnapshot : public Snapshot
 public:
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
+                 const std::string& instance_id,
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
@@ -83,6 +84,7 @@ private:
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc);
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
+                 const std::string& instance_id,
                  std::shared_ptr<Snapshot> parent,
                  int index,
                  QDateTime&& creation_timestamp,
