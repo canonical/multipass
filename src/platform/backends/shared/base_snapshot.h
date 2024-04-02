@@ -106,6 +106,7 @@ private:
 private:
     std::string name;
     std::string comment;
+    std::string instance_id;
     std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
@@ -145,8 +146,7 @@ inline int multipass::BaseSnapshot::get_index() const noexcept
 
 inline std::string multipass::BaseSnapshot::get_instance_id() const noexcept
 {
-    // return the actual id later
-    return std::string();
+    return instance_id;
 }
 
 inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const noexcept
