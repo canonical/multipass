@@ -126,3 +126,30 @@ TEST(UtilsTests, addOneExtraInterfaceFalseExtraInterface)
     const auto new_network_node = mpu::add_extra_interface_to_network_config("", extra_interface, "");
     EXPECT_TRUE(new_network_node.IsNull());
 }
+
+TEST(UtilsTests, makeCloudInitMetaConfigWithIdTweakGeneratedId)
+{
+    constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
+    const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config_with_id_tweak(std::string{meta_data_content});
+    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1_e");
+    EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
+    EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
+}
+
+TEST(UtilsTests, makeCloudInitMetaConfigWithIdTweakNewId)
+{
+    constexpr std::string_view meta_data_content = R"(#cloud-config
+instance-id: vm1
+local-hostname: vm1
+cloud-name: multipass)";
+
+    const YAML::Node meta_data_node =
+        mpu::make_cloud_init_meta_config_with_id_tweak(std::string{meta_data_content}, "vm2");
+    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm2");
+    EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
+    EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
+}
