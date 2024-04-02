@@ -54,6 +54,8 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 
+#include <scope_guard.hpp>
+
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
@@ -2443,18 +2445,23 @@ try
 
     auto key = request->key();
     auto val = request->val();
-    auto bridge_name = get_bridged_interface_name();
+    std::string bridge_name;
 
-    if (request->authorized())
+    if (request->authorized() && !(bridge_name = MP_SETTINGS.get(mp::bridged_interface_key).toStdString()).empty())
     {
         user_authorized_bridges.insert(bridge_name);
     }
 
+    auto auth_guard = sg::make_scope_guard([this, &bridge_name]() noexcept {
+        mp::top_catch_all(category, [this, &bridge_name]() {
+            if (!bridge_name.empty())
+                user_authorized_bridges.erase(bridge_name);
+        });
+    });
+
     mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
-
-    user_authorized_bridges.erase(bridge_name);
 
     status_promise->set_value(grpc::Status::OK);
 }
