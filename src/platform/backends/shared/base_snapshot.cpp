@@ -178,11 +178,11 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, cons
 
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc)
     : BaseSnapshot{
-          json["name"].toString().toStdString(),    // name
-          json["comment"].toString().toStdString(), // comment
-          "",                                       // instance id from cloud init
-          find_parent(json, vm),                    // parent
-          json["index"].toInt(),                    // index
+          json["name"].toString().toStdString(),        // name
+          json["comment"].toString().toStdString(),     // comment
+          json["instance_id"].toString().toStdString(), // instance id from cloud init
+          find_parent(json, vm),                        // parent
+          json["index"].toInt(),                        // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
           MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
@@ -208,6 +208,7 @@ QJsonObject mp::BaseSnapshot::serialize() const
 
     snapshot.insert("name", QString::fromStdString(name));
     snapshot.insert("comment", QString::fromStdString(comment));
+    snapshot.insert("instance_id", QString::fromStdString(instance_id));
     snapshot.insert("parent", get_parents_index());
     snapshot.insert("index", index);
     snapshot.insert("creation_timestamp", creation_timestamp.toString(Qt::ISODateWithMs));
