@@ -701,9 +701,10 @@ mp::CloudInitFileOps::CloudInitFileOps(const Singleton<CloudInitFileOps>::Privat
 {
 }
 
-void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces(
+void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_id(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
+    const std::string& new_instance_id,
     const std::filesystem::path& cloud_init_path) const
 {
     CloudInitIso iso_file;

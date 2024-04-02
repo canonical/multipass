@@ -98,8 +98,10 @@ protected:
 
     virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
                                                             const NetworkInterface& extra_interface) const;
-    virtual void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                      const std::vector<NetworkInterface>& extra_interfaces) const;
+    virtual void apply_extra_interfaces_and_instance_id_to_cloud_init(
+        const std::string& default_mac_addr,
+        const std::vector<NetworkInterface>& extra_interfaces,
+        const std::string& new_instance_id) const;
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
 private:

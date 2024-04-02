@@ -805,11 +805,7 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
     EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
 
     const auto [mock_cloud_init_file_ops, _] = mpt::MockCloudInitFileOps::inject();
-    EXPECT_CALL(*mock_cloud_init_file_ops,
-                update_cloud_init_with_new_extra_interfaces(A<const std::string&>(),
-                                                            A<const std::vector<mp::NetworkInterface>&>(),
-                                                            A<const std::filesystem::path&>()))
-        .Times(1);
+    EXPECT_CALL(*mock_cloud_init_file_ops, update_cloud_init_with_new_extra_interfaces_and_new_id).Times(1);
 
     vm.restore_snapshot(snapshot_name, new_specs);
     EXPECT_EQ(original_specs, new_specs);

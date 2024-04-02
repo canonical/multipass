@@ -489,9 +489,10 @@ void mp::LXDVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(
+void mp::LXDVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
-    const std::vector<NetworkInterface>& extra_interfaces) const
+    const std::vector<NetworkInterface>& extra_interfaces,
+    const std::string&) const
 {
     const QJsonObject instance_info = lxd_request(manager, "GET", url());
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();

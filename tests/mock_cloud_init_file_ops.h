@@ -29,10 +29,11 @@ class MockCloudInitFileOps : public CloudInitFileOps
 public:
     using CloudInitFileOps::CloudInitFileOps;
 
-    MOCK_METHOD(void,
-                update_cloud_init_with_new_extra_interfaces,
-                (const std::string&, const std::vector<NetworkInterface>&, const std::filesystem::path&),
-                (const, override));
+    MOCK_METHOD(
+        void,
+        update_cloud_init_with_new_extra_interfaces_and_new_id,
+        (const std::string&, const std::vector<NetworkInterface>&, const std::string&, const std::filesystem::path&),
+        (const, override));
     MOCK_METHOD(void,
                 add_extra_interface_to_cloud_init,
                 (const std::string&, const NetworkInterface&, const std::filesystem::path&),

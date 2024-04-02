@@ -372,9 +372,11 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
-    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces(default_mac_addr,
-                                                                                       extra_interfaces,
-                                                                                       iso_path.toStdString()));
+    EXPECT_NO_THROW(
+        MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
+                                                                                      extra_interfaces,
+                                                                                      "vm2",
+                                                                                      iso_path.toStdString()));
 
     constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
 instance-id: vm1
@@ -411,9 +413,11 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
-    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces(default_mac_addr,
-                                                                                       empty_extra_interfaces,
-                                                                                       iso_path.toStdString()));
+    EXPECT_NO_THROW(
+        MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
+                                                                                      empty_extra_interfaces,
+                                                                                      std::string(),
+                                                                                      iso_path.toStdString()));
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_FALSE(new_iso.contains("network-config"));
