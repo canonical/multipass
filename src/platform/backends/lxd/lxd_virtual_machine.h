@@ -66,7 +66,11 @@ private:
                                                     const NetworkInterface& extra_interface) const override;
     void apply_extra_interfaces_and_instance_id_to_cloud_init(const std::string& default_mac_addr,
                                                               const std::vector<NetworkInterface>& extra_interfaces,
-                                                              const std::string& new_instance_id) const override;
+                                                              const std::string& new_instance_id) const override
+    {
+        throw std::runtime_error(
+            "This should be only called by restore_snapshot, currently LXD does not support that yet.");
+    }
 
     const QString name;
     const std::string username;

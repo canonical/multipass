@@ -489,30 +489,6 @@ void mp::LXDVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-void mp::LXDVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
-    const std::string& default_mac_addr,
-    const std::vector<NetworkInterface>& extra_interfaces,
-    const std::string&) const
-{
-    const QJsonObject instance_info = lxd_request(manager, "GET", url());
-    QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
-    QJsonObject config_section = instance_info_metadata["config"].toObject();
-
-    QJsonValueRef meta_data = config_section["user.meta-data"];
-    assert(!meta_data.isNull());
-
-    meta_data = QString::fromStdString(
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data.toString().toStdString())));
-
-    config_section["user.network-config"] = QString::fromStdString(
-        mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces)));
-
-    instance_info_metadata["config"] = config_section;
-
-    const QJsonObject json_reply = lxd_request(manager, "PUT", url(), instance_info_metadata);
-    lxd_wait(manager, base_url, json_reply, timeout_milliseconds);
-}
-
 std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                                    const VMMount& mount)
 {
