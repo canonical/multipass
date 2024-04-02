@@ -20,11 +20,9 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mpu = multipass::utils;
 
 namespace
 {
@@ -59,7 +57,7 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::minutes& 
 } // namespace
 
 mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, const StopMounts& stop_mounts)
-    : virtual_machine{virtual_machine}, stop_mounts{stop_mounts}
+    : virtual_machine{virtual_machine}, stop_mounts{stop_mounts}, time_remaining{0}
 {
 }
 

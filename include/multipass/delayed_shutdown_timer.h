@@ -26,6 +26,7 @@
 
 #include <chrono>
 #include <functional>
+#include <string>
 
 namespace multipass
 {
