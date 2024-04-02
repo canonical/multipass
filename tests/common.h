@@ -73,8 +73,8 @@
 //     `MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_widget, Widget, render, (A<Canvas>()))`
 // This will redirect the version of `MockWidget::render` that takes one argument of type `Canvas`.
 #define MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock, method, BaseT, ...)                                         \
-    ON_CALL(mock, method __VA_ARGS__).WillByDefault([&mock](auto&&... args) {                                          \
-        return mock.BaseT::method(std::forward<decltype(args)>(args)...);                                              \
+    ON_CALL(mock, method __VA_ARGS__).WillByDefault([m = &mock](auto&&... args) {                                      \
+        return m->BaseT::method(std::forward<decltype(args)>(args)...);                                                \
     })
 
 // Teach GTest to print Qt stuff

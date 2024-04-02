@@ -40,13 +40,14 @@ public:
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, QFileDevice::Permissions), (override));
     MOCK_METHOD(Path, make_dir, (const QDir&, QFileDevice::Permissions), (override));
-    MOCK_METHOD(void, wait_for_cloud_init, (VirtualMachine*, std::chrono::milliseconds, const SSHKeyProvider&),
-                (const, override));
     MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
     MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
     MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));
     MOCK_METHOD(void, copy_client_certs_to_common_dir, (const QString&, const QString&), (const));
+    MOCK_METHOD(bool, is_running, (const VirtualMachine::State& state), (const, override));
+    MOCK_METHOD(std::string, run_in_ssh_session, (SSHSession & session, const std::string& cmd), (const, override));
     MOCK_METHOD(QString, make_uuid, (const std::optional<std::string>&), (const, override));
+    MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };

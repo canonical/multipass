@@ -47,10 +47,6 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void stop() override
-    {
-    }
-
     void shutdown() override
     {
     }
@@ -79,12 +75,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4(const SSHKeyProvider& key_provider) override
+    std::string management_ipv4() override
     {
         return {};
     }
 
-    std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override
+    std::vector<std::string> get_all_ipv4() override
     {
         return std::vector<std::string>{"192.168.2.123"};
     }
@@ -94,12 +90,21 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
+    std::string ssh_exec(const std::string& cmd) override
+    {
+        return {};
+    }
+
     void ensure_vm_is_running() override
     {
         throw std::runtime_error("Not running");
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds, const SSHKeyProvider&) override
+    void wait_until_ssh_up(std::chrono::milliseconds) override
+    {
+    }
+
+    void wait_for_cloud_init(std::chrono::milliseconds timeout) override
     {
     }
 
@@ -128,9 +133,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider*,
-                                                            const std::string&,
-                                                            const VMMount&) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&, const VMMount&) override
     {
         return std::make_unique<StubMountHandler>();
     }

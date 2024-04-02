@@ -175,8 +175,9 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
                                          const QUrl& base_url,
                                          const QString& bridge_name,
                                          const QString& storage_pool,
+                                         const SSHKeyProvider& key_provider,
                                          const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       monitor{&monitor},
@@ -225,11 +226,11 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
                 try
                 {
                     if (!QFileInfo::exists(mp::utils::snap_common_dir() + "/snap_refresh"))
-                        stop();
+                        shutdown();
                 }
                 catch (const mp::SnapEnvironmentException&)
                 {
-                    stop();
+                    shutdown();
                 }
             }
             else
@@ -260,7 +261,7 @@ void mp::LXDVirtualMachine::start()
     update_state();
 }
 
-void mp::LXDVirtualMachine::stop()
+void mp::LXDVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
@@ -286,15 +287,11 @@ void mp::LXDVirtualMachine::stop()
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
+    drop_ssh_session();
     port = std::nullopt;
 
     if (update_shutdown_status)
         update_state();
-}
-
-void mp::LXDVirtualMachine::shutdown()
-{
-    stop();
 }
 
 void mp::LXDVirtualMachine::suspend()
@@ -312,6 +309,8 @@ mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
             return state;
 
         state = present_state;
+        if (state == State::suspended || state == State::suspending || state == State::restarting)
+            drop_ssh_session();
     }
     catch (const LocalSocketConnectionException& e)
     {
@@ -372,7 +371,7 @@ std::string mp::LXDVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::LXDVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
+std::string mp::LXDVirtualMachine::management_ipv4()
 {
     if (!management_ip)
     {
@@ -390,11 +389,6 @@ std::string mp::LXDVirtualMachine::management_ipv4(const SSHKeyProvider& /* unus
 std::string mp::LXDVirtualMachine::ipv6()
 {
     return {};
-}
-
-void mp::LXDVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
-{
-    mpu::wait_until_ssh_up(this, timeout, key_provider, [this] { ensure_vm_is_running(); });
 }
 
 const QUrl mp::LXDVirtualMachine::url()
@@ -514,14 +508,13 @@ void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::stri
     lxd_wait(manager, base_url, json_reply, timeout_milliseconds);
 }
 
-std::unique_ptr<multipass::MountHandler>
-mp::LXDVirtualMachine::make_native_mount_handler(const SSHKeyProvider* ssh_key_provider, const std::string& target,
-                                                 const VMMount& mount)
+std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handler(const std::string& target,
+                                                                                   const VMMount& mount)
 {
     if (!uses_default_id_mappings(mount))
     {
         throw std::runtime_error("LXD native mount does not accept custom ID mappings.");
     }
 
-    return std::make_unique<LXDMountHandler>(manager, this, ssh_key_provider, target, mount);
+    return std::make_unique<LXDMountHandler>(manager, this, &key_provider, target, mount);
 }

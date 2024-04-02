@@ -117,3 +117,16 @@ TEST_F(SSHSession, exec_succeeds)
 
     EXPECT_NO_THROW(session.exec("dummy"));
 }
+
+TEST_F(SSHSession, moveAssigns)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::SSHSession session1 = make_ssh_session();
+    mp::SSHSession session2 = make_ssh_session();
+    ssh_session ssh_session2 = session2;
+
+    session1 = std::move(session2);
+    EXPECT_EQ(ssh_session{session1}, ssh_session2);
+    EXPECT_EQ(ssh_session{session2}, nullptr);
+}

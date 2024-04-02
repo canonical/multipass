@@ -32,7 +32,6 @@ class VMStatusMonitor : private DisabledCopyMove
 public:
     virtual ~VMStatusMonitor() = default;
     virtual void on_resume() = 0;
-    virtual void on_stop() = 0;
     virtual void on_shutdown() = 0;
     virtual void on_suspend() = 0;
     virtual void on_restart(const std::string& name) = 0;

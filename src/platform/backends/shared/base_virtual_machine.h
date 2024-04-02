@@ -21,7 +21,6 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/path.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -32,24 +31,34 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 
 namespace multipass
 {
+class SSHSession;
+class SSHKeyProvider;
+
 class BaseVirtualMachine : public VirtualMachine
 {
 public:
-    BaseVirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir);
-    BaseVirtualMachine(const std::string& vm_name, const Path& instance_dir);
+    BaseVirtualMachine(VirtualMachine::State state,
+                       const std::string& vm_name,
+                       const SSHKeyProvider& key_provider,
+                       const Path& instance_dir);
+    BaseVirtualMachine(const std::string& vm_name, const SSHKeyProvider& key_provider, const Path& instance_dir);
 
-    std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) override;
+    virtual std::string ssh_exec(const std::string& cmd) override;
+
+    void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
+    void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
+
+    std::vector<std::string> get_all_ipv4() override;
     void add_network_interface(int index, const NetworkInterface& net) override
     {
         throw NotImplementedOnThisBackendException("networks");
     }
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target,
-                                                            const VMMount& mount) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override
     {
         throw NotImplementedOnThisBackendException("native mounts");
     };
@@ -83,6 +92,8 @@ protected:
                                                              const std::string& comment,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
+    virtual void drop_ssh_session(); // virtual to allow mocking
+    void renew_ssh_session();
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
@@ -127,7 +138,11 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
+protected:
+    const SSHKeyProvider& key_provider;
+
 private:
+    std::optional<SSHSession> ssh_session = std::nullopt;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)

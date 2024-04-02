@@ -916,41 +916,44 @@ auto instances_running(const Instances& instances)
 {
     for (const auto& instance : instances)
     {
-        if (mp::utils::is_running(instance.second->current_state()))
+        if (MP_UTILS.is_running(instance.second->current_state()))
             return true;
     }
 
     return false;
 }
 
-grpc::Status stop_accepting_ssh_connections(mp::SSHSession& session)
+grpc::Status stop_accepting_ssh_connections(mp::VirtualMachine& vm)
 {
-    auto proc = session.exec(stop_ssh_cmd);
-    auto ecode = proc.exit_code();
-
-    return ecode == 0 ? grpc::Status::OK
-                      : grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                     fmt::format("Could not stop sshd. '{}' exited with code {}", stop_ssh_cmd, ecode),
-                                     proc.read_std_error()};
-}
-
-grpc::Status ssh_reboot(const std::string& hostname, int port, const std::string& username,
-                        const mp::SSHKeyProvider& key_provider)
-{
-    mp::SSHSession session{hostname, port, username, key_provider};
-
-    // This allows us to later detect when the machine has finished restarting by waiting for SSH to be back up.
-    // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
-    stop_accepting_ssh_connections(session);
-
-    auto proc = session.exec(reboot_cmd);
     try
     {
-        auto ecode = proc.exit_code();
+        vm.ssh_exec(stop_ssh_cmd);
+    }
+    catch (const mp::SSHExecFailure& e)
+    {
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Could not stop sshd. '{}' exited with code {}.", stop_ssh_cmd, e.exit_code()),
+                            e.what()};
+    }
 
-        if (ecode != 0)
-            return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                fmt::format("Reboot command exited with code {}", ecode), proc.read_std_error()};
+    return grpc::Status::OK;
+}
+
+grpc::Status ssh_reboot(mp::VirtualMachine& vm)
+{
+    // This allows us to later detect when the machine has finished restarting by waiting for SSH to be back up.
+    // Otherwise, there would be a race condition, and we would be unable to distinguish whether it had ever been down.
+    stop_accepting_ssh_connections(vm);
+
+    try
+    {
+        vm.ssh_exec(reboot_cmd);
+    }
+    catch (const mp::SSHExecFailure& e)
+    {
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Reboot command exited with code {}", e.exit_code()),
+                            e.what()};
     }
     catch (const mp::ExitlessSSHProcessException&)
     {
@@ -1394,7 +1397,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        auto instance = instance_record[name] = config->factory->create_virtual_machine(vm_desc, *this);
+        auto instance = instance_record[name] =
+            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
         instance->load_snapshots();
 
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
@@ -1835,10 +1839,10 @@ try // clang-format on
 
         entry->set_current_release(current_release);
 
-        if (request->request_ipv4() && mp::utils::is_running(present_state))
+        if (request->request_ipv4() && MP_UTILS.is_running(present_state))
         {
-            std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
-            auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
+            std::string management_ip = vm.management_ipv4();
+            auto all_ipv4 = vm.get_all_ipv4();
 
             if (is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
@@ -2712,10 +2716,6 @@ void mp::Daemon::on_resume()
 {
 }
 
-void mp::Daemon::on_stop()
-{
-}
-
 void mp::Daemon::on_suspend()
 {
 }
@@ -2864,7 +2864,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                            {},
                                            false,
                                            QJsonObject()};
-                operative_instances[name] = config->factory->create_virtual_machine(vm_desc, *this);
+                operative_instances[name] =
+                    config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
                 preparing_instances.erase(name);
 
                 persist_instances();
@@ -3147,12 +3148,12 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     if (vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
 
-    if (!mp::utils::is_running(vm.current_state()))
+    if (!MP_UTILS.is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
-    return ssh_reboot(vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider);
+    return ssh_reboot(vm);
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
@@ -3167,21 +3168,9 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     {
         delayed_shutdown_instances.erase(name);
 
-        std::optional<mp::SSHSession> session;
-        try
-        {
-            session = mp::SSHSession{vm.ssh_hostname(), vm.ssh_port(), vm.ssh_username(), *config->ssh_key_provider};
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::info,
-                     category,
-                     fmt::format("Cannot open ssh session on \"{}\" for shutdown: {}", name, e.what()));
-        }
-
         auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };
         auto& shutdown_timer = delayed_shutdown_instances[name] =
-            std::make_unique<DelayedShutdownTimer>(&vm, std::move(session), stop_all_mounts);
+            std::make_unique<DelayedShutdownTimer>(&vm, stop_all_mounts);
 
         QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished,
                          [this, name]() { delayed_shutdown_instances.erase(name); });
@@ -3212,7 +3201,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
     if (vm.current_state() == VirtualMachine::State::unknown)
         throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
-    if (!mp::utils::is_running(vm.current_state()))
+    if (!MP_UTILS.is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name)};
 
     if (vm.state == VirtualMachine::State::delayed_shutdown &&
@@ -3301,7 +3290,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::str
 {
     return mount.mount_type == VMMount::MountType::Classic
                ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
-               : vm->make_native_mount_handler(config->ssh_key_provider.get(), target, mount);
+               : vm->make_native_mount_handler(target, mount);
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*
@@ -3330,7 +3319,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
     {
         auto it = operative_instances.find(name);
         auto vm = it->second;
-        vm->wait_until_ssh_up(timeout, *config->ssh_key_provider);
+        vm->wait_until_ssh_up(timeout);
 
         if (std::is_same<Reply, LaunchReply>::value)
         {
@@ -3341,7 +3330,7 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
                 server->Write(reply);
             }
 
-            MP_UTILS.wait_for_cloud_init(vm.get(), timeout, *config->ssh_key_provider);
+            vm->wait_for_cloud_init(timeout);
         }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
@@ -3569,21 +3558,17 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
 
-    if (!no_runtime_info && mp::utils::is_running(present_state))
+    if (!no_runtime_info && MP_UTILS.is_running(present_state))
     {
-        mp::SSHSession session{vm.ssh_hostname(), vm.ssh_port(), vm_specs.ssh_username, *config->ssh_key_provider};
+        instance_info->set_load(vm.ssh_exec("cat /proc/loadavg | cut -d ' ' -f1-3"));
+        instance_info->set_memory_usage(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $3}'"));
+        info->set_memory_total(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $2}'"));
+        instance_info->set_disk_usage(vm.ssh_exec("df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
+        info->set_disk_total(vm.ssh_exec("df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
+        info->set_cpu_count(vm.ssh_exec("nproc"));
 
-        instance_info->set_load(mpu::run_in_ssh_session(session, "cat /proc/loadavg | cut -d ' ' -f1-3"));
-        instance_info->set_memory_usage(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $3}'"));
-        info->set_memory_total(mpu::run_in_ssh_session(session, "free -b | grep 'Mem:' | awk '{printf $2}'"));
-        instance_info->set_disk_usage(
-            mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
-        info->set_disk_total(
-            mpu::run_in_ssh_session(session, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
-        info->set_cpu_count(mpu::run_in_ssh_session(session, "nproc"));
-
-        std::string management_ip = vm.management_ipv4(*config->ssh_key_provider);
-        auto all_ipv4 = vm.get_all_ipv4(*config->ssh_key_provider);
+        std::string management_ip = vm.management_ipv4();
+        auto all_ipv4 = vm.get_all_ipv4();
 
         if (is_ipv4_valid(management_ip))
             instance_info->add_ipv4(management_ip);
@@ -3594,8 +3579,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
             if (extra_ipv4 != management_ip)
                 instance_info->add_ipv4(extra_ipv4);
 
-        auto current_release =
-            mpu::run_in_ssh_session(session, "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
+        auto current_release = vm.ssh_exec("cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
     }
 }

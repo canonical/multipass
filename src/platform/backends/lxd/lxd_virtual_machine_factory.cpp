@@ -100,6 +100,7 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 }
 
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                              const SSHKeyProvider& key_provider,
                                                                               VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc,
@@ -108,6 +109,7 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(co
                                                    base_url,
                                                    multipass_bridge_name,
                                                    storage_pool,
+                                                   key_provider,
                                                    MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
 }
 
