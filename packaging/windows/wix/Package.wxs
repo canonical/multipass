@@ -1,13 +1,17 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
-        <Launch Condition="WindowsBuild >= 16299" Message="!(loc.FeatureUpdateReqd)" />
+        <Launch Condition="Installed OR WIN_VERSION >= 17134" Message="!(loc.FeatureUpdateReqd)" />
 
         <MediaTemplate EmbedCab="yes" />
         <Icon Id="mp.exe" SourceFile="icon.ico" />
         <Property Id="ARPPRODUCTICON" Value="mp.exe" />
         <Property Id="ARPURLINFOABOUT" Value="https://multipass.run/" />
         <Property Id="ARPHELPLINK" Value="https://github.com/CanonicalLtd/multipass" />
+
+        <Property Id="WIN_VERSION">
+            <RegistrySearch Id='WinVersion' Type='raw' Root='HKLM' Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
+        </Property>
 
         <Binary Id="CABinary" SourceFile="$(var.CustomActions.TargetDir)\$(var.CustomActions.TargetName).CA.dll" />
 
