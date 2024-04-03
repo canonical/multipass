@@ -57,6 +57,7 @@ bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b)
     return std::tuple(a.get_index(),
                       a.get_name(),
                       a.get_comment(),
+                      a.get_instance_id(),
                       a.get_creation_timestamp(),
                       a.get_num_cores(),
                       a.get_mem_size(),
@@ -69,6 +70,7 @@ bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b)
                       a.get_id()) == std::tuple(b.get_index(),
                                                 b.get_name(),
                                                 b.get_comment(),
+                                                a.get_instance_id(),
                                                 b.get_creation_timestamp(),
                                                 b.get_num_cores(),
                                                 b.get_mem_size(),
@@ -183,6 +185,13 @@ TEST_F(TestBaseSnapshot, adoptsGivenComment)
     constexpr auto comment = "some comment";
     auto snapshot = MockBaseSnapshot{"whatever", comment, "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_comment(), comment);
+}
+
+TEST_F(TestBaseSnapshot, adoptsGivenInstanceId)
+{
+    constexpr std::string_view instance_id{"vm2"};
+    const auto snapshot = MockBaseSnapshot{"whatever", "some comment", std::string{instance_id}, nullptr, specs, vm};
+    EXPECT_EQ(snapshot.get_instance_id(), instance_id);
 }
 
 TEST_F(TestBaseSnapshot, adoptsGivenParent)
@@ -357,6 +366,16 @@ TEST_F(TestBaseSnapshot, linksToParentFromJson)
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_parents_name(), parent_name);
+}
+
+TEST_F(TestBaseSnapshot, adoptsInstanceIdFromJson)
+{
+    constexpr std::string_view new_instance_id{"vm2"};
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "instance_id", QJsonValue{new_instance_id.data()});
+
+    const auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    EXPECT_EQ(snapshot.get_instance_id(), new_instance_id);
 }
 
 TEST_F(TestBaseSnapshot, adoptsIndexFromJson)
