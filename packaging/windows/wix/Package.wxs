@@ -45,11 +45,11 @@
         <Property Id="REMOVE_DATA" Value="YES" />
         <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
-        <SetProperty Id="RemoveMPDataScript" Before="RemoveMPDataScript" Sequence="execute"
+        <SetProperty Id="RemoveMPDataAction" Before="RemoveMPDataAction" Sequence="execute"
             Value ="&quot;[%ComSpec]&quot; /c &apos;&quot;[BinFolder]multipass.exe&quot; delete -p --all &amp; rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;&apos;" />
 
         <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData" Return="ignore" />
-        <CustomAction Id="RemoveMPDataScript" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <CustomAction Id="RemoveMPDataAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
 
 
         <!-- Install client certificates -->
@@ -101,7 +101,7 @@
             <Custom Action="UninstallExeMPAction" After="InstallInitialize" Condition="NOT Installed AND UNINSTALLER_PATH" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
-            <Custom Action="RemoveMPDataScript" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+            <Custom Action="RemoveMPDataAction" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
 
             <Custom Action="InstallClientCertsAction.SetCmdLine" Before="InstallClientCertsAction" />
             <Custom Action="InstallClientCertsAction" After="InstallFinalize" />
