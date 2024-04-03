@@ -37,7 +37,7 @@ struct StubSnapshot : public Snapshot
         return {};
     }
 
-    std::string get_instance_id() const noexcept override
+    std::string get_cloud_init_instance_id() const noexcept override
     {
         return {};
     }

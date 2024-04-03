@@ -738,7 +738,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
         // here we can use default_mac_address of the current state because it is an immutable variable.
         apply_extra_interfaces_and_instance_id_to_cloud_init(specs.default_mac_address,
                                                              snapshot->get_extra_interfaces(),
-                                                             snapshot->get_instance_id());
+                                                             snapshot->get_cloud_init_instance_id());
     }
 
     rollback.dismiss();
