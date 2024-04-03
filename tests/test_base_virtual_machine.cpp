@@ -28,6 +28,8 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/level.h>
@@ -41,6 +43,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
+using St = mp::VirtualMachine::State;
 
 namespace
 {
@@ -50,20 +53,20 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     MockBaseVirtualMachine(Args&&... args)
         : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
     {
-        auto& self = *this;
-        const auto& const_self = self;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, view_snapshots, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_num_snapshots, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, take_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, rename_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, delete_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, restore_snapshot, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, load_snapshots, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_childrens_names, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, get_snapshot_count, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
+        const auto& const_self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_all_ipv4, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, view_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_num_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, take_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, rename_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, delete_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, restore_snapshot, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, load_snapshots, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_childrens_names, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_snapshot_count, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
         MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(const_self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
-        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(self,
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this,
                                                      get_snapshot,
                                                      mp::BaseVirtualMachine,
                                                      (A<const std::string&>()));
@@ -83,46 +86,62 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 
+    using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
+
+    void simulate_state(St state)
+    {
+        this->state = state;
+        ON_CALL(*this, current_state).WillByDefault(Return(state));
+    }
+
+    void simulate_ssh_exec() // use if premocking libssh stuff
+    {
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, ssh_exec, mp::BaseVirtualMachine);
+    }
+
+    void simulate_waiting_for_ssh() // use if premocking libssh stuff
+    {
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_until_ssh_up, mp::BaseVirtualMachine);
+    }
+
+    void simulate_cloud_init()
+    {
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_for_cloud_init, mp::BaseVirtualMachine);
+    }
+
     void simulate_no_snapshots_support() const // doing this here to access protected method on the base
     {
-        auto& self = *this;
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(self, require_snapshots_support, mp::BaseVirtualMachine);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, require_snapshots_support, mp::BaseVirtualMachine);
     }
 };
 
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine(mp::VirtualMachine::State s = mp::VirtualMachine::State::off)
-        : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
+    StubBaseVirtualMachine(St s = St::off) : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
     {
     }
 
-    StubBaseVirtualMachine(mp::VirtualMachine::State s, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s, "stub", tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    StubBaseVirtualMachine(St s, std::unique_ptr<mpt::TempDir> tmp_dir)
+        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
-    }
-
-    void stop() override
-    {
-        state = mp::VirtualMachine::State::off;
     }
 
     void start() override
     {
-        state = mp::VirtualMachine::State::running;
+        state = St::running;
     }
 
     void shutdown() override
     {
-        state = mp::VirtualMachine::State::off;
+        state = St::off;
     }
 
     void suspend() override
     {
-        state = mp::VirtualMachine::State::suspended;
+        state = St::suspended;
     }
 
-    mp::VirtualMachine::State current_state() override
+    St current_state() override
     {
         return state;
     }
@@ -142,7 +161,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4(const mp::SSHKeyProvider&) override
+    std::string management_ipv4() override
     {
         return "1.2.3.4";
     }
@@ -152,7 +171,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "";
     }
 
-    void wait_until_ssh_up(std::chrono::milliseconds /*timeout*/, const mp::SSHKeyProvider& /*key_provider*/) override
+    void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }
 
@@ -229,7 +248,7 @@ struct BaseVM : public Test
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
-    NiceMock<MockBaseVirtualMachine> vm{"mock-vm"};
+    NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
@@ -248,35 +267,36 @@ struct BaseVM : public Test
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
-
+    vm.simulate_state(St::running);
+    vm.simulate_ssh_exec();
     REPLACE(ssh_new, []() { return nullptr; }); // This makes SSH throw when opening a new session.
 
-    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4();
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    vm.simulate_state(St::running);
+    vm.simulate_ssh_exec();
 
     // Make SSH throw when trying to execute something.
     mock_ssh_test_fixture.request_exec.returnValue(SSH_ERROR);
 
-    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4();
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
 TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+    vm.simulate_state(St::off);
 
-    EXPECT_EQ(base_vm.get_all_ipv4(key_provider).size(), 0u);
+    EXPECT_EQ(vm.get_all_ipv4().size(), 0u);
 }
 
 TEST_F(BaseVM, add_network_interface_throws)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
+    StubBaseVirtualMachine base_vm(St::off);
 
     MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, {"eth1", "52:54:00:00:00:00", true}),
                          mp::NotImplementedOnThisBackendException,
@@ -296,7 +316,8 @@ struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
 
 TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 {
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::running);
+    vm.simulate_state(St::running);
+    vm.simulate_ssh_exec();
 
     auto test_params = GetParam();
     auto remaining = test_params.output.size();
@@ -324,7 +345,7 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
     };
     REPLACE(ssh_channel_read_timeout, channel_read);
 
-    auto ip_list = base_vm.get_all_ipv4(key_provider);
+    auto ip_list = vm.get_all_ipv4();
     EXPECT_EQ(ip_list, test_params.expected_ips);
 }
 
@@ -723,7 +744,7 @@ TEST_F(BaseVM, restoresSnapshots)
                                      "12:12:12:12:12:12",
                                      {},
                                      "user",
-                                     mp::VirtualMachine::State::off,
+                                     St::off,
                                      {{"dst", mount}},
                                      false,
                                      metadata};
@@ -738,7 +759,7 @@ TEST_F(BaseVM, restoresSnapshots)
     changed_specs.num_cores = 3;
     changed_specs.mem_size = mp::MemorySize{"5G"};
     changed_specs.disk_space = mp::MemorySize{"35G"};
-    changed_specs.state = mp::VirtualMachine::State::stopped;
+    changed_specs.state = St::stopped;
     changed_specs.mounts.clear();
     changed_specs.metadata["data"] = "meta";
     changed_specs.metadata["meta"] = "toto";
@@ -1158,7 +1179,7 @@ TEST_F(BaseVM, rollsbackFailedRestore)
                                      "ab:ab:ab:ab:ab:ab",
                                      {},
                                      "me",
-                                     mp::VirtualMachine::State::off,
+                                     St::off,
                                      {},
                                      false,
                                      {}};
@@ -1210,6 +1231,160 @@ TEST(BaseVMStub, addExtraInterfacesToCloudInit)
                                                                 {"id", "52:54:00:56:78:92", true}};
     // use internal instance dir, in this unit test case, it will not find the cloud-init file, so it should throw
     EXPECT_THROW(base_vm.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
+}
+
+TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
+
+    std::chrono::milliseconds timeout(1);
+    EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
+}
+
+TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
+
+    std::chrono::milliseconds timeout(1);
+    MP_EXPECT_THROW_THAT(vm.wait_for_cloud_init(timeout),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
+}
+
+TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
+{
+    vm.simulate_waiting_for_ssh();
+    EXPECT_CALL(vm, ssh_hostname(_)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    auto& mock_utils = *mock_utils_ptr;
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, sleep_for, mp::Utils);
+
+    MP_EXPECT_THROW_THAT(vm.wait_until_ssh_up(std::chrono::milliseconds{1}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("timed out waiting for response")));
+}
+
+using ExceptionParam =
+    std::variant<std::runtime_error, mp::IPUnavailableException, mp::SSHException, mp::InternalTimeoutException>;
+class TestWaitForSSHExceptions : public BaseVM, public WithParamInterface<ExceptionParam>
+{
+};
+
+TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
+{
+    static constexpr auto thrower = [](const auto& e) { throw e; };
+
+    vm.simulate_waiting_for_ssh();
+    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
+
+    auto timeout = std::chrono::milliseconds{2};
+    EXPECT_CALL(vm, ssh_hostname(_))
+        .WillOnce(WithoutArgs([]() {
+            std::visit(thrower, GetParam());
+            return "neverland";
+        }))
+        .WillRepeatedly(Return("underworld"));
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, sleep_for(_)).WillRepeatedly(Return());
+
+    EXPECT_NO_THROW(vm.wait_until_ssh_up(timeout));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
+                         TestWaitForSSHExceptions,
+                         Values(std::runtime_error{"todo-remove-eventually"},
+                                mp::IPUnavailableException{"noip"},
+                                mp::SSHException{"nossh"},
+                                mp::InternalTimeoutException{"notime", std::chrono::seconds{1}}));
+
+TEST_F(BaseVM, sshExecRefusesToExecuteIfVMIsNotRunning)
+{
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session).Times(0);
+
+    vm.simulate_ssh_exec();
+    MP_EXPECT_THROW_THAT(vm.ssh_exec("echo"), mp::SSHException, mpt::match_what(HasSubstr("not running")));
+}
+
+TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+
+    vm.simulate_ssh_exec();
+    vm.renew_ssh_session();
+
+    EXPECT_NO_THROW(vm.ssh_exec(cmd));
+}
+
+TEST_F(BaseVM, sshExecReconnectsIfDisconnected)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+
+    vm.simulate_ssh_exec();
+
+    EXPECT_NO_THROW(vm.ssh_exec(cmd));
+}
+
+TEST_F(BaseVM, sshExecTriesToReconnectAfterLateDetectionOfDisconnection)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd))
+        .WillOnce(Throw(mp::SSHException{"intentional"}))
+        .WillOnce(DoDefault());
+
+    vm.simulate_ssh_exec();
+    vm.renew_ssh_session();
+
+    mock_ssh_test_fixture.is_connected.returnValue(true, false, false);
+
+    EXPECT_NO_THROW(vm.ssh_exec(cmd));
+}
+
+TEST_F(BaseVM, sshExecRethrowsOtherExceptions)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    vm.simulate_ssh_exec();
+    vm.renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), std::runtime_error, mpt::match_what(HasSubstr("intentional")));
+}
+
+TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(mp::SSHException{"intentional"}));
+
+    vm.simulate_ssh_exec();
+    vm.renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), mp::SSHException, mpt::match_what(HasSubstr("intentional")));
 }
 
 } // namespace

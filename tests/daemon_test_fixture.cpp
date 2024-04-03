@@ -340,7 +340,7 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
 
     ON_CALL(*mock_factory_ptr, fetch_type()).WillByDefault(Return(FetchType::ImageOnly));
 
-    ON_CALL(*mock_factory_ptr, create_virtual_machine).WillByDefault([](const auto&, auto&) {
+    ON_CALL(*mock_factory_ptr, create_virtual_machine).WillByDefault([](auto&&...) {
         return std::make_unique<StubVirtualMachine>();
     });
 

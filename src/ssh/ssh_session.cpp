@@ -23,8 +23,6 @@
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
 
-#include <libssh/callbacks.h>
-
 #include <QDir>
 
 #include <string>
@@ -64,6 +62,12 @@ mp::SSHSession::SSHSession(const std::string& host,
                         key_provider.private_key());
 }
 
+multipass::SSHSession::~SSHSession()
+{
+    ssh_disconnect(session.get());
+    force_shutdown(); // do we really need this?
+}
+
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
 {
     mpl::log(mpl::Level::debug, "ssh session", fmt::format("Executing '{}'", cmd));
@@ -78,7 +82,7 @@ void mp::SSHSession::force_shutdown()
     shutdown(socket, shutdown_read_and_writes);
 }
 
-mp::SSHSession::operator ssh_session() const
+mp::SSHSession::operator ssh_session()
 {
     return session.get();
 }
@@ -142,4 +146,9 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
         throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'", name_for(type),
                                            as_string(type, data), ssh_get_error(session.get())));
     }
+}
+
+bool multipass::SSHSession::is_connected() const
+{
+    return static_cast<bool>(ssh_is_connected(session.get()));
 }

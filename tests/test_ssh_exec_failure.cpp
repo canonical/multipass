@@ -15,36 +15,21 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_EXCEPTION_H
-#define MULTIPASS_SSH_EXCEPTION_H
+#include "common.h"
 
-#include <stdexcept>
-#include <string>
+#include <multipass/exceptions/ssh_exception.h>
 
-namespace multipass
+namespace mp = multipass;
+using namespace testing;
+
+namespace
 {
-class SSHException : public std::runtime_error
+
+TEST(TestSSHExecFailure, recordsExitCode)
 {
-public:
-    explicit SSHException(const std::string& what_arg) : runtime_error(what_arg)
-    {
-    }
-};
+    int expected_exit_code = 5;
+    mp::SSHExecFailure sshExecFailure("OnPurpose", expected_exit_code);
+    EXPECT_EQ(sshExecFailure.exit_code(), expected_exit_code);
+}
 
-class SSHExecFailure : public SSHException
-{
-public:
-    SSHExecFailure(const std::string& what_arg, int exit_code) : SSHException{what_arg}, ec{exit_code}
-    {
-    }
-
-    int exit_code() const
-    {
-        return ec;
-    }
-
-private:
-    int ec;
-};
-} // namespace multipass
-#endif // MULTIPASS_SSH_EXCEPTION_H
+} // namespace

@@ -24,7 +24,6 @@
 
 #include <multipass/network_interface.h>
 #include <multipass/process/process.h>
-#include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QObject>
@@ -46,38 +45,38 @@ public:
     QemuVirtualMachine(const VirtualMachineDescription& desc,
                        QemuPlatform* qemu_platform,
                        VMStatusMonitor& monitor,
+                       const SSHKeyProvider& key_provider,
                        const Path& instance_dir);
     ~QemuVirtualMachine();
 
     void start() override;
-    void stop() override;
     void shutdown() override;
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
-    std::string management_ipv4(const SSHKeyProvider& key_provider) override;
+    std::string management_ipv4() override;
     std::string ipv6() override;
     void ensure_vm_is_running() override;
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
+    void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
     virtual void add_network_interface(int index, const NetworkInterface& net) override;
     virtual MountArgs& modifiable_mount_args();
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target, const VMMount& mount) override;
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
-    void on_synchronize_clock(const SSHKeyProvider* key_provider);
+    void on_synchronize_clock();
 
 protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
-    QemuVirtualMachine(const std::string& name, const Path& instance_dir) : BaseVirtualMachine{name, instance_dir}
+    QemuVirtualMachine(const std::string& name, const SSHKeyProvider& key_provider, const Path& instance_dir)
+        : BaseVirtualMachine{name, key_provider, instance_dir}
     {
     }
 

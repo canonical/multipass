@@ -37,7 +37,6 @@
 namespace multipass
 {
 class MemorySize;
-class SSHKeyProvider;
 struct VMMount;
 struct VMSpecs;
 class MountHandler;
@@ -63,7 +62,6 @@ public:
     using ShPtr = std::shared_ptr<VirtualMachine>;
 
     virtual ~VirtualMachine() = default;
-    virtual void stop() = 0;
     virtual void start() = 0;
     virtual void shutdown() = 0;
     virtual void suspend() = 0;
@@ -75,10 +73,12 @@ public:
     };
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
-    virtual std::string management_ipv4(const SSHKeyProvider& key_provider) = 0;
-    virtual std::vector<std::string> get_all_ipv4(const SSHKeyProvider& key_provider) = 0;
+    virtual std::string management_ipv4() = 0;
+    virtual std::vector<std::string> get_all_ipv4() = 0;
     virtual std::string ipv6() = 0;
-    virtual void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) = 0;
+    virtual std::string ssh_exec(const std::string& cmd) = 0;
+    virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
+    virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void ensure_vm_is_running() = 0;
     virtual void update_state() = 0;
     virtual void update_cpus(int num_cores) = 0;
@@ -87,8 +87,7 @@ public:
     virtual void add_network_interface(int index, const NetworkInterface& net) = 0;
     virtual void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
                                                       const std::vector<NetworkInterface>& extra_interfaces) = 0;
-    virtual std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                                    const std::string& target,
+    virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views

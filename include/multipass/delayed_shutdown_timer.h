@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
 #define MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
 
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/disabled_copy_move.h>
 #include <multipass/virtual_machine.h>
 
 #include <QObject>
@@ -26,17 +26,17 @@
 
 #include <chrono>
 #include <functional>
+#include <string>
 
 namespace multipass
 {
-class DelayedShutdownTimer : public QObject
+class DelayedShutdownTimer : public QObject, private DisabledCopyMove
 {
     Q_OBJECT
 
 public:
     using StopMounts = std::function<void(const std::string&)>;
-    DelayedShutdownTimer(VirtualMachine* virtual_machine, std::optional<SSHSession>&& session,
-                         const StopMounts& stop_mounts);
+    DelayedShutdownTimer(VirtualMachine* virtual_machine, const StopMounts& stop_mounts);
     ~DelayedShutdownTimer();
 
     void start(const std::chrono::milliseconds delay);
@@ -50,9 +50,7 @@ private:
 
     QTimer shutdown_timer;
     VirtualMachine* virtual_machine;
-    std::optional<SSHSession> ssh_session;
     const StopMounts stop_mounts;
-    std::chrono::milliseconds delay;
     std::chrono::milliseconds time_remaining;
 };
 } // namespace multipass
