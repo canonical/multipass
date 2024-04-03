@@ -34,9 +34,8 @@
 
             <ProgressText Action="CheckHyperVAction" Message="!(loc.CheckHyperV)" />
             <ProgressText Action="EnableHyperVAction" Message="!(loc.EnableHyperV)" />
-            <ProgressText Action="SetDriverAction" Message="!(loc.SettingDriver)" />
-            <ProgressText Action="UninstallExeMP" Message="!(loc.UninstallOldMP)" />
-            <ProgressText Action="RemoveDataAction" Message="!(loc.RemoveMPDataText)" />
+            <ProgressText Action="UninstallExeMPAction" Message="!(loc.UninstallOldMP)" />
+            <ProgressText Action="RemoveMPDataAction" Message="!(loc.RemoveMPDataText)" />
 
             <Publish Dialog="UninstallExeMPDlg" Control="OK" Event="NewDialog" Value="CustomWelcomeDlg" />
 
@@ -48,14 +47,14 @@
             <Publish Dialog="CustomWelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
 
             <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="CustomWelcomeDlg" />
-            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="ChooseHypervisorDlg" Condition="LicenseAccepted = &quot;1&quot; AND NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
-            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="ChoosePathInstallDlg" Condition="LicenseAccepted = &quot;1&quot; AND WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
+            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="ChooseHypervisorDlg" Condition="LicenseAccepted = &quot;1&quot; AND (NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot; AND NOT CONFIG_FILE_FOUND)" />
+            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="ChoosePathInstallDlg" Condition="LicenseAccepted = &quot;1&quot; AND (WINDOWS_EDITION &gt;&lt; &quot;Core&quot; OR CONFIG_FILE_FOUND)" />
 
             <Publish Dialog="ChooseHypervisorDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg" />
             <Publish Dialog="ChooseHypervisorDlg" Control="Next" Event="NewDialog" Value="ChoosePathInstallDlg" />
 
-            <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
-            <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog" Value="ChooseHypervisorDlg" Condition="NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
+            <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot; OR CONFIG_FILE_FOUND" />
+            <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog" Value="ChooseHypervisorDlg" Condition="NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot; AND NOT CONFIG_FILE_FOUND" />
             <Publish Dialog="ChoosePathInstallDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" />
 
             <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="ChoosePathInstallDlg" />

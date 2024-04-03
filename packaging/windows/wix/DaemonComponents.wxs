@@ -29,7 +29,6 @@
         <InstallExecuteSequence>
             <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;hyperv&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
-            <Custom Action="SetDriverAction" After="InstallFinalize" Condition="NOT Installed" />
         </InstallExecuteSequence>
     </Fragment>
 </Wix>

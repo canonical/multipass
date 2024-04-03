@@ -67,6 +67,30 @@
         <InstallExecuteSequence>
             <Custom Action="SetWindowsEdition" After="AppSearch" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
         </InstallExecuteSequence>
+
+        <!-- Create Multipass daemon configuration file -->
+        <Property Id="MP_DATA_DIR">
+            <RegistrySearch Id="MultipassDataDirRegKey" Root="HKLM" Key="SYSTEM\CurrentControlSet\Control\Session Manager\Environment" Name="MULTIPASS_STORAGE" Type="raw" />
+        </Property>
+
+        <Property Id="CONFIG_FILE_FOUND">
+            <DirectorySearch Id="MultipassDataDir" AssignToProperty="yes" Path="[MP_DATA_DIR]">
+                <FileSearch Id="multipass_conf" Name="multipassd.conf" />
+            </DirectorySearch>
+        </Property>
+
+        <CustomAction Id="SetMP_DATA_DIR" Execute="immediate" Property="MP_DATA_DIR" Value="[CommonAppDataFolder]Multipass\" />
+        <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c echo local.driver=[DRIVER] &gt; &quot;[MP_DATA_DIR]multipassd.conf&quot;" />
+        <CustomAction Id="DaemonConfigFileAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
+
+        <InstallUISequence>
+            <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
+        </InstallUISequence>
+        <InstallExecuteSequence>
+            <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
+            <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction" Condition="NOT CONFIG_FILE_FOUND" />
+            <Custom Action="DaemonConfigFileAction" After="InstallClientCertsAction" Condition="NOT CONFIG_FILE_FOUND" />
+        </InstallExecuteSequence>
     </Package>
 
     <Fragment>
