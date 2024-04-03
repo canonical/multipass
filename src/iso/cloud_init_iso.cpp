@@ -751,16 +751,3 @@ std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(const std::fil
 
     return meta_data_node["instance-id"].as<std::string>();
 }
-
-void mp::CloudInitFileOps::write_instance_id_to_cloud_init(const std::string& new_instance_id,
-                                                           const std::filesystem::path& cloud_init_path) const
-{
-    CloudInitIso iso_file;
-    iso_file.read_from(cloud_init_path);
-    std::string& meta_data_file_content = iso_file.at("meta-data");
-    auto meta_data_node = YAML::Load(meta_data_file_content);
-    meta_data_node["instance-id"] = YAML::Node{new_instance_id};
-    meta_data_file_content = mpu::emit_cloud_config(meta_data_node);
-
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
-}

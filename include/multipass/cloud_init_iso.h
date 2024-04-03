@@ -79,8 +79,6 @@ public:
                                                    const NetworkInterface& extra_interfaces,
                                                    const std::filesystem::path& cloud_init_path) const;
     virtual std::string get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const;
-    virtual void write_instance_id_to_cloud_init(const std::string& new_instance_id,
-                                                 const std::filesystem::path& cloud_init_path) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLOUD_INIT_ISO_H
