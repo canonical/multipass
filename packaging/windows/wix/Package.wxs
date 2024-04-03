@@ -51,13 +51,12 @@
         </InstallExecuteSequence>
 
         <!-- Install client certificates -->
-        <SetProperty Id="InstallClientCertsScript" Before="InstallClientCertsScript" Sequence="execute"
-            Value ="&quot;[%ComSpec]&quot; /c &apos;&quot;[BinFolder]multipassd.exe&quot; /install&apos;" />
-
-        <CustomAction Id="InstallClientCertsScript" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
+        <CustomAction Id="InstallClientCertsAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install" />
+        <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
 
         <InstallExecuteSequence>
-            <Custom Action="InstallClientCertsScript" After="InstallFiles" />
+            <Custom Action="InstallClientCertsAction.SetCmdLine" Before="InstallClientCertsAction" />
+            <Custom Action="InstallClientCertsAction" After="InstallFinalize" />
         </InstallExecuteSequence>
 
         <!-- Detect Windows edition and set driver -->
