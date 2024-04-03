@@ -39,8 +39,7 @@
         <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
         <SetProperty Id="RemoveMPDataScript" Before="RemoveMPDataScript" Sequence="execute"
-            Value ="&quot;[%ComSpec]&quot; /c &apos;&quot;[BinFolder]multipass.exe&quot; delete -p --all &amp;
-            rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;&apos;" />
+            Value ="&quot;[%ComSpec]&quot; /c &apos;&quot;[BinFolder]multipass.exe&quot; delete -p --all &amp; rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;&apos;" />
 
         <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData" Return="ignore" />
         <CustomAction Id="RemoveMPDataScript" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
