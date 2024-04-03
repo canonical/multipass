@@ -6,7 +6,7 @@ This file contains the declaration of all the localizable strings.
     <String Id="FeatureUpdateReqd" Value="This application requires Windows 10 Version 1803 (April 2018 Update) or later." />
 
     <String Id="ChooseHypervisorDlgTitle" Value="{\WixUI_Font_Title}Hypervisor" />
-    <String Id="ChooseHypervisorDlgDescription" Value="Select a hypervisor to use with Multipass." />
+    <String Id="ChooseHypervisorDlgDescription" Value="Select a hypervisor to use with [ProductName]." />
     <String Id="WixHyperV" Value="Microsoft Hyper-V (Recommended)" />
     <String Id="WixVirtualBox" Value="Oracle VM VirtualBox" />
 
@@ -16,11 +16,11 @@ This file contains the declaration of all the localizable strings.
     <String Id="UninstallExeMPDlgIconTooltip" Value="Information icon" />
 
     <String Id="ChoosePathInstallDlgTitle" Value="{\WixUI_Font_Title}Add multipass to PATH?" />
-    <String Id="ChoosePathInstallDlgDescription" Value="To run Multipass without having to type the full installation path, the PATH variable needs to include multipass." />
-    <String Id="WixDoNotAddPath" Value="Do not add multipass to the PATH" />
-    <String Id="WixAddToSystemPath" Value="Add multipass to the system PATH for all users" />
-    <String Id="WixAddToUserPath" Value="Add multipass to the current user's PATH (Recommended)" />
-    <String Id="UninstallOldMP" Value="Uninstalling previous version of Multipass" />
+    <String Id="ChoosePathInstallDlgDescription" Value="To run [ProductName] without having to type the full path, the PATH environment variable needs to include the installation path." />
+    <String Id="WixDoNotAddPath" Value="Do not add [ProductName] to the PATH" />
+    <String Id="WixAddToSystemPath" Value="Add [ProductName] to the system PATH for all users" />
+    <String Id="WixAddToUserPath" Value="Add [ProductName] to the current user's PATH (Recommended)" />
+    <String Id="UninstallOldMP" Value="Uninstalling previous version of [ProductName]" />
     <String Id="RemoveMPDataText" Value="Deleting [ProductName] VM instances" />
 
     <String Id="CheckHyperV" Value="Checking if Hyper-V is enabled" />
