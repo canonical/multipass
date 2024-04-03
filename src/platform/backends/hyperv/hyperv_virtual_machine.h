@@ -39,9 +39,11 @@ class VMStatusMonitor;
 class HyperVVirtualMachine final : public BaseVirtualMachine
 {
 public:
-    HyperVVirtualMachine(const VirtualMachineDescription& desc, VMStatusMonitor& monitor, const Path& instance_dir);
+    HyperVVirtualMachine(const VirtualMachineDescription& desc,
+                         VMStatusMonitor& monitor,
+                         const SSHKeyProvider& key_provider,
+                         const Path& instance_dir);
     ~HyperVVirtualMachine();
-    void stop() override;
     void start() override;
     void shutdown() override;
     void suspend() override;
@@ -49,17 +51,15 @@ public:
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
-    std::string management_ipv4(const SSHKeyProvider& key_provider) override;
+    std::string management_ipv4() override;
     std::string ipv6() override;
     void ensure_vm_is_running() override;
-    void wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider) override;
     void update_state() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
     void add_network_interface(int index, const NetworkInterface& net) override;
-    std::unique_ptr<MountHandler> make_native_mount_handler(const SSHKeyProvider* ssh_key_provider,
-                                                            const std::string& target, const VMMount& mount) override;
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 protected:
     void require_snapshots_support() const override;

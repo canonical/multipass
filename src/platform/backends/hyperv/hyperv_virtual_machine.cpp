@@ -119,8 +119,9 @@ void add_extra_net(mp::PowerShell& ps, const QString& name, const mp::NetworkInt
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider,
                                                const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       power_shell{std::make_unique<PowerShell>(vm_name)},
@@ -209,7 +210,7 @@ void mp::HyperVVirtualMachine::start()
     }
 }
 
-void mp::HyperVVirtualMachine::stop()
+void mp::HyperVVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
@@ -218,6 +219,7 @@ void mp::HyperVVirtualMachine::stop()
     {
         power_shell->run({"Stop-VM", "-Name", name});
         state = State::stopped;
+        drop_ssh_session();
         ip = std::nullopt;
     }
     else if (present_state == State::starting)
@@ -225,6 +227,7 @@ void mp::HyperVVirtualMachine::stop()
         power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
         state = State::off;
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
+        drop_ssh_session();
         ip = std::nullopt;
     }
     else if (present_state == State::suspended)
@@ -236,11 +239,6 @@ void mp::HyperVVirtualMachine::stop()
     lock.unlock();
 }
 
-void mp::HyperVVirtualMachine::shutdown()
-{
-    stop();
-}
-
 void mp::HyperVVirtualMachine::suspend()
 {
     auto present_state = instance_state_for(power_shell.get(), name);
@@ -249,6 +247,7 @@ void mp::HyperVVirtualMachine::suspend()
     {
         power_shell->run({"Save-VM", "-Name", name});
 
+        drop_ssh_session();
         if (update_suspend_status)
         {
             state = State::suspended;
@@ -301,10 +300,12 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::HyperVVirtualMachine::management_ipv4(const SSHKeyProvider& key_provider)
+std::string mp::HyperVVirtualMachine::management_ipv4()
 {
     if (!ip)
     {
+        // Not using cached SSH session for this because a) the underlying functions do not guarantee constness;
+        // b) we endure the penalty of creating a new session only when we don't have the IP yet.
         auto result = remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
         if (result)
             ip.emplace(result.value());
@@ -315,14 +316,6 @@ std::string mp::HyperVVirtualMachine::management_ipv4(const SSHKeyProvider& key_
 std::string mp::HyperVVirtualMachine::ipv6()
 {
     return {};
-}
-
-void mp::HyperVVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout, const SSHKeyProvider& key_provider)
-{
-    mp::utils::wait_until_ssh_up(this,
-                                 timeout,
-                                 key_provider,
-                                 std::bind(&HyperVVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
@@ -357,13 +350,12 @@ void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this bac
     return add_extra_net(*power_shell, name, net);
 }
 
-mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const mp::SSHKeyProvider* ssh_key_provider,
-                                                                           const std::string& target,
+mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                            const mp::VMMount& mount)
 {
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
-                                             ssh_key_provider,
+                                             &key_provider,
                                              target,
                                              mount,
                                              instance_dir.absolutePath(),

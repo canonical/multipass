@@ -149,8 +149,9 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
+                                                       const SSHKeyProvider& key_provider,
                                                        const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},
       image_path{desc.image.image_path},
@@ -208,7 +209,7 @@ void mp::VirtualBoxVirtualMachine::start()
     mpu::process_throw_on_error("VBoxManage", {"startvm", name, "--type", "headless"}, "Could not start VM: {}", name);
 }
 
-void mp::VirtualBoxVirtualMachine::stop()
+void mp::VirtualBoxVirtualMachine::shutdown()
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
@@ -217,12 +218,14 @@ void mp::VirtualBoxVirtualMachine::stop()
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "acpipowerbutton"}, "Could not stop VM: {}",
                                     name);
+        drop_ssh_session();
         state = State::stopped;
         port = std::nullopt;
     }
     else if (present_state == State::starting)
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "poweroff"}, "Could not power VM off: {}", name);
+        drop_ssh_session();
         state = State::stopped;
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
         port = std::nullopt;
@@ -236,11 +239,6 @@ void mp::VirtualBoxVirtualMachine::stop()
     lock.unlock();
 }
 
-void mp::VirtualBoxVirtualMachine::shutdown()
-{
-    stop();
-}
-
 void mp::VirtualBoxVirtualMachine::suspend()
 {
     auto present_state = instance_state_for(name);
@@ -249,6 +247,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
     {
         mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "savestate"}, "Could not suspend VM: {}", name);
 
+        drop_ssh_session();
         if (update_suspend_status)
         {
             state = State::suspended;
@@ -271,6 +270,9 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
         return state;
 
     state = present_state;
+    if (state == State::suspended || state == State::suspending)
+        drop_ssh_session();
+
     return state;
 }
 
@@ -320,16 +322,16 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::management_ipv4(const SSHKeyProvider& /* unused on this backend */)
+std::string mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return "N/A";
 }
 
-std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4(const SSHKeyProvider& key_provider)
+std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
 {
     using namespace std;
 
-    auto all_ipv4 = BaseVirtualMachine::get_all_ipv4(key_provider);
+    auto all_ipv4 = BaseVirtualMachine::get_all_ipv4();
     all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
 
     return all_ipv4;
@@ -338,15 +340,6 @@ std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4(const SSHKey
 std::string mp::VirtualBoxVirtualMachine::ipv6()
 {
     return {};
-}
-
-void mp::VirtualBoxVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout,
-                                                     const SSHKeyProvider& key_provider)
-{
-    mpu::wait_until_ssh_up(this,
-                           timeout,
-                           key_provider,
-                           std::bind(&VirtualBoxVirtualMachine::ensure_vm_is_running, this));
 }
 
 void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
