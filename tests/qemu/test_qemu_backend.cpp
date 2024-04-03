@@ -18,6 +18,7 @@
 #include "mock_qemu_platform.h"
 
 #include "tests/common.h"
+#include "tests/mock_cloud_init_file_ops.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
@@ -874,6 +875,24 @@ TEST_F(QemuBackend, get_backend_directory_name_calls_qemu_platform)
 
     EXPECT_EQ(dir_name, backend_dir_name);
     EXPECT_TRUE(get_directory_name_called);
+}
+
+TEST_F(QemuBackend, addNetworkInterface)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    EXPECT_CALL(*mock_qemu_platform, add_network_interface(_, _)).Times(1);
+
+    const auto [mock_cloud_init_file_ops, _] = mpt::MockCloudInitFileOps::inject();
+    EXPECT_CALL(*mock_cloud_init_file_ops, add_extra_interface_to_cloud_init).Times(1);
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    EXPECT_NO_THROW(machine->add_network_interface(0, "", {"", "", true}));
 }
 
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
