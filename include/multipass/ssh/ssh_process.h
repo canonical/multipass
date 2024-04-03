@@ -59,7 +59,7 @@ private:
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel();
 
-    std::unique_lock<std::mutex> session_lock;
+    std::unique_lock<std::mutex> session_lock; // do not attempt to relock, as this is moved from
     ssh_session session;
     std::string cmd;
     ChannelUPtr channel;

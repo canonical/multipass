@@ -24,7 +24,6 @@ function(add_ssh_target TARGET_NAME)
     fmt
     libssh
     utils
-    scope_guard
     Qt6::Core)
 endfunction()
 
