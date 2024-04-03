@@ -78,45 +78,5 @@ namespace CustomActions
 
             return ActionResult.Success;
         }
-
-        [CustomAction]
-        public static ActionResult UninstallOldMP(Session session)
-        {
-            session.Log("Begin UninstallOldMP");
-            var properties = session.CustomActionData.ToString().Split('|');
-
-            string uninstallString = string.IsNullOrEmpty(properties[0]) ? properties[1] : properties[0];
-
-            ProcessStartInfo psi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = @"-Command ""Start-Process 'C:\Program Files\Multipass\Uninstall.exe' /S -Wait""",
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            Process process = new Process();
-            process.StartInfo = psi;
-            process.Start();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-            {
-                session.Log($"Failed to uninstall Multipass: {process.StandardError.ReadToEnd().Trim()}");
-                return ActionResult.Failure;
-            }
-
-            string keyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Multipass";
-            string keyPath2 = @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Multipass";
-            RegistryKey regKey = Registry.LocalMachine.OpenSubKey(keyPath);
-            RegistryKey regKey2 = Registry.LocalMachine.OpenSubKey(keyPath2);
-            if (regKey != null || regKey2 != null)
-            {
-                return ActionResult.Failure;
-            }
-
-            return ActionResult.Success;
-        }
     }
 }
