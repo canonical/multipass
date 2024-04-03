@@ -29,10 +29,6 @@
         <CustomAction Id="UninstallExeMP.SetProperty" Property="UninstallExeMP" Value="[MP_INSTALLED];[MP_INSTALLED6432]" />
         <CustomAction Id="UninstallExeMP" BinaryRef="CABinary" DllEntry="UninstallOldMP" Return="check" Execute="deferred" Impersonate="no" />
 
-        <InstallExecuteSequence>
-            <Custom Action="UninstallExeMP.SetProperty" Before="UninstallExeMP" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
-            <Custom Action="UninstallExeMP" After="InstallInitialize" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
-        </InstallExecuteSequence>
 
         <!-- Remove Multipass data -->
         <Property Id="REMOVE_DATA" Value="YES" />
@@ -44,28 +40,18 @@
         <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData" Return="ignore" />
         <CustomAction Id="RemoveMPDataScript" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
 
-        <InstallExecuteSequence>
-            <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
-            <Custom Action="RemoveMPDataScript" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
-        </InstallExecuteSequence>
 
         <!-- Install client certificates -->
         <CustomAction Id="InstallClientCertsAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install" />
         <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
 
-        <InstallExecuteSequence>
-            <Custom Action="InstallClientCertsAction.SetCmdLine" Before="InstallClientCertsAction" />
-            <Custom Action="InstallClientCertsAction" After="InstallFinalize" />
-        </InstallExecuteSequence>
 
         <!-- Detect Windows edition and set driver -->
         <Property Id="WINDOWS_EDITION" Secure="yes">
             <RegistrySearch Id="WINDOWS_EDITION" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
         </Property>
         <CustomAction Id="SetWindowsEdition" Property="DRIVER" Value="virtualbox" />
-        <InstallExecuteSequence>
-            <Custom Action="SetWindowsEdition" After="AppSearch" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
-        </InstallExecuteSequence>
+
 
         <!-- Create Multipass daemon configuration file -->
         <Property Id="MP_DATA_DIR">
@@ -82,11 +68,34 @@
         <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c echo local.driver=[DRIVER] &gt; &quot;[MP_DATA_DIR]multipassd.conf&quot;" />
         <CustomAction Id="DaemonConfigFileAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
 
+
+        <!-- Enable HyperV -->
+        <Property Id="DRIVER" Value="hyperv" Secure="yes" />
+        <Property Id="HYPER_V_STATE" Value="Disabled" Secure="yes" />
+
+        <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" Execute="deferred" />
+        <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" Execute="deferred" />
+
+
         <InstallUISequence>
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
         </InstallUISequence>
         <InstallExecuteSequence>
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
+            <Custom Action="SetWindowsEdition" After="AppSearch" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
+
+            <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
+            <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;hyperv&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
+
+            <Custom Action="UninstallExeMP.SetProperty" Before="UninstallExeMP" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
+            <Custom Action="UninstallExeMP" After="InstallInitialize" Condition="NOT Installed AND (MP_INSTALLED OR MP_INSTALLED6432)" />
+
+            <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
+            <Custom Action="RemoveMPDataScript" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+
+            <Custom Action="InstallClientCertsAction.SetCmdLine" Before="InstallClientCertsAction" />
+            <Custom Action="InstallClientCertsAction" After="InstallFinalize" />
+
             <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction" Condition="NOT CONFIG_FILE_FOUND" />
             <Custom Action="DaemonConfigFileAction" After="InstallClientCertsAction" Condition="NOT CONFIG_FILE_FOUND" />
         </InstallExecuteSequence>
