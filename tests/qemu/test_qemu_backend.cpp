@@ -891,7 +891,7 @@ TEST_F(QemuBackend, addNetworkInterface)
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_NO_THROW(machine->add_network_interface(0, "", {"", "", true}));
 }
 
