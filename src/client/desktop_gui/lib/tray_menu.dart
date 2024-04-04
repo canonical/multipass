@@ -33,9 +33,13 @@ final daemonVersionProvider = Provider((ref) {
 
 Future<String> _iconFilePath() async {
   final dataDir = await getApplicationSupportDirectory();
-  final iconName = Platform.isMacOS ? 'icon_template' : 'icon';
-  final iconFile = File('${dataDir.path}/$iconName.png');
-  final data = await rootBundle.load('assets/$iconName.png');
+  final iconName = Platform.isMacOS
+      ? 'icon_template.png'
+      : Platform.isWindows
+          ? 'icon.ico'
+          : 'icon.png';
+  final iconFile = File('${dataDir.path}/$iconName');
+  final data = await rootBundle.load('assets/$iconName');
   await iconFile.writeAsBytes(data.buffer.asUint8List());
   return iconFile.path;
 }
