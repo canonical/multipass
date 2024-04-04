@@ -1,7 +1,3 @@
-using Microsoft.Win32;
-using System;
-using System.IO;
-using System.Threading;
 using System.Diagnostics;
 using WixToolset.Dtf.WindowsInstaller;
 
