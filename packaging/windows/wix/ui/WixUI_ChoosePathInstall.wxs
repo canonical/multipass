@@ -15,9 +15,9 @@
 
                 <Control Id="PathGroup" Type="RadioButtonGroup" X="20" Y="55" Width="330" Height="120" Property="ENVIRONMENT">
                     <RadioButtonGroup Property="ENVIRONMENT">
-                        <RadioButton Value="None" X="0" Y="0" Width="295" Height="16" Text="!(loc.WixDoNotAddPath)" />
-                        <RadioButton Value="System" X="0" Y="20" Width="295" Height="16" Text="!(loc.WixAddToSystemPath)" />
-                        <RadioButton Value="User" X="0" Y="40" Width="295" Height="16" Text="!(loc.WixAddToUserPath)" />
+                        <RadioButton Value="none" X="0" Y="0" Width="295" Height="16" Text="!(loc.WixDoNotAddPath)" />
+                        <RadioButton Value="system" X="0" Y="20" Width="295" Height="16" Text="!(loc.WixAddToSystemPath)" />
+                        <RadioButton Value="user" X="0" Y="40" Width="295" Height="16" Text="!(loc.WixAddToUserPath)" />
                     </RadioButtonGroup>
                 </Control>
             </Dialog>
