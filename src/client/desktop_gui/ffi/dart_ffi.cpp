@@ -1,6 +1,5 @@
 #include "multipass/dart_ffi.h"
 #include "multipass/cli/client_common.h"
-#include "multipass/format.h"
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
 #include "multipass/name_generator.h"
@@ -14,12 +13,14 @@ namespace mcp = multipass::cli::platform;
 
 constexpr auto category = "dart-ffi";
 
-extern "C" const char* multipass_version()
+extern "C"
+{
+const char* multipass_version()
 {
     return mp::version_string;
 }
 
-extern "C" const char* generate_petname()
+const char* generate_petname()
 try
 {
     static mp::NameGenerator::UPtr generator = mp::make_default_name_generator();
@@ -37,7 +38,7 @@ catch (...)
     return nullptr;
 }
 
-extern "C" const char* get_server_address()
+const char* get_server_address()
 try
 {
     const auto address = mpc::get_server_address();
@@ -54,10 +55,10 @@ catch (...)
     return nullptr;
 }
 
-extern "C" struct KeyCertificatePair get_cert_pair()
+struct KeyCertificatePair get_cert_pair()
 try
 {
-    const auto provider = mpc::get_cert_provider(mpc::get_server_address());
+    const auto provider = mpc::get_cert_provider();
     const auto cert = provider->PEM_certificate();
     const auto key = provider->PEM_signing_key();
     struct KeyCertificatePair pair
@@ -80,7 +81,7 @@ catch (...)
 
 static std::once_flag initialize_settings_once_flag;
 
-extern "C" const char* settings_file()
+const char* settings_file()
 try
 {
     const auto file_name = mpc::persistent_settings_filename().toStdString();
@@ -97,7 +98,7 @@ catch (...)
     return nullptr;
 }
 
-extern "C" enum SettingResult get_setting(const char* key, const char** output)
+enum SettingResult get_setting(const char* key, const char** output)
 {
     const QString key_string{key};
     free((void*)key);
@@ -132,7 +133,7 @@ extern "C" enum SettingResult get_setting(const char* key, const char** output)
     }
 }
 
-extern "C" enum SettingResult set_setting(const char* key, const char* value, const char** output)
+enum SettingResult set_setting(const char* key, const char* value, const char** output)
 {
     const QString key_string{key};
     free((void*)key);
@@ -179,22 +180,22 @@ extern "C" enum SettingResult set_setting(const char* key, const char* value, co
     }
 }
 
-extern "C" int uid()
+int uid()
 {
     return mcp::getuid();
 }
 
-extern "C" int gid()
+int gid()
 {
     return mcp::getgid();
 }
 
-extern "C" int default_id()
+int default_id()
 {
     return mp::default_id;
 }
 
-extern "C" long long memory_in_bytes(const char* value)
+long long memory_in_bytes(const char* value)
 try
 {
     std::string string_value{value};
@@ -210,4 +211,5 @@ catch (...)
 {
     mpl::log(mpl::Level::warning, category, "failed converting memory to bytes");
     return -1;
+}
 }
