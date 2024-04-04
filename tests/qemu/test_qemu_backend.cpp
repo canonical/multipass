@@ -743,7 +743,7 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
     EXPECT_CALL(machine, drop_ssh_session());
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(machine, shutdown, mp::QemuVirtualMachine);
-    machine.shutdown();
+    machine.shutdown(false);
 }
 
 TEST_F(QemuBackend, supportsSnapshots)
