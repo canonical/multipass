@@ -70,9 +70,6 @@ if (MSVC)
     message(FATAL_ERROR "qemu-img not found!")
   endif()
 
-  # make CMake prefer using the custom version of NSIS.template.in
-  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/packaging/windows")
-
   # InstallRequiredSystemLibraries finds the VC redistributable dlls shipped with the Visual Studio compiler tools
   # and creats an install(PROGRAMS ...) rule using the destination and component IDs setup below.
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
@@ -113,81 +110,6 @@ if (MSVC)
   # copy the icon and font, to use in windows terminal profiles
   install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon_wt.ico" DESTINATION bin RENAME multipass_wt.ico COMPONENT multipass)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/packaging/windows/fonts/" DESTINATION fonts COMPONENT multipass)
-
-  set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\packaging\\\\windows\\\\multipass.bmp")
-  set(CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/packaging/windows/WELCOME.txt")
-  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/windows/LICENCE.rtf")
-  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/packaging/windows/README.txt")
-  set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/packaging/windows/icon.ico")
-
-  # Inserts an extra page in the installer asking the user if they want to modify their users or system PATH variable
-  # This is useful to make "multipass.exe" findable on a shell
-  set(CPACK_NSIS_MODIFY_PATH ON)
-  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-  set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/CanonicalLtd/multipass")
-  set(CPACK_NSIS_HELP_LINK "https://github.com/CanonicalLtd/multipass")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "Multipass")
-
-  # The EventLog registry entries register a Multipass EventSource, which prevents the Event Viewer app complaining
-  # about missing EVENT ID sources, which makes it harder to read the log entries.
-  # The App Paths registry entries are to register multipass.exe as a valid command that can be called via ShellExecute
-  # create shortcut installs a start-menu item for the multipass gui
-  SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
-    "
-    WriteRegStr HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'EventMessageFile' '%SystemRoot%\\\\\\\\System32\\\\EventCreate.exe'
-    WriteRegDWORD HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass' 'TypesSupported' '7'
-    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' '' '$INSTDIR\\\\bin\\\\multipass.exe'
-    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe' 'Path' '$INSTDIR\\\\bin'
-    nsExec::ExecToLog '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /install'
-    Pop '$0'
-    DetailPrint '\\\"Daemon install result: $0\\\"'
-    CopyFiles '$INSTDIR\\\\Fonts\\\\*' '$WINDIR\\\\Fonts'
-    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Fonts' 'Ubuntu Mono (TrueType)' 'UbuntuMono-R.ttf'
-    CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
-    WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Multipass' 'DisplayIcon' '$INSTDIR\\\\bin\\\\multipass_wt.ico'
-    "
-  )
-
-  # TODO: There must be a better way than hardcoding the cache and data directory here
-  # NSIS creates 32-bit installer/uninstaller applications. Windows, automatically redirects file system calls into
-  # system32 to syswow64 (the 32-bit system for windows 64 folder) for 32-bit apps unless you explicitly disable such redirection
-  # Since multipassd is a 64-bit application, it uses the real system32 folder, which is where the settings and cache
-  # directory live
-  # The directories are removed after uninstalling the service to prevent removing data while multipassd is alive.
-  # If the daemon is still running after uninstallation, it's stuck and we need to kill it, otherwise it will break upgrades
-  # The clients are killed, but they're not holding any state or data, so should not be a problem.
-  SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
-    "
-    Var /GLOBAL REMOVE_SETTINGS_AND_CACHE
-    StrCpy $REMOVE_SETTINGS_AND_CACHE 0
-    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 \\\"Do you want to remove all multipass VM instances, settings and cached data?\\\" \\
-    /SD IDNO IDNO basic_uninst
-    nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipass.exe\\\" delete -p --all'
-    StrCpy $REMOVE_SETTINGS_AND_CACHE 1
-
-    basic_uninst:
-    SetShellVarContext current
-    Delete '$SMSTARTUP\\\\Multipass.lnk'
-    SetShellVarContext all
-    Delete '$SMPROGRAMS\\\\Multipass.lnk'
-    nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
-    nsExec::ExecToLog 'TaskKill /IM multipassd.exe /F'
-    nsExec::ExecToLog 'TaskKill /IM multipass.exe /F'
-    nsExec::ExecToLog 'TaskKill /IM multipass.gui.exe /F'
-    DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
-    DeleteRegKey HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe'
-    DeleteRegValue HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui'
-    StrCmp $REMOVE_SETTINGS_AND_CACHE \\\"0\\\" done_uninst
-    !include \\\"x64.nsh\\\"
-    \\\${DisableX64FSRedirection}
-    SetShellVarContext all
-    RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Local\\\\multipassd\\\"
-    RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Roaming\\\\multipassd\\\"
-    RMDIR /r \\\"$LOCALAPPDATA\\\\Multipass\\\"
-    \\\${EnableX64FSRedirection}
-    done_uninst:
-    "
-  )
 endif()
 
 if(APPLE)
