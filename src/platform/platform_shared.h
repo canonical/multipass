@@ -21,8 +21,6 @@
 #include <string>
 #include <unordered_set>
 
-#include <QString>
-
 namespace multipass::platform
 {
 const std::unordered_set<std::string>
