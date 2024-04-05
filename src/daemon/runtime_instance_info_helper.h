@@ -26,13 +26,14 @@ class VirtualMachine;
 class DetailedInfoItem;
 class InstanceDetails;
 
+// Note: we could extract other code to info/list populating code here, but that is left as a future improvement
 struct RuntimeInstanceInfoHelper
 {
-    static void populateRuntimeInstanceInfo(VirtualMachine& vm,
-                                            DetailedInfoItem* info,
-                                            InstanceDetails* instance_info,
-                                            const std::string& original_release,
-                                            bool parallelize);
+    static void populate_runtime_info(VirtualMachine& vm,
+                                      DetailedInfoItem* info,
+                                      InstanceDetails* instance_info,
+                                      const std::string& original_release,
+                                      bool parallelize);
 };
 
 } // namespace multipass
