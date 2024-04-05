@@ -1278,7 +1278,8 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 void populate_instance_runtime_info(mp::VirtualMachine& vm,
                                     mp::DetailedInfoItem* info,
                                     mp::InstanceDetails* instance_info,
-                                    const std::string& original_release)
+                                    const std::string& original_release,
+                                    bool parallelize)
 {
     static constexpr auto loadavg_key = "loadavg";
     static constexpr auto mem_usage_key = "mem_usage";
@@ -1310,7 +1311,9 @@ void populate_instance_runtime_info(mp::VirtualMachine& vm,
     }();
 
     static const auto sequential_composite_cmd = fmt::to_string(fmt::join(cmds, "; "));
-    auto results = YAML::Load(vm.ssh_exec(sequential_composite_cmd));
+    static const auto parallel_composite_cmd = fmt::format("{} & wait", fmt::join(cmds, "& "));
+
+    auto results = YAML::Load(vm.ssh_exec(parallelize ? parallel_composite_cmd : sequential_composite_cmd));
 
     instance_info->set_load(results[loadavg_key].as<std::string>());
     instance_info->set_memory_usage(results[mem_usage_key].as<std::string>());
@@ -3582,7 +3585,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     timestamp->set_nanos(created_time.time().msec() * 1'000'000);
 
     if (!no_runtime_info && MP_UTILS.is_running(present_state))
-        populate_instance_runtime_info(vm, info, instance_info, original_release);
+        populate_instance_runtime_info(vm, info, instance_info, original_release, vm_specs.num_cores == 1);
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name)
