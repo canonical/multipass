@@ -1030,20 +1030,6 @@ std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
                     max_tries, s.size())};
 }
 
-bool is_ipv4_valid(const std::string& ipv4)
-{
-    try
-    {
-        (mp::IPAddress(ipv4));
-    }
-    catch (std::invalid_argument&)
-    {
-        return false;
-    }
-
-    return true;
-}
-
 struct SnapshotPick
 {
     std::unordered_set<std::string> pick;
@@ -1343,7 +1329,7 @@ void populate_instance_runtime_info(mp::VirtualMachine& vm,
     std::string management_ip = vm.management_ipv4();
     auto all_ipv4 = vm.get_all_ipv4();
 
-    if (is_ipv4_valid(management_ip))
+    if (MP_UTILS.is_ipv4_valid(management_ip))
         instance_info->add_ipv4(management_ip);
     else if (all_ipv4.empty())
         instance_info->add_ipv4("N/A");
@@ -1880,7 +1866,7 @@ try // clang-format on
             std::string management_ip = vm.management_ipv4();
             auto all_ipv4 = vm.get_all_ipv4();
 
-            if (is_ipv4_valid(management_ip))
+            if (MP_UTILS.is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
             else if (all_ipv4.empty())
                 entry->add_ipv4("N/A");

@@ -48,6 +48,7 @@ public:
     MOCK_METHOD(std::string, run_in_ssh_session, (SSHSession & session, const std::string& cmd), (const, override));
     MOCK_METHOD(QString, make_uuid, (const std::optional<std::string>&), (const, override));
     MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
+    MOCK_METHOD(bool, is_ipv4_valid, (const std::string& ipv4), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };

@@ -229,6 +229,7 @@ public:
     virtual std::vector<uint8_t> random_bytes(size_t len);
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
     virtual void sleep_for(const std::chrono::milliseconds& ms) const;
+    virtual bool is_ipv4_valid(const std::string& ipv4) const;
 };
 } // namespace multipass
 
