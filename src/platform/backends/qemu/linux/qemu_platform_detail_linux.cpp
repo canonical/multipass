@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 
 #include <shared/linux/backend_utils.h>
@@ -193,6 +194,24 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
                                                tap_device_name, vm_desc.default_mac_address));
 
     return opts;
+}
+
+std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
+{
+    auto platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
+
+    std::vector<NetworkInterfaceInfo> networks;
+
+    for (const auto& ifs_info : platform_ifs_info)
+    {
+        const auto& info = ifs_info.second;
+        const auto& type = info.type;
+
+        if (type == "ethernet" || type == "bridge")
+            networks.push_back(info);
+    }
+
+    return networks;
 }
 
 void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& desc,
