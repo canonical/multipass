@@ -1280,22 +1280,46 @@ void populate_instance_runtime_info(mp::VirtualMachine& vm,
                                     mp::InstanceDetails* instance_info,
                                     const std::string& original_release)
 {
-    static constexpr auto loadavg_cmd = "cat /proc/loadavg | cut -d ' ' -f1-3";
-    static constexpr auto mem_usage_cmd = "free -b | grep 'Mem:' | awk '{printf $3}'";
-    static constexpr auto mem_total_cmd = "free -b | grep 'Mem:' | awk '{printf $2}'";
-    static constexpr auto disk_usage_cmd = "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1";
-    static constexpr auto disk_total_cmd = "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1";
-    static constexpr auto cpus_cmd = "nproc";
-    static constexpr auto current_release_cmd = "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2";
+    static constexpr auto loadavg_key = "loadavg";
+    static constexpr auto mem_usage_key = "mem_usage";
+    static constexpr auto mem_total_key = "mem_total";
+    static constexpr auto disk_usage_key = "disk_usage";
+    static constexpr auto disk_total_key = "disk_total";
+    static constexpr auto cpus_key = "cpus";
+    static constexpr auto current_release_key = "current_release";
 
-    instance_info->set_load(vm.ssh_exec(loadavg_cmd));
-    instance_info->set_memory_usage(vm.ssh_exec(mem_usage_cmd));
-    info->set_memory_total(vm.ssh_exec(mem_total_cmd));
-    instance_info->set_disk_usage(vm.ssh_exec(disk_usage_cmd));
-    info->set_disk_total(vm.ssh_exec(disk_total_cmd));
-    info->set_cpu_count(vm.ssh_exec(cpus_cmd));
+    static constexpr std::array key_cmds_pairs{
+        std::pair{loadavg_key, "cat /proc/loadavg | cut -d ' ' -f1-3"},
+        std::pair{mem_usage_key, R"(free -b | grep 'Mem:' | awk '{printf \$3}')"},
+        std::pair{mem_total_key, R"(free -b | grep 'Mem:' | awk '{printf \$2}')"},
+        std::pair{disk_usage_key, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"},
+        std::pair{disk_total_key, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"},
+        std::pair{cpus_key, "nproc"},
+        std::pair{current_release_key, R"(cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2)"}};
 
-    auto current_release = vm.ssh_exec(current_release_cmd);
+    static const auto cmds = [] {
+        constexpr auto n = key_cmds_pairs.size();
+        std::array<std::string, key_cmds_pairs.size()> ret;
+        for (std::size_t i = 0; i < n; ++i)
+        {
+            const auto [key, cmd] = key_cmds_pairs[i];
+            ret[i] = fmt::format(R"(echo {}: \"$(eval "{}")\")", key, cmd);
+        }
+
+        return ret;
+    }();
+
+    static const auto sequential_composite_cmd = fmt::to_string(fmt::join(cmds, "; "));
+    auto results = YAML::Load(vm.ssh_exec(sequential_composite_cmd));
+
+    instance_info->set_load(results[loadavg_key].as<std::string>());
+    instance_info->set_memory_usage(results[mem_usage_key].as<std::string>());
+    info->set_memory_total(results[mem_total_key].as<std::string>());
+    instance_info->set_disk_usage(results[disk_usage_key].as<std::string>());
+    info->set_disk_total(results[disk_total_key].as<std::string>());
+    info->set_cpu_count(results[cpus_key].as<std::string>());
+
+    auto current_release = results[current_release_key].as<std::string>();
     instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
 
     std::string management_ip = vm.management_ipv4();
