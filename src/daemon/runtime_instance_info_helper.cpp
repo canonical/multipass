@@ -31,7 +31,7 @@ namespace mp = multipass;
 namespace
 {
 
-struct RuntimeInfoKeys
+struct Keys
 {
 public:
     static constexpr auto loadavg_key = "loadavg";
@@ -43,10 +43,9 @@ public:
     static constexpr auto current_release_key = "current_release";
 };
 
-struct RuntimeInfoCmds
+struct Cmds
 {
 private:
-    using Keys = RuntimeInfoKeys;
     static constexpr auto key_val_cmd = R"(echo {}: \"$(eval "{}")\")";
     static constexpr std::array key_cmds_pairs{
         std::pair{Keys::loadavg_key, "cat /proc/loadavg | cut -d ' ' -f1-3"},
@@ -81,9 +80,6 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
                                                           const std::string& original_release,
                                                           bool parallelize)
 {
-    using Keys = RuntimeInfoKeys; // TODO@ricab just rename the types now
-    using Cmds = RuntimeInfoCmds;
-
     const auto& cmd = parallelize ? Cmds::parallel_composite_cmd : Cmds::sequential_composite_cmd;
     auto results = YAML::Load(vm.ssh_exec(cmd));
 
