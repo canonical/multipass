@@ -1275,12 +1275,9 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
 
-void populate_instance_runtime_info(mp::VirtualMachine& vm,
-                                    mp::DetailedInfoItem* info,
-                                    mp::InstanceDetails* instance_info,
-                                    const std::string& original_release,
-                                    bool parallelize)
+struct RuntimeInfoKeys
 {
+public:
     static constexpr auto loadavg_key = "loadavg";
     static constexpr auto mem_usage_key = "mem_usage";
     static constexpr auto mem_total_key = "mem_total";
@@ -1288,41 +1285,59 @@ void populate_instance_runtime_info(mp::VirtualMachine& vm,
     static constexpr auto disk_total_key = "disk_total";
     static constexpr auto cpus_key = "cpus";
     static constexpr auto current_release_key = "current_release";
+};
 
+struct RuntimeInfoCmds
+{
+private:
+    using Keys = RuntimeInfoKeys;
+    static constexpr auto key_val_cmd = R"(echo {}: \"$(eval "{}")\")";
     static constexpr std::array key_cmds_pairs{
-        std::pair{loadavg_key, "cat /proc/loadavg | cut -d ' ' -f1-3"},
-        std::pair{mem_usage_key, R"(free -b | grep 'Mem:' | awk '{printf \$3}')"},
-        std::pair{mem_total_key, R"(free -b | grep 'Mem:' | awk '{printf \$2}')"},
-        std::pair{disk_usage_key, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"},
-        std::pair{disk_total_key, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"},
-        std::pair{cpus_key, "nproc"},
-        std::pair{current_release_key, R"(cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2)"}};
+        std::pair{Keys::loadavg_key, "cat /proc/loadavg | cut -d ' ' -f1-3"},
+        std::pair{Keys::mem_usage_key, R"(free -b | grep 'Mem:' | awk '{printf \$3}')"},
+        std::pair{Keys::mem_total_key, R"(free -b | grep 'Mem:' | awk '{printf \$2}')"},
+        std::pair{Keys::disk_usage_key, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"},
+        std::pair{Keys::disk_total_key, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"},
+        std::pair{Keys::cpus_key, "nproc"},
+        std::pair{Keys::current_release_key, R"(cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2)"}};
 
-    static const auto cmds = [] {
+    inline static const std::array cmds = [] {
         constexpr auto n = key_cmds_pairs.size();
         std::array<std::string, key_cmds_pairs.size()> ret;
         for (std::size_t i = 0; i < n; ++i)
         {
             const auto [key, cmd] = key_cmds_pairs[i];
-            ret[i] = fmt::format(R"(echo {}: \"$(eval "{}")\")", key, cmd);
+            ret[i] = fmt::format(key_val_cmd, key, cmd);
         }
 
         return ret;
     }();
 
-    static const auto sequential_composite_cmd = fmt::to_string(fmt::join(cmds, "; "));
-    static const auto parallel_composite_cmd = fmt::format("{} & wait", fmt::join(cmds, "& "));
+public:
+    inline static const std::string sequential_composite_cmd = fmt::to_string(fmt::join(cmds, "; "));
+    inline static const std::string parallel_composite_cmd = fmt::format("{} & wait", fmt::join(cmds, "& "));
+};
 
-    auto results = YAML::Load(vm.ssh_exec(parallelize ? parallel_composite_cmd : sequential_composite_cmd));
+void populate_instance_runtime_info(mp::VirtualMachine& vm,
+                                    mp::DetailedInfoItem* info,
+                                    mp::InstanceDetails* instance_info,
+                                    const std::string& original_release,
+                                    bool parallelize)
+{
+    using Keys = RuntimeInfoKeys;
+    using Cmds = RuntimeInfoCmds;
 
-    instance_info->set_load(results[loadavg_key].as<std::string>());
-    instance_info->set_memory_usage(results[mem_usage_key].as<std::string>());
-    info->set_memory_total(results[mem_total_key].as<std::string>());
-    instance_info->set_disk_usage(results[disk_usage_key].as<std::string>());
-    info->set_disk_total(results[disk_total_key].as<std::string>());
-    info->set_cpu_count(results[cpus_key].as<std::string>());
+    const auto& cmd = parallelize ? Cmds::parallel_composite_cmd : Cmds::sequential_composite_cmd;
+    auto results = YAML::Load(vm.ssh_exec(cmd));
 
-    auto current_release = results[current_release_key].as<std::string>();
+    instance_info->set_load(results[Keys::loadavg_key].as<std::string>());
+    instance_info->set_memory_usage(results[Keys::mem_usage_key].as<std::string>());
+    info->set_memory_total(results[Keys::mem_total_key].as<std::string>());
+    instance_info->set_disk_usage(results[Keys::disk_usage_key].as<std::string>());
+    info->set_disk_total(results[Keys::disk_total_key].as<std::string>());
+    info->set_cpu_count(results[Keys::cpus_key].as<std::string>());
+
+    auto current_release = results[Keys::current_release_key].as<std::string>();
     instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
 
     std::string management_ip = vm.management_ipv4();
