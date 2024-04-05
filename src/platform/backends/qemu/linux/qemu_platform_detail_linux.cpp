@@ -193,6 +193,14 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
          << QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                                                tap_device_name, vm_desc.default_mac_address));
 
+    for (const auto& extra_interface : vm_desc.extra_interfaces)
+    {
+        opts << "-nic"
+             << QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={}",
+                                                   extra_interface.id,
+                                                   extra_interface.mac_address));
+    }
+
     return opts;
 }
 
