@@ -1280,12 +1280,23 @@ void populate_instance_runtime_info(mp::VirtualMachine& vm,
                                     mp::InstanceDetails* instance_info,
                                     const std::string& original_release)
 {
-    instance_info->set_load(vm.ssh_exec("cat /proc/loadavg | cut -d ' ' -f1-3"));
-    instance_info->set_memory_usage(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $3}'"));
-    info->set_memory_total(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $2}'"));
-    instance_info->set_disk_usage(vm.ssh_exec("df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
-    info->set_disk_total(vm.ssh_exec("df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
-    info->set_cpu_count(vm.ssh_exec("nproc"));
+    static constexpr auto loadavg_cmd = "cat /proc/loadavg | cut -d ' ' -f1-3";
+    static constexpr auto mem_usage_cmd = "free -b | grep 'Mem:' | awk '{printf $3}'";
+    static constexpr auto mem_total_cmd = "free -b | grep 'Mem:' | awk '{printf $2}'";
+    static constexpr auto disk_usage_cmd = "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1";
+    static constexpr auto disk_total_cmd = "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1";
+    static constexpr auto cpus_cmd = "nproc";
+    static constexpr auto current_release_cmd = "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2";
+
+    instance_info->set_load(vm.ssh_exec(loadavg_cmd));
+    instance_info->set_memory_usage(vm.ssh_exec(mem_usage_cmd));
+    info->set_memory_total(vm.ssh_exec(mem_total_cmd));
+    instance_info->set_disk_usage(vm.ssh_exec(disk_usage_cmd));
+    info->set_disk_total(vm.ssh_exec(disk_total_cmd));
+    info->set_cpu_count(vm.ssh_exec(cpus_cmd));
+
+    auto current_release = vm.ssh_exec(current_release_cmd);
+    instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
 
     std::string management_ip = vm.management_ipv4();
     auto all_ipv4 = vm.get_all_ipv4();
@@ -1298,9 +1309,6 @@ void populate_instance_runtime_info(mp::VirtualMachine& vm,
     for (const auto& extra_ipv4 : all_ipv4)
         if (extra_ipv4 != management_ip)
             instance_info->add_ipv4(extra_ipv4);
-
-    auto current_release = vm.ssh_exec("cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
-    instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
 }
 } // namespace
 
