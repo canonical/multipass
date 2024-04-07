@@ -1,4 +1,4 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
         <Launch Condition="Installed OR WIN_VERSION >= 17134" Message="!(loc.FeatureUpdateReqd)" />
@@ -118,6 +118,7 @@
             <ComponentGroupRef Id="GUIComponents" />
             <ComponentGroupRef Id="AdditionalComponents" />
             <ComponentGroupRef Id="MultipassSupportComponents" />
+            <ComponentRef Id="CleanUpNetworkCache" />
         </Feature>
     </Fragment>
 
@@ -139,12 +140,20 @@
                 </RegistryKey>
             </Component>
         </ComponentGroup>
+
+        <DirectoryRef Id="NetworkCache">
+            <Component Id="CleanUpNetworkCache" Guid="c88054dc-e9a5-4fb9-8e5a-2856ed77f240">
+                <util:RemoveFolderEx On="uninstall" Property="NetworkCache" />
+            </Component>
+        </DirectoryRef>
     </Fragment>
 
     <Fragment>
         <StandardDirectory Id="ProgramFiles6432Folder">
             <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)">
-                <Directory Id="BinFolder" Name="bin" />
+                <Directory Id="BinFolder" Name="bin">
+                    <Directory Id="NetworkCache" Name="network-cache" />
+                </Directory>
             </Directory>
         </StandardDirectory>
     </Fragment>
