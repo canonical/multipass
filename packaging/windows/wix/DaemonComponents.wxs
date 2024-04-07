@@ -4,6 +4,7 @@
             <Component Id="MultipassDaemon" Subdirectory="bin">
                 <File Source="bin\multipassd.exe" />
                 <ServiceInstall Name="Multipass" DisplayName="Multipass Service" Description="Provides a service to create and manage virtual machines" Arguments="/svc --verbosity debug" Start="auto" Type="ownProcess" ErrorControl="normal">
+                    <ServiceConfig FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes" OnReinstall="yes" />
                     <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" ResetPeriodInDays="49710" />
                 </ServiceInstall>
                 <ServiceControl Name="Multipass" Start="install" Stop="both" Remove="uninstall" />
