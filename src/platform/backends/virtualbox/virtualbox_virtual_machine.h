@@ -55,7 +55,9 @@ public:
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
-    void add_network_interface(int index, const NetworkInterface& net) override;
+    void add_network_interface(int index,
+                               const std::string& default_mac_addr,
+                               const NetworkInterface& extra_interface) override;
 
 private: // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
