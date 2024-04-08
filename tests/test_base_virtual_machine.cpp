@@ -805,7 +805,8 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
     // set the behavior of get_extra_interfaces to cause the difference to the new spece extra interfaces
     EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
 
-    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_cloud_init_with_new_extra_interfaces_and_new_id)
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                update_cloud_init_with_new_extra_interfaces_and_new_id(_, _, _, _))
         .Times(1);
 
     vm.restore_snapshot(snapshot_name, new_specs);
