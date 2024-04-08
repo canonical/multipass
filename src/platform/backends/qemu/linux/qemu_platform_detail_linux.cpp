@@ -222,25 +222,12 @@ std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
     return networks;
 }
 
-void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& desc,
-                                                   const NetworkInterface& extra_interface)
-{
-    // TODO: Do not uncomment the following line when implementing bridging in Linux QEMU. Since implementing it would
-    // yield the same exact implementation than in macOS, we need to move the code out of here, and put it only once
-    // in src/platform/backends/qemu/qemu_virtual_machine.[h|cpp].
-    // desc.extra_interfaces.push_back(net);
-
-    // For the time being, just complain:
-    throw NotImplementedOnThisBackendException("add interfaces");
-}
-
 std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::QemuPlatformDetail::find_bridge_with(
     const std::vector<mp::NetworkInterfaceInfo>& networks,
     const std::string& member_network) const
 {
     return networks.cend();
 }
-
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
