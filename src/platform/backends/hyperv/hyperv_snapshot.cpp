@@ -64,12 +64,13 @@ void require_unique_id(mp::PowerShell& ps, const QString& vm_name, const QString
 
 mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
                                    const std::string& comment,
+                                   const std::string& cloud_init_instance_id,
                                    const VMSpecs& specs,
                                    std::shared_ptr<Snapshot> parent,
                                    const QString& vm_name,
                                    HyperVVirtualMachine& vm,
                                    PowerShell& power_shell)
-    : BaseSnapshot{name, comment, std::move(parent), specs, vm},
+    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm},
       quoted_id{quoted(get_id())},
       vm_name{vm_name},
       power_shell{power_shell}
