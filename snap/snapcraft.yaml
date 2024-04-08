@@ -118,7 +118,7 @@ parts:
   multipass:
     plugin: cmake
     build-snaps:
-    - cmake
+    - cmake/3.28/stable
     build-environment:
     - PATH: /snap/bin:$PATH
     build-packages:
