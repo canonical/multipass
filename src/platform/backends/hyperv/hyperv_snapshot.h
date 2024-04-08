@@ -32,8 +32,8 @@ class HyperVSnapshot : public BaseSnapshot
 public:
     HyperVSnapshot(const std::string& name,
                    const std::string& comment,
-                   const VMSpecs& specs,
                    const std::string& cloud_init_instance_id,
+                   const VMSpecs& specs,
                    std::shared_ptr<Snapshot> parent,
                    const QString& vm_name,
                    HyperVVirtualMachine& vm,
