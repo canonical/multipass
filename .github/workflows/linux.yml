@@ -181,7 +181,6 @@ jobs:
       if: ${{ matrix.build-type == 'Coverage' }}
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      continue-on-error: true
       timeout-minutes: 5
       run: |
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
