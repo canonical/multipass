@@ -177,8 +177,10 @@ jobs:
                /root/parts/multipass/build/bin/multipass_tests
 
     - name: Measure coverage
-      if: ${{ matrix.build-type == 'Coverage' }}
       id: measure-coverage
+      if: ${{ matrix.build-type == 'Coverage' }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       continue-on-error: true
       timeout-minutes: 5
       run: |
