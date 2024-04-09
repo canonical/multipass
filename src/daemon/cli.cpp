@@ -33,18 +33,22 @@ namespace
 {
 multipass::logging::Level to_logging_level(const QString& value)
 {
-    if (value == "error")
+    auto value_lower = value.toLower();
+
+    if (value_lower == "error")
         return mpl::Level::error;
-    if (value == "warning")
+    if (value_lower == "warning")
         return mpl::Level::warning;
-    if (value == "info")
+    if (value_lower == "info")
         return mpl::Level::info;
-    if (value == "debug")
+    if (value_lower == "debug")
         return mpl::Level::debug;
-    if (value == "trace")
+    if (value_lower == "trace")
         return mpl::Level::trace;
 
-    throw std::runtime_error("invalid logging verbosity: " + value.toStdString());
+    throw std::runtime_error(fmt::format("invalid logging verbosity: {}. "
+                                         "Valid levels are: error|warning|info|debug|trace.",
+                                         value));
 }
 } // namespace
 
