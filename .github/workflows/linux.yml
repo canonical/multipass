@@ -177,9 +177,10 @@ jobs:
                /root/parts/multipass/build/bin/multipass_tests
 
     - name: Measure coverage
-      if: ${{ matrix.build-type == 'Coverage' }}
       id: measure-coverage
-      continue-on-error: true
+      if: ${{ matrix.build-type == 'Coverage' }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       timeout-minutes: 5
       run: |
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
