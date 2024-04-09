@@ -42,6 +42,7 @@ public:
                                                           const std::string& source_name,
                                                           const std::string& destination_name,
                                                           const VMImage& dest_vm_image,
+                                                          const SSHKeyProvider& key_provider,
                                                           VMStatusMonitor& monitor) override;
 
     VMImage prepare_source_image(const VMImage& source_image) override;
