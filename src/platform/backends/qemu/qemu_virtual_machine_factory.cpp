@@ -25,6 +25,7 @@
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
@@ -70,6 +71,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
     const std::string& source_name,
     const std::string& destination_name,
     const VMImage& dest_vm_image,
+    const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
     const QString backend_data_direcotry =
@@ -126,7 +128,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, monitor);
+    mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, key_provider, monitor);
     cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
 
     rollback.dismiss();

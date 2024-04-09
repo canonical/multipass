@@ -2798,6 +2798,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                   source_name,
                                                                   destination_name,
                                                                   dest_vm_image,
+                                                                  *config->ssh_key_provider,
                                                                   *this);
             ++src_spec.clone_count;
             persist_instances();

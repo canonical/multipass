@@ -52,6 +52,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
                                                                      const std::string& source_name,
                                                                      const std::string& destination_name,
                                                                      const VMImage& dest_vm_image,
+                                                                     const SSHKeyProvider& key_provider,
                                                                      VMStatusMonitor& monitor) override
     {
         return std::make_unique<StubVirtualMachine>();

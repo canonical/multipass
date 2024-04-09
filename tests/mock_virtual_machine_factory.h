@@ -43,6 +43,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                  const std::string&,
                  const std::string&,
                  const VMImage&,
+                 const SSHKeyProvider&,
                  VMStatusMonitor&),
                 (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));

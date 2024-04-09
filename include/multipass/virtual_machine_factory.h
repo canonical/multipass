@@ -55,6 +55,7 @@ public:
                                                                   const std::string& source_name,
                                                                   const std::string& destination_name,
                                                                   const VMImage& dest_vm_image,
+                                                                  const SSHKeyProvider& key_provider,
                                                                   VMStatusMonitor& monitor) = 0;
 
     /** Removes any resources associated with a VM of the given name.
