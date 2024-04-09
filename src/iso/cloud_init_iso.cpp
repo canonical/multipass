@@ -710,9 +710,14 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
 
-    std::string& meta_data_file_content = iso_file.at("meta-data");
-    meta_data_file_content =
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content, new_instance_id));
+    // empty instance id string signifies the snapshot instance was loaded from legacy snapshot files, then the code
+    // should do nothing.
+    if (!new_instance_id.empty())
+    {
+        std::string& meta_data_file_content = iso_file.at("meta-data");
+        meta_data_file_content = mpu::emit_cloud_config(
+            mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content, new_instance_id));
+    }
 
     if (extra_interfaces.empty())
     {

@@ -178,9 +178,10 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, cons
 
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc)
     : BaseSnapshot{
-          json["name"].toString().toStdString(),                   // name
-          json["comment"].toString().toStdString(),                // comment
-          json["cloud_init_instance_id"].toString().toStdString(), // instance id from cloud init
+          json["name"].toString().toStdString(),    // name
+          json["comment"].toString().toStdString(), // comment
+          json.contains("cloud_init_instance_id") ? json["cloud_init_instance_id"].toString().toStdString()
+                                                  : std::string{}, // instance id from cloud init
           find_parent(json, vm),                                   // parent
           json["index"].toInt(),                                   // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
