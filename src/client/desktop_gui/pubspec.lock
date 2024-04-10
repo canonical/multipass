@@ -101,8 +101,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: parse-rsa-from-octetstring
-      resolved-ref: ba5de646fddc3721c0edf586435dacbf6c94e669
+      ref: use-raw-socket
+      resolved-ref: a857d2734011bdbbdde47090312a61e9401a8905
       url: "https://github.com/andrei-toterman/dartssh2.git"
     source: git
     version: "2.9.1-pre"

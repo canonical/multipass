@@ -87,8 +87,8 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
           thisTerminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
         case final String data:
           thisTerminal.write(data);
-        case final int? code:
-          logger.i('Ssh session for ${widget.name} has exited with code $code');
+        case null:
+          logger.i('Ssh session for ${widget.name} has exited');
           isolate?.kill(priority: Isolate.immediate);
       }
     });
@@ -205,19 +205,20 @@ Future<void> sshIsolate(SshShellInfo info) async {
   final pem = SSHPem.decode(sshInfo.privKeyBase64);
   final rsa = RsaKeyPair.decode(pem);
 
+  final socket = await SSHSocket.connect(sshInfo.host, sshInfo.port);
+
   final client = SSHClient(
-    await SSHSocket.connect(sshInfo.host, sshInfo.port),
+    socket,
     username: sshInfo.username,
     identities: [rsa.getPrivateKeys()],
-    keepAliveInterval: const Duration(seconds: 1),
   );
 
   final session = await client.shell(
     pty: SSHPtyConfig(width: width, height: height),
   );
 
-  session.done.then((_) {
-    sender.send(session.exitCode);
+  socket.done.then((_) {
+    sender.send(null);
     receiver.close();
   });
 
@@ -230,6 +231,7 @@ Future<void> sshIsolate(SshShellInfo info) async {
     }
   });
 
-  StreamGroup.merge([session.stdout, session.stderr]).listen(
-      (event) => info.sender.send(utf8.decode(event, allowMalformed: true)));
+  StreamGroup.merge([session.stdout, session.stderr]).listen((event) {
+    sender.send(utf8.decode(event, allowMalformed: true));
+  });
 }
