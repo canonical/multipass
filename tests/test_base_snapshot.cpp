@@ -23,6 +23,7 @@
 
 #include <multipass/json_utils.h>
 #include <multipass/memory_size.h>
+#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <shared/base_snapshot.h>
 

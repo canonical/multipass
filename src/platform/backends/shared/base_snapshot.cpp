@@ -20,6 +20,7 @@
 
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
+#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_specs.h>
 
@@ -166,12 +167,12 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
     assert(index > 0 && "snapshot indices need to start at 1");
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, VirtualMachineDescription& desc)
+mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, const VirtualMachineDescription& desc)
     : BaseSnapshot{read_snapshot_json(filename), vm, desc}
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, VirtualMachineDescription& desc)
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc)
     : BaseSnapshot{
           json["name"].toString().toStdString(),                                           // name
           json["comment"].toString().toStdString(),                                        // comment
