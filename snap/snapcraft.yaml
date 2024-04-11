@@ -135,6 +135,7 @@ parts:
     - qt6-base-dev-tools
     - zip
     - unzip
+    - curl
     stage-packages:
     - apparmor
     - libpng16-16
