@@ -55,7 +55,7 @@ namespace
 {
 constexpr auto category = "utils";
 constexpr auto scrypt_hash_size{64};
-
+}
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
 {
 }

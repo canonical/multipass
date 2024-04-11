@@ -3589,10 +3589,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         auto current_release = vm.ssh_exec("cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
 
-        instance_info->set_cpu_times(mpu::run_in_ssh_session(session, "head -n1 /proc/stat"));
-
-        const auto uptime = mpu::run_in_ssh_session(session, "uptime -p | tail -c+4");
-        instance_info->set_uptime(uptime);
+        instance_info->set_cpu_times(vm.ssh_exec("head -n1 /proc/stat"));
+        instance_info->set_uptime(vm.ssh_exec("uptime -p | tail -c+4"));
     }
 }
 
