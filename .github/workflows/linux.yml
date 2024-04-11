@@ -169,7 +169,10 @@ jobs:
                /root/parts/multipass/build/bin/multipass_tests
 
     - name: Measure coverage
+      id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       timeout-minutes: 5
       run: |
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
@@ -195,6 +198,13 @@ jobs:
           env CTEST_OUTPUT_ON_FAILURE=1 \
             cmake --build /root/parts/multipass/build --target covreport
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+
+    - name: Continue on Error comment
+      uses: mainmatter/continue-on-error-comment@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        outcome: ${{ steps.measure-coverage.outcome }}
+        test-id: Error with measuring coverage in ${{ matrix.build-type }} build
 
     - name: Build and verify the snap
       id: build-snap
