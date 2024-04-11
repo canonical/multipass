@@ -32,7 +32,6 @@
             <DialogRef Id="ResumeDlg" />
             <DialogRef Id="UserExit" />
 
-            <ProgressText Action="CheckHyperVAction" Message="!(loc.CheckHyperV)" />
             <ProgressText Action="EnableHyperVAction" Message="!(loc.EnableHyperV)" />
             <ProgressText Action="UninstallExeMPAction" Message="!(loc.UninstallOldMP)" />
             <ProgressText Action="RemoveMPDataAction" Message="!(loc.RemoveMPDataText)" />

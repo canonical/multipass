@@ -82,10 +82,10 @@
 
         <!-- Enable HyperV -->
         <Property Id="DRIVER" Value="hyperv" Secure="yes" />
-        <Property Id="HYPER_V_STATE" Value="Disabled" Secure="yes" />
 
-        <CustomAction Id="CheckHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="CheckHyperV" Return="check" Execute="deferred" />
-        <CustomAction Id="EnableHyperVAction" Impersonate="no" BinaryRef="CABinary" DllEntry="EnableHyperV" Return="check" Execute="deferred" />
+        <SetProperty Id="EnableHyperVAction" Value="&quot;[POWERSHELLEXE]&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All -All -NoRestart" Before="EnableHyperVAction" Sequence="execute" />
+
+        <CustomAction Id="EnableHyperVAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="deferred" Impersonate="no" />
 
 
         <InstallUISequence>
@@ -95,10 +95,9 @@
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
             <Custom Action="SetWindowsEdition" After="AppSearch" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
 
-            <Custom Action="CheckHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
-            <Custom Action="EnableHyperVAction" After="CheckHyperVAction" Condition="DRIVER = &quot;hyperv&quot; AND HYPER_V_STATE &lt;&gt; &quot;Enabled&quot; AND NOT Installed" />
-
             <Custom Action="UninstallExeMPAction" After="InstallInitialize" Condition="NOT Installed AND UNINSTALLER_PATH" />
+
+            <Custom Action="EnableHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
             <Custom Action="RemoveMPDataAction" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
