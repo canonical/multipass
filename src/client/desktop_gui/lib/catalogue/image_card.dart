@@ -23,7 +23,11 @@ class ImageCard extends ConsumerWidget {
       ),
       padding: const EdgeInsets.all(16),
       child: DefaultTextStyle(
-        style: const TextStyle(fontSize: 16, color: Colors.black),
+        style: const TextStyle(
+          color: Colors.black,
+          fontFamily: 'Ubuntu',
+          fontSize: 16,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,

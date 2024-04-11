@@ -35,18 +35,7 @@ class SettingsScreen extends StatelessWidget {
             children: [
               Text('Settings', style: TextStyle(fontSize: 37)),
               SizedBox(height: 32),
-              TabBar(
-                isScrollable: true,
-                labelColor: Colors.black,
-                labelStyle: TextStyle(fontWeight: FontWeight.bold),
-                tabAlignment: TabAlignment.start,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(
-                  color: Colors.black12,
-                  border: Border(bottom: BorderSide(width: 3)),
-                ),
-                tabs: tabTitles,
-              ),
+              TabBar(isScrollable: true, tabs: tabTitles),
               Divider(height: 0, thickness: 2),
               Expanded(child: TabBarView(children: tabContents)),
             ],

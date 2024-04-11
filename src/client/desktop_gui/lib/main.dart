@@ -188,6 +188,7 @@ final theme = ThemeData(
       ),
       side: const BorderSide(color: Color(0xff333333)),
       textStyle: const TextStyle(
+        fontFamily: 'Ubuntu',
         fontSize: 16,
         fontWeight: FontWeight.w300,
       ),
@@ -204,6 +205,7 @@ final theme = ThemeData(
         borderRadius: BorderRadius.circular(2),
       ),
       textStyle: const TextStyle(
+        fontFamily: 'Ubuntu',
         fontSize: 16,
         fontWeight: FontWeight.w300,
       ),
@@ -212,5 +214,23 @@ final theme = ThemeData(
   textSelectionTheme: const TextSelectionThemeData(
     cursorColor: Colors.black,
     selectionColor: Colors.grey,
+  ),
+  tabBarTheme: const TabBarTheme(
+    indicator: BoxDecoration(
+      color: Colors.black12,
+      border: Border(bottom: BorderSide(width: 3)),
+    ),
+    indicatorSize: TabBarIndicatorSize.tab,
+    labelColor: Colors.black,
+    labelStyle: TextStyle(
+      fontFamily: 'Ubuntu',
+      fontWeight: FontWeight.bold,
+    ),
+    unselectedLabelColor: Colors.black,
+    unselectedLabelStyle: TextStyle(
+      fontFamily: 'Ubuntu',
+      fontWeight: FontWeight.bold,
+    ),
+    tabAlignment: TabAlignment.start,
   ),
 );
