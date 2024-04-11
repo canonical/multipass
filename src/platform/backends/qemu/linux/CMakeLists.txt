@@ -27,3 +27,8 @@ target_link_libraries(qemu_platform_detail
   utils
   Qt6::Core)
 
+add_executable(bridge_helper bridge_helper.c)
+
+install(TARGETS bridge_helper
+  DESTINATION bin
+  COMPONENT bridge_helper)
