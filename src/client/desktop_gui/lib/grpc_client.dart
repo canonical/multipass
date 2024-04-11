@@ -162,7 +162,7 @@ class GrpcClient {
     );
     return _client
         .info(Stream.value(request))
-        .single
+        .last
         .then((r) => r.details.toList());
   }
 
