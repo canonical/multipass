@@ -18,6 +18,7 @@
 #include "base_snapshot.h"
 #include "multipass/virtual_machine.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -180,10 +181,13 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
     : BaseSnapshot{
           json["name"].toString().toStdString(),    // name
           json["comment"].toString().toStdString(), // comment
-          json.contains("cloud_init_instance_id") ? json["cloud_init_instance_id"].toString().toStdString()
-                                                  : std::string{}, // instance id from cloud init
-          find_parent(json, vm),                                   // parent
-          json["index"].toInt(),                                   // index
+          json.contains("cloud_init_instance_id")
+              ? json["cloud_init_instance_id"].toString().toStdString()
+              : MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(
+                    std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
+                    "cloud-init-config.iso"), // instance id from cloud init
+          find_parent(json, vm),              // parent
+          json["index"].toInt(),              // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
           MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
@@ -196,6 +200,10 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
           true}                                                                            // captured
 {
     if (!json.contains("extra_interfaces"))
+    {
+        persist();
+    }
+    if (!json.contains("cloud_init_instance_id"))
     {
         persist();
     }
