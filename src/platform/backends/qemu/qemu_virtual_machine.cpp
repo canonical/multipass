@@ -348,7 +348,7 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
     if (force)
     {
         state = State::off;
-        mpl::log(mpl::Level::info, vm_name, "Forced shutdown");
+        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 
         if (vm_process)
         {
