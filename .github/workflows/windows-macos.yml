@@ -270,6 +270,10 @@ jobs:
       with:
         args: install --yes openssl --version=3.1.1
 
+    - name: Install specific cmake
+      if: ${{ runner.os == 'Windows' }}
+      uses: lukka/get-cmake@v3.28.4
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
       with:
