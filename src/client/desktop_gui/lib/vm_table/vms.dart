@@ -21,6 +21,8 @@ final selectedVmsProvider = StateProvider<BuiltSet<String>>((ref) {
   // will be invalidated and return the empty set again
   ref.watch(runningOnlyProvider);
   ref.watch(searchNameProvider);
+  // if navigating to another page, deselect all
+  ref.watch(sidebarKeyProvider);
   // look for changes in available vms and make sure this set does not contain
   // vm names that are no longer present
   ref.listen(vmNamesProvider, (_, availableNames) {
