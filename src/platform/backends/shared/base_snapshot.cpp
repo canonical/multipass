@@ -189,6 +189,10 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
           vm.instance_directory(),                                                         // storage_dir
           true}                                                                            // captured
 {
+    if (!json.contains("extra_interfaces"))
+    {
+        persist();
+    }
 }
 
 QJsonObject mp::BaseSnapshot::serialize() const
