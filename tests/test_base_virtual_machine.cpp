@@ -254,7 +254,7 @@ struct BaseVM : public Test
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
-    mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
     static constexpr bool on_windows =
 #ifdef MULTIPASS_PLATFORM_WINDOWS
