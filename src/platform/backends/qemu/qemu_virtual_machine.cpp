@@ -438,6 +438,12 @@ void mp::QemuVirtualMachine::on_error()
     update_state();
 }
 
+void mp::QemuVirtualMachine::on_stopping()
+{
+    state = State::stopping;
+    update_state();
+}
+
 void mp::QemuVirtualMachine::on_shutdown()
 {
     {
@@ -571,6 +577,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             else if (event.toString() == "POWERDOWN")
             {
                 mpl::log(mpl::Level::info, vm_name, "VM powering down");
+                on_stopping();
             }
             else if (event.toString() == "SHUTDOWN")
             {

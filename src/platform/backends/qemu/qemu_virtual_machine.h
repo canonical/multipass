@@ -106,6 +106,7 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     std::chrono::steady_clock::time_point network_deadline;
+    void on_stopping();
 };
 } // namespace multipass
 
