@@ -341,8 +341,17 @@ void mp::LXDVirtualMachine::ensure_vm_is_running()
 
 void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds& timeout)
 {
+    static constexpr auto accepted_state = [](auto st) {
+        static constexpr auto skip_states = {State::off,
+                                             State::stopped,
+                                             State::stopping,
+                                             State::suspended,
+                                             State::suspending};
+        return std::none_of(skip_states.begin(), skip_states.end(), [st](auto s) { return st == s; });
+    };
+
     auto is_vm_running = [this, timeout] {
-        if (current_state() != State::stopped)
+        if (accepted_state(current_state()))
         {
             return true;
         }
@@ -350,7 +359,7 @@ void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds
         // Sleep to see if LXD is just rebooting the instance
         std::this_thread::sleep_for(timeout);
 
-        if (current_state() != State::stopped)
+        if (accepted_state(current_state()))
         {
             state = State::starting;
             return true;
