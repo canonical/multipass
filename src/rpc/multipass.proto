@@ -203,6 +203,7 @@ message InstanceStatus {
         DELAYED_SHUTDOWN = 6;
         SUSPENDING = 7;
         SUSPENDED = 8;
+        STOPPING = 9; // weird order preserves backward compatibility
     }
     Status status = 1;
 }

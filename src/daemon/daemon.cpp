@@ -970,6 +970,8 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
     case mp::VirtualMachine::State::off:
     case mp::VirtualMachine::State::stopped:
         return mp::InstanceStatus::STOPPED;
+    case mp::VirtualMachine::State::stopping:
+        return mp::InstanceStatus::STOPPING;
     case mp::VirtualMachine::State::starting:
         return mp::InstanceStatus::STARTING;
     case mp::VirtualMachine::State::restarting:

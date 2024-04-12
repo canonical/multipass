@@ -55,7 +55,8 @@ public:
         delayed_shutdown,
         suspending,
         suspended,
-        unknown
+        unknown,
+        stopping // weird order preserves backward compatibility with persisted states (this was added later)
     };
 
     using UPtr = std::unique_ptr<VirtualMachine>;
