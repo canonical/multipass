@@ -307,6 +307,10 @@ void mp::QemuVirtualMachine::start()
         is_starting_from_suspend = true;
         network_deadline = std::chrono::steady_clock::now() + 5s;
     }
+    else if (state == State::stopping)
+    {
+        throw std::runtime_error(fmt::format("Cannot start {} while it is stopping", vm_name));
+    }
     else
     {
         // remove the mount arguments from the rest of the arguments, as they are stored separately for easier retrieval
