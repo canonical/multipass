@@ -563,7 +563,11 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 
     QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
         auto qmp_output = vm_process->read_all_standard_output();
-        mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
+
+        if (!qmp_output.endsWith('\n')) // TODO actually deal with this - it will probably have bad json
+            mpl::log(logging::Level::warning, vm_name, "partial QMP output");
+        else
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
 
         for (const auto& line : qmp_output.split('\n'))
         {
