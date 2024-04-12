@@ -666,7 +666,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                                     const VMSpecs& specs,
                                                     std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
 {
-    assert(state == VirtualMachine::State::off || state != VirtualMachine::State::stopped); // would need QMP otherwise
+    assert(state == VirtualMachine::State::off || state == VirtualMachine::State::stopped); // would need QMP otherwise
     return std::make_shared<QemuSnapshot>(snapshot_name, comment, std::move(parent), specs, *this, desc);
 }
 
