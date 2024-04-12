@@ -418,7 +418,7 @@ TEST_F(QemuBackend, force_shutdown_kills_process_and_logs)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "process program");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "process arguments");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "process started");
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forced shutdown");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Killing process");
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Killed");
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Force stopped");
@@ -447,7 +447,7 @@ TEST_F(QemuBackend, force_shutdown_no_process_logs)
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forced shutdown");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "No process to kill");
 
     mpt::StubVMStatusMonitor stub_monitor;
