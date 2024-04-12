@@ -393,9 +393,10 @@ void mp::LibVirtVirtualMachine::shutdown(const bool force)
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
             update_state();
         }
-        else if (state == State::suspended)
+        else if (state == State::suspended || state == State::stopping)
         {
-            mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+            auto state_str = state == State::suspended ? "suspended" : "stopping";
+            mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while {}", state_str));
         }
     }
 
