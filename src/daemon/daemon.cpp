@@ -3237,10 +3237,16 @@ grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
 grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response)
 {
     const auto& name = vm.vm_name;
-    if (vm.current_state() == VirtualMachine::State::unknown)
+    auto state = vm.current_state();
+
+    // TODO@no-merge streamline this stuff
+    if (state == VirtualMachine::State::unknown)
         throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
-    if (!MP_UTILS.is_running(vm.current_state()))
+    if (state == VirtualMachine::State::stopping)
+        return grpc::Status{grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is stopping", name)};
+
+    if (!MP_UTILS.is_running(state))
         return grpc::Status{grpc::StatusCode::ABORTED, fmt::format("instance \"{}\" is not running", name)};
 
     if (vm.state == VirtualMachine::State::delayed_shutdown &&
