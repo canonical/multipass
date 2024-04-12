@@ -3160,7 +3160,14 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     if (vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
 
-    if (!MP_UTILS.is_running(vm.current_state()))
+    // TODO@no-merge streamline this stuff
+    auto state = vm.current_state();
+    if (state == VirtualMachine::State::stopping)
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                            fmt::format("instance \"{}\" is currently stopping", vm.vm_name),
+                            ""};
+
+    if (!MP_UTILS.is_running(state))
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
 
