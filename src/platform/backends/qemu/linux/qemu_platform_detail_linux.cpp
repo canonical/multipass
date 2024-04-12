@@ -24,6 +24,7 @@
 
 #include <shared/linux/backend_utils.h>
 
+#include <QCoreApplication>
 #include <QFile>
 
 namespace mp = multipass;
@@ -191,6 +192,17 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
          << "-nic"
          << QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                                                tap_device_name, vm_desc.default_mac_address));
+
+    auto bridge_helper_path = QCoreApplication::applicationDirPath() + "/bridge_helper";
+
+    for (const auto& extra_interface : vm_desc.extra_interfaces)
+    {
+        opts << "-nic"
+             << QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                                                   extra_interface.id,
+                                                   extra_interface.mac_address,
+                                                   bridge_helper_path));
+    }
 
     return opts;
 }
