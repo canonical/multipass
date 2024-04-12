@@ -253,6 +253,10 @@ void mp::LXDVirtualMachine::start()
         mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
         request_state("unfreeze");
     }
+    else if (state == State::stopping)
+    {
+        throw std::runtime_error(fmt::format("Cannot start {} while it is stopping", vm_name));
+    }
     else
     {
         request_state("start");
