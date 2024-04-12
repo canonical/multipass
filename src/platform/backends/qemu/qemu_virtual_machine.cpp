@@ -407,9 +407,10 @@ void mp::QemuVirtualMachine::suspend()
         vm_process->wait_for_finished(timeout);
         vm_process.reset(nullptr);
     }
-    else if (state == State::off || state == State::suspended)
+    else if (state == State::off || state == State::stopped || state == State::suspended || state == State::stopping)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped/suspended"));
+        // TODO@no-merge use an util to get string from state enum (reuse where needed, e.g. CLI format utils)
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped/stopping/suspended"));
         monitor->on_suspend();
     }
 }
