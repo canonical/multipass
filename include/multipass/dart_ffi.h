@@ -1,8 +1,10 @@
 #ifndef MULTIPASS_DART_FFI_H
 #define MULTIPASS_DART_FFI_H
 
+// clang-format off
 extern "C"
 {
+// clang-format on
 const char* multipass_version();
 
 const char* generate_petname();

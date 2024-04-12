@@ -13,8 +13,10 @@ namespace mcp = multipass::cli::platform;
 
 constexpr auto category = "dart-ffi";
 
+// clang-format off
 extern "C"
 {
+// clang-format on
 const char* multipass_version()
 {
     return mp::version_string;
