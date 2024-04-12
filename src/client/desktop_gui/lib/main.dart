@@ -75,15 +75,24 @@ class _AppState extends ConsumerState<App> with WindowListener {
       for (final name in vms) 'vm-$name': VmDetailsScreen(name),
     };
 
-    final content = Stack(fit: StackFit.expand, children: [
-      for (final MapEntry(:key, value: widget) in widgets.entries)
-        Visibility(
+    final content = Stack(
+      fit: StackFit.expand,
+      children: widgets.entries.map((e) {
+        final MapEntry(:key, value: widget) = e;
+        final isCurrent = key == currentKey;
+        return Visibility(
           key: Key(key),
           maintainState: true,
-          visible: key == currentKey,
-          child: widget,
-        ),
-    ]);
+          visible: isCurrent,
+          child: FocusScope(
+            autofocus: isCurrent,
+            canRequestFocus: isCurrent,
+            skipTraversal: !isCurrent,
+            child: widget,
+          ),
+        );
+      }).toList(),
+    );
 
     return Stack(children: [
       AnimatedPositioned(
