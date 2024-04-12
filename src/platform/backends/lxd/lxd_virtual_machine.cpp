@@ -61,9 +61,10 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     {
     case 101: // Started
     case 103: // Running
-    case 107: // Stopping
     case 111: // Thawed
         return mp::VirtualMachine::State::running;
+    case 107: // Stopping
+        return mp::VirtualMachine::State::stopping;
     case 102: // Stopped
         return mp::VirtualMachine::State::stopped;
     case 106: // Starting
