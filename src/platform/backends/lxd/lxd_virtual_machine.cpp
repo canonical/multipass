@@ -316,7 +316,8 @@ mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
             return state;
 
         state = present_state;
-        if (state == State::suspended || state == State::suspending || state == State::restarting)
+        if (state == State::suspended || state == State::suspending || state == State::restarting ||
+            state == State::stopping)
             drop_ssh_session();
     }
     catch (const LocalSocketConnectionException& e)
