@@ -33,6 +33,7 @@ class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 public:
     explicit QemuVirtualMachineFactory(const Path& data_dir);
 
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
@@ -50,6 +51,7 @@ public:
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
     QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);

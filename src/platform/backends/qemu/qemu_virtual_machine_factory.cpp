@@ -24,6 +24,8 @@
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <shared/linux/backend_utils.h>
+
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
@@ -62,6 +64,17 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     qemu_platform->remove_resources_for(name);
+}
+
+void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+{
+    prepare_networking_guts(extra_interfaces, "bridge");
+}
+
+std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
+{
+    assert(interface.type == "ethernet");
+    return MP_BACKEND.create_bridge_with(interface.id);
 }
 
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
