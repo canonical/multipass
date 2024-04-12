@@ -209,13 +209,20 @@ auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMac
         domain_state == VIR_DOMAIN_NOSTATE)
         return mp::VirtualMachine::State::unknown;
 
+    if (domain_state == VIR_DOMAIN_SHUTDOWN)
+        return mp::VirtualMachine::State::stopping;
+
     if (libvirt_wrapper->virDomainHasManagedSaveImage(domain, 0) == 1)
         return mp::VirtualMachine::State::suspended;
 
     // Most of these libvirt domain states don't have a Multipass instance state
     // analogue, so we'll treat them as "off".
-    const auto domain_off_states = {VIR_DOMAIN_BLOCKED, VIR_DOMAIN_PAUSED,  VIR_DOMAIN_SHUTDOWN,
-                                    VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_CRASHED, VIR_DOMAIN_PMSUSPENDED};
+    const auto domain_off_states = {
+        VIR_DOMAIN_BLOCKED,
+        VIR_DOMAIN_PAUSED,
+        VIR_DOMAIN_SHUTOFF,
+        VIR_DOMAIN_CRASHED,
+        VIR_DOMAIN_PMSUSPENDED}; // TODO shouldn't we treat PMSUSPENDED as suspended? and maybe PAUSED as well?
 
     if (std::find(domain_off_states.begin(), domain_off_states.end(), domain_state) != domain_off_states.end())
         return mp::VirtualMachine::State::off;
@@ -299,7 +306,7 @@ mp::LibVirtVirtualMachine::~LibVirtVirtualMachine()
     update_suspend_status = false;
 
     if (state == State::running)
-        suspend();
+        suspend(); // TODO this can throw!
 }
 
 void mp::LibVirtVirtualMachine::start()
