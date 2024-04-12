@@ -2111,7 +2111,8 @@ try // clang-format on
         std::lock_guard lock{start_mutex};
         const auto& name = vm_it->first;
         auto& vm = *vm_it->second;
-        switch (vm.current_state())
+        auto state = vm.current_state();
+        switch (state)
         {
         case VirtualMachine::State::unknown:
         {
@@ -2120,9 +2121,16 @@ try // clang-format on
             fmt::format_to(std::back_inserter(start_errors), error_string);
             continue;
         }
+        case VirtualMachine::State::stopping:
         case VirtualMachine::State::suspending:
-            fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance \'{}\' while suspending", name);
+        {
+            auto state_str = state == VirtualMachine::State::stopping ? "stopping" : "suspending";
+            fmt::format_to(std::back_inserter(start_errors),
+                           "Cannot start the instance \'{}\' while {}",
+                           name,
+                           state_str);
             continue;
+        }
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
             continue;
