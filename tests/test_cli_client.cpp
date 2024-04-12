@@ -146,6 +146,10 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::RestoreReply, mp::RestoreRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status,
+                clone,
+                (grpc::ServerContext * context, (grpc::ServerReaderWriter<mp::CloneReply, mp::CloneRequest> * server)),
+                (override));
 };
 
 struct Client : public Test
@@ -3175,6 +3179,25 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
     EXPECT_THAT(help_cmd_launch.str(), Ne(""));
     EXPECT_THAT(help_cmd_launch.str(), Eq(launch_cmd_help.str()));
+}
+
+// clone cli tests
+TEST_F(Client, cloneCmdHelpOk)
+{
+    EXPECT_EQ(send_command({"clone", "--help"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, cloneCmdWithSrcVMNameOnly)
+{
+    EXPECT_CALL(mock_daemon, clone).Times(1);
+    EXPECT_EQ(send_command({"clone", "vm1"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, cloneCmdWithDestName)
+{
+    EXPECT_CALL(mock_daemon, clone).Times(2);
+    EXPECT_EQ(send_command({"clone", "vm1", "-n", "vm2"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"clone", "vm1", "--name", "vm2"}), mp::ReturnCode::Ok);
 }
 
 // snapshot cli tests
