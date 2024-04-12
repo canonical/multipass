@@ -271,7 +271,7 @@ void mp::LXDVirtualMachine::shutdown(const bool force)
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
     auto present_state = current_state();
 
-    if (present_state == State::stopped)
+    if (present_state == State::stopped || present_state == State::off)
     {
         mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
         return;
