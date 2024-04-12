@@ -276,9 +276,12 @@ void mp::LXDVirtualMachine::shutdown(const bool force)
         mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
         return;
     }
-    else if (present_state == State::suspended && !force)
+    else if ((present_state == State::suspended || present_state == State::stopping) && !force)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+        mpl::log(mpl::Level::info,
+                 vm_name,
+                 fmt::format("Ignoring shutdown issued while {}",
+                             present_state == State::suspended ? "suspended" : "stopping"));
         return;
     }
 
