@@ -425,9 +425,10 @@ void mp::LibVirtVirtualMachine::suspend()
             update_state();
         }
     }
-    else if (state == State::off)
+    else if (state == State::off || state == State::stopped || state == State::stopping)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        auto state_str = state == State::stopping ? "stopping" : "stopped";
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while {}", state_str));
     }
 
     monitor->on_suspend();
