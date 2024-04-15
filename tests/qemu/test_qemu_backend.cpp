@@ -462,6 +462,40 @@ TEST_F(QemuBackend, force_shutdown_no_process_logs)
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
+TEST_F(QemuBackend, force_shutdown_suspend_deletes_suspend_images_and_off_state)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    auto factory = mpt::StubProcessFactory::Inject();
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "No process to kill");
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+
+    machine->state = mp::VirtualMachine::State::suspended;
+
+    machine->shutdown(true);
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+
+    auto processes = factory->process_list();
+    EXPECT_TRUE(std::find_if(processes.cbegin(),
+                             processes.cend(),
+                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command == "qemu-img" && process_info.arguments.contains("-d") &&
+                                        process_info.arguments.contains(suspend_tag);
+                             }) != processes.cend());
+}
+
 TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
