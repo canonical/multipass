@@ -680,3 +680,17 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
                          std::promise<grpc::Status>*),
     const mp::RestoreRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>&&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::CloneRequest*,
+                         grpc::ServerReaderWriterInterface<mp::CloneReply, mp::CloneRequest>*,
+                         std::promise<grpc::Status>*),
+    const mp::CloneRequest&,
+    NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::CloneRequest*,
+                         grpc::ServerReaderWriterInterface<mp::CloneReply, mp::CloneRequest>*,
+                         std::promise<grpc::Status>*),
+    const mp::CloneRequest&,
+    testing::NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>&&);
