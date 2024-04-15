@@ -44,4 +44,10 @@ execute_process(
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E rm -rf "${PRIMING_DIR}")
 
-message(STATUS ${build_output})
+file(WRITE ${CPACK_TEMPORARY_DIRECTORY}\\..\\WiXOutput.log "${build_output}")
+
+if(result)
+  message(FATAL_ERROR "CPack failed to build WiX package: ${build_output}")
+else()
+  message(STATUS ${build_output})
+endif()
