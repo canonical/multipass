@@ -347,8 +347,15 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
 {
     if (force)
     {
-        state = State::off;
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+
+        if (state == State::suspended)
+        {
+            mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
+            mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
+        }
+
+        state = State::off;
 
         if (vm_process)
         {
