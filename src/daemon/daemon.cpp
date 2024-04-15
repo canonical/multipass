@@ -3181,7 +3181,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     const auto& state = vm.current_state();
 
     using St = VirtualMachine::State;
-    const auto skip_states = {St::off, St::stopped, St::suspended};
+    const auto skip_states = {St::off, St::stopped, St::suspended, St::stopping};
 
     if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
     {
