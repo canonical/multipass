@@ -561,10 +561,17 @@ TEST_P(TestInstanceModOnNonStoppedInstance, setRefusesToModifyNonStoppedInstance
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModOnNonStoppedInstance,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
+                         TestInstanceModOnNonStoppedInstance,
                          Combine(ValuesIn(TestInstanceSettingsHandler::properties),
-                                 Values(VMSt::running, VMSt::restarting, VMSt::starting, VMSt::delayed_shutdown,
-                                        VMSt::suspended, VMSt::suspending, VMSt::unknown)));
+                                 Values(VMSt::running,
+                                        VMSt::restarting,
+                                        VMSt::starting,
+                                        VMSt::stopping,
+                                        VMSt::delayed_shutdown,
+                                        VMSt::suspended,
+                                        VMSt::suspending,
+                                        VMSt::unknown)));
 
 struct TestInstanceModOnStoppedInstance : public TestInstanceSettingsHandler,
                                           public WithParamInterface<PropertyAndState>

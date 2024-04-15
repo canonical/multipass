@@ -95,6 +95,7 @@ struct LXDInstanceStatusTestSuite : LXDBackend, WithParamInterface<LXDInstanceSt
 const std::vector<LXDInstanceStatusParamType> lxd_instance_status_suite_inputs{
     {mpt::vm_state_stopped_data, mp::VirtualMachine::State::stopped},
     {mpt::vm_state_starting_data, mp::VirtualMachine::State::starting},
+    {mpt::vm_state_stopping_data, mp::VirtualMachine::State::stopping},
     {mpt::vm_state_freezing_data, mp::VirtualMachine::State::suspending},
     {mpt::vm_state_frozen_data, mp::VirtualMachine::State::suspended},
     {mpt::vm_state_cancelling_data, mp::VirtualMachine::State::unknown},

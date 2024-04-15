@@ -261,6 +261,7 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
                                 mp::VirtualMachine::State::restarting,
                                 mp::VirtualMachine::State::running,
                                 mp::VirtualMachine::State::delayed_shutdown,
+                                mp::VirtualMachine::State::stopping,
                                 mp::VirtualMachine::State::suspending,
                                 mp::VirtualMachine::State::suspended,
                                 mp::VirtualMachine::State::unknown));
