@@ -44,7 +44,7 @@ class UsageSettings extends ConsumerWidget {
       Dropdown(
         label: 'On close of application',
         width: 360,
-        value: onAppClose,
+        value: onAppClose ?? 'ask',
         onChanged: (value) => ref.read(onAppCloseProvider.notifier).set(value!),
         items: const {
           'ask': 'Ask about running instances',
