@@ -98,3 +98,20 @@ TEST_F(TestDaemonClone, successfulCloneOkStatus)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::OK);
 }
+
+TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
+{
+    const auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::running));
+
+    mp::CloneRequest request{};
+    request.set_source_name(mock_instance_name);
+
+    const auto status = call_daemon_slot(*daemon,
+                                         &mp::Daemon::clone,
+                                         request,
+                                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_EQ(status.error_message(), fmt::format("Please stop instance {} before you clone it.", mock_instance_name));
+}
