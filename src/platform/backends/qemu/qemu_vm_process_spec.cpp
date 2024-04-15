@@ -153,6 +153,9 @@ profile %1 flags=(attach_disconnected) {
   /{usr/,}bin/dd rmix,
   /{usr/,}bin/cat rmix,
 
+  # to execute bridge helper
+  %4/bin/bridge_helper,
+
   # for restore
   /{usr/,}bin/bash rmix,
 
