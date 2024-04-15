@@ -656,6 +656,13 @@ TEST(Utils, vm_stopped_returns_false)
     EXPECT_FALSE(MP_UTILS.is_running(state));
 }
 
+TEST(Utils, vm_stopping_returns_false)
+{
+    mp::VirtualMachine::State state = mp::VirtualMachine::State::stopping;
+
+    EXPECT_FALSE(MP_UTILS.is_running(state));
+}
+
 TEST(Utils, absent_config_file_and_dir_are_created)
 {
     mpt::TempDir temp_dir;
