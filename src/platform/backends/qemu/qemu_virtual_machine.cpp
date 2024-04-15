@@ -440,6 +440,7 @@ void mp::QemuVirtualMachine::on_error()
 
 void mp::QemuVirtualMachine::on_stopping()
 {
+    drop_ssh_session();
     state = State::stopping;
     update_state();
 }
