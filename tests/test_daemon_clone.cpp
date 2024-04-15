@@ -41,6 +41,20 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
 
+    auto build_daemon_with_mock_instance()
+    {
+        auto instance_unique_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+        auto* instance_raw_ptr = instance_unique_ptr.get();
+
+        EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_unique_ptr)));
+
+        const auto [temp_dir, _] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+        config_builder.data_directory = temp_dir->path();
+        auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
+
+        return std::pair{std::move(daemon), instance_raw_ptr};
+    }
+
     const std::string mock_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
     std::vector<mp::NetworkInterface> extra_interfaces;
@@ -67,4 +81,20 @@ TEST_F(TestDaemonClone, missingOnSrcInstance)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
     EXPECT_EQ(status.error_message(), fmt::format("instance \"{}\" does not exist", src_instance_name));
+}
+
+TEST_F(TestDaemonClone, successfulCloneOkStatus)
+{
+    const auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+
+    mp::CloneRequest request{};
+    request.set_source_name(mock_instance_name);
+
+    const auto status = call_daemon_slot(*daemon,
+                                         &mp::Daemon::clone,
+                                         request,
+                                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::OK);
 }
