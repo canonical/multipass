@@ -84,7 +84,10 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
                                    "time", "0");
     QCommandLineOption cancel_option({"c", "cancel"}, "Cancel a pending delayed shutdown");
-    QCommandLineOption force_option("force", "Force switching the instance off");
+    QCommandLineOption force_option(
+        "force",
+        "Immediately force switching the instance off. This could potentially corrupt a running"
+        " instance, so use with care.");
     parser->addOptions({all_option, time_option, cancel_option, force_option});
 
     auto status = parser->commandParse(this);
