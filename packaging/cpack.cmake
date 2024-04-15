@@ -110,6 +110,14 @@ if (MSVC)
   # copy the icon and font, to use in windows terminal profiles
   install(FILES "${CMAKE_SOURCE_DIR}/packaging/windows/icon_wt.ico" DESTINATION bin RENAME multipass_wt.ico COMPONENT multipass)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/packaging/windows/fonts/" DESTINATION fonts COMPONENT multipass)
+  
+  set(CPACK_SOURCE_DIR "${CMAKE_SOURCE_DIR}")
+  set(CPACK_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+
+  set(CPACK_GENERATOR External)
+  set(CPACK_EXTERNAL_ENABLE_STAGING ON)
+
+  set(CPACK_EXTERNAL_PACKAGE_SCRIPT "${CMAKE_SOURCE_DIR}/packaging/windows/CPackExternal.cmake")
 endif()
 
 if(APPLE)
