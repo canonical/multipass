@@ -80,7 +80,7 @@ mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
                                    HyperVVirtualMachine& vm,
                                    const QString& vm_name,
                                    PowerShell& power_shell)
-    : BaseSnapshot{filename, vm}, vm_name{vm_name}, power_shell{power_shell}
+    : BaseSnapshot{filename, vm}, quoted_id{quoted(get_id())}, vm_name{vm_name}, power_shell{power_shell}
 {
 }
 
