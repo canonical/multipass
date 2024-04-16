@@ -241,7 +241,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
 
     const auto query = make_query("core20", "");
-    host.update_manifests(false);
+    EXPECT_THROW(host.update_manifests(false), mp::DownloadException);
     EXPECT_THROW(host.info_for(query), std::runtime_error);
 
     host.update_manifests(false);
@@ -259,8 +259,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
     EXPECT_CALL(mock_url_downloader, last_modified(_))
         .WillOnce(Throw(mp::DownloadException{"", ""}))
         .WillRepeatedly(DoDefault());
-
-    host.update_manifests(false);
+    EXPECT_THROW(host.update_manifests(false), mp::DownloadException);
     EXPECT_THROW(host.info_for(query), std::runtime_error);
 
     host.update_manifests(false);
