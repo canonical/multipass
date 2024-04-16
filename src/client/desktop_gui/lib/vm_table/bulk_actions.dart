@@ -2,6 +2,7 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../delete_instance_dialog.dart';
 import '../extensions.dart';
 import '../notifications.dart';
 import '../providers.dart';
@@ -22,32 +23,47 @@ class BulkActionsBar extends ConsumerWidget {
         .values
         .toSet();
 
-    final actions = [
-      (VmAction.start, client.start),
-      (VmAction.stop, client.stop),
-      (VmAction.suspend, client.suspend),
-      (VmAction.delete, client.delete),
-    ];
+    Function(VmAction) wrapInNotification(
+      Future<void> Function(Iterable<String>) function,
+    ) {
+      return (action) {
+        final object = selectedVms.length == 1
+            ? selectedVms.first
+            : '${selectedVms.length} instances';
+        final notification = OperationNotification(
+          text: '${action.continuousTense} $object',
+          future: function(selectedVms).then((_) {
+            return '${action.pastTense} $object';
+          }).onError((_, __) {
+            throw 'Failed to ${action.name.toLowerCase()} $object';
+          }),
+        );
+        ref.read(notificationsProvider.notifier).add(notification);
+      };
+    }
+
+    final actions = {
+      VmAction.start: wrapInNotification(client.start),
+      VmAction.stop: wrapInNotification(client.stop),
+      VmAction.suspend: wrapInNotification(client.suspend),
+      VmAction.delete: (action) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => DeleteInstanceDialog(
+            multiple: selectedVms.length > 1,
+            onDelete: () => wrapInNotification(client.purge)(action),
+          ),
+        );
+      },
+    };
 
     final actionButtons = [
-      for (final (action, function) in actions)
+      for (final MapEntry(key: action, value: function) in actions.entries)
         VmActionButton(
           action: action,
           currentStatuses: statuses,
-          function: () {
-            final object = selectedVms.length == 1
-                ? selectedVms.first
-                : '${selectedVms.length} instances';
-            final notification = OperationNotification(
-              text: '${action.continuousTense} $object',
-              future: function(selectedVms).then((_) {
-                return '${action.pastTense} $object';
-              }).onError((_, __) {
-                throw 'Failed to ${action.name.toLowerCase()} $object';
-              }),
-            );
-            ref.read(notificationsProvider.notifier).add(notification);
-          },
+          function: () => function(action),
         ),
     ];
 

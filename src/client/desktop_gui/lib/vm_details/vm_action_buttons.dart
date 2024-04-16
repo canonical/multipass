@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../delete_instance_dialog.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
@@ -14,37 +15,44 @@ class VmActionButtons extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final client = ref.watch(grpcClientProvider);
 
-    final actions = [
-      (VmAction.start, client.start),
-      (VmAction.stop, client.stop),
-      (VmAction.suspend, client.suspend),
-      (VmAction.delete, client.delete),
-    ];
+    Function(VmAction) wrapInNotification(
+      Future<void> Function(Iterable<String>) function,
+    ) {
+      return (action) {
+        final notification = OperationNotification(
+          text: '${action.continuousTense} $name',
+          future: function([name]).then((_) {
+            return '${action.pastTense} $name';
+          }).onError((_, __) {
+            throw 'Failed to ${action.name.toLowerCase()} $name';
+          }),
+        );
+        ref.read(notificationsProvider.notifier).add(notification);
+      };
+    }
 
-    final notifyingActions = [
-      for (final (action, function) in actions)
-        (
-          action,
-          () {
-            final notification = OperationNotification(
-              text: '${action.continuousTense} $name',
-              future: function([name]).then((_) {
-                return '${action.pastTense} $name';
-              }).onError((_, __) {
-                throw 'Failed to ${action.name.toLowerCase()} $name';
-              }),
-            );
-            ref.read(notificationsProvider.notifier).add(notification);
-          },
-        ),
-    ];
+    final actions = {
+      VmAction.start: wrapInNotification(client.start),
+      VmAction.stop: wrapInNotification(client.stop),
+      VmAction.suspend: wrapInNotification(client.suspend),
+      VmAction.delete: (action) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => DeleteInstanceDialog(
+            multiple: false,
+            onDelete: () => wrapInNotification(client.purge)(action),
+          ),
+        );
+      },
+    };
 
     final actionButtons = [
-      for (final (action, function) in notifyingActions)
+      for (final MapEntry(key: action, value: function) in actions.entries)
         PopupMenuItem(
           padding: EdgeInsets.zero,
           enabled: false,
-          child: ActionTile(name, action, function),
+          child: ActionTile(name, action, () => function(action)),
         ),
     ];
 
