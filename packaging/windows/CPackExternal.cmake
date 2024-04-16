@@ -33,12 +33,12 @@ endif()
 
 execute_process(
   COMMAND
-    dotnet build -Restore -verbosity:normal /p:Configuration=${CPACK_BUILD_TYPE}
-    /p:PublishDir=\"${PRIMING_DIR}\"
-    /p:OutputPath=\"${CPACK_OUTPUT_FILE_PREFIX}\\packages\"
+    msbuild -Restore -verbosity:normal /p:Configuration=${CPACK_BUILD_TYPE}
+    /p:PublishDir=${PRIMING_DIR}
+    /p:OutputPath=${CPACK_OUTPUT_FILE_PREFIX}/packages
     /p:BuildVersion=${CPACK_PACKAGE_VERSION}
-    /p:OutputName="${CPACK_PACKAGE_FILE_NAME}"
-  WORKING_DIRECTORY "${CPACK_SOURCE_DIR}\\packaging\\windows\\wix"
+    /p:OutputName=${CPACK_PACKAGE_FILE_NAME}
+  WORKING_DIRECTORY "${CPACK_SOURCE_DIR}/packaging/windows/wix"
   OUTPUT_VARIABLE build_output
   RESULT_VARIABLE result)
 
