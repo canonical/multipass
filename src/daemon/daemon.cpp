@@ -3426,7 +3426,33 @@ void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
         vm_image_host_ptr->update_manifests(is_force_update_from_network);
     };
 
-    utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
+    if (is_force_update_from_network)
+    {
+        utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
+    }
+    else
+    {
+        int initial_delay_s = 5; // 5 secondes initial delay
+        // int max_delay_ms = 900000; // 15 minutes maximum delay
+        int max_delay_s = 20; // 20 seconds maximum delay
+        int delay = initial_delay_s;
+        while (true)
+        {
+            try
+            {
+                utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
+                return;
+            }
+            catch (const mp::DownloadException& e)
+            {
+                mpl::log(mpl::Level::warning,
+                         "daemon",
+                         fmt::format("Download attempt failed: {}, try it again in {} seconds", e.what(), delay));
+                std::this_thread::sleep_for(std::chrono::seconds{delay});
+                delay = std::min(2 * delay, max_delay_s);
+            }
+        }
+    }
 }
 
 void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bool force_manifest_network_download)
