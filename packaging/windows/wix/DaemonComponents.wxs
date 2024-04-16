@@ -15,9 +15,5 @@
                 </RegistryKey>
             </Component>
         </ComponentGroup>
-
-        <Property Id="VBOX_VERSION">
-            <RegistrySearch Id="VBOX_VERSION" Root="HKLM" Key="SOFTWARE\Oracle\VirtualBox" Name="Version" Type="raw" />
-        </Property>
     </Fragment>
 </Wix>
