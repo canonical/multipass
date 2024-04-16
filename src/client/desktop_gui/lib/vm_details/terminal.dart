@@ -217,7 +217,7 @@ Future<void> sshIsolate(SshShellInfo info) async {
     pty: SSHPtyConfig(width: width, height: height),
   );
 
-  socket.done.then((_) {
+  Future.any([client.done, session.done, socket.done]).then((_) {
     sender.send(null);
     receiver.close();
   });
