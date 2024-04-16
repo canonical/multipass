@@ -328,9 +328,15 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       child: const Text('Save changes'),
     );
 
-    final configureButton = OutlinedButton(
-      onPressed: stopped ? () => setState(() => editing = true) : null,
-      child: const Text('Configure'),
+    final configureButton = TooltipVisibility(
+      visible: !stopped,
+      child: Tooltip(
+        message: 'Stop instance to configure',
+        child: OutlinedButton(
+          onPressed: stopped ? () => setState(() => editing = true) : null,
+          child: const Text('Configure'),
+        ),
+      ),
     );
 
     final cancelButton = OutlinedButton(
@@ -437,9 +443,15 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       child: const Text('Save'),
     );
 
-    final configureButton = OutlinedButton(
-      onPressed: stopped ? () => setState(() => editing = true) : null,
-      child: const Text('Configure'),
+    final configureButton = TooltipVisibility(
+      visible: !stopped,
+      child: Tooltip(
+        message: 'Stop instance to configure',
+        child: OutlinedButton(
+          onPressed: stopped ? () => setState(() => editing = true) : null,
+          child: const Text('Configure'),
+        ),
+      ),
     );
 
     final cancelButton = OutlinedButton(
@@ -568,9 +580,15 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: const Text('Save'),
     );
 
-    final configureButton = OutlinedButton(
-      onPressed: stopped ? () => setState(() => editing = true) : null,
-      child: const Text('Configure'),
+    final configureButton = TooltipVisibility(
+      visible: !stopped,
+      child: Tooltip(
+        message: 'Stop instance to configure',
+        child: OutlinedButton(
+          onPressed: stopped ? () => setState(() => editing = true) : null,
+          child: const Text('Configure'),
+        ),
+      ),
     );
 
     final cancelButton = OutlinedButton(
