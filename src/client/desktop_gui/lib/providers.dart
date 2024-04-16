@@ -41,7 +41,10 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
   while (true) {
     final timer = Future.delayed(900.milliseconds);
     try {
-      yield await grpcClient.info();
+      final infos = await grpcClient.info();
+      yield infos
+          .where((info) => info.instanceStatus.status != Status.DELETED)
+          .toList();
       lastError = null;
     } catch (error, stackTrace) {
       if (error != lastError) {
