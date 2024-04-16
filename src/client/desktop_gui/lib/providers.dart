@@ -60,7 +60,18 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
 });
 
 final daemonAvailableProvider = Provider((ref) {
-  return !ref.watch(vmInfosStreamProvider).hasError;
+  final error = ref.watch(vmInfosStreamProvider).error;
+  if (error == null) return true;
+  if (error case GrpcError grpcError) {
+    final message = grpcError.message ?? '';
+    if (message.contains('failed to obtain exit status for remote process')) {
+      return true;
+    }
+    if (message.contains('Connection is being forcefully terminated')) {
+      return true;
+    }
+  }
+  return false;
 });
 
 final vmInfosProvider = Provider((ref) {
