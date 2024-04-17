@@ -19,9 +19,14 @@ class VirtualizationSettings extends ConsumerWidget {
     final networks = ref.watch(networksProvider);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 60),
+      const Text(
+        'Virtualization',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 20),
       Dropdown(
         label: 'Driver',
+        width: 260,
         value: driver,
         items: drivers,
         onChanged: (value) {
@@ -29,10 +34,11 @@ class VirtualizationSettings extends ConsumerWidget {
           ref.read(driverProvider.notifier).set(value!);
         },
       ),
-      const SizedBox(height: 48),
+      const SizedBox(height: 20),
       if (networks.isNotEmpty)
         Dropdown(
           label: 'Virtual interface',
+          width: 260,
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
           items: Map.fromIterable(networks),
           onChanged: (value) {

@@ -53,10 +53,9 @@ class Dropdown extends StatelessWidget {
       ),
     );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Row(children: [
       if (label != null) ...[
-        Text(label!, style: const TextStyle(fontSize: 16)),
-        const SizedBox(height: 8),
+        Expanded(child: Text(label!, style: const TextStyle(fontSize: 16))),
       ],
       styledDropdown,
     ]);

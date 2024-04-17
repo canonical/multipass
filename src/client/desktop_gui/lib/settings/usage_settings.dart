@@ -1,32 +1,38 @@
 import 'dart:async';
 
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fpdart/fpdart.dart' hide State;
 
 // import 'package:hotkey_manager/hotkey_manager.dart';
 
-import '../dropdown.dart';
 import '../providers.dart';
+import '../switch.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
 final passphraseProvider = daemonSettingProvider(passphraseKey);
-final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
+final privilegedMountsProvider = daemonSettingProvider(privilegedMountsKey);
 
 class UsageSettings extends ConsumerWidget {
   const UsageSettings({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final onAppClose = ref.watch(onAppCloseProvider);
     final primaryName = ref.watch(primaryNameProvider);
     final hasPassphrase = ref.watch(passphraseProvider.select((value) {
       return value.valueOrNull.isNotNullOrBlank;
     }));
+    final privilegedMounts = ref.watch(privilegedMountsProvider.select((value) {
+      return value.valueOrNull?.toBoolOption.toNullable() ?? false;
+    }));
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 60),
+      const Text(
+        'Usage',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 20),
       PrimaryNameField(
         value: primaryName,
         onSave: (value) {
@@ -41,15 +47,13 @@ class UsageSettings extends ConsumerWidget {
         },
       ),
       const SizedBox(height: 20),
-      Dropdown(
-        label: 'On close of application',
-        width: 360,
-        value: onAppClose ?? 'ask',
-        onChanged: (value) => ref.read(onAppCloseProvider.notifier).set(value!),
-        items: const {
-          'ask': 'Ask about running instances',
-          'stop': 'Stop running instances',
-          'nothing': 'Do nothing with running instances',
+      Switch(
+        label: 'Allow privileged mounts',
+        value: privilegedMounts,
+        trailingSwitch: true,
+        size: 30,
+        onChanged: (value) {
+          ref.read(privilegedMountsProvider.notifier).set(value.toString());
         },
       ),
     ]);
@@ -129,17 +133,11 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
   @override
   Widget build(BuildContext context) {
     return SettingField(
-      icon: 'assets/primary_instance.svg',
       label: 'Primary instance name',
       onSave: () => widget.onSave(controller.text),
       onDiscard: () => controller.text = widget.value,
       changed: changed,
-      child: TextField(
-        controller: controller,
-        decoration: const InputDecoration(
-          contentPadding: EdgeInsets.all(12),
-        ),
-      ),
+      child: TextField(controller: controller),
     );
   }
 }
@@ -189,7 +187,6 @@ class _PassphraseFieldState extends State<PassphraseField> {
   @override
   Widget build(BuildContext context) {
     return SettingField(
-      icon: 'assets/passphrase.svg',
       label: 'Authentication passphrase',
       onSave: () => widget.onSave(controller.text),
       onDiscard: () => controller.text = '',
@@ -198,16 +195,12 @@ class _PassphraseFieldState extends State<PassphraseField> {
         controller: controller,
         focusNode: focus,
         obscureText: true,
-        decoration: const InputDecoration(
-          contentPadding: EdgeInsets.all(12),
-        ),
       ),
     );
   }
 }
 
 class SettingField extends StatelessWidget {
-  final String icon;
   final String label;
   final VoidCallback onSave;
   final VoidCallback onDiscard;
@@ -216,7 +209,6 @@ class SettingField extends StatelessWidget {
 
   const SettingField({
     super.key,
-    required this.icon,
     required this.label,
     required this.onSave,
     required this.onDiscard,
@@ -227,16 +219,9 @@ class SettingField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      SvgPicture.asset(icon, width: 25),
+      Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
       const SizedBox(width: 12),
-      SizedBox(
-        width: 300,
-        child: Text(label, style: const TextStyle(fontSize: 16)),
-      ),
-      const SizedBox(width: 12),
-      SizedBox(width: 160, child: child),
       if (changed) ...[
-        const SizedBox(width: 12),
         OutlinedButton(
           onPressed: onSave,
           child: const Icon(Icons.check, color: Color(0xff0E8620)),
@@ -246,7 +231,9 @@ class SettingField extends StatelessWidget {
           onPressed: onDiscard,
           child: const Icon(Icons.close, color: Color(0xffC7162B)),
         ),
+        const SizedBox(width: 12),
       ],
+      SizedBox(width: 260, child: child),
     ]);
   }
 }

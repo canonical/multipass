@@ -2,9 +2,9 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fpdart/fpdart.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../dropdown.dart';
 import '../providers.dart';
 import '../switch.dart';
 
@@ -17,7 +17,7 @@ final updateProvider = Provider.autoDispose((ref) {
   return UpdateInfo();
 });
 
-final privilegedMountsProvider = daemonSettingProvider(privilegedMountsKey);
+final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 
 class GeneralSettings extends ConsumerWidget {
   const GeneralSettings({super.key});
@@ -25,28 +25,35 @@ class GeneralSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider);
-    final privilegedMounts = ref.watch(privilegedMountsProvider.select((value) {
-      return value.valueOrNull?.toBoolOption.toNullable() ?? false;
-    }));
+    final onAppClose = ref.watch(onAppCloseProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 60),
+        const Text(
+          'General',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
         if (update.version.isNotBlank) UpdateAvailable(update),
-        const Text('Multipass', style: TextStyle(fontSize: 16)),
-        const SizedBox(height: 28),
         Switch(
           label: 'Open the Multipass GUI on startup',
           value: false,
+          trailingSwitch: true,
+          size: 30,
           onChanged: (value) {},
         ),
-        const SizedBox(height: 28),
-        Switch(
-          label: 'Allow privileged mounts',
-          value: privilegedMounts,
-          onChanged: (value) {
-            ref.read(privilegedMountsProvider.notifier).set(value.toString());
+        const SizedBox(height: 20),
+        Dropdown(
+          label: 'On close of application',
+          width: 260,
+          value: onAppClose ?? 'ask',
+          onChanged: (value) =>
+              ref.read(onAppCloseProvider.notifier).set(value!),
+          items: const {
+            'ask': 'Ask about running instances',
+            'stop': 'Stop running instances',
+            'nothing': 'Do not stop running instances',
           },
         ),
       ],
@@ -93,7 +100,7 @@ class UpdateAvailable extends StatelessWidget {
           ),
         ]),
       ),
-      const SizedBox(height: 28),
+      const SizedBox(height: 20),
     ]);
   }
 }
