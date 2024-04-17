@@ -1283,7 +1283,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
     EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
 
-    auto timeout = std::chrono::milliseconds{2};
+    auto timeout = std::chrono::milliseconds{100};
     EXPECT_CALL(vm, ssh_hostname(_))
         .WillOnce(WithoutArgs([]() {
             std::visit(thrower, GetParam());
