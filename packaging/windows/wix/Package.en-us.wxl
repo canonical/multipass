@@ -10,7 +10,7 @@ This file contains the declaration of all the localizable strings.
     <String Id="WixHyperV" Value="Microsoft Hyper-V (Recommended)" />
     <String Id="WixVirtualBox" Value="Oracle VM VirtualBox" />
 
-    <String Id="UninstallExeMPDlg_Title" Value="[ProductName] Setup" />
+    <String Id="UninstallExeMPDlg_Title" Value="{\WixUI_Font_Title}[ProductName] Setup" />
     <String Id="UninstallExeMPDlgText" Value="[ProductName] is already installed.&#13;&#13;Do you want to uninstall the old version before installing the new one?" />
     <String Id="UninstallExeMPDlgIcon" Value="WixUI_Ico_Info" />
     <String Id="UninstallExeMPDlgIconTooltip" Value="Information icon" />
