@@ -202,11 +202,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
           vm.instance_directory(),                                                         // storage_dir
           true}                                                                            // captured
 {
-    if (!json.contains("extra_interfaces"))
-    {
-        persist();
-    }
-    if (!json.contains("cloud_init_instance_id"))
+    if (!(json.contains("extra_interfaces") && json.contains("cloud_init_instance_id")))
     {
         persist();
     }
