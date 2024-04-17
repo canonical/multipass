@@ -22,6 +22,7 @@
 
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QString>
 
@@ -70,12 +71,10 @@ protected:
                                                      std::shared_ptr<Snapshot> parent) override;
 
 private:
-    void setup_network_interfaces(const std::string& default_mac_address,
-                                  const std::vector<NetworkInterface>& extra_interfaces);
+    void setup_network_interfaces();
 
-    // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
+    VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;
-    const std::string username;
     std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;

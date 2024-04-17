@@ -37,7 +37,10 @@ public:
                    const QString& vm_name,
                    HyperVVirtualMachine& vm,
                    PowerShell& power_shell);
-    HyperVSnapshot(const QString& filename, HyperVVirtualMachine& vm, const QString& vm_name, PowerShell& power_shell);
+    HyperVSnapshot(const QString& filename,
+                   HyperVVirtualMachine& vm,
+                   const VirtualMachineDescription& desc,
+                   PowerShell& power_shell);
 
 protected:
     void capture_impl() override;
@@ -46,7 +49,7 @@ protected:
 
 private:
     const QString quoted_id;
-    const QString& vm_name;
+    const QString vm_name;
     PowerShell& power_shell;
 };
 

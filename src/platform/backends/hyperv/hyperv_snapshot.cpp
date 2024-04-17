@@ -78,9 +78,12 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
 
 mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
                                    HyperVVirtualMachine& vm,
-                                   const QString& vm_name,
+                                   const VirtualMachineDescription& desc,
                                    PowerShell& power_shell)
-    : BaseSnapshot{filename, vm}, quoted_id{quoted(get_id())}, vm_name{vm_name}, power_shell{power_shell}
+    : BaseSnapshot{filename, vm, desc},
+      quoted_id{quoted(get_id())},
+      vm_name{QString::fromStdString(desc.vm_name)},
+      power_shell{power_shell}
 {
 }
 

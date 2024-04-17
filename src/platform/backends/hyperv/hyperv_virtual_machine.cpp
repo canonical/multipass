@@ -122,8 +122,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                const SSHKeyProvider& key_provider,
                                                const mp::Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+      desc{desc},
       name{QString::fromStdString(desc.vm_name)},
-      username{desc.ssh_username},
       power_shell{std::make_unique<PowerShell>(vm_name)},
       monitor{&monitor}
 {
@@ -158,7 +158,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
                               "Could not disable dynamic memory");
 
-        setup_network_interfaces(desc.default_mac_address, desc.extra_interfaces);
+        setup_network_interfaces();
 
         state = State::off;
     }
@@ -172,17 +172,16 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     delete_automatic_snapshots(power_shell.get(), name); // TODO drop in a couple of releases (going in on v1.13)
 }
 
-void mp::HyperVVirtualMachine::setup_network_interfaces(const std::string& default_mac_address,
-                                                        const std::vector<NetworkInterface>& extra_interfaces)
+void mp::HyperVVirtualMachine::setup_network_interfaces()
 {
     power_shell->easy_run({"Set-VMNetworkAdapter",
                            "-VMName",
                            name,
                            "-StaticMacAddress",
-                           QString::fromStdString('"' + default_mac_address + '"')},
+                           QString::fromStdString('"' + desc.default_mac_address + '"')},
                           "Could not setup default adapter");
 
-    for (const auto& net : extra_interfaces)
+    for (const auto& net : desc.extra_interfaces)
     {
         add_extra_net(*power_shell, name, net);
     }
@@ -297,7 +296,7 @@ std::string mp::HyperVVirtualMachine::ssh_hostname(std::chrono::milliseconds /*t
 
 std::string mp::HyperVVirtualMachine::ssh_username()
 {
-    return username;
+    return desc.ssh_username;
 }
 
 std::string mp::HyperVVirtualMachine::management_ipv4()
@@ -347,6 +346,8 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
 
 void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this backend */, const NetworkInterface& net)
 {
+    desc.extra_interfaces.push_back(net);
+
     return add_extra_net(*power_shell, name, net);
 }
 
@@ -379,5 +380,5 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<HyperVSnapshot>(filename, *this, name, *power_shell);
+    return std::make_shared<HyperVSnapshot>(filename, *this, desc, *power_shell);
 }
