@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Multipass
-Exec=multipass.desktop-gui
+Exec=multipass.gui
 Icon=multipass.gui
 Type=Application
 Terminal=false

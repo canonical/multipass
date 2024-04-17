@@ -34,7 +34,7 @@ Future<void> setupLogger() async {
     ),
     output: MultiOutput([
       ConsoleOutput(),
-      FileOutput(file: File('${logFilePath.path}/multipass_desktop.log')),
+      FileOutput(file: File('${logFilePath.path}/multipass_gui.log')),
     ]),
   );
 

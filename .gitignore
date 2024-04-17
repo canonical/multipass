@@ -13,9 +13,9 @@ stage
 snap/.snapcraft/state
 
 # Flutter build artifacts
-src/client/desktop_gui/lib/generated
-src/client/desktop_gui/build
-src/client/desktop_gui/.dart_tool
-src/client/desktop_gui/flutter*.log
+src/client/gui/lib/generated
+src/client/gui/build
+src/client/gui/.dart_tool
+src/client/gui/flutter*.log
 .flutter-plugins
 .flutter-plugins-dependencies

@@ -24,9 +24,9 @@ install(TARGETS dart_ffi LIBRARY COMPONENT multipass)
 
 if(MULTIPASS_ENABLE_FLUTTER_GUI)
   if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "AMD64")
-    set(DESKTOP_GUI_ARCH x64)
+    set(MULTIPASS_GUI_ARCH x64)
   else()
-    set(DESKTOP_GUI_ARCH arm64)
+    set(MULTIPASS_GUI_ARCH arm64)
   endif()
 
   include("CMakeLists.txt.linux")

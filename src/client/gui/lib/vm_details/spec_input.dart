@@ -65,11 +65,6 @@ class SpecInput extends StatelessWidget {
   }
 }
 
-final memoryRegex = RegExp(
-  r'^\s*\d+(\.\d+)?((K|M|G|T|Ki|Mi|Gi|Ti)?B)?\s*$',
-  caseSensitive: false,
-);
-
 String? memorySizeValidator(String? value) {
   value = double.tryParse(value!) != null ? '${value}GB' : value;
   try {

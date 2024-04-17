@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "desktop_gui" "\0"
+            VALUE "CompanyName", "com.canonical" "\0"
+            VALUE "FileDescription", "Multipass GUI" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "desktop_gui" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "desktop_gui.exe" "\0"
-            VALUE "ProductName", "desktop_gui" "\0"
+            VALUE "InternalName", "multipass_gui" "\0"
+            VALUE "LegalCopyright", "Copyright (C) Canonical, Ltd. All rights reserved." "\0"
+            VALUE "OriginalFilename", "multipass_gui.exe" "\0"
+            VALUE "ProductName", "Multipass GUI" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

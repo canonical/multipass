@@ -14,4 +14,4 @@
 
 add_subdirectory(cli)
 add_subdirectory(common)
-add_subdirectory(desktop_gui)
+add_subdirectory(gui)
