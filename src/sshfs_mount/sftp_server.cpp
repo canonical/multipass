@@ -431,8 +431,12 @@ void mp::SftpServer::run()
             {
                 mpl::log(mpl::Level::error, category,
                          "sshfs in the instance appears to have exited unexpectedly.  Trying to recover.");
-                auto proc = ssh_session.exec(fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
-                auto mount_path = proc.read_std_output();
+
+                std::string mount_path = [this] {
+                    auto proc = ssh_session.exec(fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
+                    return proc.read_std_output();
+                }();
+
                 if (!mount_path.empty())
                 {
                     ssh_session.exec(fmt::format("sudo umount {}", mount_path));

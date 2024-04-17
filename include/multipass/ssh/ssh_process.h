@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 
@@ -32,7 +33,17 @@ class SSHProcess
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
 
-    SSHProcess(ssh_session ssh_session, const std::string& cmd);
+    SSHProcess(ssh_session ssh_session, const std::string& cmd, std::unique_lock<std::mutex> session_lock);
+
+    // just being explicit (unique_ptr member already caused these to be deleted)
+    SSHProcess(const SSHProcess&) = delete;
+    SSHProcess& operator=(const SSHProcess&) = delete;
+
+    // we should be able to move just fine though
+    SSHProcess(SSHProcess&&) = default;
+    SSHProcess& operator=(SSHProcess&&) = default;
+
+    ~SSHProcess() = default;
 
     int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5));
     std::string read_std_output();
@@ -48,8 +59,9 @@ private:
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel();
 
+    std::unique_lock<std::mutex> session_lock;
     ssh_session session;
-    const std::string cmd;
+    std::string cmd;
     ChannelUPtr channel;
     std::optional<int> exit_status;
 

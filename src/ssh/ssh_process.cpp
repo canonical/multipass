@@ -22,13 +22,14 @@
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
 
+#include <scope_guard.hpp>
+
 #include <libssh/callbacks.h>
 
 #include <array>
-#include <sstream>
-
 #include <cerrno>
 #include <cstring>
+#include <sstream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -75,13 +76,22 @@ auto make_channel(ssh_session session, const std::string& cmd)
 }
 } // namespace
 
-mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd)
-    : session{session}, cmd{cmd}, channel{make_channel(session, cmd)}
+mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::unique_lock<std::mutex> session_lock)
+    : session_lock{std::move(session_lock)}, // this is held until the exit code is requested or this is destroyed
+      session{session},
+      cmd{cmd},
+      channel{make_channel(session, cmd)}
 {
+    assert(this->session_lock.owns_lock());
 }
 
 int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
+    auto unlock_guard = sg::make_scope_guard([this]() noexcept {
+        if (session_lock.owns_lock()) // if we timed out on an earlier call, we already unlocked
+            session_lock.unlock();
+    });
+
     exit_status = std::nullopt;
     ExitStatusCallback cb{channel.get(), exit_status};
 
@@ -97,7 +107,8 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     }
 
     if (!exit_status) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-        throw ExitlessSSHProcessException{cmd, rc == SSH_ERROR ? std::strerror(errno) : "timeout"};
+        throw ExitlessSSHProcessException{cmd, rc == SSH_ERROR ? std::strerror(errno) : "timeout"}; /* note that we
+                         release the lock on the session - we assume that the session can be used again nonetheless */
 
     return *exit_status;
 }
