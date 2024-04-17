@@ -374,7 +374,7 @@ TEST_F(TestBaseSnapshot, adoptsInstanceIdFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "cloud_init_instance_id", QJsonValue{new_instance_id.data()});
 
-    const auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm};
+    const auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_cloud_init_instance_id(), new_instance_id);
 }
 
