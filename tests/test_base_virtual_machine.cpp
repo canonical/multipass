@@ -23,7 +23,6 @@
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
 #include "mock_utils.h"
-
 #include "mock_virtual_machine.h"
 #include "temp_dir.h"
 
