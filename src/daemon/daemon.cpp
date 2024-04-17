@@ -320,16 +320,17 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
         }
 
-        reconstructed_records[key] = {num_cores,
-                                      mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
-                                      mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
-                                      default_mac_address,
-                                      MP_JSONUTILS.read_extra_interfaces(record),
-                                      ssh_username,
-                                      static_cast<mp::VirtualMachine::State>(state),
-                                      mounts,
-                                      deleted,
-                                      metadata};
+        reconstructed_records[key] = {
+            num_cores,
+            mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
+            mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
+            default_mac_address,
+            MP_JSONUTILS.read_extra_interfaces(record).value_or(std::vector<mp::NetworkInterface>{}),
+            ssh_username,
+            static_cast<mp::VirtualMachine::State>(state),
+            mounts,
+            deleted,
+            metadata};
     }
     return reconstructed_records;
 }

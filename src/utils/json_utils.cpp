@@ -76,13 +76,12 @@ QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
     return json;
 }
 
-std::vector<mp::NetworkInterface> mp::JsonUtils::read_extra_interfaces(const QJsonObject& record) const
+std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_interfaces(const QJsonObject& record) const
 {
-    // Read the extra networks interfaces, if any.
-    std::vector<mp::NetworkInterface> extra_interfaces;
-
     if (record.contains("extra_interfaces"))
     {
+        std::vector<mp::NetworkInterface> extra_interfaces;
+
         for (QJsonValueRef entry : record["extra_interfaces"].toArray())
         {
             auto id = entry.toObject()["id"].toString().toStdString();
@@ -94,7 +93,9 @@ std::vector<mp::NetworkInterface> mp::JsonUtils::read_extra_interfaces(const QJs
             auto auto_mode = entry.toObject()["auto_mode"].toBool();
             extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
         }
+
+        return extra_interfaces;
     }
 
-    return extra_interfaces;
+    return std::nullopt;
 }

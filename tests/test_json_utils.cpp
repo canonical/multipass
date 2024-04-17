@@ -101,10 +101,13 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
                          mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }
 
-TEST_F(TestJsonUtils, write_and_read_extra_interfaces)
+struct ExtraInterfacesRead : public TestJsonUtils, public WithParamInterface<std::vector<mp::NetworkInterface>>
 {
-    std::vector<mp::NetworkInterface> extra_ifaces{mp::NetworkInterface{"eth1", "52:54:00:00:00:01", true},
-                                                   mp::NetworkInterface{"eth2", "52:54:00:00:00:02", false}};
+};
+
+TEST_P(ExtraInterfacesRead, write_and_read_extra_interfaces)
+{
+    std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
 
     auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
 
@@ -114,6 +117,20 @@ TEST_F(TestJsonUtils, write_and_read_extra_interfaces)
     auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
 
     ASSERT_EQ(read_ifaces, extra_ifaces);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestJsonUtils,
+                         ExtraInterfacesRead,
+                         Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
+                                                                  {"eth2", "52:54:00:00:00:02", false}},
+                                std::vector<mp::NetworkInterface>{}));
+
+TEST_F(TestJsonUtils, gives_nullopt_on_empty_extra_interfaces)
+{
+    QJsonObject doc;
+    doc.insert("some_data", "nothing to see here");
+
+    ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
 }
 
 TEST_F(TestJsonUtils, throws_on_wrong_mac)
