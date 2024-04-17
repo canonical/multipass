@@ -33,7 +33,8 @@ endif()
 
 execute_process(
   COMMAND
-    msbuild -Restore -verbosity:normal /p:Configuration=${CPACK_BUILD_TYPE}
+    msbuild /Restore /verbosity:normal /p:RestorePackagesConfig=true 
+    /p:Configuration=${CPACK_BUILD_TYPE}
     /p:PublishDir=${PRIMING_DIR}
     /p:OutputPath=${CPACK_OUTPUT_FILE_PREFIX}/packages
     /p:BuildVersion=${CPACK_PACKAGE_VERSION}

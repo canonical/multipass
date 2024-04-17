@@ -34,6 +34,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CustomActions\CustomActions.csproj" />
+        <ProjectReference Include="..\custom-actions\custom-actions.vcxproj" />
     </ItemGroup>
 </Project>

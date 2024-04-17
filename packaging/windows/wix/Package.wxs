@@ -13,7 +13,7 @@
             <RegistrySearch Id='WinVersion' Type='raw' Root='HKLM' Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
         </Property>
 
-        <Binary Id="CABinary" SourceFile="$(var.CustomActions.TargetDir)\$(var.CustomActions.TargetName).CA.dll" />
+        <Binary Id="CABinary" SourceFile="custom-actions.dll" />
 
         <FeatureRef Id="Main" />
 

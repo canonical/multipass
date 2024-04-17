@@ -1,0 +1,4 @@
+LIBRARY "custom-actions"
+
+EXPORTS
+    AskRemoveData
