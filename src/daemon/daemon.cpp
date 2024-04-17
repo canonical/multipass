@@ -3432,10 +3432,8 @@ void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
     }
     else
     {
-        int initial_delay_s = 5; // 5 secondes initial delay
-        // int max_delay_ms = 900000; // 15 minutes maximum delay
-        int max_delay_s = 20; // 20 seconds maximum delay
-        int delay = initial_delay_s;
+        const std::chrono::seconds max_delay_s = 20s; // 20 seconds maximum delay
+        std::chrono::seconds delay = 5s;              // 5 secondes initial delay
         while (true)
         {
             try
@@ -3445,10 +3443,11 @@ void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
             }
             catch (const mp::DownloadException& e)
             {
-                mpl::log(mpl::Level::warning,
-                         "daemon",
-                         fmt::format("Download attempt failed: {}, try it again in {} seconds", e.what(), delay));
-                std::this_thread::sleep_for(std::chrono::seconds{delay});
+                mpl::log(
+                    mpl::Level::warning,
+                    "daemon",
+                    fmt::format("Download attempt failed: {}, try it again in {} seconds", e.what(), delay.count()));
+                std::this_thread::sleep_for(delay);
                 delay = std::min(2 * delay, max_delay_s);
             }
         }
@@ -3460,10 +3459,8 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bo
     update_manifests_all_task.wait_ongoing_task_finish();
     if (force_manifest_network_download)
     {
-        update_manifests_all_task.stop_timer();
         mpl::log(mpl::Level::debug, "async task", "fetch manifest from the internet");
         update_manifests_all(true);
-        update_manifests_all_task.start_timer();
     }
 }
 
