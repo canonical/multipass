@@ -349,27 +349,27 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 
-        if (state == State::suspended || mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
-        {
-            mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
-            mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
-        }
-
-        state = State::off;
+        if (state == State::starting)
+            update_shutdown_status = false;
 
         if (vm_process)
         {
             mpl::log(mpl::Level::info, vm_name, "Killing process");
             vm_process->kill();
+            vm_process->wait_for_finished(timeout); // Need to wait for process to die in order to
+                                                    // check for suspend image later
         }
         else
         {
             mpl::log(mpl::Level::info, vm_name, "No process to kill");
+            state = State::off;
         }
-    }
-    else if (state == State::suspended)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+
+        if (state == State::suspended || mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
+        {
+            mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
+            mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
+        }
     }
     else
     {
@@ -383,13 +383,9 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
         }
         else
         {
-            if (state == State::starting)
-                update_shutdown_status = false;
-
-            if (vm_process)
-            {
-                vm_process->kill();
-            }
+            const std::string error_msg{"Cannot stop instance in its current state"};
+            mpl::log(mpl::Level::warning, vm_name, error_msg);
+            throw std::runtime_error(error_msg);
         }
     }
 }
