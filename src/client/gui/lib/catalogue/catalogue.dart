@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,12 +8,13 @@ import '../providers.dart';
 import 'image_card.dart';
 import 'launch_panel.dart';
 
-final imagesProvider = FutureProvider<List<ImageInfo>>((ref) {
-  ref.watch(daemonAvailableProvider);
-  return ref
-      .watch(grpcClientProvider)
-      .find(blueprints: false)
-      .then((r) => sortImages(r.imagesInfo));
+final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
+  return ref.watch(daemonAvailableProvider)
+      ? await ref
+          .watch(grpcClientProvider)
+          .find(blueprints: false)
+          .then((r) => sortImages(r.imagesInfo))
+      : ref.state.valueOrNull ?? await Completer<List<ImageInfo>>().future;
 });
 
 // sorts the images in a more user-friendly way
