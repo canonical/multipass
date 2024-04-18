@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>

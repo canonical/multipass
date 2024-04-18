@@ -18,7 +18,7 @@
 #include "sftp_server.h"
 
 #include <multipass/cli/client_platform.h>
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>

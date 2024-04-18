@@ -24,7 +24,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
