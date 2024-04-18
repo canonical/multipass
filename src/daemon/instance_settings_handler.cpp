@@ -21,15 +21,19 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/logging/log.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
 #include <QStringList>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
+constexpr auto category = "instance settings";
+
 constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
@@ -166,12 +170,18 @@ void update_bridged(const QString& key,
     // This is the user parameter, true or false.
     auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
-    if (!bridged && is_bridged(instance_name))
+    if (is_bridged(instance_name))
     {
-        throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"};
+        if (bridged)
+        {
+            mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
+        }
+        else
+        {
+            throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"};
+        }
     }
-
-    if (bridged)
+    else if (bridged)
     {
         add_interface(instance_name);
     }
