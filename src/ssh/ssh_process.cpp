@@ -128,8 +128,12 @@ void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout)
     }
 
     if (!exit_status) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-        throw ExitlessSSHProcessException{cmd, rc == SSH_ERROR ? std::strerror(errno) : "timeout"}; /* note that we
-                         release the lock on the session - we assume that the session can be used again nonetheless */
+    {
+        if (rc == SSH_ERROR)
+            throw SSHProcessExitError{cmd, std::strerror(errno)};
+        else
+            throw SSHProcessTimeoutException{cmd};
+    }
 }
 
 std::string mp::SSHProcess::read_std_output()

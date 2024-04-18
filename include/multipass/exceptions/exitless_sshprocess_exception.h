@@ -26,13 +26,31 @@
 
 namespace multipass
 {
-class ExitlessSSHProcessException : public SSHException
+class ExitlessSSHProcessException : public SSHException // TODO@no-merge try not to deal with these directly
 {
-public:
+protected:
     ExitlessSSHProcessException(const std::string& command, const std::string& cause)
-        : SSHException(fmt::format("failed to obtain exit status for remote process '{}': {}", command, cause))
+        : SSHException{fmt::format("failed to obtain exit status for remote process '{}': {}", command, cause)}
     {
     }
 };
+
+class SSHProcessTimeoutException : public ExitlessSSHProcessException
+{
+public:
+    SSHProcessTimeoutException(const std::string& command) : ExitlessSSHProcessException{command, "timeout"}
+    {
+    }
+};
+
+class SSHProcessExitError : public ExitlessSSHProcessException
+{
+public:
+    SSHProcessExitError(const std::string& command, const std::string& error)
+        : ExitlessSSHProcessException{command, fmt::format("SSH error: {}", error)}
+    {
+    }
+};
+
 } // namespace multipass
 #endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTION_H
