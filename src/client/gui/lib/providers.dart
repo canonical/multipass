@@ -139,13 +139,14 @@ class DaemonSettingNotifier
         : state.valueOrNull ?? await Completer<String>().future;
   }
 
-  void set(String value) {
+  Future<void> set(String value) async {
     state = AsyncValue.data(value);
-    ref
-        .read(grpcClientProvider)
-        .set(arg, value)
-        .onError((_, __) => Timer(100.milliseconds, ref.invalidateSelf))
-        .ignore();
+    try {
+      await ref.read(grpcClientProvider).set(arg, value);
+    } catch (_) {
+      Timer(100.milliseconds, ref.invalidateSelf);
+      rethrow;
+    }
   }
 
   @override
