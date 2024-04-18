@@ -193,6 +193,6 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 
 ssh_channel mp::SSHProcess::release_channel()
 {
-    auto local_lock = std::move(session_lock); // unlock at the end; callers are on their own to ensure thread safety
+    auto local_lock = std::move(session_lock); // released at the end; callers are on their own to ensure thread safety
     return channel.release();
 }

@@ -43,10 +43,21 @@ public:
     SSHProcess(SSHProcess&&) = default;
     SSHProcess& operator=(SSHProcess&&) = default;
 
-    ~SSHProcess() = default;
+    ~SSHProcess() = default; // releases session lock
+
+    // Attempt to verify process completion within the given timeout. For this to return true, two conditions are
+    // necessary:
+    //     a) the process did indeed finish;
+    //     b) its exit code is read over ssh within the timeout.
+    //
+    // Note, in particular, that a false return does not guarantee that the process is still running. It may be just
+    // that the exit code was not made available to us in a timely manner.
+    //
+    // This method caches the exit code if we find it, but it keeps the SSHSession locked.
     bool exit_recognized(std::chrono::milliseconds timeout = std::chrono::milliseconds(10)); // keeps session lock
 
-    int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5));
+    int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5)); // releases session lock
+
     std::string read_std_output();
     std::string read_std_error();
 
@@ -59,9 +70,9 @@ private:
 
     void read_exit_code(std::chrono::milliseconds timeout);
     std::string read_stream(StreamType type, int timeout = -1);
-    ssh_channel release_channel();
+    ssh_channel release_channel(); // releases the lock on the session; callers are on their own to ensure thread safety
 
-    std::unique_lock<std::mutex> session_lock; // do not attempt to relock, as this is moved from
+    std::unique_lock<std::mutex> session_lock; // do not attempt to re-lock, as this is moved from
     ssh_session session;
     std::string cmd;
     ChannelUPtr channel;
