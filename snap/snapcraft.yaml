@@ -118,7 +118,7 @@ parts:
   multipass:
     plugin: cmake
     build-snaps:
-    - cmake/3.28/stable
+    - cmake
     build-environment:
     - PATH: /snap/bin:$PATH
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
