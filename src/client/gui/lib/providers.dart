@@ -112,11 +112,11 @@ class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
 
   @override
   String build(String arg) {
-    file.parent
+    file.parent.create(recursive: true).then((dir) => dir
         .watch(events: FileSystemEvent.modify)
         .where((event) => event.path == file.path)
         .first
-        .whenComplete(() => Timer(50.milliseconds, ref.invalidateSelf));
+        .whenComplete(() => Timer(50.milliseconds, ref.invalidateSelf)));
     return getSetting(arg);
   }
 
