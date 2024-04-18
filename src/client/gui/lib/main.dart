@@ -82,7 +82,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
         final isCurrent = key == currentKey;
         return Visibility(
           key: Key(key),
-          maintainState: true,
+          maintainState: key != SettingsScreen.sidebarKey,
           visible: isCurrent,
           child: FocusScope(
             autofocus: isCurrent,
