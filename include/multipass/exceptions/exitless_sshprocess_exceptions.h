@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-class ExitlessSSHProcessException : public SSHException // TODO@no-merge try not to deal with these directly
+class ExitlessSSHProcessException : public SSHException
 {
 protected:
     ExitlessSSHProcessException(const std::string& command, const std::string& cause)

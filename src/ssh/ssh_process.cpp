@@ -95,7 +95,7 @@ bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
         read_exit_code(timeout);
         return true;
     }
-    catch (ExitlessSSHProcessException&)
+    catch (SSHProcessTimeoutException&)
     {
         return false;
     }

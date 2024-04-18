@@ -102,9 +102,11 @@ try
         throw mp::SSHFSMissingError();
     }
 }
-catch (const mp::ExitlessSSHProcessException&)
+catch (const mp::ExitlessSSHProcessException& e)
 {
-    mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'multipass-sshfs' in '{}'", name));
+    mpl::log(mpl::Level::warning,
+             category,
+             fmt::format("Could not install 'multipass-sshfs' in '{}': {}", name, e.what()));
     throw mp::SSHFSMissingError();
 }
 } // namespace

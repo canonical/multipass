@@ -199,7 +199,7 @@ void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
         if (sshfs_process.exit_code(250ms) != 0)
             throw std::runtime_error(sshfs_process.read_std_error());
     }
-    catch (const mp::ExitlessSSHProcessException&)
+    catch (const mp::SSHProcessTimeoutException&)
     {
         // Timeout getting exit status; assume sshfs is running in the instance
     }
@@ -422,7 +422,7 @@ void mp::SftpServer::run()
             {
                 status = sshfs_process->exit_code(250ms);
             }
-            catch (const mp::ExitlessSSHProcessException&)
+            catch (const mp::ExitlessSSHProcessException&) // should we limit this to SSHProcessExitError?
             {
                 status = 1;
             }

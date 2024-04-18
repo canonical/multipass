@@ -912,7 +912,7 @@ grpc::Status ssh_reboot(mp::VirtualMachine& vm)
                             fmt::format("Reboot command exited with code {}", e.exit_code()),
                             e.what()};
     }
-    catch (const mp::ExitlessSSHProcessException&)
+    catch (const mp::SSHProcessTimeoutException&)
     {
         // this is the expected path
     }
