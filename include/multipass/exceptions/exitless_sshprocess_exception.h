@@ -22,6 +22,7 @@
 
 #include <fmt/format.h>
 
+#include <chrono>
 #include <string>
 
 namespace multipass
@@ -38,7 +39,8 @@ protected:
 class SSHProcessTimeoutException : public ExitlessSSHProcessException
 {
 public:
-    SSHProcessTimeoutException(const std::string& command) : ExitlessSSHProcessException{command, "timeout"}
+    SSHProcessTimeoutException(const std::string& command, std::chrono::milliseconds timeout)
+        : ExitlessSSHProcessException{command, fmt::format("timed out after {} ms", timeout.count())}
     {
     }
 };

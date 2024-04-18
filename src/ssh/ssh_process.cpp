@@ -132,7 +132,7 @@ void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout)
         if (rc == SSH_ERROR)
             throw SSHProcessExitError{cmd, std::strerror(errno)};
         else
-            throw SSHProcessTimeoutException{cmd};
+            throw SSHProcessTimeoutException{cmd, timeout};
     }
 }
 
