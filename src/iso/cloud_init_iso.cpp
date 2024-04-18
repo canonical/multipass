@@ -697,16 +697,24 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
     }
 }
 
-void mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(
+mp::CloudInitFileOps::CloudInitFileOps(const Singleton<CloudInitFileOps>::PrivatePass& pass) noexcept
+    : Singleton<CloudInitFileOps>::Singleton{pass}
+{
+}
+
+void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_id(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
-    const std::filesystem::path& cloud_init_path)
+    const std::string& new_instance_id,
+    const std::filesystem::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
+
     std::string& meta_data_file_content = iso_file.at("meta-data");
     meta_data_file_content =
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content, new_instance_id));
+
     if (extra_interfaces.empty())
     {
         iso_file.erase("network-config");
@@ -718,4 +726,29 @@ void mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(
             mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
     }
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+}
+
+void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
+                                                             const NetworkInterface& extra_interface,
+                                                             const std::filesystem::path& cloud_init_path) const
+{
+    CloudInitIso iso_file;
+    iso_file.read_from(cloud_init_path);
+    std::string& meta_data_file_content = iso_file.at("meta-data");
+    meta_data_file_content =
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content));
+
+    iso_file["network-config"] = mpu::emit_cloud_config(
+        mpu::add_extra_interface_to_network_config(default_mac_addr, extra_interface, iso_file["network-config"]));
+    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+}
+
+std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const
+{
+    CloudInitIso iso_file;
+    iso_file.read_from(cloud_init_path);
+    const std::string& meta_data_file_content = iso_file.at("meta-data");
+    const auto meta_data_node = YAML::Load(meta_data_file_content);
+
+    return meta_data_node["instance-id"].as<std::string>();
 }

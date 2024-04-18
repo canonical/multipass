@@ -39,6 +39,7 @@ class BaseSnapshot : public Snapshot
 public:
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
+                 const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
@@ -47,6 +48,7 @@ public:
     int get_index() const noexcept override;
     std::string get_name() const override;
     std::string get_comment() const override;
+    std::string get_cloud_init_instance_id() const noexcept override;
     QDateTime get_creation_timestamp() const noexcept override;
     int get_num_cores() const noexcept override;
     MemorySize get_mem_size() const noexcept override;
@@ -82,6 +84,7 @@ private:
     BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc);
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
+                 const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
                  int index,
                  QDateTime&& creation_timestamp,
@@ -106,6 +109,7 @@ private:
     std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
+    const std::string cloud_init_instance_id;              // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QString id;                                      // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -133,6 +137,11 @@ inline std::string multipass::BaseSnapshot::get_comment() const
 {
     const std::unique_lock lock{mutex};
     return comment;
+}
+
+inline std::string multipass::BaseSnapshot::get_cloud_init_instance_id() const noexcept
+{
+    return cloud_init_instance_id;
 }
 
 inline int multipass::BaseSnapshot::get_index() const noexcept

@@ -157,15 +157,37 @@ BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
 {
 }
 
-void BaseVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                              const std::vector<NetworkInterface>& extra_interfaces)
+void BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
+    const std::string& default_mac_addr,
+    const std::vector<NetworkInterface>& extra_interfaces,
+    const std::string& new_instance_id) const
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
         std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
 
-    mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
-                                                                       extra_interfaces,
-                                                                       cloud_init_config_iso_file_path);
+    MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
+                                                                                  extra_interfaces,
+                                                                                  new_instance_id,
+                                                                                  cloud_init_config_iso_file_path);
+}
+
+void BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                                    const NetworkInterface& extra_interface) const
+{
+    const std::filesystem::path cloud_init_config_iso_file_path =
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+
+    MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
+                                                             extra_interface,
+                                                             cloud_init_config_iso_file_path);
+}
+
+std::string BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
+{
+    const std::filesystem::path cloud_init_config_iso_file_path =
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
 }
 
 std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
@@ -380,7 +402,9 @@ std::shared_ptr<const Snapshot> BaseVirtualMachine::take_snapshot(const VMSpecs&
 
     auto rollback_on_failure = make_take_snapshot_rollback(it);
 
-    auto ret = head_snapshot = it->second = make_specific_snapshot(sname, comment, specs, head_snapshot);
+    // get instance id from cloud-init file or lxd cloud init config and pass to make_specific_snapshot
+    auto ret = head_snapshot = it->second =
+        make_specific_snapshot(sname, comment, get_instance_id_from_the_cloud_init(), specs, head_snapshot);
     ret->capture();
 
     ++snapshot_count;
@@ -712,7 +736,9 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
     if (are_extra_interfaces_different)
     {
         // here we can use default_mac_address of the current state because it is an immutable variable.
-        apply_extra_interfaces_to_cloud_init(specs.default_mac_address, snapshot->get_extra_interfaces());
+        apply_extra_interfaces_and_instance_id_to_cloud_init(specs.default_mac_address,
+                                                             snapshot->get_extra_interfaces(),
+                                                             snapshot->get_cloud_init_instance_id());
     }
 
     rollback.dismiss();
@@ -720,6 +746,7 @@ void BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& spec
 
 std::shared_ptr<Snapshot> BaseVirtualMachine::make_specific_snapshot(const std::string& /*snapshot_name*/,
                                                                      const std::string& /*comment*/,
+                                                                     const std::string& /*instance_id*/,
                                                                      const VMSpecs& /*specs*/,
                                                                      std::shared_ptr<Snapshot> /*parent*/)
 {

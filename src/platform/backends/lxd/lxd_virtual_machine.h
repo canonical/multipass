@@ -56,12 +56,21 @@ public:
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
-    void add_network_interface(int index, const NetworkInterface& net) override;
-    void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                              const std::vector<NetworkInterface>& extra_interfaces) override;
+    void add_network_interface(int index,
+                               const std::string& default_mac_addr,
+                               const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 private:
+    void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                    const NetworkInterface& extra_interface) const override;
+    void apply_extra_interfaces_and_instance_id_to_cloud_init(const std::string& default_mac_addr,
+                                                              const std::vector<NetworkInterface>& extra_interfaces,
+                                                              const std::string& new_instance_id) const override
+    {
+        throw NotImplementedOnThisBackendException("apply_extra_interfaces_and_instance_id_to_cloud_init");
+    }
+
     const QString name;
     const std::string username;
     std::optional<int> port;
@@ -73,7 +82,7 @@ private:
     const QString mac_addr;
     const QString storage_pool;
 
-    const QUrl url();
+    const QUrl url() const;
     const QUrl state_url();
     const QUrl network_leases_url();
     void request_state(const QString& new_state);
