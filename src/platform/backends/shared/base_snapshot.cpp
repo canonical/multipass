@@ -181,9 +181,9 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
     : BaseSnapshot{
           json["name"].toString().toStdString(),    // name
           json["comment"].toString().toStdString(), // comment
-          // When it does not contain cloud_init_instance_id, it signifies legacy snapshot who does not have the item
-          // and it needs fill cloud_init_instance_id with the current value, the current value equals to the value
-          // at snapshot time because cloud_init_instance_id has been an immutable variable up to this point.
+          // When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not have the
+          // item and it needs to fill cloud_init_instance_id with the current value. The current value equals to the
+          // value at snapshot time because cloud_init_instance_id has been an immutable variable up to this point.
           json.contains("cloud_init_instance_id")
               ? json["cloud_init_instance_id"].toString().toStdString()
               : MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(
