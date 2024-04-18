@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# This script links the Multipass Desktop GUI bundle into /Applications
+# This script links the Multipass GUI bundle into /Applications
 
-the_app="Multipass Desktop.app"
+the_app="Multipass GUI.app"
 
 bundle_path="${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/${the_app}"
 ln -fsv "${bundle_path}" "${3}Applications/${the_app}"

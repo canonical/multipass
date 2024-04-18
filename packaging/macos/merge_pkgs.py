@@ -45,10 +45,10 @@ with tempfile.TemporaryDirectory() as workdir:
         # need to use system tar for deprecated cpio support
         subprocess.check_call(["/usr/bin/tar", "-xzf", payload, "-C", unpacked])
 
-    desktop_gui_component = "desktop_gui"
+    multipass_gui_component = "multipass_gui"
 
     for path in x86_work.glob("*.pkg/Payload.unpacked/**/*"):
-        if path.is_dir() or desktop_gui_component in str(path.absolute()):
+        if path.is_dir() or multipass_gui_component in str(path.absolute()):
             continue
 
         target_path = target(x86_work, path)
@@ -119,8 +119,8 @@ with tempfile.TemporaryDirectory() as workdir:
                                "--install-location", "/",
                                pkgs / pkg.name])
 
-    # Handle desktop-gui seperately since we need to pass in a component plist
-    pkg = dest_work / f"multipass-{version}-Darwin-{desktop_gui_component}.pkg"
+    # Handle multipass-gui seperately since we need to pass in a component plist
+    pkg = dest_work / f"multipass-{version}-Darwin-{multipass_gui_component}.pkg"
     component_plist = "component.plist"
 
     subprocess.check_call(["pkgbuild", "--analyze", "--root", pkg / "Payload.unpacked",
@@ -129,7 +129,7 @@ with tempfile.TemporaryDirectory() as workdir:
                            "-bool", "false",
                             component_plist])
     subprocess.check_call(["pkgbuild", "--root", pkg / "Payload.unpacked",
-                           "--identifier", f"com.canonical.multipass.{desktop_gui_component}",
+                           "--identifier", f"com.canonical.multipass.{multipass_gui_component}",
                            "--scripts", pkg / "Scripts",
                            "--component-plist", component_plist,
                            "--version", version,

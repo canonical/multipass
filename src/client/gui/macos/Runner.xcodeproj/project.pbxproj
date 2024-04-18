@@ -478,10 +478,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.desktopGui.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.canonical.multipassGui.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/desktop_gui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/desktop_gui";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/multipass_gui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/multipass_gui";
 			};
 			name = Debug;
 		};
@@ -493,10 +493,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.desktopGui.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.canonical.multipassGui.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/desktop_gui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/desktop_gui";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/multipass_gui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/multipass_gui";
 			};
 			name = Release;
 		};
@@ -508,10 +508,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.desktopGui.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.canonical.multipassGui.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/desktop_gui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/desktop_gui";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/multipass_gui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/multipass_gui";
 			};
 			name = Profile;
 		};
