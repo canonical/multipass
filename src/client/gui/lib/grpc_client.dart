@@ -191,10 +191,7 @@ class GrpcClient {
       showBlueprints: blueprints,
     );
     logger.i('Sent ${request.repr}');
-    return _client
-        .find(Stream.value(request))
-        .doOnEach(logGrpc(request))
-        .single;
+    return _client.find(Stream.value(request)).doOnEach(logGrpc(request)).last;
   }
 
   Future<List<NetInterface>> networks() {
@@ -203,7 +200,7 @@ class GrpcClient {
     return _client
         .networks(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .single
+        .last
         .then((r) => r.interfaces);
   }
 
@@ -213,7 +210,7 @@ class GrpcClient {
     return _client
         .version(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .single
+        .last
         .then((reply) => reply.version);
   }
 
@@ -223,7 +220,7 @@ class GrpcClient {
     return _client
         .version(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .single
+        .last
         .then((reply) => reply.updateInfo);
   }
 
@@ -233,14 +230,17 @@ class GrpcClient {
     return _client
         .get(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .single
+        .last
         .then((reply) => reply.value);
   }
 
   Future<void> set(String key, String value) {
     final request = SetRequest(key: key, val: value);
     logger.i('Sent ${request.repr}');
-    return _client.set(Stream.value(request)).doOnEach(logGrpc(request)).single;
+    return _client
+        .set(Stream.value(request))
+        .doOnEach(logGrpc(request))
+        .firstOrNull;
   }
 
   Future<SSHInfo?> sshInfo(String name) {
