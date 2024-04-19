@@ -97,14 +97,15 @@ try
     if (proc.exit_code(timeout) != 0)
     {
         auto error_msg = proc.read_std_error();
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::error,
+                 category,
                  fmt::format("Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg)));
         throw mp::SSHFSMissingError();
     }
 }
 catch (const mp::ExitlessSSHProcessException& e)
 {
-    mpl::log(mpl::Level::warning,
+    mpl::log(mpl::Level::error,
              category,
              fmt::format("Could not install 'multipass-sshfs' in '{}': {}", name, e.what()));
     throw mp::SSHFSMissingError();
