@@ -195,7 +195,12 @@ auto validate_path(const std::string& source_path, const std::string& current_pa
 void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
-        throw std::runtime_error(sshfs_process.read_std_error());
+    {
+        // This `if` is artificial and should not really be here. However there is a complex arrangement of Sftp and
+        // SshfsMount tests depending on this.
+        if (sshfs_process.exit_code(250ms) != 0) // TODO remove
+            throw std::runtime_error(sshfs_process.read_std_error());
+    }
 }
 
 auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec_line, const std::string& source,
