@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 
@@ -107,6 +108,7 @@ class PrimaryNameField extends StatefulWidget {
 
 class _PrimaryNameFieldState extends State<PrimaryNameField> {
   final controller = TextEditingController();
+  final formKey = GlobalKey<FormFieldState<String>>();
   var changed = false;
 
   @override
@@ -134,10 +136,31 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
   Widget build(BuildContext context) {
     return SettingField(
       label: 'Primary instance name',
-      onSave: () => widget.onSave(controller.text),
-      onDiscard: () => controller.text = widget.value,
+      onSave: () {
+        if (formKey.currentState!.validate()) widget.onSave(controller.text);
+      },
+      onDiscard: () {
+        controller.text = widget.value;
+        formKey.currentState!.validate();
+      },
       changed: changed,
-      child: TextField(controller: controller),
+      child: TextFormField(
+        key: formKey,
+        controller: controller,
+        validator: (value) {
+          value ??= '';
+          if (value.isEmpty) return null;
+          if (RegExp(r'^[^A-Za-z]').hasMatch(value)) {
+            return 'Name must start with a letter';
+          }
+          if (value.length < 2) return 'Name must be at least 2 characters';
+          if (value.endsWith('-')) return 'Name must end in digit or letter';
+          return null;
+        },
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp('[-A-Za-z0-9]'))
+        ],
+      ),
     );
   }
 }
@@ -218,7 +241,7 @@ class SettingField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
       const SizedBox(width: 12),
       if (changed) ...[
