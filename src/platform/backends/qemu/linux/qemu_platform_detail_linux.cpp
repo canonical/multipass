@@ -216,13 +216,20 @@ std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
 
     for (const auto& ifs_info : platform_ifs_info)
     {
-        auto& info = ifs_info.second;
+        const auto& info = ifs_info.second;
         const auto& type = info.type;
 
-        // This is not a mistake: if the type is ethernet, we set the needs_authorization flag.
-        if (type == "bridge" || (type == "ethernet" && (info.needs_authorization = true)))
+        if (type == "bridge" || type == "ethernet")
         {
             networks.push_back(info);
+        }
+    }
+
+    for (auto& net : networks)
+    {
+        if (net.type == "ethernet")
+        {
+            net.needs_authorization = (find_bridge_with(networks, net.id) == networks.cend());
         }
     }
 
@@ -233,6 +240,7 @@ std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::QemuPlatformDetail::fi
     const std::vector<mp::NetworkInterfaceInfo>& networks,
     const std::string& member_network) const
 {
+    // TODO
     return networks.cend();
 }
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
