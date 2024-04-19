@@ -18,6 +18,7 @@
 #include "common.h"
 #include "dummy_ssh_key_provider.h"
 #include "file_operations.h"
+#include "mock_cloud_init_file_ops.h"
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
@@ -82,6 +83,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 make_specific_snapshot,
                 (const std::string& snapshot_name,
                  const std::string& comment,
+                 const std::string& instance_id,
                  const mp::VMSpecs& specs,
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
@@ -206,8 +208,8 @@ struct BaseVM : public Test
 {
     void mock_snapshotting()
     {
-        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _))
-            .WillRepeatedly(WithArgs<0, 3>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
+        EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _))
+            .WillRepeatedly(WithArgs<0, 4>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
                 auto ret = std::make_shared<NiceMock<mpt::MockSnapshot>>();
                 EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
                 EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
@@ -252,7 +254,8 @@ struct BaseVM : public Test
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
-
+    mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
     static constexpr bool on_windows =
 #ifdef MULTIPASS_PLATFORM_WINDOWS
         true;
@@ -298,7 +301,7 @@ TEST_F(BaseVM, add_network_interface_throws)
 {
     StubBaseVirtualMachine base_vm(St::off);
 
-    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, {"eth1", "52:54:00:00:00:00", true}),
+    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, "", {"eth1", "52:54:00:00:00:00", true}),
                          mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("networks")));
 }
@@ -378,7 +381,7 @@ TEST_F(BaseVM, takesSnapshots)
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, capture).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
 
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -397,7 +400,7 @@ TEST_F(BaseVM, deletesSnapshots)
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, erase).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
     vm.delete_snapshot("s1");
 
@@ -410,7 +413,7 @@ TEST_F(BaseVM, countsCurrentSnapshots)
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillRepeatedly(Return(snapshot));
 
     vm.take_snapshot(specs, "s1", "");
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -436,7 +439,7 @@ TEST_F(BaseVM, countsTotalSnapshots)
     EXPECT_EQ(vm.get_num_snapshots(), 0);
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillRepeatedly(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillRepeatedly(Return(snapshot));
 
     vm.take_snapshot(specs, "s1", "");
     vm.take_snapshot(specs, "s2", "");
@@ -663,7 +666,7 @@ TEST_F(BaseVM, renamesSnapshot)
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name()).WillRepeatedly(ReturnPointee(&current_name));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
 
     vm.take_snapshot({}, old_name, "as ;lklkh afa");
 
@@ -800,8 +803,10 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
 
     // set the behavior of get_extra_interfaces to cause the difference to the new spece extra interfaces
     EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
-    // Expect to getinto the if (is_extra_interfaces_different) branch
-    EXPECT_CALL(vm, apply_extra_interfaces_to_cloud_init).Times(1);
+
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                update_cloud_init_with_new_extra_interfaces_and_new_id(_, _, _, _))
+        .Times(1);
 
     vm.restore_snapshot(snapshot_name, new_specs);
     EXPECT_EQ(original_specs, new_specs);
@@ -1011,7 +1016,7 @@ TEST_F(BaseVM, takeSnapshotRevertsToNullHeadOnFirstFailure)
 {
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, capture).WillOnce(Throw(std::runtime_error{"intentional"}));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot)).RetiresOnSaturation();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot)).RetiresOnSaturation();
 
     mp::VMSpecs specs{};
     EXPECT_ANY_THROW(vm.take_snapshot(specs, "", ""));
@@ -1043,7 +1048,7 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
         .WillOnce(Throw(std::runtime_error{"intentional"})) // causes persisting to break, after successful capture
         .RetiresOnSaturation();
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(failing_snapshot)).RetiresOnSaturation();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(failing_snapshot)).RetiresOnSaturation();
 
     mp::VMSpecs specs{};
     EXPECT_ANY_THROW(vm.take_snapshot(specs, attempted_name, ""));
@@ -1060,7 +1065,7 @@ TEST_F(BaseVM, renameFailureIsReverted)
     std::string attempted_name = "after";
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name()).WillRepeatedly(Return(current_name));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
 
     vm.take_snapshot({}, current_name, "");
 
@@ -1221,16 +1226,6 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
 
     EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
-}
-
-TEST(BaseVMStub, addExtraInterfacesToCloudInit)
-{
-    StubBaseVirtualMachine base_vm(mp::VirtualMachine::State::off);
-    const std::string default_mac_addr = "52:54:00:56:78:90";
-    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true},
-                                                                {"id", "52:54:00:56:78:92", true}};
-    // use internal instance dir, in this unit test case, it will not find the cloud-init file, so it should throw
-    EXPECT_THROW(base_vm.apply_extra_interfaces_to_cloud_init(default_mac_addr, extra_interfaces), std::runtime_error);
 }
 
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)

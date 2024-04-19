@@ -16,8 +16,8 @@
  */
 
 #include "common.h"
+#include "mock_file_ops.h"
 #include "temp_dir.h"
-#include "tests/mock_file_ops.h"
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/network_interface.h>
@@ -372,13 +372,14 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
-    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
-                                                                                       extra_interfaces,
-                                                                                       iso_path.toStdString()));
+    EXPECT_NO_THROW(
+        MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
+                                                                                      extra_interfaces,
+                                                                                      "vm2",
+                                                                                      iso_path.toStdString()));
 
-    // extra new line due to emit_cloud_config appending /n
     constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
-instance-id: vm1_e
+instance-id: vm2
 local-hostname: vm1
 cloud-name: multipass
 )";
@@ -413,10 +414,32 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
-    EXPECT_NO_THROW(mp::cloudInitIsoUtils::update_cloud_init_with_new_extra_interfaces(default_mac_addr,
-                                                                                       empty_extra_interfaces,
-                                                                                       iso_path.toStdString()));
+    EXPECT_NO_THROW(
+        MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
+                                                                                      empty_extra_interfaces,
+                                                                                      std::string(),
+                                                                                      iso_path.toStdString()));
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_FALSE(new_iso.contains("network-config"));
+}
+
+TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.write_to(iso_path);
+
+    const mp::NetworkInterface dummy_extra_interface{};
+    EXPECT_NO_THROW(
+        MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init("", dummy_extra_interface, iso_path.toStdString()));
+}
+
+TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.write_to(iso_path);
+
+    EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()), "vm1");
 }

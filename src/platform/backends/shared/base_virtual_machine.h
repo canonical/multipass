@@ -54,7 +54,9 @@ public:
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
     std::vector<std::string> get_all_ipv4() override;
-    void add_network_interface(int index, const NetworkInterface& net) override
+    void add_network_interface(int index,
+                               const std::string& default_mac_addr,
+                               const NetworkInterface& extra_interface) override
     {
         throw NotImplementedOnThisBackendException("networks");
     }
@@ -62,8 +64,6 @@ public:
     {
         throw NotImplementedOnThisBackendException("native mounts");
     };
-    void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                              const std::vector<NetworkInterface>& extra_interfaces) override;
 
     SnapshotVista view_snapshots() const override;
     int get_num_snapshots() const override;
@@ -90,10 +90,19 @@ protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                              const std::string& comment,
+                                                             const std::string& instance_id,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
+
+    virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                            const NetworkInterface& extra_interface) const;
+    virtual void apply_extra_interfaces_and_instance_id_to_cloud_init(
+        const std::string& default_mac_addr,
+        const std::vector<NetworkInterface>& extra_interfaces,
+        const std::string& new_instance_id) const;
+    virtual std::string get_instance_id_from_the_cloud_init() const;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;

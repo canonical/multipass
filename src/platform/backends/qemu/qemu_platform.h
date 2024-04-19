@@ -58,7 +58,7 @@ public:
     {
         throw NotImplementedOnThisBackendException("networks");
     };
-    virtual void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net) = 0;
+    virtual void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& extra_interface) = 0;
 
 protected:
     explicit QemuPlatform() = default;

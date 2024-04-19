@@ -391,7 +391,7 @@ std::string mp::LXDVirtualMachine::ipv6()
     return {};
 }
 
-const QUrl mp::LXDVirtualMachine::url()
+const QUrl mp::LXDVirtualMachine::url() const
 {
     return QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name);
 }
@@ -472,40 +472,21 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
     lxd_request(manager, "PATCH", url(), patch_json);
 }
 
-void mp::LXDVirtualMachine::add_network_interface(int index, const mp::NetworkInterface& net)
+void mp::LXDVirtualMachine::add_network_interface(int index,
+                                                  const std::string& default_mac_addr,
+                                                  const mp::NetworkInterface& extra_interface)
 {
     assert(manager);
 
     auto net_name = QStringLiteral("eth%1").arg(index + 1);
     auto net_config = create_bridged_interface_json(net_name,
-                                                    QString::fromStdString(net.id),
-                                                    QString::fromStdString(net.mac_address));
+                                                    QString::fromStdString(extra_interface.id),
+                                                    QString::fromStdString(extra_interface.mac_address));
 
     QJsonObject patch_json{{"devices", QJsonObject{{net_name, net_config}}}};
 
     lxd_request(manager, "PATCH", url(), patch_json);
-}
-
-void mp::LXDVirtualMachine::apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                                                 const std::vector<NetworkInterface>& extra_interfaces)
-{
-    const QJsonObject instance_info = lxd_request(manager, "GET", url());
-    QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
-    QJsonObject config_section = instance_info_metadata["config"].toObject();
-
-    QJsonValueRef meta_data = config_section["user.meta-data"];
-    assert(!meta_data.isNull());
-
-    meta_data = QString::fromStdString(
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data.toString().toStdString())));
-
-    config_section["user.network-config"] = QString::fromStdString(
-        mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces)));
-
-    instance_info_metadata["config"] = config_section;
-
-    const QJsonObject json_reply = lxd_request(manager, "PUT", url(), instance_info_metadata);
-    lxd_wait(manager, base_url, json_reply, timeout_milliseconds);
+    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
 std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handler(const std::string& target,
@@ -517,4 +498,29 @@ std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handl
     }
 
     return std::make_unique<LXDMountHandler>(manager, this, &key_provider, target, mount);
+}
+
+void mp::LXDVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
+                                                                       const NetworkInterface& extra_interface) const
+{
+    const QJsonObject instance_info = lxd_request(manager, "GET", url());
+    QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
+    QJsonObject config_section = instance_info_metadata["config"].toObject();
+
+    QJsonValueRef meta_data = config_section["user.meta-data"];
+    assert(!meta_data.isNull());
+
+    meta_data = QString::fromStdString(
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data.toString().toStdString())));
+
+    QJsonValueRef network_config_data = config_section["user.network-config"];
+    network_config_data = QString::fromStdString(mpu::emit_cloud_config(
+        mpu::add_extra_interface_to_network_config(default_mac_addr,
+                                                   extra_interface,
+                                                   network_config_data.toString().toStdString())));
+
+    instance_info_metadata["config"] = config_section;
+
+    const QJsonObject json_reply = lxd_request(manager, "PUT", url(), instance_info_metadata);
+    lxd_wait(manager, base_url, json_reply, timeout_milliseconds);
 }

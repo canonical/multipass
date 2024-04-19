@@ -2256,8 +2256,7 @@ TEST_F(Daemon, add_bridged_interface_works)
     std::vector<mp::NetworkInterfaceInfo> net_info{{"eth8", "Ethernet", "A network adapter", {}, false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
-    EXPECT_CALL(*instance_ptr, add_network_interface(0, _)).Times(1);
-    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(1);
+    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _)).Times(1);
 
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
@@ -2277,8 +2276,7 @@ TEST_F(Daemon, add_bridged_interface_throws_if_backend_throws)
     std::vector<mp::NetworkInterfaceInfo> net_info{{"eth8", "Ethernet", "A network adapter", {}, false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
-    EXPECT_CALL(*instance_ptr, add_network_interface(0, _)).WillOnce(Throw(std::runtime_error("something bad")));
-    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _)).WillOnce(Throw(std::runtime_error("something bad")));
 
     std::string msg{"Cannot update instance settings; instance: " + instance_name + "; reason: Failure to bridge eth8"};
     MP_EXPECT_THROW_THAT(daemon.test_add_bridged_interface(instance_name, instance_ptr),
@@ -2297,8 +2295,7 @@ TEST_F(Daemon, add_bridged_interface_throws_on_bad_bridged_network_setting)
     std::vector<mp::NetworkInterfaceInfo> net_info{{"eth9", "Ethernet", "An invalid network adapter", {}, false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(0);
-    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
 
     std::string msg{"Invalid network 'eth8' set as bridged interface, use `multipass set local.bridged-network=<name>` "
                     "to correct. See `multipass networks` for valid names."};
@@ -2318,8 +2315,7 @@ TEST_F(Daemon, add_bridged_interface_throws_if_needs_authorization)
     std::vector<mp::NetworkInterfaceInfo> net_info{{"eth8", "Ethernet", "A network adapter", {}, true}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _)).Times(0);
-    EXPECT_CALL(*instance_ptr, apply_extra_interfaces_to_cloud_init(_, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
 
     std::string msg{
         "Cannot update instance settings; instance: glass-elevator; reason: Need user authorization to bridge eth8"};
