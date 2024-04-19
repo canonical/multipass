@@ -210,17 +210,20 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 
 std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
 {
-    auto platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
+    const auto& platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
 
     std::vector<NetworkInterfaceInfo> networks;
 
     for (const auto& ifs_info : platform_ifs_info)
     {
-        const auto& info = ifs_info.second;
+        auto& info = ifs_info.second;
         const auto& type = info.type;
 
-        if (type == "ethernet" || type == "bridge")
+        // This is not a mistake: if the type is ethernet, we set the needs_authorization flag.
+        if (type == "bridge" || (type == "ethernet" && (info.needs_authorization = true)))
+        {
             networks.push_back(info);
+        }
     }
 
     return networks;
