@@ -49,7 +49,6 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
-#include <QKeySequence>
 #include <QOperatingSystemVersion>
 #include <QRegularExpression>
 #include <QString>
@@ -71,25 +70,7 @@ namespace mu = multipass::utils;
 
 namespace
 {
-constexpr auto application_id = "com.canonical.multipass";
-constexpr auto autostart_filename = "com.canonical.multipass.gui.autostart.plist";
-constexpr auto autostart_link_subdir = "Library/LaunchAgents";
 constexpr auto category = "osx platform";
-
-QString interpret_macos_hotkey(QString val)
-{
-    static const auto key_mapping = std::vector<std::pair<std::vector<QString>, QString>>{
-        {{"meta", "option", "opt"}, "alt"}, // qt does not understand "opt"
-        {{"ctrl", "control"}, "meta"},      // qt takes "meta" to mean ctrl
-        {{"cmd", "command"}, "ctrl"},       // qt takes "ctrl" to mean cmd
-    };                                      // Notice the order matters!
-
-    for (const auto& [before_keys, after_key] : key_mapping)
-        for (const auto& before_key : before_keys)
-            val.replace(before_key, after_key, Qt::CaseInsensitive);
-
-    return mp::platform::interpret_hotkey(val);
-}
 
 QString get_networksetup_output()
 {
@@ -287,9 +268,6 @@ auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
-    if (key == hotkey_key)
-        return interpret_macos_hotkey(val);
-
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingException(key, val, "Setting unavailable on macOS");
 }
@@ -297,18 +275,6 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
 void mp::platform::sync_winterm_profiles()
 {
     // NOOP on macOS
-}
-
-QString mp::platform::autostart_test_data()
-{
-    return autostart_filename;
-}
-
-void mp::platform::setup_gui_autostart_prerequisites()
-{
-    const auto link_dir = QDir{QDir::home().absoluteFilePath(autostart_link_subdir)};
-    const auto autostart_subdir = QDir{application_id}.filePath("Resources");
-    mu::link_autostart_file(link_dir, autostart_subdir, autostart_filename);
 }
 
 std::string mp::platform::default_server_address()

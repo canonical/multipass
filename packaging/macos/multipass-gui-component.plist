@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>BundleHasStrictIdentifier</key>
+		<true/>
+		<key>BundleIsRelocatable</key>
+		<false/>
+		<key>BundleIsVersionChecked</key>
+		<true/>
+		<key>BundleOverwriteAction</key>
+		<string>upgrade</string>
+		<key>ChildBundles</key>
+		<array>
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/FlutterMacOS.framework</string>
+			</dict>
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/App.framework</string>
+			</dict>
+            <!--
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/flutter_pty.framework</string>
+			</dict>
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/shared_preferences_foundation.framework</string>
+			</dict>
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/window_manager.framework</string>
+			</dict>
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/screen_retriever.framework</string>
+			</dict>
+			<dict>
+				<key>BundleOverwriteAction</key>
+				<string></string>
+				<key>RootRelativeBundlePath</key>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/url_launcher_macos.framework</string>
+			</dict>
+            -->
+		</array>
+		<key>RootRelativeBundlePath</key>
+		<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app</string>
+	</dict>
+</array>
+</plist>

@@ -12,7 +12,7 @@ set -euo pipefail
 
 SSL_PATH="$(brew --prefix openssl@1.1)"
 SSL_LIBS="ssl crypto"
-BINARIES="bin/multipass bin/multipassd bin/multipass.gui.app/Contents/MacOS/multipass.gui bin/sshfs_server lib/libssh.dylib"
+BINARIES="bin/multipass bin/multipassd bin/sshfs_server lib/libssh.dylib lib/libdart_ffi.dylib"
 
 if [ $# -ne 1 ]; then
     echo "Argument required"

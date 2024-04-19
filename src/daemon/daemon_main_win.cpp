@@ -275,10 +275,6 @@ void create_client_cert_if_necessary()
         mp::SSLCertProvider cert_provider{client_cert_dir_path};
 
         cert_store.add_cert(cert_provider.PEM_certificate());
-
-        const std::vector<QString> cert_dirs{data_location + mp::gui_client_cert_dir,
-                                             data_location + mp::cli_client_cert_dir};
-        mp::utils::remove_directories(cert_dirs);
     }
 }
 

@@ -17,8 +17,7 @@ add_library(client_platform STATIC
   client_platform_windows.cpp)
 elseif(APPLE)
 add_library(client_platform STATIC
-  client_platform.cpp
-  client_platform_osx.cpp)
+  client_platform.cpp)
 else()
 add_library(client_platform STATIC
   client_platform.cpp)
