@@ -1,8 +1,10 @@
 import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../providers.dart';
 import 'terminal.dart';
 
 class Tab extends StatelessWidget {
@@ -81,33 +83,33 @@ class Tab extends StatelessWidget {
   }
 }
 
-class TerminalTabs extends StatefulWidget {
+class TerminalTabs extends ConsumerStatefulWidget {
   final String name;
 
   const TerminalTabs(this.name, {super.key});
 
   @override
-  State<TerminalTabs> createState() => _TerminalTabsState();
+  ConsumerState<TerminalTabs> createState() => _TerminalTabsState();
 }
 
-class _TerminalTabsState extends State<TerminalTabs> {
+class _TerminalTabsState extends ConsumerState<TerminalTabs> {
   var _currentIndex = 0;
 
-  get currentIndex => _currentIndex;
+  int get currentIndex => _currentIndex;
 
-  set currentIndex(value) {
-    final (_, key) = shells[value];
+  set currentIndex(int value) {
+    final (_, key, __) = shells[value];
     FocusManager.instance.primaryFocus?.unfocus();
     key.currentState?.focusNode.requestFocus();
     _currentIndex = value;
   }
 
-  final shells = [(1, GlobalKey<VmTerminalState>())];
+  final shells = [(1, GlobalKey<VmTerminalState>(), false)];
 
   @override
   Widget build(BuildContext context) {
     final tabs = shells.indexed.map((e) {
-      final (orderIndex, (shellId, _)) = e;
+      final (orderIndex, (shellId, _, __)) = e;
       return ReorderableDragStartListener(
         key: ValueKey(shellId),
         index: orderIndex,
@@ -116,10 +118,10 @@ class _TerminalTabsState extends State<TerminalTabs> {
           selected: orderIndex == currentIndex,
           onTap: () => setState(() => currentIndex = orderIndex),
           onClose: () {
-            if (shells.length == 1) return;
             setState(() {
               shells.removeAt(orderIndex);
               if (orderIndex < currentIndex) currentIndex -= 1;
+              if (shells.isEmpty) shells.add((1, GlobalKey(), false));
               currentIndex = currentIndex.clamp(0, shells.length - 1);
             });
           },
@@ -128,8 +130,8 @@ class _TerminalTabsState extends State<TerminalTabs> {
     });
 
     final terminals = shells.map((e) {
-      final (_, terminalKey) = e;
-      return VmTerminal(widget.name, key: terminalKey);
+      final (_, terminalKey, running) = e;
+      return VmTerminal(widget.name, key: terminalKey, running: running);
     });
 
     final addShellButton = Material(
@@ -141,7 +143,10 @@ class _TerminalTabsState extends State<TerminalTabs> {
         onPressed: () => setState(() {
           final shellIds = shells.map((e) => e.$1).toSet();
           final newShellId = 1.to(1000).whereNot(shellIds.contains).first;
-          shells.add((newShellId, GlobalKey()));
+          final running = ref.read(vmInfoProvider(widget.name).select((info) {
+            return info.instanceStatus.status == Status.RUNNING;
+          }));
+          shells.add((newShellId, GlobalKey(), running));
           currentIndex = shells.length - 1;
         }),
       ),
