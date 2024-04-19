@@ -40,11 +40,11 @@ template <typename T>
 class ExitStatusCallback
 {
 public:
-    ExitStatusCallback(ssh_channel channel, T& exit_status) : channel{channel}
+    ExitStatusCallback(ssh_channel channel, T& result_holder) : channel{channel}
     {
         ssh_callbacks_init(&cb);
         cb.channel_exit_status_function = channel_exit_status_cb;
-        cb.userdata = &exit_status;
+        cb.userdata = &result_holder;
         ssh_add_channel_callbacks(channel, &cb);
     }
     ~ExitStatusCallback()
