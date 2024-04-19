@@ -1165,6 +1165,7 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* co
         entry->set_os(info.os.toStdString());
         entry->set_release(info.release_title.toStdString());
         entry->set_version(info.version.toStdString());
+        entry->set_codename(info.release_codename.toStdString());
     }
 }
 
@@ -3559,6 +3560,11 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
 
+    const auto created_time = QFileInfo{vm.instance_directory().path()}.birthTime();
+    auto timestamp = instance_info->mutable_creation_timestamp();
+    timestamp->set_seconds(created_time.toSecsSinceEpoch());
+    timestamp->set_nanos(created_time.time().msec() * 1'000'000);
+
     if (!no_runtime_info && MP_UTILS.is_running(present_state))
     {
         instance_info->set_load(vm.ssh_exec("cat /proc/loadavg | cut -d ' ' -f1-3"));
@@ -3582,6 +3588,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
         auto current_release = vm.ssh_exec("cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
         instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
+
+        instance_info->set_cpu_times(vm.ssh_exec("head -n1 /proc/stat"));
+        instance_info->set_uptime(vm.ssh_exec("uptime -p | tail -c+4"));
     }
 }
 

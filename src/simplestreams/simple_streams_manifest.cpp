@@ -123,6 +123,7 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
 
         const auto release = product["release"].toString();
         const auto release_title = product["release_title"].toString();
+        const auto release_codename = product["release_codename"].toString();
         const auto supported = product["supported"].toBool() || product_aliases.contains("devel");
 
         const auto versions = product["versions"].toObject();
@@ -177,8 +178,18 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
 
             // Aliases always alias to the latest version
             const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
-            products.push_back({aliases, "Ubuntu", release, release_title, supported, image_location, sha256, host_url,
-                                version_string, size, true});
+            products.push_back({aliases,
+                                "Ubuntu",
+                                release,
+                                release_title,
+                                release_codename,
+                                supported,
+                                image_location,
+                                sha256,
+                                host_url,
+                                version_string,
+                                size,
+                                true});
         }
     }
 

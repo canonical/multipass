@@ -536,6 +536,22 @@ TEST_F(TestInstanceSettingsHandler, setAddsInterface)
     EXPECT_TRUE(mpu::valid_mac_address(specs[target_instance_name].extra_interfaces[1].mac_address));
 }
 
+TEST_F(TestInstanceSettingsHandler, setDoesNotAddTwoInterfaces)
+{
+    constexpr auto target_instance_name = "vitico";
+    specs.insert({{"viticus", {}}, {"super", {}}, {target_instance_name, {}}});
+    specs[target_instance_name].extra_interfaces = {{"br-eth8", "52:54:00:45:67:90", true}};
+
+    mock_vm(target_instance_name); // TODO: make this an expectation.
+
+    auto got = make_handler().get(make_key(target_instance_name, "bridged"));
+    EXPECT_EQ(got, "true");
+
+    make_handler().set(make_key(target_instance_name, "bridged"), "true");
+
+    EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 1u);
+}
+
 using VMSt = mp::VirtualMachine::State;
 using Property = const char*;
 using PropertyAndState = std::tuple<Property, VMSt>; // no subliminal political msg intended :)

@@ -12,92 +12,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
+add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
 
-add_executable(multipass_gui
-  argparser.cpp
-  client_gui.cpp
-  main.cpp
-  gui_cmd.cpp
-  resources/resources.qrc)
-
-set_target_properties(multipass_gui
-  PROPERTIES
-  OUTPUT_NAME multipass.gui)
-
-target_link_libraries(multipass_gui
+target_link_libraries(dart_ffi
+  petname
   client_common
   client_platform
-  fmt
-  formatter
-  rpc
-  settings
-  qhotkey
-  Qt6::Core
-  Qt6::Network
-  Qt6::Widgets)
+)
 
-install(TARGETS multipass_gui
-  DESTINATION bin
-  COMPONENT multipass_gui)
+install(TARGETS dart_ffi LIBRARY COMPONENT multipass)
 
-if(DEFINED ENV{QT_PLUGIN_PATH})
-  cmake_path(SET QT_PLATFORM_PLUGIN_PATH $ENV{QT_PLUGIN_PATH}/platforms)
-else()
-  cmake_path(SET QT_PLATFORM_PLUGIN_PATH ${PACKAGE_PREFIX_DIR}/plugins/platforms)
-endif()
+if(MULTIPASS_ENABLE_FLUTTER_GUI)
+  if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "AMD64")
+    set(MULTIPASS_GUI_ARCH x64)
+  else()
+    set(MULTIPASS_GUI_ARCH arm64)
+  endif()
 
-if(APPLE)
-  # TODO: Convert this all into a proper Mac Application Bundle
-
-  set_target_properties( multipass_gui PROPERTIES
-    MACOSX_BUNDLE TRUE
-    INSTALL_RPATH "@executable_path/../../../../lib")
-
-  # Copy the cocoa platform plugin
-  file(COPY ${QT_PLATFORM_PLUGIN_PATH}/libqcocoa.dylib
-    DESTINATION ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms)
-
-  install(FILES ${CMAKE_BINARY_DIR}/bin/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib
-    DESTINATION bin/multipass.gui.app/Contents/plugins/platforms
-    COMPONENT multipass_gui)
-
-  # Copy any framework depenencies into the install directory for packaging
-  install(CODE "
-    include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/MacOS/multipass.gui\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
-    " COMPONENT multipass_gui)
-
-  install(CODE "
-    include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
-    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass.gui.app/Contents/plugins/platforms/libqcocoa.dylib\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" LOADER_PATH \"${QT_PLATFORM_PLUGIN_PATH}\")
-    " COMPONENT multipass_gui)
-
-endif(APPLE)
-
-if(MSVC)
-  set(RESOURCE_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/resources)
-  file(MAKE_DIRECTORY ${RESOURCE_GENERATED_SOURCE_DIR})
-  configure_file(
-    resources/gui.rc.in
-    ${RESOURCE_GENERATED_SOURCE_DIR}/gui.rc
-    @ONLY)
-
-  target_sources(multipass_gui PRIVATE
-    ${RESOURCE_GENERATED_SOURCE_DIR}/gui.rc)
-  set_target_properties(multipass_gui PROPERTIES WIN32_EXECUTABLE true)
-
-  # Copy the windows platform plugin
-  install(FILES ${QT_PLATFORM_PLUGIN_PATH}/qwindows.dll
-    DESTINATION bin/platforms
-    COMPONENT multipass_gui)
-
-  install(CODE "
-    include(BundleUtilities)
-    fixup_bundle(
-      \"\${CMAKE_INSTALL_PREFIX}/bin/multipass.gui.exe\"
-      \"\${CMAKE_INSTALL_PREFIX}/bin/platforms/qwindows.dll\"
-      \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
-    " COMPONENT multipass_gui)
+  include("CMakeLists.txt.linux")
 endif()

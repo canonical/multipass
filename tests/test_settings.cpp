@@ -20,7 +20,6 @@
 
 #include <multipass/settings/settings_handler.h>
 
-#include <QKeySequence>
 #include <QString>
 
 #include <algorithm>
@@ -422,20 +421,12 @@ std::vector<SettingValueRepresentation<int>> setting_val_reprs()
     return {{0, {"0", "+0", "-0000"}}, {42, {"42", "+42"}}, {-2, {"-2"}}, {23, {"023"}}}; // no hex or octal
 }
 
-template <>
-std::vector<SettingValueRepresentation<QKeySequence>> setting_val_reprs()
-{
-    return {{QKeySequence{"Ctrl+Alt+O", QKeySequence::NativeText}, {"Ctrl+Alt+O", "ctrl+alt+o"}},
-            {QKeySequence{"shift+e", QKeySequence::NativeText}, {"Shift+E", "shift+e"}}}; /*
-                                  only a couple here, don't wanna go into platform details */
-}
-
 template <typename T>
 struct TestSuccessfulSettingsGetAs : public TestSettingsGetAs
 {
 };
 
-using GetAsTestTypes = ::testing::Types<bool, int, QKeySequence>; // to add more, specialize setting_val_reprs above
+using GetAsTestTypes = ::testing::Types<bool, int>; // to add more, specialize setting_val_reprs above
 MP_TYPED_TEST_SUITE(TestSuccessfulSettingsGetAs, GetAsTestTypes);
 
 TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)

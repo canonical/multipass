@@ -16,7 +16,6 @@ function(add_target TARGET_NAME)
   if(LINUX)
     add_library(${TARGET_NAME} STATIC
       platform_linux.cpp
-      platform_shared.cpp
       platform_unix.cpp)
 
     target_link_libraries(${TARGET_NAME}

@@ -21,8 +21,7 @@ add_library(client_platform STATIC
   client_platform_osx.cpp)
 else()
 add_library(client_platform STATIC
-  client_platform.cpp
-  client_platform_linux.cpp)
+  client_platform.cpp)
 endif()
 
 target_link_libraries(client_platform

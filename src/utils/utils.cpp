@@ -55,26 +55,7 @@ namespace
 {
 constexpr auto category = "utils";
 constexpr auto scrypt_hash_size{64};
-
-QString find_autostart_target(const QString& subdir, const QString& autostart_filename)
-{
-    const auto target_subpath = QDir{subdir}.filePath(autostart_filename);
-    const auto target_path = MP_STDPATHS.locate(mp::StandardPaths::GenericDataLocation, target_subpath);
-
-    if (target_path.isEmpty())
-    {
-        QString detail{};
-        for (const auto& path : MP_STDPATHS.standardLocations(mp::StandardPaths::GenericDataLocation))
-            detail += QStringLiteral("\n  ") + path + "/" + target_subpath;
-
-        throw mp::AutostartSetupException{fmt::format("could not locate the autostart file '{}'", autostart_filename),
-                                          fmt::format("Tried: {}", detail.toStdString())};
-    }
-
-    return target_path;
 }
-} // namespace
-
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
 {
 }
@@ -289,30 +270,6 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::st
 
     auto output = proc.read_std_output();
     return mp::utils::trim_end(output);
-}
-
-void mp::utils::link_autostart_file(const QDir& link_dir, const QString& autostart_subdir,
-                                    const QString& autostart_filename)
-{
-    const auto link_path = link_dir.absoluteFilePath(autostart_filename);
-    const auto target_path = find_autostart_target(autostart_subdir, autostart_filename);
-
-    const auto link_info = QFileInfo{link_path};
-    const auto target_info = QFileInfo{target_path};
-    auto target_file = QFile{target_path};
-    auto link_file = QFile{link_path};
-
-    if (link_info.isSymLink() && link_info.symLinkTarget() != target_info.absoluteFilePath())
-        link_file.remove(); // get rid of outdated and broken links
-
-    if (!link_file.exists())
-    {
-        link_dir.mkpath(".");
-        if (!target_file.link(link_path))
-
-            throw mp::AutostartSetupException{fmt::format("failed to link file '{}' to '{}'", link_path, target_path),
-                                              fmt::format("Detail: {} (error code {})", strerror(errno), errno)};
-    }
 }
 
 mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions)
