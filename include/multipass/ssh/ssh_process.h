@@ -24,8 +24,8 @@
 #include <exception>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
+#include <variant>
 
 namespace multipass
 {
@@ -77,8 +77,7 @@ private:
     ssh_session session;
     std::string cmd;
     ChannelUPtr channel;
-    std::optional<int> exit_status;
-    std::exception_ptr exit_exception;
+    std::variant<std::monostate, int, std::exception_ptr> exit_result;
 
     friend class SftpServer;
 };
