@@ -18,8 +18,9 @@ final vmShellsProvider = StateProvider.autoDispose.family<int, String>((_, __) {
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
+  final bool running;
 
-  const VmTerminal(this.name, {super.key});
+  const VmTerminal(this.name, {this.running = false, super.key});
 
   @override
   ConsumerState<VmTerminal> createState() => VmTerminalState();
@@ -30,6 +31,15 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
   Isolate? isolate;
   final scrollController = ScrollController();
   final focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.running) {
+      terminal = Terminal(maxLines: 10000);
+      initTerminal();
+    }
+  }
 
   @override
   void dispose() {
