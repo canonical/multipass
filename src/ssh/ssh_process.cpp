@@ -88,11 +88,9 @@ mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::uni
 
 bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 {
+    rethrow_if_saved();
     if (exit_status)
         return true;
-
-    if (exit_exception)
-        std::rethrow_exception(exit_exception);
 
     try
     {
@@ -107,11 +105,9 @@ bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 
 int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
+    rethrow_if_saved();
     if (exit_status)
         return *exit_status;
-
-    if (exit_exception)
-        std::rethrow_exception(exit_exception);
 
     auto local_lock = std::move(session_lock); // unlock at the end
     read_exit_code(timeout, /* save_exception = */ true);
@@ -214,4 +210,13 @@ ssh_channel mp::SSHProcess::release_channel()
 {
     auto local_lock = std::move(session_lock); // released at the end; callers are on their own to ensure thread safety
     return channel.release();
+}
+
+void multipass::SSHProcess::rethrow_if_saved() const
+{
+    if (exit_exception)
+    {
+        assert(!session_lock.owns_lock());
+        std::rethrow_exception(exit_exception);
+    }
 }

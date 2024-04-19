@@ -56,7 +56,6 @@ public:
     //
     // This method caches the exit code if we find it, but it keeps the SSHSession locked.
     bool exit_recognized(std::chrono::milliseconds timeout = std::chrono::milliseconds(10)); // keeps session lock
-
     int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5)); // releases session lock
 
     std::string read_std_output();
@@ -69,6 +68,7 @@ private:
         err
     };
 
+    void rethrow_if_saved() const;
     void read_exit_code(std::chrono::milliseconds timeout, bool save_exception);
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel(); // releases the lock on the session; callers are on their own to ensure thread safety
