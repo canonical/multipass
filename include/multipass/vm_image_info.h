@@ -30,6 +30,7 @@ public:
     QString os;
     QString release;
     QString release_title;
+    QString release_codename;
     bool supported;
     QString image_location;
     QString id;
@@ -41,10 +42,29 @@ public:
 
 inline bool operator==(const VMImageInfo& a, const VMImageInfo& b)
 {
-    return std::tie(a.aliases, a.os, a.release, a.release_title, a.supported, a.image_location, a.id, a.stream_location,
-                    a.version, a.size, a.verify) == std::tie(b.aliases, b.os, b.release, b.release_title, b.supported,
-                                                             b.image_location, b.id, b.stream_location, b.version,
-                                                             b.size, b.verify);
+    return std::tie(a.aliases,
+                    a.os,
+                    a.release,
+                    a.release_title,
+                    a.release_codename,
+                    a.supported,
+                    a.image_location,
+                    a.id,
+                    a.stream_location,
+                    a.version,
+                    a.size,
+                    a.verify) == std::tie(b.aliases,
+                                          b.os,
+                                          b.release,
+                                          b.release_title,
+                                          b.release_codename,
+                                          b.supported,
+                                          b.image_location,
+                                          b.id,
+                                          b.stream_location,
+                                          b.version,
+                                          b.size,
+                                          b.verify);
 }
-}
+} // namespace multipass
 #endif // MULTIPASS_VM_IMAGE_INFO_H

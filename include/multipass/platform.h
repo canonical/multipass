@@ -81,9 +81,6 @@ public:
 QString interpret_setting(const QString& key, const QString& val);
 void sync_winterm_profiles();
 
-QString autostart_test_data(); // returns a platform-specific string, for testing purposes
-void setup_gui_autostart_prerequisites();
-
 std::string default_server_address();
 
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);

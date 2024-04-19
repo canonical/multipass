@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export XDG_DATA_HOME=$SNAP_USER_DATA/data
+export XDG_CONFIG_HOME=$SNAP_USER_DATA/config
+exec "$@"

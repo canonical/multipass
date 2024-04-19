@@ -101,6 +101,7 @@ public:
                                        "Ubuntu",
                                        "bionic",
                                        default_release_info,
+                                       "Bionic Beaver",
                                        true,
                                        image.url(),
                                        default_id,
@@ -108,13 +109,23 @@ public:
                                        default_version,
                                        1,
                                        true};
-    VMImageInfo mock_snapcraft_image_info{
-        {snapcraft_alias},       "Ubuntu", "core20", snapcraft_release_info, true, image.url(), snapcraft_image_id, "",
-        snapcraft_image_version, 1,        true};
+    VMImageInfo mock_snapcraft_image_info{{snapcraft_alias},
+                                          "Ubuntu",
+                                          "core20",
+                                          snapcraft_release_info,
+                                          "Core 20",
+                                          true,
+                                          image.url(),
+                                          snapcraft_image_id,
+                                          "",
+                                          snapcraft_image_version,
+                                          1,
+                                          true};
     VMImageInfo mock_custom_image_info{{custom_alias},
                                        "Ubuntu",
                                        "Custom Core",
                                        custom_release_info,
+                                       "Custom Core",
                                        true,
                                        image.url(),
                                        custom_image_id,
@@ -122,14 +133,23 @@ public:
                                        custom_image_version,
                                        1,
                                        false};
-    VMImageInfo mock_another_image_info{
-        {another_alias},       "Ubuntu", "another", another_release_info, true, image.url(), another_image_id, "",
-        another_image_version, 1,        false};
+    VMImageInfo mock_another_image_info{{another_alias},
+                                        "Ubuntu",
+                                        "another",
+                                        another_release_info,
+                                        "Another",
+                                        true,
+                                        image.url(),
+                                        another_image_id,
+                                        "",
+                                        another_image_version,
+                                        1,
+                                        false};
 
 private:
     std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
     std::vector<VMImageInfo> empty_image_info_vector;
-    VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
+    VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};
 };
 } // namespace test

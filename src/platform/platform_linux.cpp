@@ -71,7 +71,6 @@ namespace mu = multipass::utils;
 
 namespace
 {
-constexpr auto autostart_filename = "multipass.gui.autostart.desktop";
 constexpr auto category = "Linux platform";
 
 // Fetch the ARP protocol HARDWARE identifier.
@@ -382,9 +381,6 @@ auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
 
 QString mp::platform::interpret_setting(const QString& key, const QString& val)
 {
-    if (key == hotkey_key)
-        return mp::platform::interpret_hotkey(val);
-
     // this should not happen (settings should have found it to be an invalid key)
     throw InvalidSettingException(key, val, "Setting unavailable on Linux");
 }
@@ -392,18 +388,6 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
 void mp::platform::sync_winterm_profiles()
 {
     // NOOP on Linux
-}
-
-QString mp::platform::autostart_test_data()
-{
-    return autostart_filename;
-}
-
-void mp::platform::setup_gui_autostart_prerequisites()
-{
-    const auto config_dir = QDir{MP_STDPATHS.writableLocation(StandardPaths::GenericConfigLocation)};
-    const auto link_dir = QDir{config_dir.absoluteFilePath("autostart")};
-    mu::link_autostart_file(link_dir, mp::client_name, autostart_filename);
 }
 
 std::string mp::platform::default_server_address()

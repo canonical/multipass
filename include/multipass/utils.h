@@ -82,7 +82,6 @@ std::string get_resolved_target(SSHSession& session, const std::string& target);
 std::pair<std::string, std::string> get_path_split(SSHSession& session, const std::string& target);
 
 // special-file helpers
-void link_autostart_file(const QDir& link_dir, const QString& autostart_subdir, const QString& autostart_filename);
 void check_and_create_config_file(const QString& config_file_path);
 
 // command and process helpers

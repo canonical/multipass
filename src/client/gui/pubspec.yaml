@@ -1,0 +1,57 @@
+name: multipass_gui
+description: A new Flutter project.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.3 <4.0.0'
+
+dependencies:
+  async: ^2.11.0
+  basics: ^0.10.0
+  built_collection: ^5.1.1
+  collection: ^1.17.1
+  dartssh2:
+    git:
+      url: https://github.com/andrei-toterman/dartssh2.git
+      ref: use-raw-socket
+  ffi: ^2.0.2
+  fl_chart: ^0.63.0
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.3.6
+  flutter_svg: ^2.0.7
+  fpdart: ^1.1.0
+  grpc: ^3.1.0
+  hotkey_manager: ^0.1.8
+  intl: ^0.19.0
+  logger: ^2.0.2+1
+  path_provider: ^2.1.0
+  protobuf: ^3.1.0
+  rxdart: ^0.27.7
+  shared_preferences: ^2.2.2
+  tray_menu:
+    git:
+      url: https://github.com/andrei-toterman/tray_menu.git
+      ref: 7c1394c
+  two_dimensional_scrollables: ^0.0.2
+  url_launcher: ^6.2.3
+  window_manager: ^0.3.5
+  xterm: ^3.5.0
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+  fonts:
+    - family: Ubuntu
+      fonts:
+        - asset: assets/Ubuntu-R.ttf
+        - asset: assets/Ubuntu-B.ttf
+          weight: 700
+        - asset: assets/Ubuntu-L.ttf
+          weight: 300
