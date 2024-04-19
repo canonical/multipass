@@ -1,4 +1,4 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
         <Launch Condition="Installed OR WIN_VERSION >= 17134" Message="!(loc.FeatureUpdateReqd)" />
@@ -53,8 +53,8 @@
 
 
         <!-- Install client certificates -->
-        <CustomAction Id="InstallClientCertsAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install" />
-        <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
+        <SetProperty Id="InstallClientCertsAction" Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install" Before="InstallClientCertsAction" Sequence="execute" />
+        <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="yes" />
 
 
         <!-- Detect Windows edition and set driver -->
@@ -102,11 +102,10 @@
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
             <Custom Action="RemoveMPDataAction" After="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
 
-            <Custom Action="InstallClientCertsAction.SetCmdLine" Before="InstallClientCertsAction" />
-            <Custom Action="InstallClientCertsAction" After="InstallFinalize" />
+            <Custom Action="InstallClientCertsAction" Before="StartServices" />
 
             <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction" Condition="NOT CONFIG_FILE_FOUND" />
-            <Custom Action="DaemonConfigFileAction" After="InstallClientCertsAction" Condition="NOT CONFIG_FILE_FOUND" />
+            <Custom Action="DaemonConfigFileAction" Before="StartServices" Condition="NOT CONFIG_FILE_FOUND" />
         </InstallExecuteSequence>
     </Package>
 

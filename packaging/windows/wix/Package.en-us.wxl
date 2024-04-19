@@ -22,6 +22,7 @@ This file contains the declaration of all the localizable strings.
     <String Id="WixAddToUserPath" Value="Add [ProductName] to the current user's PATH (Recommended)" />
     <String Id="UninstallOldMP" Value="Uninstalling previous version of [ProductName]" />
     <String Id="RemoveMPDataText" Value="Deleting [ProductName] VM instances" />
+    <String Id="InstallClientCertsText" Value="Installing client certificates" />
 
     <String Id="EnableHyperV" Value="Enabling Hyper-V" />
 
