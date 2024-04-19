@@ -291,7 +291,7 @@ TEST_F(SftpServer, throws_when_sshfs_errors_on_start)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SftpServer, sshfs_restarts_on_error)
+TEST_F(SftpServer, sshfs_restarts_on_timeout)
 {
     int num_calls{0};
     auto request_exec = [this, &num_calls](ssh_channel, const char* raw_cmd) {
@@ -300,7 +300,7 @@ TEST_F(SftpServer, sshfs_restarts_on_error)
         {
             if (++num_calls < 3)
             {
-                exit_status_mock.set_ssh_rc(SSH_ERROR);
+                exit_status_mock.set_ssh_rc(SSH_OK);
                 exit_status_mock.set_no_exit();
             }
         }

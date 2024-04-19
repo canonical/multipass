@@ -256,10 +256,11 @@ TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
     REPLACE(ssh_event_dopoll, mocked_ssh_event_dopoll);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(mpl::Level::info, mpt::MockLogger::make_cstring_matcher(StrEq("sshfs-mount-handler")),
-            mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'multipass-sshfs' in 'stub'"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(mpl::Level::error,
+                    mpt::MockLogger::make_cstring_matcher(StrEq("sshfs-mount-handler")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        AllOf(HasSubstr("Could not install 'multipass-sshfs' in 'stub'"), HasSubstr("timed out")))));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)), mp::SSHFSMissingError);
