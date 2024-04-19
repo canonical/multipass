@@ -112,10 +112,8 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     auto local_lock = std::move(session_lock); // unlock at the end
     read_exit_code(timeout, /* save_exception = */ true);
 
-    auto exit_status = std::get_if<int>(&exit_result);
-    assert(exit_status);
-
-    return *exit_status;
+    assert(std::holds_alternative<int>(exit_result));
+    return std::get<int>(exit_result);
 }
 
 void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
