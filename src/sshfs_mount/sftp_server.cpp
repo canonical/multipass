@@ -194,15 +194,8 @@ auto validate_path(const std::string& source_path, const std::string& current_pa
 
 void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
 {
-    try
-    {
-        if (sshfs_process.exit_code(250ms) != 0)
-            throw std::runtime_error(sshfs_process.read_std_error());
-    }
-    catch (const mp::SSHProcessTimeoutException&)
-    {
-        // Timeout getting exit status; assume sshfs is running in the instance
-    }
+    if (sshfs_process.exit_recognized(250ms))
+        throw std::runtime_error(sshfs_process.read_std_error());
 }
 
 auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec_line, const std::string& source,
