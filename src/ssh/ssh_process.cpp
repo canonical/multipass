@@ -80,7 +80,8 @@ mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::uni
       session{session},
       cmd{cmd},
       channel{make_channel(session, cmd)},
-      exit_status{std::nullopt}
+      exit_status{std::nullopt},
+      exit_exception{nullptr}
 {
     assert(this->session_lock.owns_lock());
 }
@@ -90,9 +91,12 @@ bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
     if (exit_status)
         return true;
 
+    if (exit_exception)
+        std::rethrow_exception(exit_exception);
+
     try
     {
-        read_exit_code(timeout);
+        read_exit_code(timeout, /* save_exception = */ false);
         return true;
     }
     catch (SSHProcessTimeoutException&)
@@ -106,14 +110,18 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     if (exit_status)
         return *exit_status;
 
+    if (exit_exception)
+        std::rethrow_exception(exit_exception);
+
     auto local_lock = std::move(session_lock); // unlock at the end
-    read_exit_code(timeout);
+    read_exit_code(timeout, /* save_exception = */ true);
 
     return *exit_status;
 }
 
-void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout)
+void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
 {
+    assert(!exit_status && !exit_exception);
     ExitStatusCallback cb{channel.get(), exit_status};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};
@@ -127,12 +135,19 @@ void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout)
         rc = ssh_event_dopoll(event.get(), timeout.count());
     }
 
-    if (!exit_status) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+    if (!exit_status)
     {
-        if (rc == SSH_ERROR)
-            throw SSHProcessExitError{cmd, std::strerror(errno)};
+        std::exception_ptr eptr;
+        if (rc == SSH_ERROR) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+            eptr = std::make_exception_ptr(SSHProcessExitError{cmd, std::strerror(errno)});
         else
-            throw SSHProcessTimeoutException{cmd, timeout};
+            eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
+        // note that make_exception_ptr takes by value; we repeat the call with the concrete types to avoid slicing
+
+        if (save_exception)
+            exit_exception = eptr;
+
+        rethrow_exception(eptr);
     }
 }
 

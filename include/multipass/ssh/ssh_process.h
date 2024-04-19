@@ -21,6 +21,7 @@
 #include <libssh/libssh.h>
 
 #include <chrono>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -68,7 +69,7 @@ private:
         err
     };
 
-    void read_exit_code(std::chrono::milliseconds timeout);
+    void read_exit_code(std::chrono::milliseconds timeout, bool save_exception);
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel(); // releases the lock on the session; callers are on their own to ensure thread safety
 
@@ -77,6 +78,7 @@ private:
     std::string cmd;
     ChannelUPtr channel;
     std::optional<int> exit_status;
+    std::exception_ptr exit_exception;
 
     friend class SftpServer;
 };
