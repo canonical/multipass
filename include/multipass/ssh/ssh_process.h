@@ -44,6 +44,7 @@ public:
     SSHProcess& operator=(SSHProcess&&) = default;
 
     ~SSHProcess() = default;
+    bool exit_recognized(std::chrono::milliseconds timeout = std::chrono::milliseconds(10)); // keeps session lock
 
     int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5));
     std::string read_std_output();
@@ -56,6 +57,7 @@ private:
         err
     };
 
+    void read_exit_code(std::chrono::milliseconds timeout);
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel();
 

@@ -85,15 +85,35 @@ mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::uni
     assert(this->session_lock.owns_lock());
 }
 
+bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
+{
+    if (exit_status)
+        return true;
+
+    try
+    {
+        read_exit_code(timeout);
+        return true;
+    }
+    catch (ExitlessSSHProcessException&)
+    {
+        return false;
+    }
+}
+
 int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
     if (exit_status)
-    {
-        assert(!session_lock.owns_lock());
         return *exit_status;
-    }
 
     auto local_lock = std::move(session_lock); // unlock at the end
+    read_exit_code(timeout);
+
+    return *exit_status;
+}
+
+void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout)
+{
     ExitStatusCallback cb{channel.get(), exit_status};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};
@@ -110,8 +130,6 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     if (!exit_status) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
         throw ExitlessSSHProcessException{cmd, rc == SSH_ERROR ? std::strerror(errno) : "timeout"}; /* note that we
                          release the lock on the session - we assume that the session can be used again nonetheless */
-
-    return *exit_status;
 }
 
 std::string mp::SSHProcess::read_std_output()
