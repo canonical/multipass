@@ -20,7 +20,7 @@
 
 #include "powershell.h"
 
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/sftp_utils.h>
