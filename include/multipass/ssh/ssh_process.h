@@ -56,7 +56,7 @@ public:
     //
     // This method caches the exit code if we find it, but it keeps the SSHSession locked.
     bool exit_recognized(std::chrono::milliseconds timeout = std::chrono::milliseconds(10)); // keeps session lock
-    int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5)); // releases session lock
+    int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5));              // releases session lock
 
     std::string read_std_output();
     std::string read_std_error();
