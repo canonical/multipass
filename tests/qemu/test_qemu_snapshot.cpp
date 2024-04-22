@@ -58,7 +58,7 @@ struct TestQemuSnapshot : public Test
 
     mp::QemuSnapshot quick_snapshot(const std::string& name = "asdf")
     {
-        return mp::QemuSnapshot{name, "", nullptr, specs, vm, desc};
+        return mp::QemuSnapshot{name, "", "", nullptr, specs, vm, desc};
     }
 
     mp::QemuSnapshot loaded_snapshot()
@@ -117,12 +117,14 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
 {
     const auto name = "name";
     const auto comment = "comment";
+    const auto instance_id = "vm2";
+
     const auto parent = std::make_shared<mpt::MockSnapshot>();
 
     auto desc = mp::VirtualMachineDescription{};
     auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider};
 
-    const auto snapshot = mp::QemuSnapshot{name, comment, parent, specs, vm, desc};
+    const auto snapshot = mp::QemuSnapshot{name, comment, instance_id, parent, specs, vm, desc};
     EXPECT_EQ(snapshot.get_name(), name);
     EXPECT_EQ(snapshot.get_comment(), comment);
     EXPECT_EQ(snapshot.get_parent(), parent);

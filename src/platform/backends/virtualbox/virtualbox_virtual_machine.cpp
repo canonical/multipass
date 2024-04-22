@@ -367,9 +367,12 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
                                 "Could not resize image: {}", name);
 }
 
-void mp::VirtualBoxVirtualMachine::add_network_interface(int index, const NetworkInterface& net)
+void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
+                                                         const std::string& default_mac_addr,
+                                                         const NetworkInterface& extra_interface)
 {
-    auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, net);
+    auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, extra_interface);
 
     mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface to: {}", name);
+    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }

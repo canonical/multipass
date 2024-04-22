@@ -33,6 +33,7 @@ struct MockSnapshot : public mp::Snapshot
     MOCK_METHOD(int, get_index, (), (const, noexcept, override));
     MOCK_METHOD(std::string, get_name, (), (const, override));
     MOCK_METHOD(std::string, get_comment, (), (const, override));
+    MOCK_METHOD(std::string, get_cloud_init_instance_id, (), (const, noexcept, override));
     MOCK_METHOD(QDateTime, get_creation_timestamp, (), (const, noexcept, override));
     MOCK_METHOD(int, get_num_cores, (), (const, noexcept, override));
     MOCK_METHOD(mp::MemorySize, get_mem_size, (), (const, noexcept, override));

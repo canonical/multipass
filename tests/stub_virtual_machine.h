@@ -124,12 +124,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void add_network_interface(int, const NetworkInterface&) override
-    {
-    }
-
-    void apply_extra_interfaces_to_cloud_init(const std::string& default_mac_addr,
-                                              const std::vector<NetworkInterface>& extra_interfaces) override
+    void add_network_interface(int, const std::string&, const NetworkInterface&) override
     {
     }
 

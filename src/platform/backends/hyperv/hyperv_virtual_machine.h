@@ -59,7 +59,9 @@ public:
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
-    void add_network_interface(int index, const NetworkInterface& net) override;
+    void add_network_interface(int index,
+                               const std::string& default_mac_addr,
+                               const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 protected:
@@ -67,6 +69,7 @@ protected:
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
+                                                     const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
 
