@@ -445,8 +445,10 @@ void mp::QemuVirtualMachine::on_error()
 
 void mp::QemuVirtualMachine::on_stopping()
 {
-    drop_ssh_session();
+    std::unique_lock lock{state_mutex};
+    mpl::log(mpl::Level::trace, vm_name, "VM stopping");
     state = State::stopping;
+    drop_ssh_session();
     update_state();
 }
 
