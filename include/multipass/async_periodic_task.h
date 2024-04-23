@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_ASYNC_PERIODIC_TASK_H
 #define MULTIPASS_ASYNC_PERIODIC_TASK_H
 
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 
 #include <chrono>
@@ -51,6 +52,7 @@ class AsyncPeriodicTask
 public:
     template <typename Callable, typename... Args>
     AsyncPeriodicTask(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
+        : default_delay_time{msec}, current_delay_time{5000}
     {
         // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
         // race on log, because the side thread log messes with the mock_logger. Because of that, we only allow the
@@ -61,15 +63,39 @@ public:
         // TODO, remove the launch_msg parameter once we have better class separation.
         mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
         future = QtConcurrent::run(std::forward<Callable>(func), std::forward<Args>(args)...);
+
+        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, [this] {
+            try
+            {
+                // rethrow exception
+                future.waitForFinished();
+                mpl::log(mpl::Level::debug, "async task", "no Exception caught. ");
+                timer.start(default_delay_time);
+                current_delay_time = std::chrono::milliseconds{5000};
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::info,
+                         "async task",
+                         fmt::format("QFutureWatcher caught DownloadException {}", e.what()));
+
+                timer.start(current_delay_time);
+                current_delay_time = std::min(2 * current_delay_time, default_delay_time);
+            }
+            mpl::log(mpl::Level::debug, "async task", "QFutureWatcher finished. ");
+        });
+        future_watcher.setFuture(future);
+
         QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
             // skip it if the previous one is still running
             if (future.isFinished())
             {
                 mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
                 future = QtConcurrent::run(func, args...);
+                future_watcher.setFuture(future);
             }
         });
-        timer.start(msec);
+        timer.start(default_delay_time);
     }
 
     void start_timer()
@@ -85,14 +111,12 @@ public:
         future.waitForFinished();
     }
 
-    ~AsyncPeriodicTask()
-    {
-        future.waitForFinished();
-    }
-
 private:
     QTimer timer;
     QFuture<ReturnType> future;
+    QFutureWatcher<ReturnType> future_watcher;
+    std::chrono::milliseconds default_delay_time;
+    std::chrono::milliseconds current_delay_time;
 };
 } // namespace multipass::utils
 
