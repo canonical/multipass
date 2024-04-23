@@ -76,7 +76,13 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
         {
             shutdown_timer.stop();
             mpl::log(mpl::Level::info, virtual_machine->vm_name, "Cancelling delayed shutdown");
-            virtual_machine->state = VirtualMachine::State::running;
+
+            {
+                std::lock_guard lock{virtual_machine->state_mutex};
+                if (virtual_machine->state == VirtualMachine::State::delayed_shutdown)
+                    virtual_machine->state = VirtualMachine::State::running;
+            }
+
             attempt_ssh_exec(*virtual_machine, "wall The system shutdown has been cancelled");
         }
     });
