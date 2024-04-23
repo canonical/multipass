@@ -77,6 +77,15 @@ TEST(InstanceStatusString, RESTARTING_status_returns_Restarting)
     EXPECT_THAT(status_string, Eq("Restarting"));
 }
 
+TEST(InstanceStatusString, StoppingStatusConvertsToString)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::STOPPING);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("Stopping"));
+}
+
 TEST(InstanceStatusString, bogus_status_returns_Unknown)
 {
     mp::InstanceStatus status;
