@@ -21,10 +21,10 @@
 #include <multipass/logging/log.h>
 
 #include <chrono>
-#include <future>
 #include <string_view>
 
 #include <QTimer>
+#include <QtConcurrent/QtConcurrent>
 
 namespace mpl = multipass::logging;
 
@@ -60,13 +60,13 @@ public:
 
         // TODO, remove the launch_msg parameter once we have better class separation.
         mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
-        future = std::async(std::launch::async, std::forward<Callable>(func), std::forward<Args>(args)...);
+        future = QtConcurrent::run(std::forward<Callable>(func), std::forward<Args>(args)...);
         QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
             // skip it if the previous one is still running
-            if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+            if (future.isFinished())
             {
                 mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
-                future = std::async(std::launch::async, func, args...);
+                future = QtConcurrent::run(func, args...);
             }
         });
         timer.start(msec);
@@ -80,14 +80,19 @@ public:
     {
         timer.stop();
     }
-    void wait_ongoing_task_finish() const
+    void wait_ongoing_task_finish()
     {
-        future.wait();
+        future.waitForFinished();
+    }
+
+    ~AsyncPeriodicTask()
+    {
+        future.waitForFinished();
     }
 
 private:
     QTimer timer;
-    std::future<ReturnType> future;
+    QFuture<ReturnType> future;
 };
 } // namespace multipass::utils
 
