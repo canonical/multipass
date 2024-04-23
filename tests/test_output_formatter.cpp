@@ -86,6 +86,11 @@ auto construct_multiple_instances_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
 
+    list_entry = list_reply.mutable_instance_list()->add_instances();
+    list_entry->set_name("fantastic");
+    list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPING);
+    list_entry->set_current_release("24.04 LTS");
+
     return list_reply;
 }
 
@@ -345,6 +350,13 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
 
+    info_entry = info_reply.add_details();
+    info_entry->set_name("fantastic");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPING);
+    info_entry->mutable_instance_info()->set_image_release("24.04 LTS");
+    info_entry->mutable_instance_info()->set_id("abcabcabc");
+    info_entry->mutable_instance_info()->set_num_snapshots(0);
+
     return info_reply;
 }
 
@@ -460,6 +472,13 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
 
+    info_entry = info_reply.add_details();
+    info_entry->set_name("fantastic");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPING);
+    info_entry->mutable_instance_info()->set_image_release("24.04 LTS");
+    info_entry->mutable_instance_info()->set_id("abcabcabc");
+    info_entry->mutable_instance_info()->set_num_snapshots(0);
+
     return info_reply;
 }
 
@@ -541,6 +560,13 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
+
+    info_entry = info_reply.add_details();
+    info_entry->set_name("fantastic");
+    info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPING);
+    info_entry->mutable_instance_info()->set_image_release("24.04 LTS");
+    info_entry->mutable_instance_info()->set_id("abcabcabc");
+    info_entry->mutable_instance_info()->set_num_snapshots(0);
 
     info_entry = info_reply.add_details();
     fundamentals = info_entry->mutable_snapshot_info()->mutable_fundamentals();
@@ -841,7 +867,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &multiple_instances_list_reply,
      "Name                    State             IPv4             Image\n"
      "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
-     "bombastic               Stopped           --               Ubuntu 18.04 LTS\n",
+     "bombastic               Stopped           --               Ubuntu 18.04 LTS\n"
+     "fantastic               Stopping          --               Ubuntu 24.04 LTS\n",
      "table_list_multiple"},
 
     {&table_formatter,
@@ -916,6 +943,17 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Load:           --\n"
      "Disk usage:     --\n"
      "Memory usage:   --\n"
+     "Mounts:         --\n\n"
+     "Name:           fantastic\n"
+     "State:          Stopping\n"
+     "Snapshots:      0\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     abcabcabc (Ubuntu 24.04 LTS)\n"
+     "CPU(s):         --\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
+     "Memory usage:   --\n"
      "Mounts:         --\n",
      "table_info_multiple_instances"},
     {&table_formatter,
@@ -974,6 +1012,17 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Disk usage:     --\n"
      "Memory usage:   --\n"
      "Mounts:         --\n\n"
+     "Name:           fantastic\n"
+     "State:          Stopping\n"
+     "Snapshots:      0\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     abcabcabc (Ubuntu 24.04 LTS)\n"
+     "CPU(s):         --\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
+     "Memory usage:   --\n"
+     "Mounts:         --\n\n"
      "Snapshot:       snapshot2\n"
      "Instance:       bogus-instance\n"
      "CPU(s):         2\n"
@@ -1008,6 +1057,17 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "IPv4:           --\n"
      "Release:        --\n"
      "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
+     "CPU(s):         --\n"
+     "Load:           --\n"
+     "Disk usage:     --\n"
+     "Memory usage:   --\n"
+     "Mounts:         --\n\n"
+     "Name:           fantastic\n"
+     "State:          Stopping\n"
+     "Snapshots:      0\n"
+     "IPv4:           --\n"
+     "Release:        --\n"
+     "Image hash:     abcabcabc (Ubuntu 24.04 LTS)\n"
      "CPU(s):         --\n"
      "Load:           --\n"
      "Disk usage:     --\n"
@@ -1057,7 +1117,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &multiple_instances_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
      "bogus-instance,Running,10.21.124.56,,Ubuntu 16.04 LTS,\"10.21.124.56\"\n"
-     "bombastic,Stopped,,,Ubuntu 18.04 LTS,\"\"\n",
+     "bombastic,Stopped,,,Ubuntu 18.04 LTS,\"\"\n"
+     "fantastic,Stopping,,,Ubuntu 24.04 LTS,\"\"\n",
      "csv_list_multiple"},
     {&csv_formatter,
      &unsorted_list_reply,
@@ -1114,7 +1175,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source,10.21.124.56,4,1\nbombastic,Stopped,,,,"
-     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\n",
+     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\nfantastic,Stopping,,,,"
+     "abcabcabc,24.04 LTS,,,,,,,,,0\n",
      "csv_info_multiple_instances"},
 
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
@@ -1138,7 +1200,12 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: Ubuntu 18.04 LTS\n",
+     "    release: Ubuntu 18.04 LTS\n"
+     "fantastic:\n"
+     "  - state: Stopping\n"
+     "    ipv4:\n"
+     "      []\n"
+     "    release: Ubuntu 24.04 LTS\n",
      "yaml_list_multiple"},
     {&yaml_formatter,
      &unsorted_list_reply,
@@ -1279,6 +1346,23 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "      total: ~\n"
      "    ipv4:\n"
      "      []\n"
+     "    mounts: ~\n"
+     "fantastic:\n"
+     "  - state: Stopping\n"
+     "    snapshot_count: 0\n"
+     "    image_hash: abcabcabc\n"
+     "    image_release: 24.04 LTS\n"
+     "    release: ~\n"
+     "    cpu_count: ~\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: ~\n"
+     "          total: ~\n"
+     "    memory:\n"
+     "      usage: ~\n"
+     "      total: ~\n"
+     "    ipv4:\n"
+     "      []\n"
      "    mounts: ~\n",
      "yaml_info_multiple_instances"},
     {&yaml_formatter,
@@ -1349,6 +1433,23 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
      "    image_release: 18.04 LTS\n"
+     "    release: ~\n"
+     "    cpu_count: ~\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: ~\n"
+     "          total: ~\n"
+     "    memory:\n"
+     "      usage: ~\n"
+     "      total: ~\n"
+     "    ipv4:\n"
+     "      []\n"
+     "    mounts: ~\n"
+     "fantastic:\n"
+     "  - state: Stopping\n"
+     "    snapshot_count: 0\n"
+     "    image_hash: abcabcabc\n"
+     "    image_release: 24.04 LTS\n"
      "    release: ~\n"
      "    cpu_count: ~\n"
      "    disks:\n"
@@ -1456,6 +1557,23 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "    ipv4:\n"
      "      []\n"
      "    mounts: ~\n"
+     "fantastic:\n"
+     "  - state: Stopping\n"
+     "    snapshot_count: 0\n"
+     "    image_hash: abcabcabc\n"
+     "    image_release: 24.04 LTS\n"
+     "    release: ~\n"
+     "    cpu_count: ~\n"
+     "    disks:\n"
+     "      - sda1:\n"
+     "          used: ~\n"
+     "          total: ~\n"
+     "    memory:\n"
+     "      usage: ~\n"
+     "      total: ~\n"
+     "    ipv4:\n"
+     "      []\n"
+     "    mounts: ~\n"
      "messier-87:\n"
      "  - snapshots:\n"
      "      - black-hole:\n"
@@ -1513,6 +1631,13 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            \"name\": \"bombastic\",\n"
      "            \"release\": \"Ubuntu 18.04 LTS\",\n"
      "            \"state\": \"Stopped\"\n"
+     "        },\n"
+     "        {\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"name\": \"fantastic\",\n"
+     "            \"release\": \"Ubuntu 24.04 LTS\",\n"
+     "            \"state\": \"Stopping\"\n"
      "        }\n"
      "    ]\n"
      "}\n",
@@ -1692,6 +1817,26 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            \"release\": \"\",\n"
      "            \"snapshot_count\": \"3\",\n"
      "            \"state\": \"Stopped\"\n"
+     "        },\n"
+     "        \"fantastic\": {\n"
+     "            \"cpu_count\": \"\",\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"abcabcabc\",\n"
+     "            \"image_release\": \"24.04 LTS\",\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "            },\n"
+     "            \"release\": \"\",\n"
+     "            \"snapshot_count\": \"0\",\n"
+     "            \"state\": \"Stopping\"\n"
      "        }\n"
      "    }\n"
      "}\n",
@@ -1831,6 +1976,26 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            \"release\": \"\",\n"
      "            \"snapshot_count\": \"3\",\n"
      "            \"state\": \"Stopped\"\n"
+     "        },\n"
+     "        \"fantastic\": {\n"
+     "            \"cpu_count\": \"\",\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"abcabcabc\",\n"
+     "            \"image_release\": \"24.04 LTS\",\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "            },\n"
+     "            \"release\": \"\",\n"
+     "            \"snapshot_count\": \"0\",\n"
+     "            \"state\": \"Stopping\"\n"
      "        }\n"
      "    }\n"
      "}\n",
@@ -1933,6 +2098,26 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            \"release\": \"\",\n"
      "            \"snapshot_count\": \"3\",\n"
      "            \"state\": \"Stopped\"\n"
+     "        },\n"
+     "        \"fantastic\": {\n"
+     "            \"cpu_count\": \"\",\n"
+     "            \"disks\": {\n"
+     "                \"sda1\": {\n"
+     "                }\n"
+     "            },\n"
+     "            \"image_hash\": \"abcabcabc\",\n"
+     "            \"image_release\": \"24.04 LTS\",\n"
+     "            \"ipv4\": [\n"
+     "            ],\n"
+     "            \"load\": [\n"
+     "            ],\n"
+     "            \"memory\": {\n"
+     "            },\n"
+     "            \"mounts\": {\n"
+     "            },\n"
+     "            \"release\": \"\",\n"
+     "            \"snapshot_count\": \"0\",\n"
+     "            \"state\": \"Stopping\"\n"
      "        },\n"
      "        \"messier-87\": {\n"
      "            \"snapshots\": {\n"
