@@ -55,7 +55,7 @@ rm -rfv "/Library/Application Support/com.canonical.multipass"
 rm -rfv "/var/root/Library/Caches/multipassd"
 
 # Bash completions
-rm -rv "/usr/local/etc/bash_completion.d/multipass"
+rm -rfv "/usr/local/etc/bash_completion.d/multipass"
 rm -rf "/opt/local/share/bash-completion/completions/multipass"
 
 # Log files
