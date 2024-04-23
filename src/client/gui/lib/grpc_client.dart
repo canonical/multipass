@@ -30,6 +30,10 @@ void Function(Notification<RpcMessage>) logGrpc(RpcMessage request) {
             info.privKeyBase64 = '*hidden*';
           }
         }
+        if (reply is LaunchReply) {
+          final percent = reply.launchProgress.percentComplete;
+          if (!['0', '100', '-1'].contains(percent)) return;
+        }
         logger.i('${request.repr} received ${reply.repr}');
       case Kind.onError:
         final es = notification.errorAndStackTrace;
