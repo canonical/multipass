@@ -345,6 +345,7 @@ void mp::LXDVirtualMachine::ensure_vm_is_running(const std::chrono::milliseconds
         if (current_state() != State::stopped)
         {
             state = State::starting;
+            update_state();
             return true;
         }
 
