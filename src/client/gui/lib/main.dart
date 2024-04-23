@@ -196,11 +196,7 @@ final theme = ThemeData(
         borderRadius: BorderRadius.circular(2),
       ),
       side: const BorderSide(color: Color(0xff333333)),
-      textStyle: const TextStyle(
-        fontFamily: 'Ubuntu',
-        fontSize: 16,
-        fontWeight: FontWeight.w300,
-      ),
+      textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
   ),
   scaffoldBackgroundColor: Colors.white,
@@ -213,11 +209,7 @@ final theme = ThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(2),
       ),
-      textStyle: const TextStyle(
-        fontFamily: 'Ubuntu',
-        fontSize: 16,
-        fontWeight: FontWeight.w300,
-      ),
+      textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
   ),
   textSelectionTheme: const TextSelectionThemeData(
