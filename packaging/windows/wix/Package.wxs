@@ -77,7 +77,7 @@
         </Property>
 
         <CustomAction Id="SetMP_DATA_DIR" Execute="immediate" Property="MP_DATA_DIR" Value="[CommonAppDataFolder]Multipass\" />
-        <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c echo local.driver=[DRIVER] &gt; &quot;[MP_DATA_DIR]multipassd.conf&quot;" />
+        <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c mkdir &quot;[MP_DATA_DIR]&quot; &amp; echo local.driver=[DRIVER] &gt; &quot;[MP_DATA_DIR]multipassd.conf&quot;" />
         <CustomAction Id="DaemonConfigFileAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
 
 
