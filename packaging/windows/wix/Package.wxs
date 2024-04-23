@@ -8,6 +8,7 @@
         <Property Id="ARPPRODUCTICON" Value="mp.exe" />
         <Property Id="ARPURLINFOABOUT" Value="https://multipass.run/" />
         <Property Id="ARPHELPLINK" Value="https://github.com/CanonicalLtd/multipass" />
+        <Property Id="MsiLogging" Value="vx!" />
 
         <Property Id="WIN_VERSION">
             <RegistrySearch Id='WinVersion' Type='raw' Root='HKLM' Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
