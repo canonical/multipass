@@ -132,9 +132,10 @@ parts:
     after: [ qt-ssl-plugin ]
     plugin: cmake
     build-snaps:
-    - cmake/3.28/stable
+    - cmake
     build-environment:
     - PATH: /snap/bin:$PATH
+    - VCPKG_FORCE_SYSTEM_BINARIES: 1
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
