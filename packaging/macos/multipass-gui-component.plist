@@ -17,49 +17,49 @@
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/FlutterMacOS.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/FlutterMacOS.framework</string>
 			</dict>
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/App.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/App.framework</string>
 			</dict>
             <!--
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/flutter_pty.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/flutter_pty.framework</string>
 			</dict>
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/shared_preferences_foundation.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/shared_preferences_foundation.framework</string>
 			</dict>
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/window_manager.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/window_manager.framework</string>
 			</dict>
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/screen_retriever.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/screen_retriever.framework</string>
 			</dict>
 			<dict>
 				<key>BundleOverwriteAction</key>
 				<string></string>
 				<key>RootRelativeBundlePath</key>
-				<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app/Contents/Frameworks/url_launcher_macos.framework</string>
+				<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app/Contents/Frameworks/url_launcher_macos.framework</string>
 			</dict>
             -->
 		</array>
 		<key>RootRelativeBundlePath</key>
-		<string>Library/Application Support/com.canonical.multipass/bin/Multipass GUI.app</string>
+		<string>Library/Application Support/com.canonical.multipass/bin/Multipass.app</string>
 	</dict>
 </array>
 </plist>

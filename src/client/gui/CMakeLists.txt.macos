@@ -14,7 +14,7 @@
 
 set(MULTIPASS_GUI_TARGET macos)
 set(MULTIPASS_GUI_PREFIX macos/Build/Products/Release)
-set(MULTIPASS_GUI_BUNDLE_RELATIVE "multipass_gui.app")
+set(MULTIPASS_GUI_BUNDLE_RELATIVE "Multipass.app")
 set(MULTIPASS_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE Contents/MacOS)
 set(MULTIPASS_GUI_EXECUTABLE multipass_gui)
 
@@ -46,7 +46,7 @@ add_custom_target(${MULTIPASS_GUI_EXECUTABLE} ALL
 )
 
 install(DIRECTORY ${MULTIPASS_GUI_BUNDLE}/Contents
-  DESTINATION "bin/Multipass GUI.app/"
+  DESTINATION "bin/Multipass.app/"
   USE_SOURCE_PERMISSIONS
   COMPONENT multipass_gui
   PATTERN "*/PkgInfo" EXCLUDE
@@ -60,5 +60,5 @@ set_target_properties( ${MULTIPASS_GUI_EXECUTABLE} PROPERTIES
 
 add_custom_target(bundle_symlink ALL
   WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE} "Multipass GUI.app"
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE} "Multipass.app"
 )
