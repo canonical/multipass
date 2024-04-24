@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_cloud_init_file_ops.h"
 #include "mock_file_ops.h"
 #include "mock_virtual_machine.h"
 #include "path.h"
@@ -162,6 +163,8 @@ struct TestBaseSnapshot : public Test
     mp::VMSpecs specs = stub_specs();
     mp::VirtualMachineDescription desc = stub_desc();
     NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
 

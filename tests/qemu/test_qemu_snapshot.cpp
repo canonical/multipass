@@ -16,6 +16,7 @@
  */
 
 #include "tests/common.h"
+#include "tests/mock_cloud_init_file_ops.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_snapshot.h"
@@ -92,6 +93,8 @@ struct TestQemuSnapshot : public Test
     mpt::StubSSHKeyProvider key_provider{};
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider};
     ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
 
     inline static const auto success = mp::ProcessState{0, std::nullopt};
     inline static const auto failure = mp::ProcessState{1, std::nullopt};
