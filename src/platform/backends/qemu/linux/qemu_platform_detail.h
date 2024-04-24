@@ -42,6 +42,7 @@ public:
     void platform_health_check() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
+    std::string create_bridge_with(const std::string& interface) const override;
 
     std::vector<NetworkInterfaceInfo>::const_iterator find_bridge_with(
         const std::vector<NetworkInterfaceInfo>& networks,

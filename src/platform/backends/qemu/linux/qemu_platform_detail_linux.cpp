@@ -247,3 +247,8 @@ mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& d
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
 }
+
+std::string mp::QemuPlatformDetail::create_bridge_with(const std::string& interface) const
+{
+    return MP_BACKEND.create_bridge_with(interface);
+}

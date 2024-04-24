@@ -73,8 +73,7 @@ void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterf
 
 std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
 {
-    assert(interface.type == "ethernet");
-    return MP_BACKEND.create_bridge_with(interface.id);
+    return qemu_platform->create_bridge_with(interface.id);
 }
 
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
