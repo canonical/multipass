@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_ASYNC_PERIODIC_TASK_H
 #define MULTIPASS_ASYNC_PERIODIC_TASK_H
 
-#include <fmt/format.h>
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 
 #include <chrono>
@@ -78,9 +78,7 @@ public:
                 timer.start(default_delay_time);
                 retry_current_delay_time = retry_start_delay_time;
             }
-            catch (const std::exception& e) // note that a more specific exception like
-                                            // multipass::DownloadException or std::runtime_error will make us catch
-                                            // nothing because Qt internally transformed that.
+            catch (const multipass::DownloadException& e)
             {
                 mpl::log(mpl::Level::info,
                          "async task",
