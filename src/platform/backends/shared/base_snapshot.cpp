@@ -97,8 +97,10 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
     }
 }
 
-std::string create_compatible_cloud_init_instance_id(const QJsonObject& json,
-                                                     const std::filesystem::path& cloud_init_iso_path)
+// When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not have the
+// item and it needs to fill cloud_init_instance_id with the current value. The current value equals to the
+// value at snapshot time because cloud_init_instance_id has been an immutable variable up to this point.
+std::string choose_cloud_init_instance_id(const QJsonObject& json, const std::filesystem::path& cloud_init_iso_path)
 {
     return json.contains("cloud_init_instance_id")
                ? json["cloud_init_instance_id"].toString().toStdString()
@@ -189,15 +191,11 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
     : BaseSnapshot{
           json["name"].toString().toStdString(),    // name
           json["comment"].toString().toStdString(), // comment
-          // When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not have the
-          // item and it needs to fill cloud_init_instance_id with the current value. The current value equals to the
-          // value at snapshot time because cloud_init_instance_id has been an immutable variable up to this point.
-          create_compatible_cloud_init_instance_id(
-              json,
-              std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
-                  "cloud-init-config.iso"), // instance id from cloud init
-          find_parent(json, vm),            // parent
-          json["index"].toInt(),            // index
+          choose_cloud_init_instance_id(json,
+                                        std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
+                                            "cloud-init-config.iso"), // instance id from cloud init
+          find_parent(json, vm),                                      // parent
+          json["index"].toInt(),                                      // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
           MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
