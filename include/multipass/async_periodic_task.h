@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_ASYNC_PERIODIC_TASK_H
 #define MULTIPASS_ASYNC_PERIODIC_TASK_H
 
-#include <multipass/exceptions/download_exception.h>
+#include <fmt/format.h>
 #include <multipass/logging/log.h>
 
 #include <chrono>
@@ -51,8 +51,12 @@ class AsyncPeriodicTask
 {
 public:
     template <typename Callable, typename... Args>
-    AsyncPeriodicTask(std::string_view launch_msg, std::chrono::milliseconds msec, Callable&& func, Args&&... args)
-        : default_delay_time{msec}, current_delay_time{5000}
+    AsyncPeriodicTask(std::string_view launch_msg,
+                      std::chrono::milliseconds normal_delay_time,
+                      std::chrono::milliseconds retry_start_delay_time,
+                      Callable&& func,
+                      Args&&... args)
+        : default_delay_time{normal_delay_time}, retry_current_delay_time{retry_start_delay_time}
     {
         // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
         // race on log, because the side thread log messes with the mock_logger. Because of that, we only allow the
@@ -64,23 +68,26 @@ public:
         mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
         future = QtConcurrent::run(std::forward<Callable>(func), std::forward<Args>(args)...);
 
-        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, [this] {
+        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, [retry_start_delay_time, this] {
             try
             {
                 // rethrow exception
                 future.waitForFinished();
                 mpl::log(mpl::Level::debug, "async task", "no Exception caught. ");
+                // success case, we reset the time interval for timer and the retry dayly time value
                 timer.start(default_delay_time);
-                current_delay_time = std::chrono::milliseconds{5000};
+                retry_current_delay_time = retry_start_delay_time;
             }
-            catch (const std::exception& e)
+            catch (const std::exception& e) // note that a more specific exception like
+                                            // multipass::DownloadException or std::runtime_error will make us catch
+                                            // nothing because Qt internally transformed that.
             {
                 mpl::log(mpl::Level::info,
                          "async task",
                          fmt::format("QFutureWatcher caught DownloadException {}", e.what()));
-
-                timer.start(current_delay_time);
-                current_delay_time = std::min(2 * current_delay_time, default_delay_time);
+                // failure case, trigger or continue the retry mechanism
+                timer.start(retry_current_delay_time);
+                retry_current_delay_time = std::min(2 * retry_current_delay_time, default_delay_time);
             }
             mpl::log(mpl::Level::debug, "async task", "QFutureWatcher finished. ");
         });
@@ -115,8 +122,8 @@ private:
     QTimer timer;
     QFuture<ReturnType> future;
     QFutureWatcher<ReturnType> future_watcher;
-    std::chrono::milliseconds default_delay_time;
-    std::chrono::milliseconds current_delay_time;
+    const std::chrono::milliseconds default_delay_time;
+    std::chrono::milliseconds retry_current_delay_time;
 };
 } // namespace multipass::utils
 
