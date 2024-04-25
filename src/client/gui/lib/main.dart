@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -132,7 +130,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
-    if (!daemonAvailable || !vmsRunning) exit(0);
+    if (!daemonAvailable || !vmsRunning) windowManager.destroy();
 
     stopAllInstances() {
       final notification = OperationNotification(
@@ -147,7 +145,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
     switch (ref.read(guiSettingProvider(onAppCloseKey))) {
       case 'nothing':
-        exit(0);
+        windowManager.destroy();
       case 'stop':
         stopAllInstances();
       default:
