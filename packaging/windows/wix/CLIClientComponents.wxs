@@ -11,11 +11,15 @@
                 <File Source="icon_wt.ico" Name="multipass_wt.ico" />
             </Component>
 
-            <Component Id="AddToUserPath" Condition="ENVIRONMENT = &quot;user&quot;" Guid="59df60c1-f2a9-4199-97b5-8b1cf6638df7">
-                <Environment Name="PATH" System="no" Value="[INSTALLFOLDER]bin" Action="set" Part="last" />
+            <Component Id="AddToUserPath" Condition="ENVIRONMENT = &quot;user&quot;"
+                Guid="59df60c1-f2a9-4199-97b5-8b1cf6638df7">
+                <Environment Name="PATH" System="no" Value="[INSTALLFOLDER]bin" Action="set"
+                    Part="last" />
             </Component>
-            <Component Id="AddToSystemPath" Condition="ENVIRONMENT = &quot;system&quot;" Guid="53f5da53-bfde-4a4e-a8ba-ac2312d06cc9">
-                <Environment Name="PATH" System="yes" Value="[INSTALLFOLDER]bin" Action="set" Part="last" />
+            <Component Id="AddToSystemPath" Condition="ENVIRONMENT = &quot;system&quot;"
+                Guid="53f5da53-bfde-4a4e-a8ba-ac2312d06cc9">
+                <Environment Name="PATH" System="yes" Value="[INSTALLFOLDER]bin" Action="set"
+                    Part="last" />
             </Component>
         </ComponentGroup>
     </Fragment>

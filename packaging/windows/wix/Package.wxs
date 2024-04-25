@@ -1,5 +1,7 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
-    <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)" UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+    xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+    <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)"
+        UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
         <Launch Condition="Installed OR WIN_VERSION >= 17134" Message="!(loc.FeatureUpdateReqd)" />
 
@@ -11,17 +13,19 @@
         <Property Id="MsiLogging" Value="vx!" />
 
         <Property Id="WIN_VERSION">
-            <RegistrySearch Id='WinVersion' Type='raw' Root='HKLM' Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
+            <RegistrySearch Id='WinVersion' Type='raw' Root='HKLM'
+                Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
         </Property>
 
         <Binary Id="CABinary" SourceFile="custom-actions.dll" />
 
         <FeatureRef Id="Main" />
 
-        <ui:WixUI Id="CustomWixUI_InstallDir"  InstallDirectory="INSTALLFOLDER" />
+        <ui:WixUI Id="CustomWixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
         <ComplianceCheck>
-            <RegistrySearch Id="POWERSHELLEXE" Type="raw" Root="HKLM" Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" Name="Path" />
+            <RegistrySearch Id="POWERSHELLEXE" Type="raw" Root="HKLM"
+                Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" Name="Path" />
         </ComplianceCheck>
 
         <Property Id="POWERSHELLEXE">
@@ -30,16 +34,24 @@
 
         <!-- Uninstall previous version of Multipass with exe uninstaller -->
         <Property Id="UNINSTALLER_PATH">
-            <RegistrySearch Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Multipass" Name="UninstallString" Type="raw" />
+            <RegistrySearch Root="HKLM"
+                Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Multipass"
+                Name="UninstallString" Type="raw" />
         </Property>
         <Property Id="UNINSTALLER_PATH6432">
-            <RegistrySearch Root="HKLM" Key="SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Multipass" Name="UninstallString" Type="raw" />
+            <RegistrySearch Root="HKLM"
+                Key="SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Multipass"
+                Name="UninstallString" Type="raw" />
         </Property>
 
-        <SetProperty Id="UNINSTALLER_PATH" Before="UninstallExeMPAction" Sequence="execute" Value="[UNINSTALLER_PATH6432]" Condition="NOT UNINSTALLER_PATH" />
-        <SetProperty Id="UninstallExeMPAction" Value="&quot;[POWERSHELLEXE]&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Start-Process &apos;[UNINSTALLER_PATH]&apos; /S -Wait&quot;" Before="UninstallExeMPAction" Sequence="execute" />
+        <SetProperty Id="UNINSTALLER_PATH" Before="UninstallExeMPAction" Sequence="execute"
+            Value="[UNINSTALLER_PATH6432]" Condition="NOT UNINSTALLER_PATH" />
+        <SetProperty Id="UninstallExeMPAction"
+            Value="&quot;[POWERSHELLEXE]&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Start-Process &apos;[UNINSTALLER_PATH]&apos; /S -Wait&quot;"
+            Before="UninstallExeMPAction" Sequence="execute" />
 
-        <CustomAction Id="UninstallExeMPAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="check" Execute="deferred" Impersonate="no" />
+        <CustomAction Id="UninstallExeMPAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Return="check" Execute="deferred" Impersonate="no" />
 
 
         <!-- Remove Multipass data -->
@@ -47,29 +59,40 @@
         <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
         <SetProperty Id="RemoveMPDataAction" Before="RemoveMPDataAction" Sequence="execute"
-            Value ="&quot;[%ComSpec]&quot; /c rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;" />
+            Value="&quot;[%ComSpec]&quot; /c rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;" />
 
-        <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData" Return="ignore" />
-        <CustomAction Id="RemoveMPDataAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <CustomAction Id="RemoveMPInstances.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipass.exe&quot; delete -p --all" />
-        <CustomAction Id="RemoveMPInstances" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
+        <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData"
+            Return="ignore" />
+        <CustomAction Id="RemoveMPDataAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <CustomAction Id="RemoveMPInstances.SetCmdLine" Execute="immediate"
+            Property="WixQuietExecCmdLine"
+            Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipass.exe&quot; delete -p --all" />
+        <CustomAction Id="RemoveMPInstances" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
 
 
         <!-- Install client certificates -->
-        <SetProperty Id="InstallClientCertsAction" Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install" Before="InstallClientCertsAction" Sequence="execute" />
-        <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="yes" />
+        <SetProperty Id="InstallClientCertsAction"
+            Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install"
+            Before="InstallClientCertsAction" Sequence="execute" />
+        <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="yes" />
 
 
         <!-- Detect Windows edition and set driver -->
         <Property Id="WINDOWS_EDITION" Secure="yes">
-            <RegistrySearch Id="WINDOWS_EDITION" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
+            <RegistrySearch Id="WINDOWS_EDITION" Root="HKLM"
+                Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
         </Property>
         <CustomAction Id="SetWindowsEdition" Property="DRIVER" Value="virtualbox" />
 
 
         <!-- Create Multipass daemon configuration file -->
         <Property Id="MP_DATA_DIR">
-            <RegistrySearch Id="MultipassDataDirRegKey" Root="HKLM" Key="SYSTEM\CurrentControlSet\Control\Session Manager\Environment" Name="MULTIPASS_STORAGE" Type="raw" />
+            <RegistrySearch Id="MultipassDataDirRegKey" Root="HKLM"
+                Key="SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+                Name="MULTIPASS_STORAGE" Type="raw" />
         </Property>
 
         <Property Id="CONFIG_FILE_FOUND">
@@ -78,17 +101,24 @@
             </DirectorySearch>
         </Property>
 
-        <CustomAction Id="SetMP_DATA_DIR" Execute="immediate" Property="MP_DATA_DIR" Value="[CommonAppDataFolder]Multipass\" />
-        <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate" Property="WixQuietExecCmdLine" Value="&quot;[%ComSpec]&quot; /c mkdir &quot;[MP_DATA_DIR]&quot; &amp; echo local.driver=[DRIVER] &gt; &quot;[MP_DATA_DIR]multipassd.conf&quot;" />
-        <CustomAction Id="DaemonConfigFileAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
+        <CustomAction Id="SetMP_DATA_DIR" Execute="immediate" Property="MP_DATA_DIR"
+            Value="[CommonAppDataFolder]Multipass\" />
+        <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate"
+            Property="WixQuietExecCmdLine"
+            Value="&quot;[%ComSpec]&quot; /c mkdir &quot;[MP_DATA_DIR]&quot; &amp; echo local.driver=[DRIVER] &gt; &quot;[MP_DATA_DIR]multipassd.conf&quot;" />
+        <CustomAction Id="DaemonConfigFileAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
 
 
         <!-- Enable HyperV -->
         <Property Id="DRIVER" Value="hyperv" Secure="yes" />
 
-        <SetProperty Id="EnableHyperVAction" Value="&quot;[POWERSHELLEXE]&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All -All -NoRestart" Before="EnableHyperVAction" Sequence="execute" />
+        <SetProperty Id="EnableHyperVAction"
+            Value="&quot;[POWERSHELLEXE]&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All -All -NoRestart"
+            Before="EnableHyperVAction" Sequence="execute" />
 
-        <CustomAction Id="EnableHyperVAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Return="ignore" Execute="deferred" Impersonate="no" />
+        <CustomAction Id="EnableHyperVAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Return="ignore" Execute="deferred" Impersonate="no" />
 
 
         <InstallUISequence>
@@ -96,21 +126,30 @@
         </InstallUISequence>
         <InstallExecuteSequence>
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
-            <Custom Action="SetWindowsEdition" After="AppSearch" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
+            <Custom Action="SetWindowsEdition" After="AppSearch"
+                Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
 
-            <Custom Action="UninstallExeMPAction" After="InstallInitialize" Condition="NOT Installed AND UNINSTALLER_PATH" />
+            <Custom Action="UninstallExeMPAction" After="InstallInitialize"
+                Condition="NOT Installed AND UNINSTALLER_PATH" />
 
-            <Custom Action="EnableHyperVAction" After="InstallInitialize" Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
+            <Custom Action="EnableHyperVAction" After="InstallInitialize"
+                Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
 
-            <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
-            <Custom Action="RemoveMPInstances.SetCmdLine" Before="RemoveMPInstances" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
-            <Custom Action="RemoveMPInstances" Before="StopServices" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
-            <Custom Action="RemoveMPDataAction" After="RemoveFolders" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+            <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
+            <Custom Action="RemoveMPInstances.SetCmdLine" Before="RemoveMPInstances"
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+            <Custom Action="RemoveMPInstances" Before="StopServices"
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+            <Custom Action="RemoveMPDataAction" After="RemoveFolders"
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
 
             <Custom Action="InstallClientCertsAction" Before="StartServices" />
 
-            <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction" Condition="NOT CONFIG_FILE_FOUND" />
-            <Custom Action="DaemonConfigFileAction" Before="StartServices" Condition="NOT CONFIG_FILE_FOUND" />
+            <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction"
+                Condition="NOT CONFIG_FILE_FOUND" />
+            <Custom Action="DaemonConfigFileAction" Before="StartServices"
+                Condition="NOT CONFIG_FILE_FOUND" />
         </InstallExecuteSequence>
     </Package>
 
@@ -129,7 +168,8 @@
         <ComponentGroup Id="AdditionalComponents" Directory="INSTALLFOLDER">
             <Component Directory="FontsFolder">
                 <File Source="UbuntuMono-R.ttf" TrueType="true" />
-                <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
+                <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+                    Name="Ubuntu Mono (TrueType)" Value="UbuntuMono-R.ttf" />
             </Component>
 
             <Component>
@@ -137,7 +177,8 @@
             </Component>
 
             <Component>
-                <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\multipass.exe">
+                <RegistryKey Root="HKLM"
+                    Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\multipass.exe">
                     <RegistryValue Value="[INSTALLFOLDER]bin\multipass.exe" />
                     <RegistryValue Name="Path" Value="[INSTALLFOLDER]bin" />
                 </RegistryKey>

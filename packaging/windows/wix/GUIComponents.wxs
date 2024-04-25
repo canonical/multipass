@@ -6,8 +6,10 @@
             </Component>
 
             <Component>
-                <RegistryValue Root="HKCU" Key="SOFTWARE\Canonical\Multipass" Name="installed" Type="integer" Value="1" KeyPath="yes" />
-                <Shortcut Name="Multipass" Directory="ProgramMenuFolder" Icon="mp.exe" Target="[#multipass.gui.exe]" />
+                <RegistryValue Root="HKCU" Key="SOFTWARE\Canonical\Multipass" Name="installed"
+                    Type="integer" Value="1" KeyPath="yes" />
+                <Shortcut Name="Multipass" Directory="ProgramMenuFolder" Icon="mp.exe"
+                    Target="[#multipass.gui.exe]" />
             </Component>
         </ComponentGroup>
     </Fragment>
