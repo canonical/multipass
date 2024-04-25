@@ -50,13 +50,15 @@ const _separatorErrorKey = 'separator-error';
 const _separatorAboutKey = 'separator-about';
 
 Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
-  await TrayMenu.instance.addLabel(
-    'toggle-window',
-    label: 'Toggle window',
-    callback: (_, __) async => await windowManager.isVisible()
-        ? windowManager.unmaximize().then((_) => windowManager.hide())
-        : windowManager.show(),
-  );
+  if (!Platform.isMacOS) {
+    await TrayMenu.instance.addLabel(
+      'toggle-window',
+      label: 'Toggle window',
+      callback: (_, __) async => await windowManager.isVisible()
+          ? windowManager.hide()
+          : windowManager.show(),
+    );
+  }
 
   await TrayMenu.instance.addSeparator(_separatorAboutKey);
   final aboutSubmenu = await TrayMenu.instance.addSubmenu(
