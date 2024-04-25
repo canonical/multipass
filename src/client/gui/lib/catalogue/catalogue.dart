@@ -65,32 +65,24 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final images = ref.watch(imagesProvider).valueOrNull ?? const [];
-    final imageList = SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          child: const Text(
-            'Images',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    final content = ref.watch(imagesProvider).when(
+          data: _buildCatalogue,
+          error: (e, _) => Center(
+            child: Column(children: [
+              const SizedBox(height: 32),
+              Text(
+                'Error retrieving images: $e',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => ref.invalidate(imagesProvider),
+                child: const Text('Refresh'),
+              ),
+            ]),
           ),
-        ),
-        LayoutBuilder(builder: (_, constraints) {
-          const minCardWidth = 285;
-          const spacing = 32.0;
-          final nCards = constraints.maxWidth ~/ minCardWidth;
-          final whiteSpace = spacing * (nCards - 1);
-          final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
-          return Wrap(
-            runSpacing: spacing,
-            spacing: spacing,
-            children:
-                images.map((image) => ImageCard(image, cardWidth)).toList(),
-          );
-        }),
-        const SizedBox(height: 32),
-      ]),
-    );
+          loading: () => const Center(child: CircularProgressIndicator()),
+        );
 
     final welcomeText = Container(
       constraints: const BoxConstraints(maxWidth: 500),
@@ -118,10 +110,38 @@ class CatalogueScreen extends ConsumerWidget {
           children: [
             welcomeText,
             const Divider(),
-            Expanded(child: imageList),
+            Expanded(child: content),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCatalogue(List<ImageInfo> images) {
+    return SingleChildScrollView(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          child: const Text(
+            'Images',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        ),
+        LayoutBuilder(builder: (_, constraints) {
+          const minCardWidth = 285;
+          const spacing = 32.0;
+          final nCards = constraints.maxWidth ~/ minCardWidth;
+          final whiteSpace = spacing * (nCards - 1);
+          final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
+          return Wrap(
+            runSpacing: spacing,
+            spacing: spacing,
+            children:
+                images.map((image) => ImageCard(image, cardWidth)).toList(),
+          );
+        }),
+        const SizedBox(height: 32),
+      ]),
     );
   }
 }
