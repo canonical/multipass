@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 
 namespace multipass
@@ -42,22 +43,25 @@ public:
     SSHSession(const SSHSession&) = delete;
     SSHSession& operator=(const SSHSession&) = delete;
 
-    // we should be able to move just fine though
-    SSHSession(SSHSession&&) = default;
-    SSHSession& operator=(SSHSession&&) = default;
+    // we should be able to move just fine though, but we need to lock
+    SSHSession(SSHSession&&);
+    SSHSession& operator=(SSHSession&&);
 
     ~SSHSession();
 
-    operator ssh_session();
-    SSHProcess exec(const std::string& cmd);
-    void force_shutdown();
-
+    SSHProcess exec(const std::string& cmd); // locks the session until the process is destroyed or exit_code is called!
     [[nodiscard]] bool is_connected() const;
 
+    operator ssh_session(); // careful, not thread safe
+    void force_shutdown();  // careful, not thread safe
+
 private:
+    SSHSession(SSHSession&&, std::unique_lock<std::mutex> lock);
+
     void set_option(ssh_options_e type, const void* value);
 
     std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
+    mutable std::mutex mut;
 };
 } // namespace multipass
 #endif // MULTIPASS_SSH_H

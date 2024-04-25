@@ -24,7 +24,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -912,7 +912,7 @@ grpc::Status ssh_reboot(mp::VirtualMachine& vm)
                             fmt::format("Reboot command exited with code {}", e.exit_code()),
                             e.what()};
     }
-    catch (const mp::ExitlessSSHProcessException&)
+    catch (const mp::SSHProcessTimeoutException&)
     {
         // this is the expected path
     }

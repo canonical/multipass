@@ -20,6 +20,8 @@
 
 #include "mock_ssh.h"
 
+#include <optional>
+
 namespace multipass::test
 {
 class ExitStatusMock
@@ -35,8 +37,11 @@ public:
         event_do_poll = [this](auto...) {
             if (channel_cbs == nullptr)
                 return SSH_ERROR;
-            channel_cbs->channel_exit_status_function(nullptr, nullptr, exit_code, channel_cbs->userdata);
-            return SSH_OK;
+
+            if (exit_code)
+                channel_cbs->channel_exit_status_function(nullptr, nullptr, *exit_code, channel_cbs->userdata);
+
+            return ssh_rc;
         };
     }
 
@@ -46,10 +51,23 @@ public:
         event_do_poll = std::move(old_event_do_poll);
     }
 
-    void return_exit_code(int code)
+    void set_ssh_rc(int rc)
+    {
+        ssh_rc = rc;
+    }
+
+    void set_no_exit()
+    {
+        exit_code.reset();
+    }
+
+    void set_exit_status(int code)
     {
         exit_code = code;
     }
+
+    static constexpr int success_status = 0;
+    static constexpr int failure_status = 42;
 
 private:
     decltype(mock_ssh_add_channel_callbacks)& add_channel_cbs{mock_ssh_add_channel_callbacks};
@@ -57,7 +75,8 @@ private:
     decltype(mock_ssh_event_dopoll)& event_do_poll{mock_ssh_event_dopoll};
     decltype(mock_ssh_event_dopoll) old_event_do_poll{std::move(mock_ssh_event_dopoll)};
 
-    int exit_code{SSH_OK};
+    int ssh_rc{SSH_OK};
+    std::optional<int> exit_code{0};
     ssh_channel_callbacks channel_cbs{nullptr};
 };
 } // namespace multipass::test

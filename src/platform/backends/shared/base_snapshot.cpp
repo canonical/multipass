@@ -18,6 +18,7 @@
 #include "base_snapshot.h"
 #include "multipass/virtual_machine.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -94,6 +95,16 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
                                              json["name"].toString(),
                                              parent_idx)};
     }
+}
+
+// When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not have the
+// item and it needs to fill cloud_init_instance_id with the current value. The current value equals to the
+// value at snapshot time because cloud_init_instance_id has been an immutable variable up to this point.
+std::string choose_cloud_init_instance_id(const QJsonObject& json, const std::filesystem::path& cloud_init_iso_path)
+{
+    return json.contains("cloud_init_instance_id")
+               ? json["cloud_init_instance_id"].toString().toStdString()
+               : MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_iso_path);
 }
 } // namespace
 
@@ -178,11 +189,13 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, cons
 
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc)
     : BaseSnapshot{
-          json["name"].toString().toStdString(),                   // name
-          json["comment"].toString().toStdString(),                // comment
-          json["cloud_init_instance_id"].toString().toStdString(), // instance id from cloud init
-          find_parent(json, vm),                                   // parent
-          json["index"].toInt(),                                   // index
+          json["name"].toString().toStdString(),    // name
+          json["comment"].toString().toStdString(), // comment
+          choose_cloud_init_instance_id(json,
+                                        std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
+                                            "cloud-init-config.iso"), // instance id from cloud init
+          find_parent(json, vm),                                      // parent
+          json["index"].toInt(),                                      // index
           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
           json["num_cores"].toInt(),                                                       // num_cores
           MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
@@ -194,7 +207,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, cons
           vm.instance_directory(),                                                         // storage_dir
           true}                                                                            // captured
 {
-    if (!json.contains("extra_interfaces"))
+    if (!(json.contains("extra_interfaces") && json.contains("cloud_init_instance_id")))
     {
         persist();
     }

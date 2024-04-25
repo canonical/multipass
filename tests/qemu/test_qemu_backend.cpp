@@ -787,7 +787,9 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
 
     const auto parent = std::make_shared<mpt::MockSnapshot>();
     EXPECT_CALL(machine, get_snapshot(2)).WillOnce(Return(parent));
-
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, get_instance_id_from_cloud_init(_)).Times(1);
     auto snapshot = machine.make_specific_snapshot(mpt::test_data_path_for("test_snapshot.json"));
     EXPECT_EQ(snapshot->get_name(), "snapshot3");
     EXPECT_EQ(snapshot->get_comment(), "A comment");

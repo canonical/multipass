@@ -18,7 +18,7 @@
 #include "sftp_server.h"
 
 #include <multipass/cli/client_platform.h>
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
@@ -194,14 +194,12 @@ auto validate_path(const std::string& source_path, const std::string& current_pa
 
 void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
 {
-    try
+    if (sshfs_process.exit_recognized(250ms))
     {
-        if (sshfs_process.exit_code(250ms) != 0)
+        // This `if` is artificial and should not really be here. However there is a complex arrangement of Sftp and
+        // SshfsMount tests depending on this.
+        if (sshfs_process.exit_code(250ms) != 0) // TODO remove
             throw std::runtime_error(sshfs_process.read_std_error());
-    }
-    catch (const mp::ExitlessSSHProcessException&)
-    {
-        // Timeout getting exit status; assume sshfs is running in the instance
     }
 }
 
@@ -422,7 +420,7 @@ void mp::SftpServer::run()
             {
                 status = sshfs_process->exit_code(250ms);
             }
-            catch (const mp::ExitlessSSHProcessException&)
+            catch (const mp::ExitlessSSHProcessException&) // should we limit this to SSHProcessExitError?
             {
                 status = 1;
             }
@@ -431,8 +429,12 @@ void mp::SftpServer::run()
             {
                 mpl::log(mpl::Level::error, category,
                          "sshfs in the instance appears to have exited unexpectedly.  Trying to recover.");
-                auto proc = ssh_session.exec(fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
-                auto mount_path = proc.read_std_output();
+
+                std::string mount_path = [this] {
+                    auto proc = ssh_session.exec(fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
+                    return proc.read_std_output();
+                }();
+
                 if (!mount_path.empty())
                 {
                     ssh_session.exec(fmt::format("sudo umount {}", mount_path));

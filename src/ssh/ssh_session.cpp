@@ -35,7 +35,7 @@ mp::SSHSession::SSHSession(const std::string& host,
                            const std::string& username,
                            const SSHKeyProvider& key_provider,
                            const std::chrono::milliseconds timeout)
-    : session{ssh_new(), ssh_free}
+    : session{ssh_new(), ssh_free}, mut{}
 {
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
@@ -62,8 +62,30 @@ mp::SSHSession::SSHSession(const std::string& host,
                         key_provider.private_key());
 }
 
+multipass::SSHSession::SSHSession(multipass::SSHSession&& other)
+    : SSHSession(std::move(other), std::unique_lock{other.mut})
+{
+}
+
+multipass::SSHSession::SSHSession(multipass::SSHSession&& other, std::unique_lock<std::mutex>)
+    : session{std::move(other.session)}, mut{}
+{
+}
+
+multipass::SSHSession& multipass::SSHSession::operator=(multipass::SSHSession&& other)
+{
+    if (this != &other)
+    {
+        std::scoped_lock lock{mut, other.mut};
+        session = std::move(other.session);
+    }
+
+    return *this;
+}
+
 multipass::SSHSession::~SSHSession()
 {
+    std::unique_lock lock{mut};
     ssh_disconnect(session.get());
     force_shutdown(); // do we really need this?
 }
@@ -71,7 +93,7 @@ multipass::SSHSession::~SSHSession()
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
 {
     mpl::log(mpl::Level::debug, "ssh session", fmt::format("Executing '{}'", cmd));
-    return {session.get(), cmd};
+    return {session.get(), cmd, std::unique_lock{mut}};
 }
 
 void mp::SSHSession::force_shutdown()
@@ -150,5 +172,6 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
 
 bool multipass::SSHSession::is_connected() const
 {
+    std::unique_lock lock{mut};
     return static_cast<bool>(ssh_is_connected(session.get()));
 }
