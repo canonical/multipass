@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "com.canonical" "\0"
             VALUE "FileDescription", "Multipass GUI" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "multipass_gui" "\0"
+            VALUE "InternalName", "multipass.gui" "\0"
             VALUE "LegalCopyright", "Copyright (C) Canonical, Ltd. All rights reserved." "\0"
-            VALUE "OriginalFilename", "multipass_gui.exe" "\0"
+            VALUE "OriginalFilename", "multipass.gui.exe" "\0"
             VALUE "ProductName", "Multipass GUI" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
