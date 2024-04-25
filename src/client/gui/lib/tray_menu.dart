@@ -54,7 +54,7 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
     'toggle-window',
     label: 'Toggle window',
     callback: (_, __) async => await windowManager.isVisible()
-        ? windowManager.hide()
+        ? windowManager.unmaximize().then((_) => windowManager.hide())
         : windowManager.show(),
   );
 
