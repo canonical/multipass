@@ -95,7 +95,7 @@ struct SmbMountHandlerTest : public ::Test
             if (const auto it = ssh_outputs.find(command); it != ssh_outputs.end())
             {
                 output = it->second.output;
-                exit_status.return_exit_code(it->second.exit_code);
+                exit_status.set_exit_status(it->second.exit_code);
             }
             else
             {
