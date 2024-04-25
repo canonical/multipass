@@ -280,7 +280,7 @@ TEST_F(SftpServer, throws_when_sshfs_errors_on_start)
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
             invoked = true;
-            exit_status_mock.return_exit_code(SSH_ERROR);
+            exit_status_mock.set_exit_status(exit_status_mock.failure_status);
         }
         return SSH_OK;
     };
@@ -291,15 +291,39 @@ TEST_F(SftpServer, throws_when_sshfs_errors_on_start)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SftpServer, sshfs_restarts_on_error)
+TEST_F(SftpServer, throws_on_ssh_failure_read_exit)
+{
+    bool invoked{false};
+    auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
+        std::string cmd{raw_cmd};
+        if (cmd.find("sudo sshfs") != std::string::npos)
+        {
+            invoked = true;
+            exit_status_mock.set_ssh_rc(SSH_ERROR);
+            exit_status_mock.set_no_exit();
+        }
+
+        return SSH_OK;
+    };
+
+    REPLACE(ssh_channel_request_exec, request_exec);
+
+    EXPECT_THROW(make_sftpserver(), std::runtime_error);
+    EXPECT_TRUE(invoked);
+}
+
+TEST_F(SftpServer, sshfs_restarts_on_timeout)
 {
     int num_calls{0};
     auto request_exec = [this, &num_calls](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
-            exit_status_mock.return_exit_code(SSH_OK);
-            ++num_calls;
+            if (++num_calls < 3)
+            {
+                exit_status_mock.set_ssh_rc(SSH_OK);
+                exit_status_mock.set_no_exit();
+            }
         }
 
         return SSH_OK;
@@ -310,8 +334,9 @@ TEST_F(SftpServer, sshfs_restarts_on_error)
     auto sftp = make_sftpserver();
 
     auto get_client_msg = [this, &num_calls](auto...) {
-        if (num_calls == 1)
-            exit_status_mock.return_exit_code(SSH_ERROR);
+        exit_status_mock.set_ssh_rc(SSH_OK);
+        exit_status_mock.set_exit_status(num_calls == 1 ? exit_status_mock.failure_status
+                                                        : exit_status_mock.success_status);
 
         return nullptr;
     };

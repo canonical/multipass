@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/platform.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
@@ -97,14 +97,17 @@ try
     if (proc.exit_code(timeout) != 0)
     {
         auto error_msg = proc.read_std_error();
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::error,
+                 category,
                  fmt::format("Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg)));
         throw mp::SSHFSMissingError();
     }
 }
-catch (const mp::ExitlessSSHProcessException&)
+catch (const mp::ExitlessSSHProcessException& e)
 {
-    mpl::log(mpl::Level::info, category, fmt::format("Timeout while installing 'multipass-sshfs' in '{}'", name));
+    mpl::log(mpl::Level::error,
+             category,
+             fmt::format("Could not install 'multipass-sshfs' in '{}': {}", name, e.what()));
     throw mp::SSHFSMissingError();
 }
 } // namespace

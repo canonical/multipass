@@ -73,14 +73,14 @@ struct SSHFSMountHandlerTest : public ::Test
     {
         return [this, expected_cmds, &invoked](ssh_channel, const char* raw_cmd) {
             std::string cmd{raw_cmd};
-            exit_status_mock.return_exit_code(SSH_OK);
+            exit_status_mock.set_exit_status(exit_status_mock.success_status);
 
             for (const auto& expected_cmd : expected_cmds)
             {
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    exit_status_mock.return_exit_code(SSH_ERROR);
+                    exit_status_mock.set_exit_status(exit_status_mock.failure_status);
                     break;
                 }
             }
@@ -256,10 +256,11 @@ TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
     REPLACE(ssh_event_dopoll, mocked_ssh_event_dopoll);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(mpl::Level::info, mpt::MockLogger::make_cstring_matcher(StrEq("sshfs-mount-handler")),
-            mpt::MockLogger::make_cstring_matcher(StrEq("Timeout while installing 'multipass-sshfs' in 'stub'"))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(mpl::Level::error,
+                    mpt::MockLogger::make_cstring_matcher(StrEq("sshfs-mount-handler")),
+                    mpt::MockLogger::make_cstring_matcher(
+                        AllOf(HasSubstr("Could not install 'multipass-sshfs' in 'stub'"), HasSubstr("timed out")))));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)), mp::SSHFSMissingError);

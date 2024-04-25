@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/exceptions/exitless_sshprocess_exception.h>
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -25,10 +25,9 @@
 #include <libssh/callbacks.h>
 
 #include <array>
-#include <sstream>
-
 #include <cerrno>
 #include <cstring>
+#include <sstream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -37,14 +36,15 @@ namespace
 {
 constexpr auto category = "ssh process";
 
+template <typename T>
 class ExitStatusCallback
 {
 public:
-    ExitStatusCallback(ssh_channel channel, std::optional<int>& exit_status) : channel{channel}
+    ExitStatusCallback(ssh_channel channel, T& result_holder) : channel{channel}
     {
         ssh_callbacks_init(&cb);
         cb.channel_exit_status_function = channel_exit_status_cb;
-        cb.userdata = &exit_status;
+        cb.userdata = &result_holder;
         ssh_add_channel_callbacks(channel, &cb);
     }
     ~ExitStatusCallback()
@@ -55,7 +55,7 @@ public:
 private:
     static void channel_exit_status_cb(ssh_session, ssh_channel, int exit_status, void* userdata)
     {
-        auto exit_code = reinterpret_cast<std::optional<int>*>(userdata);
+        auto exit_code = reinterpret_cast<T*>(userdata);
         *exit_code = exit_status;
     }
     ssh_channel channel;
@@ -73,17 +73,53 @@ auto make_channel(ssh_session session, const std::string& cmd)
     mp::SSH::throw_on_error(channel, session, "[ssh proc] exec request failed", ssh_channel_request_exec, cmd.c_str());
     return channel;
 }
+
 } // namespace
 
-mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd)
-    : session{session}, cmd{cmd}, channel{make_channel(session, cmd)}
+mp::SSHProcess::SSHProcess(ssh_session session, const std::string& cmd, std::unique_lock<std::mutex> session_lock)
+    : session_lock{std::move(session_lock)}, // this is held until the exit code is requested or this is destroyed
+      session{session},
+      cmd{cmd},
+      channel{make_channel(session, cmd)},
+      exit_result{}
 {
+    assert(this->session_lock.owns_lock());
+}
+
+bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
+{
+    rethrow_if_saved();
+    if (std::holds_alternative<int>(exit_result))
+        return true;
+
+    try
+    {
+        read_exit_code(timeout, /* save_exception = */ false);
+        return true;
+    }
+    catch (SSHProcessTimeoutException&)
+    {
+        return false;
+    }
 }
 
 int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
-    exit_status = std::nullopt;
-    ExitStatusCallback cb{channel.get(), exit_status};
+    rethrow_if_saved();
+    if (auto exit_status = std::get_if<int>(&exit_result))
+        return *exit_status;
+
+    auto local_lock = std::move(session_lock); // unlock at the end
+    read_exit_code(timeout, /* save_exception = */ true);
+
+    assert(std::holds_alternative<int>(exit_result));
+    return std::get<int>(exit_result);
+}
+
+void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
+{
+    assert(std::holds_alternative<std::monostate>(exit_result));
+    ExitStatusCallback cb{channel.get(), exit_result};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(), ssh_event_free};
     ssh_event_add_session(event.get(), session);
@@ -91,15 +127,25 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
     int rc{SSH_OK};
-    while ((std::chrono::steady_clock::now() < deadline) && rc == SSH_OK && !exit_status)
+    while ((std::chrono::steady_clock::now() < deadline) && rc == SSH_OK && !std::holds_alternative<int>(exit_result))
     {
         rc = ssh_event_dopoll(event.get(), timeout.count());
     }
 
-    if (!exit_status) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-        throw ExitlessSSHProcessException{cmd, rc == SSH_ERROR ? std::strerror(errno) : "timeout"};
+    if (!std::holds_alternative<int>(exit_result))
+    {
+        std::exception_ptr eptr;
+        if (rc == SSH_ERROR) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+            eptr = std::make_exception_ptr(SSHProcessExitError{cmd, std::strerror(errno)});
+        else
+            eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
+        // note that make_exception_ptr takes by value; we repeat the call with the concrete types to avoid slicing
 
-    return *exit_status;
+        if (save_exception)
+            exit_result = eptr;
+
+        rethrow_exception(eptr);
+    }
 }
 
 std::string mp::SSHProcess::read_std_output()
@@ -163,5 +209,15 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 
 ssh_channel mp::SSHProcess::release_channel()
 {
+    auto local_lock = std::move(session_lock); // released at the end; callers are on their own to ensure thread safety
     return channel.release();
+}
+
+void multipass::SSHProcess::rethrow_if_saved() const
+{
+    if (auto eptrptr = std::get_if<std::exception_ptr>(&exit_result))
+    {
+        assert(!session_lock.owns_lock());
+        std::rethrow_exception(*eptrptr);
+    }
 }
