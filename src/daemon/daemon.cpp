@@ -3425,6 +3425,7 @@ void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
         [is_force_update_from_network](const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
         vm_image_host_ptr->update_manifests(is_force_update_from_network);
     };
+
     utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
 }
 
@@ -3433,8 +3434,10 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(const bo
     update_manifests_all_task.wait_ongoing_task_finish();
     if (force_manifest_network_download)
     {
+        update_manifests_all_task.stop_timer();
         mpl::log(mpl::Level::debug, "async task", "fetch manifest from the internet");
         update_manifests_all(true);
+        update_manifests_all_task.start_timer();
     }
 }
 
