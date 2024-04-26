@@ -11,6 +11,7 @@ import 'help.dart';
 import 'logger.dart';
 import 'notifications.dart';
 import 'providers.dart';
+import 'settings/hotkey.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
@@ -92,6 +93,8 @@ class _AppState extends ConsumerState<App> with WindowListener {
       }).toList(),
     );
 
+    final hotkey = ref.watch(hotkeyProvider);
+
     return Stack(children: [
       AnimatedPositioned(
         duration: SideBar.animationDuration,
@@ -103,13 +106,26 @@ class _AppState extends ConsumerState<App> with WindowListener {
             : SideBar.collapsedWidth,
         child: content,
       ),
-      const SideBar(),
+      CallbackGlobalShortcuts(
+        key: hotkey != null ? GlobalObjectKey(hotkey) : null,
+        bindings: {if (hotkey != null) hotkey: goToPrimary},
+        child: const SideBar(),
+      ),
       const Align(
         alignment: Alignment.bottomRight,
         child: SizedBox(width: 300, child: NotificationList()),
       ),
       const DaemonUnavailable(),
     ]);
+  }
+
+  void goToPrimary() {
+    final vms = ref.read(vmNamesProvider);
+    final primary = ref.read(clientSettingProvider(primaryNameKey));
+    if (vms.contains(primary)) {
+      ref.read(sidebarKeyProvider.notifier).state = 'vm-$primary';
+      windowManager.show();
+    }
   }
 
   @override
