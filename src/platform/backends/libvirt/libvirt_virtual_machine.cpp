@@ -227,8 +227,8 @@ auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMac
     if (std::find(domain_off_states.begin(), domain_off_states.end(), domain_state) != domain_off_states.end())
         return mp::VirtualMachine::State::off;
 
-    if (domain_state == VIR_DOMAIN_RUNNING && current_instance_state == mp::VirtualMachine::State::off)
-        return mp::VirtualMachine::State::running;
+    if (domain_state == VIR_DOMAIN_RUNNING && current_instance_state == mp::VirtualMachine::State::stopping)
+        return mp::VirtualMachine::State::stopping;
 
     return current_instance_state;
 }
@@ -374,6 +374,9 @@ void mp::LibVirtVirtualMachine::shutdown(const bool force)
         state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
         if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
         {
+            state = State::stopping;
+            update_state();
+
             drop_ssh_session();
 
             if (!domain || libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
@@ -383,9 +386,6 @@ void mp::LibVirtVirtualMachine::shutdown(const bool force)
                 mpl::log(mpl::Level::warning, vm_name, warning_string);
                 throw std::runtime_error(warning_string);
             }
-
-            state = State::off;
-            update_state();
         }
         else if (state == State::starting)
         {
