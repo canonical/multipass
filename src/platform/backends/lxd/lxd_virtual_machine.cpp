@@ -285,8 +285,10 @@ void mp::LXDVirtualMachine::shutdown(const bool force)
         return;
     }
 
-    request_state("stop", {{"force", force}});
+    state = State::stopping;
+    update_state();
 
+    request_state("stop", {{"force", force}});
     state = State::stopped;
 
     if (present_state == State::starting)
