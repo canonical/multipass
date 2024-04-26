@@ -349,20 +349,16 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 
-        if (state == State::starting)
-            update_shutdown_status = false;
-
         if (vm_process)
         {
             mpl::log(mpl::Level::info, vm_name, "Killing process");
             vm_process->kill();
-            vm_process->wait_for_finished(timeout); // Need to wait for process to die in order to
-                                                    // check for suspend image later
+            std::unique_lock<std::mutex> lock{state_mutex};
+            state_wait.wait(lock, [this] { return vm_process == nullptr; });
         }
         else
         {
-            mpl::log(mpl::Level::info, vm_name, "No process to kill");
-            state = State::off;
+            mpl::log(mpl::Level::debug, vm_name, "No process to kill");
         }
 
         if (state == State::suspended || mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
@@ -370,22 +366,22 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
             mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
             mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
         }
+
+        std::unique_lock<std::mutex> lock{state_mutex};
+
+        if (state != State::off)
+        {
+            state = State::off;
+        }
     }
     else
     {
         drop_ssh_session();
 
-        if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
-            vm_process->running())
+        if (vm_process && vm_process->running())
         {
             vm_process->write(qmp_execute_json("system_powerdown"));
             vm_process->wait_for_finished(timeout);
-        }
-        else
-        {
-            const std::string error_msg{"Cannot stop instance in its current state"};
-            mpl::log(mpl::Level::warning, vm_name, error_msg);
-            throw std::runtime_error(error_msg);
         }
     }
 }
@@ -461,6 +457,8 @@ void mp::QemuVirtualMachine::on_shutdown()
         update_state();
         vm_process.reset(nullptr);
     }
+
+    state_wait.notify_all();
 
     monitor->on_shutdown();
 }
