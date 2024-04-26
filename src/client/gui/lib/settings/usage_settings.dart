@@ -6,10 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 
-// import 'package:hotkey_manager/hotkey_manager.dart';
-
 import '../providers.dart';
 import '../switch.dart';
+import 'hotkey.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
 final passphraseProvider = daemonSettingProvider(passphraseKey);
@@ -27,6 +26,7 @@ class UsageSettings extends ConsumerWidget {
     final privilegedMounts = ref.watch(privilegedMountsProvider.select((value) {
       return value.valueOrNull?.toBoolOption.toNullable() ?? false;
     }));
+    final hotkey = ref.watch(hotkeyProvider);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text(
@@ -38,6 +38,14 @@ class UsageSettings extends ConsumerWidget {
         value: primaryName,
         onSave: (value) {
           ref.read(primaryNameProvider.notifier).set(value);
+        },
+      ),
+      const SizedBox(height: 20),
+      HotkeyField(
+        value: hotkey,
+        onSave: (newHotkey) {
+          print(newHotkey);
+          ref.read(hotkeyProvider.notifier).set(newHotkey);
         },
       ),
       const SizedBox(height: 20),
@@ -60,37 +68,6 @@ class UsageSettings extends ConsumerWidget {
     ]);
   }
 }
-
-// class HotkeyField extends StatefulWidget {
-//   final HotKey? initialHotkey;
-//   final ValueChanged<HotKey?> onSave;
-//
-//   const HotkeyField({
-//     super.key,
-//     required this.initialHotkey,
-//     required this.onSave,
-//   });
-//
-//   @override
-//   State<HotkeyField> createState() => _HotkeyFieldState();
-// }
-
-// class _HotkeyFieldState extends State<HotkeyField> {
-//   late var hotkey = widget.initialHotkey;
-//   var changed = false;
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return SettingField(
-//       icon: 'assets/primary_instance.svg',
-//       label: 'Primary instance name',
-//       onSave: () => widget.onSave(hotkey),
-//       onDiscard: () => hotkey = widget.initialHotkey,
-//       changed: changed,
-//       child: GestureDetector(),
-//     );
-//   }
-// }
 
 class PrimaryNameField extends StatefulWidget {
   final String value;
@@ -160,6 +137,65 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
         inputFormatters: [
           FilteringTextInputFormatter.allow(RegExp('[-A-Za-z0-9]'))
         ],
+      ),
+    );
+  }
+}
+
+class HotkeyField extends StatefulWidget {
+  final SingleActivator? value;
+  final ValueChanged<SingleActivator?> onSave;
+
+  const HotkeyField({
+    super.key,
+    required this.value,
+    required this.onSave,
+  });
+
+  @override
+  State<HotkeyField> createState() => _HotkeyFieldState();
+}
+
+class _HotkeyFieldState extends State<HotkeyField> {
+  var changed = false;
+  late SingleActivator? value = widget.value;
+  final recorderState = GlobalKey<HotkeyRecorderState>();
+
+  static (bool?, bool?, bool?, bool?, LogicalKeyboardKey?) components(
+    SingleActivator? value,
+  ) {
+    return (
+      value?.alt,
+      value?.control,
+      value?.meta,
+      value?.shift,
+      value?.trigger,
+    );
+  }
+
+  @override
+  void didUpdateWidget(HotkeyField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    changed = components(value) != components(widget.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingField(
+      label: 'Primary instance hotkey',
+      onSave: () => widget.onSave(value),
+      onDiscard: () => setState(() {
+        recorderState.currentState?.set(widget.value);
+        changed = false;
+      }),
+      changed: changed,
+      child: HotkeyRecorder(
+        key: recorderState,
+        value: value,
+        onSave: (newHotkey) => setState(() {
+          value = newHotkey;
+          changed = components(value) != components(widget.value);
+        }),
       ),
     );
   }
