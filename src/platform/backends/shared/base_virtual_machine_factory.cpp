@@ -26,19 +26,6 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-namespace
-{
-template <typename NetworkContainer>
-auto find_bridge_with(const NetworkContainer& networks, const std::string& member_network,
-                      const std::string& bridge_type)
-{
-    return std::find_if(std::cbegin(networks), std::cend(networks),
-                        [&member_network, &bridge_type](const mp::NetworkInterfaceInfo& info) {
-                            return info.type == bridge_type && info.has_link(member_network);
-                        });
-}
-} // namespace
-
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
 
 mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir) : instances_dir{instances_dir} {};
@@ -83,7 +70,7 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
 
     if (net_it != host_nets.end() && net_it->type != bridge_type)
     {
-        if (auto bridge_it = find_bridge_with(host_nets, net.id, bridge_type); bridge_it != host_nets.cend())
+        if (auto bridge_it = find_bridge_with_type(host_nets, net.id, bridge_type); bridge_it != host_nets.cend())
         {
             net.id = bridge_it->id;
         }
@@ -93,4 +80,23 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
             host_nets.push_back({net.id, bridge_type, "new bridge", {net_it->id}});
         }
     }
+}
+
+std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::BaseVirtualMachineFactory::find_bridge_with(
+    const std::vector<mp::NetworkInterfaceInfo>& networks,
+    const std::string& member_network) const
+{
+    return find_bridge_with_type(networks, member_network, "bridge");
+}
+
+std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::BaseVirtualMachineFactory::find_bridge_with_type(
+    const std::vector<mp::NetworkInterfaceInfo>& networks,
+    const std::string& member_network,
+    const std::string& bridge_type) const
+{
+    return std::find_if(std::cbegin(networks),
+                        std::cend(networks),
+                        [&member_network, &bridge_type](const mp::NetworkInterfaceInfo& info) {
+                            return info.type == bridge_type && info.has_link(member_network);
+                        });
 }

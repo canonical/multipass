@@ -82,6 +82,10 @@ public:
         return "";
     };
 
+    std::vector<NetworkInterfaceInfo>::const_iterator find_bridge_with(
+        const std::vector<NetworkInterfaceInfo>& networks,
+        const std::string& member_network) const override;
+
 protected:
     static const Path instances_subdir;
 
@@ -98,6 +102,11 @@ protected:
                                    const std::string& bridge_type);
 
     virtual void remove_resources_for_impl(const std::string& name) = 0;
+
+    std::vector<NetworkInterfaceInfo>::const_iterator find_bridge_with_type(
+        const std::vector<NetworkInterfaceInfo>& networks,
+        const std::string& member_network,
+        const std::string& bridge_type) const;
 
 private:
     Path instances_dir;

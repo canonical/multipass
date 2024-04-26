@@ -43,15 +43,6 @@ namespace
 constexpr auto category = "lxd factory";
 const QString multipass_bridge_name = "mpbr0";
 
-template <typename NetworkContainer>
-auto find_bridge_with(const NetworkContainer& networks, const std::string& member_network)
-{
-    return std::find_if(std::cbegin(networks), std::cend(networks),
-                        [&member_network](const mp::NetworkInterfaceInfo& info) {
-                            return info.type == "bridge" && info.has_link(member_network);
-                        });
-}
-
 mp::NetworkInterfaceInfo munch_network(std::map<std::string, mp::NetworkInterfaceInfo>& platform_networks,
                                        const QJsonObject& network)
 {
