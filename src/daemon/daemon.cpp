@@ -18,6 +18,7 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "instance_settings_handler.h"
+#include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
@@ -1030,20 +1031,6 @@ std::string generate_unused_mac_address(std::unordered_set<std::string>& s)
                     max_tries, s.size())};
 }
 
-bool is_ipv4_valid(const std::string& ipv4)
-{
-    try
-    {
-        (mp::IPAddress(ipv4));
-    }
-    catch (std::invalid_argument&)
-    {
-        return false;
-    }
-
-    return true;
-}
-
 struct SnapshotPick
 {
     std::unordered_set<std::string> pick;
@@ -1802,7 +1789,7 @@ try // clang-format on
             std::string management_ip = vm.management_ipv4();
             auto all_ipv4 = vm.get_all_ipv4();
 
-            if (is_ipv4_valid(management_ip))
+            if (MP_UTILS.is_ipv4_valid(management_ip))
                 entry->add_ipv4(management_ip);
             else if (all_ipv4.empty())
                 entry->add_ipv4("N/A");
@@ -3522,32 +3509,11 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     timestamp->set_nanos(created_time.time().msec() * 1'000'000);
 
     if (!no_runtime_info && MP_UTILS.is_running(present_state))
-    {
-        instance_info->set_load(vm.ssh_exec("cat /proc/loadavg | cut -d ' ' -f1-3"));
-        instance_info->set_memory_usage(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $3}'"));
-        info->set_memory_total(vm.ssh_exec("free -b | grep 'Mem:' | awk '{printf $2}'"));
-        instance_info->set_disk_usage(vm.ssh_exec("df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"));
-        info->set_disk_total(vm.ssh_exec("df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"));
-        info->set_cpu_count(vm.ssh_exec("nproc"));
-
-        std::string management_ip = vm.management_ipv4();
-        auto all_ipv4 = vm.get_all_ipv4();
-
-        if (is_ipv4_valid(management_ip))
-            instance_info->add_ipv4(management_ip);
-        else if (all_ipv4.empty())
-            instance_info->add_ipv4("N/A");
-
-        for (const auto& extra_ipv4 : all_ipv4)
-            if (extra_ipv4 != management_ip)
-                instance_info->add_ipv4(extra_ipv4);
-
-        auto current_release = vm.ssh_exec("cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2");
-        instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
-
-        instance_info->set_cpu_times(vm.ssh_exec("head -n1 /proc/stat"));
-        instance_info->set_uptime(vm.ssh_exec("uptime -p | tail -c+4"));
-    }
+        RuntimeInstanceInfoHelper::populate_runtime_info(vm,
+                                                         info,
+                                                         instance_info,
+                                                         original_release,
+                                                         vm_specs.num_cores == 1);
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name)

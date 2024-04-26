@@ -555,7 +555,21 @@ mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
         return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
 }
 
-void multipass::Utils::sleep_for(const std::chrono::milliseconds& ms) const
+void mp::Utils::sleep_for(const std::chrono::milliseconds& ms) const
 {
     std::this_thread::sleep_for(ms);
+}
+
+bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
+{
+    try
+    {
+        (mp::IPAddress(ipv4));
+    }
+    catch (std::invalid_argument&)
+    {
+        return false;
+    }
+
+    return true;
 }
