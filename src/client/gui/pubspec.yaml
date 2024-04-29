@@ -40,6 +40,13 @@ dependencies:
   window_manager: ^0.3.5
   xterm: ^3.5.0
 
+dependency_overrides:
+  hotkey_manager_linux:
+    git:
+      url: https://github.com/andrei-toterman/hotkey_manager.git
+      ref: no-cooked-accel
+      path: packages/hotkey_manager_linux
+
 dev_dependencies:
   flutter_lints: ^4.0.0
 
