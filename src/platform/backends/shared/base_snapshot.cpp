@@ -201,13 +201,15 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename,
                                const VMSpecs& src_specs,
                                const VMSpecs& dest_specs,
                                const std::string& src_vm_name,
-                               VirtualMachine& dest_vm)
+                               VirtualMachine& dest_vm,
+                               const VirtualMachineDescription& desc)
     : BaseSnapshot{read_snapshot_json_and_update_unique_identifiers(filename,
                                                                     src_specs,
                                                                     dest_specs,
                                                                     src_vm_name,
                                                                     dest_vm.get_vm_name()),
-                   dest_vm}
+                   dest_vm,
+                   desc}
 {
     persist();
 }

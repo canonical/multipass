@@ -48,7 +48,8 @@ public:
                  const VMSpecs& src_specs,
                  const VMSpecs& dest_specs,
                  const std::string& src_vm_name,
-                 VirtualMachine& dest_vm);
+                 VirtualMachine& dest_vm,
+                 const VirtualMachineDescription& desc);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
