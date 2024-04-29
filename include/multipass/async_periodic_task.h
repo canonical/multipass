@@ -68,27 +68,28 @@ public:
         mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
         future = QtConcurrent::run(std::forward<Callable>(func), std::forward<Args>(args)...);
 
-        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, [retry_start_delay_time, this] {
+        auto event_handler_on_sucess_and_failure = [retry_start_delay_time, this]() -> void {
             try
             {
                 // rethrow exception
                 future.waitForFinished();
-                mpl::log(mpl::Level::debug, "async task", "no Exception caught. ");
-                // success case, we reset the time interval for timer and the retry dayly time value
+                mpl::log(mpl::Level::debug, "async task", "The download succeeded.");
+                // success case, we reset the time interval for timer and the reset the retry delay time value
                 timer.start(default_delay_time);
                 retry_current_delay_time = retry_start_delay_time;
             }
             catch (const multipass::DownloadException& e)
             {
-                mpl::log(mpl::Level::info,
+                mpl::log(mpl::Level::debug,
                          "async task",
                          fmt::format("QFutureWatcher caught DownloadException {}", e.what()));
                 // failure case, trigger or continue the retry mechanism
                 timer.start(retry_current_delay_time);
                 retry_current_delay_time = std::min(2 * retry_current_delay_time, default_delay_time);
             }
-            mpl::log(mpl::Level::debug, "async task", "QFutureWatcher finished. ");
-        });
+        };
+
+        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, event_handler_on_sucess_and_failure);
         future_watcher.setFuture(future);
 
         QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
