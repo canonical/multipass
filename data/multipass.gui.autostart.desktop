@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=Multipass
-Exec=multipass.gui --autostarting
-Type=Application
-Terminal=false
-Categories=Utility;
