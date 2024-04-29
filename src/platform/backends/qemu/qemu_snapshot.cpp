@@ -78,7 +78,9 @@ mp::QemuSnapshot::QemuSnapshot(const QString& filename,
                                const std::string& src_vm_name,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot{filename, src_specs, dest_specs, src_vm_name, vm}, desc{desc}, image_path{desc.image.image_path}
+    : BaseSnapshot{filename, src_specs, dest_specs, src_vm_name, vm, desc},
+      desc{desc},
+      image_path{desc.image.image_path}
 {
 }
 

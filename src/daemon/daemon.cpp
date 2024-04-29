@@ -289,8 +289,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             static_cast<mp::VirtualMachine::State>(state),
             mounts,
             deleted,
-            metadata};
-                                      clone_count};
+            metadata,
+            clone_count};
     }
     return reconstructed_records;
 }
