@@ -73,7 +73,6 @@ public:
             {
                 // rethrow exception
                 future.waitForFinished();
-                mpl::log(mpl::Level::debug, "async task", "The download succeeded.");
                 // success case, we reset the time interval for timer and the reset the retry delay time value
                 timer.start(default_delay_time);
                 retry_current_delay_time = retry_start_delay_time;
