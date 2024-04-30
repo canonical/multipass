@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../dropdown.dart';
 import '../providers.dart';
 import '../switch.dart';
+import 'autostart_notifiers.dart';
 
 final updateProvider = Provider.autoDispose((ref) {
   ref
@@ -25,6 +26,7 @@ class GeneralSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider);
+    final autostart = ref.watch(autostartProvider).valueOrNull ?? false;
     final onAppClose = ref.watch(onAppCloseProvider);
 
     return Column(
@@ -38,10 +40,10 @@ class GeneralSettings extends ConsumerWidget {
         if (update.version.isNotBlank) UpdateAvailable(update),
         Switch(
           label: 'Open the Multipass GUI on startup',
-          value: false,
+          value: autostart,
           trailingSwitch: true,
           size: 30,
-          onChanged: (value) {},
+          onChanged: (value) => ref.read(autostartProvider.notifier).set(value),
         ),
         const SizedBox(height: 20),
         Dropdown(
