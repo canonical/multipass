@@ -77,6 +77,8 @@ QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& file
                                                              const std::string& dest_vm_name)
 {
     QJsonObject snapshot_json = read_snapshot_json(filename);
+    snapshot_json["cloud_init_instance_id"] =
+        MP_JSONUTILS.update_cloud_init_instance_id(snapshot_json["cloud_init_instance_id"], src_vm_name, dest_vm_name);
     snapshot_json["metadata"] = MP_JSONUTILS.update_unique_identifiers_of_metadata(snapshot_json["metadata"].toObject(),
                                                                                    src_specs,
                                                                                    dest_specs,

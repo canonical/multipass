@@ -42,6 +42,9 @@ public:
 
     virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
+    virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& cloud_init_instance_id_value,
+                                                     const std::string& src_vm_name,
+                                                     const std::string& dest_vm_name) const;
     virtual QJsonObject update_unique_identifiers_of_metadata(const QJsonObject& metadataObject,
                                                               const multipass::VMSpecs& src_specs,
                                                               const multipass::VMSpecs& dest_specs,
