@@ -3520,7 +3520,28 @@ bool mp::Daemon::is_bridged(const std::string& instance_name)
 {
     const auto& spec = vm_instance_specs[instance_name];
     const auto& br_interface = get_bridged_interface_name();
-    const auto& br_name = config->factory->bridge_name_for(br_interface);
+    const auto& host_nets = config->factory->networks();
+
+    // Return true if the bridged interface is already a bridge.
+    if (std::any_of(std::cbegin(host_nets),
+                    std::cend(host_nets),
+                    [&br_interface](const mp::NetworkInterfaceInfo& info) {
+                        return info.id == br_interface && info.type == "bridge";
+                    }))
+    {
+        return true;
+    }
+
+    const auto& br_it = config->factory->find_bridge_with(host_nets, br_interface);
+
+    // Return false if there is no bridge containing br_interface.
+    if (br_it == host_nets.cend())
+    {
+        return false;
+    }
+
+    // br_name is the name of the bridge which contains br_interface.
+    const auto& br_name = br_it->id;
 
     return std::any_of(spec.extra_interfaces.cbegin(),
                        spec.extra_interfaces.cend(),
