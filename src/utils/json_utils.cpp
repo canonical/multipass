@@ -75,16 +75,16 @@ QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& cloud_
     return result_cloud_init_instance_id;
 }
 
-QJsonObject mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonObject& metadataObject,
-                                                                 const multipass::VMSpecs& src_specs,
-                                                                 const multipass::VMSpecs& dest_specs,
-                                                                 const std::string& src_vm_name,
-                                                                 const std::string& dest_vm_name) const
+QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonValue& metadata_value,
+                                                                const multipass::VMSpecs& src_specs,
+                                                                const multipass::VMSpecs& dest_specs,
+                                                                const std::string& src_vm_name,
+                                                                const std::string& dest_vm_name) const
 {
     assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
 
-    QJsonObject result_metadata = metadataObject;
-    QJsonValueRef arguments = result_metadata["arguments"];
+    QJsonObject result_metadata_object = metadata_value.toObject();
+    QJsonValueRef arguments = result_metadata_object["arguments"];
     QJsonArray json_array = arguments.toArray();
     for (QJsonValueRef item : json_array)
     {
@@ -107,7 +107,7 @@ QJsonObject mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonObje
     }
     arguments = json_array;
 
-    return result_metadata;
+    return QJsonValue{result_metadata_object};
 }
 
 QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
