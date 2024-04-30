@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <cassert>
 
 #include <multipass/format.h>
 #include <multipass/network_interface.h>
@@ -59,7 +60,21 @@ YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name, const
 {
     YAML::Node meta_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
-    meta_data["instance-id"] = name;
+    if (!file_content.empty())
+    {
+        const std::string old_hostname = meta_data["local-hostname"].as<std::string>();
+        std::string old_instance_id = meta_data["instance-id"].as<std::string>();
+
+        // The assumption here is that the instance_id is the hostname optionally appended _e sequence
+        assert(old_instance_id.size() >= old_hostname.size());
+        // replace the old host name with the new host name
+        meta_data["instance-id"] = old_instance_id.replace(0, old_hostname.size(), name);
+    }
+    else
+    {
+        meta_data["instance-id"] = name;
+    }
+
     meta_data["local-hostname"] = name;
     meta_data["cloud-name"] = "multipass";
 
