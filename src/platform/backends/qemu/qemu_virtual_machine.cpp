@@ -349,9 +349,16 @@ void mp::QemuVirtualMachine::start()
 
 void mp::QemuVirtualMachine::shutdown(const bool force)
 {
+    std::unique_lock lock{state_mutex};
+    auto initial_state = state;
+
     if (force)
     {
-        state = State::off;
+        state = State::stopping;
+        update_state();
+        lock.unlock(); // The whole method should be locked, but this is the best we can do without reworking stopping
+                       // while starting: we'd need to lock recursively, which is incompatible with condition_variable
+
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 
         if (vm_process)
@@ -370,17 +377,23 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
     }
     else
     {
+        // TODO@no-merge unduplicate & otherwise streamline code after rebasing on stable base
+        state = State::stopping;
+        update_state();
+        lock.unlock();
+
         drop_ssh_session();
 
-        if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
-            vm_process->running())
+        if ((initial_state == State::running || initial_state == State::delayed_shutdown ||
+             initial_state == State::unknown) &&
+            vm_process && vm_process->running())
         {
             vm_process->write(qmp_execute_json("system_powerdown"));
             vm_process->wait_for_finished(timeout);
         }
         else
         {
-            if (state == State::starting)
+            if (initial_state == State::starting)
                 update_shutdown_status = false;
 
             if (vm_process)
@@ -446,10 +459,15 @@ void mp::QemuVirtualMachine::on_error()
 void mp::QemuVirtualMachine::on_stopping()
 {
     std::unique_lock lock{state_mutex};
-    mpl::log(mpl::Level::trace, vm_name, "VM stopping");
-    state = State::stopping;
-    drop_ssh_session();
-    update_state();
+    if (state != State::stopping)
+    {
+        mpl::log(mpl::Level::trace, vm_name, "VM stopping");
+        state = State::stopping;
+        drop_ssh_session();
+        update_state();
+    }
+    else
+        mpl::log(mpl::Level::trace, vm_name, "VM already stopping");
 }
 
 void mp::QemuVirtualMachine::on_shutdown()
