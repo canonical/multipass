@@ -44,7 +44,7 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
     QJsonObject metadata;
-    int clone_count = 0; // tracks the number of cloned vm from this source vm (regardless or deletes)
+    int clone_count = 0; // tracks the number of cloned vm from this source vm (regardless of deletes)
 };
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
