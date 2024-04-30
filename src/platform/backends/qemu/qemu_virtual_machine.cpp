@@ -371,9 +371,10 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
             mpl::log(mpl::Level::info, vm_name, "No process to kill");
         }
     }
-    else if (state == State::suspended)
+    else if (state == State::off || state == State::stopped || state == State::suspended || state == State::stopping)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+        // TODO@no-merge use an util to get string from state enum (reuse where needed, e.g. CLI format utils)
+        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while stopped/stopping/suspended"));
     }
     else
     {
