@@ -148,7 +148,7 @@ function(determine_version OUTPUT_VARIABLE)
                       OUTPUT_STRIP_TRAILING_WHITESPACE
                       ERROR_QUIET)
 
-      execute_process(COMMAND git describe --tags --match *-rc --abbrev=0
+      execute_process(COMMAND git describe --tags --match *-rc[0-9]* --abbrev=0
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                       OUTPUT_VARIABLE GIT_TAG
                       OUTPUT_STRIP_TRAILING_WHITESPACE)
