@@ -73,7 +73,6 @@ with tempfile.TemporaryDirectory() as workdir:
         target_path = target(arm_work, path)
 
         if (path.is_dir() and not path.is_symlink()) or target_path.exists():
-            print(path.is_dir())
             continue
 
         copy(arm_work, path)
