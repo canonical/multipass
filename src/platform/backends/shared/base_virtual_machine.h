@@ -117,7 +117,7 @@ private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
     // the number of args is either 0 or 3, eventually this forwarding will lead to calling make_specific_snapshot
-    // with one filename argument or that one plus other three arguments.
+    // with one filename argument or one filename plus other three arguments.
     template <typename... Args>
     void load_snapshots_common(Args&&... args);
     template <typename LockT>

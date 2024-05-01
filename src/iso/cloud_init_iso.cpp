@@ -487,7 +487,7 @@ const std::string& mp::CloudInitIso::at(const std::string& name) const
                                  [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
         iter == std::cend(files))
     {
-        throw std::runtime_error(fmt::format("Did not find the target file {} in the CloudInitIso instance. ", name));
+        throw std::runtime_error(fmt::format("Did not find the target file {} in the CloudInitIso instance.", name));
     }
     else
     {

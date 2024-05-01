@@ -48,7 +48,6 @@ namespace multipass
 
 // Fwd decl
 class VirtualMachine;
-struct NetworkInterface;
 
 namespace utils
 {
