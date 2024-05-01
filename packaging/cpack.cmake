@@ -182,6 +182,8 @@ if (MSVC)
     RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Roaming\\\\multipassd\\\"
     RMDIR /r \\\"$LOCALAPPDATA\\\\Multipass\\\"
     \\\${EnableX64FSRedirection}
+    SetShellVarContext current
+    Delete '$SMSTARTUP\\\\Multipass.lnk'
     done_uninst:
     "
   )
