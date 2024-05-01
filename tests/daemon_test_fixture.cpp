@@ -316,7 +316,7 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.factory = std::make_unique<StubVirtualMachineFactory>();
     config_builder.image_hosts.push_back(std::make_unique<StubVMImageHost>());
     config_builder.ssh_key_provider = std::make_unique<StubSSHKeyProvider>();
-    config_builder.cert_provider = std::make_unique<MockCertProvider>();
+    config_builder.cert_provider = std::make_unique<NiceMock<MockCertProvider>>();
     config_builder.client_cert_store = std::make_unique<StubCertStore>();
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
@@ -373,7 +373,7 @@ void mpt::DaemonTestFixture::send_commands(std::vector<std::vector<std::string>>
         StubTerminal term(cout, cerr, cin);
 
         std::unique_ptr<CertProvider> cert_provider;
-        cert_provider = std::make_unique<MockCertProvider>();
+        cert_provider = std::make_unique<NiceMock<MockCertProvider>>();
 
         ClientConfig client_config{server_address, std::move(cert_provider), &term};
         TestClient client{client_config};

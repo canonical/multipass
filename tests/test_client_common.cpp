@@ -56,7 +56,8 @@ struct TestClientCommon : public mpt::DaemonTestFixture
         return mpt::MockDaemon(config_builder.build());
     }
 
-    std::unique_ptr<mpt::MockCertProvider> mock_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    std::unique_ptr<NiceMock<mpt::MockCertProvider>> mock_cert_provider{
+        std::make_unique<NiceMock<mpt::MockCertProvider>>()};
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
 
     const std::string server_address{"localhost:50052"};
