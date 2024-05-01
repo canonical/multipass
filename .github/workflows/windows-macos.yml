@@ -516,6 +516,7 @@ jobs:
       if: ${{ steps.retrieve-x86.outputs.download-path && steps.retrieve-arm.outputs.download-path }}
       run: |
         ${ARCH_WRAPPER} brew install python
+        ${ARCH_WRAPPER} brew install coreutils
         ${ARCH_WRAPPER} python3 -m pip install --user --upgrade lxml
 
         PKG=${{ needs.BuildAndTest.outputs.mac-x86-package }}
