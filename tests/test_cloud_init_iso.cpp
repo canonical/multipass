@@ -90,7 +90,7 @@ TEST_F(CloudInitIso, check_at_operator_throw)
     MP_EXPECT_THROW_THAT(
         iso.at("non_exist_file"),
         std::runtime_error,
-        mpt::match_what(StrEq("Did not find the target file non_exist_file in the CloudInitIso instance. ")));
+        mpt::match_what(StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
 }
 
 TEST_F(CloudInitIso, check_at_operator_found_key)

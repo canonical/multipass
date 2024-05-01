@@ -61,7 +61,6 @@ private:
         std::string name;
         std::string data;
     };
-
     std::vector<FileEntry> files;
 };
 

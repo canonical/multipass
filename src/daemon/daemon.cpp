@@ -2814,7 +2814,6 @@ void mp::Daemon::clone(const CloneRequest* request,
     }
     catch (const std::exception& e)
     {
-        // clean up the possible leftover RAM data and disk files
         status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what()));
     }
 }
