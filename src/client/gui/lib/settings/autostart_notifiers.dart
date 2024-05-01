@@ -59,15 +59,23 @@ class WindowsAutostartNotifier extends AutostartNotifier {
 }
 
 class MacOSAutostartNotifier extends AutostartNotifier {
-  @override
-  FutureOr<bool> build() {
-    // TODO: implement build
-    throw UnimplementedError();
-  }
+  static const plistFile = 'com.canonical.multipass.gui.autostart.plist';
+  final file = File(
+    '${Platform.environment['HOME']}/Library/LaunchAgents/$plistFile',
+  );
 
   @override
-  Future<void> set(bool value) {
-    // TODO: implement set
-    throw UnimplementedError();
+  Future<bool> build() => file.exists();
+
+  @override
+  Future<void> set(bool value) async {
+    if (value) {
+      final data = await rootBundle.load('assets/$plistFile');
+      await file.writeAsBytes(data.buffer.asUint8List());
+    } else {
+      if (await file.exists()) await file.delete();
+    }
+
+    ref.invalidateSelf();
   }
 }
