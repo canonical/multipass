@@ -39,16 +39,22 @@ class LinuxAutostartNotifier extends AutostartNotifier {
 }
 
 class WindowsAutostartNotifier extends AutostartNotifier {
-  @override
-  FutureOr<bool> build() {
-    // TODO: implement build
-    throw UnimplementedError();
-  }
+  final link = Link(
+    '${Platform.environment['AppData']}/Microsoft/Windows/Start Menu/Programs/Startup/Multipass.lnk',
+  );
 
   @override
-  Future<void> set(bool value) {
-    // TODO: implement set
-    throw UnimplementedError();
+  Future<bool> build() => link.exists();
+
+  @override
+  Future<void> set(bool value) async {
+    if (value) {
+      await link.create(Platform.resolvedExecutable);
+    } else {
+      if (await link.exists()) await link.delete();
+    }
+
+    ref.invalidateSelf();
   }
 }
 
