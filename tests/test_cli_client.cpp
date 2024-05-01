@@ -369,11 +369,12 @@ struct Client : public Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    static std::unique_ptr<mpt::MockCertProvider> get_client_cert_provider()
+    static std::unique_ptr<NiceMock<mpt::MockCertProvider>> get_client_cert_provider()
     {
-        return std::make_unique<mpt::MockCertProvider>();
+        return std::make_unique<NiceMock<mpt::MockCertProvider>>();
     };
-    std::unique_ptr<mpt::MockCertProvider> daemon_cert_provider{std::make_unique<mpt::MockCertProvider>()};
+    std::unique_ptr<NiceMock<mpt::MockCertProvider>> daemon_cert_provider{
+        std::make_unique<NiceMock<mpt::MockCertProvider>>()};
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
     mpt::StubCertStore cert_store;
