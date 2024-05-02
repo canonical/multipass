@@ -37,6 +37,7 @@
 #include "mock_vm_image_vault.h"
 #include "path.h"
 #include "stub_virtual_machine.h"
+#include "stub_virtual_machine_factory.h"
 #include "stub_vm_image_vault.h"
 #include "tracking_url_downloader.h"
 
@@ -2338,10 +2339,20 @@ TEST_P(DaemonIsBridged, is_bridged_works)
     specs.extra_interfaces = extra_interfaces;
 
     auto mock_factory = use_a_mock_vm_factory();
+
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
-    EXPECT_CALL(*mock_factory, bridge_name_for(_)).WillOnce(Return("br-eth8"));
+    std::vector<mp::NetworkInterfaceInfo> net_infos{{"eth8", "ethernet", "Ethernet device"},
+                                                    {"br-eth8", "bridge", "Network bridge", {"eth8"}}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_infos));
+
+    EXPECT_CALL(*mock_factory, find_bridge_with(_, _))
+        .WillOnce([](const std::vector<mp::NetworkInterfaceInfo>& networks, const std::string& member_network) {
+            mpt::StubVirtualMachineFactory stub;
+
+            return stub.find_bridge_with(networks, member_network);
+        });
 
     EXPECT_EQ(daemon.test_is_bridged(instance_name, specs), result);
 }
