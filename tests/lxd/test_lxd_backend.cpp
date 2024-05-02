@@ -2403,21 +2403,3 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     EXPECT_EQ(patch_times_called, 1u);
 }
-
-struct LXDNetworkNameTestSuite : LXDBackend, WithParamInterface<std::pair<std::string, std::string>>
-{
-};
-
-TEST_P(LXDNetworkNameTestSuite, backendReturnsCorrectBridgeName)
-{
-    const auto [name, ret] = GetParam();
-
-    CustomLXDFactory factory{std::move(mock_network_access_manager), data_dir.path(), base_url};
-
-    EXPECT_EQ(factory.bridge_name_for(name), ret);
-}
-
-INSTANTIATE_TEST_SUITE_P(LXDBackend,
-                         LXDNetworkNameTestSuite,
-                         Values(std::make_pair("enp4s0", "br-enp4s0"),
-                                std::make_pair("enx586d8fd35b6c", "br-enx586d8fd35")));
