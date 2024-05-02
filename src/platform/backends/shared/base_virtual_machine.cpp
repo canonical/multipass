@@ -23,6 +23,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -185,6 +186,37 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
         std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
 
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
+}
+
+void mp::BaseVirtualMachine::check_state_for_shutdown(const bool force)
+{
+    const std::string force_statement{"Use --force to override."};
+    const std::unique_lock lock{state_mutex};
+
+    if (state == State::off || state == State::stopped)
+    {
+        throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
+    }
+
+    if (force)
+    {
+        return;
+    }
+
+    if (state == State::suspending)
+    {
+        throw VMStateInvalidException{fmt::format("Cannot stop instance while suspending. {}", force_statement)};
+    }
+
+    if (state == State::suspended)
+    {
+        throw VMStateInvalidException{fmt::format("Cannot stop suspended instance. {}", force_statement)};
+    }
+
+    if (state == State::starting || state == State::restarting)
+    {
+        throw VMStateInvalidException{fmt::format("Cannot stop instance while starting. {}", force_statement)};
+    }
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
