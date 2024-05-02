@@ -24,6 +24,7 @@
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
@@ -345,6 +346,16 @@ void mp::QemuVirtualMachine::start()
 
 void mp::QemuVirtualMachine::shutdown(const bool force)
 {
+    try
+    {
+        check_state_for_shutdown(force);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::log(mpl::Level::info, vm_name, e.what());
+        return;
+    }
+
     if (force)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
