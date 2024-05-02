@@ -121,9 +121,12 @@ class LaunchForm extends ConsumerWidget {
         }
 
         final grpcClient = ref.read(grpcClientProvider);
-        final stream = grpcClient.launch(launchRequest, mountRequests);
-        ref.read(launchOperationProvider.notifier).state =
-            (stream, launchRequest.instanceName, imageName(imageInfo));
+        final operation = LaunchOperation(
+          stream: grpcClient.launch(launchRequest, mountRequests),
+          name: launchRequest.instanceName,
+          image: imageName(imageInfo),
+        );
+        ref.read(launchOperationProvider.notifier).state = operation;
       },
       child: const Text('Launch'),
     );
