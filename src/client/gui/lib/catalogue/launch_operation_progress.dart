@@ -30,15 +30,13 @@ class LaunchOperationProgress extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       alignment: Alignment.topLeft,
       child: StreamBuilder(
-        stream: stream.doOnData((r) {
-          if (r == null) {
-            Scaffold.of(context).closeEndDrawer();
+        stream: stream.doOnData((reply) {
+          if (reply != null) return;
+          Scaffold.of(context).closeEndDrawer();
+          Timer(250.milliseconds, () {
+            ref.invalidate(launchOperationProvider);
             ref.read(sidebarKeyProvider.notifier).state = 'vm-$name';
-            Timer(
-              const Duration(milliseconds: 200),
-              () => ref.invalidate(launchOperationProvider),
-            );
-          }
+          });
         }),
         builder: (_, snapshot) {
           if (snapshot.hasError) {
@@ -55,10 +53,9 @@ class LaunchOperationProgress extends ConsumerWidget {
                   icon: const Icon(Icons.close),
                   onPressed: () {
                     Scaffold.of(context).closeEndDrawer();
-                    Timer(
-                      const Duration(milliseconds: 200),
-                      () => ref.invalidate(launchOperationProvider),
-                    );
+                    Timer(250.milliseconds, () {
+                      ref.invalidate(launchOperationProvider);
+                    });
                   },
                 ),
               ),
