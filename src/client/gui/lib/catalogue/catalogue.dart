@@ -67,11 +67,11 @@ class CatalogueScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final content = ref.watch(imagesProvider).when(
           data: _buildCatalogue,
-          error: (e, _) => Center(
+          error: (error, _) => Center(
             child: Column(children: [
               const SizedBox(height: 32),
               Text(
-                'Error retrieving images: $e',
+                'Failed to retrieve images: $error',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),

@@ -154,7 +154,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
         future: ref.read(grpcClientProvider).stop([]).then((_) {
           windowManager.destroy();
           return 'Stopped all instances';
-        }).onError((_, __) => throw 'Failed to stop all instances'),
+        }).onError((error, __) => throw 'Failed to stop all instances $error'),
       );
       ref.read(notificationsProvider.notifier).add(notification);
     }

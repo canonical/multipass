@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
+import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 
 final driverProvider = daemonSettingProvider(driverKey);
@@ -31,7 +32,10 @@ class VirtualizationSettings extends ConsumerWidget {
         items: drivers,
         onChanged: (value) {
           if (value == driver) return;
-          ref.read(driverProvider.notifier).set(value!);
+          void onError(Object error, _) => ref
+              .read(notificationsProvider.notifier)
+              .addError('Failed to set driver: $error');
+          ref.read(driverProvider.notifier).set(value!).onError(onError);
         },
       ),
       const SizedBox(height: 20),
@@ -42,7 +46,13 @@ class VirtualizationSettings extends ConsumerWidget {
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
           items: Map.fromIterable(networks),
           onChanged: (value) {
-            ref.read(bridgedNetworkProvider.notifier).set(value!);
+            void onError(Object error, _) => ref
+                .read(notificationsProvider.notifier)
+                .addError('Failed to set virtual interface: $error');
+            ref
+                .read(bridgedNetworkProvider.notifier)
+                .set(value!)
+                .onError(onError);
           },
         ),
     ]);

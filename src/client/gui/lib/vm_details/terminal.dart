@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
+import '../notifications.dart';
 import '../providers.dart';
 
 final vmShellsProvider = StateProvider.autoDispose.family<int, String>((_, __) {
@@ -54,7 +55,18 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
     final thisTerminal = terminal;
     if (thisTerminal == null) return;
 
-    final sshInfo = await ref.read(grpcClientProvider).sshInfo(widget.name);
+    sshInfoOnError(Object error, _) {
+      ref
+          .read(notificationsProvider.notifier)
+          .addError('Failed to get SSH information: $error');
+      setState(() => terminal = null);
+      return null;
+    }
+
+    final sshInfo = await ref
+        .read(grpcClientProvider)
+        .sshInfo(widget.name)
+        .onError(sshInfoOnError);
     if (sshInfo == null) return;
 
     final receiver = ReceivePort();

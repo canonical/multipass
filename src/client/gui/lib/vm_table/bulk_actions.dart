@@ -34,8 +34,8 @@ class BulkActionsBar extends ConsumerWidget {
           text: '${action.continuousTense} $object',
           future: function(selectedVms).then((_) {
             return '${action.pastTense} $object';
-          }).onError((_, __) {
-            throw 'Failed to ${action.name.toLowerCase()} $object';
+          }).onError((error, __) {
+            throw 'Failed to ${action.name.toLowerCase()} $object: $error';
           }),
         );
         ref.read(notificationsProvider.notifier).add(notification);
