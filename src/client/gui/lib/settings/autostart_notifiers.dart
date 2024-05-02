@@ -13,7 +13,15 @@ final autostartProvider =
 });
 
 abstract class AutostartNotifier extends AutoDisposeAsyncNotifier<bool> {
-  Future<void> set(bool value);
+  Future<void> set(bool value) async {
+    try {
+      await _doSet(value);
+    } finally {
+      ref.invalidateSelf();
+    }
+  }
+
+  Future<void> _doSet(bool value);
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {
@@ -26,15 +34,13 @@ class LinuxAutostartNotifier extends AutostartNotifier {
   Future<bool> build() => file.exists();
 
   @override
-  Future<void> set(bool value) async {
+  Future<void> _doSet(bool value) async {
     if (value) {
       final data = await rootBundle.load('assets/$autostartFile');
       await file.writeAsBytes(data.buffer.asUint8List());
     } else {
       if (await file.exists()) await file.delete();
     }
-
-    ref.invalidateSelf();
   }
 }
 
@@ -47,14 +53,12 @@ class WindowsAutostartNotifier extends AutostartNotifier {
   Future<bool> build() => link.exists();
 
   @override
-  Future<void> set(bool value) async {
+  Future<void> _doSet(bool value) async {
     if (value) {
       await link.create(Platform.resolvedExecutable);
     } else {
       if (await link.exists()) await link.delete();
     }
-
-    ref.invalidateSelf();
   }
 }
 
@@ -68,14 +72,12 @@ class MacOSAutostartNotifier extends AutostartNotifier {
   Future<bool> build() => file.exists();
 
   @override
-  Future<void> set(bool value) async {
+  Future<void> _doSet(bool value) async {
     if (value) {
       final data = await rootBundle.load('assets/$plistFile');
       await file.writeAsBytes(data.buffer.asUint8List());
     } else {
       if (await file.exists()) await file.delete();
     }
-
-    ref.invalidateSelf();
   }
 }
