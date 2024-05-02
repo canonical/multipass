@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../extensions.dart';
 import '../ffi.dart';
+import '../notifications.dart';
 import '../providers.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
@@ -281,7 +282,12 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
               ? null
               : 'Number of CPUs must be greater than 0'
           : null,
-      onSaved: (value) => ref.read(cpusProvider.notifier).set(value!),
+      onSaved: (value) {
+        void onError(Object error, _) => ref
+            .read(notificationsProvider.notifier)
+            .addError('Failed to set CPUs: $error');
+        ref.read(cpusProvider.notifier).set(value!).onError(onError);
+      },
     );
 
     final memoryInput = SpecInput(
@@ -291,9 +297,15 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       helper: editing ? 'Default unit in Gigabytes' : null,
       enabled: editing,
       validator: memory != null ? memorySizeValidator : null,
-      onSaved: (value) => ref
-          .read(memoryProvider.notifier)
-          .set(double.tryParse(value!) != null ? '${value}GB' : value),
+      onSaved: (value) {
+        void onError(Object error, _) => ref
+            .read(notificationsProvider.notifier)
+            .addError('Failed to set memory size: $error');
+        ref
+            .read(memoryProvider.notifier)
+            .set(double.tryParse(value!) != null ? '${value}GB' : value)
+            .onError(onError);
+      },
     );
 
     final diskInput = SpecInput(
@@ -314,9 +326,15 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
               }
             }
           : null,
-      onSaved: (value) => ref
-          .read(diskProvider.notifier)
-          .set(double.tryParse(value!) != null ? '${value}GB' : value),
+      onSaved: (value) {
+        void onError(Object error, _) => ref
+            .read(notificationsProvider.notifier)
+            .addError('Failed to set disk size: $error');
+        ref
+            .read(diskProvider.notifier)
+            .set(double.tryParse(value!) != null ? '${value}GB' : value)
+            .onError(onError);
+      },
     );
 
     final saveButton = TextButton(
@@ -413,7 +431,14 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
-          ref.read(bridgedProvider.notifier).set(value.toString());
+          void onError(Object error, _) => ref
+              .read(notificationsProvider.notifier)
+              .addError('Failed to set bridged network: $error');
+
+          ref
+              .read(bridgedProvider.notifier)
+              .set(value.toString())
+              .onError(onError);
         }
         setState(() => editing = false);
       },

@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../dropdown.dart';
+import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../switch.dart';
 import 'autostart_notifiers.dart';
@@ -43,7 +44,12 @@ class GeneralSettings extends ConsumerWidget {
           value: autostart,
           trailingSwitch: true,
           size: 30,
-          onChanged: (value) => ref.read(autostartProvider.notifier).set(value),
+          onChanged: (value) {
+            void onError(Object error, _) => ref
+                .read(notificationsProvider.notifier)
+                .addError('Failed to set autostart: $error');
+            ref.read(autostartProvider.notifier).set(value).onError(onError);
+          },
         ),
         const SizedBox(height: 20),
         Dropdown(

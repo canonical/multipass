@@ -23,8 +23,8 @@ class VmActionButtons extends ConsumerWidget {
           text: '${action.continuousTense} $name',
           future: function([name]).then((_) {
             return '${action.pastTense} $name';
-          }).onError((_, __) {
-            throw 'Failed to ${action.name.toLowerCase()} $name';
+          }).onError((error, __) {
+            throw 'Failed to ${action.name.toLowerCase()} $name: $error';
           }),
         );
         ref.read(notificationsProvider.notifier).add(notification);

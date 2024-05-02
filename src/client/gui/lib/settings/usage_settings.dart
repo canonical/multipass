@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 
+import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../switch.dart';
 import 'hotkey.dart';
@@ -43,16 +44,16 @@ class UsageSettings extends ConsumerWidget {
       const SizedBox(height: 20),
       HotkeyField(
         value: hotkey,
-        onSave: (newHotkey) {
-          print(newHotkey);
-          ref.read(hotkeyProvider.notifier).set(newHotkey);
-        },
+        onSave: (newHotkey) => ref.read(hotkeyProvider.notifier).set(newHotkey),
       ),
       const SizedBox(height: 20),
       PassphraseField(
         hasPassphrase: hasPassphrase,
         onSave: (value) {
-          ref.read(passphraseProvider.notifier).set(value);
+          void onError(Object error, _) => ref
+              .read(notificationsProvider.notifier)
+              .addError('Failed to set passphrase: $error');
+          ref.read(passphraseProvider.notifier).set(value).onError(onError);
         },
       ),
       const SizedBox(height: 20),
@@ -62,7 +63,13 @@ class UsageSettings extends ConsumerWidget {
         trailingSwitch: true,
         size: 30,
         onChanged: (value) {
-          ref.read(privilegedMountsProvider.notifier).set(value.toString());
+          void onError(Object error, _) => ref
+              .read(notificationsProvider.notifier)
+              .addError('Failed to set privileged mounts: $error');
+          ref
+              .read(privilegedMountsProvider.notifier)
+              .set(value.toString())
+              .onError(onError);
         },
       ),
     ]);

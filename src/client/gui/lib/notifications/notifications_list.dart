@@ -86,12 +86,16 @@ class NotificationTile extends ConsumerWidget {
       },
       child: Container(
         margin: const EdgeInsets.all(5),
-        height: 70,
+        height: 80,
         decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black38)],
         ),
-        child: notification,
+        child: DefaultTextStyle.merge(
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          child: notification,
+        ),
       ),
     );
   }
