@@ -22,7 +22,7 @@
 
 namespace multipass
 {
-class CreateImageException : public BaseQException<CreateImageException>
+class CreateImageException final : public BaseQException<CreateImageException>
 {
 public:
     using BaseQException::BaseQException;

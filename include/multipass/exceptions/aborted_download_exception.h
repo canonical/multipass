@@ -22,7 +22,7 @@
 
 namespace multipass
 {
-class AbortedDownloadException : public BaseQException<AbortedDownloadException>
+class AbortedDownloadException final : public BaseQException<AbortedDownloadException>
 {
 public:
     using BaseQException::BaseQException;

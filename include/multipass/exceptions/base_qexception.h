@@ -25,13 +25,14 @@
 namespace multipass
 {
 // CRTP template base class that is the boilerplate code of QException derived classes
+// The usage of it should be CRTP derive class, that is inheriting the base calass and label itself final.
 template <typename DerivedException>
 class BaseQException : public QException
 {
 public:
     BaseQException(const std::string& err) : error_string{err}
     {
-        // use concepts instead of static_assert or enable_if to apply the contraint once C++ 20 arrives.
+        // use concepts instead of static_assert to apply the contraint once C++ 20 arrives.
         static_assert(std::is_base_of_v<BaseQException, DerivedException>,
                       "DerivedException must be derived from BaseQException");
     }

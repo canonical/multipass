@@ -24,7 +24,7 @@
 
 namespace multipass
 {
-class DownloadException : public BaseQException<DownloadException>
+class DownloadException final : public BaseQException<DownloadException>
 {
 public:
     DownloadException(const std::string& url, const std::string& cause)
