@@ -3182,6 +3182,17 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 }
 
 // clone cli tests
+
+TEST_F(Client, cloneCmdWithTooManyArgs)
+{
+    EXPECT_EQ(send_command({"clone", "vm1", "vm2"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, cloneCmdWithTooLessArgs)
+{
+    EXPECT_EQ(send_command({"clone"}), mp::ReturnCode::CommandLineError);
+}
+
 TEST_F(Client, cloneCmdHelpOk)
 {
     EXPECT_EQ(send_command({"clone", "--help"}), mp::ReturnCode::Ok);

@@ -52,7 +52,7 @@ std::string cmd::Clone::name() const
 
 QString cmd::Clone::short_help() const
 {
-    return QStringLiteral("Clone a Ubuntu instance");
+    return QStringLiteral("Clone an Ubuntu instance");
 }
 
 QString cmd::Clone::description() const
