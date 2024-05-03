@@ -25,7 +25,7 @@
 namespace multipass
 {
 // CRTP template base class that is the boilerplate code of QException derived classes
-// The usage of it should be CRTP derive class, that is inheriting the base calass and label itself final.
+// Derived classes should either be final or be themselves templated with the ultimate leaf type.
 template <typename DerivedException>
 class BaseQException : public QException
 {
