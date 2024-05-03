@@ -16,6 +16,8 @@
  */
 
 #include "clone.h"
+
+#include "animated_spinner.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -31,17 +33,20 @@ mp::ReturnCode cmd::Clone::run(ArgParser* parser)
         return parser->returnCodeFrom(parscode);
     }
 
-    auto action_on_success = [this](CloneReply& reply) -> ReturnCode {
+    AnimatedSpinner spinner{cout};
+    auto action_on_success = [this, &spinner](CloneReply& reply) -> ReturnCode {
+        spinner.stop();
         cout << reply.reply_message();
 
         return ReturnCode::Ok;
     };
 
-    auto action_on_failure = [this](grpc::Status& status, CloneReply& reply) -> ReturnCode {
+    auto action_on_failure = [this, &spinner](grpc::Status& status, CloneReply& reply) -> ReturnCode {
+        spinner.stop();
         return standard_failure_handler_for(name(), cerr, status, reply.reply_message());
     };
 
-    rpc_request.set_verbosity_level(parser->verbosityLevel());
+    spinner.start("Cloning " + rpc_request.source_name());
     return dispatch(&RpcMethod::clone, rpc_request, action_on_success, action_on_failure);
 }
 
@@ -92,6 +97,7 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 
     const auto source_name = parser->positionalArguments()[0];
     rpc_request.set_source_name(source_name.toStdString());
+    rpc_request.set_verbosity_level(parser->verbosityLevel());
     if (parser->isSet(destination_name_option))
     {
         rpc_request.set_destination_name(parser->value(destination_name_option).toStdString());
