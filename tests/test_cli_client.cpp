@@ -3183,14 +3183,19 @@ TEST_F(Client, help_cmd_launch_same_launch_cmd_help)
 
 // clone cli tests
 
-TEST_F(Client, cloneCmdWithTooManyArgs)
+TEST_F(Client, cloneCmdWithTooManyArgsFails)
 {
     EXPECT_EQ(send_command({"clone", "vm1", "vm2"}), mp::ReturnCode::CommandLineError);
 }
 
-TEST_F(Client, cloneCmdWithTooLessArgs)
+TEST_F(Client, cloneCmdWithTooLessArgsFails)
 {
     EXPECT_EQ(send_command({"clone"}), mp::ReturnCode::CommandLineError);
+}
+
+TEST_F(Client, cloneCmdInvalidOptionFails)
+{
+    EXPECT_EQ(send_command({"clone", "--invalid_option"}), mp::ReturnCode::CommandLineError);
 }
 
 TEST_F(Client, cloneCmdHelpOk)
