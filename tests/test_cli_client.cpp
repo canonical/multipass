@@ -3216,6 +3216,13 @@ TEST_F(Client, cloneCmdWithDestName)
     EXPECT_EQ(send_command({"clone", "vm1", "--name", "vm2"}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, cloneCmdFailedFromDaemon)
+{
+    const grpc::Status clone_failure{grpc::StatusCode::FAILED_PRECONDITION, "dummy_msg"};
+    EXPECT_CALL(mock_daemon, clone).Times(1).WillOnce(Return(clone_failure));
+    EXPECT_EQ(send_command({"clone", "vm1"}), mp::ReturnCode::CommandFail);
+}
+
 // snapshot cli tests
 TEST_F(Client, snapshotCmdHelpOk)
 {
