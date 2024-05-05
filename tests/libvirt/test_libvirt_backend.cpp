@@ -451,7 +451,7 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread = [&machine] { machine->shutdown(); };
+    mp::AutoJoinThread thread = [&machine] { machine->shutdown(true); };
 
     using namespace std::chrono_literals;
     while (!destroy_called)
