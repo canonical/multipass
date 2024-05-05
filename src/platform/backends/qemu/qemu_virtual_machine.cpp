@@ -346,6 +346,8 @@ void mp::QemuVirtualMachine::start()
 
 void mp::QemuVirtualMachine::shutdown(const bool force)
 {
+    std::unique_lock<std::mutex> lock{state_mutex};
+
     try
     {
         check_state_for_shutdown(force);
@@ -363,8 +365,9 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
         if (vm_process)
         {
             mpl::log(mpl::Level::info, vm_name, "Killing process");
+            lock.unlock();
             vm_process->kill();
-            std::unique_lock<std::mutex> lock{state_mutex};
+            lock.lock();
             state_wait.wait(lock, [this] { return vm_process == nullptr; });
         }
         else
@@ -378,8 +381,6 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
             mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
         }
 
-        std::unique_lock<std::mutex> lock{state_mutex};
-
         if (state != State::off)
         {
             state = State::off;
@@ -387,6 +388,8 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
     }
     else
     {
+        lock.unlock();
+
         drop_ssh_session();
 
         if (vm_process && vm_process->running())

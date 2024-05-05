@@ -191,8 +191,8 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 void mp::BaseVirtualMachine::check_state_for_shutdown(const bool force)
 {
     const std::string force_statement{"Use --force to override."};
-    const std::unique_lock lock{state_mutex};
 
+    // A mutex should already be locked by the caller here
     if (state == State::off || state == State::stopped)
     {
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
