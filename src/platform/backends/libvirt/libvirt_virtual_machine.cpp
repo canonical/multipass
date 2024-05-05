@@ -18,6 +18,7 @@
 #include "libvirt_virtual_machine.h"
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
@@ -347,51 +348,48 @@ void mp::LibVirtVirtualMachine::start()
 
 void mp::LibVirtVirtualMachine::shutdown(const bool force)
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
+    std::unique_lock<std::mutex> lock{state_mutex};
+    auto domain = checked_vm_domain();
+
+    state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
+
+    try
+    {
+        check_state_for_shutdown(force);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::log(mpl::Level::info, vm_name, e.what());
+        return;
+    }
 
     if (force)
     {
-        mpl::log(mpl::Level::info, vm_name, "Forced shutdown");
-
-        auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
+        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 
         libvirt_wrapper->virDomainDestroy(domain.get());
 
-        state = State::off;
-        update_state();
-    }
-    else
-    {
-        state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
-        if (state == State::running || state == State::delayed_shutdown || state == State::unknown)
-        {
-            drop_ssh_session();
-
-            if (!domain || libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
-            {
-                auto warning_string{
-                    fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
-                mpl::log(mpl::Level::warning, vm_name, warning_string);
-                throw std::runtime_error(warning_string);
-            }
-
-            state = State::off;
-            update_state();
-        }
-        else if (state == State::starting)
+        if (state == State::starting || state == State::restarting)
         {
             libvirt_wrapper->virDomainDestroy(domain.get());
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
-            update_state();
         }
-        else if (state == State::suspended)
+    }
+    else
+    {
+        drop_ssh_session();
+
+        if (libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
         {
-            mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+            auto warning_string{
+                fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
+            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            throw std::runtime_error(warning_string);
         }
     }
 
-    lock.unlock();
+    state = State::off;
+    update_state();
     monitor->on_shutdown();
 }
 
