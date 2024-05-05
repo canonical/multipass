@@ -18,6 +18,7 @@
 #include "tests/common.h"
 #include "tests/fake_handle.h"
 #include "tests/mock_backend_utils.h"
+#include "tests/mock_logger.h"
 #include "tests/mock_ssh.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_ssh_key_provider.h"
@@ -63,6 +64,8 @@ struct LibVirtBackend : public Test
 
     // This indicates that LibvirtWrapper should open the test executable
     std::string fake_libvirt_path{""};
+
+    mpt::MockLogger::Scope logger_scope{mpt::MockLogger::inject()};
 
     mpt::MockBackend::GuardedMock backend_attr{mpt::MockBackend::inject<NiceMock>()};
     mpt::MockBackend* mock_backend = backend_attr.first;
@@ -461,6 +464,54 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
                          mpt::match_what(StrEq("Instance failed to start")));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+}
+
+TEST_F(LibVirtBackend, machineInOffStateLogsAndIgnoresShutdown)
+{
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+
+    backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_SHUTOFF;
+        return 0;
+    };
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Ignoring shutdown since instance is already stopped.");
+
+    machine->shutdown();
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+}
+
+TEST_F(LibVirtBackend, machineNoForceCannotShutdownLogsAndThrows)
+{
+    const std::string error_msg{"Not working"};
+
+    mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
+        *state = VIR_DOMAIN_RUNNING;
+        return 0;
+    };
+
+    backend.libvirt_wrapper->virDomainShutdown = [](auto) { return -1; };
+
+    auto virGetLastErrorMessage = [&error_msg] { return error_msg.c_str(); };
+    static auto static_virGetLastErrorMessage = virGetLastErrorMessage;
+    backend.libvirt_wrapper->virGetLastErrorMessage = [] { return static_virGetLastErrorMessage(); };
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, error_msg);
+
+    MP_EXPECT_THROW_THAT(machine->shutdown(),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("pied-piper-valley"), HasSubstr(error_msg))));
 }
 
 TEST_F(LibVirtBackend, lists_no_networks)
