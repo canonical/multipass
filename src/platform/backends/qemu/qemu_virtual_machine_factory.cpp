@@ -65,7 +65,6 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_disk_data(
-    const QString& data_directory,
     const VMSpecs& src_vm_spec,
     const VMSpecs& dest_vm_spec,
     const std::string& source_name,
@@ -74,20 +73,16 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_d
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const QString backend_data_direcotry =
-        mp::utils::backend_directory_path(data_directory, get_backend_directory_name());
-    const auto instances_data_directory =
-        std::filesystem::path(backend_data_direcotry.toStdString()) / "vault" / "instances";
-    const std::filesystem::path source_instance_data_directory = instances_data_directory / source_name;
-    const std::filesystem::path dest_instance_data_directory = instances_data_directory / destination_name;
+    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
+    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
 
     // if any of the below code throw, then roll back and clean up the created instance folder
     auto rollback_delete_instance_folder =
-        sg::make_scope_guard([instance_directory_path = dest_instance_data_directory]() noexcept -> void {
+        sg::make_scope_guard([dest_instance_directory = dest_instance_data_directory]() noexcept -> void {
             // use err_code to guarantee the two file operations below do not throw
-            if (std::error_code err_code; MP_FILEOPS.exists(instance_directory_path, err_code))
+            if (std::error_code err_code; MP_FILEOPS.exists(dest_instance_directory, err_code))
             {
-                MP_FILEOPS.remove(instance_directory_path, err_code);
+                MP_FILEOPS.remove(dest_instance_directory, err_code);
             }
         });
 

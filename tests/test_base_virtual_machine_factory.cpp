@@ -53,8 +53,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
                 (override));
     MOCK_METHOD(mp::VirtualMachine::UPtr,
                 create_vm_and_instance_disk_data,
-                (const QString&,
-                 const mp::VMSpecs&,
+                (const mp::VMSpecs&,
                  const mp::VMSpecs&,
                  const std::string&,
                  const std::string&,

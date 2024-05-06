@@ -36,8 +36,7 @@ public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
-    VirtualMachine::UPtr create_vm_and_instance_disk_data(const QString& data_directory,
-                                                          const VMSpecs& src_vm_spec,
+    VirtualMachine::UPtr create_vm_and_instance_disk_data(const VMSpecs& src_vm_spec,
                                                           const VMSpecs& dest_vm_spec,
                                                           const std::string& source_name,
                                                           const std::string& destination_name,
