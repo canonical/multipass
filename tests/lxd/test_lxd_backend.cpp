@@ -37,6 +37,7 @@
 #include <multipass/auto_join_thread.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/network_interface_info.h>
@@ -1690,16 +1691,18 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(
         *logger_scope.mock_logger,
-        log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-            mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring stop request since instance is already stopped"))));
+        log(Eq(mpl::Level::info),
+            mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
+            mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring shutdown since instance is already stopped."))));
 
     machine.shutdown();
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, shutdown_while_frozen_does_nothing_and_logs_info)
+TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
 {
+    const std::string error_msg{"Cannot stop suspended instance. Use --force to override."};
     mpt::MockVMStatusMonitor mock_monitor;
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
@@ -1726,11 +1729,8 @@ TEST_F(LXDBackend, shutdown_while_frozen_does_nothing_and_logs_info)
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring shutdown issued while suspended"))));
 
-    machine.shutdown();
+    MP_EXPECT_THROW_THAT(machine.shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
 }
@@ -1843,9 +1843,9 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     ASSERT_EQ(machine.state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread = [&machine] { machine.shutdown(); };
+    mp::AutoJoinThread thread = [&machine] { machine.shutdown(true); }; // force shutdown
 
-    while (machine.state != mp::VirtualMachine::State::stopped)
+    while (machine.state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine.ensure_vm_is_running(1ms), mp::StartException,
