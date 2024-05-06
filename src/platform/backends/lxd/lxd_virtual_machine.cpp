@@ -25,6 +25,7 @@
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
@@ -264,22 +265,22 @@ void mp::LXDVirtualMachine::start()
 void mp::LXDVirtualMachine::shutdown(const bool force)
 {
     std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+
     auto present_state = current_state();
 
-    if (present_state == State::stopped)
+    try
     {
-        mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
-        return;
+        check_state_for_shutdown(force);
     }
-    else if (present_state == State::suspended && !force)
+    catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
+        mpl::log(mpl::Level::info, vm_name, e.what());
         return;
     }
 
     request_state("stop", {{"force", force}});
 
-    state = State::stopped;
+    state = State::off;
 
     if (present_state == State::starting)
     {
