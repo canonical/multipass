@@ -64,7 +64,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return {};
     }
 
-    void clone(const std::string& source_instance_name, const std::string& dist_instance_name) override
+    void clone(const std::string& source_instance_name, const std::string& destination_instance_name) override
     {
     }
 
