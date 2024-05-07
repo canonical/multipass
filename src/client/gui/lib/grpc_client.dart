@@ -14,6 +14,7 @@ export 'generated/multipass.pbgrpc.dart';
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
 typedef ImageInfo = FindReply_ImageInfo;
+typedef MountPaths = MountInfo_MountPaths;
 typedef RpcMessage = GeneratedMessage;
 
 extension on RpcMessage {
@@ -178,9 +179,9 @@ class GrpcClient {
         .firstOrNull;
   }
 
-  Future<void> umount(String name) {
+  Future<void> umount(String name, [String? path]) {
     final request = UmountRequest(
-      targetPaths: [TargetPathInfo(instanceName: name)],
+      targetPaths: [TargetPathInfo(instanceName: name, targetPath: path)],
     );
     logger.i('Sent ${request.repr}');
     return _client
