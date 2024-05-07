@@ -19,15 +19,15 @@ class VmActionButtons extends ConsumerWidget {
       Future<void> Function(Iterable<String>) function,
     ) {
       return (action) {
-        final notification = OperationNotification(
-          text: '${action.continuousTense} $name',
-          future: function([name]).then((_) {
-            return '${action.pastTense} $name';
-          }).onError((error, __) {
-            throw 'Failed to ${action.name.toLowerCase()} $name: $error';
-          }),
+        final notificationsNotifier = ref.read(notificationsProvider.notifier);
+        notificationsNotifier.addOperation(
+          function([name]),
+          loading: '${action.continuousTense} $name',
+          onSuccess: (_) => '${action.pastTense} $name',
+          onError: (error) {
+            return 'Failed to ${action.name.toLowerCase()} $name: $error';
+          },
         );
-        ref.read(notificationsProvider.notifier).add(notification);
       };
     }
 

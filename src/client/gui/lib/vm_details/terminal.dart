@@ -55,10 +55,11 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
     final thisTerminal = terminal;
     if (thisTerminal == null) return;
 
-    sshInfoOnError(Object error, _) {
-      ref
-          .read(notificationsProvider.notifier)
-          .addError('Failed to get SSH information: $error');
+    sshInfoOnError(Object? error, s) {
+      final notifyOnError =
+          ref.notifyError((error) => 'Failed to get SSH information: $error');
+      notifyOnError(error, s);
+
       setState(() => terminal = null);
       return null;
     }

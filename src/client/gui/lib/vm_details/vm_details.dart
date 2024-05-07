@@ -283,10 +283,11 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
               : 'Number of CPUs must be greater than 0'
           : null,
       onSaved: (value) {
-        void onError(Object error, _) => ref
-            .read(notificationsProvider.notifier)
-            .addError('Failed to set CPUs: $error');
-        ref.read(cpusProvider.notifier).set(value!).onError(onError);
+        if (value == cpus) return;
+        ref
+            .read(cpusProvider.notifier)
+            .set(value!)
+            .onError(ref.notifyError((error) => 'Failed to set CPUs: $error'));
       },
     );
 
@@ -298,13 +299,11 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       enabled: editing,
       validator: memory != null ? memorySizeValidator : null,
       onSaved: (value) {
-        void onError(Object error, _) => ref
-            .read(notificationsProvider.notifier)
-            .addError('Failed to set memory size: $error');
+        if (value == memory) return;
         ref
             .read(memoryProvider.notifier)
             .set(double.tryParse(value!) != null ? '${value}GB' : value)
-            .onError(onError);
+            .onError(ref.notifyError((e) => 'Failed to set memory size: $e'));
       },
     );
 
@@ -327,13 +326,11 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             }
           : null,
       onSaved: (value) {
-        void onError(Object error, _) => ref
-            .read(notificationsProvider.notifier)
-            .addError('Failed to set disk size: $error');
+        if (value == disk) return;
         ref
             .read(diskProvider.notifier)
             .set(double.tryParse(value!) != null ? '${value}GB' : value)
-            .onError(onError);
+            .onError(ref.notifyError((e) => 'Failed to set disk size: $e'));
       },
     );
 
@@ -431,14 +428,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
-          void onError(Object error, _) => ref
-              .read(notificationsProvider.notifier)
-              .addError('Failed to set bridged network: $error');
-
-          ref
-              .read(bridgedProvider.notifier)
-              .set(value.toString())
-              .onError(onError);
+          ref.read(bridgedProvider.notifier).set(value.toString()).onError(
+              ref.notifyError((e) => 'Failed to set bridged network: $e'));
         }
         setState(() => editing = false);
       },

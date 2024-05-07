@@ -149,14 +149,16 @@ class _AppState extends ConsumerState<App> with WindowListener {
     if (!daemonAvailable || !vmsRunning) windowManager.destroy();
 
     stopAllInstances() {
-      final notification = OperationNotification(
-        text: 'Stopping all instances',
-        future: ref.read(grpcClientProvider).stop([]).then((_) {
+      final notificationsNotifier = ref.read(notificationsProvider.notifier);
+      notificationsNotifier.addOperation(
+        ref.read(grpcClientProvider).stop([]),
+        loading: 'Stopping all instances',
+        onError: (error) => 'Failed to stop all instances: $error',
+        onSuccess: (_) {
           windowManager.destroy();
           return 'Stopped all instances';
-        }).onError((error, __) => throw 'Failed to stop all instances $error'),
+        },
       );
-      ref.read(notificationsProvider.notifier).add(notification);
     }
 
     switch (ref.read(guiSettingProvider(onAppCloseKey))) {
