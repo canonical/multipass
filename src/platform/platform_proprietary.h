@@ -36,7 +36,7 @@ const std::unordered_set<std::string> supported_release_aliases{"core",   "core1
                                                                 "default", "ubuntu", "lts",
                                                                 "20.04", "f", "focal",
                                                                 "22.04", "j", "jammy",
-                                                                "23.10", "m", "mantic"};
+                                                                "24.04", "n", "noble"};
 // clang-format on
 const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "core18", "core20", "core22"};
 
