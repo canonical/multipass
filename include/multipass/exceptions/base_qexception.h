@@ -37,6 +37,8 @@ public:
                       "DerivedException must be derived from BaseQException");
     }
 
+    // use explicit object parameters once we have C++23, see
+    // https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/ for details
     void raise() const override
     {
         throw static_cast<const DerivedException&>(*this);
