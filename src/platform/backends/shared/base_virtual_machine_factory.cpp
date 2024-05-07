@@ -97,6 +97,7 @@ std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::BaseVirtualMachineFact
     return std::find_if(std::cbegin(networks),
                         std::cend(networks),
                         [&member_network, &bridge_type](const mp::NetworkInterfaceInfo& info) {
-                            return info.type == bridge_type && info.has_link(member_network);
+                            return info.type == bridge_type &&
+                                   (info.has_link(member_network) || info.id == member_network);
                         });
 }
