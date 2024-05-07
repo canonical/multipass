@@ -2325,13 +2325,14 @@ TEST_F(Daemon, add_bridged_interface_throws_if_needs_authorization)
                          mpt::match_what(msg));
 }
 
-struct DaemonIsBridged : public Daemon, public WithParamInterface<std::pair<std::vector<mp::NetworkInterface>, bool>>
+struct DaemonIsBridged : public Daemon,
+                         public WithParamInterface<std::tuple<QString, std::vector<mp::NetworkInterface>, bool>>
 {
 };
 
 TEST_P(DaemonIsBridged, is_bridged_works)
 {
-    const auto [extra_interfaces, result] = GetParam();
+    const auto [bridged_network, extra_interfaces, result] = GetParam();
 
     std::string instance_name{"charlie"};
 
@@ -2342,6 +2343,8 @@ TEST_P(DaemonIsBridged, is_bridged_works)
 
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return(bridged_network));
 
     std::vector<mp::NetworkInterfaceInfo> net_infos{{"eth8", "ethernet", "Ethernet device"},
                                                     {"br-eth8", "bridge", "Network bridge", {"eth8"}}};
@@ -2360,10 +2363,10 @@ TEST_P(DaemonIsBridged, is_bridged_works)
 INSTANTIATE_TEST_SUITE_P(
     Daemon,
     DaemonIsBridged,
-    Values(std::make_pair(std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}}, true),
-           std::make_pair(std::vector<mp::NetworkInterface>{{"br-eth8", "52:54:00:12:13:14", true}}, true),
-           std::make_pair(std::vector<mp::NetworkInterface>{{"eth9", "52:54:00:15:16:17", true}}, false),
-           std::make_pair(std::vector<mp::NetworkInterface>{{"br-eth9", "52:54:00:18:19:20", true}}, false)));
+    Values(std::make_tuple("eth8", std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}}, false),
+           std::make_tuple("eth8", std::vector<mp::NetworkInterface>{{"br-eth8", "52:54:00:12:13:14", true}}, true),
+           std::make_tuple("eth9", std::vector<mp::NetworkInterface>{{"br-eth8", "52:54:00:12:13:14", true}}, false),
+           std::make_tuple("eth8", std::vector<mp::NetworkInterface>{{"br-eth9", "52:54:00:18:19:20", true}}, false)));
 
 TEST_F(Daemon, requests_networks)
 {
