@@ -50,10 +50,10 @@ class UsageSettings extends ConsumerWidget {
       PassphraseField(
         hasPassphrase: hasPassphrase,
         onSave: (value) {
-          void onError(Object error, _) => ref
-              .read(notificationsProvider.notifier)
-              .addError('Failed to set passphrase: $error');
-          ref.read(passphraseProvider.notifier).set(value).onError(onError);
+          ref
+              .read(passphraseProvider.notifier)
+              .set(value)
+              .onError(ref.notifyError((e) => 'Failed to set passphrase: $e'));
         },
       ),
       const SizedBox(height: 20),
@@ -63,13 +63,12 @@ class UsageSettings extends ConsumerWidget {
         trailingSwitch: true,
         size: 30,
         onChanged: (value) {
-          void onError(Object error, _) => ref
-              .read(notificationsProvider.notifier)
-              .addError('Failed to set privileged mounts: $error');
           ref
               .read(privilegedMountsProvider.notifier)
               .set(value.toString())
-              .onError(onError);
+              .onError(
+                ref.notifyError((e) => 'Failed to set privileged mounts: $e'),
+              );
         },
       ),
     ]);

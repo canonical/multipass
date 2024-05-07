@@ -32,10 +32,10 @@ class VirtualizationSettings extends ConsumerWidget {
         items: drivers,
         onChanged: (value) {
           if (value == driver) return;
-          void onError(Object error, _) => ref
-              .read(notificationsProvider.notifier)
-              .addError('Failed to set driver: $error');
-          ref.read(driverProvider.notifier).set(value!).onError(onError);
+          ref
+              .read(driverProvider.notifier)
+              .set(value!)
+              .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
         },
       ),
       const SizedBox(height: 20),
@@ -46,13 +46,8 @@ class VirtualizationSettings extends ConsumerWidget {
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
           items: Map.fromIterable(networks),
           onChanged: (value) {
-            void onError(Object error, _) => ref
-                .read(notificationsProvider.notifier)
-                .addError('Failed to set virtual interface: $error');
-            ref
-                .read(bridgedNetworkProvider.notifier)
-                .set(value!)
-                .onError(onError);
+            ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
+                ref.notifyError((e) => 'Failed to set virtual interface: $e'));
           },
         ),
     ]);

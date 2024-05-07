@@ -45,10 +45,10 @@ class GeneralSettings extends ConsumerWidget {
           trailingSwitch: true,
           size: 30,
           onChanged: (value) {
-            void onError(Object error, _) => ref
-                .read(notificationsProvider.notifier)
-                .addError('Failed to set autostart: $error');
-            ref.read(autostartProvider.notifier).set(value).onError(onError);
+            ref
+                .read(autostartProvider.notifier)
+                .set(value)
+                .onError(ref.notifyError((e) => 'Failed to set autostart: $e'));
           },
         ),
         const SizedBox(height: 20),
