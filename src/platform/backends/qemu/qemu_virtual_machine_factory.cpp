@@ -64,7 +64,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
                                                     get_instance_directory(desc.vm_name));
 }
 
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_instance_disk_data(
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
     const VMSpecs& src_vm_spec,
     const VMSpecs& dest_vm_spec,
     const std::string& source_name,

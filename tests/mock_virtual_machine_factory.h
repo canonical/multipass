@@ -36,7 +36,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                 (const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&),
                 (override));
     MOCK_METHOD(VirtualMachine::UPtr,
-                create_vm_and_instance_disk_data,
+                create_vm_and_clone_instance_dir_data,
                 (const VMSpecs&,
                  const VMSpecs&,
                  const std::string&,

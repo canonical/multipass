@@ -35,13 +35,13 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir);
-    VirtualMachine::UPtr create_vm_and_instance_disk_data(const VMSpecs& src_vm_spec,
-                                                          const VMSpecs& dest_vm_spec,
-                                                          const std::string& source_name,
-                                                          const std::string& destination_name,
-                                                          const VMImage& dest_vm_image,
-                                                          const SSHKeyProvider& key_provider,
-                                                          VMStatusMonitor& monitor) override
+    VirtualMachine::UPtr create_vm_and_clone_instance_dir_data(const VMSpecs& src_vm_spec,
+                                                               const VMSpecs& dest_vm_spec,
+                                                               const std::string& source_name,
+                                                               const std::string& destination_name,
+                                                               const VMImage& dest_vm_image,
+                                                               const SSHKeyProvider& key_provider,
+                                                               VMStatusMonitor& monitor) override
     {
         throw NotImplementedOnThisBackendException("clone");
     }
