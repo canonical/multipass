@@ -40,6 +40,8 @@ public:
     static constexpr auto disk_usage_key = "disk_usage";
     static constexpr auto disk_total_key = "disk_total";
     static constexpr auto cpus_key = "cpus";
+    static constexpr auto cpu_times_key = "cpu_times";
+    static constexpr auto uptime_key = "uptime";
     static constexpr auto current_release_key = "current_release";
 };
 
@@ -54,6 +56,8 @@ private:
         std::pair{Keys::disk_usage_key, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"},
         std::pair{Keys::disk_total_key, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"},
         std::pair{Keys::cpus_key, "nproc"},
+        std::pair{Keys::cpu_times_key, "head -n1 /proc/stat"},
+        std::pair{Keys::uptime_key, "uptime -p | tail -c+4"},
         std::pair{Keys::current_release_key, R"(cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2)"}};
 
     inline static const std::array cmds = [] {
@@ -89,6 +93,8 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
     instance_info->set_disk_usage(results[Keys::disk_usage_key].as<std::string>());
     info->set_disk_total(results[Keys::disk_total_key].as<std::string>());
     info->set_cpu_count(results[Keys::cpus_key].as<std::string>());
+    instance_info->set_cpu_times(results[Keys::cpu_times_key].as<std::string>());
+    instance_info->set_uptime(results[Keys::uptime_key].as<std::string>());
 
     auto current_release = results[Keys::current_release_key].as<std::string>();
     instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
