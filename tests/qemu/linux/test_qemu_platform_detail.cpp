@@ -217,3 +217,25 @@ TEST_F(QemuPlatformDetail, add_network_interface_throws)
     mp::NetworkInterface net{"id", "52:54:00:98:76:54", true};
     EXPECT_THROW(qemu_platform_detail.add_network_interface(desc, net), mp::NotImplementedOnThisBackendException);
 }
+
+struct FindBridgeWithTestSuite : public QemuPlatformDetail,
+                                 public WithParamInterface<std::vector<mp::NetworkInterfaceInfo>>
+{
+};
+
+TEST_P(FindBridgeWithTestSuite, find_bridge_with_always_returns_cend)
+{
+    const auto& networks = GetParam();
+
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+
+    EXPECT_EQ(qemu_platform_detail.find_bridge_with(networks, "eth8"), networks.cend());
+}
+
+INSTANTIATE_TEST_SUITE_P(QemuPlatformDetail,
+                         FindBridgeWithTestSuite,
+                         Values(std::vector<mp::NetworkInterfaceInfo>{},
+                                std::vector<mp::NetworkInterfaceInfo>{{"eth8", "ethernet", "Ethernet interface"}},
+                                std::vector<mp::NetworkInterfaceInfo>{{"eth9", "ethernet", "Ethernet interface"}},
+                                std::vector<mp::NetworkInterfaceInfo>{
+                                    {"br-eth8", "bridge", "Network bridge", {"eth8"}}}));
