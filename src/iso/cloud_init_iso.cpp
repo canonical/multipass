@@ -727,6 +727,28 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }
 
+void mp::CloudInitFileOps::update_cloned_cloud_init(const std::string& default_mac_addr,
+                                                    const std::vector<NetworkInterface>& extra_interfaces,
+                                                    const std::string& new_hostname,
+                                                    const std::filesystem::path& cloud_init_path) const
+{
+    CloudInitIso iso_file;
+    iso_file.read_from(cloud_init_path);
+
+    std::string& meta_data_file_content = iso_file.at("meta-data");
+    meta_data_file_content =
+        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config(new_hostname, meta_data_file_content));
+
+    if (iso_file.contains("network-config"))
+    {
+        std::string& network_config_file_content = iso_file.at("network-config");
+        network_config_file_content = mpu::emit_cloud_config(
+            mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces, network_config_file_content));
+    }
+
+    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+}
+
 void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
                                                              const NetworkInterface& extra_interface,
                                                              const std::filesystem::path& cloud_init_path) const

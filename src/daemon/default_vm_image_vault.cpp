@@ -600,7 +600,6 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
     auto& dest_vault_record = instance_image_records[destination_instance_name] =
         instance_image_records[source_instance_name];
     dest_vault_record.image.image_path.replace(source_instance_name.c_str(), destination_instance_name.c_str());
-    // change last accessed?
     persist_instance_records();
 }
 
