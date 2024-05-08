@@ -31,31 +31,31 @@ namespace mpl = multipass::logging;
 
 namespace multipass::utils
 {
-// Because AsyncPeriodicTask needs to be instantiated as data member of a class to function properly, and Class template
-// argument deduction (CTAD) does not work for data member, so that means we can not deduced type data member from the
-// below code snippet.
+// Because AsyncPeriodicDownloadTask needs to be instantiated as data member of a class to function properly, and Class
+// template argument deduction (CTAD) does not work for data member, so that means we can not deduced type data member
+// from the below code snippet.
 
 // template <typename Callable, typename...Args>
-// class AsyncPeriodicTask
+// class AsyncPeriodicDownloadTask
 // {
 // public:
 //     using ReturnType = std::invoke_result_t<std::decay_t<Callable>, std::decay_t<Args>...>;
-//     AsyncPeriodicTask(Callable&& func, Args&&... args);
+//     AsyncPeriodicDownloadTask(Callable&& func, Args&&... args);
 //     ...
 // };
 
 // Therefore, the user has to specify the ReturnType as template argument while constructing it.
 
 template <typename ReturnType = void>
-class AsyncPeriodicTask
+class AsyncPeriodicDownloadTask
 {
 public:
     template <typename Callable, typename... Args>
-    AsyncPeriodicTask(std::string_view launch_msg,
-                      std::chrono::milliseconds normal_delay_time,
-                      std::chrono::milliseconds retry_start_delay_time,
-                      Callable&& func,
-                      Args&&... args)
+    AsyncPeriodicDownloadTask(std::string_view launch_msg,
+                              std::chrono::milliseconds normal_delay_time,
+                              std::chrono::milliseconds retry_start_delay_time,
+                              Callable&& func,
+                              Args&&... args)
         : default_delay_time{normal_delay_time}, retry_current_delay_time{retry_start_delay_time}
     {
         // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
