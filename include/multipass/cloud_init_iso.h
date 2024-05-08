@@ -75,6 +75,11 @@ public:
         const std::vector<NetworkInterface>& extra_interfaces,
         const std::string& new_instance_id,
         const std::filesystem::path& cloud_init_path) const;
+
+    virtual void update_cloned_cloud_init(const std::string& default_mac_addr,
+                                          const std::vector<NetworkInterface>& extra_interfaces,
+                                          const std::string& new_hostname,
+                                          const std::filesystem::path& cloud_init_path) const;
     virtual void add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
                                                    const NetworkInterface& extra_interfaces,
                                                    const std::filesystem::path& cloud_init_path) const;
