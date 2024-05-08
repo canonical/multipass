@@ -207,6 +207,22 @@ TEST_F(ImageVault, returned_image_contains_instance_name)
     EXPECT_TRUE(vm_image.image_path.contains(QString::fromStdString(instance_name)));
 }
 
+TEST_F(ImageVault, imageClone)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      default_query,
+                      stub_prepare,
+                      stub_monitor,
+                      false,
+                      std::nullopt,
+                      instance_dir);
+
+    const std::string dest_name = instance_name + "clone";
+    EXPECT_NO_THROW(vault.clone(instance_name, dest_name));
+    EXPECT_TRUE(vault.has_record_for(dest_name));
+}
+
 TEST_F(ImageVault, calls_prepare)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
