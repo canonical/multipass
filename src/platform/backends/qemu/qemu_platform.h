@@ -60,6 +60,9 @@ public:
     };
     virtual void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& extra_interface) = 0;
 
+    virtual std::vector<NetworkInterfaceInfo>::const_iterator
+    find_bridge_with(const std::vector<NetworkInterfaceInfo>& networks, const std::string& member_network) const = 0;
+
 protected:
     explicit QemuPlatform() = default;
 };

@@ -44,6 +44,10 @@ public:
     std::vector<NetworkInterfaceInfo> networks() const override;
     void require_snapshots_support() const override;
 
+    std::vector<NetworkInterfaceInfo>::const_iterator find_bridge_with(
+        const std::vector<NetworkInterfaceInfo>& networks,
+        const std::string& member_network) const override;
+
 protected:
     void remove_resources_for_impl(const std::string& name) override;
 

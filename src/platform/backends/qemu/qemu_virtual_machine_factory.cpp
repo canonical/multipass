@@ -131,3 +131,10 @@ auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInter
 {
     return qemu_platform->networks();
 }
+
+std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::QemuVirtualMachineFactory::find_bridge_with(
+    const std::vector<mp::NetworkInterfaceInfo>& networks,
+    const std::string& member_network) const
+{
+    return qemu_platform->find_bridge_with(networks, member_network);
+}

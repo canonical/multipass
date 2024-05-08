@@ -207,6 +207,13 @@ void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& de
     throw NotImplementedOnThisBackendException("add interfaces");
 }
 
+std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::QemuPlatformDetail::find_bridge_with(
+    const std::vector<mp::NetworkInterfaceInfo>& networks,
+    const std::string& member_network) const
+{
+    return networks.cend();
+}
+
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
