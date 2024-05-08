@@ -354,7 +354,7 @@ write_files:
     original_iso.add_file("meta-data", std::string(meta_data_content));
     original_iso.add_file("vendor_data_content", std::string(vendor_data_content));
     original_iso.add_file("user-data", std::string(user_data_content));
-    original_iso.add_file("network-data", "some random network-data");
+    original_iso.add_file("network-config", "some random network-data");
     original_iso.write_to(iso_path);
 
     mp::CloudInitIso new_iso;
@@ -367,7 +367,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("meta-data", std::string(meta_data_content));
-    original_iso.add_file("network-data", "");
+    original_iso.add_file("network-config", "dummy_data");
     original_iso.write_to(iso_path);
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
@@ -409,7 +409,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 {
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", std::string(meta_data_content));
-    original_iso.add_file("network-data", "");
+    original_iso.add_file("network-config", "dummy_data");
     original_iso.write_to(iso_path);
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
@@ -422,6 +422,66 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_FALSE(new_iso.contains("network-config"));
+}
+
+TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
+{
+    constexpr std::string_view src_meta_data_content = R"(#cloud-config
+instance-id: vm1_e_e
+local-hostname: vm1
+cloud-name: multipass)";
+    constexpr std::string_view src_network_config_data_content = R"(#cloud-config
+version: 2
+ethernets:
+  default:
+    match:
+      macaddress: "00:00:00:00:00:00"
+    dhcp4: true
+  extra0:
+    match:
+      macaddress: "00:00:00:00:00:01"
+    dhcp4: true
+    dhcp4-overrides:
+      route-metric: 200
+    optional: true
+)";
+
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("meta-data", std::string(src_meta_data_content));
+    original_iso.add_file("network-config", std::string(src_network_config_data_content));
+    original_iso.write_to(iso_path);
+
+    const std::string default_mac_addr = "52:54:00:56:78:90";
+    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
+    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init(default_mac_addr,
+                                                                    extra_interfaces,
+                                                                    "vm1-clone1",
+                                                                    iso_path.toStdString()));
+
+    constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
+instance-id: vm1-clone1_e_e
+local-hostname: vm1-clone1
+cloud-name: multipass
+)";
+    constexpr std::string_view expected_generated_network_config_data_content = R"(#cloud-config
+version: 2
+ethernets:
+  default:
+    match:
+      macaddress: "52:54:00:56:78:90"
+    dhcp4: true
+  extra0:
+    match:
+      macaddress: "52:54:00:56:78:91"
+    dhcp4: true
+    dhcp4-overrides:
+      route-metric: 200
+    optional: true
+)";
+    mp::CloudInitIso new_iso;
+    new_iso.read_from(iso_path.toStdString());
+    EXPECT_EQ(new_iso.at("meta-data"), expected_modified_meta_data_content);
+    EXPECT_EQ(new_iso.at("network-config"), expected_generated_network_config_data_content);
 }
 
 TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
