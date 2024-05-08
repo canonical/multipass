@@ -91,23 +91,11 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
                     std::filesystem::copy_options::recursive);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
-    CloudInitIso qemu_iso;
-    qemu_iso.read_from(cloud_init_config_iso_file_path);
 
-    std::string& meta_data_file_content = qemu_iso.at("meta-data");
-    meta_data_file_content =
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config(destination_name, meta_data_file_content));
-
-    if (qemu_iso.contains("network-config"))
-    {
-        std::string& network_config_file_content = qemu_iso.at("network-config");
-        network_config_file_content =
-            mpu::emit_cloud_config(mpu::make_cloud_init_network_config(dest_vm_spec.default_mac_address,
-                                                                       dest_vm_spec.extra_interfaces,
-                                                                       network_config_file_content));
-    }
-
-    qemu_iso.write_to(QString::fromStdString(cloud_init_config_iso_file_path.string()));
+    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init(dest_vm_spec.default_mac_address,
+                                                    dest_vm_spec.extra_interfaces,
+                                                    destination_name,
+                                                    cloud_init_config_iso_file_path);
 
     // start to construct VirtualMachineDescription
     mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
