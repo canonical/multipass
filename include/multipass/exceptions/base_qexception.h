@@ -32,13 +32,13 @@ class BaseQException : public QException
 public:
     BaseQException(const std::string& err) : error_string{err}
     {
-        // use concepts instead of static_assert to apply the contraint once C++ 20 arrives.
+        // TODO@C++20, use concepts instead of static_assert + type traits to apply the constraint.
         static_assert(std::is_base_of_v<BaseQException, DerivedException>,
                       "DerivedException must be derived from BaseQException");
     }
 
-    // use explicit object parameters once we have C++23, see
-    // https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/ for details
+    // TODO@C++23, use explicit object parameters instead of static_cast conversion to derive class, see
+    // https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/ for more details
     void raise() const override
     {
         throw static_cast<const DerivedException&>(*this);
