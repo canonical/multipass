@@ -21,7 +21,7 @@
 #include "daemon_config.h"
 #include "daemon_rpc.h"
 
-#include <multipass/async_periodic_task.h>
+#include <multipass/async_periodic_download_task.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/format.h>
 #include <multipass/mount_handler.h>

@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_ASYNC_PERIODIC_TASK_H
-#define MULTIPASS_ASYNC_PERIODIC_TASK_H
+#ifndef MULTIPASS_ASYNC_PERIODIC_DOWNLOAD_TASK_H
+#define MULTIPASS_ASYNC_PERIODIC_DOWNLOAD_TASK_H
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
@@ -125,4 +125,4 @@ private:
 };
 } // namespace multipass::utils
 
-#endif // MULTIPASS_TIMER_H
+#endif
