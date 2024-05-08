@@ -52,7 +52,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
                 (const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&),
                 (override));
     MOCK_METHOD(mp::VirtualMachine::UPtr,
-                create_vm_and_instance_disk_data,
+                create_vm_and_clone_instance_dir_data,
                 (const mp::VMSpecs&,
                  const mp::VMSpecs&,
                  const std::string&,

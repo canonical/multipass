@@ -2789,13 +2789,13 @@ void mp::Daemon::clone(const CloneRequest* request,
             // dest_spec has to be done before that
             vm_instance_specs.emplace(destination_name, dest_spec);
             operative_instances[destination_name] =
-                config->factory->create_vm_and_instance_disk_data(src_spec,
-                                                                  dest_spec,
-                                                                  source_name,
-                                                                  destination_name,
-                                                                  dest_vm_image,
-                                                                  *config->ssh_key_provider,
-                                                                  *this);
+                config->factory->create_vm_and_clone_instance_dir_data(src_spec,
+                                                                       dest_spec,
+                                                                       source_name,
+                                                                       destination_name,
+                                                                       dest_vm_image,
+                                                                       *config->ssh_key_provider,
+                                                                       *this);
             ++src_spec.clone_count;
             persist_instances();
             init_mounts(destination_name);

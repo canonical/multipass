@@ -46,13 +46,13 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return std::make_unique<StubVirtualMachine>();
     }
 
-    multipass::VirtualMachine::UPtr create_vm_and_instance_disk_data(const VMSpecs& src_vm_spec,
-                                                                     const VMSpecs& dest_vm_spec,
-                                                                     const std::string& source_name,
-                                                                     const std::string& destination_name,
-                                                                     const VMImage& dest_vm_image,
-                                                                     const SSHKeyProvider& key_provider,
-                                                                     VMStatusMonitor& monitor) override
+    multipass::VirtualMachine::UPtr create_vm_and_clone_instance_dir_data(const VMSpecs& src_vm_spec,
+                                                                          const VMSpecs& dest_vm_spec,
+                                                                          const std::string& source_name,
+                                                                          const std::string& destination_name,
+                                                                          const VMImage& dest_vm_image,
+                                                                          const SSHKeyProvider& key_provider,
+                                                                          VMStatusMonitor& monitor) override
     {
         return std::make_unique<StubVirtualMachine>();
     }
