@@ -48,7 +48,7 @@ public:
 struct Cmds
 {
 private:
-    static constexpr auto key_val_cmd = R"(echo {}: \"$(eval "{}")\")";
+    static constexpr auto key_val_cmd = R"-(echo {}: "$(eval "{}")")-";
     static constexpr std::array key_cmds_pairs{
         std::pair{Keys::loadavg_key, "cat /proc/loadavg | cut -d ' ' -f1-3"},
         std::pair{Keys::mem_usage_key, R"(free -b | grep 'Mem:' | awk '{printf \$3}')"},
