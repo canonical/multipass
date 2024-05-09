@@ -240,8 +240,12 @@ std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::QemuPlatformDetail::fi
     const std::vector<mp::NetworkInterfaceInfo>& networks,
     const std::string& member_network) const
 {
-    // TODO
-    return networks.cend();
+    return std::find_if(std::cbegin(networks),
+                        std::cend(networks),
+                        [&member_network](const mp::NetworkInterfaceInfo& info) {
+                            return info.type == "bridge" &&
+                                   (info.has_link(member_network) || info.id == member_network);
+                        });
 }
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
