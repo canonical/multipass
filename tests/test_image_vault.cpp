@@ -230,6 +230,32 @@ TEST_F(ImageVault, imageCloneFailOnNonExistSrcImage)
     EXPECT_THROW(vault.clone("non_exist_src_image_name", "dummy_dest_name"), std::runtime_error);
 }
 
+TEST_F(ImageVault, imageCloneFailOnAlreadyExistDestImage)
+{
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      default_query,
+                      stub_prepare,
+                      stub_monitor,
+                      false,
+                      std::nullopt,
+                      instance_dir);
+
+    const std::string dest_name = "valley-pied-piper-clone";
+    const mp::Query second_query{dest_name, "xenial", false, "", mp::Query::Type::Alias};
+
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      second_query,
+                      stub_prepare,
+                      stub_monitor,
+                      false,
+                      std::nullopt,
+                      save_dir.filePath(QString::fromStdString(second_query.name)));
+
+    // valley-pied-piper-clone is already added, so it will throw
+    EXPECT_THROW(vault.clone(instance_name, dest_name), std::runtime_error);
+}
+
 TEST_F(ImageVault, calls_prepare)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
