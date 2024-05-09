@@ -26,6 +26,7 @@
 #include <src/daemon/daemon.h>
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
 
 namespace mp = multipass;
@@ -261,6 +262,24 @@ TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
     config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
 
+    send_command({"find"});
+}
+
+TEST_F(DaemonFind, UpdateManifestsThrowTriggersTheFailedCaseEventHanlderOfAsyncPeriodicDownloadTask)
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+
+    // daemon constructor which constructs update_manifests_all_task calls this.
+    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1).WillOnce([]() {
+        throw mp::DownloadException{"dummy_url", "dummy_cause"};
+    });
+
+    // overwrite the default emplaced StubVMImageHost
+    config_builder.image_hosts[0] = std::move(mock_image_host);
+    const mp::Daemon daemon{config_builder.build()};
+
+    // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not wait the async task to
+    // finish. As a consquence, the event handler is not guaranteed to be called without send_command({"find"});
     send_command({"find"});
 }
 

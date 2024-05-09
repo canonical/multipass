@@ -18,34 +18,14 @@
 #ifndef MULTIPASS_CREATE_IMAGE_EXCEPTION
 #define MULTIPASS_CREATE_IMAGE_EXCEPTION
 
-#include <QException>
-
-#include <string>
+#include "base_qexception.h"
 
 namespace multipass
 {
-class CreateImageException : public QException
+class CreateImageException final : public BaseQException<CreateImageException>
 {
 public:
-    CreateImageException(const std::string& err) : error_string{err}
-    {
-    }
-
-    void raise() const override
-    {
-        throw *this;
-    }
-    CreateImageException* clone() const override
-    {
-        return new CreateImageException(*this);
-    }
-    const char* what() const noexcept override
-    {
-        return error_string.c_str();
-    }
-
-private:
-    std::string error_string;
+    using BaseQException::BaseQException;
 };
 } // namespace multipass
 #endif // MULTIPASS_CREATE_IMAGE_EXCEPTION

@@ -20,16 +20,15 @@
 
 #include <fmt/format.h>
 
-#include <stdexcept>
-#include <string>
+#include "base_qexception.h"
 
 namespace multipass
 {
-class DownloadException : public std::runtime_error
+class DownloadException final : public BaseQException<DownloadException>
 {
 public:
     DownloadException(const std::string& url, const std::string& cause)
-        : runtime_error(fmt::format("failed to download from '{}': {}", url, cause))
+        : BaseQException{fmt::format("failed to download from '{}': {}", url, cause)}
     {
     }
 };
