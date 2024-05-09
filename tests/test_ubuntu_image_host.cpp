@@ -26,6 +26,7 @@
 #include <src/daemon/ubuntu_image_host.h>
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/unsupported_alias_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/exceptions/unsupported_remote_exception.h>
@@ -367,7 +368,7 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_initial_network_failure)
 {
     url_downloader.mischiefs = 1000;
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
+    EXPECT_THROW(host.update_manifests(false), mp::DownloadException);
 
     const auto query = make_query("xenial", release_remote_spec.first);
     EXPECT_THROW(host.info_for(query), std::runtime_error);
@@ -386,7 +387,7 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_later_network_failure)
     EXPECT_TRUE(host.info_for(query));
 
     url_downloader.mischiefs = 1000;
-    host.update_manifests(false);
+    EXPECT_THROW(host.update_manifests(false), mp::DownloadException);
     EXPECT_THROW(host.info_for(query), std::runtime_error);
 
     url_downloader.mischiefs = 0;
@@ -402,10 +403,13 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
     const auto num_remotes = mpt::count_remotes(host);
     EXPECT_GT(num_remotes, 0u);
 
-    for (size_t i = 0; i < num_remotes; ++i)
+    url_downloader.mischiefs = 0;
+    EXPECT_EQ(mpt::count_remotes(host), num_remotes);
+
+    for (size_t i = 1; i < num_remotes; ++i)
     {
         url_downloader.mischiefs = i;
-        EXPECT_EQ(mpt::count_remotes(host), num_remotes - i);
+        EXPECT_THROW(mpt::count_remotes(host), mp::DownloadException);
     }
 }
 

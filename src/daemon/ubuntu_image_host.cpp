@@ -269,11 +269,7 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_netw
         }
         catch (mp::DownloadException& e)
         {
-            if (is_force_update_from_network)
-            {
-                throw e;
-            }
-            on_manifest_update_failure(e.what());
+            throw e;
         }
         catch (const mp::UnsupportedRemoteException&)
         {
