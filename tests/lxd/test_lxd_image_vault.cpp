@@ -1257,3 +1257,17 @@ TEST_F(LXDImageVault, updateImagesThrowsOnMissingImage)
     EXPECT_THROW(image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor),
                  mp::ImageNotFoundException);
 }
+
+TEST_F(LXDImageVault, lxdImageVaultCloneThrow)
+{
+    mp::LXDVMImageVault image_vault{hosts,
+                                    &stub_url_downloader,
+                                    mock_network_access_manager.get(),
+                                    base_url,
+                                    cache_dir.path(),
+                                    mp::days{0}};
+
+    MP_EXPECT_THROW_THAT(image_vault.clone("dummy_src_image_name", "dummy_dest_image_name"),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Clone methond is not supported in LXDVMImageVault yet.")));
+}
