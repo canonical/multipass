@@ -3513,7 +3513,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          info,
                                                          instance_info,
                                                          original_release,
-                                                         vm_specs.num_cores == 1);
+                                                         vm_specs.num_cores != 1);
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name)
