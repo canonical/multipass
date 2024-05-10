@@ -210,23 +210,25 @@ TEST_F(QemuPlatformDetail, writing_ipforward_file_failure_logs_expected_message)
 }
 
 struct FindBridgeWithTestSuite : public QemuPlatformDetail,
-                                 public WithParamInterface<std::vector<mp::NetworkInterfaceInfo>>
+                                 public WithParamInterface<std::pair<std::vector<mp::NetworkInterfaceInfo>, int>>
 {
 };
 
 TEST_P(FindBridgeWithTestSuite, find_bridge_with_always_returns_cend)
 {
-    const auto& networks = GetParam();
+    const auto& [networks, distance] = GetParam();
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    EXPECT_EQ(qemu_platform_detail.find_bridge_with(networks, "eth8"), networks.cend());
+    EXPECT_EQ(std::distance(networks.cbegin(), qemu_platform_detail.find_bridge_with(networks, "eth8")), distance);
 }
 
-INSTANTIATE_TEST_SUITE_P(QemuPlatformDetail,
-                         FindBridgeWithTestSuite,
-                         Values(std::vector<mp::NetworkInterfaceInfo>{},
-                                std::vector<mp::NetworkInterfaceInfo>{{"eth8", "ethernet", "Ethernet interface"}},
-                                std::vector<mp::NetworkInterfaceInfo>{{"eth9", "ethernet", "Ethernet interface"}},
-                                std::vector<mp::NetworkInterfaceInfo>{
-                                    {"br-eth8", "bridge", "Network bridge", {"eth8"}}}));
+INSTANTIATE_TEST_SUITE_P(
+    QemuPlatformDetail,
+    FindBridgeWithTestSuite,
+    Values(std::make_pair(std::vector<mp::NetworkInterfaceInfo>{}, 0),
+           std::make_pair(std::vector<mp::NetworkInterfaceInfo>{{"eth8", "ethernet", "Ethernet interface"}}, 1),
+           std::make_pair(std::vector<mp::NetworkInterfaceInfo>{{"eth9", "ethernet", "Ethernet interface"}}, 1),
+           std::make_pair(std::vector<mp::NetworkInterfaceInfo>{{"br-eth9", "bridge", "Network bridge", {"eth9"}}}, 1),
+           std::make_pair(std::vector<mp::NetworkInterfaceInfo>{{"br-eth8", "bridge", "Network bridge", {"eth8"}}},
+                          0)));
