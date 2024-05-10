@@ -18,34 +18,14 @@
 #ifndef MULTIPASS_ABORTED_DOWNLOAD_EXCEPTION
 #define MULTIPASS_ABORTED_DOWNLOAD_EXCEPTION
 
-#include <QException>
-
-#include <string>
+#include "base_qexception.h"
 
 namespace multipass
 {
-class AbortedDownloadException : public QException
+class AbortedDownloadException final : public BaseQException<AbortedDownloadException>
 {
 public:
-    AbortedDownloadException(const std::string& err) : error_string{err}
-    {
-    }
-
-    void raise() const override
-    {
-        throw *this;
-    }
-    AbortedDownloadException* clone() const override
-    {
-        return new AbortedDownloadException(*this);
-    }
-    const char* what() const noexcept override
-    {
-        return error_string.c_str();
-    }
-
-private:
-    std::string error_string;
+    using BaseQException::BaseQException;
 };
 } // namespace multipass
 #endif // MULTIPASS_ABORTED_DOWNLOAD_EXCEPTION
