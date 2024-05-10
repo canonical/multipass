@@ -17,6 +17,7 @@
         <PackageReference Include="WixToolset.Util.wixext" Version="5.*" />
         <PackageReference Include="WixToolset.UI.wixext" Version="5.*" />
         <PackageReference Include="WixToolset.Heat" Version="5.*" />
+        <PackageReference Include="PanelSwWixExtension4" Version="5.*" />
     </ItemGroup>
 
     <ItemGroup>
