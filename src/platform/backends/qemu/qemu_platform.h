@@ -55,10 +55,7 @@ public:
         return {};
     };
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
-    virtual std::string create_bridge_with(const std::string& interface) const
-    {
-        return interface;
-    };
+    virtual std::string create_bridge_with(const std::string& interface) const = 0;
 
     virtual std::vector<NetworkInterfaceInfo>::const_iterator
     find_bridge_with(const std::vector<NetworkInterfaceInfo>& networks, const std::string& member_network) const = 0;
