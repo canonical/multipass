@@ -22,11 +22,14 @@
 #include "tests/mock_backend_utils.h"
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
+#include "tests/mock_platform.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
 #include <src/platform/backends/qemu/linux/qemu_platform_detail.h>
+
+#include <QCoreApplication>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -135,6 +138,11 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
     vm_desc.vm_name = "foo";
     vm_desc.default_mac_address = hw_addr;
 
+    std::string extra_id = "eth8";
+    std::string extra_mac = "52:54:00:98:76:54";
+    auto bridge_helper_path{QCoreApplication::applicationDirPath() + "/bridge_helper"};
+    vm_desc.extra_interfaces.emplace_back(mp::NetworkInterface{extra_id, extra_mac, true});
+
     QString tap_name;
 
     EXPECT_CALL(*mock_dnsmasq_server, release_mac(hw_addr)).WillOnce(Return());
@@ -162,7 +170,13 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
 #endif
             "--enable-kvm", "-cpu", "host", "-nic",
             QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
-                                               tap_name, vm_desc.default_mac_address))
+                                               tap_name,
+                                               vm_desc.default_mac_address)),
+            "-nic",
+            QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                                               extra_id,
+                                               extra_mac,
+                                               bridge_helper_path))
     };
 
     EXPECT_THAT(platform_args, ElementsAreArray(expected_platform_args));
@@ -232,3 +246,41 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_pair(std::vector<mp::NetworkInterfaceInfo>{{"br-eth9", "bridge", "Network bridge", {"eth9"}}}, 1),
            std::make_pair(std::vector<mp::NetworkInterfaceInfo>{{"br-eth8", "bridge", "Network bridge", {"eth8"}}},
                           0)));
+
+TEST_F(QemuPlatformDetail, networks_works)
+{
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{
+            {"lxdbr0", {"lxdbr0", "bridge", "Network bridge"}},
+            {"mpbr0", {"mpbr0", "bridge", "Network Bridge for Multipass"}},
+            {"virbr0", {"virbr0", "bridge", "Network bridge"}},
+            {"mpqemubr0", {"mpqemubr0", "bridge", "Network bridge"}},
+            {"wlan0", {"wlan0", "WiFi", "Wireless device"}},
+            {"eth8", {"eth8", "ethernet", "Ethernet device"}},
+            {"eth9", {"eth9", "ethernet", "Ethernet device"}},
+            {"br-eth8", {"br-eth8", "bridge", "Network bridge", {"eth8"}}}}));
+
+    const auto networks = qemu_platform_detail.networks();
+
+    for (const auto& net : networks)
+    {
+        const auto& type = net.type;
+
+        EXPECT_TRUE(type == "bridge" || type == "ethernet");
+
+        // The only interface requiring authorization here is eth9.
+        EXPECT_EQ(net.needs_authorization, type == "ethernet" && net.id != "eth8");
+    }
+}
+
+TEST_F(QemuPlatformDetail, create_bridge_with_is_called)
+{
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+
+    EXPECT_CALL(*mock_backend, create_bridge_with("eth8")).WillOnce(Return("br-eth8"));
+
+    EXPECT_EQ(qemu_platform_detail.create_bridge_with("eth8"), "br-eth8");
+}
