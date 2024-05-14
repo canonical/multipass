@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-SSL_PATH="$(brew --prefix openssl@1.1)"
+SSL_PATH="$(brew --prefix openssl@3)"
 SSL_LIBS="ssl crypto"
 BINARIES="bin/multipass bin/multipassd bin/sshfs_server lib/libssh.dylib lib/libdart_ffi.dylib"
 
