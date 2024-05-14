@@ -298,8 +298,6 @@ jobs:
         fi
 
     - name: Dispatch Linux integration tests
-      if: ${{ github.event_name == 'push' ||
-              github.event_name == 'merge_queue' }}
       uses: Saviq/workflow-dispatch@dist
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
@@ -308,7 +306,7 @@ jobs:
         sha: ${{ steps.dispatch-params.outputs.sha }}
         inputs: |
           {
-            "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
+            "snap-channel": "${{ github.event_name == 'merge_queue' && needs.BuildAndTest.outputs.channel || '' }}"
           }
       # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
       continue-on-error: true
@@ -328,5 +326,5 @@ jobs:
             "sha": "${{ github.sha }}",
             "draft": "${{ github.event.pull_request.draft }}",
             "label": "${{ needs.BuildAndTest.outputs.label }}",
-            "dispatch_ci": "${{ github.event_name == 'push' }}"
+            "dispatch_ci": "${{ github.event_name == 'merge_queue' }}"
           }

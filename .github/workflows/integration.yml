@@ -51,6 +51,10 @@ jobs:
   CI:
     needs: GetMatrix
 
+    if: ${{
+      needs.GetMatrix.outputs.matrix != '{"include":[]}'
+      }}
+
     runs-on: testflinger
 
     # Windows is pretty slow unfortunately.
