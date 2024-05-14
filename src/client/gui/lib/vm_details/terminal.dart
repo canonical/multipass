@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:xterm/xterm.dart';
@@ -172,7 +174,7 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
           scrollController: scrollController,
           autofocus: true,
           focusNode: focusNode,
-          shortcuts: const {},
+          shortcuts: Platform.isMacOS ? macosShortcuts : shortcuts,
           hardwareKeyboardOnly: true,
           padding: const EdgeInsets.all(4),
           theme: const TerminalTheme(
@@ -258,3 +260,17 @@ Future<void> sshIsolate(SshShellInfo info) async {
     sender.send(utf8.decode(event, allowMalformed: true));
   });
 }
+
+const shortcuts = {
+  SingleActivator(LogicalKeyboardKey.keyC, control: true, shift: true):
+      CopySelectionTextIntent.copy,
+  SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
+      PasteTextIntent(SelectionChangedCause.keyboard),
+};
+
+const macosShortcuts = {
+  SingleActivator(LogicalKeyboardKey.keyC, meta: true):
+      CopySelectionTextIntent.copy,
+  SingleActivator(LogicalKeyboardKey.keyV, meta: true):
+      PasteTextIntent(SelectionChangedCause.keyboard),
+};
