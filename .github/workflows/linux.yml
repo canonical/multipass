@@ -302,8 +302,7 @@ jobs:
       with:
         token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         workflow: Integration
-        ref: ${{ steps.dispatch-params.outputs.ref }}
-        sha: ${{ steps.dispatch-params.outputs.sha }}
+        ref: ${{ steps.dispatch-params.outputs.head_ref }}
         inputs: |
           {
             "snap-channel": "${{ github.event_name == 'merge_queue' && needs.BuildAndTest.outputs.channel || '' }}"
