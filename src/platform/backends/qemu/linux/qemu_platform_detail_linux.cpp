@@ -20,10 +20,12 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 
 #include <shared/linux/backend_utils.h>
 
+#include <QCoreApplication>
 #include <QFile>
 
 namespace mp = multipass;
@@ -192,29 +194,65 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
          << QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                                                tap_device_name, vm_desc.default_mac_address));
 
+    auto bridge_helper_path = QCoreApplication::applicationDirPath() + "/bridge_helper";
+
+    for (const auto& extra_interface : vm_desc.extra_interfaces)
+    {
+        opts << "-nic"
+             << QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                                                   extra_interface.id,
+                                                   extra_interface.mac_address,
+                                                   bridge_helper_path));
+    }
+
     return opts;
 }
 
-void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& desc,
-                                                   const NetworkInterface& extra_interface)
+std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
 {
-    // TODO: Do not uncomment the following line when implementing bridging in Linux QEMU. Since implementing it would
-    // yield the same exact implementation than in macOS, we need to move the code out of here, and put it only once
-    // in src/platform/backends/qemu/qemu_virtual_machine.[h|cpp].
-    // desc.extra_interfaces.push_back(net);
+    const auto& platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
 
-    // For the time being, just complain:
-    throw NotImplementedOnThisBackendException("add interfaces");
+    std::vector<NetworkInterfaceInfo> networks;
+
+    for (const auto& ifs_info : platform_ifs_info)
+    {
+        const auto& info = ifs_info.second;
+        const auto& type = info.type;
+
+        if (type == "bridge" || type == "ethernet")
+        {
+            networks.push_back(info);
+        }
+    }
+
+    for (auto& net : networks)
+    {
+        if (net.type == "ethernet")
+        {
+            net.needs_authorization = (find_bridge_with(networks, net.id) == networks.cend());
+        }
+    }
+
+    return networks;
 }
 
 std::vector<mp::NetworkInterfaceInfo>::const_iterator mp::QemuPlatformDetail::find_bridge_with(
     const std::vector<mp::NetworkInterfaceInfo>& networks,
     const std::string& member_network) const
 {
-    return networks.cend();
+    return std::find_if(std::cbegin(networks),
+                        std::cend(networks),
+                        [&member_network](const mp::NetworkInterfaceInfo& info) {
+                            return info.type == "bridge" &&
+                                   (info.has_link(member_network) || info.id == member_network);
+                        });
 }
-
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
+}
+
+std::string mp::QemuPlatformDetail::create_bridge_with(const std::string& interface) const
+{
+    return MP_BACKEND.create_bridge_with(interface);
 }

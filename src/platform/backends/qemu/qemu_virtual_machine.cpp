@@ -649,7 +649,7 @@ void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backe
                                                    const std::string& default_mac_addr,
                                                    const NetworkInterface& extra_interface)
 {
-    qemu_platform->add_network_interface(desc, extra_interface);
+    desc.extra_interfaces.push_back(extra_interface);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
