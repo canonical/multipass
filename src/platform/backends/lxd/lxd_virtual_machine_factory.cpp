@@ -238,8 +238,7 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
                 ret.push_back(std::move(network));
 
         for (auto& net : ret)
-            if (net.needs_authorization && find_bridge_with(ret, net.id) != ret.cend())
-                net.needs_authorization = false;
+            net.needs_authorization &= (find_bridge_with(ret, net.id) == ret.cend());
     }
 
     return ret;
