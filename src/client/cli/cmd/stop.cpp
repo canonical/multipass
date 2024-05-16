@@ -80,7 +80,7 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
 
     parser->addPositionalArgument("name", description, syntax);
 
-    QCommandLineOption all_option(all_option_name, "Stop all instances");
+    QCommandLineOption all_option({"a", all_option_name}, "Stop all instances");
     QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
                                    "time", "0");
     QCommandLineOption cancel_option({"c", "cancel"}, "Cancel a pending delayed shutdown");
