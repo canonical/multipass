@@ -11,6 +11,20 @@ on:
         description: macOS ARM package URL
       win-package:
         description: Windows package URL
+  workflow_call:
+   inputs:
+      snap-channel:
+        description: Snap Store channel
+        type: string
+      mac-x86-package:
+        description: macOS x86 package URL
+        type: string
+      mac-arm-package:
+        description: macOS ARM package URL
+        type: string
+      win-package:
+        description: Windows package URL
+        type: string
 
 jobs:
   GetMatrix:
@@ -27,21 +41,21 @@ jobs:
 
         MATRIX=""
 
-        if [ -n '${{ github.event.inputs.snap-channel }}' ]; then
+        if [ -n '${{ inputs.snap-channel }}' ]; then
           MATRIX+='{"os": "Linux", "vm": "linux", "driver": "qemu"}'
           MATRIX+='{"os": "Linux", "vm": "linux", "driver": "lxd"}'
         fi
 
-        if [ -n '${{ github.event.inputs.mac-x86-package }}' ]; then
+        if [ -n '${{ inputs.mac-x86-package }}' ]; then
           MATRIX+='{"os": "macOS", "vm": "macos-11", "driver": "qemu", "arch": "x86_64" }'
           MATRIX+='{"os": "macOS", "vm": "macos-12", "driver": "qemu", "arch": "x86_64" }'
         fi
 
-        if [ -n '${{ github.event.inputs.mac-arm-package }}' ]; then
+        if [ -n '${{ inputs.mac-arm-package }}' ]; then
           MATRIX+='{"os": "macOS", "driver": "qemu", "arch": "arm64" }'
         fi
 
-        if [ -n '${{ github.event.inputs.win-package }}' ]; then
+        if [ -n '${{ inputs.win-package }}' ]; then
           MATRIX+='{"os": "Windows",  "vm": "windows-10", "driver": "hyperv"}'
           MATRIX+='{"os": "Windows",  "vm": "windows-11", "driver": "hyperv"}'
         fi
@@ -171,14 +185,14 @@ jobs:
               ExecStart=
               ExecStart=/usr/bin/snap run multipass.multipassd --verbosity trace
               EOF
-                _install  ${{ github.event.inputs.snap-channel }}
+                _install  ${{ inputs.snap-channel }}
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
-                _install  ${{ matrix.arch == 'arm64' && github.event.inputs.mac-arm-package || github.event.inputs.mac-x86-package }}
+                _install  ${{ matrix.arch == 'arm64' && inputs.mac-arm-package || inputs.mac-x86-package }}
 
               elif [ '${{ matrix.os }}' == 'Windows' ]; then
-                _install ${{ github.event.inputs.win-package }}
+                _install ${{ inputs.win-package }}
 
                 if [ '${{ matrix.driver }}' == 'hyperv' ]; then
                   _ps "Set-Variable ProgressPreference SilentlyContinue; Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart"

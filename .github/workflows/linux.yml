@@ -271,7 +271,6 @@ jobs:
   Dispatch:
     needs:
     - BuildAndTest
-    - Publish-Snap
 
     # Only dispatch if we have access to secrets.
     # Need to explicitly continue on Lint getting skipped.
@@ -297,19 +296,6 @@ jobs:
             echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
         fi
 
-    - name: Dispatch Linux integration tests
-      uses: Saviq/workflow-dispatch@dist
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        workflow: Integration
-        ref: ${{ steps.dispatch-params.outputs.head_ref }}
-        inputs: |
-          {
-            "snap-channel": "${{ github.event_name == 'merge_queue' && needs.BuildAndTest.outputs.channel || '' }}"
-          }
-      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-error: true
-
     - name: Dispatch macOS and Windows builds
       uses: peter-evans/repository-dispatch@v3
       with:
@@ -327,3 +313,14 @@ jobs:
             "label": "${{ needs.BuildAndTest.outputs.label }}",
             "dispatch_ci": "${{ github.event_name == 'merge_queue' }}"
           }
+
+  Integration-Tests:
+    needs:
+    - BuildAndTest
+    - Publish-Snap
+
+    if: ${{ github.event_name == 'merge_queue' }}
+
+    uses: ./.github/workflows/integration.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
