@@ -35,7 +35,7 @@ dependencies:
     git:
       url: https://github.com/andrei-toterman/tray_menu.git
       ref: 7c1394c
-  two_dimensional_scrollables: ^0.0.2
+  two_dimensional_scrollables: ^0.3.0
   url_launcher: ^6.2.3
   window_manager: ^0.3.5
   xterm: ^3.5.0
