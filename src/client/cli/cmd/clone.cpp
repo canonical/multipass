@@ -80,7 +80,9 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 
     const auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
+    {
         return status;
+    }
 
     const auto number_of_positional_arguments = parser->positionalArguments().count();
     if (number_of_positional_arguments < 1)
