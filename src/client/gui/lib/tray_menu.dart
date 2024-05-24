@@ -13,6 +13,7 @@ import 'ffi.dart';
 import 'providers.dart';
 import 'sidebar.dart';
 import 'vm_action.dart';
+import 'vm_details/vm_details.dart';
 
 final trayMenuDataProvider = Provider.autoDispose((ref) {
   return ref.watch(daemonAvailableProvider)
@@ -146,8 +147,6 @@ Future<void> _updateTrayMenu(
   final Map<String, Status> nextVms,
 ) async {
   final grpcClient = providerContainer.read(grpcClientProvider);
-  final sidebarKeyNotifier =
-      providerContainer.read(sidebarKeyProvider.notifier);
 
   await TrayMenu.instance.remove(_errorKey);
   await TrayMenu.instance.remove(_separatorErrorKey);
@@ -194,7 +193,10 @@ Future<void> _updateTrayMenu(
         'open',
         label: 'Open in Multipass',
         callback: (_, __) {
-          sidebarKeyNotifier.state = key;
+          providerContainer
+              .read(vmScreenLocationProvider(name).notifier)
+              .state = VmDetailsLocation.shells;
+          providerContainer.read(sidebarKeyProvider.notifier).set(key);
           windowManager.show();
         },
       );

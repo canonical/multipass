@@ -35,7 +35,7 @@ class LaunchOperationProgress extends ConsumerWidget {
           Scaffold.of(context).closeEndDrawer();
           Timer(250.milliseconds, () {
             ref.invalidate(launchOperationProvider);
-            ref.read(sidebarKeyProvider.notifier).state = 'vm-$name';
+            ref.read(sidebarKeyProvider.notifier).set('vm-$name');
           });
         }),
         builder: (_, snapshot) {

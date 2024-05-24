@@ -80,9 +80,13 @@ class _AppState extends ConsumerState<App> with WindowListener {
       children: widgets.entries.map((e) {
         final MapEntry(:key, value: widget) = e;
         final isCurrent = key == currentKey;
+        var maintainState = key != SettingsScreen.sidebarKey;
+        if (key.startsWith('vm-')) {
+          maintainState = ref.read(vmVisitedProvider(key));
+        }
         return Visibility(
           key: Key(key),
-          maintainState: key != SettingsScreen.sidebarKey,
+          maintainState: maintainState,
           visible: isCurrent,
           child: FocusScope(
             autofocus: isCurrent,
@@ -124,7 +128,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
     final vms = ref.read(vmNamesProvider);
     final primary = ref.read(clientSettingProvider(primaryNameKey));
     if (vms.contains(primary)) {
-      ref.read(sidebarKeyProvider.notifier).state = 'vm-$primary';
+      ref.read(sidebarKeyProvider.notifier).set('vm-$primary');
       windowManager.show();
     }
   }
