@@ -50,7 +50,17 @@ final notificationsProvider =
   NotificationsNotifier.new,
 );
 
-extension ErrorNotificationExtension on WidgetRef {
+extension ErrorNotificationWidgetRefExtension on WidgetRef {
+  void Function(Object?, StackTrace) notifyError(
+    String Function(Object?) onError,
+  ) {
+    return (error, _) {
+      read(notificationsProvider.notifier).addError(error, onError);
+    };
+  }
+}
+
+extension ErrorNotificationRefExtension on Ref {
   void Function(Object?, StackTrace) notifyError(
     String Function(Object?) onError,
   ) {
