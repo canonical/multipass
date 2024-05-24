@@ -21,7 +21,7 @@ class NoVms extends ConsumerWidget {
     );
 
     goToCatalogue() {
-      ref.read(sidebarKeyProvider.notifier).state = CatalogueScreen.sidebarKey;
+      ref.read(sidebarKeyProvider.notifier).set(CatalogueScreen.sidebarKey);
     }
 
     return Center(
