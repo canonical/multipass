@@ -29,9 +29,8 @@ class SidebarKeyNotifier extends Notifier<String> {
   }
 
   void set(String key) {
-    final vmName = state.sidebarVmName;
-    if (vmName != null) {
-      ref.read(vmVisitedProvider(vmName).notifier).state = true;
+    if (key.sidebarVmName != null) {
+      ref.read(vmVisitedProvider(key).notifier).state = true;
     }
     state = key;
   }
@@ -142,7 +141,8 @@ class SideBar extends ConsumerWidget {
 
     final vmEntries = vmNames.map((name) {
       final key = 'vm-$name';
-      final hasShells = ref.watch(vmShellsProvider(name).select((n) => n > 0));
+      final hasShells =
+          ref.watch(runningShellsProvider(name).select((n) => n > 0));
       return SidebarEntry(
         key: ValueKey(key),
         icon: Opacity(
