@@ -101,7 +101,7 @@ QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonValue
             }
         }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-        // "<src_name>"->"<dest_name>" is because the second one might match other substrings of the metadata.
+        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the metadata.
         str.replace("instances/" + QString{src_vm_name.c_str()}, "instances/" + QString{dest_vm_name.c_str()});
         item = str;
     }

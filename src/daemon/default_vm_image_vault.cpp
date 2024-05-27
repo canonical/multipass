@@ -599,7 +599,11 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
 
     auto& dest_vault_record = instance_image_records[destination_instance_name] =
         instance_image_records[source_instance_name];
-    dest_vault_record.image.image_path.replace(source_instance_name.c_str(), destination_instance_name.c_str());
+
+    // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
+    // "<src_name>"->"<dest_name>", because the second one might match other substrings of the metadata.
+    dest_vault_record.image.image_path.replace("instances/" + QString{source_instance_name.c_str()},
+                                               "instances/" + QString{destination_instance_name.c_str()});
     persist_instance_records();
 }
 
