@@ -325,9 +325,9 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     return json;
 }
 
-std::string generate_next_clone_name(const mp::VMSpecs& source_spec, const std::string& source_name)
+std::string generate_next_clone_name(int clone_count, const std::string& source_name)
 {
-    return fmt::format("{}-clone{}", source_name, source_spec.clone_count + 1);
+    return fmt::format("{}-clone{}", source_name, clone_count + 1);
 }
 
 auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory, mp::VMImageVault& vault)
@@ -2724,7 +2724,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                 {
                     const std::string& source_name = request.source_name();
                     const std::string destination_name =
-                        generate_next_clone_name(vm_instance_specs[source_name], source_name);
+                        generate_next_clone_name(vm_instance_specs[source_name].clone_count, source_name);
 
                     if (is_name_already_used(destination_name))
                     {
@@ -2786,7 +2786,7 @@ void mp::Daemon::clone(const CloneRequest* request,
             const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
 
             // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending of the
-            // dest_spec has to be done before that
+            // dest_spec has to be done before the function create_vm_and_clone_instance_dir_data
             vm_instance_specs.emplace(destination_name, dest_spec);
             operative_instances[destination_name] =
                 config->factory->create_vm_and_clone_instance_dir_data(src_spec,
