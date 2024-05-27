@@ -36,7 +36,7 @@ public:
         (const, override));
     MOCK_METHOD(
         void,
-        update_cloned_cloud_init,
+        update_cloned_cloud_init_unique_identifiers,
         (const std::string&, const std::vector<NetworkInterface>&, const std::string&, const std::filesystem::path&),
         (const, override));
     MOCK_METHOD(void,

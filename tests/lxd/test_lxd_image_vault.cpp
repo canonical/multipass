@@ -1269,5 +1269,5 @@ TEST_F(LXDImageVault, lxdImageVaultCloneThrow)
 
     MP_EXPECT_THROW_THAT(image_vault.clone("dummy_src_image_name", "dummy_dest_image_name"),
                          std::runtime_error,
-                         mpt::match_what(StrEq("Clone methond is not supported in LXDVMImageVault yet.")));
+                         mpt::match_what(StrEq("Clone method is not supported in LXDVMImageVault yet.")));
 }
