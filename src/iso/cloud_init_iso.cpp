@@ -727,10 +727,11 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }
 
-void mp::CloudInitFileOps::update_cloned_cloud_init(const std::string& default_mac_addr,
-                                                    const std::vector<NetworkInterface>& extra_interfaces,
-                                                    const std::string& new_hostname,
-                                                    const std::filesystem::path& cloud_init_path) const
+void mp::CloudInitFileOps::update_cloned_cloud_init_unique_identifiers(
+    const std::string& default_mac_addr,
+    const std::vector<NetworkInterface>& extra_interfaces,
+    const std::string& new_hostname,
+    const std::filesystem::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);

@@ -54,7 +54,7 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
     void clone(const std::string& source_instance_name, const std::string& destination_instance_name) override
     {
-        throw std::runtime_error("Clone methond is not supported in LXDVMImageVault yet.");
+        throw std::runtime_error("Clone method is not supported in LXDVMImageVault yet.");
     }
 
 private:

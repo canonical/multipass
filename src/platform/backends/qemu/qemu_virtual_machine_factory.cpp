@@ -92,10 +92,10 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
 
-    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init(dest_vm_spec.default_mac_address,
-                                                    dest_vm_spec.extra_interfaces,
-                                                    destination_name,
-                                                    cloud_init_config_iso_file_path);
+    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
+                                                                       dest_vm_spec.extra_interfaces,
+                                                                       destination_name,
+                                                                       cloud_init_config_iso_file_path);
 
     // start to construct VirtualMachineDescription
     mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
