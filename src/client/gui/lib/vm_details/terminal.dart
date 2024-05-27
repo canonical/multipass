@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
@@ -15,72 +14,82 @@ import '../logger.dart';
 import '../notifications.dart';
 import '../providers.dart';
 
-final vmShellsProvider = StateProvider.autoDispose.family<int, String>((_, __) {
+final runningShellsProvider =
+    StateProvider.autoDispose.family<int, String>((_, __) {
   return 0;
 });
 
-class VmTerminal extends ConsumerStatefulWidget {
-  final String name;
-  final bool running;
+typedef TerminalIdentifier = ({String vmName, int shellId});
 
-  const VmTerminal(this.name, {this.running = false, super.key});
-
-  @override
-  ConsumerState<VmTerminal> createState() => VmTerminalState();
-}
-
-class VmTerminalState extends ConsumerState<VmTerminal> {
-  Terminal? terminal;
+class TerminalNotifier
+    extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
   Isolate? isolate;
-  final scrollController = ScrollController();
-  final focusNode = FocusNode();
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.running) {
-      terminal = Terminal(maxLines: 10000);
-      initTerminal();
-    }
+  Terminal? build(TerminalIdentifier arg) {
+    ref.onDispose(dispose);
+
+    final running = ref.read(vmInfoProvider(arg.vmName).select((info) {
+      return info.instanceStatus.status == Status.RUNNING;
+    }));
+
+    if (running) getStarted().then((value) => state = value);
+
+    return null;
   }
 
-  @override
-  void dispose() {
-    isolate?.kill(priority: Isolate.immediate);
-    scrollController.dispose();
-    focusNode.dispose();
-    super.dispose();
-  }
-
-  Future<void> initTerminal() async {
-    final vmShellsNotifier = ref.read(vmShellsProvider(widget.name).notifier);
-    final thisTerminal = terminal;
-    if (thisTerminal == null) return;
-
-    sshInfoOnError(Object? error, s) {
-      final notifyOnError =
-          ref.notifyError((error) => 'Failed to get SSH information: $error');
-      notifyOnError(error, s);
-
-      setState(() => terminal = null);
+  Future<Terminal?> getStarted() async {
+    onError(Object? error, StackTrace stack) {
+      ref
+          .notifyError((error) => 'Failed to get SSH information: $error')
+          .call(error, stack);
       return null;
     }
 
-    final sshInfo = await ref
-        .read(grpcClientProvider)
-        .sshInfo(widget.name)
-        .onError(sshInfoOnError);
-    if (sshInfo == null) return;
+    final grpcClient = ref.read(grpcClientProvider);
+    final sshInfo = await grpcClient.sshInfo(arg.vmName).onError(onError);
+    if (sshInfo == null) return null;
 
+    final terminal = Terminal(maxLines: 10000);
     final receiver = ReceivePort();
     final errorReceiver = ReceivePort();
     final exitReceiver = ReceivePort();
+
+    errorReceiver.listen((es) {
+      final (Object? error, String? stack) = (es[0], es[1]);
+      logger.e(
+        'Error from $arg ssh isolate',
+        error: error,
+        stackTrace: stack != null ? StackTrace.fromString(stack) : null,
+      );
+    });
+
+    exitReceiver.listen((_) {
+      logger.d('Exited $arg ssh isolate');
+      receiver.close();
+      errorReceiver.close();
+      exitReceiver.close();
+      stop();
+    });
+
+    receiver.listen((event) {
+      switch (event) {
+        case final SendPort sender:
+          terminal.onOutput = sender.send;
+          terminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
+        case final String data:
+          terminal.write(data);
+        case null:
+          stop();
+      }
+    });
+
     isolate = await Isolate.spawn(
       sshIsolate,
       SshShellInfo(
         sender: receiver.sendPort,
-        width: thisTerminal.viewWidth,
-        height: thisTerminal.viewHeight,
+        width: terminal.viewWidth,
+        height: terminal.viewHeight,
         sshInfo: sshInfo,
       ),
       onError: errorReceiver.sendPort,
@@ -88,40 +97,77 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
       errorsAreFatal: true,
     );
 
-    vmShellsNotifier.update((state) => state + 1);
+    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
+      return state + 1;
+    });
+    return terminal;
+  }
 
-    errorReceiver.listen((es) {
-      logger.e(
-        'Error from ${widget.name} ssh isolate',
-        error: es[0],
-        stackTrace: es[1] != null ? StackTrace.fromString(es[1]) : null,
-      );
+  Future<void> start() async {
+    if (stateOrNull == null) state = await getStarted();
+  }
+
+  void stop() {
+    dispose();
+    state = null;
+  }
+
+  void dispose() {
+    isolate?.kill(priority: Isolate.immediate);
+    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
+      return isolate == null ? state : state - 1;
     });
-    exitReceiver.listen((_) {
-      logger.d('Exited ${widget.name} ssh isolate');
-      receiver.close();
-      errorReceiver.close();
-      exitReceiver.close();
-      vmShellsNotifier.update((state) => max(0, state - 1));
-      if (mounted) setState(() => terminal = null);
-    });
-    receiver.listen((event) {
-      switch (event) {
-        case final SendPort sender:
-          thisTerminal.onOutput = sender.send;
-          thisTerminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
-        case final String data:
-          thisTerminal.write(data);
-        case null:
-          logger.i('Ssh session for ${widget.name} has exited');
-          isolate?.kill(priority: Isolate.immediate);
-      }
-    });
+    isolate = null;
+  }
+}
+
+final terminalProvider = NotifierProvider.autoDispose
+    .family<TerminalNotifier, Terminal?, TerminalIdentifier>(
+        TerminalNotifier.new);
+
+class VmTerminal extends ConsumerStatefulWidget {
+  final String name;
+  final int id;
+  final bool isCurrent;
+
+  const VmTerminal(
+    this.name,
+    this.id, {
+    super.key,
+    this.isCurrent = false,
+  });
+
+  @override
+  ConsumerState<VmTerminal> createState() => _VmTerminalState();
+}
+
+class _VmTerminalState extends ConsumerState<VmTerminal> {
+  final scrollController = ScrollController();
+  final focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
     focusNode.requestFocus();
   }
 
   @override
+  void dispose() {
+    scrollController.dispose();
+    focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(VmTerminal oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isCurrent) focusNode.requestFocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
+    final terminal = ref.watch(terminalProvider(terminalIdentifier));
     final vmRunning = ref.watch(vmInfoProvider(widget.name).select((info) {
       return info.instanceStatus.status == Status.RUNNING;
     }));
@@ -138,8 +184,7 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
       }),
     );
 
-    final thisTerminal = terminal;
-    if (thisTerminal == null) {
+    if (terminal == null) {
       return Container(
         color: const Color(0xff380c2a),
         alignment: Alignment.center,
@@ -151,12 +196,11 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
             const SizedBox(height: 12),
             OutlinedButton(
               style: buttonStyle,
-              onPressed: !vmRunning
-                  ? null
-                  : () => setState(() {
-                        terminal = Terminal(maxLines: 10000);
-                        initTerminal();
-                      }),
+              onPressed: vmRunning
+                  ? () => ref
+                      .read(terminalProvider(terminalIdentifier).notifier)
+                      .start()
+                  : null,
               child: const Text('Open shell'),
             ),
             const SizedBox(height: 32),
@@ -170,9 +214,8 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
       thickness: 9,
       child: ClipRect(
         child: TerminalView(
-          thisTerminal,
+          terminal,
           scrollController: scrollController,
-          autofocus: true,
           focusNode: focusNode,
           shortcuts: Platform.isMacOS ? macosShortcuts : shortcuts,
           hardwareKeyboardOnly: true,
