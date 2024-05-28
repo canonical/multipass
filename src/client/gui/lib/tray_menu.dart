@@ -5,6 +5,7 @@ import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:multipass_gui/platform/platform.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tray_menu/tray_menu.dart';
 import 'package:window_manager/window_manager.dart';
@@ -34,11 +35,7 @@ final daemonVersionProvider = Provider((ref) {
 
 Future<String> _iconFilePath() async {
   final dataDir = await getApplicationSupportDirectory();
-  final iconName = Platform.isMacOS
-      ? 'icon_template.png'
-      : Platform.isWindows
-          ? 'icon.ico'
-          : 'icon.png';
+  final iconName = mpPlatform.trayIconFile;
   final iconFile = File('${dataDir.path}/$iconName');
   final data = await rootBundle.load('assets/$iconName');
   await iconFile.writeAsBytes(data.buffer.asUint8List());
@@ -51,7 +48,7 @@ const _separatorErrorKey = 'separator-error';
 const _separatorAboutKey = 'separator-about';
 
 Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
-  if (!Platform.isMacOS) {
+  if (mpPlatform.showToggleWindow) {
     await TrayMenu.instance.addLabel(
       'toggle-window',
       label: 'Toggle window',
