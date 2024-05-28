@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
 import '../notifications/notifications_provider.dart';
+import '../platform/platform.dart';
 import '../providers.dart';
 
 final driverProvider = daemonSettingProvider(driverKey);
@@ -29,7 +28,7 @@ class VirtualizationSettings extends ConsumerWidget {
         label: 'Driver',
         width: 260,
         value: driver,
-        items: drivers,
+        items: mpPlatform.drivers,
         onChanged: (value) {
           if (value == driver) return;
           ref
@@ -53,16 +52,3 @@ class VirtualizationSettings extends ConsumerWidget {
     ]);
   }
 }
-
-final drivers = () {
-  if (Platform.isLinux) {
-    return const {'qemu': 'Qemu', 'lxd': 'LXD', 'libvirt': 'Libvirt'};
-  }
-  if (Platform.isMacOS) {
-    return const {'qemu': 'Qemu', 'virtualbox': 'VirtualBox'};
-  }
-  if (Platform.isWindows) {
-    return const {'hyperv': 'Hyper-V', 'virtualbox': 'VirtualBox'};
-  }
-  throw const OSError('Unsupported OS');
-}();
