@@ -5,16 +5,18 @@ import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:multipass_gui/platform/platform.dart';
+import 'package:multipass_gui/vm_details/terminal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:tray_menu/tray_menu.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'ffi.dart';
+import 'platform/platform.dart';
 import 'providers.dart';
 import 'sidebar.dart';
 import 'vm_action.dart';
+import 'vm_details/terminal_tabs.dart';
 import 'vm_details/vm_details.dart';
 
 final trayMenuDataProvider = Provider.autoDispose((ref) {
@@ -195,6 +197,16 @@ Future<void> _updateTrayMenu(
               .read(vmScreenLocationProvider(name).notifier)
               .state = VmDetailsLocation.shells;
           providerContainer.read(sidebarKeyProvider.notifier).set(key);
+          final (:ids, :currentIndex) =
+              providerContainer.read(shellIdsProvider(name));
+          final terminalIdentifier = (
+            vmName: name,
+            shellId: ids[currentIndex],
+          );
+          final provider = terminalProvider(terminalIdentifier);
+          if (providerContainer.exists(provider)) {
+            providerContainer.read(provider.notifier).start();
+          }
           windowManager.show();
         },
       );
