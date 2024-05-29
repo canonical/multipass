@@ -147,7 +147,8 @@ class _AppState extends ConsumerState<App> with WindowListener {
   }
 
   @override
-  void onWindowClose() {
+  void onWindowClose() async {
+    if (!await windowManager.isPreventClose()) return;
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
