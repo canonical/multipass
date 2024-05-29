@@ -38,6 +38,7 @@ dependencies:
       ref: 7c1394c
   two_dimensional_scrollables: ^0.0.2
   url_launcher: ^6.2.3
+  win32: ^5.2.0
   window_manager: ^0.3.5
   xterm: ^3.5.0
 
