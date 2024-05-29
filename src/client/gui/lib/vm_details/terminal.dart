@@ -6,6 +6,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
@@ -22,31 +23,32 @@ typedef TerminalIdentifier = ({String vmName, int shellId});
 
 class TerminalNotifier
     extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
+  final lock = Lock();
   Isolate? isolate;
 
   @override
   Terminal? build(TerminalIdentifier arg) {
-    ref.onDispose(dispose);
+    ref.onDispose(_dispose);
+    lock.synchronized(_initShell).then((value) => state = value);
+    return null;
+  }
+
+  Future<Terminal?> _initShell() async {
+    final currentState = stateOrNull;
+    if (currentState != null) return currentState;
 
     final running = ref.read(vmInfoProvider(arg.vmName).select((info) {
       return info.instanceStatus.status == Status.RUNNING;
     }));
-
-    if (running) getStarted().then((value) => state = value);
-
-    return null;
-  }
-
-  Future<Terminal?> getStarted() async {
-    onError(Object? error, StackTrace stack) {
-      ref
-          .notifyError((error) => 'Failed to get SSH information: $error')
-          .call(error, stack);
-      return null;
-    }
+    if (!running) return null;
 
     final grpcClient = ref.read(grpcClientProvider);
-    final sshInfo = await grpcClient.sshInfo(arg.vmName).onError(onError);
+    final sshInfo = await grpcClient.sshInfo(arg.vmName).onError((err, stack) {
+      ref
+          .notifyError((error) => 'Failed to get SSH information: $err')
+          .call(err, stack);
+      return null;
+    });
     if (sshInfo == null) return null;
 
     final terminal = Terminal(maxLines: 10000);
@@ -103,15 +105,15 @@ class TerminalNotifier
   }
 
   Future<void> start() async {
-    if (stateOrNull == null) state = await getStarted();
+    state = await lock.synchronized(_initShell);
   }
 
   void stop() {
-    dispose();
+    _dispose();
     state = null;
   }
 
-  void dispose() {
+  void _dispose() {
     isolate?.kill(priority: Isolate.immediate);
     ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
       return isolate == null ? state : state - 1;
