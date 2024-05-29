@@ -31,6 +31,7 @@ dependencies:
   protobuf: ^3.1.0
   rxdart: ^0.27.7
   shared_preferences: ^2.2.2
+  synchronized: ^3.1.0+1
   tray_menu:
     git:
       url: https://github.com/andrei-toterman/tray_menu.git

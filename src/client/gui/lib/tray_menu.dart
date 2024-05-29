@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multipass_gui/platform/platform.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:tray_menu/tray_menu.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -90,21 +91,21 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
 
   await TrayMenu.instance.show(await _iconFilePath());
 
-  var updating = Completer<void>();
-  updating.complete();
+  final lock = Lock();
   providerContainer.listen(
     trayMenuDataProvider,
     (previousVmData, nextVmData) async {
-      if (!updating.isCompleted) await updating.future;
-      updating = Completer<void>();
-      nextVmData == null
-          ? await _setTrayMenuError()
-          : await _updateTrayMenu(
-              providerContainer,
-              previousVmData?.toMap() ?? {},
-              nextVmData.toMap(),
-            );
-      updating.complete();
+      lock.synchronized(() async {
+        if (nextVmData == null) {
+          await _setTrayMenuError();
+        } else {
+          await _updateTrayMenu(
+            providerContainer,
+            previousVmData?.toMap() ?? {},
+            nextVmData.toMap(),
+          );
+        }
+      });
     },
   );
 }
