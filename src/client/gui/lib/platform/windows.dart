@@ -1,7 +1,10 @@
+import 'dart:ffi';
 import 'dart:io';
 
+import 'package:ffi/ffi.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:win32/win32.dart';
 
 import '../settings/autostart_notifiers.dart';
 import 'platform.dart';
@@ -35,7 +38,11 @@ class WindowsPlatform extends MpPlatform {
 }
 
 class WindowsAutostartNotifier extends AutostartNotifier {
-  final link = Link(
+  WindowsAutostartNotifier() {
+    CoInitializeEx(nullptr, 2);
+  }
+
+  final link = File(
     '${Platform.environment['AppData']}/Microsoft/Windows/Start Menu/Programs/Startup/Multipass.lnk',
   );
 
@@ -45,9 +52,23 @@ class WindowsAutostartNotifier extends AutostartNotifier {
   @override
   Future<void> doSet(bool value) async {
     if (value) {
-      await link.create(Platform.resolvedExecutable);
+      _createShortcut(Platform.resolvedExecutable, link.path);
     } else {
       if (await link.exists()) await link.delete();
+    }
+  }
+
+  void _createShortcut(String path, String linkPath) {
+    final shellLink = ShellLink.createInstance();
+    final pathUtf16 = path.toNativeUtf16();
+    final linkPathUtf16 = linkPath.toNativeUtf16();
+
+    try {
+      shellLink.setPath(pathUtf16);
+      IPersistFile.from(shellLink).save(linkPathUtf16, TRUE);
+    } finally {
+      free(pathUtf16);
+      free(linkPathUtf16);
     }
   }
 }
