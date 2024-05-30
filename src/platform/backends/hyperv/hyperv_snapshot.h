@@ -42,6 +42,13 @@ public:
                    HyperVVirtualMachine& vm,
                    const VirtualMachineDescription& desc,
                    PowerShell& power_shell);
+    HyperVSnapshot(const QString& filename,
+                   const VMSpecs& src_specs,
+                   const VMSpecs& dest_specs,
+                   const std::string& src_vm_name,
+                   HyperVVirtualMachine& vm,
+                   VirtualMachineDescription& desc,
+                   PowerShell& power_shell);
 
 protected:
     void capture_impl() override;
