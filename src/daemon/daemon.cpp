@@ -2768,13 +2768,18 @@ void mp::Daemon::clone(const CloneRequest* request,
                     }
                 }
 
-                dest_vm_spec.metadata = MP_JSONUTILS
-                                            .update_unique_identifiers_of_metadata(QJsonValue{dest_vm_spec.metadata},
-                                                                                   src_vm_spec,
-                                                                                   dest_vm_spec,
-                                                                                   src_name,
-                                                                                   dest_name)
-                                            .toObject();
+                // non qemu snapshot files do not have metadata
+                if (!dest_vm_spec.metadata.isEmpty())
+                {
+                    dest_vm_spec.metadata =
+                        MP_JSONUTILS
+                            .update_unique_identifiers_of_metadata(QJsonValue{dest_vm_spec.metadata},
+                                                                   src_vm_spec,
+                                                                   dest_vm_spec,
+                                                                   src_name,
+                                                                   dest_name)
+                            .toObject();
+                }
                 return dest_vm_spec;
             };
 

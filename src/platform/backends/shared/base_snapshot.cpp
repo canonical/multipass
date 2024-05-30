@@ -79,11 +79,16 @@ QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& file
     QJsonObject snapshot_json = read_snapshot_json(filename);
     snapshot_json["cloud_init_instance_id"] =
         MP_JSONUTILS.update_cloud_init_instance_id(snapshot_json["cloud_init_instance_id"], src_vm_name, dest_vm_name);
-    snapshot_json["metadata"] = MP_JSONUTILS.update_unique_identifiers_of_metadata(snapshot_json["metadata"],
-                                                                                   src_specs,
-                                                                                   dest_specs,
-                                                                                   src_vm_name,
-                                                                                   dest_vm_name);
+
+    // non qemu snapshot files do not have metadata
+    if (!snapshot_json["metadata"].toObject().isEmpty())
+    {
+        snapshot_json["metadata"] = MP_JSONUTILS.update_unique_identifiers_of_metadata(snapshot_json["metadata"],
+                                                                                       src_specs,
+                                                                                       dest_specs,
+                                                                                       src_vm_name,
+                                                                                       dest_vm_name);
+    }
     return snapshot_json;
 }
 
