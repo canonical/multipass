@@ -18,11 +18,13 @@
 #include "hyperv_virtual_machine_factory.h"
 #include "hyperv_virtual_machine.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
 
 #include <shared/windows/powershell.h>
 
@@ -31,6 +33,7 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
+#include <scope_guard.hpp>
 
 #include <algorithm>
 #include <iterator>
@@ -258,6 +261,61 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
                                                       monitor,
                                                       key_provider,
                                                       get_instance_directory(desc.vm_name));
+}
+
+mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
+    const VMSpecs& src_vm_spec,
+    const VMSpecs& dest_vm_spec,
+    const std::string& source_name,
+    const std::string& destination_name,
+    const VMImage& dest_vm_image,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
+{
+    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
+    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
+
+    // if any of the below code throw, then roll back and clean up the created instance folder
+    auto rollback_delete_instance_folder =
+        sg::make_scope_guard([dest_instance_directory = dest_instance_data_directory]() noexcept -> void {
+            // use err_code to guarantee the two file operations below do not throw
+            if (std::error_code err_code; MP_FILEOPS.exists(dest_instance_directory, err_code))
+            {
+                MP_FILEOPS.remove(dest_instance_directory, err_code);
+            }
+        });
+
+    MP_FILEOPS.copy(source_instance_data_directory,
+                    dest_instance_data_directory,
+                    std::filesystem::copy_options::recursive);
+
+    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
+
+    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
+                                                                       dest_vm_spec.extra_interfaces,
+                                                                       destination_name,
+                                                                       cloud_init_config_iso_file_path);
+
+    // start to construct VirtualMachineDescription
+    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
+                                               dest_vm_spec.mem_size,
+                                               dest_vm_spec.disk_space,
+                                               destination_name,
+                                               dest_vm_spec.default_mac_address,
+                                               dest_vm_spec.extra_interfaces,
+                                               dest_vm_spec.ssh_username,
+                                               dest_vm_image,
+                                               cloud_init_config_iso_file_path.string().c_str(),
+                                               {},
+                                               {},
+                                               {},
+                                               {}};
+
+    mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, key_provider, monitor);
+    cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
+
+    rollback_delete_instance_folder.dismiss();
+    return cloned_instance;
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
