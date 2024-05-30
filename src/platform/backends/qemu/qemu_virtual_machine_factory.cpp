@@ -82,7 +82,15 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
             // use err_code to guarantee the two file operations below do not throw
             if (std::error_code err_code; MP_FILEOPS.exists(dest_instance_directory, err_code))
             {
-                MP_FILEOPS.remove(dest_instance_directory, err_code);
+                fs::remove_all(dest_instance_directory, err_code);
+                if (err_code.value())
+                {
+                    mpl::log(
+                        mpl::Level::info,
+                        category,
+                        fmt::format("The rollback instance directory removal did not succeed, err_code message is : {}",
+                                    err_code.message()));
+                }
             }
         });
 
