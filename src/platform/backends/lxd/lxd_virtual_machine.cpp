@@ -409,7 +409,7 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
 
 void mp::LXDVirtualMachine::request_state(const QString& new_state)
 {
-    const QJsonObject state_json{{"action", new_state}};
+    const QJsonObject state_json{{"action", new_state}, {"timeout", 60}};
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 
