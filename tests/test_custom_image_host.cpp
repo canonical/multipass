@@ -49,7 +49,8 @@ constexpr auto sha256_sums =
     "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7 *ubuntu-core-16-amd64.img.xz\n"
     "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f *ubuntu-core-18-amd64.img.xz\n"
     "52a4606b0b3b28e4cb64e2c2595ef8fdbb4170bfd3596f4e0b84f4d84511b614 *ubuntu-core-20-amd64.img.xz\n"
-    "6378b1fa3db76cdf18c905c8282ebc97401951a9338722486f653dbf16eb7915 *ubuntu-core-22-amd64.img.xz\n";
+    "6378b1fa3db76cdf18c905c8282ebc97401951a9338722486f653dbf16eb7915 *ubuntu-core-22-amd64.img.xz\n"
+    "192c40c8f3361f4f9da2757d87e409ac5abb2df393145983d3696e21f486b552 *ubuntu-core-24-amd64.img.xz\n";
 
 struct CustomImageHost : public Test
 {
@@ -120,10 +121,12 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
     auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
     host.for_each_entry_do(action);
 
-    EXPECT_THAT(ids, UnorderedElementsAre("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7",
-                                          "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f",
-                                          "52a4606b0b3b28e4cb64e2c2595ef8fdbb4170bfd3596f4e0b84f4d84511b614",
-                                          "6378b1fa3db76cdf18c905c8282ebc97401951a9338722486f653dbf16eb7915"));
+    EXPECT_THAT(ids,
+                UnorderedElementsAre("934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f00bc7c21f72ceb7",
+                                     "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f",
+                                     "52a4606b0b3b28e4cb64e2c2595ef8fdbb4170bfd3596f4e0b84f4d84511b614",
+                                     "6378b1fa3db76cdf18c905c8282ebc97401951a9338722486f653dbf16eb7915",
+                                     "192c40c8f3361f4f9da2757d87e409ac5abb2df393145983d3696e21f486b552"));
 }
 
 TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
@@ -136,7 +139,7 @@ TEST_F(CustomImageHost, unsupported_alias_iterates_over_expected_entries)
     host.update_manifests(false);
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{3};
+    const size_t expected_entries{4};
     EXPECT_EQ(ids.size(), expected_entries);
 }
 
@@ -162,7 +165,7 @@ TEST_F(CustomImageHost, all_images_for_no_remote_returns_appropriate_matches)
     host.update_manifests(false);
     auto images = host.all_images_for("", false);
 
-    const size_t expected_matches{4};
+    const size_t expected_matches{5};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
@@ -176,7 +179,7 @@ TEST_F(CustomImageHost, all_images_for_no_remote_unsupported_alias_returns_appro
 
     auto images = host.all_images_for("", false);
 
-    const size_t expected_matches{3};
+    const size_t expected_matches{4};
     EXPECT_EQ(images.size(), expected_matches);
 }
 
