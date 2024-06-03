@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <iterator>
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -35,18 +36,44 @@ using id_mappings = std::vector<std::pair<int, int>>;
 
 inline auto unique_id_mappings(id_mappings& xid_mappings)
 {
-    std::set<int> id_set;
-    std::set<int> rev_id_set;
+    std::unordered_map<int, std::unordered_set<int>> dup_id_map;
+    std::unordered_map<int, std::unordered_set<int>> dup_rev_id_map;
 
-    auto is_mapping_repeated = [&id_set, &rev_id_set](const auto& m) {
-        if (id_set.insert(m.first).second && rev_id_set.insert(m.second).second)
-            return false;
+    for (auto it = xid_mappings.begin(); it != xid_mappings.end();)
+    {
+        bool duplicate =
+            dup_id_map.find(it->first) != dup_id_map.end() || dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
 
-        mpl::log(mpl::Level::debug, "id_mappings", fmt::format("Dropping repeated mapping {}:{}", m.first, m.second));
-        return true;
+        dup_id_map[it->first].insert(it->second);
+        dup_rev_id_map[it->second].insert(it->first);
+
+        if (duplicate)
+        {
+            mpl::log(mpl::Level::debug,
+                     "id_mappings",
+                     fmt::format("Dropping repeated mapping {}:{}", it->first, it->second));
+            xid_mappings.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    auto filter_map = [](auto& map) {
+        for (auto it = map.begin(); it != map.end();)
+        {
+            if (it->second.size() <= 1)
+                it = map.erase(it);
+            else
+                ++it;
+        }
     };
 
-    return std::remove_if(xid_mappings.begin(), xid_mappings.end(), is_mapping_repeated);
+    filter_map(dup_id_map);
+    filter_map(dup_rev_id_map);
+
+    return std::make_pair(dup_id_map, dup_rev_id_map);
 }
 } // namespace multipass
 

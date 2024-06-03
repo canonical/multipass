@@ -31,7 +31,7 @@ TEST_P(UniqueIdMappingsTestSuite, UniqueIdMappingsWorks)
 {
     auto [input_mappings, expected_mappings] = GetParam();
 
-    input_mappings.erase(mp::unique_id_mappings(input_mappings), input_mappings.end());
+    mp::unique_id_mappings(input_mappings);
     ASSERT_EQ(input_mappings, expected_mappings);
 }
 
