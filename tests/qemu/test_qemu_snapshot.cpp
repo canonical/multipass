@@ -155,8 +155,10 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
     EXPECT_EQ(snapshot.get_extra_interfaces(), std::vector<mp::NetworkInterface>{});
     EXPECT_EQ(snapshot.get_state(), mp::VirtualMachine::State::off);
 
-    auto mount_matcher1 = Pair(Eq("guybrush"), Field(&mp::VMMount::mount_type, mp::VMMount::MountType::Classic));
-    auto mount_matcher2 = Pair(Eq("murray"), Field(&mp::VMMount::mount_type, mp::VMMount::MountType::Native));
+    auto mount_matcher1 =
+        Pair(Eq("guybrush"), Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
+    auto mount_matcher2 =
+        Pair(Eq("murray"), Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
     EXPECT_THAT(snapshot.get_mounts(), UnorderedElementsAre(mount_matcher1, mount_matcher2));
 
     EXPECT_THAT(

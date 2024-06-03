@@ -164,20 +164,20 @@ void check_mounts_in_json(const QString& file, std::unordered_map<std::string, m
         ASSERT_EQ(mounts.count(json_target_path), 1);
         const auto& original_mount = mounts[json_target_path];
 
-        ASSERT_EQ(original_mount.source_path, json_source_path);
+        ASSERT_EQ(original_mount.get_source_path(), json_source_path);
 
-        ASSERT_EQ(json_uid_mapping.count(), original_mount.uid_mappings.size());
+        ASSERT_EQ(json_uid_mapping.count(), original_mount.get_uid_mappings().size());
         for (auto i = 0; i < json_uid_mapping.count(); ++i)
         {
-            ASSERT_EQ(json_uid_mapping[i]["host_uid"], original_mount.uid_mappings[i].first);
-            ASSERT_EQ(json_uid_mapping[i]["instance_uid"], original_mount.uid_mappings[i].second);
+            ASSERT_EQ(json_uid_mapping[i]["host_uid"], original_mount.get_uid_mappings()[i].first);
+            ASSERT_EQ(json_uid_mapping[i]["instance_uid"], original_mount.get_uid_mappings()[i].second);
         }
 
-        ASSERT_EQ(json_gid_mapping.count(), original_mount.gid_mappings.size());
+        ASSERT_EQ(json_gid_mapping.count(), original_mount.get_gid_mappings().size());
         for (auto i = 0; i < json_gid_mapping.count(); ++i)
         {
-            ASSERT_EQ(json_gid_mapping[i]["host_gid"], original_mount.gid_mappings[i].first);
-            ASSERT_EQ(json_gid_mapping[i]["instance_gid"], original_mount.gid_mappings[i].second);
+            ASSERT_EQ(json_gid_mapping[i]["host_gid"], original_mount.get_gid_mappings()[i].first);
+            ASSERT_EQ(json_gid_mapping[i]["instance_gid"], original_mount.get_gid_mappings()[i].second);
         }
     }
 }
