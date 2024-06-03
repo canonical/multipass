@@ -246,6 +246,28 @@ std::string error_msg_helper(const std::string& msg_core, const QString& ps_outp
     return fmt::format("{} - error executing powershell command.{}", msg_core, detail);
 }
 
+namespace fs = std::filesystem;
+void copy_instance_dir_without_image_files(const fs::path& source_instance_dir_path,
+                                           const fs::path& dest_instance_dir_path)
+{
+    if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
+                                  MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
+    {
+        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
+        {
+            if (!fs::exists(dest_instance_dir_path))
+            {
+                fs::create_directory(dest_instance_dir_path);
+            }
+
+            if (entry.path().extension().string() != ".vhdx" && entry.path().extension().string() != ".avhdx")
+            {
+                const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
+                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
+            }
+        }
+    }
+}
 } // namespace
 
 mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir)
@@ -291,11 +313,10 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
                                     err_code.message()));
                 }
             }
+            // also add powershell remove the vm, maybe
         });
 
-    MP_FILEOPS.copy(source_instance_data_directory,
-                    dest_instance_data_directory,
-                    std::filesystem::copy_options::recursive);
+    copy_instance_dir_without_image_files(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
 
@@ -303,6 +324,17 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
                                                                        dest_vm_spec.extra_interfaces,
                                                                        destination_name,
                                                                        cloud_init_config_iso_file_path);
+
+    // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
+    // 2. $importedvm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
+    // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
+    // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
+    // 3. Rename-vm $importedvm -NewName vm1-clone1
+    // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
+    // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
+    // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
+    // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
+    // extra_interfaces vec is non-empty.
 
     // start to construct VirtualMachineDescription
     mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
