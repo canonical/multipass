@@ -31,7 +31,7 @@ class QDateTime;
 namespace multipass
 {
 class MemorySize;
-struct VMMount;
+class VMMount;
 
 class Snapshot : private DisabledCopyMove
 {
