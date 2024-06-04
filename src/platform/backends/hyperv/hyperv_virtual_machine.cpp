@@ -240,6 +240,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                           "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
+    const QString dest_cloud_init_path = dest_instance_dir + "cloud-init-config.iso";
+    power_shell->easy_run({"Add-VMDvdDrive", "-VMName", name, "-Path", quoted(dest_cloud_init_path)},
+                          "Could not add the cloud-init-config.iso to the virtual machine");
     // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
     // extra_interfaces vec is non-empty.
 }
