@@ -215,6 +215,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     // 2. $importedvm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
+    // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
     const fs::path vmcx_file_path = extract_the_vmcx_file(exported_vm_path);
     power_shell->easy_run({"$imported_vm=Import-VM",
@@ -225,8 +226,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                            "-VhdDestinationPath",
                            quoted(dest_instance_dir)},
                           "Could not import from the exported instance directory");
-    // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     // 3. Rename-vm $importedvm -NewName vm1-clone1
+    power_shell->easy_run({"Rename-vm", "$importedvm", "-NewName", name},
+                          "Could not import from the exported instance directory");
     // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
