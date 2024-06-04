@@ -43,6 +43,11 @@ namespace
 const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
 const QString snapshot_name{"suspend"};
 
+QString quoted(const QString& str)
+{
+    return '"' + str + '"';
+}
+
 std::optional<mp::IPAddress> remote_ip(const std::string& host,
                                        int port,
                                        const std::string& username,
@@ -171,6 +176,31 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},
                           "Could not disable automatic snapshots"); // TODO move to new VMs only in a couple of releases
     delete_automatic_snapshots(power_shell.get(), name); // TODO drop in a couple of releases (going in on v1.13)
+}
+
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name,
+                                               const VirtualMachineDescription& desc,
+                                               VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider,
+                                               const Path& dest_instance_dir)
+    : BaseVirtualMachine{desc.vm_name, key_provider, dest_instance_dir},
+      desc{desc},
+      name{QString::fromStdString(desc.vm_name)},
+      power_shell{std::make_unique<PowerShell>(vm_name)},
+      monitor{&monitor}
+{
+    // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
+    power_shell->easy_run({"Export-VM", "-Name", QString::fromStdString(source_vm_name), "-Path", quoted(dest_instance_dir)},
+                          "Could not export the source vm");
+    // 2. $importedvm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
+    // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
+    // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
+    // 3. Rename-vm $importedvm -NewName vm1-clone1
+    // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
+    // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
+    // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
+    // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
+    // extra_interfaces vec is non-empty.
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()

@@ -325,17 +325,6 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
                                                                        destination_name,
                                                                        cloud_init_config_iso_file_path);
 
-    // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
-    // 2. $importedvm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
-    // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
-    // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
-    // 3. Rename-vm $importedvm -NewName vm1-clone1
-    // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
-    // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
-    // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
-    // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
-    // extra_interfaces vec is non-empty.
-
     // start to construct VirtualMachineDescription
     mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
                                                dest_vm_spec.mem_size,

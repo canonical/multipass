@@ -44,6 +44,11 @@ public:
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
                          const Path& instance_dir);
+    HyperVVirtualMachine(const std::string& source_vm_name,
+                         const VirtualMachineDescription& desc,
+                         VMStatusMonitor& monitor,
+                         const SSHKeyProvider& key_provider,
+                         const Path& dest_instance_dir);
     ~HyperVVirtualMachine();
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
