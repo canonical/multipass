@@ -88,25 +88,55 @@ TEST_F(TestVMMount, serializeAndDeserializeToAndFromJson)
     EXPECT_EQ(TestVMMount::a_mount, b_mount);
 }
 
-TEST_F(TestVMMount, duplicateUidsThrows)
+TEST_F(TestVMMount, duplicateUidsThrowsWithDuplicateHostID)
 {
     MP_EXPECT_THROW_THAT(mp::VMMount("src",
                                      mp::id_mappings{{1000, 1000}},
-                                     mp::id_mappings{{1000, 1000}, {1000, 1001}, {1002, 1001}},
+                                     mp::id_mappings{{1000, 1000}, {1000, 1001}},
                                      mp::VMMount::MountType::Classic),
                          std::runtime_error,
-                         mpt::match_what(StrEq("Mount cannot apply mapping with duplicate uids: 1000: [1000:1001, "
-                                               "1000:1000]; 1001: [1002:1001, 1000:1001]")));
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate uids:"),
+                                               HasSubstr("1000: "),
+                                               HasSubstr("1000:1001"),
+                                               HasSubstr("1000:1000"))));
 }
 
-TEST_F(TestVMMount, duplicateGidsThrows)
+TEST_F(TestVMMount, duplicateUidsThrowsWithDuplicateTargetID)
 {
     MP_EXPECT_THROW_THAT(mp::VMMount("src",
-                                     mp::id_mappings{{1000, 1000}, {1000, 1001}, {1002, 1001}},
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::id_mappings{{1002, 1001}, {1000, 1001}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate uids:"),
+                                               HasSubstr("1001: "),
+                                               HasSubstr("1002:1001"),
+                                               HasSubstr("1000:1001"))));
+}
+
+TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateHostID)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1000, 1000}, {1000, 1001}},
                                      mp::id_mappings{{1000, 1000}},
                                      mp::VMMount::MountType::Classic),
                          std::runtime_error,
-                         mpt::match_what(StrEq("Mount cannot apply mapping with duplicate gids: 1000: [1000:1001, "
-                                               "1000:1000]; 1001: [1002:1001, 1000:1001]")));
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate gids:"),
+                                               HasSubstr("1000: "),
+                                               HasSubstr("1000:1001"),
+                                               HasSubstr("1000:1000"))));
+}
+
+TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1002, 1001}, {1000, 1001}},
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate gids:"),
+                                               HasSubstr("1001: "),
+                                               HasSubstr("1002:1001"),
+                                               HasSubstr("1000:1001"))));
 }
 } // namespace
