@@ -121,6 +121,26 @@ void add_extra_net(mp::PowerShell& ps, const QString& name, const mp::NetworkInt
                  QString::fromStdString('"' + net.mac_address + '"')},
                 fmt::format("Could not setup adapter for {}", net.id));
 }
+
+namespace fs = std::filesystem;
+fs::path extract_the_vmcx_file(const fs::path& exported_vm_dir_path)
+{
+    if (std::error_code err_code; MP_FILEOPS.exists(exported_vm_dir_path, err_code) &&
+                                  MP_FILEOPS.is_directory(exported_vm_dir_path, err_code))
+    {
+        const fs::path vm_state_dir = exported_vm_dir_path / "Virtual Machines";
+
+        for (const auto& entry : fs::directory_iterator(vm_state_dir))
+        {
+            if (entry.path().extension() == ".vmcx")
+            {
+                return entry.path();
+            }
+        }
+    }
+
+    return {};
+}
 } // namespace
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
@@ -192,8 +212,19 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
     power_shell->easy_run({"Export-VM", "-Name", QString::fromStdString(source_vm_name), "-Path", quoted(dest_instance_dir)},
                           "Could not export the source vm");
+
     // 2. $importedvm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
+    const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
+    const fs::path vmcx_file_path = extract_the_vmcx_file(exported_vm_path);
+    power_shell->easy_run({"$imported_vm=Import-VM",
+                           "-Path",
+                           quoted(QString::fromStdString(vmcx_file_path.string())),
+                           "-Copy",
+                           "-GeneratedNewId",
+                           "-VhdDestinationPath",
+                           quoted(dest_instance_dir)},
+                          "Could not import from the exported instance directory");
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     // 3. Rename-vm $importedvm -NewName vm1-clone1
     // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
