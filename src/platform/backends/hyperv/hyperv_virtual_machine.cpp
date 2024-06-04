@@ -228,8 +228,16 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                           "Could not import from the exported instance directory");
     // 3. Rename-vm $importedvm -NewName vm1-clone1
     power_shell->easy_run({"Rename-vm", "$importedvm", "-NewName", name},
-                          "Could not import from the exported instance directory");
+                          "Could not rename the imported vm");
     // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
+    power_shell->easy_run({"Remove-VMDvdDrive",
+                           "-VMName",
+                           name,
+                           "-ControllerNumber",
+                           QString::number(0),
+                           "-ControllerLocation",
+                           QString::number(1)},
+                          "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
     // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
