@@ -20,44 +20,93 @@
 #include <multipass/vm_mount.h>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
 {
 struct TestVMMount : public Test
 {
-    mp::VMMount a_mount{"asdf", {{1, 2}, {2, 4}}, {{8, 4}, {6, 3}}, multipass::VMMount::MountType::Classic};
+    static const mp::VMMount a_mount;
 };
 
-// TEST_F(TestVMMount, comparesEqual)
-// {
-//     auto b = a_mount;
-//     EXPECT_EQ(a_mount, b);
-//     EXPECT_EQ(b, a_mount);
+struct TestUnequalVMMountsTestSuite : public Test, public WithParamInterface<std::tuple<mp::VMMount, mp::VMMount>>
+{
+};
 
-//     b.mount_type = multipass::VMMount::MountType::Native;
-//     EXPECT_FALSE(a_mount == b);
-//     EXPECT_FALSE(a_mount == mp::VMMount{});
-// }
+const mp::VMMount TestVMMount::a_mount{"asdf", {{1, 2}, {2, 4}}, {{8, 4}, {6, 3}}, mp::VMMount::MountType::Classic};
 
-// TEST_F(TestVMMount, comparesUnequal)
-// {
-//     mp::VMMount b{a_mount};
-//     mp::VMMount c{a_mount};
-//     mp::VMMount d{a_mount};
-//     mp::VMMount e{a_mount};
-//     mp::VMMount f{a_mount};
+TEST_P(TestUnequalVMMountsTestSuite, CompareMountsUnequal)
+{
+    auto [mount_a, mount_b] = GetParam();
 
-//     c.source_path = "fdsa";
-//     d.uid_mappings.emplace_back(10, 5);
-//     e.gid_mappings.pop_back();
-//     f.mount_type = multipass::VMMount::MountType::Native;
+    // Force use of overloaded operator== and operator!=
+    EXPECT_TRUE(mount_a != mount_b);
+    EXPECT_FALSE(mount_a == mount_b);
+}
 
-//     EXPECT_FALSE(a_mount != b); // Force use of operator!=
-//     for (const auto* other : {&c, &d, &e, &f})
-//     {
-//         EXPECT_NE(a_mount, *other);
-//         EXPECT_NE(*other, a_mount);
-//     }
-// }
+INSTANTIATE_TEST_SUITE_P(
+    VMMounts,
+    TestUnequalVMMountsTestSuite,
+    Values(std::make_tuple(TestVMMount::a_mount,
+                           mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                       TestVMMount::a_mount.get_gid_mappings(),
+                                       TestVMMount::a_mount.get_uid_mappings(),
+                                       mp::VMMount::MountType::Native)),
+           std::make_tuple(TestVMMount::a_mount,
+                           mp::VMMount("fdsa",
+                                       TestVMMount::a_mount.get_gid_mappings(),
+                                       TestVMMount::a_mount.get_uid_mappings(),
+                                       TestVMMount::a_mount.get_mount_type())),
+           std::make_tuple(TestVMMount::a_mount,
+                           mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                       mp::id_mappings{{1, 2}, {2, 4}, {10, 5}},
+                                       TestVMMount::a_mount.get_uid_mappings(),
+                                       TestVMMount::a_mount.get_mount_type())),
+           std::make_tuple(TestVMMount::a_mount,
+                           mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                       TestVMMount::a_mount.get_gid_mappings(),
+                                       mp::id_mappings({TestVMMount::a_mount.get_uid_mappings()[0]}),
+                                       TestVMMount::a_mount.get_mount_type()))));
+
+TEST_F(TestVMMount, comparesEqual)
+{
+    auto b = a_mount;
+    EXPECT_EQ(a_mount, b);
+    EXPECT_EQ(b, a_mount);
+    EXPECT_NE(&b, &a_mount);
+}
+
+TEST_F(TestVMMount, serializeAndDeserializeToAndFromJson)
+{
+    auto jsonObj = TestVMMount::a_mount.serialize();
+
+    EXPECT_EQ(jsonObj["source_path"].toString().toStdString(), TestVMMount::a_mount.get_source_path());
+    EXPECT_EQ(jsonObj["mount_type"], static_cast<int>(TestVMMount::a_mount.get_mount_type()));
+
+    auto b_mount = mp::VMMount{jsonObj};
+    EXPECT_EQ(TestVMMount::a_mount, b_mount);
+}
+
+TEST_F(TestVMMount, duplicateUidsThrows)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::id_mappings{{1000, 1000}, {1000, 1001}, {1002, 1001}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Mount cannot apply mapping with duplicate uids: 1000: [1000:1001, "
+                                               "1000:1000]; 1001: [1002:1001, 1000:1001]")));
+}
+
+TEST_F(TestVMMount, duplicateGidsThrows)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1000, 1000}, {1000, 1001}, {1002, 1001}},
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Mount cannot apply mapping with duplicate gids: 1000: [1000:1001, "
+                                               "1000:1000]; 1001: [1002:1001, 1000:1001]")));
+}
 } // namespace
