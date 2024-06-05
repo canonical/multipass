@@ -213,7 +213,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     power_shell->easy_run({"Export-VM", "-Name", QString::fromStdString(source_vm_name), "-Path", quoted(dest_instance_dir)},
                           "Could not export the source vm");
 
-    // 2. $importedvm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
+    // 2. $imported_vm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
@@ -226,8 +226,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                            "-VhdDestinationPath",
                            quoted(dest_instance_dir)},
                           "Could not import from the exported instance directory");
-    // 3. Rename-vm $importedvm -NewName vm1-clone1
-    power_shell->easy_run({"Rename-vm", "$importedvm", "-NewName", name},
+    // 3. Rename-vm $imported_vm -NewName vm1-clone1
+    power_shell->easy_run({"Rename-vm", "$imported_vm", "-NewName", name},
                           "Could not rename the imported vm");
     // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
     power_shell->easy_run({"Remove-VMDvdDrive",
