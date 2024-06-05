@@ -222,7 +222,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                            "-Path",
                            quoted(QString::fromStdString(vmcx_file_path.string())),
                            "-Copy",
-                           "-GeneratedNewId",
+                           "-GenerateNewId",
                            "-VhdDestinationPath",
                            quoted(dest_instance_dir)},
                           "Could not import from the exported instance directory");
