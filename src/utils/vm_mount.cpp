@@ -58,6 +58,8 @@ mp::VMMount::VMMount(const std::string& sourcePath,
       uid_mappings(std::move(uidMappings)),
       mount_type(mountType)
 {
+    fmt::memory_buffer errors;
+
     auto print_mappings = [](auto& dup_id_map, const auto& dup_rev_id_map) {
         std::string retval;
 
@@ -87,16 +89,23 @@ mp::VMMount::VMMount(const std::string& sourcePath,
     if (const auto& [dup_uid_map, dup_rev_uid_map] = mp::unique_id_mappings(uid_mappings);
         !dup_uid_map.empty() || !dup_rev_uid_map.empty())
     {
-        throw std::runtime_error(fmt::format("Mount cannot apply mapping with duplicate uids: {}",
-                                             print_mappings(dup_uid_map, dup_rev_uid_map)));
+        fmt::format_to(std::back_inserter(errors),
+                       fmt::format("Mount cannot apply mapping with duplicate uids: {}",
+                                   print_mappings(dup_uid_map, dup_rev_uid_map)));
     }
 
     if (const auto& [dup_gid_map, dup_rev_gid_map] = mp::unique_id_mappings(gid_mappings);
         !dup_gid_map.empty() || !dup_rev_gid_map.empty())
     {
-        throw std::runtime_error(fmt::format("Mount cannot apply mapping with duplicate gids: {}",
-                                             print_mappings(dup_gid_map, dup_rev_gid_map)));
+        if (errors.size())
+            fmt::format_to(std::back_inserter(errors), "\n");
+        fmt::format_to(std::back_inserter(errors),
+                       fmt::format("Mount cannot apply mapping with duplicate gids: {}",
+                                   print_mappings(dup_gid_map, dup_rev_gid_map)));
     }
+
+    if (errors.size())
+        throw std::runtime_error(fmt::to_string(errors));
 }
 
 mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor
