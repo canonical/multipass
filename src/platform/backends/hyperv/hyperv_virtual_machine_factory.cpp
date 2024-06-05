@@ -340,7 +340,13 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, key_provider, monitor);
+    mp::VirtualMachine::UPtr cloned_instance =
+        std::make_unique<mp::HyperVVirtualMachine>(source_name,
+                                                   dest_vm_desc,
+                                                   monitor,
+                                                   key_provider,
+                                                   get_instance_directory(dest_vm_desc.vm_name));
+
     cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
 
     rollback_delete_instance_folder.dismiss();
