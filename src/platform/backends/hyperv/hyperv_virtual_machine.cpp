@@ -246,6 +246,13 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
         "Could not add the cloud-init-config.iso to the virtual machine");
     // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
     // extra_interfaces vec is non-empty.
+
+    state = State::off;
+
+    if (std::error_code err_code; MP_FILEOPS.exists(exported_vm_path, err_code))
+    {
+        fs::remove_all(exported_vm_path);
+    }
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()
