@@ -61,12 +61,12 @@ inline const std::string& VMMount::get_source_path() const noexcept
     return source_path;
 }
 
-inline auto VMMount::get_gid_mappings() const noexcept -> const multipass::id_mappings&
+inline const multipass::id_mappings& VMMount::get_gid_mappings() const noexcept
 {
     return gid_mappings;
 }
 
-inline auto VMMount::get_uid_mappings() const noexcept -> const multipass::id_mappings&
+inline const multipass::id_mappings& VMMount::get_uid_mappings() const noexcept
 {
     return uid_mappings;
 }

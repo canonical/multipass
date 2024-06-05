@@ -52,7 +52,7 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
             mpl::log(mpl::Level::debug,
                      "id_mappings",
                      fmt::format("Dropping repeated mapping {}:{}", it->first, it->second));
-            xid_mappings.erase(it);
+            it = xid_mappings.erase(it);
         }
         else
         {
@@ -60,7 +60,7 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
         }
     }
 
-    auto filter_map = [](auto& map) {
+    auto filter_non_repeating = [](auto& map) {
         for (auto it = map.begin(); it != map.end();)
         {
             if (it->second.size() <= 1)
@@ -70,8 +70,8 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
         }
     };
 
-    filter_map(dup_id_map);
-    filter_map(dup_rev_id_map);
+    filter_non_repeating(dup_id_map);
+    filter_non_repeating(dup_rev_id_map);
 
     return std::make_pair(dup_id_map, dup_rev_id_map);
 }

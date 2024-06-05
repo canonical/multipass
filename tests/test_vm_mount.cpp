@@ -30,7 +30,7 @@ struct TestVMMount : public Test
     static const mp::VMMount a_mount;
 };
 
-struct TestUnequalVMMountsTestSuite : public Test, public WithParamInterface<std::tuple<mp::VMMount, mp::VMMount>>
+struct TestUnequalVMMountsTestSuite : public Test, public WithParamInterface<std::pair<mp::VMMount, mp::VMMount>>
 {
 };
 
@@ -48,26 +48,26 @@ TEST_P(TestUnequalVMMountsTestSuite, CompareMountsUnequal)
 INSTANTIATE_TEST_SUITE_P(
     VMMounts,
     TestUnequalVMMountsTestSuite,
-    Values(std::make_tuple(TestVMMount::a_mount,
-                           mp::VMMount(TestVMMount::a_mount.get_source_path(),
-                                       TestVMMount::a_mount.get_gid_mappings(),
-                                       TestVMMount::a_mount.get_uid_mappings(),
-                                       mp::VMMount::MountType::Native)),
-           std::make_tuple(TestVMMount::a_mount,
-                           mp::VMMount("fdsa",
-                                       TestVMMount::a_mount.get_gid_mappings(),
-                                       TestVMMount::a_mount.get_uid_mappings(),
-                                       TestVMMount::a_mount.get_mount_type())),
-           std::make_tuple(TestVMMount::a_mount,
-                           mp::VMMount(TestVMMount::a_mount.get_source_path(),
-                                       mp::id_mappings{{1, 2}, {2, 4}, {10, 5}},
-                                       TestVMMount::a_mount.get_uid_mappings(),
-                                       TestVMMount::a_mount.get_mount_type())),
-           std::make_tuple(TestVMMount::a_mount,
-                           mp::VMMount(TestVMMount::a_mount.get_source_path(),
-                                       TestVMMount::a_mount.get_gid_mappings(),
-                                       mp::id_mappings({TestVMMount::a_mount.get_uid_mappings()[0]}),
-                                       TestVMMount::a_mount.get_mount_type()))));
+    Values(std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                      TestVMMount::a_mount.get_gid_mappings(),
+                                      TestVMMount::a_mount.get_uid_mappings(),
+                                      mp::VMMount::MountType::Native)),
+           std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount("fdsa",
+                                      TestVMMount::a_mount.get_gid_mappings(),
+                                      TestVMMount::a_mount.get_uid_mappings(),
+                                      TestVMMount::a_mount.get_mount_type())),
+           std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                      mp::id_mappings{{1, 2}, {2, 4}, {10, 5}},
+                                      TestVMMount::a_mount.get_uid_mappings(),
+                                      TestVMMount::a_mount.get_mount_type())),
+           std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                      TestVMMount::a_mount.get_gid_mappings(),
+                                      mp::id_mappings({TestVMMount::a_mount.get_uid_mappings()[0]}),
+                                      TestVMMount::a_mount.get_mount_type()))));
 
 TEST_F(TestVMMount, comparesEqual)
 {

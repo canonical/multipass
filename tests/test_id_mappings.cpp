@@ -23,7 +23,7 @@ namespace mp = multipass;
 
 using namespace testing;
 
-struct UniqueIdMappingsTestSuite : public Test, public WithParamInterface<std::tuple<mp::id_mappings, mp::id_mappings>>
+struct UniqueIdMappingsTestSuite : public Test, public WithParamInterface<std::pair<mp::id_mappings, mp::id_mappings>>
 {
 };
 
@@ -37,7 +37,7 @@ TEST_P(UniqueIdMappingsTestSuite, UniqueIdMappingsWorks)
 
 INSTANTIATE_TEST_SUITE_P(IdMappings,
                          UniqueIdMappingsTestSuite,
-                         Values(std::make_tuple(mp::id_mappings{{1, 1}, {2, 1}, {1, 1}, {1, 2}},
-                                                mp::id_mappings{{1, 1}}),
-                                std::make_tuple(mp::id_mappings{{3, 4}}, mp::id_mappings{{3, 4}}),
-                                std::make_tuple(mp::id_mappings{}, mp::id_mappings{})));
+                         Values(std::make_pair(mp::id_mappings{{1, 1}, {2, 1}, {1, 1}, {1, 2}},
+                                               mp::id_mappings{{1, 1}}),
+                                std::make_pair(mp::id_mappings{{3, 4}}, mp::id_mappings{{3, 4}}),
+                                std::make_pair(mp::id_mappings{}, mp::id_mappings{})));
