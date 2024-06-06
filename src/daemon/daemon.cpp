@@ -3521,10 +3521,13 @@ bool mp::Daemon::is_bridged(const std::string& instance_name)
     const auto& spec = vm_instance_specs[instance_name];
     const auto& preferred_net = get_bridged_interface_name();
 
-    // TODO@ricab check also for bridge containing preferred net
+    const auto& host_nets = config->factory->networks(); // TODO@no-merge shouldn't keep calling this
+    const auto& matching_bridge = mpu::find_bridge_with(host_nets, preferred_net, MP_PLATFORM.bridge_nomenclature());
     return std::any_of(spec.extra_interfaces.cbegin(),
                        spec.extra_interfaces.cend(),
-                       [&preferred_net](const auto& network) -> bool { return network.id == preferred_net; });
+                       [&preferred_net, &matching_bridge](const auto& network) -> bool {
+                           return network.id == preferred_net || (matching_bridge && network.id == matching_bridge->id);
+                       });
 }
 
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
