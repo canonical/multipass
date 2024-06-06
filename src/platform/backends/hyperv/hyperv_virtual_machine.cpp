@@ -130,8 +130,8 @@ void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::Network
 namespace fs = std::filesystem;
 fs::path extract_the_vmcx_file(const fs::path& exported_vm_dir_path)
 {
-    if (std::error_code err_code; MP_FILEOPS.exists(exported_vm_dir_path, err_code) &&
-                                  MP_FILEOPS.is_directory(exported_vm_dir_path, err_code))
+    if (std::error_code err_code;
+        MP_FILEOPS.exists(exported_vm_dir_path, err_code) && MP_FILEOPS.is_directory(exported_vm_dir_path, err_code))
     {
         const fs::path vm_state_dir = exported_vm_dir_path / "Virtual Machines";
 
@@ -215,8 +215,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
       monitor{&monitor}
 {
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
-    power_shell->easy_run({"Export-VM", "-Name", QString::fromStdString(source_vm_name), "-Path", quoted(dest_instance_dir)},
-                          "Could not export the source vm");
+    power_shell->easy_run(
+        {"Export-VM", "-Name", QString::fromStdString(source_vm_name), "-Path", quoted(dest_instance_dir)},
+        "Could not export the source vm");
 
     // 2. $imported_vm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
@@ -232,8 +233,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                            quoted(dest_instance_dir)},
                           "Could not import from the exported instance directory");
     // 3. Rename-vm $imported_vm -NewName vm1-clone1
-    power_shell->easy_run({"Rename-vm", "$imported_vm", "-NewName", name},
-                          "Could not rename the imported vm");
+    power_shell->easy_run({"Rename-vm", "$imported_vm", "-NewName", name}, "Could not rename the imported vm");
     // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
     power_shell->easy_run({"Remove-VMDvdDrive",
                            "-VMName",
