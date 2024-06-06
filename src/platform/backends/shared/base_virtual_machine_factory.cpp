@@ -70,9 +70,9 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
 
     if (net_it != host_nets.end() && net_it->type != bridge_type)
     {
-        if (auto bridge_it = mpu::find_bridge_with(host_nets, net.id, bridge_type); bridge_it != host_nets.cend())
+        if (auto bridge = mpu::find_bridge_with(host_nets, net.id, bridge_type))
         {
-            net.id = bridge_it->id;
+            net.id = bridge->id;
         }
         else
         {
