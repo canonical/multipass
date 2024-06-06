@@ -44,6 +44,7 @@ public:
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
                          const Path& instance_dir);
+    // Contruct the vm based on the source virtual machine
     HyperVVirtualMachine(const std::string& source_vm_name,
                          const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
@@ -84,6 +85,7 @@ protected:
 
 private:
     void setup_network_interfaces();
+    void update_network_interfaces();
 
     VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;

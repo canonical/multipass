@@ -110,9 +110,9 @@ void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name
 void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::NetworkInterface& extra_interface)
 {
     const auto switch_name = quoted(QString::fromStdString(extra_interface.id));
-    const QString network_adapter_name = quoted(QString::fromStdString(extra_interface.id + "_adapter"));
     ps.easy_run({"Get-VMSwitch", "-Name", switch_name},
                 fmt::format("Could not find the device to connect to: no switch named \"{}\"", extra_interface.id));
+    const QString network_adapter_name = quoted(QString::fromStdString(extra_interface.id + "_adapter"));
     ps.easy_run({"Add-VMNetworkAdapter",
                  "-VMName",
                  vm_name,
@@ -247,8 +247,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     power_shell->easy_run(
         {"Add-VMDvdDrive", "-VMName", name, "-Path", quoted(QString::fromStdString(dest_cloud_init_path.string()))},
         "Could not add the cloud-init-config.iso to the virtual machine");
-    // 6. Reset the default address, remove all original extra interfaces and add all the new ones when the
-    // extra_interfaces vec is non-empty.
+    // 6. Reset the default address, and extra interface addresses
+    update_network_interfaces();
 
     state = State::off;
 
@@ -270,6 +270,33 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
     for (const auto& net : desc.extra_interfaces)
     {
         add_extra_net(*power_shell, name, net);
+    }
+}
+
+void mp::HyperVVirtualMachine::update_network_interfaces()
+{
+    // Without specifying -Name (network adapter name) parameter, meaning that it reset all network adapters names to
+    // the new default mac address. Yes, the extra interfaces also got assigned with the default mac address, but we
+    // will update them right away.
+    power_shell->easy_run({"Set-VMNetworkAdapter",
+                           "-VMName",
+                           name,
+                           "-StaticMacAddress",
+                           QString::fromStdString(desc.default_mac_address)},
+                          "Could not setup default adapter");
+
+    for (const auto& extra_interface: desc.extra_interfaces)
+    {
+        const QString network_adapter_name = quoted(QString::fromStdString(extra_interface.id + "_adapter"));
+        // "-Name" is specified, so it updates the mac address on one specific network adapter
+        power_shell->easy_run({"Set-VMNetworkAdapter",
+                               "-VMName",
+                               name,
+                               "-Name",
+                               quoted(network_adapter_name),
+                               "-StaticMacAddress",
+                               QString::fromStdString(extra_interface.mac_address)},
+                              "Could not setup default adapter");
     }
 }
 
