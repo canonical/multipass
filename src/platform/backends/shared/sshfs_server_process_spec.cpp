@@ -27,7 +27,7 @@
 #include <QDir>
 
 namespace mp = multipass;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -129,7 +129,7 @@ profile %1 flags=(attach_disconnected) {
 
     try
     {
-        root_dir = mu::snap_dir();
+        root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd";
     }
     catch (const mp::SnapEnvironmentException&)
