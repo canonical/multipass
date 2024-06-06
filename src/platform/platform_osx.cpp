@@ -66,7 +66,6 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mu = multipass::utils;
 
 namespace
 {
