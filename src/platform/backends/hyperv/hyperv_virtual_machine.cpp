@@ -41,6 +41,8 @@ namespace mpl = multipass::logging;
 namespace
 {
 const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
+const QString default_network_adapter_name{"Network Adapter"};
+
 const QString snapshot_name{"suspend"};
 
 QString quoted(const QString& str)
@@ -275,20 +277,18 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
 
 void mp::HyperVVirtualMachine::update_network_interfaces()
 {
-    // Without specifying -Name (network adapter name) parameter, meaning that it reset all network adapters names to
-    // the new default mac address. Yes, the extra interfaces also got assigned with the default mac address, but we
-    // will update them right away.
     power_shell->easy_run({"Set-VMNetworkAdapter",
                            "-VMName",
                            name,
+                           "-Name",
+                           quoted(default_network_adapter_name),
                            "-StaticMacAddress",
                            QString::fromStdString(desc.default_mac_address)},
                           "Could not setup default adapter");
 
-    for (const auto& extra_interface: desc.extra_interfaces)
+    for (const auto& extra_interface : desc.extra_interfaces)
     {
-        const QString network_adapter_name = quoted(QString::fromStdString(extra_interface.id + "_adapter"));
-        // "-Name" is specified, so it updates the mac address on one specific network adapter
+        const QString network_adapter_name = QString::fromStdString(extra_interface.id + "_adapter");
         power_shell->easy_run({"Set-VMNetworkAdapter",
                                "-VMName",
                                name,
@@ -296,7 +296,7 @@ void mp::HyperVVirtualMachine::update_network_interfaces()
                                quoted(network_adapter_name),
                                "-StaticMacAddress",
                                QString::fromStdString(extra_interface.mac_address)},
-                              "Could not setup default adapter");
+                              "Could not the extra network adapter");
     }
 }
 
