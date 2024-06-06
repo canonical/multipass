@@ -107,19 +107,22 @@ void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name
                           "Could not delete existing automatic checkpoints");
 }
 
-void add_extra_net(mp::PowerShell& ps, const QString& name, const mp::NetworkInterface& net)
+void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::NetworkInterface& extra_interface)
 {
-    const auto switch_ = '"' + QString::fromStdString(net.id) + '"';
-    ps.easy_run({"Get-VMSwitch", "-Name", switch_},
-                fmt::format("Could not find the device to connect to: no switch named \"{}\"", net.id));
+    const auto switch_name = quoted(QString::fromStdString(extra_interface.id));
+    const QString network_adapter_name = quoted(QString::fromStdString(extra_interface.id + "_adapter"));
+    ps.easy_run({"Get-VMSwitch", "-Name", switch_name},
+                fmt::format("Could not find the device to connect to: no switch named \"{}\"", extra_interface.id));
     ps.easy_run({"Add-VMNetworkAdapter",
                  "-VMName",
-                 name,
+                 vm_name,
+                 "-Name",
+                 network_adapter_name,
                  "-SwitchName",
-                 switch_,
+                 switch_name,
                  "-StaticMacAddress",
-                 QString::fromStdString('"' + net.mac_address + '"')},
-                fmt::format("Could not setup adapter for {}", net.id));
+                 QString::fromStdString(extra_interface.mac_address)},
+                fmt::format("Could not setup adapter for {}", extra_interface.id));
 }
 
 namespace fs = std::filesystem;
@@ -261,7 +264,7 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
                            "-VMName",
                            name,
                            "-StaticMacAddress",
-                           QString::fromStdString('"' + desc.default_mac_address + '"')},
+                           QString::fromStdString(desc.default_mac_address)},
                           "Could not setup default adapter");
 
     for (const auto& net : desc.extra_interfaces)
