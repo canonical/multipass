@@ -95,8 +95,8 @@ TEST_F(TestVMMount, duplicateUidsThrowsWithDuplicateHostID)
                                      mp::id_mappings{{1000, 1000}, {1000, 1001}},
                                      mp::VMMount::MountType::Classic),
                          std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate uids:"),
-                                               HasSubstr("1000: "),
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("uids: 1000: "),
                                                HasSubstr("1000:1001"),
                                                HasSubstr("1000:1000"))));
 }
@@ -108,8 +108,8 @@ TEST_F(TestVMMount, duplicateUidsThrowsWithDuplicateTargetID)
                                      mp::id_mappings{{1002, 1001}, {1000, 1001}},
                                      mp::VMMount::MountType::Classic),
                          std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate uids:"),
-                                               HasSubstr("1001: "),
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("uids: 1001: "),
                                                HasSubstr("1002:1001"),
                                                HasSubstr("1000:1001"))));
 }
@@ -121,8 +121,8 @@ TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateHostID)
                                      mp::id_mappings{{1000, 1000}},
                                      mp::VMMount::MountType::Classic),
                          std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate gids:"),
-                                               HasSubstr("1000: "),
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("gids: 1000: "),
                                                HasSubstr("1000:1001"),
                                                HasSubstr("1000:1000"))));
 }
@@ -134,8 +134,8 @@ TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
                                      mp::id_mappings{{1000, 1000}},
                                      mp::VMMount::MountType::Classic),
                          std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate gids:"),
-                                               HasSubstr("1001: "),
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("gids: 1001: "),
                                                HasSubstr("1002:1001"),
                                                HasSubstr("1000:1001"))));
 }
