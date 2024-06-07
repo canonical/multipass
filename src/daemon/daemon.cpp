@@ -3540,8 +3540,8 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
 
     const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
-    const auto& br_interface = get_bridged_interface_name(); // TODO@ricab rename var
-    if (is_bridged_impl(specs, host_nets, br_interface))
+    const auto& preferred_net = get_bridged_interface_name();
+    if (is_bridged_impl(specs, host_nets, preferred_net))
     {
         mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
         return;
@@ -3549,17 +3549,17 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
     if (const auto info = std::find_if(host_nets.cbegin(),
                                        host_nets.cend(),
-                                       [br_interface](const auto& i) { return i.id == br_interface; });
+                                       [preferred_net](const auto& i) { return i.id == preferred_net; });
         info == host_nets.cend())
     {
-        throw std::runtime_error(fmt::format(invalid_network_template, br_interface, mp::bridged_interface_key));
+        throw std::runtime_error(fmt::format(invalid_network_template, preferred_net, mp::bridged_interface_key));
     }
-    else if (info->needs_authorization && !user_authorized_bridges.count(br_interface))
+    else if (info->needs_authorization && !user_authorized_bridges.count(preferred_net))
     {
-        throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, br_interface);
+        throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, preferred_net);
     }
 
-    mp::NetworkInterface new_if{br_interface, generate_unused_mac_address(allocated_mac_addrs), true};
+    mp::NetworkInterface new_if{preferred_net, generate_unused_mac_address(allocated_mac_addrs), true};
     mpl::log(mpl::Level::debug,
              category,
              fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
@@ -3585,6 +3585,6 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
         specs.extra_interfaces.pop_back();
 
-        throw mp::BridgeFailureException("Cannot update instance settings", instance_name, br_interface);
+        throw mp::BridgeFailureException("Cannot update instance settings", instance_name, preferred_net);
     }
 }
