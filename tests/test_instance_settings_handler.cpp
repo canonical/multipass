@@ -115,7 +115,8 @@ struct TestInstanceSettingsHandler : public Test
     std::function<void(const std::string&)> make_fake_add()
     {
         return [this](const std::string& n) {
-            specs[n].extra_interfaces.push_back(mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
+            if (!make_fake_is_bridged()(n))
+                specs[n].extra_interfaces.push_back(mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
         };
     }
 
