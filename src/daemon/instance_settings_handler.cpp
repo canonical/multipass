@@ -168,11 +168,11 @@ void update_bridged(const QString& key,
                     std::function<void(const std::string&)> add_interface)
 {
     // This is the user parameter, true or false.
-    auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
+    auto want_bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
 
     if (is_bridged(instance_name))
     {
-        if (bridged)
+        if (want_bridged)
         {
             mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
         }
@@ -181,7 +181,7 @@ void update_bridged(const QString& key,
             throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"};
         }
     }
-    else if (bridged)
+    else if (want_bridged)
     {
         add_interface(instance_name);
     }
