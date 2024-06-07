@@ -362,9 +362,10 @@ std::string get_bridged_interface_name()
     return bridged_id.toStdString();
 }
 
-bool is_bridged_impl(const mp::VMSpecs& specs, const std::vector<mp::NetworkInterfaceInfo>& host_nets)
+bool is_bridged_impl(const mp::VMSpecs& specs,
+                     const std::vector<mp::NetworkInterfaceInfo>& host_nets,
+                     const std::string& preferred_net)
 {
-    const auto& preferred_net = get_bridged_interface_name();
     const auto& matching_bridge = mpu::find_bridge_with(host_nets, preferred_net, MP_PLATFORM.bridge_nomenclature());
     return std::any_of(specs.extra_interfaces.cbegin(),
                        specs.extra_interfaces.cend(),
@@ -3529,7 +3530,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
 bool mp::Daemon::is_bridged(const std::string& instance_name) // TODO@no-merge should be const?
 {
-    return is_bridged_impl(vm_instance_specs[instance_name], config->factory->networks());
+    return is_bridged_impl(vm_instance_specs[instance_name], config->factory->networks(), get_bridged_interface_name());
 }
 
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
@@ -3539,13 +3540,13 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
 
     const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
-    if (is_bridged_impl(specs, host_nets))
+    const auto& br_interface = get_bridged_interface_name(); // TODO@ricab rename var
+    if (is_bridged_impl(specs, host_nets, br_interface))
     {
         mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
         return;
     }
 
-    const auto& br_interface = get_bridged_interface_name(); // TODO@ricab pass as param to is_bridged_impl
     if (const auto info = std::find_if(host_nets.cbegin(),
                                        host_nets.cend(),
                                        [br_interface](const auto& i) { return i.id == br_interface; });
