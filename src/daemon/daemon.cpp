@@ -3527,7 +3527,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          vm_specs.num_cores != 1);
 }
 
-bool mp::Daemon::is_bridged(const std::string& instance_name)
+bool mp::Daemon::is_bridged(const std::string& instance_name) // TODO@no-merge should be const?
 {
     return is_bridged_impl(vm_instance_specs[instance_name], config->factory->networks());
 }
@@ -3535,11 +3535,17 @@ bool mp::Daemon::is_bridged(const std::string& instance_name)
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 {
     // These two use operator[] to access elements because this function is called after existence was checked.
-    mp::VMSpecs& spec = vm_instance_specs[instance_name];
+    mp::VMSpecs& specs = vm_instance_specs[instance_name];
     mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
 
-    const auto& br_interface = get_bridged_interface_name();
     const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
+    if (is_bridged_impl(specs, host_nets))
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
+        return;
+    }
+
+    const auto& br_interface = get_bridged_interface_name(); // TODO@ricab pass as param to is_bridged_impl
     if (const auto info = std::find_if(host_nets.cbegin(),
                                        host_nets.cend(),
                                        [br_interface](const auto& i) { return i.id == br_interface; });
@@ -3558,25 +3564,25 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
              fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
 
     // Add the new interface to the spec.
-    spec.extra_interfaces.push_back(new_if);
+    specs.extra_interfaces.push_back(new_if);
 
     mpl::log(mpl::Level::trace, category, "Prepare networking");
-    config->factory->prepare_networking(spec.extra_interfaces);
-    new_if = spec.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
+    config->factory->prepare_networking(specs.extra_interfaces);
+    new_if = specs.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
     mpl::log(mpl::Level::trace, category, fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
 
     // Add the new interface to the VM.
     mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
     try
     {
-        instance->add_network_interface(spec.extra_interfaces.size() - 1, spec.default_mac_address, new_if);
+        instance->add_network_interface(specs.extra_interfaces.size() - 1, specs.default_mac_address, new_if);
         mpl::log(mpl::Level::trace, category, "Done adding");
     }
     catch (const std::exception& e)
     {
         mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
 
-        spec.extra_interfaces.pop_back();
+        specs.extra_interfaces.pop_back();
 
         throw mp::BridgeFailureException("Cannot update instance settings", instance_name, br_interface);
     }
