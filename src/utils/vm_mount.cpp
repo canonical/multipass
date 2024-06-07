@@ -47,6 +47,34 @@ mp::VMMount parse_json(const QJsonObject& json)
 
     return mp::VMMount{std::move(source_path), std::move(gid_mappings), std::move(uid_mappings), mount_type};
 }
+
+auto print_mappings(const std::unordered_map<int, std::unordered_set<int>>& dup_id_map,
+                    const std::unordered_map<int, std::unordered_set<int>>& dup_rev_id_map)
+{
+    std::string retval;
+
+    for (const auto& pair : dup_id_map)
+    {
+        retval += fmt::format("{}: [", pair.first);
+        for (const auto& mapping : pair.second)
+            retval += fmt::format("{}:{}, ", pair.first, mapping);
+
+        retval = retval.substr(0, retval.size() - 2);
+        retval += "]; ";
+    }
+
+    for (const auto& pair : dup_rev_id_map)
+    {
+        retval += fmt::format("{}: [", pair.first);
+        for (const auto& mapping : pair.second)
+            retval += fmt::format("{}:{}, ", mapping, pair.first);
+
+        retval = retval.substr(0, retval.size() - 2);
+        retval += "]; ";
+    }
+
+    return retval.substr(0, retval.size() - 2);
+}
 } // namespace
 
 mp::VMMount::VMMount(const std::string& sourcePath,
@@ -59,32 +87,6 @@ mp::VMMount::VMMount(const std::string& sourcePath,
       mount_type(mountType)
 {
     fmt::memory_buffer errors;
-
-    auto print_mappings = [](auto& dup_id_map, const auto& dup_rev_id_map) {
-        std::string retval;
-
-        for (const auto& pair : dup_id_map)
-        {
-            retval += fmt::format("{}: [", pair.first);
-            for (const auto& mapping : pair.second)
-                retval += fmt::format("{}:{}, ", pair.first, mapping);
-
-            retval = retval.substr(0, retval.size() - 2);
-            retval += "]; ";
-        }
-
-        for (const auto& pair : dup_rev_id_map)
-        {
-            retval += fmt::format("{}: [", pair.first);
-            for (const auto& mapping : pair.second)
-                retval += fmt::format("{}:{}, ", mapping, pair.first);
-
-            retval = retval.substr(0, retval.size() - 2);
-            retval += "]; ";
-        }
-
-        return retval.substr(0, retval.size() - 2);
-    };
 
     if (const auto& [dup_uid_map, dup_rev_uid_map] = mp::unique_id_mappings(uid_mappings);
         !dup_uid_map.empty() || !dup_rev_uid_map.empty())
