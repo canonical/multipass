@@ -171,7 +171,7 @@ void update_bridged(const QString& key,
     if (!want_bridged)
     {
         if (is_bridged(instance_name)) // inspects host networks once
-            throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"}; // TODO@ricab better err
+            throw mp::InvalidSettingException{key, val, "Removing the bridged network is currently not supported"};
     }
     else
         add_interface(instance_name); // if already bridged, this merely warns
