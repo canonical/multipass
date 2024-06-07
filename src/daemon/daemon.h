@@ -209,7 +209,7 @@ protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
 
-    bool is_bridged(const std::string& instance_name);
+    bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);
 
 private:

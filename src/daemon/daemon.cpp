@@ -3528,9 +3528,11 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          vm_specs.num_cores != 1);
 }
 
-bool mp::Daemon::is_bridged(const std::string& instance_name) // TODO@no-merge should be const?
+bool mp::Daemon::is_bridged(const std::string& instance_name) const
 {
-    return is_bridged_impl(vm_instance_specs[instance_name], config->factory->networks(), get_bridged_interface_name());
+    return is_bridged_impl(vm_instance_specs.at(instance_name),
+                           config->factory->networks(),
+                           get_bridged_interface_name());
 }
 
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
