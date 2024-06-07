@@ -263,7 +263,7 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
                            "-VMName",
                            name,
                            "-StaticMacAddress",
-                           QString::fromStdString(desc.default_mac_address)},
+                           quoted(QString::fromStdString(desc.default_mac_address))},
                           "Could not setup default adapter");
 
     for (const auto& net : desc.extra_interfaces)
