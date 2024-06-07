@@ -3537,9 +3537,8 @@ bool mp::Daemon::is_bridged(const std::string& instance_name) const
 
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 {
-    // These two use operator[] to access elements because this function is called after existence was checked.
-    mp::VMSpecs& specs = vm_instance_specs[instance_name];
-    mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
+    mp::VMSpecs& specs = vm_instance_specs.at(instance_name);
+    mp::VirtualMachine::ShPtr instance = operative_instances.at(instance_name);
 
     const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
     const auto& preferred_net = get_bridged_interface_name();
