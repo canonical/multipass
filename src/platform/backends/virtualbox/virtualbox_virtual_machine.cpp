@@ -16,6 +16,7 @@
  */
 
 #include "virtualbox_virtual_machine.h"
+#include "virtualbox_snapshot.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -376,4 +377,19 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
 
     mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface to: {}", name);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
+}
+
+auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
+{
+    return std::make_shared<VirtualBoxSnapshot>(filename, *this, desc);
+}
+
+auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
+                                                                 const std::string& comment,
+                                                                 const std::string& instance_id,
+                                                                 const multipass::VMSpecs& specs,
+                                                                 std::shared_ptr<Snapshot> parent)
+    -> std::shared_ptr<Snapshot>
+{
+    return std::make_shared<VirtualBoxSnapshot>(snapshot_name, comment, instance_id, std::move(parent), specs, *this);
 }
