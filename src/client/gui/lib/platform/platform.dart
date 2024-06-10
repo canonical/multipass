@@ -19,6 +19,10 @@ abstract class MpPlatform {
   Map<SingleActivator, Intent> get terminalShortcuts;
 
   bool get showToggleWindow;
+
+  String get altKey => 'Alt';
+
+  String get metaKey => 'Meta';
 }
 
 MpPlatform _getPlatform() {

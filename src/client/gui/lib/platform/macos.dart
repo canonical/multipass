@@ -32,6 +32,12 @@ class MacOSPlatform extends MpPlatform {
 
   @override
   String get trayIconFile => 'icon_template.png';
+
+  @override
+  String get metaKey => 'Command';
+
+  @override
+  String get altKey => 'Option';
 }
 
 class MacOSAutostartNotifier extends AutostartNotifier {

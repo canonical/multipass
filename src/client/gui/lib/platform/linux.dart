@@ -33,6 +33,9 @@ class LinuxPlatform extends MpPlatform {
 
   @override
   String get trayIconFile => 'icon.png';
+
+  @override
+  String get metaKey => 'Super';
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {

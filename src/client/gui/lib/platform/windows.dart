@@ -35,6 +35,9 @@ class WindowsPlatform extends MpPlatform {
 
   @override
   String get trayIconFile => 'icon.ico';
+
+  @override
+  String get metaKey => 'Win';
 }
 
 class WindowsAutostartNotifier extends AutostartNotifier {
