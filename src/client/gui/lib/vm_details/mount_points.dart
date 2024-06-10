@@ -162,6 +162,7 @@ class _MountPointListState extends State<MountPointList> {
         children: [
           widthWrapper(const Text('Source path')),
           widthWrapper(const Text('Target path')),
+          const SizedBox(width: 55),
         ].gap(width: gap).toList(),
       ),
     );

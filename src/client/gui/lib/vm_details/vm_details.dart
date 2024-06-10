@@ -540,7 +540,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     );
 
     final editableMountPoints = MountPointList(
-      showLabels: false,
+      showLabels: mounts.isEmpty,
       onSaved: (newToMount) => toMount.addAll(newToMount),
     );
 
