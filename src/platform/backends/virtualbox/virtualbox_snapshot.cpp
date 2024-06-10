@@ -18,7 +18,10 @@
 #include "virtualbox_snapshot.h"
 #include "virtualbox_virtual_machine.h"
 
+#include <multipass/utils.h>
+
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 
 mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const std::string& name,
                                            const std::string& comment,
@@ -40,7 +43,12 @@ mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const QString& filename,
 
 void multipass::VirtualBoxSnapshot::capture_impl()
 {
-    throw std::logic_error{"needs implementing"}; // TODO@ricab
+    // TODO@no-merge require unique name
+    auto description_arg = QString{"--description=%1: %2"}.arg(get_name().c_str(), get_comment().c_str());
+    mpu::process_throw_on_error("VBoxManage",
+                                {"snapshot", vm_name, "take", get_id(), description_arg},
+                                "Could not take snapshot: {}",
+                                vm_name);
 }
 
 void multipass::VirtualBoxSnapshot::erase_impl()
