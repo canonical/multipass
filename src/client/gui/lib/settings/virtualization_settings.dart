@@ -40,13 +40,13 @@ class VirtualizationSettings extends ConsumerWidget {
       const SizedBox(height: 20),
       if (networks.isNotEmpty)
         Dropdown(
-          label: 'Virtual interface',
+          label: 'Bridged network',
           width: 260,
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
           items: Map.fromIterable(networks),
           onChanged: (value) {
             ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
-                ref.notifyError((e) => 'Failed to set virtual interface: $e'));
+                ref.notifyError((e) => 'Failed to set bridged network: $e'));
           },
         ),
     ]);
