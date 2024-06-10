@@ -53,7 +53,10 @@ void multipass::VirtualBoxSnapshot::capture_impl()
 
 void multipass::VirtualBoxSnapshot::erase_impl()
 {
-    throw std::logic_error{"needs implementing"}; // TODO@ricab
+    mpu::process_throw_on_error("VBoxManage",
+                                {"snapshot", vm_name, "delete", get_id()},
+                                "Could not delete snapshot: {}",
+                                vm_name);
 }
 
 void multipass::VirtualBoxSnapshot::apply_impl()
