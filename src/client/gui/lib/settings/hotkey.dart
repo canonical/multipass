@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../platform/platform.dart';
 import '../providers.dart';
 
 final hotkeySettingProvider = guiSettingProvider(hotkeyKey);
@@ -164,9 +165,9 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
   Widget build(BuildContext context) {
     final keyLabel = key?.keyLabel ?? '...';
     final modifiers = [
-      if (alt) 'Alt',
+      if (alt) mpPlatform.altKey,
       if (control) 'Ctrl',
-      if (meta) 'Meta',
+      if (meta) mpPlatform.metaKey,
       if (shift) 'Shift',
     ].join('+');
     final keyCombination = modifiers.isNotEmpty
