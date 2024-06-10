@@ -23,6 +23,17 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
+namespace
+{
+bool snapshot_exists(const QString& vm_name, const QString& snapshot_id)
+{
+    return mpu::process_log_on_error("VBoxManage",
+                                     {"snapshot", vm_name, "showvminfo", snapshot_id},
+                                     "Could not find snapshot: {}",
+                                     vm_name);
+}
+} // namespace
+
 mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const std::string& name,
                                            const std::string& comment,
                                            const std::string& cloud_init_instance_id,
@@ -53,10 +64,16 @@ void multipass::VirtualBoxSnapshot::capture_impl()
 
 void multipass::VirtualBoxSnapshot::erase_impl()
 {
-    mpu::process_throw_on_error("VBoxManage",
-                                {"snapshot", vm_name, "delete", get_id()},
-                                "Could not delete snapshot: {}",
-                                vm_name);
+    const auto& id = get_id();
+    if (snapshot_exists(vm_name, id))
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"snapshot", vm_name, "delete", get_id()},
+                                    "Could not delete snapshot: {}",
+                                    vm_name);
+    else
+        mpl::log(mpl::Level::warning,
+                 vm_name.toStdString(),
+                 fmt::format("Could not find underlying VirtualBox snapshot for \"{}\". Ignoring...", get_name()));
 }
 
 void multipass::VirtualBoxSnapshot::apply_impl()
