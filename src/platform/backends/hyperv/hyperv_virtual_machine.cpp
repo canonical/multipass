@@ -287,10 +287,20 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
 
 void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_specs)
 {
+    // We use mac address to identify the corresponding network adapter, it is a cumbersome implementation because the
+    // update requires the original default mac address and extra interface mac addresses. Meanwhile, there are other
+    // alternatives, 1. Make a proper name when we add a network interface by calling Add-VMNetworkAdapter and using the
+    // name with the unique identifier to remove it. However, this was not done from the beginning, so it will not be
+    // backward compatible. 2. Assume the network adapters are in the added order. However, hyper-v Get-VMNetworkAdapter
+    // does not guarantee that. 3. Use the switch name to query the network adapter. However, it might look like a
+    // unique identifier but actually it is not.
     power_shell->easy_run(
         {"Get-VMNetworkAdapter -VMName",
          name,
          "| Where-Object {$_.MacAddress -eq",
+         // "Where-Object {$_.MacAddress -eq <mac_address>}" clause requires the string quoted and no colon delimiter,
+         // for example "5254002CC58C"; whereas the "Set-VMNetworkAdapter -StaticMacAddress <mac_address>" can accept
+         // unquoted and with colon delimiter like 52:54:00:2C:C5:8B.
          quoted(QString::fromStdString(remove_colons_in_mac_address_string(src_specs.default_mac_address))),
          "} | Set-VMNetworkAdapter -StaticMacAddress",
          QString::fromStdString(desc.default_mac_address)},
