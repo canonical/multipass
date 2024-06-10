@@ -25,11 +25,17 @@ class TerminalNotifier
     extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
   final lock = Lock();
   Isolate? isolate;
+  late final vmStatusProvider = vmInfoProvider(arg.vmName).select((info) {
+    return info.instanceStatus.status == Status.RUNNING;
+  });
 
   @override
   Terminal? build(TerminalIdentifier arg) {
     ref.onDispose(_dispose);
     lock.synchronized(_initShell).then((value) => state = value);
+    ref.listen(vmStatusProvider, (previous, next) {
+      if ((previous ?? false) && !next) stop();
+    });
     return null;
   }
 
@@ -37,9 +43,7 @@ class TerminalNotifier
     final currentState = stateOrNull;
     if (currentState != null) return currentState;
 
-    final running = ref.read(vmInfoProvider(arg.vmName).select((info) {
-      return info.instanceStatus.status == Status.RUNNING;
-    }));
+    final running = ref.read(vmStatusProvider);
     if (!running) return null;
 
     final grpcClient = ref.read(grpcClientProvider);
@@ -115,9 +119,11 @@ class TerminalNotifier
 
   void _dispose() {
     isolate?.kill(priority: Isolate.immediate);
-    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
-      return isolate == null ? state : state - 1;
-    });
+    if (isolate != null) {
+      ref
+          .read(runningShellsProvider(arg.vmName).notifier)
+          .update((state) => state - 1);
+    }
     isolate = null;
   }
 }
