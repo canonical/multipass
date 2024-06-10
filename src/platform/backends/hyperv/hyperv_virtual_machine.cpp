@@ -34,6 +34,8 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
+
 #include <winsock2.h>
 
 namespace mp = multipass;
@@ -48,6 +50,16 @@ const QString snapshot_name{"suspend"};
 QString quoted(const QString& str)
 {
     return '"' + str + '"';
+}
+
+std::string remove_colons_in_mac_address_string(const std::string& mac_address)
+{
+    std::string result_mac_address{mac_address};
+
+    const auto no_colon_end = std::remove(result_mac_address.begin(), result_mac_address.end(), ':');
+    result_mac_address.erase(no_colon_end, result_mac_address.end());
+
+    return result_mac_address;
 }
 
 std::optional<mp::IPAddress> remote_ip(const std::string& host,
@@ -275,13 +287,14 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
 
 void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_specs)
 {
-    power_shell->easy_run({"Get-VMNetworkAdapter -VMName",
-                           name,
-                           "| Where-Object {$_.MacAddress -eq",
-                           QString::fromStdString(src_specs.default_mac_address),
-                           "} | Set-VMNetworkAdapter -StaticMacAddress",
-                           QString::fromStdString(desc.default_mac_address)},
-                          "Could not setup the default network adapter");
+    power_shell->easy_run(
+        {"Get-VMNetworkAdapter -VMName",
+         name,
+         "| Where-Object {$_.MacAddress -eq",
+         quoted(QString::fromStdString(remove_colons_in_mac_address_string(src_specs.default_mac_address))),
+         "} | Set-VMNetworkAdapter -StaticMacAddress",
+         QString::fromStdString(desc.default_mac_address)},
+        "Could not setup the default network adapter");
 
     assert(src_specs.extra_interfaces.size() == desc.extra_interfaces.size());
     for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
@@ -289,7 +302,8 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
         power_shell->easy_run({"Get-VMNetworkAdapter -VMName",
                                name,
                                "| Where-Object {$_.MacAddress -eq",
-                               QString::fromStdString(src_specs.extra_interfaces[i].mac_address),
+                               quoted(QString::fromStdString(
+                                   remove_colons_in_mac_address_string(src_specs.extra_interfaces[i].mac_address))),
                                "} | Set-VMNetworkAdapter -StaticMacAddress",
                                QString::fromStdString(desc.extra_interfaces[i].mac_address)},
                               "Could not setup the extra network adapter");
