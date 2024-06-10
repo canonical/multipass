@@ -59,6 +59,9 @@ public:
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
 
+protected:
+    void require_snapshots_support() const override;
+
 private: // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
     const QString name;
     const std::string username;
@@ -68,4 +71,9 @@ private: // TODO we should probably keep the VMDescription in the base VM class,
     bool update_suspend_status{true};
 };
 } // namespace multipass
+
+inline void multipass::VirtualBoxVirtualMachine::require_snapshots_support() const
+{
+}
+
 #endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
