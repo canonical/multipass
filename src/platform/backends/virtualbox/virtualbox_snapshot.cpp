@@ -36,3 +36,18 @@ mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const QString& filename,
     : BaseSnapshot{filename, vm, desc}
 {
 }
+
+void multipass::VirtualBoxSnapshot::capture_impl()
+{
+    throw std::logic_error{"needs implementing"}; // TODO@ricab
+}
+
+void multipass::VirtualBoxSnapshot::erase_impl()
+{
+    throw std::logic_error{"needs implementing"}; // TODO@ricab
+}
+
+void multipass::VirtualBoxSnapshot::apply_impl()
+{
+    throw std::logic_error{"needs implementing"}; // TODO@ricab
+}
