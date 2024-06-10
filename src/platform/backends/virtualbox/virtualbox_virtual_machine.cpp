@@ -391,5 +391,11 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::stri
                                                                  std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<VirtualBoxSnapshot>(snapshot_name, comment, instance_id, std::move(parent), specs, *this);
+    return std::make_shared<VirtualBoxSnapshot>(snapshot_name,
+                                                comment,
+                                                instance_id,
+                                                std::move(parent),
+                                                name,
+                                                specs,
+                                                *this);
 }
