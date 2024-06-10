@@ -22,6 +22,7 @@
 
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QString>
 
@@ -62,10 +63,9 @@ public:
 protected:
     void require_snapshots_support() const override;
 
-private: // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
+private:
+    VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;
-    const std::string username;
-    const Path image_path;
     std::optional<int> port;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
