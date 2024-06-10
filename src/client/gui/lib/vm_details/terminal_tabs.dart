@@ -8,20 +8,21 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'terminal.dart';
 
 typedef ShellIds = ({
-  BuiltList<int> ids,
+  BuiltList<ShellId> ids,
 // this is the index of the currently selected shell id
   int currentIndex,
 });
 
 class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
   @override
-  ShellIds build(String arg) => (ids: [1].build(), currentIndex: 0);
+  ShellIds build(String arg) => (ids: [ShellId(1)].build(), currentIndex: 0);
 
   void add() {
     final ids = state.ids;
-    final newShellId = 1.to(1000).whereNot(ids.contains).first;
+    final existingIds = state.ids.map((shellId) => shellId.id).toBuiltSet();
+    final newShellId = 1.to(1000).whereNot(existingIds.contains).first;
     state = (
-      ids: ids.rebuild((ids) => ids.add(newShellId)),
+      ids: ids.rebuild((ids) => ids.add(ShellId(newShellId))),
       currentIndex: ids.length,
     );
   }
@@ -31,7 +32,7 @@ class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
     final idsBuilder = ids.toBuilder();
     idsBuilder.removeAt(index);
     if (index < currentIndex) currentIndex -= 1;
-    if (idsBuilder.isEmpty) idsBuilder.add(1);
+    if (idsBuilder.isEmpty) idsBuilder.add(ShellId(1));
     currentIndex = currentIndex.clamp(0, idsBuilder.length - 1);
     state = (ids: idsBuilder.build(), currentIndex: currentIndex);
   }
@@ -137,10 +138,10 @@ class TerminalTabs extends ConsumerWidget {
 
     final tabsAndShells = ids.mapIndexed((index, shellId) {
       final tab = ReorderableDragStartListener(
-        key: ValueKey(shellId),
+        key: ValueKey(shellId.id),
         index: index,
         child: Tab(
-          title: 'Shell $shellId',
+          title: 'Shell ${shellId.id}',
           selected: index == currentIndex,
           onTap: () => ref.read(notifier).setCurrent(index),
           onClose: () => ref.read(notifier).remove(index),

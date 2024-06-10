@@ -19,7 +19,16 @@ final runningShellsProvider =
   return 0;
 });
 
-typedef TerminalIdentifier = ({String vmName, int shellId});
+class ShellId {
+  final int id;
+
+  ShellId(this.id);
+
+  @override
+  String toString() => 'ShellId{$id}';
+}
+
+typedef TerminalIdentifier = ({String vmName, ShellId shellId});
 
 class TerminalNotifier
     extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
@@ -134,7 +143,7 @@ final terminalProvider = NotifierProvider.autoDispose
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
-  final int id;
+  final ShellId id;
   final bool isCurrent;
 
   const VmTerminal(
