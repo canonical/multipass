@@ -253,7 +253,10 @@ class _PassphraseFieldState extends State<PassphraseField> {
   Widget build(BuildContext context) {
     return SettingField(
       label: 'Authentication passphrase',
-      onSave: () => widget.onSave(controller.text),
+      onSave: () {
+        widget.onSave(controller.text);
+        controller.clear();
+      },
       onDiscard: () => controller.text = '',
       changed: changed,
       child: TextField(
