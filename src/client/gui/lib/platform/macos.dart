@@ -12,7 +12,7 @@ class MacOSPlatform extends MpPlatform {
 
   @override
   Map<String, String> get drivers => const {
-        'qemu': 'Qemu',
+        'qemu': 'QEMU',
         'virtualbox': 'VirtualBox',
       };
 
