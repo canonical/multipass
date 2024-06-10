@@ -33,6 +33,7 @@ class MountPoint extends StatefulWidget {
 class _MountPointState extends State<MountPoint> {
   String? source;
   String? target;
+  String? targetHint;
 
   void save() {
     final (savedSource, savedTarget) = (source, target);
@@ -60,6 +61,7 @@ class _MountPointState extends State<MountPoint> {
   Widget build(BuildContext context) {
     final sourceField = TextFormField(
       initialValue: widget.initialSource,
+      onChanged: (value) => setState(() => targetHint = value),
       onSaved: (value) => source = value ?? '',
       validator: (value) {
         return value.isNullOrBlank ? 'Source cannot be empty' : null;
@@ -68,6 +70,7 @@ class _MountPointState extends State<MountPoint> {
 
     final targetField = TextFormField(
       initialValue: widget.initialTarget,
+      decoration: InputDecoration(hintText: targetHint),
       onSaved: (value) {
         target = value ?? '';
         save();
