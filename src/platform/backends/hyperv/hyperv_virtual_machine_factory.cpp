@@ -342,6 +342,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
 
     mp::VirtualMachine::UPtr cloned_instance =
         std::make_unique<mp::HyperVVirtualMachine>(source_name,
+                                                   src_vm_spec,
                                                    dest_vm_desc,
                                                    monitor,
                                                    key_provider,

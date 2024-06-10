@@ -25,6 +25,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <shared/shared_backend_utils.h>
@@ -200,6 +201,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 }
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name,
+                                               const VMSpecs& src_vm_specs,
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
@@ -246,7 +248,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
         {"Add-VMDvdDrive", "-VMName", name, "-Path", quoted(QString::fromStdString(dest_cloud_init_path.string()))},
         "Could not add the cloud-init-config.iso to the virtual machine");
     // 6. Reset the default address, and extra interface addresses
-    update_network_interfaces();
+    update_network_interfaces(src_vm_specs);
 
     state = State::off;
 
@@ -271,23 +273,25 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
     }
 }
 
-void mp::HyperVVirtualMachine::update_network_interfaces()
+void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_specs)
 {
-    power_shell->easy_run({"Set-VMNetworkAdapter",
-                           "-VMName",
+    power_shell->easy_run({"Get-VMNetworkAdapter -VMName",
                            name,
-                           "-StaticMacAddress",
+                           "| Where-Object {$_.MacAddress -eq",
+                           QString::fromStdString(src_specs.default_mac_address),
+                           "} | Set-VMNetworkAdapter -StaticMacAddress",
                            QString::fromStdString(desc.default_mac_address)},
-                          "Could not setup the default adapter");
+                          "Could not setup the default network adapter");
 
-    for (const auto& extra_interface : desc.extra_interfaces)
+    assert(src_specs.extra_interfaces.size() == desc.extra_interfaces.size());
+    for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
     {
         power_shell->easy_run({"Get-VMNetworkAdapter -VMName",
                                name,
-                               "| Where-Object {$_.SwitchName -eq",
-                               quoted(QString::fromStdString(extra_interface.id)),
+                               "| Where-Object {$_.MacAddress -eq",
+                               QString::fromStdString(src_specs.extra_interfaces[i].mac_address),
                                "} | Set-VMNetworkAdapter -StaticMacAddress",
-                               QString::fromStdString(extra_interface.mac_address)},
+                               QString::fromStdString(desc.extra_interfaces[i].mac_address)},
                               "Could not setup the extra network adapter");
     }
 }

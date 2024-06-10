@@ -36,7 +36,7 @@ class PowerShell;
 class SSHKeyProvider;
 class VirtualMachineDescription;
 class VMStatusMonitor;
-
+struct VMSpecs;
 class HyperVVirtualMachine final : public BaseVirtualMachine
 {
 public:
@@ -46,6 +46,7 @@ public:
                          const Path& instance_dir);
     // Contruct the vm based on the source virtual machine
     HyperVVirtualMachine(const std::string& source_vm_name,
+                         const multipass::VMSpecs& src_vm_specs,
                          const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
@@ -85,7 +86,7 @@ protected:
 
 private:
     void setup_network_interfaces();
-    void update_network_interfaces();
+    void update_network_interfaces(const VMSpecs& src_specs);
 
     VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;
