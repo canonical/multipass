@@ -548,6 +548,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       onPressed: () async {
         toMount.clear();
         toUnmount.clear();
+        if (!(formKey.currentState?.validate() ?? false)) return;
         formKey.currentState?.save();
         setState(() => editing = false);
         final grpcClient = ref.read(grpcClientProvider);
