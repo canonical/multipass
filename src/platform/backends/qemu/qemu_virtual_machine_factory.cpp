@@ -120,7 +120,13 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance = create_virtual_machine(dest_vm_desc, key_provider, monitor);
+    mp::VirtualMachine::UPtr cloned_instance =
+        std::make_unique<mp::QemuVirtualMachine>(dest_vm_desc,
+                                                 qemu_platform.get(),
+                                                 monitor,
+                                                 key_provider,
+                                                 get_instance_directory(dest_vm_desc.vm_name));
+
     cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
 
     rollback_delete_instance_folder.dismiss();
