@@ -1,1 +1,7 @@
-../../../../data/multipass.gui.desktop
+[Desktop Entry]
+Name=Multipass
+Exec=multipass.gui
+Icon=multipass.gui
+Type=Application
+Terminal=false
+Categories=Utility;
