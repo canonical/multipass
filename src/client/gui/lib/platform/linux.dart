@@ -51,6 +51,7 @@ class LinuxAutostartNotifier extends AutostartNotifier {
   Future<void> doSet(bool value) async {
     if (value) {
       final data = await rootBundle.load('assets/$autostartFile');
+      await file.parent.create();
       await file.writeAsBytes(data.buffer.asUint8List());
     } else {
       if (await file.exists()) await file.delete();
