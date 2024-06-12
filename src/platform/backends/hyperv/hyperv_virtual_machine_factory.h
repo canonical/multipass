@@ -45,10 +45,6 @@ public:
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
     void require_snapshots_support() const override;
-    std::string bridge_name_for(const std::string& iface_name) const override
-    {
-        return "External Virtual Switch";
-    };
 
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;

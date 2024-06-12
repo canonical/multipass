@@ -503,6 +503,11 @@ bool mp::platform::Platform::is_image_url_supported() const
     return check_unlock_code();
 }
 
+std::string mp::platform::Platform::bridge_nomenclature() const
+{
+    return "switch";
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();
