@@ -246,11 +246,6 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     return ret;
 }
 
-std::string mp::LXDVirtualMachineFactory::bridge_name_for(const std::string& iface_name) const
-{
-    return MP_BACKEND.bridge_name(iface_name);
-};
-
 void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
 {
     prepare_networking_guts(extra_interfaces, MP_PLATFORM.bridge_nomenclature());

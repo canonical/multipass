@@ -77,11 +77,6 @@ public:
 
     void require_suspend_support() const override;
 
-    std::string bridge_name_for(const std::string& iface_name) const override
-    {
-        return "";
-    };
-
 protected:
     static const Path instances_subdir;
 

@@ -2337,11 +2337,8 @@ TEST_P(DaemonIsBridged, is_bridged_works)
     mp::VMSpecs specs;
     specs.extra_interfaces = extra_interfaces;
 
-    auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
-
-    EXPECT_CALL(*mock_factory, bridge_name_for(_)).WillOnce(Return("br-eth8"));
 
     EXPECT_EQ(daemon.test_is_bridged(instance_name, specs), result);
 }
