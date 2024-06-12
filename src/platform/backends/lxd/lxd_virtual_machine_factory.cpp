@@ -232,13 +232,14 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
 
     if (!networks.isEmpty())
     {
+        const auto& br_nomenclature = MP_PLATFORM.bridge_nomenclature();
         auto platform_networks = MP_PLATFORM.get_network_interfaces_info();
         for (const QJsonValueRef net_value : networks)
             if (auto network = munch_network(platform_networks, net_value.toObject()); !network.id.empty())
                 ret.push_back(std::move(network));
 
         for (auto& net : ret)
-            if (net.needs_authorization && mu::find_bridge_with(ret, net.id, "bridge") != ret.cend())
+            if (net.needs_authorization && mu::find_bridge_with(ret, net.id, br_nomenclature) != ret.cend())
                 net.needs_authorization = false;
     }
 
@@ -252,7 +253,7 @@ std::string mp::LXDVirtualMachineFactory::bridge_name_for(const std::string& ifa
 
 void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
 {
-    prepare_networking_guts(extra_interfaces, "bridge");
+    prepare_networking_guts(extra_interfaces, MP_PLATFORM.bridge_nomenclature());
 }
 
 std::string mp::LXDVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
