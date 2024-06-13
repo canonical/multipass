@@ -40,12 +40,6 @@ public:
                  QemuVirtualMachine& vm,
                  VirtualMachineDescription& desc);
     QemuSnapshot(const QString& filename, QemuVirtualMachine& vm, VirtualMachineDescription& desc);
-    QemuSnapshot(const QString& filename,
-                 const VMSpecs& src_specs,
-                 const VMSpecs& dest_specs,
-                 const std::string& src_vm_name,
-                 QemuVirtualMachine& vm,
-                 VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;

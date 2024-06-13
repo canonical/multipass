@@ -72,18 +72,6 @@ mp::QemuSnapshot::QemuSnapshot(const QString& filename, QemuVirtualMachine& vm, 
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QString& filename,
-                               const VMSpecs& src_specs,
-                               const VMSpecs& dest_specs,
-                               const std::string& src_vm_name,
-                               QemuVirtualMachine& vm,
-                               VirtualMachineDescription& desc)
-    : BaseSnapshot{filename, src_specs, dest_specs, src_vm_name, vm, desc},
-      desc{desc},
-      image_path{desc.image.image_path}
-{
-}
-
 void mp::QemuSnapshot::capture_impl()
 {
     const auto& tag = get_id();

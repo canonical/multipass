@@ -584,12 +584,12 @@ void mp::BaseVirtualMachine::load_snapshots()
 {
     const std::unique_lock lock{snapshot_mutex};
 
-    const auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
-                                                         {QString{"*.%1"}.arg(snapshot_extension)},
-                                                         QDir::Filter::Files | QDir::Filter::Readable,
-                                                         QDir::SortFlag::Name);
+    auto snapshot_files = MP_FILEOPS.entryInfoList(instance_dir,
+                                                   {QString{"*.%1"}.arg(snapshot_extension)},
+                                                   QDir::Filter::Files | QDir::Filter::Readable,
+                                                   QDir::SortFlag::Name);
     for (const auto& finfo : snapshot_files)
-        load_snapshot_and_optionally_update_unique_identifiers(finfo.filePath(), std::forward<Args>(args)...);
+        load_snapshot(finfo.filePath());
 
     load_generic_snapshot_info();
 }
@@ -646,7 +646,7 @@ void mp::BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 
 void mp::BaseVirtualMachine::load_snapshot(const QString& filename)
 {
-    const auto snapshot = make_specific_snapshot(file_path, std::forward<Args>(args)...);
+    const auto snapshot = make_specific_snapshot(filename);
     const auto& name = snapshot->get_name();
     const auto [_, success] = snapshots.try_emplace(name, snapshot);
 
