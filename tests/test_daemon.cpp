@@ -2261,6 +2261,29 @@ TEST_F(Daemon, add_bridged_interface_works)
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
 
+TEST_F(Daemon, add_bridged_interface_warns_and_noop_if_already_bridged)
+{
+    std::string instance_name{"foo"};
+    std::string if_name{"eth8"};
+
+    mp::VMSpecs specs{};
+    specs.extra_interfaces.push_back({if_name, "ab:ab:ab:ab:ab:ab", true});
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "already bridged");
+
+    EXPECT_CALL(*mock_factory, networks).Times(1);
+    EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface).Times(0);
+
+    EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr, specs));
+}
+
 TEST_F(Daemon, add_bridged_interface_honors_prepared_bridge)
 {
     std::string instance_name{"asdf"};
