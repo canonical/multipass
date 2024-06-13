@@ -39,6 +39,31 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto category = "qemu factory";
+
+namespace fs = std::filesystem;
+void copy_instance_dir_without_snapshot_files(const fs::path& source_instance_dir_path,
+                                              const fs::path& dest_instance_dir_path)
+{
+    if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
+                                  MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
+    {
+        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
+        {
+            if (!fs::exists(dest_instance_dir_path))
+            {
+                fs::create_directory(dest_instance_dir_path);
+            }
+
+            const fs::path filename = entry.path().filename();
+            // if the filename does not contains "snapshot" sub-string, then copy
+            if (filename.string().find("snapshot") == std::string::npos)
+            {
+                const fs::path dest_file_path = dest_instance_dir_path / filename;
+                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
+            }
+        }
+    }
+}
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
@@ -94,9 +119,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
             }
         });
 
-    MP_FILEOPS.copy(source_instance_data_directory,
-                    dest_instance_data_directory,
-                    std::filesystem::copy_options::recursive);
+    copy_instance_dir_without_snapshot_files(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
 
