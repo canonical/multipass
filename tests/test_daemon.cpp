@@ -2261,6 +2261,26 @@ TEST_F(Daemon, add_bridged_interface_works)
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
 
+TEST_F(Daemon, add_bridged_interface_honors_prepared_bridge)
+{
+    std::string instance_name{"asdf"};
+    std::string if_name{"eth8"};
+    std::string br_name{"br-eth8"};
+    mp::NetworkInterface br_net{br_name, "ab:ab:ab:ab:ab:ab", true};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    std::vector<mp::NetworkInterfaceInfo> net_info{{if_name, "Ethernet", "A regular adapter", {}, false}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
+    EXPECT_CALL(*mock_factory, prepare_networking(Contains(Field(&mp::NetworkInterface::id, StrEq("eth8")))))
+        .WillOnce(SetArgReferee<0>(std::vector{br_net}));
+    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, Eq(br_net))).Times(1);
+
+    EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
+}
+
 TEST_F(Daemon, add_bridged_interface_throws_if_backend_throws)
 {
     std::string instance_name{"wonka"};
