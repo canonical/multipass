@@ -82,9 +82,6 @@ public:
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
-    void load_snapshots_and_update_unique_identifiers(const VMSpecs& src_specs,
-                                                      const VMSpecs& dest_specs,
-                                                      const std::string& src_vm_name) override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
@@ -98,10 +95,6 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
-    virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename,
-                                                             const VMSpecs& src_specs,
-                                                             const VMSpecs& dest_specs,
-                                                             const std::string& src_vm_name);
 
     virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
                                                             const NetworkInterface& extra_interface) const;
@@ -116,17 +109,12 @@ protected:
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
-    // the number of args is either 0 or 3, eventually this forwarding will lead to calling make_specific_snapshot
-    // with one filename argument or one filename plus other three arguments.
-    template <typename... Args>
-    void load_snapshots_common(Args&&... args);
     template <typename LockT>
     void log_latest_snapshot(LockT lock) const;
 
     void load_generic_snapshot_info();
+    void load_snapshot(const QString& filename);
 
-    template <typename... Args>
-    void load_snapshot_and_optionally_update_unique_identifiers(const QString& file_path, Args&&... args);
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
     void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
 

@@ -70,28 +70,6 @@ QJsonObject read_snapshot_json(const QString& filename)
         return json["snapshot"].toObject();
 }
 
-QJsonObject read_snapshot_json_and_update_unique_identifiers(const QString& filename,
-                                                             const multipass::VMSpecs& src_specs,
-                                                             const multipass::VMSpecs& dest_specs,
-                                                             const std::string& src_vm_name,
-                                                             const std::string& dest_vm_name)
-{
-    QJsonObject snapshot_json = read_snapshot_json(filename);
-    snapshot_json["cloud_init_instance_id"] =
-        MP_JSONUTILS.update_cloud_init_instance_id(snapshot_json["cloud_init_instance_id"], src_vm_name, dest_vm_name);
-
-    // non qemu snapshot files do not have metadata
-    if (!snapshot_json["metadata"].toObject().isEmpty())
-    {
-        snapshot_json["metadata"] = MP_JSONUTILS.update_unique_identifiers_of_metadata(snapshot_json["metadata"],
-                                                                                       src_specs,
-                                                                                       dest_specs,
-                                                                                       src_vm_name,
-                                                                                       dest_vm_name);
-    }
-    return snapshot_json;
-}
-
 std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mounts_json)
 {
     std::unordered_map<std::string, mp::VMMount> mounts;
@@ -202,23 +180,6 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                    /*captured=*/false}
 {
     assert(index > 0 && "snapshot indices need to start at 1");
-}
-
-mp::BaseSnapshot::BaseSnapshot(const QString& filename,
-                               const VMSpecs& src_specs,
-                               const VMSpecs& dest_specs,
-                               const std::string& src_vm_name,
-                               VirtualMachine& dest_vm,
-                               const VirtualMachineDescription& desc)
-    : BaseSnapshot{read_snapshot_json_and_update_unique_identifiers(filename,
-                                                                    src_specs,
-                                                                    dest_specs,
-                                                                    src_vm_name,
-                                                                    dest_vm.get_vm_name()),
-                   dest_vm,
-                   desc}
-{
-    persist();
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, const VirtualMachineDescription& desc)

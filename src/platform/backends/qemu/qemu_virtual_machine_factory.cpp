@@ -90,7 +90,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
 }
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
-    const VMSpecs& src_vm_spec,
+    const VMSpecs& /*src_vm_spec*/,
     const VMSpecs& dest_vm_spec,
     const std::string& source_name,
     const std::string& destination_name,
@@ -149,8 +149,6 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
                                                  monitor,
                                                  key_provider,
                                                  get_instance_directory(dest_vm_desc.vm_name));
-
-    cloned_instance->load_snapshots_and_update_unique_identifiers(src_vm_spec, dest_vm_spec, source_name);
 
     rollback_delete_instance_folder.dismiss();
     return cloned_instance;

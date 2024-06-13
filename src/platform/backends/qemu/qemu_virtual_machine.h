@@ -89,10 +89,6 @@ protected:
                                                      const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename,
-                                                     const VMSpecs& src_specs,
-                                                     const VMSpecs& dest_specs,
-                                                     const std::string& src_vm_name) override;
 
 private:
     void on_started();
