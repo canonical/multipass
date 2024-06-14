@@ -508,6 +508,12 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                              smb_manager);
 }
 
+void mp::HyperVVirtualMachine::remove_all_snapshots_from_the_image() const
+{
+    // Get-VMSnapshot -VMName "YourVMName" | Remove-VMSnapshot
+    power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"}, "Could not remove the snapshots");
+}
+
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                       const std::string& comment,
                                                       const std::string& instance_id,
