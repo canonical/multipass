@@ -88,20 +88,6 @@ mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
 {
 }
 
-mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
-                                   const VMSpecs& src_specs,
-                                   const VMSpecs& dest_specs,
-                                   const std::string& src_vm_name,
-                                   HyperVVirtualMachine& vm,
-                                   VirtualMachineDescription& desc,
-                                   PowerShell& power_shell)
-    : BaseSnapshot{filename, src_specs, dest_specs, src_vm_name, vm, desc},
-      quoted_id{quoted(get_id())},
-      vm_name{QString::fromStdString(desc.vm_name)},
-      power_shell{power_shell}
-{
-}
-
 void mp::HyperVSnapshot::capture_impl()
 {
     require_unique_id(power_shell, vm_name, quoted_id);
