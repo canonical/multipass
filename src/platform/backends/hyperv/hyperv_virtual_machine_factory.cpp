@@ -247,8 +247,8 @@ std::string error_msg_helper(const std::string& msg_core, const QString& ps_outp
 }
 
 namespace fs = std::filesystem;
-void copy_instance_dir_without_image_files(const fs::path& source_instance_dir_path,
-                                           const fs::path& dest_instance_dir_path)
+void copy_instance_dir_without_snapshot_and_image_files(const fs::path& source_instance_dir_path,
+                                                        const fs::path& dest_instance_dir_path)
 {
     if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
                                   MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
@@ -260,7 +260,8 @@ void copy_instance_dir_without_image_files(const fs::path& source_instance_dir_p
                 fs::create_directory(dest_instance_dir_path);
             }
 
-            if (entry.path().extension().string() != ".vhdx" && entry.path().extension().string() != ".avhdx")
+            if (entry.path().extension().string() != ".vhdx" && entry.path().extension().string() != ".avhdx" &&
+                entry.path().filename().string().find("snapshot") == std::string::npos)
             {
                 const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
                 fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
@@ -316,7 +317,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
             // also add powershell remove the vm, maybe
         });
 
-    copy_instance_dir_without_image_files(source_instance_data_directory, dest_instance_data_directory);
+    copy_instance_dir_without_snapshot_and_image_files(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
 
