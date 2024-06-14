@@ -48,6 +48,7 @@ namespace
 const QString test_blueprints_zip{"/test-blueprints.zip"};
 const QString multipass_blueprints_zip{"/multipass-blueprints.zip"};
 const char* sha256_checksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const std::string min_resource_info_str = "requires at least 2 CPUs, 2G of memory and 25G of disk space.";
 
 struct VMBlueprintProvider : public Test
 {
@@ -298,9 +299,11 @@ TEST_F(VMBlueprintProvider, givenCoresLessThanMinimumThrows)
 
     mp::ClientLaunchData dummy_data;
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_data),
+    const std::string blueprint_name = "test-blueprint1";
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for(blueprint_name, vm_desc, dummy_data),
                          mp::BlueprintMinimumException,
-                         mpt::match_what(AllOf(HasSubstr("Number of CPUs"), HasSubstr("2"))));
+                         mpt::match_what(AllOf(HasSubstr("Number of CPUs"), HasSubstr("2"), HasSubstr(blueprint_name),
+                                               HasSubstr(min_resource_info_str))));
 }
 
 TEST_F(VMBlueprintProvider, givenMemLessThanMinimumThrows)
@@ -312,9 +315,11 @@ TEST_F(VMBlueprintProvider, givenMemLessThanMinimumThrows)
 
     mp::ClientLaunchData dummy_data;
 
-    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_data),
+    const std::string blueprint_name = "test-blueprint1";
+    MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for(blueprint_name, vm_desc, dummy_data),
                          mp::BlueprintMinimumException,
-                         mpt::match_what(AllOf(HasSubstr("Memory size"), HasSubstr("2G"))));
+                         mpt::match_what(AllOf(HasSubstr("Memory size"), HasSubstr("2G"), HasSubstr(blueprint_name),
+                                               HasSubstr(min_resource_info_str))));
 }
 
 TEST_F(VMBlueprintProvider, givenDiskSpaceLessThanMinimumThrows)
@@ -326,9 +331,11 @@ TEST_F(VMBlueprintProvider, givenDiskSpaceLessThanMinimumThrows)
 
     mp::ClientLaunchData dummy_data;
 
+    const std::string blueprint_name = "test-blueprint1";
     MP_EXPECT_THROW_THAT(blueprint_provider.fetch_blueprint_for("test-blueprint1", vm_desc, dummy_data),
                          mp::BlueprintMinimumException,
-                         mpt::match_what(AllOf(HasSubstr("Disk space"), HasSubstr("25G"))));
+                         mpt::match_what(AllOf(HasSubstr("Disk space"), HasSubstr("25G"), HasSubstr(blueprint_name),
+                                               HasSubstr(min_resource_info_str))));
 }
 
 TEST_F(VMBlueprintProvider, higherOptionsIsNotOverriden)
