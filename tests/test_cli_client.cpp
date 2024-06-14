@@ -3560,7 +3560,7 @@ TEST_P(ClientAliasNameSuite, creates_correct_default_alias_name)
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     std::vector<std::string> arguments{"alias"};
-    arguments.push_back(fmt::format("primary:{}{}", path, command));
+    arguments.push_back("primary:" + path + command);
     arguments.push_back("--no-map-working-directory");
 
     EXPECT_EQ(send_command(arguments), mp::ReturnCode::Ok);
