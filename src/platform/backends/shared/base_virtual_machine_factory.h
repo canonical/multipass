@@ -83,8 +83,7 @@ protected:
         throw NotImplementedOnThisBackendException{"bridge creation"};
     }
 
-    virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets,
-                                   const std::string& bridge_type);
+    virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets);
 
     virtual void remove_resources_for_impl(const std::string& name) = 0;
 

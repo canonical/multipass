@@ -57,14 +57,14 @@ void mp::BaseVirtualMachineFactory::prepare_networking(std::vector<NetworkInterf
     {
         auto host_nets = networks(); // expensive
         for (auto& net : extra_interfaces)
-            prepare_interface(net, host_nets, MP_PLATFORM.bridge_nomenclature());
+            prepare_interface(net, host_nets);
     }
 }
 
 void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
-                                                      std::vector<NetworkInterfaceInfo>& host_nets,
-                                                      const std::string& bridge_type)
+                                                      std::vector<NetworkInterfaceInfo>& host_nets)
 {
+    const auto bridge_type = MP_PLATFORM.bridge_nomenclature();
     auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
                                [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
 
