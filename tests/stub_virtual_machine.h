@@ -196,7 +196,6 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
 
     void remove_all_snapshots_from_the_image() const override
     {
-
     }
 
     StubSnapshot snapshot;
