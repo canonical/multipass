@@ -315,11 +315,6 @@ void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
     check_hyperv_support();
 }
 
-void mp::HyperVVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
-{
-    prepare_networking_guts(extra_interfaces, "switch");
-}
-
 auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
     auto adapters = get_adapters();
