@@ -29,7 +29,7 @@ dependencies:
   logger: ^2.0.2+1
   path_provider: ^2.1.0
   protobuf: ^3.1.0
-  rxdart: ^0.27.7
+  rxdart: ^0.28.0
   shared_preferences: ^2.2.2
   tray_menu:
     git:
