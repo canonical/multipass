@@ -194,6 +194,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 0;
     }
 
+    void remove_all_snapshots_from_the_image() const override
+    {
+
+    }
+
     StubSnapshot snapshot;
     std::unique_ptr<TempDir> tmp_dir;
 };
