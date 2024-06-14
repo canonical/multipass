@@ -16,6 +16,7 @@
  */
 
 #include "base_virtual_machine_factory.h"
+#include "multipass/platform.h"
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/network_interface.h>
@@ -50,14 +51,13 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
     vm_desc.cloud_init_iso = cloud_init_iso;
 }
 
-void mp::BaseVirtualMachineFactory::prepare_networking_guts(std::vector<NetworkInterface>& extra_interfaces,
-                                                            const std::string& bridge_type)
+void mp::BaseVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
 {
     if (!extra_interfaces.empty())
     {
         auto host_nets = networks(); // expensive
         for (auto& net : extra_interfaces)
-            prepare_interface(net, host_nets, bridge_type);
+            prepare_interface(net, host_nets, MP_PLATFORM.bridge_nomenclature());
     }
 }
 

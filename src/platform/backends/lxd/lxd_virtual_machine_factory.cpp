@@ -246,11 +246,6 @@ auto mp::LXDVirtualMachineFactory::networks() const -> std::vector<NetworkInterf
     return ret;
 }
 
-void mp::LXDVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
-{
-    prepare_networking_guts(extra_interfaces, MP_PLATFORM.bridge_nomenclature());
-}
-
 std::string mp::LXDVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
 {
     assert(interface.type == "ethernet");

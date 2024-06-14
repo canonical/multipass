@@ -2318,8 +2318,7 @@ public:
     using mp::LXDVirtualMachineFactory::create_bridge_with;
     using mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory;
 
-    MOCK_METHOD(void, prepare_networking_guts,
-                (std::vector<mp::NetworkInterface> & extra_interfaces, const std::string& bridge_type), (override));
+    MOCK_METHOD(void, prepare_networking, (std::vector<mp::NetworkInterface>&), (override));
 };
 } // namespace
 
@@ -2329,7 +2328,7 @@ TEST_F(LXDBackend, prepares_networking_via_base_factory)
     std::vector<mp::NetworkInterface> extra_networks{{"netid", "mac", false}};
 
     auto address = [](const auto& v) { return &v; }; // replace with Address matcher once available
-    EXPECT_CALL(backend, prepare_networking_guts(ResultOf(address, Eq(&extra_networks)), Eq("bridge")));
+    EXPECT_CALL(backend, prepare_networking(ResultOf(address, Eq(&extra_networks))));
     backend.prepare_networking(extra_networks);
 }
 

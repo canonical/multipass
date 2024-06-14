@@ -2379,8 +2379,11 @@ TEST_P(DaemonIsBridged, is_bridged_works)
 
     std::string instance_name{"charlie"};
 
-    mp::VMSpecs specs;
+    mp::VMSpecs specs{};
     specs.extra_interfaces = extra_interfaces;
+
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return("generic"));
 
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(host_nets));
@@ -2396,13 +2399,13 @@ INSTANTIATE_TEST_SUITE_P(
     Values(std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
                            std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}},
                            true),
-           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{"somebr", "bridge", "some bridge", {"eth8"}, false}},
+           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{"somebr", "generic", "some bridge", {"eth8"}, false}},
                            std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:12:13:14", true}},
                            true),
            std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
                            std::vector<mp::NetworkInterface>{{"eth9", "52:54:00:15:16:17", true}},
                            false),
-           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{"somebr", "bridge", "some bridge", {"eth9"}, false}},
+           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{"somebr", "generic", "some bridge", {"eth9"}, false}},
                            std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:18:19:20", true}},
                            false)));
 

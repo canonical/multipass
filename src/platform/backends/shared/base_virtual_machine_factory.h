@@ -53,10 +53,7 @@ public:
         return utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
 
-    void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override
-    {
-        // only certain backends need to do anything to prepare networking
-    }
+    void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override;
 
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                           const Path& cache_dir_path, const Path& data_dir_path,
@@ -85,9 +82,6 @@ protected:
     {
         throw NotImplementedOnThisBackendException{"bridge creation"};
     }
-
-    virtual void prepare_networking_guts(std::vector<NetworkInterface>& extra_interfaces,
-                                         const std::string& bridge_type);
 
     virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets,
                                    const std::string& bridge_type);
