@@ -63,7 +63,7 @@ public:
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override
     {
         throw NotImplementedOnThisBackendException("native mounts");
-    };
+    }
 
     SnapshotVista view_snapshots() const override;
     int get_num_snapshots() const override;
@@ -84,6 +84,10 @@ public:
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
+    void remove_all_snapshots_from_the_image() const override
+    {
+        throw NotImplementedOnThisBackendException("remove all snapshots from the image");
+    }
 
 protected:
     virtual void require_snapshots_support() const;
