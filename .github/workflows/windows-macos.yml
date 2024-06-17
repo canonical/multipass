@@ -457,7 +457,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
     - name: Update the Windows check on public
