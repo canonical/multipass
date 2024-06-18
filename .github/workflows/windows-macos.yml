@@ -224,13 +224,13 @@ jobs:
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v2
+      uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install --yes qemu --version=2023.4.24
 
     - name: Install other packages from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v2
+      uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install --yes wget unzip
 
