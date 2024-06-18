@@ -118,16 +118,14 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
                                   "<target> [<target> ...]");
 
     QCommandLineOption gid_mappings({"g", "gid-map"},
-                                    "A mapping of group IDs for use in the mount. "
-                                    "File and folder ownership will be mapped from "
-                                    "<host> to <instance> inside the instance. Can be "
-                                    "used multiple times.",
+                                    "A mapping of group IDs for use in the mount. File and folder ownership will be "
+                                    "mapped from <host> to <instance> inside the instance. Can be used multiple times. "
+                                    "Mappings can only be specified as a one-to-one relationship.",
                                     "host>:<instance");
     QCommandLineOption uid_mappings({"u", "uid-map"},
-                                    "A mapping of user IDs for use in the mount. "
-                                    "File and folder ownership will be mapped from "
-                                    "<host> to <instance> inside the instance. Can be "
-                                    "used multiple times.",
+                                    "A mapping of user IDs for use in the mount. File and folder ownership will be "
+                                    "mapped from <host> to <instance> inside the instance. Can be used multiple times. "
+                                    "Mappings can only be specified as a one-to-one relationship.",
                                     "host>:<instance");
     QCommandLineOption mount_type_option({"t", "type"},
                                          "Specify the type of mount to use.\n"
