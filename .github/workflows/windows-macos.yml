@@ -360,7 +360,7 @@ jobs:
 
     - name: Install specific cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v3.28.4
+      uses: lukka/get-cmake@v3.29.5
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
