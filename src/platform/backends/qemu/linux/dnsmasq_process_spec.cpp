@@ -22,7 +22,7 @@
 #include <multipass/snap_utils.h>
 
 namespace mp = multipass;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
                                            const std::string& subnet, const QString& conf_file_path)
@@ -112,7 +112,7 @@ profile %1 flags=(attach_disconnected) {
     try
     {
         // if snap confined, specify only multipassd can kill dnsmasq
-        root_dir = mu::snap_dir();
+        root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd";
     }
     catch (const mp::SnapEnvironmentException&)

@@ -25,7 +25,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
                                          const mp::QemuVirtualMachine::MountArgs& mount_args,
@@ -196,7 +196,7 @@ profile %1 flags=(attach_disconnected) {
 
     try
     {
-        root_dir = mu::snap_dir();
+        root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
         firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }

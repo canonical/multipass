@@ -21,7 +21,7 @@
 #include <multipass/snap_utils.h>
 
 namespace mp = multipass;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 QString mp::QemuBaseProcessSpec::program() const
 {
@@ -32,7 +32,7 @@ QString mp::QemuBaseProcessSpec::working_directory() const
 {
     try
     {
-        return mu::snap_dir().append("/qemu");
+        return mpu::snap_dir().append("/qemu");
     }
     catch (const mp::SnapEnvironmentException&)
     {
