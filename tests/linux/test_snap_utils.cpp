@@ -28,7 +28,7 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 using namespace testing;
 
@@ -40,19 +40,19 @@ const QByteArray snap_name{"multipass"};
 TEST(Snap, recognizes_in_snap_when_snap_name_is_multipass)
 {
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
-    EXPECT_TRUE(mu::in_multipass_snap());
+    EXPECT_TRUE(mpu::in_multipass_snap());
 }
 
 TEST(Snap, recognizes_not_in_snap_when_snap_name_is_empty)
 {
     mpt::UnsetEnvScope env{"SNAP_NAME"};
-    EXPECT_FALSE(mu::in_multipass_snap());
+    EXPECT_FALSE(mpu::in_multipass_snap());
 }
 
 TEST(Snap, recognizes_not_in_snap_when_snap_name_is_otherwise)
 {
     mpt::SetEnvScope env{"SNAP_NAME", "otherwise"};
-    EXPECT_FALSE(mu::in_multipass_snap());
+    EXPECT_FALSE(mpu::in_multipass_snap());
 }
 
 struct SnapDirs : public TestWithParam<std::pair<const char*, std::function<QByteArray()>>>
@@ -120,7 +120,8 @@ TEST_P(SnapDirs, test_snap_dir_resolves_links)
     EXPECT_EQ(snap_dir.path(), getter());
 }
 
-INSTANTIATE_TEST_SUITE_P(SnapUtils, SnapDirs,
-                         testing::Values(std::make_pair("SNAP", &mu::snap_dir),
-                                         std::make_pair("SNAP_COMMON", &mu::snap_common_dir),
-                                         std::make_pair("SNAP_REAL_HOME", &mu::snap_real_home_dir)));
+INSTANTIATE_TEST_SUITE_P(SnapUtils,
+                         SnapDirs,
+                         testing::Values(std::make_pair("SNAP", &mpu::snap_dir),
+                                         std::make_pair("SNAP_COMMON", &mpu::snap_common_dir),
+                                         std::make_pair("SNAP_REAL_HOME", &mpu::snap_real_home_dir)));

@@ -22,7 +22,7 @@
 #include <QString>
 
 namespace mp = multipass;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -30,7 +30,7 @@ const QString snap_name{"multipass"};
 
 void verify_snap_name()
 {
-    if (!mu::in_multipass_snap())
+    if (!mpu::in_multipass_snap())
         throw mp::SnapEnvironmentException("SNAP_NAME", snap_name.toStdString());
 }
 
@@ -51,27 +51,27 @@ QByteArray checked_snap_dir(const char* dir)
 }
 } // namespace
 
-bool mu::in_multipass_snap()
+bool mpu::in_multipass_snap()
 {
     return qgetenv("SNAP_NAME") == snap_name;
 }
 
-QByteArray mu::snap_dir()
+QByteArray mpu::snap_dir()
 {
     return checked_snap_dir("SNAP");
 }
 
-QByteArray mu::snap_common_dir()
+QByteArray mpu::snap_common_dir()
 {
     return checked_snap_dir("SNAP_COMMON");
 }
 
-QByteArray mu::snap_real_home_dir()
+QByteArray mpu::snap_real_home_dir()
 {
     return checked_snap_dir("SNAP_REAL_HOME");
 }
 
-QByteArray mu::snap_user_common_dir()
+QByteArray mpu::snap_user_common_dir()
 {
     return checked_snap_dir("SNAP_USER_COMMON");
 }

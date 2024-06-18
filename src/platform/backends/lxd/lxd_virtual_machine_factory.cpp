@@ -36,7 +36,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -146,7 +146,7 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     catch (const LocalSocketConnectionException& e)
     {
         std::string snap_msg;
-        if (mu::in_multipass_snap())
+        if (mpu::in_multipass_snap())
             snap_msg = " Also make sure\n the LXD interface is connected via `snap connect multipass:lxd lxd`.";
 
         throw std::runtime_error(
