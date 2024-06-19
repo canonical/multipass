@@ -165,6 +165,11 @@ qint64 mp::FileOps::write(QFileDevice& file, const QByteArray& data) const
     return file.write(data);
 }
 
+bool mp::FileOps::flush(QFile& file) const
+{
+    return file.flush();
+}
+
 bool mp::FileOps::commit(QSaveFile& file) const
 {
     return file.commit();

@@ -113,7 +113,10 @@ void mp::Utils::make_file_with_content(const std::string& file_name, const std::
     if (MP_FILEOPS.write(file, content.c_str(), content.size()) != (qint64)content.size())
         throw std::runtime_error(fmt::format("failed to write to file '{}': {}", file_name, file.errorString()));
 
-    return;
+    if (!MP_FILEOPS.flush(file)) // flush manually to check return (which QFile::close ignores)
+        throw std::runtime_error(fmt::format("failed to flush file '{}': {}", file_name, file.errorString()));
+
+    return; // file closed, flush called again with errors ignored
 }
 
 std::string mp::Utils::get_kernel_version() const
