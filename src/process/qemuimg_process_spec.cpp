@@ -20,7 +20,7 @@
 #include <multipass/snap_utils.h>
 
 namespace mp = multipass;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args, const QString& source_image,
                                            const QString& target_image)
@@ -72,7 +72,7 @@ profile %1 flags=(attach_disconnected) {
 
     try
     {
-        root_dir = mu::snap_dir();
+        root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu-img signals
     }
     catch (mp::SnapEnvironmentException&)

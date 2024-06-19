@@ -67,7 +67,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mu = multipass::utils;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -87,7 +87,7 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
         return ok ? got : default_ret;
     }
 
-    auto snap_hint = mu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
+    auto snap_hint = mpu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
     mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}.{}", type_file.fileName(), snap_hint));
 
     return default_ret;
@@ -282,9 +282,9 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
 
-    if (mu::in_multipass_snap())
+    if (mpu::in_multipass_snap())
     {
-        aliases_folder = QDir(QString(mu::snap_user_common_dir()) + "/bin");
+        aliases_folder = QDir(QString(mpu::snap_user_common_dir()) + "/bin");
     }
     else
     {
@@ -299,7 +299,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 {
     std::string file_path = get_alias_script_path(alias);
 
-    std::string multipass_exec = mu::in_multipass_snap()
+    std::string multipass_exec = mpu::in_multipass_snap()
                                      ? "exec /usr/bin/snap run multipass"
                                      : fmt::format("\"{}\"", QCoreApplication::applicationFilePath());
 
@@ -397,7 +397,7 @@ std::string mp::platform::default_server_address()
     try
     {
         // if Snap, client and daemon can both access $SNAP_COMMON so can put socket there
-        base_dir = mu::snap_common_dir().toStdString();
+        base_dir = mpu::snap_common_dir().toStdString();
     }
     catch (const mp::SnapEnvironmentException&)
     {
@@ -454,6 +454,6 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::string multipass::platform::host_version()
 {
-    return mu::in_multipass_snap() ? multipass::platform::detail::read_os_release()
-                                   : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+    return mpu::in_multipass_snap() ? multipass::platform::detail::read_os_release()
+                                    : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
