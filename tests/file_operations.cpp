@@ -45,7 +45,7 @@ QByteArray mpt::load_test_file(const char* file_name)
     return multipass::test::load(file_path);
 }
 
-qint64 mpt::make_file_with_content(const QString& file_name, const std::string& content)
+void mpt::make_file_with_content(const QString& file_name, const std::string& content)
 {
     QFile file(file_name);
     if (file.exists())
@@ -63,5 +63,4 @@ qint64 mpt::make_file_with_content(const QString& file_name, const std::string& 
         throw std::runtime_error(fmt::format("failed to open test file: '{}'", file_name));
 
     file.write(content.data(), content.size());
-    return file.size();
 }
