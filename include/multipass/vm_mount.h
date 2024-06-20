@@ -26,8 +26,9 @@
 
 namespace multipass
 {
-struct VMMount
+class VMMount
 {
+public:
     enum class MountType : int
     {
         Classic = 0,
@@ -35,24 +36,53 @@ struct VMMount
     };
 
     VMMount() = default;
-    VMMount(const QJsonObject& json);
+    explicit VMMount(const QJsonObject& json);
     VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType);
 
     QJsonObject serialize() const;
 
+    const std::string& get_source_path() const noexcept;
+    const id_mappings& get_gid_mappings() const noexcept;
+    const id_mappings& get_uid_mappings() const noexcept;
+    MountType get_mount_type() const noexcept;
+
+    friend bool operator==(const VMMount& a, const VMMount& b) noexcept;
+    friend bool operator!=(const VMMount& a, const VMMount& b) noexcept;
+
+private:
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
     MountType mount_type;
 };
 
-inline bool operator==(const VMMount& a, const VMMount& b)
+inline const std::string& VMMount::get_source_path() const noexcept
+{
+    return source_path;
+}
+
+inline const multipass::id_mappings& VMMount::get_gid_mappings() const noexcept
+{
+    return gid_mappings;
+}
+
+inline const multipass::id_mappings& VMMount::get_uid_mappings() const noexcept
+{
+    return uid_mappings;
+}
+
+inline VMMount::MountType VMMount::get_mount_type() const noexcept
+{
+    return mount_type;
+}
+
+inline bool operator==(const VMMount& a, const VMMount& b) noexcept
 {
     return std::tie(a.source_path, a.gid_mappings, a.uid_mappings, a.mount_type) ==
            std::tie(b.source_path, b.gid_mappings, b.uid_mappings, b.mount_type);
 }
 
-inline bool operator!=(const VMMount& a, const VMMount& b) // TODO drop in C++20
+inline bool operator!=(const VMMount& a, const VMMount& b) noexcept // TODO drop in C++20
 {
     return !(a == b);
 }

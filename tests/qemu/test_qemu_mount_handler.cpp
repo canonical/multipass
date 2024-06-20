@@ -194,8 +194,11 @@ TEST_F(QemuMountHandlerTest, mount_handles_mount_args)
         const auto uid_arg = QString("uid_map=%1:%2,").arg(uid_mappings.front().first).arg(uid_mappings.front().second);
         const auto gid_arg = QString{"gid_map=%1:%2,"}.arg(gid_mappings.front().first).arg(gid_mappings.front().second);
         EXPECT_EQ(mount_args.begin()->second.second.join(' ').toStdString(),
-                  fmt::format("-virtfs local,security_model=passthrough,{}{}path={},mount_tag={}", uid_arg, gid_arg,
-                              mount.source_path, tag_from_target(default_target)));
+                  fmt::format("-virtfs local,security_model=passthrough,{}{}path={},mount_tag={}",
+                              uid_arg,
+                              gid_arg,
+                              mount.get_source_path(),
+                              tag_from_target(default_target)));
     }
 
     EXPECT_EQ(mount_args.size(), 0);
@@ -203,8 +206,9 @@ TEST_F(QemuMountHandlerTest, mount_handles_mount_args)
 
 TEST_F(QemuMountHandlerTest, mount_logs_init)
 {
-    logger_scope.mock_logger->expect_log(mpl::Level::info, fmt::format("initializing native mount {} => {} in '{}'",
-                                                                       mount.source_path, default_target, vm.vm_name));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::info,
+        fmt::format("initializing native mount {} => {} in '{}'", mount.get_source_path(), default_target, vm.vm_name));
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 
@@ -214,7 +218,9 @@ TEST_F(QemuMountHandlerTest, recover_from_suspended)
     EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::suspended));
     logger_scope.mock_logger->expect_log(mpl::Level::info,
                                          fmt::format("Found native mount {} => {} in '{}' while suspended",
-                                                     mount.source_path, default_target, vm.vm_name));
+                                                     mount.get_source_path(),
+                                                     default_target,
+                                                     vm.vm_name));
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 
