@@ -17,7 +17,7 @@ dependencies:
       url: https://github.com/andrei-toterman/dartssh2.git
       ref: use-raw-socket
   ffi: ^2.0.2
-  fl_chart: ^0.63.0
+  fl_chart: ^0.68.0
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.3.6
