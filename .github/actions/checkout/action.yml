@@ -15,4 +15,4 @@ runs:
   - name: Fetch tags
     shell: bash
     run: |
-      git fetch --no-recurse-submodules origin +refs/tags/*:refs/tags/*
+      git fetch --recurse-submodules origin +refs/tags/*:refs/tags/*

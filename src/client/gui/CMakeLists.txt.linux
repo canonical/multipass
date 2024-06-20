@@ -17,7 +17,6 @@ set(MULTIPASS_GUI_PREFIX ${MULTIPASS_GUI_TARGET}/${MULTIPASS_GUI_ARCH}/release)
 set(MULTIPASS_GUI_BUNDLE_RELATIVE bundle)
 set(MULTIPASS_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE "")
 set(MULTIPASS_GUI_EXECUTABLE multipass_gui)
-set(PROTOC_DART_PLUGIN_PATH $ENV{HOME}/.pub-cache/bin/protoc-gen-dart)
 
 set(MULTIPASS_GUI_BUILD_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 cmake_path(RELATIVE_PATH MULTIPASS_GUI_BUILD_DIR)
@@ -28,7 +27,7 @@ set(MULTIPASS_GUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/client/gui)
 set(MULTIPASS_GUI_LINK_NAME multipass.gui)
 set(MULTIPASS_GUI_EXECUTABLE_FULL_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE}/${MULTIPASS_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE}/${MULTIPASS_GUI_EXECUTABLE})
 
-file(GLOB MULTIPASS_GUI_SOURCE_FILES ${MULTIPASS_GUI_SOURCE_DIR}/lib/*.dart)
+file(GLOB_RECURSE MULTIPASS_GUI_SOURCE_FILES ${MULTIPASS_GUI_SOURCE_DIR}/lib/*.dart)
 
 set(FLUTTER_BUILD_ARGS --release --suppress-analytics --verbose)
 
@@ -36,10 +35,9 @@ add_custom_command(OUTPUT ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
   DEPENDS ${MULTIPASS_GUI_SOURCE_FILES}
   WORKING_DIRECTORY ${MULTIPASS_GUI_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} -E make_directory lib/generated
-  COMMAND ${DART_EXECUTABLE} pub global activate protoc_plugin
-  COMMAND $<TARGET_FILE:protobuf::protoc> --plugin=protoc-gen-dart=${PROTOC_DART_PLUGIN_PATH} -I ${grpc_SOURCE_DIR}/third_party/protobuf/src --dart_out=grpc:lib/generated -I ../../rpc ../../rpc/multipass.proto google/protobuf/timestamp.proto
+  COMMAND $<TARGET_FILE:protobuf::protoc> --plugin=protoc-gen-dart=${DART_PROTOC_PLUGIN} --dart_out=grpc:lib/generated -I ../../rpc ../../rpc/multipass.proto google/protobuf/timestamp.proto
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=${MULTIPASS_GUI_BUILD_DIR}
-  COMMAND ${FLUTTER_EXECUTABLE} ARGS build ${MULTIPASS_GUI_TARGET} ${FLUTTER_BUILD_ARGS}
+  COMMAND ${FLUTTER_EXECUTABLE} build ${MULTIPASS_GUI_TARGET} ${FLUTTER_BUILD_ARGS}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=
 )
 
@@ -50,7 +48,7 @@ add_custom_target(${MULTIPASS_GUI_EXECUTABLE} ALL
 # This creates the link to the executable inside the bundle directory, but will work only after install.
 add_custom_target(${MULTIPASS_GUI_LINK_NAME} ALL
   WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH} ${MULTIPASS_GUI_LINK_NAME})
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${MULTIPASS_GUI_BUNDLE_RELATIVE}/${MULTIPASS_GUI_EXECUTABLE} ${MULTIPASS_GUI_LINK_NAME})
 
 # This is just to make it work without installing.
 add_custom_target(bundle_symlink ALL

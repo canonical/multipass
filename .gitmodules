@@ -20,3 +20,9 @@
 [submodule "3rd-party/vcpkg"]
 	path = 3rd-party/vcpkg
 	url = https://github.com/microsoft/vcpkg
+[submodule "3rd-party/flutter"]
+	path = 3rd-party/flutter
+	url = https://github.com/flutter/flutter
+[submodule "3rd-party/protobuf.dart"]
+	path = 3rd-party/protobuf.dart
+	url = https://github.com/google/protobuf.dart
