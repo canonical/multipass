@@ -100,13 +100,13 @@ std::string generate_mac_address();
 bool valid_mac_address(const std::string& mac);
 template <typename NetworkContainer>
 std::optional<NetworkInterfaceInfo> find_bridge_with(const NetworkContainer& networks,
-                                                     const std::string& member_network,
+                                                     const std::string& target_network,
                                                      const std::string& bridge_type)
 {
     const auto it = std::find_if(std::cbegin(networks),
                                  std::cend(networks),
-                                 [&member_network, &bridge_type](const NetworkInterfaceInfo& info) {
-                                     return info.type == bridge_type && info.has_link(member_network);
+                                 [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
+                                     return info.type == bridge_type && info.has_link(target_network);
                                  });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
 }
