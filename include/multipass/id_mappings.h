@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <iterator>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -33,24 +35,46 @@ namespace multipass
 {
 using id_mappings = std::vector<std::pair<int, int>>;
 
-inline id_mappings unique_id_mappings(const id_mappings& xid_mappings)
+inline auto unique_id_mappings(id_mappings& xid_mappings)
 {
-    id_mappings ret;
-    std::set<std::pair<int, int>> id_set;
+    std::unordered_map<int, std::unordered_set<int>> dup_id_map;
+    std::unordered_map<int, std::unordered_set<int>> dup_rev_id_map;
 
-    auto is_mapping_repeated = [&id_set](const auto& m) {
-        if (id_set.insert(m).second)
-            return false;
+    for (auto it = xid_mappings.begin(); it != xid_mappings.end();)
+    {
+        bool duplicate =
+            dup_id_map.find(it->first) != dup_id_map.end() || dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
 
-        mpl::log(mpl::Level::debug, "id_mappings", fmt::format("Dropping repeated mapping {}:{}", m.first, m.second));
+        dup_id_map[it->first].insert(it->second);
+        dup_rev_id_map[it->second].insert(it->first);
 
-        return true;
+        if (duplicate)
+        {
+            mpl::log(mpl::Level::debug,
+                     "id_mappings",
+                     fmt::format("Dropping repeated mapping {}:{}", it->first, it->second));
+            it = xid_mappings.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    auto filter_non_repeating = [](auto& map) {
+        for (auto it = map.begin(); it != map.end();)
+        {
+            if (it->second.size() <= 1)
+                it = map.erase(it);
+            else
+                ++it;
+        }
     };
 
-    std::remove_copy_if(xid_mappings.cbegin(), xid_mappings.cend(), std::back_insert_iterator(ret),
-                        is_mapping_repeated);
+    filter_non_repeating(dup_id_map);
+    filter_non_repeating(dup_rev_id_map);
 
-    return ret;
+    return std::make_pair(dup_id_map, dup_rev_id_map);
 }
 } // namespace multipass
 

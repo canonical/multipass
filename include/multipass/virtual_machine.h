@@ -37,7 +37,7 @@
 namespace multipass
 {
 class MemorySize;
-struct VMMount;
+class VMMount;
 struct VMSpecs;
 class MountHandler;
 class Snapshot;
