@@ -1213,20 +1213,20 @@ void populate_mount_info(const std::unordered_map<std::string, mp::VMMount>& mou
     {
         for (const auto& mount : mounts)
         {
-            if (mount.second.source_path.size() > mount_info->longest_path_len())
-                mount_info->set_longest_path_len(mount.second.source_path.size());
+            if (mount.second.get_source_path().size() > mount_info->longest_path_len())
+                mount_info->set_longest_path_len(mount.second.get_source_path().size());
 
             auto entry = mount_info->add_mount_paths();
-            entry->set_source_path(mount.second.source_path);
+            entry->set_source_path(mount.second.get_source_path());
             entry->set_target_path(mount.first);
 
-            for (const auto& uid_mapping : mount.second.uid_mappings)
+            for (const auto& uid_mapping : mount.second.get_uid_mappings())
             {
                 auto uid_pair = entry->mutable_mount_maps()->add_uid_mappings();
                 uid_pair->set_host_id(uid_mapping.first);
                 uid_pair->set_instance_id(uid_mapping.second);
             }
-            for (const auto& gid_mapping : mount.second.gid_mappings)
+            for (const auto& gid_mapping : mount.second.get_gid_mappings())
             {
                 auto gid_pair = entry->mutable_mount_maps()->add_gid_mappings();
                 gid_pair->set_host_id(gid_mapping.first);
@@ -3215,7 +3215,7 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
                 mpl::log(mpl::Level::warning,
                          category,
                          fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})",
-                                     mount_spec.source_path,
+                                     mount_spec.get_source_path(),
                                      target,
                                      vm->vm_name,
                                      e.what()));
@@ -3233,7 +3233,7 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
 {
-    return mount.mount_type == VMMount::MountType::Classic
+    return mount.get_mount_type() == VMMount::MountType::Classic
                ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
                : vm->make_native_mount_handler(target, mount);
 }

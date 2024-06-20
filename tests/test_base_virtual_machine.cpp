@@ -1199,11 +1199,13 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     auto& target_snapshot = *snapshot_album[1];
     auto& last_snapshot = *snapshot_album[2];
 
+    mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
+
     auto changed_specs = original_specs;
     changed_specs.num_cores = 4;
     changed_specs.mem_size = mp::MemorySize{"2G"};
     changed_specs.state = multipass::VirtualMachine::State::running;
-    changed_specs.mounts["dst"].source_path = "src";
+    changed_specs.mounts["dst"] = mount;
     changed_specs.metadata["blah"] = "this and that";
 
     EXPECT_CALL(target_snapshot, get_state).WillRepeatedly(Return(original_specs.state));

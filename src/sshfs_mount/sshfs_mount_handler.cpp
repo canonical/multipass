@@ -127,12 +127,13 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
              ssh_key_provider->private_key_as_base64(),
              source,
              target,
-             this->mount_spec.gid_mappings,
-             this->mount_spec.uid_mappings}
+             this->mount_spec.get_gid_mappings(),
+             this->mount_spec.get_uid_mappings()}
 {
-    mpl::log(mpl::Level::info,
-             category,
-             fmt::format("initializing mount {} => {} in '{}'", this->mount_spec.source_path, target, vm->vm_name));
+    mpl::log(
+        mpl::Level::info,
+        category,
+        fmt::format("initializing mount {} => {} in '{}'", this->mount_spec.get_source_path(), target, vm->vm_name));
 }
 
 bool SSHFSMountHandler::is_active()
