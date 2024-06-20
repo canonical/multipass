@@ -91,7 +91,7 @@ apps:
       XDG_DATA_HOME: $SNAP_USER_DATA
       XDG_DATA_DIRS: $SNAP/usr/share
       GDK_GL: gles
-    command: bin/multipass_gui
+    command: bin/bundle/multipass_gui
     command-chain: [bin/set-xdg-vars]
     plugs:
       - desktop
@@ -149,6 +149,9 @@ parts:
     - zip
     - unzip
     - curl
+    - libkeybinder-3.0-dev
+    - clang
+    - ninja-build
     stage-packages:
     - apparmor
     - libpng16-16
@@ -158,6 +161,10 @@ parts:
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
+    - libgdk-pixbuf2.0-bin
+    - libglib2.0-0
+    - libgtk-3-0
+    - libkeybinder-3.0-dev
     stage:
     - -**/glvnd
     - -**/X11
@@ -165,6 +172,8 @@ parts:
     - -usr/include
     - -usr/lib/cmake
     - -usr/lib/*/libEGL_mesa.so.*
+    - -usr/lib/*/libgirepository-1.0.so.*
+    - -usr/lib/*/libgthread-2.0.so*
     - -usr/lib/*/libGLX_mesa.so.*
     - -usr/lib/*/libGLX_indirect.so.*
     - -usr/lib/*/libXxf86vm.so.*
@@ -181,14 +190,25 @@ parts:
     - -usr/lib/*/libsensors.so*
     - -usr/lib/*/libxcb-dri3.so*
     - -usr/lib/*/dri
+    - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libcolordprivate.so.*
+    - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libdconf.so.*
     - -usr/share/apport
     - -usr/share/bug
     - -usr/share/doc*
     - -usr/share/drirc.d
+    - -usr/share/gettext
+    - -usr/share/icons/Adwaita
+    - -usr/share/icons/DMZ-Black
+    - -usr/share/icons/Humanity*
+    - -usr/share/icons/LoginIcons
+    - -usr/share/icons/hicolor
+    - -usr/share/icons/ubuntu-*
     - -usr/share/lib*
     - -usr/share/lintian
     - -usr/share/man
+    - -usr/share/mime
     - -usr/share/pkgconfig
+    - -usr/share/thumbnailers
     prime:
     - -protobuf
     source: .
@@ -197,7 +217,7 @@ parts:
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin
-    - -DMULTIPASS_ENABLE_FLUTTER_GUI=off
+    - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
     override-build: |
       craftctl default
       set -e
@@ -211,13 +231,6 @@ parts:
 
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -name 'LICENSE*' -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
-
-      # Stage protoc and protobuf files for use in the gui part
-      PROTOBUF_INSTALL_DIR=${CRAFT_PART_INSTALL}/protobuf
-      mkdir -p ${PROTOBUF_INSTALL_DIR}/google/protobuf
-      cp -a ${CRAFT_PART_BUILD}/vcpkg_installed/*/tools/protobuf/protoc* ${PROTOBUF_INSTALL_DIR}
-      cp -a ${CRAFT_PART_BUILD}/vcpkg_installed/*/include/google ${PROTOBUF_INSTALL_DIR}
-      cp -a ${CRAFT_PART_SRC}/src/rpc/multipass.proto ${PROTOBUF_INSTALL_DIR}
 
   qemu:
     build-environment:
@@ -343,62 +356,3 @@ parts:
   glue:
     plugin: dump
     source: snap-wrappers
-
-  gui:
-    after: [ multipass ]
-    plugin: nil
-    source: ./src/client/gui
-    stage-packages:
-    - libgdk-pixbuf2.0-bin
-    - libglib2.0-0
-    - libgtk-3-0
-    - libkeybinder-3.0-dev
-    build-packages:
-    - libkeybinder-3.0-dev
-    - build-essential
-    - clang
-    - ninja-build
-    - unzip
-    stage:
-    - -**/X11
-    - -usr/include
-    - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libcolordprivate.so.*
-    - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libdconf.so.*
-    - -usr/lib/*/libgirepository-1.0.so.*
-    - -usr/lib/*/libgthread-2.0.so*
-    - -usr/lib/*/libicuio.so.*
-    - -usr/lib/*/libicutest.so.*
-    - -usr/lib/*/libicutu.so.*
-    - -usr/share/apport
-    - -usr/share/bug
-    - -usr/share/*doc*
-    - -usr/share/gettext
-    - -usr/share/icons/Adwaita
-    - -usr/share/icons/DMZ-Black
-    - -usr/share/icons/Humanity*
-    - -usr/share/icons/LoginIcons
-    - -usr/share/icons/hicolor
-    - -usr/share/icons/ubuntu-*
-    - -usr/share/libthai
-    - -usr/share/lintian
-    - -usr/share/man
-    - -usr/share/mime
-    - -usr/share/pkgconfig
-    - -usr/share/thumbnailers
-    override-build: |
-      craftctl default
-      export PATH="${CRAFT_PART_BUILD}/flutter-distro/bin:$HOME/.pub-cache/bin:$PATH"
-      rm -rf ${CRAFT_PART_BUILD}/flutter-distro
-      git clone --depth 1 --branch 3.16.9 https://github.com/flutter/flutter.git ${CRAFT_PART_BUILD}/flutter-distro
-      flutter config --suppress-analytics --no-enable-web --enable-linux-desktop --no-enable-macos-desktop --no-enable-windows-desktop --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices
-      flutter precache --linux
-
-      dart pub global activate protoc_plugin
-
-      PROTOBUF_DIR=${CRAFT_STAGE}/protobuf
-      mkdir -p lib/generated
-      ${PROTOBUF_DIR}/protoc --dart_out=grpc:lib/generated -I ${PROTOBUF_DIR} ${PROTOBUF_DIR}/multipass.proto ${PROTOBUF_DIR}/google/protobuf/timestamp.proto
-
-      flutter pub get
-      flutter build linux --release --verbose --target lib/main.dart
-      cp -a ${CRAFT_PART_BUILD}/build/linux/*/release/bundle ${CRAFT_PART_INSTALL}/bin
