@@ -13,7 +13,7 @@ index 3fdefb04..f2ebe7b8 100644
 @@ -159,6 +160,8 @@ parts:
      - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
-     - -DMULTIPASS_ENABLE_FLUTTER_GUI=off
+     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
 +    - -DCMAKE_C_COMPILER_LAUNCHER=ccache
 +    - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
      override-build: |

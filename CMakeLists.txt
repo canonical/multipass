@@ -65,8 +65,29 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 if(MULTIPASS_ENABLE_FLUTTER_GUI)
-  find_program(FLUTTER_EXECUTABLE flutter HINTS /snap/bin/ /bin/ /usr/bin/ REQUIRED DOC "The Flutter executable")
-  find_program(DART_EXECUTABLE dart HINTS /snap/bin/ /bin/ /usr/bin/ REQUIRED DOC "The Dart executable")
+  if(MSVC)
+    set(FLUTTER_TOOLS_EXTENSION ".bat")
+  endif()
+  set(FLUTTER_EXECUTABLE ${CMAKE_SOURCE_DIR}/3rd-party/flutter/bin/flutter${FLUTTER_TOOLS_EXTENSION})
+  set(DART_EXECUTABLE ${CMAKE_SOURCE_DIR}/3rd-party/flutter/bin/dart${FLUTTER_TOOLS_EXTENSION})
+  if(MSVC)
+    set(FLUTTER_CONFIG_ARGS --no-enable-linux-desktop --no-enable-macos-desktop --enable-windows-desktop)
+  elseif(APPLE)
+    set(FLUTTER_CONFIG_ARGS --no-enable-linux-desktop --enable-macos-desktop --no-enable-windows-desktop)
+  elseif(UNIX AND NOT APPLE)
+    set(FLUTTER_CONFIG_ARGS --enable-linux-desktop --no-enable-macos-desktop --no-enable-windows-desktop)
+  endif()
+  execute_process(COMMAND ${FLUTTER_EXECUTABLE} config ${FLUTTER_CONFIG_ARGS} --suppress-analytics --no-enable-web --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices
+                  COMMAND_ERROR_IS_FATAL ANY)
+  execute_process(COMMAND ${FLUTTER_EXECUTABLE} precache ${FLUTTER_PRECACHE_OS}
+                  COMMAND_ERROR_IS_FATAL ANY)
+  execute_process(COMMAND ${DART_EXECUTABLE} pub get
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/3rd-party/protobuf.dart/protoc_plugin
+                  COMMAND_ERROR_IS_FATAL ANY)
+  execute_process(COMMAND ${DART_EXECUTABLE} compile exe bin/protoc_plugin.dart
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/3rd-party/protobuf.dart/protoc_plugin
+                  COMMAND_ERROR_IS_FATAL ANY)
+  set(DART_PROTOC_PLUGIN ${CMAKE_SOURCE_DIR}/3rd-party/protobuf.dart/protoc_plugin/bin/protoc_plugin.exe)
 endif(MULTIPASS_ENABLE_FLUTTER_GUI)
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
