@@ -521,17 +521,17 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     const auto [snapshot_mnt_dst, snapshot_mount] = *snapshot_mounts.begin();
 
     EXPECT_EQ(snapshot_mnt_dst, dst_path);
-    EXPECT_EQ(snapshot_mount.source_path, src_path);
-    EXPECT_EQ(snapshot_mount.mount_type, mount_type);
+    EXPECT_EQ(snapshot_mount.get_source_path(), src_path);
+    EXPECT_EQ(snapshot_mount.get_mount_type(), mount_type);
 
-    ASSERT_THAT(snapshot_mount.uid_mappings, SizeIs(uid_mappings.size()));
-    const auto [snapshot_host_uid, snapshot_instance_uid] = snapshot_mount.uid_mappings.front();
+    ASSERT_THAT(snapshot_mount.get_uid_mappings(), SizeIs(uid_mappings.size()));
+    const auto [snapshot_host_uid, snapshot_instance_uid] = snapshot_mount.get_uid_mappings().front();
 
     EXPECT_EQ(snapshot_host_uid, host_uid);
     EXPECT_EQ(snapshot_instance_uid, instance_uid);
 
-    ASSERT_THAT(snapshot_mount.gid_mappings, SizeIs(gid_mappings.size()));
-    const auto [snapshot_host_gid, snapshot_instance_gid] = snapshot_mount.gid_mappings.front();
+    ASSERT_THAT(snapshot_mount.get_gid_mappings(), SizeIs(gid_mappings.size()));
+    const auto [snapshot_host_gid, snapshot_instance_gid] = snapshot_mount.get_gid_mappings().front();
 
     EXPECT_EQ(snapshot_host_gid, host_gid);
     EXPECT_EQ(snapshot_instance_gid, instance_gid);

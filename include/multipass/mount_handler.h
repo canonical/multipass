@@ -123,7 +123,7 @@ protected:
     const SSHKeyProvider* ssh_key_provider;
     const VMMount mount_spec = {};
     const std::string target;
-    const std::string& source = mount_spec.source_path;
+    const std::string& source = mount_spec.get_source_path();
     bool active;
     std::mutex active_mutex;
 };

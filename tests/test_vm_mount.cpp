@@ -20,44 +20,123 @@
 #include <multipass/vm_mount.h>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
 {
 struct TestVMMount : public Test
 {
-    mp::VMMount a_mount{"asdf", {{1, 2}, {2, 4}}, {{8, 4}, {6, 3}}, multipass::VMMount::MountType::Classic};
+    static const mp::VMMount a_mount;
 };
+
+struct TestUnequalVMMountsTestSuite : public Test, public WithParamInterface<std::pair<mp::VMMount, mp::VMMount>>
+{
+};
+
+const mp::VMMount TestVMMount::a_mount{"asdf", {{1, 2}, {2, 4}}, {{8, 4}, {6, 3}}, mp::VMMount::MountType::Classic};
+
+TEST_P(TestUnequalVMMountsTestSuite, CompareMountsUnequal)
+{
+    auto [mount_a, mount_b] = GetParam();
+
+    // Force use of overloaded operator== and operator!=
+    EXPECT_TRUE(mount_a != mount_b);
+    EXPECT_FALSE(mount_a == mount_b);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    VMMounts,
+    TestUnequalVMMountsTestSuite,
+    Values(std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                      TestVMMount::a_mount.get_gid_mappings(),
+                                      TestVMMount::a_mount.get_uid_mappings(),
+                                      mp::VMMount::MountType::Native)),
+           std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount("fdsa",
+                                      TestVMMount::a_mount.get_gid_mappings(),
+                                      TestVMMount::a_mount.get_uid_mappings(),
+                                      TestVMMount::a_mount.get_mount_type())),
+           std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                      mp::id_mappings{{1, 2}, {2, 4}, {10, 5}},
+                                      TestVMMount::a_mount.get_uid_mappings(),
+                                      TestVMMount::a_mount.get_mount_type())),
+           std::make_pair(TestVMMount::a_mount,
+                          mp::VMMount(TestVMMount::a_mount.get_source_path(),
+                                      TestVMMount::a_mount.get_gid_mappings(),
+                                      mp::id_mappings({TestVMMount::a_mount.get_uid_mappings()[0]}),
+                                      TestVMMount::a_mount.get_mount_type()))));
 
 TEST_F(TestVMMount, comparesEqual)
 {
     auto b = a_mount;
     EXPECT_EQ(a_mount, b);
     EXPECT_EQ(b, a_mount);
-
-    b.mount_type = multipass::VMMount::MountType::Native;
-    EXPECT_FALSE(a_mount == b);
-    EXPECT_FALSE(a_mount == mp::VMMount{});
+    EXPECT_NE(&b, &a_mount);
 }
 
-TEST_F(TestVMMount, comparesUnequal)
+TEST_F(TestVMMount, serializeAndDeserializeToAndFromJson)
 {
-    mp::VMMount b{a_mount};
-    mp::VMMount c{a_mount};
-    mp::VMMount d{a_mount};
-    mp::VMMount e{a_mount};
-    mp::VMMount f{a_mount};
+    auto jsonObj = TestVMMount::a_mount.serialize();
 
-    c.source_path = "fdsa";
-    d.uid_mappings.emplace_back(10, 5);
-    e.gid_mappings.pop_back();
-    f.mount_type = multipass::VMMount::MountType::Native;
+    EXPECT_EQ(jsonObj["source_path"].toString().toStdString(), TestVMMount::a_mount.get_source_path());
+    EXPECT_EQ(jsonObj["mount_type"], static_cast<int>(TestVMMount::a_mount.get_mount_type()));
 
-    EXPECT_FALSE(a_mount != b); // Force use of operator!=
-    for (const auto* other : {&c, &d, &e, &f})
-    {
-        EXPECT_NE(a_mount, *other);
-        EXPECT_NE(*other, a_mount);
-    }
+    auto b_mount = mp::VMMount{jsonObj};
+    EXPECT_EQ(TestVMMount::a_mount, b_mount);
+}
+
+TEST_F(TestVMMount, duplicateUidsThrowsWithDuplicateHostID)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::id_mappings{{1000, 1000}, {1000, 1001}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("uids: 1000: "),
+                                               HasSubstr("1000:1001"),
+                                               HasSubstr("1000:1000"))));
+}
+
+TEST_F(TestVMMount, duplicateUidsThrowsWithDuplicateTargetID)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::id_mappings{{1002, 1001}, {1000, 1001}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("uids: 1001: "),
+                                               HasSubstr("1002:1001"),
+                                               HasSubstr("1000:1001"))));
+}
+
+TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateHostID)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1000, 1000}, {1000, 1001}},
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("gids: 1000: "),
+                                               HasSubstr("1000:1001"),
+                                               HasSubstr("1000:1000"))));
+}
+
+TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
+{
+    MP_EXPECT_THROW_THAT(mp::VMMount("src",
+                                     mp::id_mappings{{1002, 1001}, {1000, 1001}},
+                                     mp::id_mappings{{1000, 1000}},
+                                     mp::VMMount::MountType::Classic),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Mount cannot apply mapping with duplicate ids:"),
+                                               HasSubstr("gids: 1001: "),
+                                               HasSubstr("1002:1001"),
+                                               HasSubstr("1000:1001"))));
 }
 } // namespace

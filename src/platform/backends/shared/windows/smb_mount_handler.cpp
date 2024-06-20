@@ -172,7 +172,7 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
                                  const mp::Path& cred_dir,
                                  const SmbManager& smb_manager)
     : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
-      source{QString::fromStdString(get_mount_spec().source_path)},
+      source{QString::fromStdString(get_mount_spec().get_source_path())},
       // share name must be unique and 80 chars max
       share_name{
           QString("%1_%2:%3")
