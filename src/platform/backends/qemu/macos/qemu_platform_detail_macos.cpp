@@ -124,3 +124,8 @@ mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& d
 {
     return std::make_unique<mp::QemuPlatformDetail>();
 }
+
+void mp::QemuPlatformDetail::prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) const
+{
+    // nothing to do here
+}
