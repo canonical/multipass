@@ -77,6 +77,14 @@ _multipass_complete()
         done
     }
 
+    _multipass_settings_keys()
+    {
+        local cmd="multipass get --keys"
+        local keys=$( \eval $cmd | \tr '\r\n' ' ' )
+
+        _add_nonrepeating_args "$keys"
+    }
+
     # When we are completing the `alias` command, this function makes sure that each argument was specified at most
     # once. It fills $opts with the variables which were not yet specified.
     # Precondition: the command must be "alias".
@@ -357,6 +365,9 @@ _multipass_complete()
             ;;
             "restore")
                 _multipass_restorable_snapshots
+            ;;
+            "get")
+                _multipass_settings_keys
             ;;
             "mount")
                 local source_set=0
