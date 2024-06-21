@@ -92,7 +92,7 @@ multipass::SSHSession::~SSHSession()
 
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd)
 {
-    mpl::log(mpl::Level::debug, "ssh session", fmt::format("Executing '{}'", cmd));
+    mpl::log(mpl::Level::trace, "ssh session", fmt::format("Executing '{}'", cmd));
     return {session.get(), cmd, std::unique_lock{mut}};
 }
 
