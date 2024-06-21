@@ -230,7 +230,19 @@ void mp::VirtualBoxVirtualMachine::shutdown(const bool force)
     if (force)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
-        mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "poweroff"}, "Could not power VM off: {}", name);
+        // virtualbox needs the discardstate command to shutdown in the suspend state, it discards the saved state of
+        // the vm, which is akin to resetting it to the off state without a proper shutdown process
+        if (state == State::suspended)
+        {
+            mpu::process_throw_on_error("VBoxManage", {"discardstate", name}, "Could not power VM off: {}", name);
+        }
+        else
+        {
+            mpu::process_throw_on_error("VBoxManage",
+                                        {"controlvm", name, "poweroff"},
+                                        "Could not power VM off: {}",
+                                        name);
+        }
     }
     else
     {
