@@ -82,6 +82,12 @@ _multipass_complete()
         local cmd="multipass get --keys"
         local keys=$( \eval $cmd | \tr '\r\n' ' ' )
 
+        for key in ${keys[@]}; do
+            if [[ "${COMP_WORDS[*]}" =~ ${key} ]]; then
+                return
+            fi
+        done
+
         _add_nonrepeating_args "$keys"
     }
 
