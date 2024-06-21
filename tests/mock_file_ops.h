@@ -60,6 +60,7 @@ public:
     MOCK_METHOD(qint64, size, (QFile&), (const, override));
     MOCK_METHOD(qint64, write, (QFile&, const char*, qint64), (const, override));
     MOCK_METHOD(qint64, write, (QFileDevice&, const QByteArray&), (const, override));
+    MOCK_METHOD(bool, flush, (QFile & file), (const, override));
 
     // QSaveFile mock methods
     MOCK_METHOD(bool, commit, (QSaveFile&), (const, override));
