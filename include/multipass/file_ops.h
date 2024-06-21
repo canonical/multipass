@@ -85,6 +85,7 @@ public:
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
+    virtual bool flush(QFile& file) const;
 
     // QSaveFile operations
     virtual bool commit(QSaveFile& file) const;

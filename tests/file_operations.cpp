@@ -21,6 +21,7 @@
 #include "path.h"
 
 #include <multipass/format.h>
+#include <multipass/utils.h>
 
 #include <QDir>
 #include <QFile>
@@ -45,23 +46,7 @@ QByteArray mpt::load_test_file(const char* file_name)
     return multipass::test::load(file_path);
 }
 
-qint64 mpt::make_file_with_content(const QString& file_name, const std::string& content)
+void mpt::make_file_with_content(const QString& file_name, const std::string& content)
 {
-    QFile file(file_name);
-    if (file.exists())
-        throw std::runtime_error(fmt::format("test file already exists: '{}'", file_name));
-
-    QDir parent_dir{QFileInfo{file}.absoluteDir()};
-    if (!parent_dir.mkpath(".")) // true if directory already exists
-        throw std::runtime_error(fmt::format("failed to create test dir: '{}'", parent_dir.path()));
-
-    auto file_dir = QFileInfo(file).absoluteDir();
-    if (!file_dir.exists())
-        file_dir.mkpath(file_dir.absolutePath());
-
-    if (!file.open(QFile::WriteOnly))
-        throw std::runtime_error(fmt::format("failed to open test file: '{}'", file_name));
-
-    file.write(content.data(), content.size());
-    return file.size();
+    MP_UTILS.Utils::make_file_with_content(file_name.toStdString(), content); // call the base impl even if it is a mock
 }
