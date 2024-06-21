@@ -269,6 +269,9 @@ _multipass_complete()
         "restore")
             _add_nonrepeating_args "--destructive"
         ;;
+        "get")
+            _add_nonrepeating_args "--raw --keys"
+        ;;
     esac
 
     if [[ ${prev} == -* ]]; then
