@@ -204,10 +204,15 @@ void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& de
     // desc.extra_interfaces.push_back(net);
 
     // For the time being, just complain:
-    throw NotImplementedOnThisBackendException("add interfaces");
+    throw NotImplementedOnThisBackendException("networks");
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
+}
+
+void mp::QemuPlatformDetail::prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) const
+{
+    throw NotImplementedOnThisBackendException("networks");
 }

@@ -196,15 +196,6 @@ std::string mp::backend::generate_random_subnet()
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
-std::string mp::Backend::bridge_name(const std::string& interface) const
-{
-    static const std::string base_name{"br-"};
-
-    static const auto max_iface_length{max_bridge_name_len - base_name.size()};
-
-    return fmt::format("{}{:.{}}", base_name, interface, max_iface_length);
-}
-
 // @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
 std::string mp::Backend::create_bridge_with(const std::string& interface)
@@ -212,6 +203,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     static constexpr auto log_category_create = "create bridge";
     static constexpr auto log_category_rollback = "rollback bridge";
     static const auto root_path = QDBusObjectPath{"/"};
+    static const auto base_name = QStringLiteral("br-");
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
@@ -220,7 +212,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     auto nm_root = get_checked_interface(system_bus, nm_bus_name, nm_root_obj, nm_root_ifc);
     auto nm_settings = get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
 
-    auto parent_name = QString::fromStdString(bridge_name(interface));
+    auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
     auto child_name = parent_name + "-child";
     mpl::log(mpl::Level::debug, log_category_create, fmt::format("Creating bridge: {}", parent_name));
 
