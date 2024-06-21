@@ -53,7 +53,7 @@ public:
         return utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
 
-    void prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) override;
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
 
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
                                           const Path& cache_dir_path, const Path& data_dir_path,
