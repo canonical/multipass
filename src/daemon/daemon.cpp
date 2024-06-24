@@ -2134,7 +2134,10 @@ try // clang-format on
         if (request->cancel_shutdown())
             operation = std::bind(&Daemon::cancel_vm_shutdown, this, std::placeholders::_1);
         else if (request->force_stop())
-            operation = std::bind(&Daemon::switch_off_vm, this, std::placeholders::_1);
+        {
+            auto adapted_switch_off_vm = [this](auto&& arg) -> grpc::Status { return this->switch_off_vm(arg); };
+            operation = adapted_switch_off_vm;
+        }
         else
             operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
                                   std::chrono::minutes(request->time_minutes()));
