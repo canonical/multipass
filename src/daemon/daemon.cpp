@@ -3121,12 +3121,14 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
 {
     const auto& name = vm.vm_name;
-    const auto& state = vm.current_state();
+    const auto& current_state = vm.current_state();
 
     using St = VirtualMachine::State;
     const auto skip_states = {St::off, St::stopped, St::suspended};
 
-    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&current_state](const auto& skip_state) {
+            return current_state == skip_state;
+        }))
     {
         delayed_shutdown_instances.erase(name);
 
@@ -3148,12 +3150,14 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
 grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
 {
     const auto& name = vm.vm_name;
-    const auto& state = vm.current_state();
+    const auto& current_state = vm.current_state();
 
     using St = VirtualMachine::State;
     const auto skip_states = {St::off, St::stopped};
 
-    if (std::none_of(cbegin(skip_states), cend(skip_states), [&state](const auto& st) { return state == st; }))
+    if (std::none_of(cbegin(skip_states), cend(skip_states), [&current_state](const auto& skip_state) {
+            return current_state == skip_state;
+        }))
     {
         delayed_shutdown_instances.erase(name);
 
