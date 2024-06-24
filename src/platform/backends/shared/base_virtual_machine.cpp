@@ -192,7 +192,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(const bool force)
 {
     const std::string force_statement{"Use --force to override."};
 
-    // A mutex should already be locked by the caller here
+    std::scoped_lock lock{state_mutex};
     if (state == State::off || state == State::stopped)
     {
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
