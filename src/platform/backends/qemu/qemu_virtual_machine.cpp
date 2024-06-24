@@ -367,8 +367,7 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
             mpl::log(mpl::Level::info, vm_name, "Killing process");
             lock.unlock();
             vm_process->kill();
-            lock.lock();
-            state_wait.wait(lock, [this] { return vm_process == nullptr; });
+            vm_process->wait_for_finished(timeout);
         }
         else
         {
@@ -414,6 +413,7 @@ void mp::QemuVirtualMachine::suspend()
         drop_ssh_session();
         vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
         vm_process->wait_for_finished(timeout);
+
         vm_process.reset(nullptr);
     }
     else if (state == State::off || state == State::suspended)
