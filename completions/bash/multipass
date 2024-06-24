@@ -82,8 +82,8 @@ _multipass_complete()
         local cmd="multipass get --keys"
         local keys=$( \eval $cmd | \tr '\r\n' ' ' )
 
-        for key in ${keys[@]}; do
-            if [[ "${COMP_WORDS[*]}" =~ ${key} ]]; then
+        for key in ${keys}; do
+            if [[ "${COMP_WORDS[*]}" == *"${key}"* ]]; then
                 return
             fi
         done
@@ -374,6 +374,15 @@ _multipass_complete()
             ;;
             "get")
                 _multipass_settings_keys
+            ;;
+            "set")
+                _multipass_settings_keys
+
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                if [[ ${#COMPREPLY[@]} -eq 1 && "${COMPREPLY[0]}" != "--help" && "${COMPREPLY[0]}" != "--verbose" ]]; then
+                    opts="${COMPREPLY[0]}="
+                    compopt -o nospace
+                fi
             ;;
             "mount")
                 local source_set=0
