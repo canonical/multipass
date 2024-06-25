@@ -55,7 +55,7 @@ mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const std::string& name,
 mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const QString& filename,
                                            VirtualBoxVirtualMachine& vm,
                                            const VirtualMachineDescription& desc)
-    : BaseSnapshot{filename, vm, desc}
+    : BaseSnapshot{filename, vm, desc}, vm_name{QString::fromStdString(desc.vm_name)}
 {
 }
 
