@@ -362,6 +362,18 @@ std::string get_bridged_interface_name()
     return bridged_id.toStdString();
 }
 
+bool is_bridged_impl(const mp::VMSpecs& specs,
+                     const std::vector<mp::NetworkInterfaceInfo>& host_nets,
+                     const std::string& preferred_net)
+{
+    const auto& matching_bridge = mpu::find_bridge_with(host_nets, preferred_net, MP_PLATFORM.bridge_nomenclature());
+    return std::any_of(specs.extra_interfaces.cbegin(),
+                       specs.extra_interfaces.cend(),
+                       [&preferred_net, &matching_bridge](const auto& network) -> bool {
+                           return network.id == preferred_net || (matching_bridge && network.id == matching_bridge->id);
+                       });
+}
+
 std::vector<mp::NetworkInterface> validate_extra_interfaces(const mp::LaunchRequest* request,
                                                             const mp::VirtualMachineFactory& factory,
                                                             std::vector<std::string>& nets_need_bridging,
@@ -3516,65 +3528,64 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          vm_specs.num_cores != 1);
 }
 
-bool mp::Daemon::is_bridged(const std::string& instance_name)
+bool mp::Daemon::is_bridged(const std::string& instance_name) const
 {
-    const auto& spec = vm_instance_specs[instance_name];
-    const auto& br_interface = get_bridged_interface_name();
-    const auto& br_name = config->factory->bridge_name_for(br_interface);
-
-    return std::any_of(spec.extra_interfaces.cbegin(),
-                       spec.extra_interfaces.cend(),
-                       [&br_interface, &br_name](const auto& network) -> bool {
-                           return network.id == br_interface || network.id == br_name;
-                       });
+    return is_bridged_impl(vm_instance_specs.at(instance_name),
+                           config->factory->networks(),
+                           get_bridged_interface_name());
 }
 
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 {
-    // These two use operator[] to access elements because this function is called after existence was checked.
-    mp::VMSpecs& spec = vm_instance_specs[instance_name];
-    mp::VirtualMachine::ShPtr instance = operative_instances[instance_name];
+    mp::VMSpecs& specs = vm_instance_specs.at(instance_name);
+    mp::VirtualMachine::ShPtr instance = operative_instances.at(instance_name);
 
-    const auto& br_interface = get_bridged_interface_name();
     const auto& host_nets = config->factory->networks(); // This will throw if not implemented on this backend.
+    const auto& preferred_net = get_bridged_interface_name();
+    if (is_bridged_impl(specs, host_nets, preferred_net))
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
+        return;
+    }
+
     if (const auto info = std::find_if(host_nets.cbegin(),
                                        host_nets.cend(),
-                                       [br_interface](const auto& i) { return i.id == br_interface; });
+                                       [preferred_net](const auto& i) { return i.id == preferred_net; });
         info == host_nets.cend())
     {
-        throw std::runtime_error(fmt::format(invalid_network_template, br_interface, mp::bridged_interface_key));
+        throw std::runtime_error(fmt::format(invalid_network_template, preferred_net, mp::bridged_interface_key));
     }
-    else if (info->needs_authorization && !user_authorized_bridges.count(br_interface))
+    else if (info->needs_authorization && !user_authorized_bridges.count(preferred_net))
     {
-        throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, br_interface);
+        throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings", instance_name, preferred_net);
     }
 
-    mp::NetworkInterface new_if{br_interface, generate_unused_mac_address(allocated_mac_addrs), true};
+    mp::NetworkInterface new_if{preferred_net, generate_unused_mac_address(allocated_mac_addrs), true};
     mpl::log(mpl::Level::debug,
              category,
              fmt::format("New interface {{\"{}\", \"{}\", {}}}", new_if.id, new_if.mac_address, new_if.auto_mode));
 
     // Add the new interface to the spec.
-    spec.extra_interfaces.push_back(new_if);
+    specs.extra_interfaces.push_back(new_if);
 
     mpl::log(mpl::Level::trace, category, "Prepare networking");
-    config->factory->prepare_networking(spec.extra_interfaces);
-    new_if = spec.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
+    config->factory->prepare_networking(specs.extra_interfaces);
+    new_if = specs.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
     mpl::log(mpl::Level::trace, category, fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
 
     // Add the new interface to the VM.
     mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
     try
     {
-        instance->add_network_interface(spec.extra_interfaces.size() - 1, spec.default_mac_address, new_if);
+        instance->add_network_interface(specs.extra_interfaces.size() - 1, specs.default_mac_address, new_if);
         mpl::log(mpl::Level::trace, category, "Done adding");
     }
     catch (const std::exception& e)
     {
         mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
 
-        spec.extra_interfaces.pop_back();
+        specs.extra_interfaces.pop_back();
 
-        throw mp::BridgeFailureException("Cannot update instance settings", instance_name, br_interface);
+        throw mp::BridgeFailureException("Cannot update instance settings", instance_name, preferred_net);
     }
 }

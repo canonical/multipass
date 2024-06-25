@@ -42,6 +42,7 @@ public:
     void platform_health_check() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
     void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& extra_interface) override;
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) const override;
 
 private:
     const QString bridge_name;

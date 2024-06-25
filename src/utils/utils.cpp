@@ -15,13 +15,14 @@
  *
  */
 
-#include "multipass/exceptions/ssh_exception.h"
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
@@ -41,6 +42,7 @@
 #include <cassert>
 #include <cctype>
 #include <fstream>
+#include <optional>
 #include <random>
 #include <regex>
 #include <sstream>
@@ -578,4 +580,16 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
     }
 
     return true;
+}
+
+auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,
+                                 const std::string& target_network,
+                                 const std::string& bridge_type) -> std::optional<mp::NetworkInterfaceInfo>
+{
+    const auto it = std::find_if(std::cbegin(networks),
+                                 std::cend(networks),
+                                 [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
+                                     return info.type == bridge_type && info.has_link(target_network);
+                                 });
+    return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
 }
