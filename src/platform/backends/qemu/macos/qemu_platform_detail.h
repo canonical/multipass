@@ -38,6 +38,7 @@ public:
     QString get_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
     void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net) override;
+    void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) const override;
 
 private:
     const QString host_arch{HOST_ARCH};

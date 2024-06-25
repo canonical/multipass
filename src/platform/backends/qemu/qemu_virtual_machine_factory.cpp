@@ -131,3 +131,8 @@ auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInter
 {
     return qemu_platform->networks();
 }
+
+void multipass::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+{
+    return qemu_platform->prepare_networking(extra_interfaces);
+}

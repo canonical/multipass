@@ -20,8 +20,6 @@
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
-#include <multipass/logging/log.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
@@ -32,8 +30,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto category = "instance settings";
-
 constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
@@ -167,24 +163,14 @@ void update_bridged(const QString& key,
                     std::function<bool(const std::string&)> is_bridged,
                     std::function<void(const std::string&)> add_interface)
 {
-    // This is the user parameter, true or false.
-    auto bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
-
-    if (is_bridged(instance_name))
+    auto want_bridged = mp::BoolSettingSpec{key, "false"}.interpret(val) == "true";
+    if (!want_bridged)
     {
-        if (bridged)
-        {
-            mpl::log(mpl::Level::warning, category, fmt::format("{} is already bridged", instance_name));
-        }
-        else
-        {
-            throw mp::InvalidSettingException{key, val, "Bridged interface cannot be removed"};
-        }
+        if (is_bridged(instance_name)) // inspects host networks once
+            throw mp::InvalidSettingException{key, val, "Removing the bridged network is currently not supported"};
     }
-    else if (bridged)
-    {
-        add_interface(instance_name);
-    }
+    else
+        add_interface(instance_name); // if already bridged, this merely warns
 }
 } // namespace
 

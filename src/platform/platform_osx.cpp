@@ -70,6 +70,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "osx platform";
+constexpr auto br_nomenclature = "bridge";
 
 QString get_networksetup_output()
 {
@@ -152,8 +153,8 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
         auto id = name.toStdString();
 
         // bridges first, so we match on things like "thunderbolt bridge" here
-        if (name.contains("bridge") || desc.contains("bridge", Qt::CaseInsensitive))
-            return mp::NetworkInterfaceInfo{id, "bridge", describe_bridge(name, ifconfig_output)};
+        if (name.contains(br_nomenclature) || desc.contains(br_nomenclature, Qt::CaseInsensitive))
+            return mp::NetworkInterfaceInfo{id, br_nomenclature, describe_bridge(name, ifconfig_output)};
 
         // simple cases next
         auto description = desc.toStdString();
@@ -300,6 +301,11 @@ bool mp::platform::Platform::is_image_url_supported() const
         return check_unlock_code();
 
     return false;
+}
+
+std::string mp::platform::Platform::bridge_nomenclature() const
+{
+    return br_nomenclature;
 }
 
 QString mp::platform::Platform::daemon_config_home() const // temporary
