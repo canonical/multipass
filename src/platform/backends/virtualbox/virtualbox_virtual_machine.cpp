@@ -213,7 +213,7 @@ void mp::VirtualBoxVirtualMachine::start()
 void mp::VirtualBoxVirtualMachine::shutdown(const bool force)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
-    auto present_state = current_state();
+    const auto present_state = current_state();
 
     try
     {
@@ -262,7 +262,6 @@ void mp::VirtualBoxVirtualMachine::shutdown(const bool force)
 
     port = std::nullopt;
     update_state();
-    lock.unlock();
 }
 
 void mp::VirtualBoxVirtualMachine::suspend()

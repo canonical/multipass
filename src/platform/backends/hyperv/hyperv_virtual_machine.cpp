@@ -213,7 +213,7 @@ void mp::HyperVVirtualMachine::start()
 void mp::HyperVVirtualMachine::shutdown(const bool force)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
-    auto present_state = current_state();
+    const auto present_state = current_state();
 
     try
     {
@@ -247,7 +247,6 @@ void mp::HyperVVirtualMachine::shutdown(const bool force)
 
     ip = std::nullopt;
     update_state();
-    lock.unlock();
 }
 
 void mp::HyperVVirtualMachine::suspend()
