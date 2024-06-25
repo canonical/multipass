@@ -64,7 +64,7 @@ void multipass::VirtualBoxSnapshot::capture_impl()
     const auto& id = get_id();
     require_unique_id(vm_name, id);
 
-    auto description_arg = QString{"--description=%1: %2"}.arg(get_name().c_str(), get_comment().c_str());
+    const auto description_arg = QString{"--description=%1: %2"}.arg(get_name().c_str(), get_comment().c_str());
     mpu::process_throw_on_error("VBoxManage",
                                 {"snapshot", vm_name, "take", id, description_arg},
                                 "Could not take snapshot: {}",
