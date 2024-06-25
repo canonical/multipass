@@ -469,8 +469,6 @@ void mp::QemuVirtualMachine::on_shutdown()
         vm_process.reset(nullptr);
     }
 
-    state_wait.notify_all();
-
     monitor->on_shutdown();
 }
 
