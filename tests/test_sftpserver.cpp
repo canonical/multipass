@@ -1343,10 +1343,9 @@ TEST_F(SftpServer, open_in_truncate_mode_truncates_file)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    auto size = mpt::make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     ASSERT_TRUE(QFile::exists(file_name));
-    ASSERT_GT(size, 0);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto msg = make_msg(SFTP_OPEN);
@@ -1373,10 +1372,9 @@ TEST_F(SftpServer, open_unable_to_open_fails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    auto size = mpt::make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     ASSERT_TRUE(QFile::exists(file_name));
-    ASSERT_GT(size, 0);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
@@ -1419,10 +1417,9 @@ TEST_F(SftpServer, open_unable_to_get_status_fails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
-    auto size = mpt::make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name);
 
     ASSERT_TRUE(QFile::exists(file_name));
-    ASSERT_GT(size, 0);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
@@ -1723,8 +1720,9 @@ TEST_F(SftpServer, handles_close)
 TEST_F(SftpServer, handles_fstat)
 {
     mpt::TempDir temp_dir;
+    const auto content = std::string{"whatever just some content bla bla"};
     auto file_name = temp_dir.path() + "/test-file";
-    uint64_t expected_size = mpt::make_file_with_content(file_name);
+    mpt::make_file_with_content(file_name, content);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto open_msg = make_msg(SFTP_OPEN);
@@ -1741,7 +1739,8 @@ TEST_F(SftpServer, handles_fstat)
     };
 
     int num_calls{0};
-    auto reply_attr = [&num_calls, &fstat_msg, expected_size](sftp_client_message reply_msg, sftp_attributes attr) {
+    auto reply_attr = [&num_calls, &fstat_msg, expected_size = content.size()](sftp_client_message reply_msg,
+                                                                               sftp_attributes attr) {
         EXPECT_THAT(reply_msg, Eq(fstat_msg.get()));
         EXPECT_THAT(attr->size, Eq(expected_size));
         ++num_calls;
