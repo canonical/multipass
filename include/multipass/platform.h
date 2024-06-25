@@ -76,6 +76,7 @@ public:
     virtual QString default_driver() const;
     virtual QString default_privileged_mounts() const;
     virtual bool is_image_url_supported() const;
+    [[nodiscard]] virtual std::string bridge_nomenclature() const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);

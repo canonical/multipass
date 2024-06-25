@@ -72,6 +72,7 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto category = "Linux platform";
+constexpr auto br_nomenclature = "bridge";
 
 // Fetch the ARP protocol HARDWARE identifier.
 int get_net_type(const QDir& net_dir) // types defined in if_arp.h
@@ -133,7 +134,7 @@ std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
     static const auto bridge_fname = QStringLiteral("brif");
     auto id = net_dir.dirName().toStdString();
 
-    if (auto bridge = "bridge"; net_dir.exists(bridge))
+    if (net_dir.exists(br_nomenclature))
     {
         std::vector<std::string> links;
         QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
@@ -142,7 +143,10 @@ std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
         std::transform(bridge_members.cbegin(), bridge_members.cend(), std::back_inserter(links),
                        [](const QString& interface) { return interface.toStdString(); });
 
-        return {{std::move(id), bridge, /*description=*/"", std::move(links)}}; // description needs updating with links
+        return {{std::move(id),
+                 br_nomenclature,
+                 /*description=*/"",
+                 std::move(links)}}; // description needs updating with links
     }
     else if (is_ethernet(net_dir))
         return {{std::move(id), "ethernet", "Ethernet device"}};
@@ -154,7 +158,7 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
 {
     for (auto& item : networks)
     {
-        if (auto& net = item.second; net.type == "bridge")
+        if (auto& net = item.second; net.type == br_nomenclature)
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
             auto is_unknown = [&networks](const std::string& id) {
@@ -359,6 +363,11 @@ QString mp::platform::Platform::default_privileged_mounts() const
 bool mp::platform::Platform::is_image_url_supported() const
 {
     return true;
+}
+
+std::string mp::platform::Platform::bridge_nomenclature() const
+{
+    return br_nomenclature;
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
