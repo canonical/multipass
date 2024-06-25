@@ -264,9 +264,9 @@ void mp::LXDVirtualMachine::start()
 
 void mp::LXDVirtualMachine::shutdown(const bool force)
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+    std::unique_lock<std::mutex> lock{state_mutex};
 
-    auto present_state = current_state();
+    const auto present_state = current_state();
 
     try
     {
