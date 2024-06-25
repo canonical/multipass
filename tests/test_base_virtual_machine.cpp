@@ -98,7 +98,9 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 
     void simulate_ssh_exec() // use if premocking libssh stuff
     {
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, ssh_exec, mp::BaseVirtualMachine);
+        ON_CALL(*this, ssh_exec_mock).WillByDefault([this](auto&&... args) {
+            return this->BaseVirtualMachine::ssh_exec(std::forward<decltype(args)>(args)...);
+        });
     }
 
     void simulate_waiting_for_ssh() // use if premocking libssh stuff
@@ -1234,7 +1236,7 @@ TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
-    EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
+    EXPECT_CALL(vm, ssh_exec_mock).WillOnce(DoDefault());
 
     std::chrono::milliseconds timeout(1);
     EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
@@ -1244,7 +1246,7 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 {
     vm.simulate_cloud_init();
     EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
-    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
+    EXPECT_CALL(vm, ssh_exec_mock).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
 
     std::chrono::milliseconds timeout(1);
     MP_EXPECT_THROW_THAT(vm.wait_for_cloud_init(timeout),
@@ -1305,7 +1307,7 @@ TEST_F(BaseVM, sshExecRefusesToExecuteIfVMIsNotRunning)
 {
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session).Times(0);
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session_mock).Times(0);
 
     vm.simulate_ssh_exec();
     MP_EXPECT_THROW_THAT(vm.ssh_exec("echo"), mp::SSHException, mpt::match_what(HasSubstr("not running")));
@@ -1317,7 +1319,7 @@ TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session_mock(_, cmd, _)).Times(1);
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
@@ -1331,7 +1333,7 @@ TEST_F(BaseVM, sshExecReconnectsIfDisconnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session_mock(_, cmd, _)).Times(1);
 
     vm.simulate_ssh_exec();
 
@@ -1344,7 +1346,7 @@ TEST_F(BaseVM, sshExecTriesToReconnectAfterLateDetectionOfDisconnection)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd))
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session_mock(_, cmd, _))
         .WillOnce(Throw(mp::SSHException{"intentional"}))
         .WillOnce(DoDefault());
 
@@ -1362,7 +1364,7 @@ TEST_F(BaseVM, sshExecRethrowsOtherExceptions)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session_mock(_, cmd, _)).WillOnce(Throw(std::runtime_error{"intentional"}));
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
@@ -1376,7 +1378,7 @@ TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(mp::SSHException{"intentional"}));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session_mock(_, cmd, _)).WillOnce(Throw(mp::SSHException{"intentional"}));
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
