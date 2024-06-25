@@ -2261,6 +2261,49 @@ TEST_F(Daemon, add_bridged_interface_works)
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
 
+TEST_F(Daemon, add_bridged_interface_warns_and_noop_if_already_bridged)
+{
+    std::string instance_name{"foo"};
+    std::string if_name{"eth8"};
+
+    mp::VMSpecs specs{};
+    specs.extra_interfaces.push_back({if_name, "ab:ab:ab:ab:ab:ab", true});
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "already bridged");
+
+    EXPECT_CALL(*mock_factory, networks).Times(1);
+    EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface).Times(0);
+
+    EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr, specs));
+}
+
+TEST_F(Daemon, add_bridged_interface_honors_prepared_bridge)
+{
+    std::string instance_name{"asdf"};
+    std::string if_name{"eth8"};
+    std::string br_name{"br-eth8"};
+    mp::NetworkInterface br_net{br_name, "ab:ab:ab:ab:ab:ab", true};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    mpt::MockDaemon daemon{config_builder.build()};
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+
+    std::vector<mp::NetworkInterfaceInfo> net_info{{if_name, "Ethernet", "A regular adapter", {}, false}};
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
+    EXPECT_CALL(*mock_factory, prepare_networking(Contains(Field(&mp::NetworkInterface::id, StrEq("eth8")))))
+        .WillOnce(SetArgReferee<0>(std::vector{br_net}));
+    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, Eq(br_net))).Times(1);
+
+    EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
+}
+
 TEST_F(Daemon, add_bridged_interface_throws_if_backend_throws)
 {
     std::string instance_name{"wonka"};
@@ -2324,24 +2367,28 @@ TEST_F(Daemon, add_bridged_interface_throws_if_needs_authorization)
                          mpt::match_what(msg));
 }
 
-struct DaemonIsBridged : public Daemon, public WithParamInterface<std::pair<std::vector<mp::NetworkInterface>, bool>>
+struct DaemonIsBridged : public Daemon,
+                         public WithParamInterface<
+                             std::tuple<std::vector<mp::NetworkInterfaceInfo>, std::vector<mp::NetworkInterface>, bool>>
 {
 };
 
 TEST_P(DaemonIsBridged, is_bridged_works)
 {
-    const auto [extra_interfaces, result] = GetParam();
+    const auto [host_nets, extra_interfaces, result] = GetParam();
 
     std::string instance_name{"charlie"};
 
-    mp::VMSpecs specs;
+    mp::VMSpecs specs{};
     specs.extra_interfaces = extra_interfaces;
 
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return("generic"));
+
     auto mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, networks).WillOnce(Return(host_nets));
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
-
-    EXPECT_CALL(*mock_factory, bridge_name_for(_)).WillOnce(Return("br-eth8"));
 
     EXPECT_EQ(daemon.test_is_bridged(instance_name, specs), result);
 }
@@ -2349,10 +2396,18 @@ TEST_P(DaemonIsBridged, is_bridged_works)
 INSTANTIATE_TEST_SUITE_P(
     Daemon,
     DaemonIsBridged,
-    Values(std::make_pair(std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}}, true),
-           std::make_pair(std::vector<mp::NetworkInterface>{{"br-eth8", "52:54:00:12:13:14", true}}, true),
-           std::make_pair(std::vector<mp::NetworkInterface>{{"eth9", "52:54:00:15:16:17", true}}, false),
-           std::make_pair(std::vector<mp::NetworkInterface>{{"br-eth9", "52:54:00:18:19:20", true}}, false)));
+    Values(std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
+                           std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}},
+                           true),
+           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{"somebr", "generic", "some bridge", {"eth8"}, false}},
+                           std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:12:13:14", true}},
+                           true),
+           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
+                           std::vector<mp::NetworkInterface>{{"eth9", "52:54:00:15:16:17", true}},
+                           false),
+           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{"somebr", "generic", "some bridge", {"eth9"}, false}},
+                           std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:18:19:20", true}},
+                           false)));
 
 TEST_F(Daemon, requests_networks)
 {

@@ -73,7 +73,6 @@ public:
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
     virtual void require_snapshots_support() const = 0;
     virtual void require_suspend_support() const = 0;
-    virtual std::string bridge_name_for(const std::string& iface_name) const = 0;
 
 protected:
     VirtualMachineFactory() = default;
