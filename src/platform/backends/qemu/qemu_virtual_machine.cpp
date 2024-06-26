@@ -367,7 +367,10 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
             mpl::log(mpl::Level::info, vm_name, "Killing process");
             lock.unlock();
             vm_process->kill();
-            vm_process->wait_for_finished(timeout);
+            if (vm_process != nullptr && !vm_process->wait_for_finished(timeout))
+            {
+                mpl::log(mpl::Level::error, vm_name, "Killing qemu process could not finish.");
+            }
         }
         else
         {
