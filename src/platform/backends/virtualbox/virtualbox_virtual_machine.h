@@ -22,6 +22,7 @@
 
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <QString>
 
@@ -59,13 +60,26 @@ public:
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
 
-private: // TODO we should probably keep the VMDescription in the base VM class, instead of a few of these attributes
+protected:
+    void require_snapshots_support() const override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
+    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
+                                                     const std::string& comment,
+                                                     const std::string& instance_id,
+                                                     const VMSpecs& specs,
+                                                     std::shared_ptr<Snapshot> parent) override;
+
+private:
+    VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;
-    const std::string username;
-    const Path image_path;
     std::optional<int> port;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
 };
 } // namespace multipass
+
+inline void multipass::VirtualBoxVirtualMachine::require_snapshots_support() const
+{
+}
+
 #endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H

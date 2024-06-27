@@ -14,6 +14,7 @@
 #
 
 add_library(virtualbox_backend STATIC
+  virtualbox_snapshot.cpp
   virtualbox_virtual_machine.cpp
   virtualbox_virtual_machine_factory.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h

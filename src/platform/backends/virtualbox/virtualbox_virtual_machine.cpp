@@ -16,6 +16,7 @@
  */
 
 #include "virtualbox_virtual_machine.h"
+#include "virtualbox_snapshot.h"
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/logging/log.h>
@@ -152,9 +153,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        const SSHKeyProvider& key_provider,
                                                        const mp::Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+      desc{desc},
       name{QString::fromStdString(desc.vm_name)},
-      username{desc.ssh_username},
-      image_path{desc.image.image_path},
       monitor{&monitor}
 {
     if (desc.extra_interfaces.size() > 7)
@@ -319,7 +319,7 @@ std::string mp::VirtualBoxVirtualMachine::ssh_hostname(std::chrono::milliseconds
 
 std::string mp::VirtualBoxVirtualMachine::ssh_username()
 {
-    return username;
+    return desc.ssh_username;
 }
 
 std::string mp::VirtualBoxVirtualMachine::management_ipv4()
@@ -362,9 +362,11 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    mpu::process_throw_on_error("VBoxManage",
-                                {"modifyhd", image_path, "--resizebyte", QString::number(new_size.in_bytes())},
-                                "Could not resize image: {}", name);
+    mpu::process_throw_on_error(
+        "VBoxManage",
+        {"modifyhd", desc.image.image_path, "--resizebyte", QString::number(new_size.in_bytes())},
+        "Could not resize image: {}",
+        name);
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
@@ -375,4 +377,25 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
 
     mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface to: {}", name);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
+}
+
+auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
+{
+    return std::make_shared<VirtualBoxSnapshot>(filename, *this, desc);
+}
+
+auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
+                                                                 const std::string& comment,
+                                                                 const std::string& instance_id,
+                                                                 const multipass::VMSpecs& specs,
+                                                                 std::shared_ptr<Snapshot> parent)
+    -> std::shared_ptr<Snapshot>
+{
+    return std::make_shared<VirtualBoxSnapshot>(snapshot_name,
+                                                comment,
+                                                instance_id,
+                                                std::move(parent),
+                                                name,
+                                                specs,
+                                                *this);
 }

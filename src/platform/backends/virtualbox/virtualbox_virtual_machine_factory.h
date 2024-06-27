@@ -43,10 +43,15 @@ public:
         return "virtualbox";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
+    void require_snapshots_support() const override;
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
 };
 } // namespace multipass
+
+inline void multipass::VirtualBoxVirtualMachineFactory::require_snapshots_support() const
+{
+}
 
 #endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
