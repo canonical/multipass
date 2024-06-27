@@ -28,4 +28,6 @@ target_link_libraries(virtualbox_backend
   process
   ssh
   utils
-  yaml)
+  yaml
+  scope_guard
+)

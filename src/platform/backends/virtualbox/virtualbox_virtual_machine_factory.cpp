@@ -18,6 +18,7 @@
 #include "virtualbox_virtual_machine_factory.h"
 #include "virtualbox_virtual_machine.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -26,11 +27,13 @@
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
 
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
+#include <scope_guard.hpp>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -105,6 +108,30 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
     throw std::runtime_error(fmt::format("Unexpected data from VBoxManage: \"{}\"", vbox_iface_info));
 }
 
+namespace fs = std::filesystem;
+void copy_instance_dir_without_snapshot_and_image_files(const fs::path& source_instance_dir_path,
+                                                        const fs::path& dest_instance_dir_path)
+{
+    if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
+                                  MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
+    {
+        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
+        {
+            if (!fs::exists(dest_instance_dir_path))
+            {
+                fs::create_directory(dest_instance_dir_path);
+            }
+
+            if (entry.path().extension().string() != ".vdi" &&
+                entry.path().filename().string().find("snapshot") == std::string::npos)
+            {
+                const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
+                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
+            }
+        }
+    }
+}
+
 } // namespace
 
 mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::Path& data_dir)
@@ -177,6 +204,72 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     auto prepared_image = source_image;
     prepared_image.image_path = vdi_file;
     return prepared_image;
+}
+
+mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
+    const VMSpecs& /*src_vm_spec*/,
+    const VMSpecs& dest_vm_spec,
+    const std::string& source_name,
+    const std::string& destination_name,
+    const VMImage& dest_vm_image,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
+{
+    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
+    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
+
+    // if any of the below code throw, then roll back and clean up the created instance folder
+    auto rollback_delete_instance_folder =
+        sg::make_scope_guard([dest_instance_directory = dest_instance_data_directory]() noexcept -> void {
+            // use err_code to guarantee the two file operations below do not throw
+            if (std::error_code err_code; MP_FILEOPS.exists(dest_instance_directory, err_code))
+            {
+                fs::remove_all(dest_instance_directory, err_code);
+                if (err_code.value())
+                {
+                    mpl::log(
+                        mpl::Level::info,
+                        "virtualbox factory",
+                        fmt::format("The rollback instance directory removal did not succeed, err_code message is : {}",
+                                    err_code.message()));
+                }
+            }
+        });
+
+    copy_instance_dir_without_snapshot_and_image_files(source_instance_data_directory, dest_instance_data_directory);
+
+    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
+
+    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
+                                                                       dest_vm_spec.extra_interfaces,
+                                                                       destination_name,
+                                                                       cloud_init_config_iso_file_path);
+
+    // start to construct VirtualMachineDescription
+    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
+                                               dest_vm_spec.mem_size,
+                                               dest_vm_spec.disk_space,
+                                               destination_name,
+                                               dest_vm_spec.default_mac_address,
+                                               dest_vm_spec.extra_interfaces,
+                                               dest_vm_spec.ssh_username,
+                                               dest_vm_image,
+                                               cloud_init_config_iso_file_path.string().c_str(),
+                                               {},
+                                               {},
+                                               {},
+                                               {}};
+
+    // mp::VirtualMachine::UPtr cloned_instance =
+    //     std::make_unique<mp::VirtualBoxVirtualMachine>(dest_vm_desc,
+    //                                                    monitor,
+    //                                                    key_provider,
+    //                                                    get_instance_directory(dest_vm_desc.vm_name));
+    // cloned_instance->remove_all_snapshots_from_the_image();
+
+    rollback_delete_instance_folder.dismiss();
+    // return cloned_instance;
+    return {};
 }
 
 void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
