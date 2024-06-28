@@ -21,11 +21,11 @@ extension on RpcMessage {
   String get repr => '$runtimeType${toProto3Json()}';
 }
 
-void Function(Notification<RpcMessage>) logGrpc(RpcMessage request) {
+void Function(StreamNotification<RpcMessage>) logGrpc(RpcMessage request) {
   return (notification) {
     switch (notification.kind) {
-      case Kind.onData:
-        final reply = notification.requireData.deepCopy();
+      case NotificationKind.data:
+        final reply = notification.requireDataValue.deepCopy();
         if (reply is SSHInfoReply) {
           for (final info in reply.sshInfo.values) {
             info.privKeyBase64 = '*hidden*';
@@ -36,14 +36,14 @@ void Function(Notification<RpcMessage>) logGrpc(RpcMessage request) {
           if (!['0', '100', '-1'].contains(percent)) return;
         }
         logger.i('${request.repr} received ${reply.repr}');
-      case Kind.onError:
-        final es = notification.errorAndStackTrace;
+      case NotificationKind.error:
+        final es = notification.errorAndStackTraceOrNull;
         logger.e(
           '${request.repr} received an error',
           error: es?.error,
           stackTrace: es?.stackTrace,
         );
-      case Kind.onDone:
+      case NotificationKind.done:
         logger.i('${request.repr} is done');
     }
   };
