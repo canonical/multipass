@@ -62,8 +62,8 @@ QString cmd::Stop::short_help() const
 
 QString cmd::Stop::description() const
 {
-    return QStringLiteral("Stop the named instances, if running. Exits with\n"
-                          "return code 0 if successful.");
+    return QStringLiteral("Stop the named instances. Exits with return code 0 \n"
+                          "if successful.");
 }
 
 mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
