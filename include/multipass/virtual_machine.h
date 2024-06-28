@@ -79,6 +79,7 @@ public:
 
     // careful: default param in virtual method; be sure to keep the same value in all descendants
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
+
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void ensure_vm_is_running() = 0;

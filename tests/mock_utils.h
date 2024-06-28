@@ -46,13 +46,9 @@ public:
     MOCK_METHOD(void, copy_client_certs_to_common_dir, (const QString&, const QString&), (const));
     MOCK_METHOD(bool, is_running, (const VirtualMachine::State& state), (const, override));
     MOCK_METHOD(std::string,
-                run_in_ssh_session_mock,
+                run_in_ssh_session,
                 (SSHSession & session, const std::string& cmd, bool whisper),
-                (const));
-    std::string run_in_ssh_session(SSHSession& session, const std::string& cmd, bool whisper = false) const override
-    {
-        return run_in_ssh_session_mock(session, cmd, whisper);
-    }
+                (const, override));
     MOCK_METHOD(QString, make_uuid, (const std::optional<std::string>&), (const, override));
     MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
     MOCK_METHOD(bool, is_ipv4_valid, (const std::string& ipv4), (const, override));

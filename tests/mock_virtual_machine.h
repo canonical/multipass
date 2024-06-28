@@ -67,10 +67,10 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::vector<std::string>, get_all_ipv4, (), (override));
     MOCK_METHOD(std::string, ipv6, (), (override));
 
-    MOCK_METHOD(std::string, ssh_exec_mock, (const std::string& cmd, bool whisper));
-    std::string ssh_exec(const std::string& cmd, bool whisper = false) override
+    MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd, bool whisper), (override));
+    std::string ssh_exec(const std::string& cmd)
     {
-        return ssh_exec_mock(cmd, whisper);
+        return ssh_exec(cmd, false);
     }
 
     MOCK_METHOD(void, ensure_vm_is_running, (), (override));
