@@ -74,8 +74,8 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
     mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
-    EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher)).Times(1); // as we start
-    EXPECT_CALL(vm, ssh_exec(now_cmd_matcher)).Times(1);      // as we finish
+    EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher, _)).Times(1); // as we start
+    EXPECT_CALL(vm, ssh_exec(now_cmd_matcher, _)).Times(1);      // as we finish
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this] { loop.quit(); });
 
@@ -88,7 +88,7 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
     mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
-    EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"))).Times(2).WillRepeatedly(Throw(mp::SSHException("nope")));
+    EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _)).Times(2).WillRepeatedly(Throw(mp::SSHException("nope")));
 
     mpt::Signal finished;
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {

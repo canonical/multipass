@@ -190,7 +190,7 @@ std::string BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
 }
 
-std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
+std::string BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
     const std::unique_lock lock{state_mutex};
 
@@ -211,7 +211,7 @@ std::string BaseVirtualMachine::ssh_exec(const std::string& cmd)
 
         try
         {
-            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd);
+            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd, whisper);
         }
         catch (const SSHException& e)
         {
@@ -278,7 +278,8 @@ std::vector<std::string> BaseVirtualMachine::get_all_ipv4()
     {
         try
         {
-            auto ip_a_output = QString::fromStdString(ssh_exec("ip -brief -family inet address show scope global"));
+            auto ip_a_output = QString::fromStdString(
+                ssh_exec("ip -brief -family inet address show scope global", /* whisper = */ true));
 
             QRegularExpression ipv4_re{QStringLiteral("([\\d\\.]+)\\/\\d+\\s*(metric \\d+)?\\s*$"),
                                        QRegularExpression::MultilineOption};

@@ -265,9 +265,9 @@ bool mp::utils::valid_mac_address(const std::string& mac)
 }
 
 // Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
-std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd) const
+std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd, bool whisper) const
 {
-    auto proc = session.exec(cmd);
+    auto proc = session.exec(cmd, whisper);
 
     if (auto ec = proc.exit_code() != 0)
     {

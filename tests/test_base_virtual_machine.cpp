@@ -1317,7 +1317,7 @@ TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _)).Times(1);
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
@@ -1331,7 +1331,7 @@ TEST_F(BaseVM, sshExecReconnectsIfDisconnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).Times(1);
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _)).Times(1);
 
     vm.simulate_ssh_exec();
 
@@ -1344,7 +1344,7 @@ TEST_F(BaseVM, sshExecTriesToReconnectAfterLateDetectionOfDisconnection)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd))
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _))
         .WillOnce(Throw(mp::SSHException{"intentional"}))
         .WillOnce(DoDefault());
 
@@ -1362,7 +1362,7 @@ TEST_F(BaseVM, sshExecRethrowsOtherExceptions)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _)).WillOnce(Throw(std::runtime_error{"intentional"}));
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
@@ -1376,7 +1376,7 @@ TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd)).WillOnce(Throw(mp::SSHException{"intentional"}));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _)).WillOnce(Throw(mp::SSHException{"intentional"}));
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
