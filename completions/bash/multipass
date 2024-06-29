@@ -77,6 +77,20 @@ _multipass_complete()
         done
     }
 
+    _multipass_settings_keys()
+    {
+        local cmd="multipass get --keys"
+        local keys=$( \eval $cmd | \tr '\r\n' ' ' )
+
+        for key in ${keys}; do
+            if [[ "${COMP_WORDS[*]}" == *"${key}"* ]]; then
+                return
+            fi
+        done
+
+        _add_nonrepeating_args "$keys"
+    }
+
     # When we are completing the `alias` command, this function makes sure that each argument was specified at most
     # once. It fills $opts with the variables which were not yet specified.
     # Precondition: the command must be "alias".
@@ -269,6 +283,9 @@ _multipass_complete()
         "restore")
             _add_nonrepeating_args "--destructive"
         ;;
+        "get")
+            _add_nonrepeating_args "--raw --keys"
+        ;;
     esac
 
     if [[ ${prev} == -* ]]; then
@@ -354,6 +371,18 @@ _multipass_complete()
             ;;
             "restore")
                 _multipass_restorable_snapshots
+            ;;
+            "get")
+                _multipass_settings_keys
+            ;;
+            "set")
+                _multipass_settings_keys
+
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                if [[ ${#COMPREPLY[@]} -eq 1 && "${COMPREPLY[0]}" != "--help" && "${COMPREPLY[0]}" != "--verbose" ]]; then
+                    opts="${COMPREPLY[0]}="
+                    compopt -o nospace
+                fi
             ;;
             "mount")
                 local source_set=0
