@@ -18,22 +18,52 @@
 #include "qemu_virtual_machine_factory.h"
 #include "qemu_virtual_machine.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
+#include <multipass/yaml_node_utils.h>
 
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
+#include <scope_guard.hpp>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
 constexpr auto category = "qemu factory";
+
+namespace fs = std::filesystem;
+void copy_instance_dir_without_snapshot_files(const fs::path& source_instance_dir_path,
+                                              const fs::path& dest_instance_dir_path)
+{
+    if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
+                                  MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
+    {
+        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
+        {
+            if (!fs::exists(dest_instance_dir_path))
+            {
+                fs::create_directory(dest_instance_dir_path);
+            }
+
+            const fs::path filename = entry.path().filename();
+            // if the filename does not contains "snapshot" sub-string, then copy
+            if (filename.string().find("snapshot") == std::string::npos)
+            {
+                const fs::path dest_file_path = dest_instance_dir_path / filename;
+                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
+            }
+        }
+    }
+}
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
@@ -57,6 +87,72 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
                                                     monitor,
                                                     key_provider,
                                                     get_instance_directory(desc.vm_name));
+}
+
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
+    const VMSpecs& /*src_vm_spec*/,
+    const VMSpecs& dest_vm_spec,
+    const std::string& source_name,
+    const std::string& destination_name,
+    const VMImage& dest_vm_image,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
+{
+    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
+    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
+
+    // if any of the below code throw, then roll back and clean up the created instance folder
+    auto rollback_delete_instance_folder =
+        sg::make_scope_guard([dest_instance_directory = dest_instance_data_directory]() noexcept -> void {
+            // use err_code to guarantee the two file operations below do not throw
+            if (std::error_code err_code; MP_FILEOPS.exists(dest_instance_directory, err_code))
+            {
+                fs::remove_all(dest_instance_directory, err_code);
+                if (err_code.value())
+                {
+                    mpl::log(
+                        mpl::Level::info,
+                        category,
+                        fmt::format("The rollback instance directory removal did not succeed, err_code message is : {}",
+                                    err_code.message()));
+                }
+            }
+        });
+
+    copy_instance_dir_without_snapshot_files(source_instance_data_directory, dest_instance_data_directory);
+
+    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
+
+    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
+                                                                       dest_vm_spec.extra_interfaces,
+                                                                       destination_name,
+                                                                       cloud_init_config_iso_file_path);
+
+    // start to construct VirtualMachineDescription
+    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
+                                               dest_vm_spec.mem_size,
+                                               dest_vm_spec.disk_space,
+                                               destination_name,
+                                               dest_vm_spec.default_mac_address,
+                                               dest_vm_spec.extra_interfaces,
+                                               dest_vm_spec.ssh_username,
+                                               dest_vm_image,
+                                               cloud_init_config_iso_file_path.string().c_str(),
+                                               {},
+                                               {},
+                                               {},
+                                               {}};
+
+    mp::VirtualMachine::UPtr cloned_instance =
+        std::make_unique<mp::QemuVirtualMachine>(dest_vm_desc,
+                                                 qemu_platform.get(),
+                                                 monitor,
+                                                 key_provider,
+                                                 get_instance_directory(dest_vm_desc.vm_name));
+    cloned_instance->remove_all_snapshots_from_the_image();
+
+    rollback_delete_instance_folder.dismiss();
+    return cloned_instance;
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)

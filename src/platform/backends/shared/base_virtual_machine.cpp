@@ -612,9 +612,9 @@ void BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 
 void BaseVirtualMachine::load_snapshot(const QString& filename)
 {
-    auto snapshot = make_specific_snapshot(filename);
+    const auto snapshot = make_specific_snapshot(filename);
     const auto& name = snapshot->get_name();
-    auto [it, success] = snapshots.try_emplace(name, snapshot);
+    const auto [_, success] = snapshots.try_emplace(name, snapshot);
 
     if (!success)
     {

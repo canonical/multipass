@@ -22,6 +22,7 @@
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -251,6 +252,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
         auto state = record["state"].toInt();
         auto deleted = record["deleted"].toBool();
         auto metadata = record["metadata"].toObject();
+        auto clone_count = record["clone_count"].toInt();
 
         if (!num_cores && !deleted && ssh_username.empty() && metadata.isEmpty() &&
             !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
@@ -287,7 +289,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path, 
             static_cast<mp::VirtualMachine::State>(state),
             mounts,
             deleted,
-            metadata};
+            metadata,
+            clone_count};
     }
     return reconstructed_records;
 }
@@ -317,8 +320,14 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     }
 
     json.insert("mounts", json_mounts);
+    json.insert("clone_count", specs.clone_count);
 
     return json;
+}
+
+std::string generate_next_clone_name(int clone_count, const std::string& source_name)
+{
+    return fmt::format("{}-clone{}", source_name, clone_count + 1);
 }
 
 auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory, mp::VMImageVault& vault)
@@ -549,6 +558,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
     QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
     QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
@@ -1394,6 +1404,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     {
         mpl::log(mpl::Level::warning, category, fmt::format("Removing invalid instance: {}", bad_spec));
         vm_instance_specs.erase(bad_spec);
+        config->vault->remove(bad_spec);
     }
 
     if (!invalid_specs.empty())
@@ -2663,6 +2674,145 @@ catch (const mp::NoSuchSnapshotException& e)
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::clone(const CloneRequest* request,
+                       grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
+                       std::promise<grpc::Status>* status_promise)
+{
+    try
+    {
+        config->factory->require_clone_support();
+        mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                           *config->logger,
+                                                           server};
+
+        const auto& source_name = request->source_name();
+        const auto [_, status] = find_instance_and_react(operative_instances,
+                                                         deleted_instances,
+                                                         source_name,
+                                                         require_operative_instances_reaction);
+        if (status.ok())
+        {
+            auto generate_destination_name = [this](const CloneRequest& request) -> std::string {
+                auto is_name_already_used = [this](const std::string& destination_name) -> bool {
+                    return operative_instances.find(destination_name) != operative_instances.end() ||
+                           deleted_instances.find(destination_name) != deleted_instances.end() ||
+                           delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
+                };
+
+                if (request.has_destination_name())
+                {
+                    if (!mp::utils::valid_hostname(request.destination_name()))
+                    {
+                        throw std::runtime_error("Invalid destination virtual machine instance name: " +
+                                                 request.destination_name());
+                    }
+
+                    if (is_name_already_used(request.destination_name()))
+                    {
+                        throw std::runtime_error(request.destination_name() +
+                                                 " already exists, please choose a new name. ");
+                    }
+
+                    return request.destination_name();
+                }
+                else
+                {
+                    const std::string& source_name = request.source_name();
+                    const std::string destination_name =
+                        generate_next_clone_name(vm_instance_specs[source_name].clone_count, source_name);
+
+                    if (is_name_already_used(destination_name))
+                    {
+                        throw std::runtime_error("auto-generated name " + destination_name +
+                                                 " already exists, please specify a new name manually. ");
+                    }
+
+                    return destination_name;
+                }
+            };
+
+            const std::string destination_name = generate_destination_name(*request);
+
+            // if any of the below code throw, then roll back and clean up added spec and image record items
+            auto rollback_remove_spec_image_record_item =
+                sg::make_scope_guard([this, destination_name]() noexcept -> void {
+                    vm_instance_specs.erase(destination_name);
+                    config->vault->remove(destination_name);
+                });
+
+            const auto& source_vm_ptr = operative_instances[source_name];
+            const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
+            if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
+            {
+                throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
+            }
+
+            auto clone_spec = [this](const mp::VMSpecs& src_vm_spec,
+                                     const std::string& src_name,
+                                     const std::string& dest_name) -> mp::VMSpecs {
+                mp::VMSpecs dest_vm_spec{src_vm_spec};
+                dest_vm_spec.clone_count = 0;
+
+                // update default mac addr and extra_interface mac addr
+                dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
+                for (auto& extra_interface : dest_vm_spec.extra_interfaces)
+                {
+                    if (!extra_interface.mac_address.empty())
+                    {
+                        extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+                    }
+                }
+
+                // non qemu snapshot files do not have metadata
+                if (!dest_vm_spec.metadata.isEmpty())
+                {
+                    dest_vm_spec.metadata =
+                        MP_JSONUTILS
+                            .update_unique_identifiers_of_metadata(QJsonValue{dest_vm_spec.metadata},
+                                                                   src_vm_spec,
+                                                                   dest_vm_spec,
+                                                                   src_name,
+                                                                   dest_name)
+                            .toObject();
+                }
+                return dest_vm_spec;
+            };
+
+            auto& src_spec = vm_instance_specs[source_name];
+            auto dest_spec = clone_spec(src_spec, source_name, destination_name);
+
+            config->vault->clone(source_name, destination_name);
+
+            const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
+
+            // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending of the
+            // dest_spec has to be done before the function create_vm_and_clone_instance_dir_data
+            vm_instance_specs.emplace(destination_name, dest_spec);
+            operative_instances[destination_name] =
+                config->factory->create_vm_and_clone_instance_dir_data(src_spec,
+                                                                       dest_spec,
+                                                                       source_name,
+                                                                       destination_name,
+                                                                       dest_vm_image,
+                                                                       *config->ssh_key_provider,
+                                                                       *this);
+            ++src_spec.clone_count;
+            persist_instances();
+            init_mounts(destination_name);
+
+            CloneReply rpc_response;
+            rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
+            server->Write(rpc_response);
+            rollback_remove_spec_image_record_item.dismiss();
+        }
+        status_promise->set_value(status);
+    }
+    catch (const std::exception& e)
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what()));
+    }
 }
 
 void mp::Daemon::on_shutdown()

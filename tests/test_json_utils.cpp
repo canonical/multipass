@@ -146,4 +146,10 @@ TEST_F(TestJsonUtils, throws_on_wrong_mac)
                          std::runtime_error,
                          mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
 }
+
+TEST_F(TestJsonUtils, updateCloudInitInstanceIdSucceed)
+{
+    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
+              QJsonValue{"vm2_e_e_e"});
+}
 } // namespace

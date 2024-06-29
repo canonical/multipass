@@ -112,8 +112,10 @@ public:
     virtual void load_snapshots() = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
+    virtual void remove_all_snapshots_from_the_image() const = 0;
 
     QDir instance_directory() const;
+    std::string get_vm_name() const;
 
     VirtualMachine::State state;
     const std::string vm_name;
@@ -135,6 +137,11 @@ protected:
 inline QDir multipass::VirtualMachine::instance_directory() const
 {
     return instance_dir; // TODO this should probably only be known at the level of the base VM
+}
+
+inline std::string multipass::VirtualMachine::get_vm_name() const
+{
+    return vm_name;
 }
 
 #endif // MULTIPASS_VIRTUAL_MACHINE_H

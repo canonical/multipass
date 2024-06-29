@@ -195,7 +195,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SnapshotRequest, mp::SnapshotReply>));
     EXPECT_CALL(daemon, restore)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RestoreRequest, mp::RestoreReply>));
-
+    EXPECT_CALL(daemon, clone)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CloneRequest, mp::CloneReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_keys"},
@@ -219,7 +220,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"find", "something"},
                    {"mount", ".", "target"},
                    {"umount", "instance"},
-                   {"networks"}});
+                   {"networks"},
+                   {"clone", "foo"}});
 }
 
 TEST_F(Daemon, provides_version)
