@@ -90,7 +90,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    std::string ssh_exec(const std::string& cmd) override
+    std::string ssh_exec(const std::string& cmd, bool whisper = false) override
     {
         return {};
     }

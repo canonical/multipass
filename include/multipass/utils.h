@@ -228,7 +228,7 @@ public:
 
     // virtual machine helpers
     [[nodiscard]] virtual bool is_running(const VirtualMachine::State& state) const;
-    virtual std::string run_in_ssh_session(SSHSession& session, const std::string& cmd) const;
+    virtual std::string run_in_ssh_session(SSHSession& session, const std::string& cmd, bool whisper = false) const;
 
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
