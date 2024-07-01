@@ -104,7 +104,7 @@ protected:
         const std::string& new_instance_id) const;
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
-    virtual void check_state_for_shutdown(const bool force);
+    virtual void check_state_for_shutdown(bool force);
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
