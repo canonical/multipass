@@ -188,7 +188,7 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
 }
 
-void mp::BaseVirtualMachine::check_state_for_shutdown(const bool force)
+void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
 {
     const std::string force_statement{"Use --force to override."};
 

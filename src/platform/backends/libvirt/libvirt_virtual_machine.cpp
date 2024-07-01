@@ -346,7 +346,7 @@ void mp::LibVirtVirtualMachine::start()
     monitor->on_resume();
 }
 
-void mp::LibVirtVirtualMachine::shutdown(const bool force)
+void mp::LibVirtVirtualMachine::shutdown(bool force)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
     auto domain = checked_vm_domain();
