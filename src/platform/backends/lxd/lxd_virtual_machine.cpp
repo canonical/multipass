@@ -407,7 +407,7 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject args)
+void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject& args)
 {
     QJsonObject state_json{{"action", new_state}};
     for (auto it = args.constBegin(); it != args.constEnd(); it++)
