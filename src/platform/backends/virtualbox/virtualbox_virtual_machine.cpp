@@ -210,7 +210,7 @@ void mp::VirtualBoxVirtualMachine::start()
     mpu::process_throw_on_error("VBoxManage", {"startvm", name, "--type", "headless"}, "Could not start VM: {}", name);
 }
 
-void mp::VirtualBoxVirtualMachine::shutdown(const bool force)
+void mp::VirtualBoxVirtualMachine::shutdown(bool force)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
     const auto present_state = current_state();
