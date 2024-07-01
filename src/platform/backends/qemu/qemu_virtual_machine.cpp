@@ -57,7 +57,8 @@ constexpr auto mount_data_key = "mount_data";
 constexpr auto mount_source_key = "source";
 constexpr auto mount_arguments_key = "arguments";
 
-constexpr int timeout = 300000; // 5 minute timeout for shutdown/suspend
+constexpr int shutdown_timeout = 300000;   // unit: ms, 5 minute timeout for shutdown/suspend
+constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for killing the process
 
 bool use_cdrom_set(const QJsonObject& metadata)
 {
@@ -367,7 +368,7 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
             mpl::log(mpl::Level::info, vm_name, "Killing process");
             lock.unlock();
             vm_process->kill();
-            if (vm_process != nullptr && !vm_process->wait_for_finished(timeout))
+            if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
             {
                 mpl::log(mpl::Level::error, vm_name, "Killing qemu process could not finish.");
             }
@@ -394,7 +395,7 @@ void mp::QemuVirtualMachine::shutdown(const bool force)
         if (vm_process && vm_process->running())
         {
             vm_process->write(qmp_execute_json("system_powerdown"));
-            vm_process->wait_for_finished(timeout);
+            vm_process->wait_for_finished(shutdown_timeout);
         }
     }
 }
@@ -412,7 +413,7 @@ void mp::QemuVirtualMachine::suspend()
 
         drop_ssh_session();
         vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
-        vm_process->wait_for_finished(timeout);
+        vm_process->wait_for_finished(shutdown_timeout);
 
         vm_process.reset(nullptr);
     }
