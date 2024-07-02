@@ -85,7 +85,7 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
                                                           bool parallelize)
 {
     const auto& cmd = parallelize ? Cmds::parallel_composite_cmd : Cmds::sequential_composite_cmd;
-    auto results = YAML::Load(vm.ssh_exec(cmd));
+    auto results = YAML::Load(vm.ssh_exec(cmd, /* whisper = */ true));
 
     instance_info->set_load(results[Keys::loadavg_key].as<std::string>());
     instance_info->set_memory_usage(results[Keys::mem_usage_key].as<std::string>());
