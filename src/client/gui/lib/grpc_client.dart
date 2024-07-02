@@ -14,31 +14,36 @@ export 'generated/multipass.pbgrpc.dart';
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
 typedef ImageInfo = FindReply_ImageInfo;
+typedef MountPaths = MountInfo_MountPaths;
 typedef RpcMessage = GeneratedMessage;
 
 extension on RpcMessage {
   String get repr => '$runtimeType${toProto3Json()}';
 }
 
-void Function(Notification<RpcMessage>) logGrpc(RpcMessage request) {
+void Function(StreamNotification<RpcMessage>) logGrpc(RpcMessage request) {
   return (notification) {
     switch (notification.kind) {
-      case Kind.onData:
-        final reply = notification.requireData.deepCopy();
+      case NotificationKind.data:
+        final reply = notification.requireDataValue.deepCopy();
         if (reply is SSHInfoReply) {
           for (final info in reply.sshInfo.values) {
             info.privKeyBase64 = '*hidden*';
           }
         }
+        if (reply is LaunchReply) {
+          final percent = reply.launchProgress.percentComplete;
+          if (!['0', '100', '-1'].contains(percent)) return;
+        }
         logger.i('${request.repr} received ${reply.repr}');
-      case Kind.onError:
-        final es = notification.errorAndStackTrace;
+      case NotificationKind.error:
+        final es = notification.errorAndStackTraceOrNull;
         logger.e(
           '${request.repr} received an error',
           error: es?.error,
           stackTrace: es?.stackTrace,
         );
-      case Kind.onDone:
+      case NotificationKind.done:
         logger.i('${request.repr} is done');
     }
   };
@@ -174,9 +179,9 @@ class GrpcClient {
         .firstOrNull;
   }
 
-  Future<void> umount(String name) {
+  Future<void> umount(String name, [String? path]) {
     final request = UmountRequest(
-      targetPaths: [TargetPathInfo(instanceName: name)],
+      targetPaths: [TargetPathInfo(instanceName: name, targetPath: path)],
     );
     logger.i('Sent ${request.repr}');
     return _client
@@ -259,13 +264,12 @@ class CustomChannelCredentials extends ChannelCredentials {
   final List<int> certificateKey;
 
   CustomChannelCredentials({
+    super.authority,
     required List<int> certificate,
     required this.certificateKey,
-    String? authority,
   })  : certificateChain = certificate,
         super.secure(
           certificates: certificate,
-          authority: authority,
           onBadCertificate: allowBadCertificates,
         );
 

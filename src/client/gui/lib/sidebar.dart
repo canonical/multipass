@@ -13,17 +13,34 @@ import 'settings/settings.dart';
 import 'vm_details/terminal.dart';
 import 'vm_table/vm_table_screen.dart';
 
-final sidebarKeyProvider = StateProvider<String>((ref) {
-  ref.listen(vmNamesProvider, (_, vmNames) {
-    final key = ref.controller.state;
-    if (key.startsWith('vm-') && !vmNames.contains(key.withoutPrefix('vm-'))) {
-      ref.invalidateSelf();
-    }
-  });
-  ref.listenSelf((_, __) => FocusManager.instance.primaryFocus?.unfocus());
-  return CatalogueScreen.sidebarKey;
-});
+extension on String {
+  String? get sidebarVmName => startsWith('vm-') ? withoutPrefix('vm-') : null;
+}
 
+class SidebarKeyNotifier extends Notifier<String> {
+  @override
+  String build() {
+    ref.listen(vmNamesProvider, (_, names) {
+      final vmName = state.sidebarVmName;
+      if (vmName != null && !names.contains(vmName)) ref.invalidateSelf();
+    });
+
+    return CatalogueScreen.sidebarKey;
+  }
+
+  void set(String key) {
+    if (key.sidebarVmName != null) {
+      ref.read(vmVisitedProvider(key).notifier).state = true;
+    }
+    state = key;
+  }
+}
+
+final sidebarKeyProvider = NotifierProvider<SidebarKeyNotifier, String>(
+  SidebarKeyNotifier.new,
+);
+
+final vmVisitedProvider = StateProvider.family<bool, String>((_, __) => false);
 final sidebarExpandedProvider = StateProvider((_) => false);
 final sidebarPushContentProvider = StateProvider((_) => false);
 Timer? sidebarExpandTimer;
@@ -39,6 +56,7 @@ class SideBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedSidebarKey = ref.watch(sidebarKeyProvider);
+    final sidebarKeyNotifier = sidebarKeyProvider.notifier;
     final vmNames = ref.watch(vmNamesProvider);
     final expanded = ref.watch(sidebarExpandedProvider);
     final pushContent = ref.watch(sidebarPushContentProvider);
@@ -49,8 +67,9 @@ class SideBar extends ConsumerWidget {
       icon: SvgPicture.asset('assets/catalogue.svg'),
       selected: isSelected(CatalogueScreen.sidebarKey),
       label: 'Catalogue',
-      onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
-          CatalogueScreen.sidebarKey,
+      onPressed: () {
+        ref.read(sidebarKeyNotifier).set(CatalogueScreen.sidebarKey);
+      },
     );
 
     final instances = SidebarEntry(
@@ -59,24 +78,27 @@ class SideBar extends ConsumerWidget {
           !expanded && selectedSidebarKey.startsWith('vm-'),
       label: 'Instances',
       badge: vmNames.length.toString(),
-      onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
-          VmTableScreen.sidebarKey,
+      onPressed: () {
+        ref.read(sidebarKeyProvider.notifier).set(VmTableScreen.sidebarKey);
+      },
     );
 
     final help = SidebarEntry(
       icon: SvgPicture.asset('assets/help.svg'),
       selected: isSelected(HelpScreen.sidebarKey),
       label: 'Help',
-      onPressed: () =>
-          ref.read(sidebarKeyProvider.notifier).state = HelpScreen.sidebarKey,
+      onPressed: () {
+        ref.read(sidebarKeyNotifier).set(HelpScreen.sidebarKey);
+      },
     );
 
     final settings = SidebarEntry(
       icon: SvgPicture.asset('assets/settings.svg'),
       selected: isSelected(SettingsScreen.sidebarKey),
       label: 'Settings',
-      onPressed: () => ref.read(sidebarKeyProvider.notifier).state =
-          SettingsScreen.sidebarKey,
+      onPressed: () {
+        ref.read(sidebarKeyNotifier).set(SettingsScreen.sidebarKey);
+      },
     );
 
     final pinSidebarButton = Material(
@@ -119,7 +141,8 @@ class SideBar extends ConsumerWidget {
 
     final vmEntries = vmNames.map((name) {
       final key = 'vm-$name';
-      final hasShells = ref.watch(vmShellsProvider(name).select((n) => n > 0));
+      final hasShells =
+          ref.watch(runningShellsProvider(name).select((n) => n > 0));
       return SidebarEntry(
         key: ValueKey(key),
         icon: Opacity(
@@ -132,7 +155,9 @@ class SideBar extends ConsumerWidget {
         ),
         selected: isSelected(key) && expanded,
         label: name,
-        onPressed: () => ref.read(sidebarKeyProvider.notifier).state = key,
+        onPressed: () {
+          ref.read(sidebarKeyNotifier).set(key);
+        },
       );
     });
 

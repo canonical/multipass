@@ -4,12 +4,7 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
-String _libraryName(String baseName) {
-  if (Platform.isLinux) return 'lib$baseName.so';
-  if (Platform.isWindows) return '$baseName.dll';
-  if (Platform.isMacOS) return 'lib$baseName.dylib';
-  throw const OSError('OS not supported');
-}
+import 'platform/platform.dart';
 
 extension on ffi.Pointer<Utf8> {
   String get string {
@@ -22,7 +17,7 @@ extension on ffi.Pointer<Utf8> {
   }
 }
 
-final _lib = ffi.DynamicLibrary.open(_libraryName('dart_ffi'));
+final _lib = ffi.DynamicLibrary.open(mpPlatform.ffiLibraryName);
 
 final _multipassVersion = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
     ffi.Pointer<Utf8> Function()>('multipass_version');
@@ -71,7 +66,7 @@ final _setSetting = _lib.lookupFunction<
 
 final uid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('uid');
 final gid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('gid');
-final default_id =
+final defaultId =
     _lib.lookupFunction<ffi.Int32 Function(), int Function()>('default_id');
 
 final _memoryInBytes = _lib.lookupFunction<

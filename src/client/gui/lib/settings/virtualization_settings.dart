@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
+import '../notifications/notifications_provider.dart';
+import '../platform/platform.dart';
 import '../providers.dart';
 
 final driverProvider = daemonSettingProvider(driverKey);
@@ -28,36 +28,27 @@ class VirtualizationSettings extends ConsumerWidget {
         label: 'Driver',
         width: 260,
         value: driver,
-        items: drivers,
+        items: mpPlatform.drivers,
         onChanged: (value) {
           if (value == driver) return;
-          ref.read(driverProvider.notifier).set(value!);
+          ref
+              .read(driverProvider.notifier)
+              .set(value!)
+              .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
         },
       ),
       const SizedBox(height: 20),
       if (networks.isNotEmpty)
         Dropdown(
-          label: 'Virtual interface',
+          label: 'Bridged network',
           width: 260,
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
           items: Map.fromIterable(networks),
           onChanged: (value) {
-            ref.read(bridgedNetworkProvider.notifier).set(value!);
+            ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
+                ref.notifyError((e) => 'Failed to set bridged network: $e'));
           },
         ),
     ]);
   }
 }
-
-final drivers = () {
-  if (Platform.isLinux) {
-    return const {'qemu': 'Qemu', 'lxd': 'LXD', 'libvirt': 'Libvirt'};
-  }
-  if (Platform.isMacOS) {
-    return const {'qemu': 'Qemu', 'virtualbox': 'VirtualBox'};
-  }
-  if (Platform.isWindows) {
-    return const {'hyperv': 'Hyper-V', 'virtualbox': 'VirtualBox'};
-  }
-  throw const OSError('Unsupported OS');
-}();

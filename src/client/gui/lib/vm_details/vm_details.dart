@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../extensions.dart';
 import '../ffi.dart';
+import '../notifications.dart';
 import '../providers.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
@@ -281,7 +282,13 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
               ? null
               : 'Number of CPUs must be greater than 0'
           : null,
-      onSaved: (value) => ref.read(cpusProvider.notifier).set(value!),
+      onSaved: (value) {
+        if (value == cpus) return;
+        ref
+            .read(cpusProvider.notifier)
+            .set(value!)
+            .onError(ref.notifyError((error) => 'Failed to set CPUs: $error'));
+      },
     );
 
     final memoryInput = SpecInput(
@@ -291,9 +298,13 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       helper: editing ? 'Default unit in Gigabytes' : null,
       enabled: editing,
       validator: memory != null ? memorySizeValidator : null,
-      onSaved: (value) => ref
-          .read(memoryProvider.notifier)
-          .set(double.tryParse(value!) != null ? '${value}GB' : value),
+      onSaved: (value) {
+        if (value == memory) return;
+        ref
+            .read(memoryProvider.notifier)
+            .set(double.tryParse(value!) != null ? '${value}GB' : value)
+            .onError(ref.notifyError((e) => 'Failed to set memory size: $e'));
+      },
     );
 
     final diskInput = SpecInput(
@@ -314,9 +325,13 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
               }
             }
           : null,
-      onSaved: (value) => ref
-          .read(diskProvider.notifier)
-          .set(double.tryParse(value!) != null ? '${value}GB' : value),
+      onSaved: (value) {
+        if (value == disk) return;
+        ref
+            .read(diskProvider.notifier)
+            .set(double.tryParse(value!) != null ? '${value}GB' : value)
+            .onError(ref.notifyError((e) => 'Failed to set disk size: $e'));
+      },
     );
 
     final saveButton = TextButton(
@@ -413,7 +428,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
-          ref.read(bridgedProvider.notifier).set(value.toString());
+          ref.read(bridgedProvider.notifier).set(value.toString()).onError(
+              ref.notifyError((e) => 'Failed to set bridged network: $e'));
         }
         setState(() => editing = false);
       },
@@ -508,87 +524,70 @@ class MountDetails extends ConsumerStatefulWidget {
 class _MountDetailsState extends ConsumerState<MountDetails> {
   final formKey = GlobalKey<FormState>();
   bool editing = false;
-  final mountRequests = <MountRequest>[];
+  final toMount = <MountRequest>[];
+  final toUnmount = <String>[];
 
   @override
   Widget build(BuildContext context) {
     final mounts = ref.watch(vmInfoProvider(widget.name).select((info) {
       return info.mountInfo.mountPaths.build();
     }));
-    final stopped = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status == Status.STOPPED;
-    }));
 
-    if (!stopped) editing = false;
-
-    final viewMountPoints = Column(children: [
-      if (mounts.isNotEmpty)
-        const DefaultTextStyle(
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-          child: Row(children: [
-            Expanded(child: Text('SOURCE PATH')),
-            Expanded(child: Text('TARGET PATH')),
-          ]),
-        ),
-      for (final mount in mounts) ...[
-        const Divider(height: 20),
-        Row(children: [
-          Expanded(
-            child: Text(mount.sourcePath, style: const TextStyle(fontSize: 16)),
-          ),
-          Expanded(
-            child: Text(mount.targetPath, style: const TextStyle(fontSize: 16)),
-          ),
-        ])
-      ],
-    ]);
-
-    final initialMountRequests = mounts.map((mount) {
-      return MountRequest(
-        mountMaps: mount.mountMaps,
-        sourcePath: mount.sourcePath,
-        targetPaths: [
-          TargetPathInfo(
-            instanceName: widget.name,
-            targetPath: mount.targetPath,
-          ),
-        ],
-      );
-    });
+    final viewMountPoints = MountPointsView(
+      existingMounts: mounts,
+      editing: editing,
+      onSaved: (newToUnmount) => toUnmount.addAll(newToUnmount),
+    );
 
     final editableMountPoints = MountPointList(
-      initialMountRequests: initialMountRequests.toBuiltList(),
-      onSaved: (newMountRequests) => mountRequests.addAll(newMountRequests),
+      showLabels: mounts.isEmpty,
+      onSaved: (newToMount) => toMount.addAll(newToMount),
     );
 
     final saveButton = TextButton(
       onPressed: () async {
-        mountRequests.clear();
+        toMount.clear();
+        toUnmount.clear();
+        if (!(formKey.currentState?.validate() ?? false)) return;
         formKey.currentState?.save();
         setState(() => editing = false);
         final grpcClient = ref.read(grpcClientProvider);
-        await grpcClient.umount(widget.name);
-        for (final mountRequest in mountRequests) {
+        final notificationsNotifier = ref.read(notificationsProvider.notifier);
+        final umountOperations = <Future<void>>[];
+
+        for (final path in toUnmount) {
+          final operation = grpcClient.umount(widget.name, path);
+          notificationsNotifier.addOperation(
+            operation,
+            loading: 'Unmounting $path from ${widget.name}',
+            onSuccess: (_) => 'Unmounted $path from ${widget.name}',
+            onError: (error) {
+              return 'Failed to unmount $path from ${widget.name}: $error';
+            },
+          );
+          umountOperations.add(operation);
+        }
+
+        await Future.wait(umountOperations);
+
+        for (final mountRequest in toMount) {
+          final description =
+              '${mountRequest.sourcePath} into ${widget.name}:${mountRequest.targetPaths.first.targetPath}';
           mountRequest.targetPaths.first.instanceName = widget.name;
-          await grpcClient.mount(mountRequest);
+          notificationsNotifier.addOperation(
+            grpcClient.mount(mountRequest),
+            loading: 'Mounting $description',
+            onSuccess: (_) => 'Mounted $description',
+            onError: (error) => 'Failed to mount $description: $error',
+          );
         }
       },
       child: const Text('Save'),
     );
 
-    final configureButton = TooltipVisibility(
-      visible: !stopped,
-      child: Tooltip(
-        message: 'Stop instance to configure',
-        child: OutlinedButton(
-          onPressed: stopped ? () => setState(() => editing = true) : null,
-          child: const Text('Configure'),
-        ),
-      ),
+    final configureButton = OutlinedButton(
+      onPressed: () => setState(() => editing = true),
+      child: const Text('Configure'),
     );
 
     final cancelButton = OutlinedButton(
@@ -613,12 +612,15 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             const Spacer(),
             editing ? cancelButton : configureButton,
           ]),
-          editing ? editableMountPoints : viewMountPoints,
-          if (editing)
+          viewMountPoints,
+          if (editing) ...[
+            const SizedBox(height: 20),
+            editableMountPoints,
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: saveButton,
             ),
+          ],
         ],
       ),
     );

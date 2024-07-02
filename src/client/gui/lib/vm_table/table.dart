@@ -175,13 +175,15 @@ class _TableState<T> extends State<Table<T>> {
             ? const RemainingTableSpanExtent()
             : FixedTableSpanExtent(widget.headers[i].width),
       ),
-      cellBuilder: (_, v) => Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: v.row < cells.length - 1 ? borderSide : BorderSide.none,
+      cellBuilder: (_, v) => TableViewCell(
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: v.row < cells.length - 1 ? borderSide : BorderSide.none,
+            ),
           ),
+          child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
         ),
-        child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
       ),
     );
 

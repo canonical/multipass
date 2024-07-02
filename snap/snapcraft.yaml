@@ -86,6 +86,7 @@ apps:
       - network
   gui:
     desktop: usr/share/applications/multipass.gui.desktop
+    autostart: multipass.gui.autostart.desktop
     extensions: [ gnome ]
     environment: &_client-environment
       XDG_DATA_HOME: $SNAP_USER_DATA

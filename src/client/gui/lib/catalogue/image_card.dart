@@ -56,42 +56,45 @@ class ImageCard extends ConsumerWidget {
                 child: Text(image.codename),
               ),
             ),
-            Row(
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    final grpcClient = ref.read(grpcClientProvider);
-                    final name = ref.read(randomNameProvider);
-                    final request = LaunchRequest(instanceName: name);
-                    final aliasInfo = image.aliasesInfo.first;
-                    request.image = aliasInfo.alias;
-                    if (aliasInfo.hasRemoteName()) {
-                      request.remoteName = aliasInfo.remoteName;
-                    }
+            Row(children: [
+              OutlinedButton(
+                onPressed: () {
+                  final name = ref.read(randomNameProvider);
+                  final aliasInfo = image.aliasesInfo.first;
+                  final request = LaunchRequest(
+                    instanceName: name,
+                    image: aliasInfo.alias,
+                    remoteName:
+                        aliasInfo.hasRemoteName() ? aliasInfo.remoteName : null,
+                  );
 
-                    final stream = grpcClient.launch(request);
-                    ref.read(launchOperationProvider.notifier).state =
-                        (stream, name, imageName(image));
-                    Scaffold.of(context).openEndDrawer();
-                  },
-                  child: const Text('Launch'),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: () {
-                    ref.read(launchingImageProvider.notifier).state = image;
-                    Scaffold.of(context).openEndDrawer();
-                  },
-                  child: SvgPicture.asset(
-                    'assets/settings.svg',
-                    colorFilter: const ColorFilter.mode(
-                      Colors.black,
-                      BlendMode.srcIn,
-                    ),
+                  final grpcClient = ref.read(grpcClientProvider);
+                  final operation = LaunchOperation(
+                    stream: grpcClient.launch(request),
+                    name: name,
+                    image: imageName(image),
+                  );
+
+                  ref.read(launchOperationProvider.notifier).state = operation;
+                  Scaffold.of(context).openEndDrawer();
+                },
+                child: const Text('Launch'),
+              ),
+              const SizedBox(width: 16),
+              OutlinedButton(
+                onPressed: () {
+                  ref.read(launchingImageProvider.notifier).state = image;
+                  Scaffold.of(context).openEndDrawer();
+                },
+                child: SvgPicture.asset(
+                  'assets/settings.svg',
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ]),
           ],
         ),
       ),

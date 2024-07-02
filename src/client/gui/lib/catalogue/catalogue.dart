@@ -1,20 +1,28 @@
 import 'dart:async';
 
+import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart';
 
 import '../providers.dart';
 import 'image_card.dart';
 import 'launch_panel.dart';
 
 final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
-  return ref.watch(daemonAvailableProvider)
-      ? await ref
-          .watch(grpcClientProvider)
-          .find(blueprints: false)
-          .then((r) => sortImages(r.imagesInfo))
-      : ref.state.valueOrNull ?? await Completer<List<ImageInfo>>().future;
+  if (ref.watch(daemonAvailableProvider)) {
+    final images = ref
+        .watch(grpcClientProvider)
+        .find(blueprints: false)
+        .then((r) => sortImages(r.imagesInfo));
+    // artificial delay so that we can see the loading spinner a bit
+    // otherwise the reply arrives too quickly and we only see a flash of the spinner
+    await Future.delayed(1.seconds);
+    return await images;
+  }
+
+  return ref.state.valueOrNull ?? await Completer<List<ImageInfo>>().future;
 });
 
 // sorts the images in a more user-friendly way
@@ -65,32 +73,28 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final images = ref.watch(imagesProvider).valueOrNull ?? const [];
-    final imageList = SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          child: const Text(
-            'Images',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        LayoutBuilder(builder: (_, constraints) {
-          const minCardWidth = 285;
-          const spacing = 32.0;
-          final nCards = constraints.maxWidth ~/ minCardWidth;
-          final whiteSpace = spacing * (nCards - 1);
-          final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
-          return Wrap(
-            runSpacing: spacing,
-            spacing: spacing,
-            children:
-                images.map((image) => ImageCard(image, cardWidth)).toList(),
-          );
-        }),
-        const SizedBox(height: 32),
-      ]),
-    );
+    final content = ref.watch(imagesProvider).when(
+          skipLoadingOnRefresh: false,
+          data: _buildCatalogue,
+          error: (error, _) {
+            final errorMessage = error is GrpcError ? error.message : error;
+            return Center(
+              child: Column(children: [
+                const SizedBox(height: 32),
+                Text(
+                  'Failed to retrieve images: $errorMessage',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => ref.invalidate(imagesProvider),
+                  child: const Text('Refresh'),
+                ),
+              ]),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+        );
 
     final welcomeText = Container(
       constraints: const BoxConstraints(maxWidth: 500),
@@ -118,10 +122,38 @@ class CatalogueScreen extends ConsumerWidget {
           children: [
             welcomeText,
             const Divider(),
-            Expanded(child: imageList),
+            Expanded(child: content),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCatalogue(List<ImageInfo> images) {
+    return SingleChildScrollView(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          child: const Text(
+            'Images',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        ),
+        LayoutBuilder(builder: (_, constraints) {
+          const minCardWidth = 285;
+          const spacing = 32.0;
+          final nCards = constraints.maxWidth ~/ minCardWidth;
+          final whiteSpace = spacing * (nCards - 1);
+          final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
+          return Wrap(
+            runSpacing: spacing,
+            spacing: spacing,
+            children:
+                images.map((image) => ImageCard(image, cardWidth)).toList(),
+          );
+        }),
+        const SizedBox(height: 32),
+      ]),
     );
   }
 }
