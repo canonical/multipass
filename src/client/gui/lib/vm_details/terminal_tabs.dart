@@ -32,7 +32,7 @@ class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
     final idsBuilder = ids.toBuilder();
     idsBuilder.removeAt(index);
     if (index < currentIndex) currentIndex -= 1;
-    if (idsBuilder.isEmpty) idsBuilder.add(ShellId(1));
+    if (idsBuilder.isEmpty) idsBuilder.add(ShellId(1, autostart: false));
     currentIndex = currentIndex.clamp(0, idsBuilder.length - 1);
     state = (ids: idsBuilder.build(), currentIndex: currentIndex);
   }
