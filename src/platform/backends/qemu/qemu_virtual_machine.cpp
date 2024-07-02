@@ -24,6 +24,7 @@
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
@@ -56,7 +57,8 @@ constexpr auto mount_data_key = "mount_data";
 constexpr auto mount_source_key = "source";
 constexpr auto mount_arguments_key = "arguments";
 
-constexpr int timeout = 300000; // 5 minute timeout for shutdown/suspend
+constexpr int shutdown_timeout = 300000;   // unit: ms, 5 minute timeout for shutdown/suspend
+constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for killing the process
 
 bool use_cdrom_set(const QJsonObject& metadata)
 {
@@ -343,31 +345,59 @@ void mp::QemuVirtualMachine::start()
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }
 
-void mp::QemuVirtualMachine::shutdown()
+void mp::QemuVirtualMachine::shutdown(bool force)
 {
-    if (state == State::suspended)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
-    }
-    else
-    {
-        drop_ssh_session();
+    std::unique_lock<std::mutex> lock{state_mutex};
 
-        if ((state == State::running || state == State::delayed_shutdown || state == State::unknown) && vm_process &&
-            vm_process->running())
+    try
+    {
+        check_state_for_shutdown(force);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::log(mpl::Level::info, vm_name, e.what());
+        return;
+    }
+
+    if (force)
+    {
+        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+
+        if (vm_process)
         {
-            vm_process->write(qmp_execute_json("system_powerdown"));
-            vm_process->wait_for_finished(timeout);
+            mpl::log(mpl::Level::info, vm_name, "Killing process");
+            lock.unlock();
+            vm_process->kill();
+            if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
+            {
+                throw std::runtime_error{
+                    fmt::format("The QEMU process did not finish within {} seconds after being killed",
+                                kill_process_timeout)};
+            }
         }
         else
         {
-            if (state == State::starting)
-                update_shutdown_status = false;
+            mpl::log(mpl::Level::debug, vm_name, "No process to kill");
+        }
 
-            if (vm_process)
-            {
-                vm_process->kill();
-            }
+        if (state == State::suspended || mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
+        {
+            mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
+            mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
+        }
+
+        state = State::off;
+    }
+    else
+    {
+        lock.unlock();
+
+        drop_ssh_session();
+
+        if (vm_process && vm_process->running())
+        {
+            vm_process->write(qmp_execute_json("system_powerdown"));
+            vm_process->wait_for_finished(shutdown_timeout);
         }
     }
 }
@@ -385,7 +415,8 @@ void mp::QemuVirtualMachine::suspend()
 
         drop_ssh_session();
         vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
-        vm_process->wait_for_finished(timeout);
+        vm_process->wait_for_finished(shutdown_timeout);
+
         vm_process.reset(nullptr);
     }
     else if (state == State::off || state == State::suspended)

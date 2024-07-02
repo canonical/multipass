@@ -25,6 +25,7 @@
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
@@ -261,26 +262,25 @@ void mp::LXDVirtualMachine::start()
     update_state();
 }
 
-void mp::LXDVirtualMachine::shutdown()
+void mp::LXDVirtualMachine::shutdown(bool force)
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    auto present_state = current_state();
+    std::unique_lock<std::mutex> lock{state_mutex};
 
-    if (present_state == State::stopped)
+    const auto present_state = current_state();
+
+    try
     {
-        mpl::log(mpl::Level::debug, vm_name, "Ignoring stop request since instance is already stopped");
+        check_state_for_shutdown(force);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::log(mpl::Level::info, vm_name, e.what());
         return;
     }
 
-    if (present_state == State::suspended)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
-        return;
-    }
+    request_state("stop", {{"force", force}});
 
-    request_state("stop");
-
-    state = State::stopped;
+    state = State::off;
 
     if (present_state == State::starting)
     {
@@ -407,9 +407,13 @@ const QUrl mp::LXDVirtualMachine::network_leases_url()
     return base_url.toString() + "/networks/" + bridge_name + "/leases";
 }
 
-void mp::LXDVirtualMachine::request_state(const QString& new_state)
+void mp::LXDVirtualMachine::request_state(const QString& new_state, const QJsonObject& args)
 {
-    const QJsonObject state_json{{"action", new_state}};
+    QJsonObject state_json{{"action", new_state}};
+    for (auto it = args.constBegin(); it != args.constEnd(); it++)
+    {
+        state_json.insert(it.key(), it.value());
+    }
 
     auto state_task = lxd_request(manager, "PUT", state_url(), state_json, 5000);
 

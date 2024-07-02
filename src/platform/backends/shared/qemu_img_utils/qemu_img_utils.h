@@ -43,6 +43,7 @@ void resize_instance_image(const MemorySize& disk_space, const multipass::Path& 
 Path convert_to_qcow_if_necessary(const Path& image_path);
 void amend_to_qcow2_v3(const Path& image_path);
 bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
+void delete_instance_suspend_image(const Path& image_path, const QString& suspend_tag);
 
 } // namespace backend
 } // namespace multipass
