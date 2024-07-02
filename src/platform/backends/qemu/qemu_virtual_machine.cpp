@@ -371,7 +371,8 @@ void mp::QemuVirtualMachine::shutdown(bool force)
             if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
             {
                 throw std::runtime_error{
-                    fmt::format("The QEMU process kill did not finish with {} seconds", kill_process_timeout)};
+                    fmt::format("The QEMU process did not finish within {} seconds after being killed",
+                                kill_process_timeout)};
             }
         }
         else
