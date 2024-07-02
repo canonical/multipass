@@ -363,7 +363,7 @@ void mp::LibVirtVirtualMachine::shutdown(bool force)
         return;
     }
 
-    if (force)
+    if (force) // TODO delete suspension state if it exists
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 
