@@ -217,6 +217,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
     // "C:\ProgramData\Multipass\data\virtualbox\vault\instances"
     mpu::process_throw_on_error("VBoxManage",
                                 {"clonevm",
+                                 QString::fromStdString(source_vm_name),
                                  "--name",
                                  name,
                                  "--register",
