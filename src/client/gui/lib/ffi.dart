@@ -66,7 +66,7 @@ final _setSetting = _lib.lookupFunction<
 
 final uid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('uid');
 final gid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('gid');
-final default_id =
+final defaultId =
     _lib.lookupFunction<ffi.Int32 Function(), int Function()>('default_id');
 
 final _memoryInBytes = _lib.lookupFunction<
