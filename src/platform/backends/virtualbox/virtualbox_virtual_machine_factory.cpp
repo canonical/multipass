@@ -260,16 +260,16 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clon
                                                {},
                                                {}};
 
-    // mp::VirtualMachine::UPtr cloned_instance =
-    //     std::make_unique<mp::VirtualBoxVirtualMachine>(dest_vm_desc,
-    //                                                    monitor,
-    //                                                    key_provider,
-    //                                                    get_instance_directory(dest_vm_desc.vm_name));
+    mp::VirtualMachine::UPtr cloned_instance =
+        std::make_unique<mp::VirtualBoxVirtualMachine>(source_name,
+                                                       dest_vm_desc,
+                                                       monitor,
+                                                       key_provider,
+                                                       get_instance_directory(dest_vm_desc.vm_name));
     // cloned_instance->remove_all_snapshots_from_the_image();
 
     rollback_delete_instance_folder.dismiss();
-    // return cloned_instance;
-    return {};
+    return cloned_instance;
 }
 
 void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
