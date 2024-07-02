@@ -214,5 +214,5 @@ mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& d
 
 void mp::QemuPlatformDetail::prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) const
 {
-    throw NotImplementedOnThisBackendException("networks");
+    // Nothing to do here until we implement networking on this backend
 }
