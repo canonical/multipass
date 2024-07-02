@@ -47,8 +47,8 @@ class _MountPointState extends State<MountPoint> {
       sourcePath: savedSource,
       targetPaths: [targetPath],
       mountMaps: MountMaps(
-        uidMappings: [IdMap(hostId: uid(), instanceId: default_id())],
-        gidMappings: [IdMap(hostId: gid(), instanceId: default_id())],
+        uidMappings: [IdMap(hostId: uid(), instanceId: defaultId())],
+        gidMappings: [IdMap(hostId: gid(), instanceId: defaultId())],
       ),
     );
 
