@@ -21,8 +21,9 @@ final runningShellsProvider =
 
 class ShellId {
   final int id;
+  final bool autostart;
 
-  ShellId(this.id);
+  ShellId(this.id, {this.autostart = true});
 
   @override
   String toString() => 'ShellId{$id}';
@@ -51,6 +52,8 @@ class TerminalNotifier
   Future<Terminal?> _initShell() async {
     final currentState = stateOrNull;
     if (currentState != null) return currentState;
+
+    if (!arg.shellId.autostart) return null;
 
     final running = ref.read(vmStatusProvider);
     if (!running) return null;
