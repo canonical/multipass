@@ -2132,15 +2132,13 @@ try // clang-format on
 
         std::function<grpc::Status(VirtualMachine&)> operation;
         if (request->cancel_shutdown())
-            operation = std::bind(&Daemon::cancel_vm_shutdown, this, std::placeholders::_1);
+            operation = [this](const VirtualMachine& vm) { return this->cancel_vm_shutdown(vm); };
         else if (request->force_stop())
-        {
-            auto adapted_switch_off_vm = [this](auto&& arg) -> grpc::Status { return this->switch_off_vm(arg); };
-            operation = adapted_switch_off_vm;
-        }
+            operation = [this](VirtualMachine& vm) { return this->switch_off_vm(vm); };
         else
-            operation = std::bind(&Daemon::shutdown_vm, this, std::placeholders::_1,
-                                  std::chrono::minutes(request->time_minutes()));
+            operation = [this, delay_minutes = std::chrono::minutes(request->time_minutes())](VirtualMachine& vm) {
+                return this->shutdown_vm(vm, delay_minutes);
+            };
 
         status = cmd_vms(instance_selection.operative_selection, operation);
     }
