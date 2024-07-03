@@ -207,7 +207,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
-    // VBoxManage.exe clonevm vm1-- name vm2-- register --basefolder
+    // 1. VBoxManage.exe clonevm vm1-- name vm2-- register q--basefolder
     // "C:\ProgramData\Multipass\data\virtualbox\vault\instances"
     mpu::process_throw_on_error("VBoxManage",
                                 {"clonevm",
@@ -220,12 +220,28 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                 "Could not clone VM: {}",
                                 QString::fromStdString(source_vm_name));
 
-    //1. remove the image file from the vm
-    //2. rename the image file to the source image name
-    //4. remove the cloud-init file from the vm
-    //3. attach the image file to the vm again
-    //5. attach the new cloud-file to the vm again
-    //6. reset the mac addresses of vm to the spec addres
+    // 2. VBoxManage.exe storageattach vm2 --storagectl SATA_0 --port 0 --device 0 --type hdd --medium none
+    mpu::process_throw_on_error("VBoxManage",
+                                {"storageattach",
+                                 name,
+                                 "--storagectl",
+                                 "SATA_0",
+                                 "--port",
+                                 "0",
+                                 "--device",
+                                 "0",
+                                 "--type",
+                                 "hdd",
+                                 "--medium",
+                                 "none"}, // remove the image file
+                                "Could not remove the image file from: {}",
+                                name);
+
+    // 2. rename the image file to the source image name
+    // 4. remove the cloud-init file from the vm
+    // 3. attach the image file to the vm again
+    // 5. attach the new cloud-file to the vm again
+    // 6. reset the mac addresses of vm to the spec addres
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
