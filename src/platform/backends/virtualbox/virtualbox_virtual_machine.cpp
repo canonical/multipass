@@ -241,7 +241,23 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
     // 2. rename the cloned image file to the expected image file name
     const fs::path old_vdi_file_path_from_clone = dest_instance_dir_fs / name.toStdString();
     fs::rename(old_vdi_file_path_from_clone, fs::path{image_path.toStdString()});
-    // 3. attach the image file to the vm again
+
+    // 3. attach the renamed image file to the vm again
+    mpu::process_throw_on_error("VBoxManage",
+                                {"storageattach",
+                                 name,
+                                 "--storagectl",
+                                 "SATA_0",
+                                 "--port",
+                                 "0",
+                                 "--device",
+                                 "0",
+                                 "--type",
+                                 "hdd",
+                                 "--medium",
+                                 image_path}, // add the image file
+                                "Could not attach the image file to: {}",
+                                name);
     // 4. remove the cloud-init file from the vm
     // 5. attach the new cloud-file to the vm again
     // 6. reset the mac addresses of vm to the spec addres
