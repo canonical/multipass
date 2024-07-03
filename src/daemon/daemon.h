@@ -156,6 +156,7 @@ private:
     bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
+    grpc::Status switch_off_vm(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
 

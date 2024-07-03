@@ -399,6 +399,7 @@ message StopRequest {
     int32 time_minutes = 2;
     bool cancel_shutdown = 3;
     int32 verbosity_level = 4;
+    bool force_stop = 5;
 }
 
 message StopReply {
