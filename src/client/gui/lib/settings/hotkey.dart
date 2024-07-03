@@ -165,10 +165,10 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
   Widget build(BuildContext context) {
     final keyLabel = key?.keyLabel ?? '...';
     final modifiers = [
-      if (alt) mpPlatform.altKey,
       if (control) 'Ctrl',
-      if (meta) mpPlatform.metaKey,
+      if (alt) mpPlatform.altKey,
       if (shift) 'Shift',
+      if (meta) mpPlatform.metaKey,
     ].join('+');
     final keyCombination = modifiers.isNotEmpty
         ? '$modifiers+$keyLabel'
