@@ -205,8 +205,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
       image_path{desc.image.image_path},
       monitor{&monitor}
 {
-    const fs::path dest_instance_dir_fs = fs::path{dest_instance_dir.toStdString()};
-    const fs::path instances_dir = dest_instance_dir_fs.parent_path();
+    const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
     // 1. VBoxManage.exe clonevm vm1-- name vm2-- register q--basefolder
     // "C:\ProgramData\Multipass\data\virtualbox\vault\instances"
@@ -217,47 +216,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  name,
                                  "--register",
                                  "--basefolder",
-                                 QString::fromStdString(instances_dir.string())},
+                                 QString::fromStdString(instances_dir.string()),
+                                 "--options",
+                                 "keepdisknames"},
                                 "Could not clone VM: {}",
                                 QString::fromStdString(source_vm_name));
 
-    // 2. VBoxManage.exe storageattach vm2 --storagectl SATA_0 --port 0 --device 0 --type hdd --medium none
-    mpu::process_throw_on_error("VBoxManage",
-                                {"storageattach",
-                                 name,
-                                 "--storagectl",
-                                 "SATA_0",
-                                 "--port",
-                                 "0",
-                                 "--device",
-                                 "0",
-                                 "--type",
-                                 "hdd",
-                                 "--medium",
-                                 "none"},
-                                "Could not remove the image file from: {}",
-                                name);
-
-    // 2. rename the cloned image file to the expected image file name
-    const fs::path old_vdi_file_path_from_clone = dest_instance_dir_fs / name.toStdString();
-    fs::rename(old_vdi_file_path_from_clone, fs::path{image_path.toStdString()});
-
-    // 3. attach the renamed image file to the vm again
-    mpu::process_throw_on_error("VBoxManage",
-                                {"storageattach",
-                                 name,
-                                 "--storagectl",
-                                 "SATA_0",
-                                 "--port",
-                                 "0",
-                                 "--device",
-                                 "0",
-                                 "--type",
-                                 "hdd",
-                                 "--medium",
-                                 image_path},
-                                "Could not attach the image file to: {}",
-                                name);
     // 4. remove the cloud-init file from the vm
     mpu::process_throw_on_error("VBoxManage",
                                 {"storageattach",
