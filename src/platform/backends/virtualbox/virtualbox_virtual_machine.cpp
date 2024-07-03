@@ -234,7 +234,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "--type",
                                  "hdd",
                                  "--medium",
-                                 "none"}, // remove the image file
+                                 "none"},
                                 "Could not remove the image file from: {}",
                                 name);
 
@@ -255,10 +255,25 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "--type",
                                  "hdd",
                                  "--medium",
-                                 image_path}, // add the image file
+                                 image_path},
                                 "Could not attach the image file to: {}",
                                 name);
     // 4. remove the cloud-init file from the vm
+    mpu::process_throw_on_error("VBoxManage",
+                                {"storageattach",
+                                 name,
+                                 "--storagectl",
+                                 "SATA_0",
+                                 "--port",
+                                 "1",
+                                 "--device",
+                                 "0",
+                                 "--type",
+                                 "hdd",
+                                 "--medium",
+                                 "none"},
+                                "Could not remove the cloud-init file from: {}",
+                                name);
     // 5. attach the new cloud-file to the vm again
     // 6. reset the mac addresses of vm to the spec addres
 }
