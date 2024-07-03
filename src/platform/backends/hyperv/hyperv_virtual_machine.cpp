@@ -52,16 +52,6 @@ QString quoted(const QString& str)
     return '"' + str + '"';
 }
 
-std::string remove_colons_in_mac_address_string(const std::string& mac_address)
-{
-    std::string result_mac_address{mac_address};
-
-    const auto no_colon_end = std::remove(result_mac_address.begin(), result_mac_address.end(), ':');
-    result_mac_address.erase(no_colon_end, result_mac_address.end());
-
-    return result_mac_address;
-}
-
 std::optional<mp::IPAddress> remote_ip(const std::string& host,
                                        int port,
                                        const std::string& username,
@@ -301,7 +291,7 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
          // "Where-Object {$_.MacAddress -eq <mac_address>}" clause requires the string quoted and no colon delimiter,
          // for example "5254002CC58C"; whereas the "Set-VMNetworkAdapter -StaticMacAddress <mac_address>" can accept
          // unquoted and with colon delimiter like 52:54:00:2C:C5:8B.
-         quoted(QString::fromStdString(remove_colons_in_mac_address_string(src_specs.default_mac_address))),
+         quoted(QString::fromStdString(src_specs.default_mac_address).remove(':')),
          "} | Set-VMNetworkAdapter -StaticMacAddress",
          QString::fromStdString(desc.default_mac_address)},
         "Could not setup the default network adapter");
@@ -312,8 +302,7 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
         power_shell->easy_run({"Get-VMNetworkAdapter -VMName",
                                name,
                                "| Where-Object {$_.MacAddress -eq",
-                               quoted(QString::fromStdString(
-                                   remove_colons_in_mac_address_string(src_specs.extra_interfaces[i].mac_address))),
+                               quoted(QString::fromStdString(src_specs.extra_interfaces[i].mac_address).remove(':')),
                                "} | Set-VMNetworkAdapter -StaticMacAddress",
                                QString::fromStdString(desc.extra_interfaces[i].mac_address)},
                               "Could not setup the extra network adapter");
