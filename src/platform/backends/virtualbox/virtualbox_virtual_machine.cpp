@@ -44,12 +44,6 @@ namespace fs = std::filesystem;
 
 namespace
 {
-
-QString quoted(const QString& str)
-{
-    return '"' + str + '"';
-}
-
 auto instance_state_for(const QString& name)
 {
     QRegularExpression vmstate_re("VMState=\"([a-z]+)\"");
@@ -222,7 +216,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  name,
                                  "--register",
                                  "--basefolder",
-                                 quoted(QString::fromStdString(instances_dir.string()))},
+                                 QString::fromStdString(instances_dir.string())},
                                 "Could not clone VM: {}",
                                 QString::fromStdString(source_vm_name));
 
