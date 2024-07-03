@@ -274,7 +274,22 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "none"},
                                 "Could not remove the cloud-init file from: {}",
                                 name);
-    // 5. attach the new cloud-file to the vm again
+    // 5. attach the new cloud-file to the vm
+    mpu::process_throw_on_error("VBoxManage",
+                                {"storageattach",
+                                 name,
+                                 "--storagectl",
+                                 "SATA_0",
+                                 "--port",
+                                 "1",
+                                 "--device",
+                                 "0",
+                                 "--type",
+                                 "hdd",
+                                 "--medium",
+                                 desc.cloud_init_iso},
+                                "Could not attach the cloud-init file to: {}",
+                                name);
     // 6. reset the mac addresses of vm to the spec addres
 }
 
