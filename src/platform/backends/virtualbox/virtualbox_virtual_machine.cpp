@@ -147,6 +147,26 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
     return modify_arguments;
 }
 
+void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescription& desc, const QString& vm_name)
+{
+    mpu::process_log_on_error(
+        "VBoxManage",
+        {"modifyvm", vm_name, "--macaddress1", QString::fromStdString(desc.default_mac_address).remove(':')},
+        "Could not update the network adapter address of: {}",
+        vm_name);
+    for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
+    {
+        const size_t current_adapter_number = i + 1;
+        mpu::process_log_on_error("VBoxManage",
+                                  {"modifyvm",
+                                   vm_name,
+                                   "--macaddress" + QString::number(current_adapter_number),
+                                   QString::fromStdString(desc.default_mac_address).remove(':')},
+                                  "Could not update the network adapter address of: {}",
+                                  vm_name);
+    }
+}
+
 } // namespace
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
@@ -255,6 +275,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                 "Could not attach the cloud-init file to: {}",
                                 name);
     // 6. reset the mac addresses of vm to the spec addres
+    update_mac_addresses_of_network_adapters(desc, name);
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
