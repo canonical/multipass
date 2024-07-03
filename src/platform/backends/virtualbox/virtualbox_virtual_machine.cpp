@@ -205,7 +205,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
       image_path{desc.image.image_path},
       monitor{&monitor}
 {
-    const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
+    const fs::path dest_instance_dir_fs = fs::path{dest_instance_dir.toStdString()};
+    const fs::path instances_dir = dest_instance_dir_fs.parent_path();
 
     // 1. VBoxManage.exe clonevm vm1-- name vm2-- register q--basefolder
     // "C:\ProgramData\Multipass\data\virtualbox\vault\instances"
@@ -237,9 +238,11 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                 "Could not remove the image file from: {}",
                                 name);
 
-    // 2. rename the image file to the source image name
-    // 4. remove the cloud-init file from the vm
+    // 2. rename the cloned image file to the expected image file name
+    const fs::path old_vdi_file_path_from_clone = dest_instance_dir_fs / name.toStdString();
+    fs::rename(old_vdi_file_path_from_clone, fs::path{image_path.toStdString()});
     // 3. attach the image file to the vm again
+    // 4. remove the cloud-init file from the vm
     // 5. attach the new cloud-file to the vm again
     // 6. reset the mac addresses of vm to the spec addres
 }
