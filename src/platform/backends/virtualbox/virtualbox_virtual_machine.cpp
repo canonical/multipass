@@ -172,8 +172,8 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
-                                                       const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+                                                       const mp::Path& instance_dir_qstr)
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir_qstr},
       desc{desc},
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
@@ -186,9 +186,18 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
     if (!mpu::process_log_on_error("VBoxManage", {"showvminfo", name, "--machinereadable"},
                                    "Could not get instance info: {}", name))
     {
-        mpu::process_throw_on_error(
-            "VBoxManage", {"createvm", "--name", name, "--groups", "/Multipass", "--ostype", "ubuntu_64", "--register"},
-            "Could not create VM: {}", name);
+        const fs::path instances_dir = fs::path{instance_dir_qstr.toStdString()}.parent_path();
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"createvm",
+                                     "--name",
+                                     name,
+                                     "--basefolder",
+                                     QString::fromStdString(instances_dir.string()),
+                                     "--ostype",
+                                     "ubuntu_64",
+                                     "--register"},
+                                    "Could not create VM: {}",
+                                    name);
 
         mpu::process_throw_on_error("VBoxManage", modifyvm_arguments(desc, name), "Could not modify VM: {}", name);
 
