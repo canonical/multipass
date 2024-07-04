@@ -152,7 +152,7 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
     mpu::process_log_on_error(
         "VBoxManage",
         {"modifyvm", vm_name, "--macaddress1", QString::fromStdString(desc.default_mac_address).remove(':')},
-        "Could not update the network adapter address of: {}",
+        "Could not update the default network adapter address of: {}",
         vm_name);
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
@@ -236,8 +236,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
-    // 1. VBoxManage.exe clonevm vm1-- name vm2-- register q--basefolder
-    // "C:\ProgramData\Multipass\data\virtualbox\vault\instances"
+    // 1. clone the vm with options keeping disk file name. Without specifying --mode, then its value is machine, which
+    // means no snapshots are copied,
     mpu::process_throw_on_error("VBoxManage",
                                 {"clonevm",
                                  QString::fromStdString(source_vm_name),
@@ -246,12 +246,14 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "--register",
                                  "--basefolder",
                                  QString::fromStdString(instances_dir.string()),
+                                 "--mode",
+                                 "machine",
                                  "--options",
-                                 "keepdisknames"},
+                                 "keepdisknames, keepallmacs"},
                                 "Could not clone VM: {}",
                                 QString::fromStdString(source_vm_name));
 
-    // 4. remove the cloud-init file from the vm
+    // 2. remove the cloud-init file from the vm
     mpu::process_throw_on_error("VBoxManage",
                                 {"storageattach",
                                  name,
@@ -267,7 +269,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "none"},
                                 "Could not remove the cloud-init file from: {}",
                                 name);
-    // 5. attach the new cloud-file to the vm
+    // 3. attach the new cloud-file to the vm
     mpu::process_throw_on_error("VBoxManage",
                                 {"storageattach",
                                  name,
@@ -283,7 +285,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  desc.cloud_init_iso},
                                 "Could not attach the cloud-init file to: {}",
                                 name);
-    // 6. reset the mac addresses of vm to the spec addres
+    // 4. reset the mac addresses of vm to the spec addres
     update_mac_addresses_of_network_adapters(desc, name);
 }
 
