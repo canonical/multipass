@@ -2519,6 +2519,25 @@ TEST_F(Client, stop_cmd_disabled_petenv_all)
     EXPECT_THAT(send_command({"stop", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, stop_cmd_force_sends_proper_request)
+{
+    const auto force_set_matcher = Property(&mp::StopRequest::force_stop, IsTrue());
+    EXPECT_CALL(mock_daemon, stop)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::StopReply, mp::StopRequest>(force_set_matcher, ok)));
+
+    EXPECT_THAT(send_command({"stop", "foo", "--force"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, stop_cmd_force_conflicts_with_time_option)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--force", "--time", "10"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, stop_cmd_force_conflicts_with_cancel_option)
+{
+    EXPECT_THAT(send_command({"stop", "foo", "--force", "--cancel"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
 // suspend cli tests
 TEST_F(Client, suspend_cmd_ok_with_one_arg)
 {
