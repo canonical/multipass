@@ -109,8 +109,8 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
 }
 
 namespace fs = std::filesystem;
-void copy_instance_dir_without_snapshot_and_image_files(const fs::path& source_instance_dir_path,
-                                                        const fs::path& dest_instance_dir_path)
+void copy_instance_dir_with_cloud_init_file_only(const fs::path& source_instance_dir_path,
+                                                 const fs::path& dest_instance_dir_path)
 {
     if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
                                   MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
@@ -122,8 +122,9 @@ void copy_instance_dir_without_snapshot_and_image_files(const fs::path& source_i
                 fs::create_directory(dest_instance_dir_path);
             }
 
-            if (entry.path().extension().string() != ".vdi" &&
-                entry.path().filename().string().find("snapshot") == std::string::npos)
+            // we only need cloud-init-config.iso file here, becaue the configuration files and image file will be
+            // copied by the VBoxManage clonevm command.
+            if (entry.path().extension().string() == ".iso")
             {
                 const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
                 fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
@@ -236,7 +237,7 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clon
             }
         });
 
-    copy_instance_dir_without_snapshot_and_image_files(source_instance_data_directory, dest_instance_data_directory);
+    copy_instance_dir_with_cloud_init_file_only(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
 
