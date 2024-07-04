@@ -27,7 +27,7 @@ void main() async {
   const windowOptions = WindowOptions(
     center: true,
     minimumSize: Size(1000, 600),
-    size: Size(1400, 800),
+    size: Size(1400, 822),
     title: 'Multipass',
   );
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
