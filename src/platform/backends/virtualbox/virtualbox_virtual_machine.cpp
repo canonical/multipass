@@ -229,9 +229,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                                        const SSHKeyProvider& key_provider,
                                                        const Path& dest_instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, dest_instance_dir},
+      desc{desc},
       name{QString::fromStdString(desc.vm_name)},
-      username{desc.ssh_username},
-      image_path{desc.image.image_path},
       monitor{&monitor}
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
