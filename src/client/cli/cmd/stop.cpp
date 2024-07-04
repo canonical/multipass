@@ -62,8 +62,8 @@ QString cmd::Stop::short_help() const
 
 QString cmd::Stop::description() const
 {
-    return QStringLiteral("Stop the named instances, if running. Exits with\n"
-                          "return code 0 if successful.");
+    return QStringLiteral("Stop the named instances. Exits with return code 0 \n"
+                          "if successful.");
 }
 
 mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
@@ -84,7 +84,10 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
                                    "time", "0");
     QCommandLineOption cancel_option({"c", "cancel"}, "Cancel a pending delayed shutdown");
-    parser->addOptions({all_option, time_option, cancel_option});
+    QCommandLineOption force_option("force",
+                                    "Force the instance to shut down immediately. Warning: This could potentially "
+                                    "corrupt a running instance, so use with caution.");
+    parser->addOptions({all_option, time_option, cancel_option, force_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -104,6 +107,14 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
         cerr << "Cannot set \'time\' and \'cancel\' options at the same time\n";
         return ParseCode::CommandLineError;
     }
+
+    if (parser->isSet(force_option) && (parser->isSet(time_option) || parser->isSet(cancel_option)))
+    {
+        cerr << "Cannot set \'force\' along with \'time\' or \'cancel\' options at the same time\n";
+        return ParseCode::CommandLineError;
+    }
+
+    request.set_force_stop(parser->isSet(force_option));
 
     auto time = parser->value(time_option);
 
