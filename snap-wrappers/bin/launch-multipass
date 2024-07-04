@@ -1,6 +1,5 @@
 #!/bin/sh
 
 . client-common.sh
-link_autostart
 
 exec "$SNAP/bin/multipass" "$@"
