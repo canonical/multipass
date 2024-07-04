@@ -41,6 +41,7 @@ public:
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
+    bool is_network_supported(const std::string& network_type) const override;
     void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& extra_interface) override;
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) const override;
 

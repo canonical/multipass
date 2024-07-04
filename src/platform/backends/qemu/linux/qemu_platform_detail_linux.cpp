@@ -212,6 +212,11 @@ mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& d
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
 }
 
+bool mp::QemuPlatformDetail::is_network_supported(const std::string& network_type) const
+{
+    return network_type == "bridge" || network_type == "ethernet";
+}
+
 void mp::QemuPlatformDetail::prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) const
 {
     // Nothing to do here until we implement networking on this backend

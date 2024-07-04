@@ -30,6 +30,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -129,7 +130,25 @@ QString mp::QemuVirtualMachineFactory::get_backend_directory_name() const
 
 auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    return qemu_platform->networks();
+    auto platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
+
+    std::vector<NetworkInterfaceInfo> ret;
+    const auto& br_nomenclature = MP_PLATFORM.bridge_nomenclature();
+
+    for (const auto& ifs_info : platform_ifs_info)
+    {
+        const auto& info = ifs_info.second;
+        const auto& type = info.type;
+
+        if (qemu_platform->is_network_supported(type))
+            ret.push_back(info);
+    }
+
+    for (auto& net : ret)
+        if (net.type == "ethernet" && net.needs_authorization && mpu::find_bridge_with(ret, net.id, br_nomenclature))
+            net.needs_authorization = false;
+
+    return ret;
 }
 
 void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
