@@ -44,6 +44,13 @@ class LinuxAutostartNotifier extends AutostartNotifier {
     '${Platform.environment['HOME']}/.config/autostart/$autostartFile',
   );
 
+
+  LinuxAutostartNotifier() {
+    if (FileSystemEntity.isLinkSync(file.path)) {
+      Link(file.path).deleteSync();
+    }
+  }
+
   @override
   Future<bool> build() => file.exists();
 
