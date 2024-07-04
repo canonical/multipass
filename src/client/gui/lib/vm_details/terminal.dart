@@ -1,61 +1,112 @@
 import 'dart:convert';
 import 'dart:isolate';
-import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
+import '../notifications.dart';
+import '../platform/platform.dart';
 import '../providers.dart';
 
-final vmShellsProvider = StateProvider.autoDispose.family<int, String>((_, __) {
+final runningShellsProvider =
+    StateProvider.autoDispose.family<int, String>((_, __) {
   return 0;
 });
 
-class VmTerminal extends ConsumerStatefulWidget {
-  final String name;
+class ShellId {
+  final int id;
+  final bool autostart;
 
-  const VmTerminal(this.name, {super.key});
+  ShellId(this.id, {this.autostart = true});
 
   @override
-  ConsumerState<VmTerminal> createState() => VmTerminalState();
+  String toString() => 'ShellId{$id}';
 }
 
-class VmTerminalState extends ConsumerState<VmTerminal> {
-  Terminal? terminal;
+typedef TerminalIdentifier = ({String vmName, ShellId shellId});
+
+class TerminalNotifier
+    extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
+  final lock = Lock();
   Isolate? isolate;
-  final scrollController = ScrollController();
-  final focusNode = FocusNode();
+  late final vmStatusProvider = vmInfoProvider(arg.vmName).select((info) {
+    return info.instanceStatus.status == Status.RUNNING;
+  });
 
   @override
-  void dispose() {
-    isolate?.kill(priority: Isolate.immediate);
-    scrollController.dispose();
-    focusNode.dispose();
-    super.dispose();
+  Terminal? build(TerminalIdentifier arg) {
+    ref.onDispose(_dispose);
+    if (arg.shellId.autostart) {
+      lock.synchronized(_initShell).then((value) => state = value);
+    }
+    ref.listen(vmStatusProvider, (previous, next) {
+      if ((previous ?? false) && !next) stop();
+    });
+    return null;
   }
 
-  Future<void> initTerminal() async {
-    final vmShellsNotifier = ref.read(vmShellsProvider(widget.name).notifier);
-    final thisTerminal = terminal;
-    if (thisTerminal == null) return;
+  Future<Terminal?> _initShell() async {
+    final currentState = stateOrNull;
+    if (currentState != null) return currentState;
 
-    final sshInfo = await ref.read(grpcClientProvider).sshInfo(widget.name);
-    if (sshInfo == null) return;
+    final running = ref.read(vmStatusProvider);
+    if (!running) return null;
 
+    final grpcClient = ref.read(grpcClientProvider);
+    final sshInfo = await grpcClient.sshInfo(arg.vmName).onError((err, stack) {
+      ref
+          .notifyError((error) => 'Failed to get SSH information: $err')
+          .call(err, stack);
+      return null;
+    });
+    if (sshInfo == null) return null;
+
+    final terminal = Terminal(maxLines: 10000);
     final receiver = ReceivePort();
     final errorReceiver = ReceivePort();
     final exitReceiver = ReceivePort();
+
+    errorReceiver.listen((es) {
+      final (Object? error, String? stack) = (es[0], es[1]);
+      logger.e(
+        'Error from $arg ssh isolate',
+        error: error,
+        stackTrace: stack != null ? StackTrace.fromString(stack) : null,
+      );
+    });
+
+    exitReceiver.listen((_) {
+      logger.d('Exited $arg ssh isolate');
+      receiver.close();
+      errorReceiver.close();
+      exitReceiver.close();
+      stop();
+    });
+
+    receiver.listen((event) {
+      switch (event) {
+        case final SendPort sender:
+          terminal.onOutput = sender.send;
+          terminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
+        case final String data:
+          terminal.write(data);
+        case null:
+          stop();
+      }
+    });
+
     isolate = await Isolate.spawn(
       sshIsolate,
       SshShellInfo(
         sender: receiver.sendPort,
-        width: thisTerminal.viewWidth,
-        height: thisTerminal.viewHeight,
+        width: terminal.viewWidth,
+        height: terminal.viewHeight,
         sshInfo: sshInfo,
       ),
       onError: errorReceiver.sendPort,
@@ -63,40 +114,79 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
       errorsAreFatal: true,
     );
 
-    vmShellsNotifier.update((state) => state + 1);
+    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
+      return state + 1;
+    });
+    return terminal;
+  }
 
-    errorReceiver.listen((es) {
-      logger.e(
-        'Error from ${widget.name} ssh isolate',
-        error: es[0],
-        stackTrace: es[1] != null ? StackTrace.fromString(es[1]) : null,
-      );
-    });
-    exitReceiver.listen((_) {
-      logger.d('Exited ${widget.name} ssh isolate');
-      receiver.close();
-      errorReceiver.close();
-      exitReceiver.close();
-      vmShellsNotifier.update((state) => max(0, state - 1));
-      if (mounted) setState(() => terminal = null);
-    });
-    receiver.listen((event) {
-      switch (event) {
-        case final SendPort sender:
-          thisTerminal.onOutput = sender.send;
-          thisTerminal.onResize = (w, h, pw, ph) => sender.send([w, h, pw, ph]);
-        case final String data:
-          thisTerminal.write(data);
-        case null:
-          logger.i('Ssh session for ${widget.name} has exited');
-          isolate?.kill(priority: Isolate.immediate);
-      }
-    });
+  Future<void> start() async {
+    state = await lock.synchronized(_initShell);
+  }
+
+  void stop() {
+    _dispose();
+    state = null;
+  }
+
+  void _dispose() {
+    isolate?.kill(priority: Isolate.immediate);
+    if (isolate != null) {
+      ref
+          .read(runningShellsProvider(arg.vmName).notifier)
+          .update((state) => state - 1);
+    }
+    isolate = null;
+  }
+}
+
+final terminalProvider = NotifierProvider.autoDispose
+    .family<TerminalNotifier, Terminal?, TerminalIdentifier>(
+        TerminalNotifier.new);
+
+class VmTerminal extends ConsumerStatefulWidget {
+  final String name;
+  final ShellId id;
+  final bool isCurrent;
+
+  const VmTerminal(
+    this.name,
+    this.id, {
+    super.key,
+    this.isCurrent = false,
+  });
+
+  @override
+  ConsumerState<VmTerminal> createState() => _VmTerminalState();
+}
+
+class _VmTerminalState extends ConsumerState<VmTerminal> {
+  final scrollController = ScrollController();
+  final focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
     focusNode.requestFocus();
   }
 
   @override
+  void dispose() {
+    scrollController.dispose();
+    focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(VmTerminal oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isCurrent) focusNode.requestFocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
+    final terminal = ref.watch(terminalProvider(terminalIdentifier));
     final vmRunning = ref.watch(vmInfoProvider(widget.name).select((info) {
       return info.instanceStatus.status == Status.RUNNING;
     }));
@@ -113,8 +203,7 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
       }),
     );
 
-    final thisTerminal = terminal;
-    if (thisTerminal == null) {
+    if (terminal == null) {
       return Container(
         color: const Color(0xff380c2a),
         alignment: Alignment.center,
@@ -126,12 +215,11 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
             const SizedBox(height: 12),
             OutlinedButton(
               style: buttonStyle,
-              onPressed: !vmRunning
-                  ? null
-                  : () => setState(() {
-                        terminal = Terminal(maxLines: 10000);
-                        initTerminal();
-                      }),
+              onPressed: vmRunning
+                  ? () => ref
+                      .read(terminalProvider(terminalIdentifier).notifier)
+                      .start()
+                  : null,
               child: const Text('Open shell'),
             ),
             const SizedBox(height: 32),
@@ -145,11 +233,10 @@ class VmTerminalState extends ConsumerState<VmTerminal> {
       thickness: 9,
       child: ClipRect(
         child: TerminalView(
-          thisTerminal,
+          terminal,
           scrollController: scrollController,
-          autofocus: true,
           focusNode: focusNode,
-          shortcuts: const {},
+          shortcuts: mpPlatform.terminalShortcuts,
           hardwareKeyboardOnly: true,
           padding: const EdgeInsets.all(4),
           theme: const TerminalTheme(

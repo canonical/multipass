@@ -1,9 +1,59 @@
 import 'package:basics/basics.dart';
+import 'package:built_collection/built_collection.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'terminal.dart';
+
+typedef ShellIds = ({
+  BuiltList<ShellId> ids,
+// this is the index of the currently selected shell id
+  int currentIndex,
+});
+
+class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
+  @override
+  ShellIds build(String arg) => (ids: [ShellId(1)].build(), currentIndex: 0);
+
+  void add() {
+    final ids = state.ids;
+    final existingIds = state.ids.map((shellId) => shellId.id).toBuiltSet();
+    final newShellId = 1.to(1000).whereNot(existingIds.contains).first;
+    state = (
+      ids: ids.rebuild((ids) => ids.add(ShellId(newShellId))),
+      currentIndex: ids.length,
+    );
+  }
+
+  void remove(int index) {
+    var (:ids, :currentIndex) = state;
+    final idsBuilder = ids.toBuilder();
+    idsBuilder.removeAt(index);
+    if (index < currentIndex) currentIndex -= 1;
+    if (idsBuilder.isEmpty) idsBuilder.add(ShellId(1, autostart: false));
+    currentIndex = currentIndex.clamp(0, idsBuilder.length - 1);
+    state = (ids: idsBuilder.build(), currentIndex: currentIndex);
+  }
+
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) newIndex -= 1;
+    final reorderedIds = state.ids.rebuild((ids) {
+      final id = ids.removeAt(oldIndex);
+      ids.insert(newIndex, id);
+    });
+
+    state = (ids: reorderedIds, currentIndex: newIndex);
+  }
+
+  void setCurrent(int index) {
+    state = (ids: state.ids, currentIndex: index);
+  }
+}
+
+final shellIdsProvider = NotifierProvider.autoDispose
+    .family<ShellIdsNotifier, ShellIds, String>(ShellIdsNotifier.new);
 
 class Tab extends StatelessWidget {
   final String title;
@@ -28,10 +78,7 @@ class Tab extends StatelessWidget {
     child: SvgPicture.asset(
       'assets/ubuntu.svg',
       width: 12,
-      colorFilter: const ColorFilter.mode(
-        Colors.white,
-        BlendMode.srcIn,
-      ),
+      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
     ),
   );
 
@@ -41,10 +88,7 @@ class Tab extends StatelessWidget {
       title,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.w300,
-      ),
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w300),
     );
 
     final closeButton = Material(
@@ -81,56 +125,37 @@ class Tab extends StatelessWidget {
   }
 }
 
-class TerminalTabs extends StatefulWidget {
+class TerminalTabs extends ConsumerWidget {
   final String name;
 
   const TerminalTabs(this.name, {super.key});
 
   @override
-  State<TerminalTabs> createState() => _TerminalTabsState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final provider = shellIdsProvider(name);
+    final notifier = provider.notifier;
+    final (:ids, :currentIndex) = ref.watch(provider);
 
-class _TerminalTabsState extends State<TerminalTabs> {
-  var _currentIndex = 0;
-
-  get currentIndex => _currentIndex;
-
-  set currentIndex(value) {
-    final (_, key) = shells[value];
-    FocusManager.instance.primaryFocus?.unfocus();
-    key.currentState?.focusNode.requestFocus();
-    _currentIndex = value;
-  }
-
-  final shells = [(1, GlobalKey<VmTerminalState>())];
-
-  @override
-  Widget build(BuildContext context) {
-    final tabs = shells.indexed.map((e) {
-      final (orderIndex, (shellId, _)) = e;
-      return ReorderableDragStartListener(
-        key: ValueKey(shellId),
-        index: orderIndex,
+    final tabsAndShells = ids.mapIndexed((index, shellId) {
+      final tab = ReorderableDragStartListener(
+        key: ValueKey(shellId.id),
+        index: index,
         child: Tab(
-          title: 'Shell $shellId',
-          selected: orderIndex == currentIndex,
-          onTap: () => setState(() => currentIndex = orderIndex),
-          onClose: () {
-            if (shells.length == 1) return;
-            setState(() {
-              shells.removeAt(orderIndex);
-              if (orderIndex < currentIndex) currentIndex -= 1;
-              currentIndex = currentIndex.clamp(0, shells.length - 1);
-            });
-          },
+          title: 'Shell ${shellId.id}',
+          selected: index == currentIndex,
+          onTap: () => ref.read(notifier).setCurrent(index),
+          onClose: () => ref.read(notifier).remove(index),
         ),
       );
-    });
 
-    final terminals = shells.map((e) {
-      final (_, terminalKey) = e;
-      return VmTerminal(widget.name, key: terminalKey);
-    });
+      final shell = VmTerminal(
+        name,
+        shellId,
+        isCurrent: index == currentIndex,
+      );
+
+      return (tab: tab, shell: shell);
+    }).toList();
 
     final addShellButton = Material(
       color: Colors.transparent,
@@ -138,12 +163,7 @@ class _TerminalTabsState extends State<TerminalTabs> {
         hoverColor: Colors.white24,
         splashRadius: 10,
         icon: const Icon(Icons.add, color: Colors.white, size: 20),
-        onPressed: () => setState(() {
-          final shellIds = shells.map((e) => e.$1).toSet();
-          final newShellId = 1.to(1000).whereNot(shellIds.contains).first;
-          shells.add((newShellId, GlobalKey()));
-          currentIndex = shells.length - 1;
-        }),
+        onPressed: () => ref.read(notifier).add(),
       ),
     );
 
@@ -151,20 +171,19 @@ class _TerminalTabsState extends State<TerminalTabs> {
       buildDefaultDragHandles: false,
       footer: addShellButton,
       scrollDirection: Axis.horizontal,
-      onReorderStart: (index) => setState(() => currentIndex = index),
-      onReorder: (oldIndex, newIndex) => setState(() {
-        if (oldIndex < newIndex) newIndex -= 1;
-        final item = shells.removeAt(oldIndex);
-        shells.insert(newIndex, item);
-        currentIndex = newIndex;
-      }),
-      children: tabs.toList(),
+      onReorderStart: (index) => ref.read(notifier).setCurrent(index),
+      onReorder: (oldIndex, newIndex) {
+        ref.read(notifier).reorder(oldIndex, newIndex);
+      },
+      children: tabsAndShells.map((e) => e.tab).toList(),
     );
 
-    final shellStack = IndexedStack(
-      sizing: StackFit.expand,
-      index: currentIndex,
-      children: terminals.toList(),
+    final shellStack = FocusScope(
+      child: IndexedStack(
+        sizing: StackFit.expand,
+        index: currentIndex,
+        children: tabsAndShells.map((e) => e.shell).toList(),
+      ),
     );
 
     return Column(children: [

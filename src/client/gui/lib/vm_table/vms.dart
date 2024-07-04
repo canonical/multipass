@@ -38,7 +38,7 @@ class Vms extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     goToCatalogue() {
-      ref.read(sidebarKeyProvider.notifier).state = CatalogueScreen.sidebarKey;
+      ref.read(sidebarKeyProvider.notifier).set(CatalogueScreen.sidebarKey);
     }
 
     final heading = Row(children: [
