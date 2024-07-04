@@ -30,15 +30,16 @@ class BulkActionsBar extends ConsumerWidget {
         final object = selectedVms.length == 1
             ? selectedVms.first
             : '${selectedVms.length} instances';
-        final notification = OperationNotification(
-          text: '${action.continuousTense} $object',
-          future: function(selectedVms).then((_) {
-            return '${action.pastTense} $object';
-          }).onError((_, __) {
-            throw 'Failed to ${action.name.toLowerCase()} $object';
-          }),
+
+        final notificationsNotifier = ref.read(notificationsProvider.notifier);
+        notificationsNotifier.addOperation(
+          function(selectedVms),
+          loading: '${action.continuousTense} $object',
+          onSuccess: (_) => '${action.pastTense} $object',
+          onError: (error) {
+            return 'Failed to ${action.name.toLowerCase()} $object: $error';
+          },
         );
-        ref.read(notificationsProvider.notifier).add(notification);
       };
     }
 
