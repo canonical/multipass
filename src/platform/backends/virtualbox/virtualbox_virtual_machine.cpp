@@ -19,6 +19,7 @@
 #include "virtualbox_snapshot.h"
 
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
@@ -209,34 +210,58 @@ void mp::VirtualBoxVirtualMachine::start()
     mpu::process_throw_on_error("VBoxManage", {"startvm", name, "--type", "headless"}, "Could not start VM: {}", name);
 }
 
-void mp::VirtualBoxVirtualMachine::shutdown()
+void mp::VirtualBoxVirtualMachine::shutdown(bool force)
 {
-    std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-    auto present_state = current_state();
+    std::unique_lock<std::mutex> lock{state_mutex};
+    const auto present_state = current_state();
 
-    if (present_state == State::running || present_state == State::delayed_shutdown)
+    try
     {
-        mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "acpipowerbutton"}, "Could not stop VM: {}",
+        check_state_for_shutdown(force);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::log(mpl::Level::info, vm_name, e.what());
+        return;
+    }
+
+    drop_ssh_session();
+
+    if (force)
+    {
+        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        // virtualbox needs the discardstate command to shutdown in the suspend state, it discards the saved state of
+        // the vm, which is akin to resetting it to the off state without a proper shutdown process
+        if (state == State::suspended)
+        {
+            mpu::process_throw_on_error("VBoxManage", {"discardstate", name}, "Could not power VM off: {}", name);
+        }
+        else
+        {
+            mpu::process_throw_on_error("VBoxManage",
+                                        {"controlvm", name, "poweroff"},
+                                        "Could not power VM off: {}",
+                                        name);
+        }
+    }
+    else
+    {
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"controlvm", name, "acpipowerbutton"},
+                                    "Could not stop VM: {}",
                                     name);
-        drop_ssh_session();
-        state = State::stopped;
-        port = std::nullopt;
-    }
-    else if (present_state == State::starting)
-    {
-        mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "poweroff"}, "Could not power VM off: {}", name);
-        drop_ssh_session();
-        state = State::stopped;
-        state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        port = std::nullopt;
-    }
-    else if (present_state == State::suspended)
-    {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring shutdown issued while suspended"));
     }
 
+    state = State::stopped;
+
+    // If it wasn't force, we wouldn't be here
+    if (present_state == State::starting)
+    {
+        state_wait.wait(lock, [this] { return shutdown_while_starting; });
+    }
+
+    port = std::nullopt;
     update_state();
-    lock.unlock();
 }
 
 void mp::VirtualBoxVirtualMachine::suspend()
