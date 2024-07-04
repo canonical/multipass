@@ -54,6 +54,9 @@ rm -rfv /Applications/Multipass.app
 rm -rfv "/Library/Application Support/com.canonical.multipass"
 rm -rfv "/var/root/Library/Caches/multipassd"
 
+# GUI Autostart
+rm -fv "$HOME/Library/LaunchAgents/com.canonical.multipass.gui.autostart.plist"
+
 # Bash completions
 rm -rfv "/usr/local/etc/bash_completion.d/multipass"
 rm -rf "/opt/local/share/bash-completion/completions/multipass"

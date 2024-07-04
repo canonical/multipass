@@ -21,5 +21,8 @@ fi
 # Clear the target directories to avoid any leftovers
 # Hardcoding the path to avoid the potential for `rm -rf /`
 rm -rf "${3}/Library/Application Support/com.canonical.multipass" "${3}/Applications/Multipass.app"
+rm -f /Applications/Multipass.app
+GUI_AUTOSTART_PLIST="$HOME/Library/LaunchAgents/com.canonical.multipass.gui.autostart.plist"
+[ -L $GUI_AUTOSTART_PLIST ] && rm -f $GUI_AUTOSTART_PLIST
 
 exit 0

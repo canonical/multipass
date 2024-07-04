@@ -143,7 +143,7 @@ if (MSVC)
     DetailPrint '\\\"Daemon install result: $0\\\"'
     CopyFiles '$INSTDIR\\\\Fonts\\\\*' '$WINDIR\\\\Fonts'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Fonts' 'Ubuntu Mono (TrueType)' 'UbuntuMono-R.ttf'
-    CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass_gui.exe'
+    CreateShortCut '$SMPROGRAMS\\\\Multipass.lnk' '$INSTDIR\\\\bin\\\\multipass.gui.exe'
     WriteRegStr HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Multipass' 'DisplayIcon' '$INSTDIR\\\\bin\\\\multipass_wt.ico'
     "
   )
@@ -170,7 +170,7 @@ if (MSVC)
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
     nsExec::ExecToLog 'TaskKill /IM multipassd.exe /F'
     nsExec::ExecToLog 'TaskKill /IM multipass.exe /F'
-    nsExec::ExecToLog 'TaskKill /IM multipass_gui.exe /F'
+    nsExec::ExecToLog 'TaskKill /IM multipass.gui.exe /F'
     DeleteRegKey HKLM 'SYSTEM\\\\CurrentControlSet\\\\Services\\\\EventLog\\\\Application\\\\Multipass'
     DeleteRegKey HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\multipass.exe'
     DeleteRegValue HKLM 'SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' 'multipass-gui'
@@ -182,6 +182,8 @@ if (MSVC)
     RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Roaming\\\\multipassd\\\"
     RMDIR /r \\\"$LOCALAPPDATA\\\\Multipass\\\"
     \\\${EnableX64FSRedirection}
+    SetShellVarContext current
+    Delete '$SMSTARTUP\\\\Multipass.lnk'
     done_uninst:
     "
   )

@@ -11,16 +11,19 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const settings = Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GeneralSettings(),
-        Divider(height: 60),
-        UsageSettings(),
-        Divider(height: 60),
-        VirtualizationSettings(),
-      ],
+    const settings = Padding(
+      padding: EdgeInsets.only(right: 15),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GeneralSettings(),
+          Divider(height: 60),
+          UsageSettings(),
+          Divider(height: 60),
+          VirtualizationSettings(),
+        ],
+      ),
     );
 
     return const Scaffold(

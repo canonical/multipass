@@ -15,7 +15,7 @@
 set_target_properties(dart_ffi PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 install(TARGETS dart_ffi DESTINATION bin/ COMPONENT multipass_gui)
 
-set(MULTIPASS_GUI_EXECUTABLE multipass_gui.exe)
+set(MULTIPASS_GUI_EXECUTABLE multipass.gui.exe)
 set(MULTIPASS_GUI_TARGET windows)
 set(MULTIPASS_GUI_PREFIX ${MULTIPASS_GUI_TARGET}/${MULTIPASS_GUI_ARCH}/runner/Release)
 set(MULTIPASS_GUI_BUNDLE_RELATIVE "")

@@ -3,9 +3,9 @@ set -e
 
 # This script links the Multipass GUI bundle into /Applications
 
-the_app="Multipass GUI.app"
-
+the_app="Multipass.app"
+mkdir -p "${3}/Applications/${the_app}"
 bundle_path="${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/${the_app}"
-ln -fsv "${bundle_path}" "${3}Applications/${the_app}"
+ln -fsv "${bundle_path}/Contents" "${3}Applications/${the_app}/Contents"
 
 echo 0

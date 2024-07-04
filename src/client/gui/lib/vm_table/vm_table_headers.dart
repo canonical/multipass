@@ -131,7 +131,7 @@ class VmNameLink extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    goToVm() => ref.read(sidebarKeyProvider.notifier).state = 'vm-$name';
+    goToVm() => ref.read(sidebarKeyProvider.notifier).set('vm-$name');
 
     return Tooltip(
       message: name,
