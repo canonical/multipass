@@ -6,9 +6,19 @@ import '../providers.dart';
 import 'launch_form.dart';
 import 'launch_operation_progress.dart';
 
-final launchOperationProvider =
-    StateProvider<(Stream<Either<LaunchReply, MountReply>?>, String, String)?>(
-        (_) => null);
+class LaunchOperation {
+  final Stream<Either<LaunchReply, MountReply>?> stream;
+  final String name;
+  final String image;
+
+  LaunchOperation({
+    required this.stream,
+    required this.name,
+    required this.image,
+  });
+}
+
+final launchOperationProvider = StateProvider<LaunchOperation?>((_) => null);
 
 class LaunchPanel extends ConsumerWidget {
   const LaunchPanel({super.key});
@@ -20,7 +30,7 @@ class LaunchPanel extends ConsumerWidget {
       return LaunchForm();
     }
 
-    final (stream, name, image) = values;
+    final LaunchOperation(:stream, :name, :image) = values;
     return FocusableActionDetector(
       autofocus: true,
       actions: {
