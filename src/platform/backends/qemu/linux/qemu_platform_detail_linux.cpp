@@ -217,6 +217,11 @@ bool mp::QemuPlatformDetail::is_network_supported(const std::string& network_typ
     return network_type == "bridge" || network_type == "ethernet";
 }
 
+bool mp::QemuPlatformDetail::needs_network_prep() const
+{
+    return true;
+}
+
 void mp::QemuPlatformDetail::prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) const
 {
     // Nothing to do here until we implement networking on this backend
