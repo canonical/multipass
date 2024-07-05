@@ -30,7 +30,7 @@ namespace multipass
 {
 namespace platform
 {
-constexpr auto unlock_code{"ardent-dory"};
+constexpr auto unlock_code{"cherry-greyhound"};
 // clang-format off
 const std::unordered_set<std::string> supported_release_aliases{
     "core",   "core16", "core18", "core20", "core22", "core24",
