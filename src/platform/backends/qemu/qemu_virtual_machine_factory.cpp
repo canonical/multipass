@@ -155,3 +155,8 @@ void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterf
 {
     return qemu_platform->prepare_networking(extra_interfaces);
 }
+
+std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
+{
+    return qemu_platform->create_bridge_with(interface);
+}

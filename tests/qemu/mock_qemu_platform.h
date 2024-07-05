@@ -45,6 +45,7 @@ struct MockQemuPlatform : public QemuPlatform
     MOCK_METHOD(bool, is_network_supported, (const std::string&), (const, override));
     MOCK_METHOD(void, add_network_interface, (VirtualMachineDescription&, const NetworkInterface&), (override));
     MOCK_METHOD(void, prepare_networking, (std::vector<NetworkInterface>&), (const, override));
+    MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (const, override));
 };
 
 struct MockQemuPlatformFactory : public QemuPlatformFactory

@@ -44,6 +44,7 @@ public:
     bool is_network_supported(const std::string& network_type) const override;
     void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& extra_interface) override;
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) const override;
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) const override;
 
 private:
     const QString bridge_name;
