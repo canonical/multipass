@@ -503,7 +503,34 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
 
 void mp::VirtualBoxVirtualMachine::remove_all_snapshots_from_the_image() const
 {
+    // Name: @s1 (UUID: 93a6a9ba-9223-4b77-a8cf-80213439aaae)
+    // Description: snapshot1:
+    //    Name: @s2 (UUID: 871d6b85-d11c-4969-8433-c4a143dba4d8)
+    //    Description: snapshot2:
+    //        Name: @s3 (UUID: c4800b70-1e50-4b84-b430-1856437fe967)
+    //        Description: snapshot3:
 
+    QString snap_shot_list =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("VBoxManage", {"snapshot", name, "list"}));
+    QRegularExpression uuid_key_value_regex(R"(UUID: ([\w-]+))");
+    QRegularExpressionMatchIterator iter = uuid_key_value_regex.globalMatch(snap_shot_list);
+
+    QStringList uuid_list;
+    while (iter.hasNext())
+    {
+        QRegularExpressionMatch match = iter.next();
+        // captured(0) is the entire match which contains UUID key and value, captured(1) is the first regex capture
+        // group which is the value of the UUID only
+        uuid_list.append(match.captured(1));
+    }
+
+    for (const auto& uuid : uuid_list)
+    {
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"snapshot", name, "delete", uuid},
+                                    "Could not delete snapshot: {}",
+                                    name);
+    }
 }
 
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
