@@ -501,6 +501,11 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
+void mp::VirtualBoxVirtualMachine::remove_all_snapshots_from_the_image() const
+{
+
+}
+
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
 {
     return std::make_shared<VirtualBoxSnapshot>(filename, *this, desc);

@@ -267,7 +267,7 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clon
                                                        monitor,
                                                        key_provider,
                                                        get_instance_directory(dest_vm_desc.vm_name));
-    // cloned_instance->remove_all_snapshots_from_the_image();
+    cloned_instance->remove_all_snapshots_from_the_image();
 
     rollback_delete_instance_folder.dismiss();
     return cloned_instance;
