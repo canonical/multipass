@@ -156,12 +156,12 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
         vm_name);
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
-        const size_t current_adapter_number = i + 1;
+        const size_t current_adapter_number = i + 2;
         mpu::process_log_on_error("VBoxManage",
                                   {"modifyvm",
                                    vm_name,
                                    "--macaddress" + QString::number(current_adapter_number),
-                                   QString::fromStdString(desc.default_mac_address).remove(':')},
+                                   QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':')},
                                   "Could not update the network adapter address of: {}",
                                   vm_name);
     }
