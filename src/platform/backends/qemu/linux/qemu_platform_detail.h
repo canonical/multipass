@@ -43,7 +43,6 @@ public:
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
     bool is_network_supported(const std::string& network_type) const override;
     bool needs_network_prep() const override;
-    void add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& extra_interface) override;
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) const override;
 
 private:

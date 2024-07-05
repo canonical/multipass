@@ -885,8 +885,6 @@ TEST_F(QemuBackend, addNetworkInterface)
         return std::move(mock_qemu_platform);
     });
 
-    EXPECT_CALL(*mock_qemu_platform, add_network_interface(_, _)).Times(1);
-
     const auto [mock_cloud_init_file_ops, _] = mpt::MockCloudInitFileOps::inject();
     EXPECT_CALL(*mock_cloud_init_file_ops, add_extra_interface_to_cloud_init).Times(1);
 
