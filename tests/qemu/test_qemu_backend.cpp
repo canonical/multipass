@@ -801,7 +801,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
     EXPECT_EQ(snapshot->get_parent(), parent);
 }
 
-TEST_F(QemuBackend, lists_no_networks)
+TEST_F(QemuBackend, networks_does_not_throw)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -809,7 +809,7 @@ TEST_F(QemuBackend, lists_no_networks)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    EXPECT_THROW(backend.networks(), mp::NotImplementedOnThisBackendException);
+    EXPECT_NO_THROW(backend.networks());
 }
 
 TEST_F(QemuBackend, remove_resources_for_calls_qemu_platform)
