@@ -441,7 +441,7 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
 }
 
-TEST_F(TestBaseSnapshot, doesNotComplainOnLegacyShapshot)
+TEST_F(TestBaseSnapshot, doesNotComplainOnLegacySnapshot)
 {
     auto json = test_legacy_snapshot_json();
 

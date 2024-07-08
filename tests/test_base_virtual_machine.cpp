@@ -801,7 +801,7 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
     EXPECT_CALL(snapshot, get_metadata).WillOnce(ReturnRef(original_specs.metadata));
 
-    // set the behavior of get_extra_interfaces to cause the difference to the new spece extra interfaces
+    // set the behavior of get_extra_interfaces to cause the difference to the new space extra interfaces
     EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
 
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,

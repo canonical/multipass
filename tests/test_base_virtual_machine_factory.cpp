@@ -119,7 +119,7 @@ TEST_F(BaseFactory, networks_throws)
 }
 
 // Ideally, we'd define some unique YAML for each node and test the contents of the ISO image,
-// but we'd need a cross-platfrom library to read files in an ISO image and that is beyond scope
+// but we'd need a cross-platform library to read files in an ISO image and that is beyond scope
 // at this time.  Instead, just make sure an ISO image is created and has the expected path.
 TEST_F(BaseFactory, creates_cloud_init_iso_image)
 {
@@ -206,7 +206,7 @@ TEST_F(BaseFactory, prepareInterfaceLeavesExistingBridgeAlone)
     EXPECT_EQ(extra_net, extra_copy);
 }
 
-TEST_F(BaseFactory, prepareInterfaceReplacesBridgedNetworkWithCorrespongingBridge)
+TEST_F(BaseFactory, prepareInterfaceReplacesBridgedNetworkWithCorrespondingBridge)
 {
     StrictMock<MockBaseFactory> factory;
     constexpr auto bridge_type = "tunnel";
