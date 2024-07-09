@@ -44,6 +44,7 @@ public:
     bool is_network_supported(const std::string& network_type) const override;
     bool needs_network_prep() const override;
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) const override;
+    void set_authorization(std::vector<NetworkInterfaceInfo>& networks) override;
 
 private:
     const QString bridge_name;

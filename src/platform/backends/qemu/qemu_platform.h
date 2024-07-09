@@ -57,6 +57,7 @@ public:
     virtual bool is_network_supported(const std::string& network_type) const = 0;
     virtual bool needs_network_prep() const = 0;
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) const = 0;
+    virtual void set_authorization(std::vector<NetworkInterfaceInfo>& networks) = 0;
 
 protected:
     explicit QemuPlatform() = default;

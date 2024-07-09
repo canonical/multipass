@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 
 #include <shared/linux/backend_utils.h>
@@ -29,6 +30,7 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace mpu = multipass::utils;
 
 namespace
 {
@@ -220,6 +222,16 @@ bool mp::QemuPlatformDetail::is_network_supported(const std::string& network_typ
 bool mp::QemuPlatformDetail::needs_network_prep() const
 {
     return true;
+}
+
+void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>& networks)
+{
+    const auto& br_nomenclature = MP_PLATFORM.bridge_nomenclature();
+
+    for (auto& net : networks)
+        if (net.type == "ethernet" && net.needs_authorization &&
+            mpu::find_bridge_with(networks, net.id, br_nomenclature))
+            net.needs_authorization = false;
 }
 
 std::string mp::QemuPlatformDetail::create_bridge_with(const NetworkInterfaceInfo& interface) const
