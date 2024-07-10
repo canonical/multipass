@@ -112,15 +112,11 @@ namespace fs = std::filesystem;
 void copy_instance_dir_with_cloud_init_file_only(const fs::path& source_instance_dir_path,
                                                  const fs::path& dest_instance_dir_path)
 {
-    if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
-                                  MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
+    if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
     {
         for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
         {
-            if (!fs::exists(dest_instance_dir_path))
-            {
-                fs::create_directory(dest_instance_dir_path);
-            }
+            fs::create_directory(dest_instance_dir_path);
 
             // we only need cloud-init-config.iso file here, becaue the configuration files and image file will be
             // copied by the VBoxManage clonevm command.
@@ -222,18 +218,16 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clon
     // if any of the below code throw, then roll back and clean up the created instance folder
     auto rollback_delete_instance_folder =
         sg::make_scope_guard([dest_instance_directory = dest_instance_data_directory]() noexcept -> void {
-            // use err_code to guarantee the two file operations below do not throw
-            if (std::error_code err_code; MP_FILEOPS.exists(dest_instance_directory, err_code))
+            // use err_code to guarantee remove_all does not throw
+            std::error_code err_code;
+            fs::remove_all(dest_instance_directory, err_code);
+            if (err_code.value())
             {
-                fs::remove_all(dest_instance_directory, err_code);
-                if (err_code.value())
-                {
-                    mpl::log(
-                        mpl::Level::info,
-                        "virtualbox factory",
-                        fmt::format("The rollback instance directory removal did not succeed, err_code message is : {}",
-                                    err_code.message()));
-                }
+                mpl::log(
+                    mpl::Level::info,
+                    "virtualbox factory",
+                    fmt::format("The rollback instance directory removal did not succeed, err_code message is : {}",
+                                err_code.message()));
             }
         });
 
