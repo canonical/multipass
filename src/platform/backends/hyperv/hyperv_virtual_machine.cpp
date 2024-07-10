@@ -224,6 +224,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
     const fs::path vmcx_file_path = extract_the_vmcx_file(exported_vm_path);
+    // The next step needs to rename the instance, so we need to store the instance variable $imported_vm from the
+    // Import-VM step. Because we can not use vm name to uniquely identify the vm due to the imported vm has the same
+    // name.
     power_shell->easy_run({"$imported_vm=Import-VM",
                            "-Path",
                            quoted(QString::fromStdString(vmcx_file_path.string())),
@@ -254,10 +257,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     state = State::off;
 
-    if (std::error_code err_code; MP_FILEOPS.exists(exported_vm_path, err_code))
-    {
-        fs::remove_all(exported_vm_path);
-    }
+    fs::remove_all(exported_vm_path);
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()
@@ -280,7 +280,7 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
     // We use mac address to identify the corresponding network adapter, it is a cumbersome implementation because the
     // update requires the original default mac address and extra interface mac addresses. Meanwhile, there are other
     // alternatives, 1. Make a proper name when we add a network interface by calling Add-VMNetworkAdapter and using the
-    // name with the unique identifier to remove it. However, this was not done from the beginning, so it will not be
+    // name as the unique identifier to remove it. However, this was not done from the beginning, so it will not be
     // backward compatible. 2. Assume the network adapters are in the added order. However, hyper-v Get-VMNetworkAdapter
     // does not guarantee that. 3. Use the switch name to query the network adapter. However, it might look like a
     // unique identifier but actually it is not.
