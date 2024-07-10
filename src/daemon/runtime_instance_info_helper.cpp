@@ -95,9 +95,8 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
     info->set_cpu_count(results[Keys::cpus_key].as<std::string>());
     instance_info->set_cpu_times(results[Keys::cpu_times_key].as<std::string>());
     // Some older versions Ubuntu might return nothing from "uptime -p" command, which makes the
-    // results[Keys::uptime_key] null, so IsNull check is necessary here
-    instance_info->set_uptime(results[Keys::uptime_key].IsNull() ? "0 minutes"
-                                                                 : results[Keys::uptime_key].as<std::string>());
+    // results[Keys::uptime_key] null, so calling "T Node::as(const S& fallback)" makes code more robust here
+    instance_info->set_uptime(results[Keys::uptime_key].as<std::string>("0 minutes"));
 
     auto current_release = results[Keys::current_release_key].as<std::string>();
     instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
