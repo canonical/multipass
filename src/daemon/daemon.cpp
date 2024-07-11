@@ -2691,18 +2691,22 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                            server};
 
         const auto& source_name = request->source_name();
-        const auto [_, status] = find_instance_and_react(operative_instances,
-                                                         deleted_instances,
-                                                         source_name,
-                                                         require_operative_instances_reaction);
+        const auto [instance_trail, status] = find_instance_and_react(operative_instances,
+                                                                      deleted_instances,
+                                                                      source_name,
+                                                                      require_operative_instances_reaction);
         if (status.ok())
         {
+            mpl::log(mpl::Level::warning, "general", "status.ok()");
+
             const std::string destination_name = generate_destination_instance_name_for_clone(*request);
 
             auto rollback_clean_up_all_resource_of_dest_instance = sg::make_scope_guard(
                 [this, destination_name]() noexcept -> void { release_resources(destination_name); });
 
-            const auto& source_vm_ptr = operative_instances[source_name];
+            assert(instance_trail.index() == 0);
+            const auto source_vm_ptr = std::get<0>(instance_trail)->second;
+            assert(source_vm_ptr);
             const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
             if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
             {
