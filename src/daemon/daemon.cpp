@@ -2738,12 +2738,8 @@ void mp::Daemon::clone(const CloneRequest* request,
 
             const std::string destination_name = generate_destination_name(*request);
 
-            // if any of the below code throw, then roll back and clean up added spec and image record items
-            auto rollback_remove_spec_image_record_item =
-                sg::make_scope_guard([this, destination_name]() noexcept -> void {
-                    vm_instance_specs.erase(destination_name);
-                    config->vault->remove(destination_name);
-                });
+            auto rollback_clean_up_all_resource_of_dest_instance = sg::make_scope_guard(
+                [this, destination_name]() noexcept -> void { release_resources(destination_name); });
 
             const auto& source_vm_ptr = operative_instances[source_name];
             const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
@@ -2808,7 +2804,7 @@ void mp::Daemon::clone(const CloneRequest* request,
             CloneReply rpc_response;
             rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
             server->Write(rpc_response);
-            rollback_remove_spec_image_record_item.dismiss();
+            rollback_clean_up_all_resource_of_dest_instance.dismiss();
         }
         status_promise->set_value(status);
     }
