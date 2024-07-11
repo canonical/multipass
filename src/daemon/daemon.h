@@ -208,6 +208,8 @@ private:
     populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
 
     bool is_instance_name_already_used(const std::string& instance_name);
+    std::string generate_destination_instance_name_for_clone(const CloneRequest& request);
+    VMSpecs clone_spec(const VMSpecs& src_vm_spec, const std::string& src_name, const std::string& dest_name);
 
     std::unique_ptr<const DaemonConfig> config;
 

@@ -2697,41 +2697,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                          require_operative_instances_reaction);
         if (status.ok())
         {
-            auto generate_destination_name = [this](const CloneRequest& request) -> std::string {
-
-                if (request.has_destination_name())
-                {
-                    if (!mp::utils::valid_hostname(request.destination_name()))
-                    {
-                        throw std::runtime_error("Invalid destination virtual machine instance name: " +
-                                                 request.destination_name());
-                    }
-
-                    if (is_instance_name_already_used(request.destination_name()))
-                    {
-                        throw std::runtime_error(request.destination_name() +
-                                                 " already exists, please choose a new name. ");
-                    }
-
-                    return request.destination_name();
-                }
-                else
-                {
-                    const std::string& source_name = request.source_name();
-                    const std::string destination_name =
-                        generate_next_clone_name(vm_instance_specs[source_name].clone_count, source_name);
-
-                    if (is_instance_name_already_used(destination_name))
-                    {
-                        throw std::runtime_error("auto-generated name " + destination_name +
-                                                 " already exists, please specify a new name manually. ");
-                    }
-
-                    return destination_name;
-                }
-            };
-
-            const std::string destination_name = generate_destination_name(*request);
+            const std::string destination_name = generate_destination_instance_name_for_clone(*request);
 
             auto rollback_clean_up_all_resource_of_dest_instance = sg::make_scope_guard(
                 [this, destination_name]() noexcept -> void { release_resources(destination_name); });
@@ -2742,37 +2708,6 @@ void mp::Daemon::clone(const CloneRequest* request,
             {
                 throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
             }
-
-            auto clone_spec = [this](const mp::VMSpecs& src_vm_spec,
-                                     const std::string& src_name,
-                                     const std::string& dest_name) -> mp::VMSpecs {
-                mp::VMSpecs dest_vm_spec{src_vm_spec};
-                dest_vm_spec.clone_count = 0;
-
-                // update default mac addr and extra_interface mac addr
-                dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
-                for (auto& extra_interface : dest_vm_spec.extra_interfaces)
-                {
-                    if (!extra_interface.mac_address.empty())
-                    {
-                        extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
-                    }
-                }
-
-                // non qemu snapshot files do not have metadata
-                if (!dest_vm_spec.metadata.isEmpty())
-                {
-                    dest_vm_spec.metadata =
-                        MP_JSONUTILS
-                            .update_unique_identifiers_of_metadata(QJsonValue{dest_vm_spec.metadata},
-                                                                   src_vm_spec,
-                                                                   dest_vm_spec,
-                                                                   src_name,
-                                                                   dest_name)
-                            .toObject();
-                }
-                return dest_vm_spec;
-            };
 
             auto& src_spec = vm_instance_specs[source_name];
             auto dest_spec = clone_spec(src_spec, source_name, destination_name);
@@ -3701,6 +3636,72 @@ bool mp::Daemon::is_instance_name_already_used(const std::string& instance_name)
     return operative_instances.find(instance_name) != operative_instances.end() ||
            deleted_instances.find(instance_name) != deleted_instances.end() ||
            delayed_shutdown_instances.find(instance_name) != delayed_shutdown_instances.end();
+}
+
+std::string mp::Daemon::generate_destination_instance_name_for_clone(const CloneRequest& request)
+{
+
+    if (request.has_destination_name())
+    {
+        if (!mp::utils::valid_hostname(request.destination_name()))
+        {
+            throw std::runtime_error("Invalid destination virtual machine instance name: " +
+                                     request.destination_name());
+        }
+
+        if (is_instance_name_already_used(request.destination_name()))
+        {
+            throw std::runtime_error(request.destination_name() +
+                                     " already exists, please choose a new name. ");
+        }
+
+        return request.destination_name();
+    }
+    else
+    {
+        const std::string& source_name = request.source_name();
+        const std::string destination_name =
+            generate_next_clone_name(vm_instance_specs[source_name].clone_count, source_name);
+
+        if (is_instance_name_already_used(destination_name))
+        {
+            throw std::runtime_error("auto-generated name " + destination_name +
+                                     " already exists, please specify a new name manually. ");
+        }
+
+        return destination_name;
+    }
+};
+
+mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,
+                                   const std::string& src_name,
+                                   const std::string& dest_name)
+{
+    mp::VMSpecs dest_vm_spec{src_vm_spec};
+    dest_vm_spec.clone_count = 0;
+
+    // update default mac addr and extra_interface mac addr
+    dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
+    for (auto& extra_interface : dest_vm_spec.extra_interfaces)
+    {
+        if (!extra_interface.mac_address.empty())
+        {
+            extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
+        }
+    }
+
+    // non qemu snapshot files do not have metadata
+    if (!dest_vm_spec.metadata.isEmpty())
+    {
+        dest_vm_spec.metadata = MP_JSONUTILS
+                                    .update_unique_identifiers_of_metadata(QJsonValue{dest_vm_spec.metadata},
+                                                                           src_vm_spec,
+                                                                           dest_vm_spec,
+                                                                           src_name,
+                                                                           dest_name)
+                                    .toObject();
+    }
+    return dest_vm_spec;
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name) const
