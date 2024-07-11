@@ -57,12 +57,12 @@ std::string cmd::Clone::name() const
 
 QString cmd::Clone::short_help() const
 {
-    return QStringLiteral("Clone an Ubuntu instance");
+    return QStringLiteral("Clone an instance");
 }
 
 QString cmd::Clone::description() const
 {
-    return QStringLiteral("A clone is a complete independent copy of a whole virtual machine instance");
+    return QStringLiteral("Create a complete independent copy of an existing instance");
 }
 
 mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
