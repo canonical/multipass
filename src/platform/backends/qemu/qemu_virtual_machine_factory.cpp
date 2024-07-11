@@ -43,15 +43,11 @@ namespace fs = std::filesystem;
 void copy_instance_dir_without_snapshot_files(const fs::path& source_instance_dir_path,
                                               const fs::path& dest_instance_dir_path)
 {
-    if (std::error_code err_code; MP_FILEOPS.exists(source_instance_dir_path, err_code) &&
-                                  MP_FILEOPS.is_directory(source_instance_dir_path, err_code))
+    if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
     {
         for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
         {
-            if (!fs::exists(dest_instance_dir_path))
-            {
-                fs::create_directory(dest_instance_dir_path);
-            }
+            fs::create_directory(dest_instance_dir_path);
 
             const fs::path filename = entry.path().filename();
             // if the filename does not contains "snapshot" sub-string, then copy
