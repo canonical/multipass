@@ -2710,11 +2710,6 @@ void mp::Daemon::clone(const CloneRequest* request,
         if (status.ok())
         {
             auto generate_destination_name = [this](const CloneRequest& request) -> std::string {
-                auto is_name_already_used = [this](const std::string& destination_name) -> bool {
-                    return operative_instances.find(destination_name) != operative_instances.end() ||
-                           deleted_instances.find(destination_name) != deleted_instances.end() ||
-                           delayed_shutdown_instances.find(destination_name) != delayed_shutdown_instances.end();
-                };
 
                 if (request.has_destination_name())
                 {
@@ -2724,7 +2719,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                  request.destination_name());
                     }
 
-                    if (is_name_already_used(request.destination_name()))
+                    if (is_instance_name_already_used(request.destination_name()))
                     {
                         throw std::runtime_error(request.destination_name() +
                                                  " already exists, please choose a new name. ");
@@ -2738,7 +2733,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                     const std::string destination_name =
                         generate_next_clone_name(vm_instance_specs[source_name].clone_count, source_name);
 
-                    if (is_name_already_used(destination_name))
+                    if (is_instance_name_already_used(destination_name))
                     {
                         throw std::runtime_error("auto-generated name " + destination_name +
                                                  " already exists, please specify a new name manually. ");
@@ -3694,6 +3689,13 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          instance_info,
                                                          original_release,
                                                          vm_specs.num_cores != 1);
+}
+
+bool mp::Daemon::is_instance_name_already_used(const std::string& instance_name)
+{
+    return operative_instances.find(instance_name) != operative_instances.end() ||
+           deleted_instances.find(instance_name) != deleted_instances.end() ||
+           delayed_shutdown_instances.find(instance_name) != delayed_shutdown_instances.end();
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name) const
