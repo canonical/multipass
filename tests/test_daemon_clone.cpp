@@ -18,7 +18,6 @@
 #include "daemon_test_fixture.h"
 
 #include "common.h"
-// #include "mock_mount_handler.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
