@@ -207,6 +207,8 @@ private:
     void
     populate_instance_info(VirtualMachine& vm, InfoReply& response, bool runtime_info, bool deleted, bool& have_mounts);
 
+    bool is_instance_name_already_used(const std::string& instance_name);
+
     std::unique_ptr<const DaemonConfig> config;
 
 protected:
