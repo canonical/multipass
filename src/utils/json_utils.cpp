@@ -65,14 +65,10 @@ QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& cloud_
                                                         const std::string& src_vm_name,
                                                         const std::string& dest_vm_name) const
 {
-    QJsonValue result_cloud_init_instance_id = cloud_init_instance_id_value;
-    std::string cloud_init_instance_id_str = result_cloud_init_instance_id.toString().toStdString();
-
+    std::string cloud_init_instance_id_str = cloud_init_instance_id_value.toString().toStdString();
     assert(cloud_init_instance_id_str.size() >= src_vm_name.size());
-    result_cloud_init_instance_id =
-        QString::fromStdString(cloud_init_instance_id_str.replace(0, src_vm_name.size(), dest_vm_name));
 
-    return result_cloud_init_instance_id;
+    return QJsonValue{QString::fromStdString(cloud_init_instance_id_str.replace(0, src_vm_name.size(), dest_vm_name))};
 }
 
 QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonValue& metadata_value,
