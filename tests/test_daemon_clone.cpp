@@ -82,6 +82,24 @@ TEST_F(TestDaemonClone, missingOnSrcInstance)
     EXPECT_EQ(status.error_message(), fmt::format("instance \"{}\" does not exist", src_instance_name));
 }
 
+TEST_F(TestDaemonClone, invalidDestVmName)
+{
+    const auto [daemon, instance] = build_daemon_with_mock_instance();
+
+    constexpr std::string_view dest_instance_name = "5invalid_vm_name";
+    mp::CloneRequest request{};
+    request.set_source_name(mock_instance_name);
+    request.set_destination_name(std::string{dest_instance_name});
+
+    const auto status = call_daemon_slot(*daemon,
+                                         &mp::Daemon::clone,
+                                         request,
+                                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_EQ(status.error_message(), fmt::format("Invalid destination virtual machine name: {}", dest_instance_name));
+}
+
 TEST_F(TestDaemonClone, successfulCloneOkStatus)
 {
     const auto [daemon, instance] = build_daemon_with_mock_instance();
@@ -114,3 +132,4 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_EQ(status.error_message(), fmt::format("Please stop instance {} before you clone it.", mock_instance_name));
 }
+
