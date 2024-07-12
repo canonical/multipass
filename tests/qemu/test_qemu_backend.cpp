@@ -21,6 +21,7 @@
 #include "tests/mock_cloud_init_file_ops.h"
 #include "tests/mock_environment_helpers.h"
 #include "tests/mock_logger.h"
+#include "tests/mock_platform.h"
 #include "tests/mock_process_factory.h"
 #include "tests/mock_snapshot.h"
 #include "tests/mock_status_monitor.h"
@@ -809,6 +810,15 @@ TEST_F(QemuBackend, networks_does_not_throw)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
+        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{
+            {"lxdbr0", {"lxdbr0", "bridge", "gobbledygook"}},
+            {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
+            {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
+            {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},
+            {"enxe4b97a832426", {"enxe4b97a832426", "ethernet", "gobbledygook"}}}));
+
     EXPECT_NO_THROW(backend.networks());
 }
 
@@ -893,6 +903,19 @@ TEST_F(QemuBackend, addNetworkInterface)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_NO_THROW(machine->add_network_interface(0, "", {"", "", true}));
+}
+
+TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+    EXPECT_CALL(*mock_qemu_platform, needs_network_prep()).Times(1).WillRepeatedly(Return(true));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    std::vector<mp::NetworkInterface> extra_interfaces{{"eth1", "52:54:00:00:00:00", true}};
+    backend.prepare_networking(extra_interfaces);
 }
 
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
