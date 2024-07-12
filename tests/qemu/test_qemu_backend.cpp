@@ -1075,6 +1075,30 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     EXPECT_NO_THROW(machine->remove_all_snapshots_from_the_image());
 }
 
+TEST_F(QemuBackend, createVmAndCloneInstanceDirData)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    const mp::VMSpecs dummy_src_specs{};
+    const mp::VMSpecs dummy_dest_specs{};
+    const mp::VMImage dummy_dest_vm_image;
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_cloned_cloud_init_unique_identifiers(_, _, _, _))
+        .Times(1);
+    EXPECT_TRUE(backend.create_vm_and_clone_instance_dir_data(dummy_src_specs,
+                                                              dummy_dest_specs,
+                                                              "dummy_src_name",
+                                                              "dummy_dest_name",
+                                                              dummy_dest_vm_image,
+                                                              key_provider,
+                                                              stub_monitor));
+}
+
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
 {
     mpt::MockQemuPlatform qemu_platform;
