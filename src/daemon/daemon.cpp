@@ -2698,8 +2698,6 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                       require_operative_instances_reaction);
         if (status.ok())
         {
-            mpl::log(mpl::Level::warning, "general", "status.ok()");
-
             const std::string destination_name = generate_destination_instance_name_for_clone(*request);
 
             auto rollback_clean_up_all_resource_of_dest_instance = sg::make_scope_guard(
@@ -2735,10 +2733,10 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                        *config->ssh_key_provider,
                                                                        *this);
             ++src_spec.clone_count;
-            persist_instances();
-            init_mounts(destination_name);
             // preparing instance is done
             preparing_instances.erase(destination_name);
+            persist_instances();
+            init_mounts(destination_name);
 
             CloneReply rpc_response;
             rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
