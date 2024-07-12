@@ -25,6 +25,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
+#include <multipass/exceptions/clone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
@@ -2742,7 +2743,12 @@ void mp::Daemon::clone(const CloneRequest* request,
         }
         status_promise->set_value(status);
     }
-    catch (const std::exception& e)
+    catch (const mp::cloneInvalidNameException& e)
+    {
+        // all cloneInvalidNameException throws in generate_destination_instance_name_for_clone
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what()));
+    }
+    catch (const std::runtime_error& e)
     {
         status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what()));
     }
@@ -3649,13 +3655,14 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
     {
         if (!mp::utils::valid_hostname(request.destination_name()))
         {
-            throw std::runtime_error("Invalid destination virtual machine instance name: " +
-                                     request.destination_name());
+            throw mp::cloneInvalidNameException("Invalid destination virtual machine instance name: " +
+                                                request.destination_name());
         }
 
         if (is_instance_name_already_used(request.destination_name()))
         {
-            throw std::runtime_error(request.destination_name() + " already exists, please choose a new name. ");
+            throw mp::cloneInvalidNameException(request.destination_name() +
+                                                " already exists, please choose a new name. ");
         }
 
         return request.destination_name();
@@ -3668,8 +3675,8 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
 
         if (is_instance_name_already_used(destination_name))
         {
-            throw std::runtime_error("auto-generated name " + destination_name +
-                                     " already exists, please specify a new name manually. ");
+            throw mp::cloneInvalidNameException("auto-generated name " + destination_name +
+                                                " already exists, please specify a new name manually. ");
         }
 
         return destination_name;
