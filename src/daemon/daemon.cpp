@@ -3655,7 +3655,7 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
     {
         if (!mp::utils::valid_hostname(request.destination_name()))
         {
-            throw mp::cloneInvalidNameException("Invalid destination virtual machine instance name: " +
+            throw mp::cloneInvalidNameException("Invalid destination virtual machine name: " +
                                                 request.destination_name());
         }
 
