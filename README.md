@@ -51,9 +51,9 @@ daily:20.10                 devel,groovy      20200721         Ubuntu 20.10
 
 ## Launch a fresh instance of the current Ubuntu LTS
 ```
-$ multipass launch ubuntu
+$ multipass launch 20.04
 Launching dancing-chipmunk...
-Downloading Ubuntu 18.04 LTS..........
+Downloading Ubuntu 20.04 LTS..........
 Launched: dancing chipmunk
 ```
 
@@ -61,8 +61,8 @@ Launched: dancing chipmunk
 ```
 $ multipass list
 Name                    State             IPv4             Release
-dancing-chipmunk        RUNNING           10.125.174.247   Ubuntu 18.04 LTS
-live-naiad              RUNNING           10.125.174.243   Ubuntu 18.04 LTS
+dancing-chipmunk        RUNNING           10.125.174.247   Ubuntu 20.04 LTS
+live-naiad              RUNNING           10.125.174.243   Ubuntu 20.04 LTS
 snapcraft-asciinema     STOPPED           --               Ubuntu Snapcraft builder for Core 18
 ```
 
@@ -84,7 +84,7 @@ Memory usage:   85.1M out of 985.4M
 
 ```
 $ multipass shell dancing-chipmunk
-Welcome to Ubuntu 18.04.1 LTS (GNU/Linux 4.15.0-42-generic x86_64)
+Welcome to Ubuntu 20.04.1 LTS (GNU/Linux 4.15.0-42-generic x86_64)
 
 ...
 ```
