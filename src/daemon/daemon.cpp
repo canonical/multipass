@@ -2714,6 +2714,8 @@ void mp::Daemon::clone(const CloneRequest* request,
                 throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
             }
 
+            // singal that the new instance is being cooked up
+            preparing_instances.insert(destination_name);
             auto& src_spec = vm_instance_specs[source_name];
             auto dest_spec = clone_spec(src_spec, source_name, destination_name);
 
@@ -2735,6 +2737,8 @@ void mp::Daemon::clone(const CloneRequest* request,
             ++src_spec.clone_count;
             persist_instances();
             init_mounts(destination_name);
+            // preparing instance is done
+            preparing_instances.erase(destination_name);
 
             CloneReply rpc_response;
             rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
@@ -3645,7 +3649,8 @@ bool mp::Daemon::is_instance_name_already_used(const std::string& instance_name)
 {
     return operative_instances.find(instance_name) != operative_instances.end() ||
            deleted_instances.find(instance_name) != deleted_instances.end() ||
-           delayed_shutdown_instances.find(instance_name) != delayed_shutdown_instances.end();
+           delayed_shutdown_instances.find(instance_name) != delayed_shutdown_instances.end() ||
+           preparing_instances.find(instance_name) != preparing_instances.end();
 }
 
 std::string mp::Daemon::generate_destination_instance_name_for_clone(const CloneRequest& request)
