@@ -42,7 +42,7 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
 
     auto build_daemon_with_mock_instance()
     {
-        auto instance_unique_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+        auto instance_unique_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_src_instance_name);
         auto* instance_raw_ptr = instance_unique_ptr.get();
 
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_unique_ptr)));
@@ -54,7 +54,7 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
         return std::pair{std::move(daemon), instance_raw_ptr};
     }
 
-    const std::string mock_instance_name{"real-zebraphant"};
+    const std::string mock_src_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
     std::vector<mp::NetworkInterface> extra_interfaces;
 
@@ -88,7 +88,7 @@ TEST_F(TestDaemonClone, invalidDestVmName)
 
     constexpr std::string_view dest_instance_name = "5invalid_vm_name";
     mp::CloneRequest request{};
-    request.set_source_name(mock_instance_name);
+    request.set_source_name(mock_src_instance_name);
     request.set_destination_name(std::string{dest_instance_name});
 
     const auto status = call_daemon_slot(*daemon,
@@ -106,7 +106,7 @@ TEST_F(TestDaemonClone, successfulCloneOkStatus)
     EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
 
     mp::CloneRequest request{};
-    request.set_source_name(mock_instance_name);
+    request.set_source_name(mock_src_instance_name);
 
     const auto status = call_daemon_slot(*daemon,
                                          &mp::Daemon::clone,
@@ -122,7 +122,7 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
     EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::running));
 
     mp::CloneRequest request{};
-    request.set_source_name(mock_instance_name);
+    request.set_source_name(mock_src_instance_name);
 
     const auto status = call_daemon_slot(*daemon,
                                          &mp::Daemon::clone,
@@ -130,6 +130,6 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
                                          NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_EQ(status.error_message(), fmt::format("Please stop instance {} before you clone it.", mock_instance_name));
+    EXPECT_EQ(status.error_message(), fmt::format("Please stop instance {} before you clone it.", mock_src_instance_name));
 }
 
