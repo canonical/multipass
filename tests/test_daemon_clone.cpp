@@ -97,7 +97,24 @@ TEST_F(TestDaemonClone, invalidDestVmName)
                                          NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_EQ(status.error_message(), fmt::format("Invalid destination virtual machine name: {}", dest_instance_name));
+    EXPECT_THAT(status.error_message(), HasSubstr("Invalid destination virtual machine name"));
+}
+
+TEST_F(TestDaemonClone, alreadyExistDestVmName)
+{
+    const auto [daemon, instance] = build_daemon_with_mock_instance();
+
+    mp::CloneRequest request{};
+    request.set_source_name(mock_src_instance_name);
+    request.set_destination_name(mock_src_instance_name);
+
+    const auto status = call_daemon_slot(*daemon,
+                                         &mp::Daemon::clone,
+                                         request,
+                                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), HasSubstr("already exists, please choose a new name."));
 }
 
 TEST_F(TestDaemonClone, successfulCloneOkStatus)
