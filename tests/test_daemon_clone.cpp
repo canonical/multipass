@@ -147,6 +147,7 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
                                          NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_EQ(status.error_message(), fmt::format("Please stop instance {} before you clone it.", mock_src_instance_name));
+    EXPECT_EQ(status.error_message(),
+              fmt::format("Please stop instance {} before you clone it.", mock_src_instance_name));
 }
 

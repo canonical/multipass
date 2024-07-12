@@ -1062,6 +1062,19 @@ TEST_F(QemuBackend, addNetworkInterface)
     EXPECT_NO_THROW(machine->add_network_interface(0, "", {"", "", true}));
 }
 
+TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    EXPECT_NO_THROW(machine->remove_all_snapshots_from_the_image());
+}
+
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
 {
     mpt::MockQemuPlatform qemu_platform;
