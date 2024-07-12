@@ -1267,7 +1267,8 @@ TEST_F(LXDImageVault, lxdImageVaultCloneThrow)
                                     cache_dir.path(),
                                     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(image_vault.clone("dummy_src_image_name", "dummy_dest_image_name"),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Clone method is not supported in LXDVMImageVault yet.")));
+    MP_EXPECT_THROW_THAT(
+        image_vault.clone("dummy_src_image_name", "dummy_dest_image_name"),
+        mp::NotImplementedOnThisBackendException,
+        mpt::match_what(StrEq("The cloning image record feature is not implemented on this backend.")));
 }
