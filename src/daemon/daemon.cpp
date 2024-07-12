@@ -3665,7 +3665,7 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
         if (is_instance_name_already_used(request.destination_name()))
         {
             throw mp::cloneInvalidNameException(request.destination_name() +
-                                                " already exists, please choose a new name. ");
+                                                " already exists, please choose a new name.");
         }
 
         return request.destination_name();
@@ -3679,7 +3679,7 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
         if (is_instance_name_already_used(destination_name))
         {
             throw mp::cloneInvalidNameException("auto-generated name " + destination_name +
-                                                " already exists, please specify a new name manually. ");
+                                                " already exists, please specify a new name manually.");
         }
 
         return destination_name;
