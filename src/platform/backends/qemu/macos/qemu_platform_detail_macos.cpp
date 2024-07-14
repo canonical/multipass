@@ -97,27 +97,19 @@ QString mp::QemuPlatformDetail::get_directory_name() const
     return "qemu";
 }
 
-std::vector<mp::NetworkInterfaceInfo> mp::QemuPlatformDetail::networks() const
+bool mp::QemuPlatformDetail::is_network_supported(const std::string& network_type) const
 {
-    auto platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
-
-    std::vector<NetworkInterfaceInfo> networks;
-
-    for (const auto& ifs_info : platform_ifs_info)
-    {
-        const auto& info = ifs_info.second;
-        const auto& type = info.type;
-
-        if (type == "ethernet" || type == "wifi" || type == "usb")
-            networks.push_back(info);
-    }
-
-    return networks;
+    return network_type == "ethernet" || network_type == "wifi" || network_type == "usb";
 }
 
-void mp::QemuPlatformDetail::add_network_interface(VirtualMachineDescription& desc, const NetworkInterface& net)
+bool mp::QemuPlatformDetail::needs_network_prep() const
 {
-    desc.extra_interfaces.push_back(net);
+    return false;
+}
+
+void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>& networks)
+{
+    // nothing to do here
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
@@ -125,7 +117,7 @@ mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& d
     return std::make_unique<mp::QemuPlatformDetail>();
 }
 
-void mp::QemuPlatformDetail::prepare_networking(std::vector<NetworkInterface>& /*extra_interfaces*/) const
+std::string mp::QemuPlatformDetail::create_bridge_with(const NetworkInterfaceInfo& interface) const
 {
-    // nothing to do here
+    return interface.id;
 }
