@@ -119,6 +119,8 @@ TEST_F(TestDaemonClone, alreadyExistDestVmName)
 
 TEST_F(TestDaemonClone, successfulCloneOkStatus)
 {
+    // add this line to cover the update_unique_identifiers_of_metadata all branches
+    extra_interfaces.emplace_back(mp::NetworkInterface{"eth1", "52:54:00:00:00:00", true});
     const auto [daemon, instance] = build_daemon_with_mock_instance();
     EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
 
