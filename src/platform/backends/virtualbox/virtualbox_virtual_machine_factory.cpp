@@ -215,21 +215,6 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clon
     const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
     const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
 
-    // if any of the below code throw, then roll back and clean up the created instance folder
-    auto rollback_delete_instance_folder = sg::make_scope_guard([dest_instance_directory =
-                                                                     dest_instance_data_directory]() noexcept -> void {
-        // use err_code to guarantee remove_all does not throw
-        std::error_code err_code;
-        fs::remove_all(dest_instance_directory, err_code);
-        if (err_code.value())
-        {
-            mpl::log(mpl::Level::info,
-                     "virtualbox factory",
-                     fmt::format("The rollback instance directory removal did not succeed, err_code message is : {}",
-                                 err_code.message()));
-        }
-    });
-
     copy_instance_dir_with_cloud_init_file_only(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
@@ -262,7 +247,6 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clon
                                                        get_instance_directory(dest_vm_desc.vm_name));
     cloned_instance->remove_all_snapshots_from_the_image();
 
-    rollback_delete_instance_folder.dismiss();
     return cloned_instance;
 }
 
