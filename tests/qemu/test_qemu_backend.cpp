@@ -1068,6 +1068,28 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
         return std::move(mock_qemu_platform);
     });
 
+    // The sole reason to register this callback is to make the extract_snapshot_tags function get a non-empty snapshot
+    // list input, so we can cover the for loops
+    mpt::MockProcessFactory::Callback snapshot_list_callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            constexpr auto snapshot_list_output_stream =
+                R"(Snapshot list:
+            ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
+            2         @s2               0 B     2024-06-11 23:22:59 00:00:00.000          0
+            3         @s3               0 B     2024-06-12 12:30:37 00:00:00.000          0)";
+
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+
+            // can not make EXPECT_CALL WillOnce work, not sure why.
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(QByteArray{snapshot_list_output_stream}));
+        }
+    };
+
+    process_factory->register_callback(snapshot_list_callback);
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
