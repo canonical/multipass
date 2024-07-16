@@ -2712,7 +2712,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                 throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
             }
 
-            // singal that the new instance is being cooked up
+            // signal that the new instance is being cooked up
             preparing_instances.insert(destination_name);
             auto& src_spec = vm_instance_specs[source_name];
             auto dest_spec = clone_spec(src_spec, source_name, destination_name);
