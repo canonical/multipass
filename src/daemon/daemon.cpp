@@ -3657,8 +3657,7 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
     {
         if (!mp::utils::valid_hostname(request.destination_name()))
         {
-            throw mp::CloneInvalidNameException("Invalid destination instance name: " +
-                                                request.destination_name());
+            throw mp::CloneInvalidNameException("Invalid destination instance name: " + request.destination_name());
         }
 
         if (is_instance_name_already_used(request.destination_name()))
