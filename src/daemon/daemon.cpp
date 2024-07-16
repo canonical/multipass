@@ -2745,9 +2745,9 @@ void mp::Daemon::clone(const CloneRequest* request,
         }
         status_promise->set_value(status);
     }
-    catch (const mp::cloneInvalidNameException& e)
+    catch (const mp::CloneInvalidNameException& e)
     {
-        // all cloneInvalidNameException throws in generate_destination_instance_name_for_clone
+        // all CloneInvalidNameException throws in generate_destination_instance_name_for_clone
         status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what()));
     }
     catch (const std::runtime_error& e)
@@ -3653,18 +3653,17 @@ bool mp::Daemon::is_instance_name_already_used(const std::string& instance_name)
 
 std::string mp::Daemon::generate_destination_instance_name_for_clone(const CloneRequest& request)
 {
-
     if (request.has_destination_name())
     {
         if (!mp::utils::valid_hostname(request.destination_name()))
         {
-            throw mp::cloneInvalidNameException("Invalid destination virtual machine name: " +
+            throw mp::CloneInvalidNameException("Invalid destination virtual machine name: " +
                                                 request.destination_name());
         }
 
         if (is_instance_name_already_used(request.destination_name()))
         {
-            throw mp::cloneInvalidNameException(request.destination_name() +
+            throw mp::CloneInvalidNameException(request.destination_name() +
                                                 " already exists, please choose a new name.");
         }
 
@@ -3678,7 +3677,7 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
 
         if (is_instance_name_already_used(destination_name))
         {
-            throw mp::cloneInvalidNameException("auto-generated name " + destination_name +
+            throw mp::CloneInvalidNameException("auto-generated name " + destination_name +
                                                 " already exists, please specify a new name manually.");
         }
 
