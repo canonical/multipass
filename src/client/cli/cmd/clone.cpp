@@ -67,7 +67,7 @@ QString cmd::Clone::description() const
 
 mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 {
-    parser->addPositionalArgument("source_name", "The name of the source virtual machine", "<source_name>");
+    parser->addPositionalArgument("source_name", "The name of the source instance", "<source_name>");
 
     const QCommandLineOption destination_name_option{
         {"n", "name"},
