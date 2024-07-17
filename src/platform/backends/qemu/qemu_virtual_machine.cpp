@@ -733,7 +733,6 @@ void mp::QemuVirtualMachine::remove_snapshots_from_image() const
             std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, desc.image.image_path},
                                                      desc.image.image_path),
             "Cannot delete snapshot from the image");
-        ;
     }
 }
 
