@@ -20,7 +20,6 @@
 #include "common.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
-#include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 
@@ -62,8 +61,6 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
 
     const mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     const mpt::MockPlatform& mock_platform = *attr.first;
-
-    const mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<NiceMock>();
 };
 
 TEST_F(TestDaemonClone, missingOnSrcInstance)
