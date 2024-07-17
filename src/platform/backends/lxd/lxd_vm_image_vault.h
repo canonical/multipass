@@ -55,7 +55,7 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
     void clone(const std::string& source_instance_name, const std::string& destination_instance_name) override
     {
-        throw NotImplementedOnThisBackendException("cloning image record");
+        throw NotImplementedOnThisBackendException("clone");
     }
 
 private:
