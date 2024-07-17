@@ -2700,8 +2700,11 @@ void mp::Daemon::clone(const CloneRequest* request,
         {
             const std::string destination_name = generate_destination_instance_name_for_clone(*request);
 
-            auto rollback_clean_up_all_resource_of_dest_instance = sg::make_scope_guard(
-                [this, destination_name]() noexcept -> void { release_resources(destination_name); });
+            auto rollback_clean_up_all_resource_of_dest_instance =
+                sg::make_scope_guard([this, destination_name]() noexcept -> void {
+                    release_resources(destination_name);
+                    preparing_instances.erase((destination_name));
+                });
 
             assert(instance_trail.index() == 0);
             const auto source_vm_ptr = std::get<0>(instance_trail)->second;
