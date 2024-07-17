@@ -29,5 +29,4 @@ target_link_libraries(virtualbox_backend
   ssh
   utils
   yaml
-  scope_guard
 )

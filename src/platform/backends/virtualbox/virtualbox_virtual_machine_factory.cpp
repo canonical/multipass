@@ -33,7 +33,6 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
-#include <scope_guard.hpp>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;

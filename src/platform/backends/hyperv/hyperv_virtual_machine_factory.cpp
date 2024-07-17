@@ -33,7 +33,6 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
-#include <scope_guard.hpp>
 
 #include <algorithm>
 #include <iterator>

@@ -28,5 +28,4 @@ target_link_libraries(hyperv_backend
   process
   ssh
   utils
-  yaml
-  scope_guard)
+  yaml)
