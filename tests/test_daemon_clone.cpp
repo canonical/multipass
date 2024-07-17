@@ -117,7 +117,7 @@ TEST_F(TestDaemonClone, alreadyExistDestVmName)
     EXPECT_THAT(status.error_message(), HasSubstr("already exists, please choose a new name."));
 }
 
-TEST_F(TestDaemonClone, successfulCloneOkStatus)
+TEST_F(TestDaemonClone, successfulCloneGenerateDestNameOkStatus)
 {
     // add this line to cover the update_unique_identifiers_of_metadata all branches
     extra_interfaces.emplace_back(mp::NetworkInterface{"eth1", "52:54:00:00:00:00", true});
@@ -126,6 +126,23 @@ TEST_F(TestDaemonClone, successfulCloneOkStatus)
 
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
+
+    const auto status = call_daemon_slot(*daemon,
+                                         &mp::Daemon::clone,
+                                         request,
+                                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::OK);
+}
+
+TEST_F(TestDaemonClone, successfulCloneSpecifyDestNameOkStatus)
+{
+    const auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+
+    mp::CloneRequest request{};
+    request.set_source_name(mock_src_instance_name);
+    request.set_destination_name("valid-dest-instance-name");
 
     const auto status = call_daemon_slot(*daemon,
                                          &mp::Daemon::clone,
