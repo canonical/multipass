@@ -1267,8 +1267,7 @@ TEST_F(LXDImageVault, lxdImageVaultCloneThrow)
                                     cache_dir.path(),
                                     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(
-        image_vault.clone("dummy_src_image_name", "dummy_dest_image_name"),
-        mp::NotImplementedOnThisBackendException,
-        mpt::match_what(StrEq("The cloning image record feature is not implemented on this backend.")));
+    MP_EXPECT_THROW_THAT(image_vault.clone("dummy_src_image_name", "dummy_dest_image_name"),
+                         mp::NotImplementedOnThisBackendException,
+                         mpt::match_what(StrEq("The clone feature is not implemented on this backend.")));
 }
