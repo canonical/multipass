@@ -84,7 +84,7 @@ public:
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
-    void remove_all_snapshots_from_the_image() const override
+    void remove_snapshots_from_image() const override
     {
         throw NotImplementedOnThisBackendException("remove all snapshots from the image");
     }

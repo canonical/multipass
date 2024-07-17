@@ -69,7 +69,7 @@ public:
                                        const NetworkInterface& extra_interface) override;
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
-    void remove_all_snapshots_from_the_image() const override;
+    void remove_snapshots_from_image() const override;
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
