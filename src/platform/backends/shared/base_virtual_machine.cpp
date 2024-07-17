@@ -18,6 +18,7 @@
 #include "base_virtual_machine.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
@@ -32,7 +33,6 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
-
 #include <scope_guard.hpp>
 
 #include <QDir>
@@ -161,7 +161,7 @@ void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_ini
     const std::string& new_instance_id) const
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
                                                                                   extra_interfaces,
@@ -173,7 +173,7 @@ void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(const st
                                                                         const NetworkInterface& extra_interface) const
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
                                                              extra_interface,
@@ -183,7 +183,7 @@ void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(const st
 std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 {
     const std::filesystem::path cloud_init_config_iso_file_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / "cloud-init-config.iso";
+        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
 
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
 }

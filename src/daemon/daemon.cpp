@@ -1349,7 +1349,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
-        const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
+        const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
         mp::VirtualMachineDescription vm_desc{spec.num_cores,
                                               spec.mem_size,
                                               spec.disk_space,
