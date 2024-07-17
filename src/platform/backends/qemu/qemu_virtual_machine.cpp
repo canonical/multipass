@@ -718,7 +718,7 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
     return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
 }
 
-void mp::QemuVirtualMachine::remove_all_snapshots_from_the_image() const
+void mp::QemuVirtualMachine::remove_snapshots_from_image() const
 {
     auto qemuimg_info_process = backend::checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", desc.image.image_path},

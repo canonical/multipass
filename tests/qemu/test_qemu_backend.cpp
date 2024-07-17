@@ -1094,7 +1094,7 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
-    EXPECT_NO_THROW(machine->remove_all_snapshots_from_the_image());
+    EXPECT_NO_THROW(machine->remove_snapshots_from_image());
 }
 
 TEST_F(QemuBackend, createVmAndCloneInstanceDirData)
