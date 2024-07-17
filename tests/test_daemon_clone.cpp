@@ -15,18 +15,14 @@
  *
  */
 
-#include "daemon_test_fixture.h"
-
 #include "common.h"
+#include "daemon_test_fixture.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
-
-#include <multipass/constants.h>
-#include <multipass/format.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
