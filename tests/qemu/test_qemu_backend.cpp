@@ -1071,7 +1071,7 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     // The sole reason to register this callback is to make the extract_snapshot_tags function get a non-empty snapshot
     // list input, so we can cover the for loops
     mpt::MockProcessFactory::Callback snapshot_list_callback = [](mpt::MockProcess* process) {
-        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot -l"))
         {
             constexpr auto snapshot_list_output_stream =
                 R"(Snapshot list:
@@ -1083,9 +1083,7 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
             exit_state.exit_code = 0;
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
 
-            // can not make EXPECT_CALL WillOnce work, not sure why.
-            ON_CALL(*process, read_all_standard_output())
-                .WillByDefault(Return(QByteArray{snapshot_list_output_stream}));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray{snapshot_list_output_stream}));
         }
     };
 
