@@ -129,8 +129,7 @@ void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::Network
 namespace fs = std::filesystem;
 fs::path extract_the_vmcx_file(const fs::path& exported_vm_dir_path)
 {
-    if (std::error_code err_code;
-        MP_FILEOPS.exists(exported_vm_dir_path, err_code) && MP_FILEOPS.is_directory(exported_vm_dir_path, err_code))
+    if (fs::exists(exported_vm_dir_path) && fs::is_directory(exported_vm_dir_path))
     {
         const fs::path vm_state_dir = exported_vm_dir_path / "Virtual Machines";
 
