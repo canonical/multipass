@@ -19,6 +19,7 @@
 #include "qemu_virtual_machine.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -26,7 +27,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
-
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
@@ -98,7 +98,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
 
     copy_instance_dir_without_snapshot_files(source_instance_data_directory, dest_instance_data_directory);
 
-    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
+    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
                                                                        dest_vm_spec.extra_interfaces,

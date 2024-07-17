@@ -19,6 +19,7 @@
 #include "multipass/platform.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
@@ -34,7 +35,7 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
     auto instance_dir{mpu::base_dir(vm_desc.image.image_path)};
-    const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
+    const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
 
     if (!QFile::exists(cloud_init_iso))
     {
