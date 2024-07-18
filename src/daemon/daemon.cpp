@@ -2712,7 +2712,9 @@ void mp::Daemon::clone(const CloneRequest* request,
             const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
             if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
             {
-                throw std::runtime_error("Please stop instance " + source_name + " before you clone it.");
+                return status_promise->set_value(
+                    grpc::Status{grpc::FAILED_PRECONDITION,
+                                 "Please stop instance " + source_name + " before you clone it."});
             }
 
             // signal that the new instance is being cooked up
