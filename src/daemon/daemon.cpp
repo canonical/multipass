@@ -2753,9 +2753,9 @@ void mp::Daemon::clone(const CloneRequest* request,
         // all CloneInvalidNameException throws in generate_destination_instance_name_for_clone
         status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what()));
     }
-    catch (const std::runtime_error& e)
+    catch (const std::exception& e)
     {
-        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
     }
 }
 
