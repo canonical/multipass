@@ -61,9 +61,9 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
 
 TEST_F(TestDaemonClone, missingOnSrcInstance)
 {
-    constexpr std::string_view src_instance_name = "non_exist_instance";
+    const std::string src_instance_name = "non_exist_instance";
     mp::CloneRequest request{};
-    request.set_source_name(std::string{src_instance_name});
+    request.set_source_name(src_instance_name);
 
     mp::Daemon daemon{config_builder.build()};
     const auto status = call_daemon_slot(daemon,
