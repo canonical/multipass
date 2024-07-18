@@ -2683,81 +2683,79 @@ catch (const std::exception& e)
 void mp::Daemon::clone(const CloneRequest* request,
                        grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
                        std::promise<grpc::Status>* status_promise)
+try
 {
-    try
-    {
-        config->factory->require_clone_support();
-        mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                           *config->logger,
-                                                           server};
+    config->factory->require_clone_support();
+    mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                       *config->logger,
+                                                       server};
 
-        const auto& source_name = request->source_name();
-        const auto [instance_trail, status] = find_instance_and_react(operative_instances,
-                                                                      deleted_instances,
-                                                                      source_name,
-                                                                      require_operative_instances_reaction);
-        if (status.ok())
+    const auto& source_name = request->source_name();
+    const auto [instance_trail, status] = find_instance_and_react(operative_instances,
+                                                                  deleted_instances,
+                                                                  source_name,
+                                                                  require_operative_instances_reaction);
+    if (status.ok())
+    {
+        assert(instance_trail.index() == 0);
+        const auto source_vm_ptr = std::get<0>(instance_trail)->second;
+        assert(source_vm_ptr);
+        const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
+        if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
         {
-            assert(instance_trail.index() == 0);
-            const auto source_vm_ptr = std::get<0>(instance_trail)->second;
-            assert(source_vm_ptr);
-            const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
-            if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
-            {
-                return status_promise->set_value(
-                    grpc::Status{grpc::FAILED_PRECONDITION,
-                                 "Please stop instance " + source_name + " before you clone it."});
-            }
-
-            const std::string destination_name = generate_destination_instance_name_for_clone(*request);
-            auto rollback_clean_up_all_resource_of_dest_instance =
-                sg::make_scope_guard([this, destination_name]() noexcept -> void {
-                    release_resources(destination_name);
-                    preparing_instances.erase((destination_name));
-                });
-
-            // signal that the new instance is being cooked up
-            preparing_instances.insert(destination_name);
-            auto& src_spec = vm_instance_specs[source_name];
-            auto dest_spec = clone_spec(src_spec, source_name, destination_name);
-
-            config->vault->clone(source_name, destination_name);
-
-            const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
-
-            // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending of the
-            // dest_spec has to be done before the function create_vm_and_clone_instance_dir_data
-            vm_instance_specs.emplace(destination_name, dest_spec);
-            operative_instances[destination_name] =
-                config->factory->create_vm_and_clone_instance_dir_data(src_spec,
-                                                                       dest_spec,
-                                                                       source_name,
-                                                                       destination_name,
-                                                                       dest_vm_image,
-                                                                       *config->ssh_key_provider,
-                                                                       *this);
-            ++src_spec.clone_count;
-            // preparing instance is done
-            preparing_instances.erase(destination_name);
-            persist_instances();
-            init_mounts(destination_name);
-
-            CloneReply rpc_response;
-            rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
-            server->Write(rpc_response);
-            rollback_clean_up_all_resource_of_dest_instance.dismiss();
+            return status_promise->set_value(
+                grpc::Status{grpc::FAILED_PRECONDITION,
+                             "Please stop instance " + source_name + " before you clone it."});
         }
-        status_promise->set_value(status);
+
+        const std::string destination_name = generate_destination_instance_name_for_clone(*request);
+        auto rollback_clean_up_all_resource_of_dest_instance =
+            sg::make_scope_guard([this, destination_name]() noexcept -> void {
+                release_resources(destination_name);
+                preparing_instances.erase((destination_name));
+            });
+
+        // signal that the new instance is being cooked up
+        preparing_instances.insert(destination_name);
+        auto& src_spec = vm_instance_specs[source_name];
+        auto dest_spec = clone_spec(src_spec, source_name, destination_name);
+
+        config->vault->clone(source_name, destination_name);
+
+        const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
+
+        // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending of the
+        // dest_spec has to be done before the function create_vm_and_clone_instance_dir_data
+        vm_instance_specs.emplace(destination_name, dest_spec);
+        operative_instances[destination_name] =
+            config->factory->create_vm_and_clone_instance_dir_data(src_spec,
+                                                                   dest_spec,
+                                                                   source_name,
+                                                                   destination_name,
+                                                                   dest_vm_image,
+                                                                   *config->ssh_key_provider,
+                                                                   *this);
+        ++src_spec.clone_count;
+        // preparing instance is done
+        preparing_instances.erase(destination_name);
+        persist_instances();
+        init_mounts(destination_name);
+
+        CloneReply rpc_response;
+        rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
+        server->Write(rpc_response);
+        rollback_clean_up_all_resource_of_dest_instance.dismiss();
     }
-    catch (const mp::CloneInvalidNameException& e)
-    {
-        // all CloneInvalidNameException throws in generate_destination_instance_name_for_clone
-        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what()));
-    }
-    catch (const std::exception& e)
-    {
-        status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
-    }
+    status_promise->set_value(status);
+}
+catch (const mp::CloneInvalidNameException& e)
+{
+    // all CloneInvalidNameException throws in generate_destination_instance_name_for_clone
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what()));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
 }
 
 void mp::Daemon::on_shutdown()
