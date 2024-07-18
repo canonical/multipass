@@ -2698,14 +2698,6 @@ void mp::Daemon::clone(const CloneRequest* request,
                                                                       require_operative_instances_reaction);
         if (status.ok())
         {
-            const std::string destination_name = generate_destination_instance_name_for_clone(*request);
-
-            auto rollback_clean_up_all_resource_of_dest_instance =
-                sg::make_scope_guard([this, destination_name]() noexcept -> void {
-                    release_resources(destination_name);
-                    preparing_instances.erase((destination_name));
-                });
-
             assert(instance_trail.index() == 0);
             const auto source_vm_ptr = std::get<0>(instance_trail)->second;
             assert(source_vm_ptr);
@@ -2716,6 +2708,13 @@ void mp::Daemon::clone(const CloneRequest* request,
                     grpc::Status{grpc::FAILED_PRECONDITION,
                                  "Please stop instance " + source_name + " before you clone it."});
             }
+
+            const std::string destination_name = generate_destination_instance_name_for_clone(*request);
+            auto rollback_clean_up_all_resource_of_dest_instance =
+                sg::make_scope_guard([this, destination_name]() noexcept -> void {
+                    release_resources(destination_name);
+                    preparing_instances.erase((destination_name));
+                });
 
             // signal that the new instance is being cooked up
             preparing_instances.insert(destination_name);
