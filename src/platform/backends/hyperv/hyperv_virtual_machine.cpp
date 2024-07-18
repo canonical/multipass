@@ -44,8 +44,9 @@ namespace mpl = multipass::logging;
 namespace
 {
 const QString default_switch_guid{"C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"};
-
 const QString snapshot_name{"suspend"};
+
+namespace fs = std::filesystem;
 
 QString quoted(const QString& str)
 {
@@ -126,7 +127,6 @@ void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::Network
                 fmt::format("Could not setup adapter for {}", extra_interface.id));
 }
 
-namespace fs = std::filesystem;
 fs::path extract_the_vmcx_file(const fs::path& exported_vm_dir_path)
 {
     if (fs::exists(exported_vm_dir_path) && fs::is_directory(exported_vm_dir_path))
