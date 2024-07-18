@@ -221,7 +221,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
-    const std::unique_lock lock{state_mutex};
+    std::unique_lock lock{state_mutex};
 
     std::optional<std::string> log_details = std::nullopt;
     bool reconnect = true;
@@ -235,7 +235,9 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
             mpl::log(logging::Level::info, vm_name, msg);
 
             reconnect = false; // once only
+            lock.unlock();
             renew_ssh_session();
+            lock.lock();
         }
 
         try
@@ -258,8 +260,11 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
 
 void mp::BaseVirtualMachine::renew_ssh_session()
 {
-    if (!MP_UTILS.is_running(current_state())) // spend time updating state only if we need a new session
-        throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+    {
+        const std::unique_lock lock{state_mutex};
+        if (!MP_UTILS.is_running(current_state())) // spend time updating state only if we need a new session
+            throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+    }
 
     mpl::log(logging::Level::debug,
              vm_name,
