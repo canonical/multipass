@@ -166,9 +166,10 @@ if (MSVC)
     StrCpy $REMOVE_SETTINGS_AND_CACHE 1
 
     basic_uninst:
-    Delete '$SMPROGRAMS\\\\Multipass.lnk'
     SetShellVarContext current
     Delete '$SMSTARTUP\\\\Multipass.lnk'
+    SetShellVarContext all
+    Delete '$SMPROGRAMS\\\\Multipass.lnk'
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
     nsExec::ExecToLog 'TaskKill /IM multipassd.exe /F'
     nsExec::ExecToLog 'TaskKill /IM multipass.exe /F'
