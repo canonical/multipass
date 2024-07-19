@@ -166,6 +166,9 @@ if (MSVC)
     StrCpy $REMOVE_SETTINGS_AND_CACHE 1
 
     basic_uninst:
+    SetShellVarContext current
+    Delete '$SMSTARTUP\\\\Multipass.lnk'
+    SetShellVarContext all
     Delete '$SMPROGRAMS\\\\Multipass.lnk'
     nsExec::ExecToLog  '\\\"$INSTDIR\\\\bin\\\\multipassd.exe\\\" /uninstall'
     nsExec::ExecToLog 'TaskKill /IM multipassd.exe /F'
@@ -182,8 +185,6 @@ if (MSVC)
     RMDir /r \\\"$SYSDIR\\\\config\\\\systemprofile\\\\AppData\\\\Roaming\\\\multipassd\\\"
     RMDIR /r \\\"$LOCALAPPDATA\\\\Multipass\\\"
     \\\${EnableX64FSRedirection}
-    SetShellVarContext current
-    Delete '$SMSTARTUP\\\\Multipass.lnk'
     done_uninst:
     "
   )
