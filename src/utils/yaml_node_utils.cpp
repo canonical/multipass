@@ -14,11 +14,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <cassert>
 
 #include <multipass/format.h>
 #include <multipass/network_interface.h>
 #include <multipass/yaml_node_utils.h>
+
+#include <cassert>
 
 namespace mp = multipass;
 
