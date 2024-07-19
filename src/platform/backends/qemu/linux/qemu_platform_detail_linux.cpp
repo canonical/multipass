@@ -229,9 +229,8 @@ void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>
     const auto& br_nomenclature = MP_PLATFORM.bridge_nomenclature();
 
     for (auto& net : networks)
-        if (net.needs_authorization && net.type == "ethernet" &&
-            mpu::find_bridge_with(networks, net.id, br_nomenclature))
-            net.needs_authorization = false;
+        if (net.type == "ethernet" && !mpu::find_bridge_with(networks, net.id, br_nomenclature))
+            net.needs_authorization = true;
 }
 
 std::string mp::QemuPlatformDetail::create_bridge_with(const NetworkInterfaceInfo& interface) const

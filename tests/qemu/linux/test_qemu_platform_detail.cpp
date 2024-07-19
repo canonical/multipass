@@ -222,15 +222,16 @@ TEST_F(QemuPlatformDetail, writing_ipforward_file_failure_logs_expected_message)
 TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
 {
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
-    std::vector<mp::NetworkInterfaceInfo> networks{mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true},
-                                                   mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, true},
-                                                   mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
+
+    std::vector<mp::NetworkInterfaceInfo> networks{mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
                                                    mp::NetworkInterfaceInfo{"mpbr0", "bridge", "", {}, false}};
+    const auto& bridged_network = networks.emplace_back(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, false});
+    const auto& non_bridged_network = networks.emplace_back(mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, false});
 
     qemu_platform_detail.set_authorization(networks);
 
-    EXPECT_FALSE(networks[0].needs_authorization);
-    EXPECT_TRUE(networks[1].needs_authorization);
+    EXPECT_FALSE(bridged_network.needs_authorization);
+    EXPECT_TRUE(non_bridged_network.needs_authorization);
 }
 
 TEST_F(QemuPlatformDetail, CreateBridgeWithCallsExpectedMethods)
