@@ -66,6 +66,7 @@ jobs:
         name: ${{ env.HEAD_REF }}.git
         path: .git/**
         if-no-files-found: error
+        retention-days: 3
 
   Lint:
     needs: Checkout
