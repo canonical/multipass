@@ -339,6 +339,7 @@ jobs:
         name: ${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
+        retention-days: 30
 
     # Put the package on S3 for public consumption
     - name: Publish package on S3
@@ -455,6 +456,7 @@ jobs:
         name: ${{ steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}
         if-no-files-found: error
+        retention-days: 30
 
     - name: Publish package on S3
       if: ${{ steps.combine-package.outputs.path }}
