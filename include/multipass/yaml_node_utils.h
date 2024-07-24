@@ -43,7 +43,7 @@ YAML::Node make_cloud_init_meta_config_with_id_tweak(const std::string& file_con
 YAML::Node make_cloud_init_network_config(const std::string& default_mac_addr,
                                           const std::vector<NetworkInterface>& extra_interfaces,
                                           const std::string& file_content = std::string{});
-// adds one extra interface to the network_config_file_content baseline, it creats the default address node
+// adds one extra interface to the network_config_file_content baseline, it creates the default address node
 // together with the extra interface node when it is empty,
 YAML::Node add_extra_interface_to_network_config(const std::string& default_mac_addr,
                                                  const NetworkInterface& extra_interface,

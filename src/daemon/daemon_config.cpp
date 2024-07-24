@@ -64,7 +64,7 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
     QString http_proxy{qgetenv("http_proxy")};
     if (http_proxy.isEmpty())
     {
-        // Some OS's are case senstive
+        // Some OS's are case sensitive
         http_proxy = qgetenv("HTTP_PROXY");
     }
 

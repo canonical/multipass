@@ -331,7 +331,7 @@ TEST_F(VMBlueprintProvider, givenDiskSpaceLessThanMinimumThrows)
                          mpt::match_what(AllOf(HasSubstr("Disk space"), HasSubstr("25G"))));
 }
 
-TEST_F(VMBlueprintProvider, higherOptionsIsNotOverriden)
+TEST_F(VMBlueprintProvider, higherOptionsIsNotOverridden)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
@@ -702,7 +702,7 @@ TEST_F(VMBlueprintProvider, v2WithNoUrlKeyNotAdded)
     EXPECT_EQ(blueprint_provider.info_for("no-url"), std::nullopt);
 }
 
-TEST_F(VMBlueprintProvider, v2MininalDefinitionAdded)
+TEST_F(VMBlueprintProvider, v2MinimalDefinitionAdded)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "multivacs"};
@@ -710,7 +710,7 @@ TEST_F(VMBlueprintProvider, v2MininalDefinitionAdded)
     EXPECT_NO_THROW(blueprint_provider.info_for("minimal"));
 }
 
-TEST_F(VMBlueprintProvider, v2MininalDefinitionWithShaOnUrlAdded)
+TEST_F(VMBlueprintProvider, v2MinimalDefinitionWithShaOnUrlAdded)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "multivacs"};
@@ -718,7 +718,7 @@ TEST_F(VMBlueprintProvider, v2MininalDefinitionWithShaOnUrlAdded)
     EXPECT_NO_THROW(blueprint_provider.info_for("minimal-with-sha256-url"));
 }
 
-TEST_F(VMBlueprintProvider, v2MininalDefinitionWithHardcodedShaAdded)
+TEST_F(VMBlueprintProvider, v2MinimalDefinitionWithHardcodedShaAdded)
 {
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "multivacs"};

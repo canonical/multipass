@@ -119,7 +119,7 @@ TEST_F(TestDaemonRpc, setsUnrestrictedPermissionsWhenCertAlreadyExists)
     mpt::MockDaemon daemon{make_secure_server()};
 }
 
-TEST_F(TestDaemonRpc, authenticateCompletesSuccesfully)
+TEST_F(TestDaemonRpc, authenticateCompletesSuccessfully)
 {
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
@@ -204,8 +204,8 @@ TEST_F(TestDaemonRpc, pingReturnsUnauthenticatedWhenCertIsNotVerified)
     EXPECT_EQ(stub.ping(&context, request, &reply).error_code(), grpc::StatusCode::UNAUTHENTICATED);
 }
 
-// The following 'list' command tests are for testing the authentication of an arbirary command in DaemonRpc
-TEST_F(TestDaemonRpc, listCertExistsCompletesSuccesfully)
+// The following 'list' command tests are for testing the authentication of an arbitrary command in DaemonRpc
+TEST_F(TestDaemonRpc, listCertExistsCompletesSuccessfully)
 {
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 

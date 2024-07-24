@@ -68,7 +68,7 @@ public:
         mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
         future = QtConcurrent::run(std::forward<Callable>(func), std::forward<Args>(args)...);
 
-        auto event_handler_on_sucess_and_failure = [retry_start_delay_time, this]() -> void {
+        auto event_handler_on_success_and_failure = [retry_start_delay_time, this]() -> void {
             try
             {
                 // rethrow exception
@@ -88,7 +88,7 @@ public:
             }
         };
 
-        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, event_handler_on_sucess_and_failure);
+        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, event_handler_on_success_and_failure);
         future_watcher.setFuture(future);
 
         QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {

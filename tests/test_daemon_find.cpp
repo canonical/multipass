@@ -258,14 +258,14 @@ TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
 
     // only the daemon constructor invoke it once
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
-    // overwrite the defaulty emplaced StubVMImageHost
+    // overwrite the default emplaced StubVMImageHost
     config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
 
     send_command({"find"});
 }
 
-TEST_F(DaemonFind, UpdateManifestsThrowTriggersTheFailedCaseEventHanlderOfAsyncPeriodicDownloadTask)
+TEST_F(DaemonFind, UpdateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
@@ -279,7 +279,7 @@ TEST_F(DaemonFind, UpdateManifestsThrowTriggersTheFailedCaseEventHanlderOfAsyncP
     const mp::Daemon daemon{config_builder.build()};
 
     // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not wait the async task to
-    // finish. As a consquence, the event handler is not guaranteed to be called without send_command({"find"});
+    // finish. As a consequence, the event handler is not guaranteed to be called without send_command({"find"});
     send_command({"find"});
 }
 

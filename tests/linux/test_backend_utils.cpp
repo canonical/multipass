@@ -357,7 +357,7 @@ struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<b
 TEST_P(CreateBridgeExceptionTest, create_bridge_exception_info)
 {
     auto rollback = GetParam();
-    static constexpr auto specific_info = "spefic error details";
+    static constexpr auto specific_info = "specific error details";
     auto generic_msg = fmt::format("Could not {} bridge", rollback ? "rollback" : "create");
     EXPECT_THAT((mp::backend::CreateBridgeException{specific_info, QDBusError{}, rollback}),
                 mpt::match_what(AllOf(HasSubstr(generic_msg), HasSubstr(specific_info))));

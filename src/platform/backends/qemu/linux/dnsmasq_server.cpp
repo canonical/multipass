@@ -106,7 +106,7 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
     auto ip = get_ip_for(hw_addr);
     if (!ip)
     {
-        mpl::log(mpl::Level::warning, "dnsmasq", fmt::format("attempting to release non-existant addr: {}", hw_addr));
+        mpl::log(mpl::Level::warning, "dnsmasq", fmt::format("attempting to release non-existent addr: {}", hw_addr));
         return;
     }
 

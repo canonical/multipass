@@ -236,10 +236,10 @@ TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
 {
     mp::Daemon daemon{config_builder.build()};
 
-    auto nonexistant_instance = new mp::InstanceNames; // on heap as *Request takes ownership
-    nonexistant_instance->add_instance_name("nonexistant");
+    auto nonexistent_instance = new mp::InstanceNames; // on heap as *Request takes ownership
+    nonexistent_instance->add_instance_name("nonexistent");
     mp::RestartRequest request;
-    request.set_allocated_instance_names(nonexistant_instance);
+    request.set_allocated_instance_names(nonexistent_instance);
     std::promise<grpc::Status> status_promise;
 
     daemon.restart(&request, nullptr, &status_promise);
@@ -1677,7 +1677,7 @@ constexpr auto deleted_template = R"(
     "state": 1
 }})";
 
-TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometimes writen for purged instances
+TEST_F(Daemon, skips_over_instance_ghosts_in_db) // which will have been sometimes written for purged instances
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 

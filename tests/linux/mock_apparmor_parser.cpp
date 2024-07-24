@@ -24,7 +24,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    // looks for version just to ensure existance
+    // looks for version just to ensure existence
     if (argc == 2 && strcmp(argv[1], "-V") == 0)
     {
         cout << "AppArmor parser version 1.11" << endl;

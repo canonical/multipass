@@ -277,7 +277,7 @@ TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
                 AllOf(HasSubstr("No such snapshot"), HasSubstr(mock_instance_name), HasSubstr(missing_snapshot_name)));
 }
 
-TEST_F(TestDaemonRestore, retoresSnapshotDirectlyIfDestructive)
+TEST_F(TestDaemonRestore, restoresSnapshotDirectlyIfDestructive)
 {
     static constexpr auto* snapshot_name = "dodo";
     mp::RestoreRequest request{};

@@ -22,7 +22,7 @@ namespace mpt = multipass::test;
 
 namespace
 {
-class ResetableProcessFactory : public mp::ProcessFactory
+class ResettableProcessFactory : public mp::ProcessFactory
 {
 public:
     static void Reset()
@@ -36,10 +36,10 @@ public:
 
 mpt::ResetProcessFactory::ResetProcessFactory()
 {
-    ResetableProcessFactory::Reset();
+    ResettableProcessFactory::Reset();
 }
 
 mpt::ResetProcessFactory::~ResetProcessFactory()
 {
-    ResetableProcessFactory::Reset();
+    ResettableProcessFactory::Reset();
 }

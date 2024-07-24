@@ -62,7 +62,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         if (reply.ssh_info().empty())
             return ReturnCode::Ok;
 
-        // TODO: this should setup a reader that continously prints out
+        // TODO: this should setup a reader that continuously prints out
         // streaming replies from the server corresponding to stdout/stderr streams
         const auto& ssh_info = reply.ssh_info().begin()->second;
         const auto& host = ssh_info.host();
