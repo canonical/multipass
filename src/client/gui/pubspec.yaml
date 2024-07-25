@@ -23,7 +23,7 @@ dependencies:
   flutter_riverpod: ^2.5.1
   flutter_svg: ^2.0.10+1
   fpdart: ^1.1.0
-  grpc: ^3.2.4
+  grpc: ^4.0.0
   hotkey_manager: ^0.2.3
   intl: ^0.19.0
   logger: ^2.3.0
