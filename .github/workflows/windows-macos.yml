@@ -539,3 +539,23 @@ jobs:
         inputs: ${{ steps.prepare-dispatch.outputs.inputs }}
       # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
       continue-on-error: true
+
+  CleanupArtifacts:
+    if: always()
+
+    needs: [GetMatrix, BuildAndTest]
+    
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+    - name: Clean up artifacts
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: |
+          ${{ env.HEAD_REF }}.git
+          ${{ needs.BuildAndTest.outputs.mac-x86-package }}
+          ${{ needs.BuildAndTest.outputs.mac-arm-package }}
+        failOnError: false
