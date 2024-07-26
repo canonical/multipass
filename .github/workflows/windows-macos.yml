@@ -543,7 +543,7 @@ jobs:
   CleanupArtifacts:
     if: always()
 
-    needs: [GetMatrix, BuildAndTest]
+    needs: [GetMatrix, BuildAndTest, PublishAndDispatch]
     
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
