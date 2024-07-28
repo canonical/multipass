@@ -541,7 +541,7 @@ jobs:
       continue-on-error: true
 
   CleanupArtifacts:
-    if: always()
+    if: ${{ success() && needs.PublishAndDispatch.result == 'success' }}
 
     needs: [BuildAndTest, PublishAndDispatch]
 
