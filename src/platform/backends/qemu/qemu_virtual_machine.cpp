@@ -411,7 +411,7 @@ void mp::QemuVirtualMachine::shutdown(bool force)
         if (state == State::suspended || mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
         {
             mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
-            mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
+            mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
         state = State::off;
