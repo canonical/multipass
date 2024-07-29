@@ -52,10 +52,12 @@ ethernets:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true)";
@@ -67,10 +69,12 @@ ethernets:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
@@ -78,6 +82,7 @@ ethernets:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
@@ -103,10 +108,12 @@ ethernets:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
