@@ -406,7 +406,7 @@ struct LaunchWithBridges
 {
 };
 
-struct LaunchWithNoNetworkCloudInit : public Daemon, public WithParamInterface<std::vector<std::string>>
+struct LaunchWithNoExtraNetworkCloudInit : public Daemon, public WithParamInterface<std::vector<std::string>>
 {
 };
 
@@ -1111,7 +1111,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
     send_command({GetParam()});
 }
 
-TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
+TEST_P(LaunchWithNoExtraNetworkCloudInit, no_extra_network_cloud_init)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1119,9 +1119,10 @@ TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
     const auto launch_args = GetParam();
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce(Invoke([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_TRUE(desc.network_data_config.IsNull());
-        }));
+        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["default"].IsNull());
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["extra0"].IsDefined());
+        });
 
     send_command(launch_args);
 }
@@ -1137,7 +1138,7 @@ std::vector<std::string> make_args(const std::vector<std::string>& args)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Daemon, LaunchWithNoNetworkCloudInit,
+    Daemon, LaunchWithNoExtraNetworkCloudInit,
     Values(make_args({}), make_args({"xenial"}), make_args({"xenial", "--network", "name=eth0,mode=manual"}),
            make_args({"groovy"}), make_args({"groovy", "--network", "name=eth0,mode=manual"}),
            make_args({"--network", "name=eth0,mode=manual"}), make_args({"devel"}),
