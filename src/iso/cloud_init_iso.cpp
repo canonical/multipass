@@ -714,16 +714,9 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     meta_data_file_content =
         mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data_file_content, new_instance_id));
 
-    if (extra_interfaces.empty())
-    {
-        iso_file.erase("network-config");
-    }
-    else
-    {
-        // overwrite the whole network-config file content
-        iso_file["network-config"] =
-            mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
-    }
+    // overwrite the whole network-config file content
+    iso_file["network-config"] =
+        mpu::emit_cloud_config(mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }
 
@@ -740,12 +733,9 @@ void mp::CloudInitFileOps::update_cloned_cloud_init_unique_identifiers(
     meta_data_file_content =
         mpu::emit_cloud_config(mpu::make_cloud_init_meta_config(new_hostname, meta_data_file_content));
 
-    if (iso_file.contains("network-config"))
-    {
-        std::string& network_config_file_content = iso_file.at("network-config");
-        network_config_file_content = mpu::emit_cloud_config(
-            mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces, network_config_file_content));
-    }
+    std::string& network_config_file_content = iso_file["network-config"];
+    network_config_file_content = mpu::emit_cloud_config(
+        mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces, network_config_file_content));
 
     iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
 }
