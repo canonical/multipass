@@ -390,10 +390,12 @@ ethernets:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:56:78:91"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
@@ -437,10 +439,12 @@ ethernets:
     match:
       macaddress: "00:00:00:00:00:00"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "00:00:00:00:00:01"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
@@ -470,10 +474,12 @@ ethernets:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:56:78:91"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true

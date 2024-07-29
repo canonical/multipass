@@ -31,6 +31,7 @@ YAML::Node create_extra_interface_node(const std::string& extra_interface_name,
     YAML::Node extra_interface_data{};
     extra_interface_data["match"]["macaddress"] = extra_interface_mac_address;
     extra_interface_data["dhcp4"] = true;
+    extra_interface_data["dhcp-identifier"] = "mac";
     // We make the default gateway associated with the first interface.
     extra_interface_data["dhcp4-overrides"]["route-metric"] = 200;
     // Make the interface optional, which means that networkd will not wait for the device to be configured.
@@ -45,6 +46,7 @@ YAML::Node create_default_interface_node(const std::string& default_interface_ma
 
     default_interface_data["match"]["macaddress"] = default_interface_mac_address;
     default_interface_data["dhcp4"] = true;
+    default_interface_data["dhcp-identifier"] = "mac";
 
     return default_interface_data;
 };
