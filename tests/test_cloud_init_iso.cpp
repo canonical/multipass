@@ -423,7 +423,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
                                                                                       iso_path.toStdString()));
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
-    EXPECT_FALSE(new_iso.contains("network-config"));
+    EXPECT_TRUE(new_iso.contains("network-config"));
 }
 
 TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
