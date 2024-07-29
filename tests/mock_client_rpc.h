@@ -212,7 +212,6 @@ public:
                 PrepareAsyncrestoreRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
-
     MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::CloneRequest, multipass::CloneReply>*),
                 cloneRaw,
                 (grpc::ClientContext * context),

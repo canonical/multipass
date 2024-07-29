@@ -105,24 +105,17 @@ YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_
 {
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
-    // Generate the cloud-init file only if there is at least one extra interface needing auto configuration.
-    if (std::find_if(extra_interfaces.begin(), extra_interfaces.end(), [](const auto& iface) {
-            return iface.auto_mode;
-        }) != extra_interfaces.end())
+    network_data["version"] = "2";
+    std::string name = "default";
+    network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
+    network_data["ethernets"][name]["dhcp4"] = true;
+
+    for (size_t i = 0; i < extra_interfaces.size(); ++i)
     {
-        network_data["version"] = "2";
-
-        std::string name = "default";
-        network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-        network_data["ethernets"][name]["dhcp4"] = true;
-
-        for (size_t i = 0; i < extra_interfaces.size(); ++i)
+        if (extra_interfaces[i].auto_mode)
         {
-            if (extra_interfaces[i].auto_mode)
-            {
-                name = "extra" + std::to_string(i);
-                network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
-            }
+            name = "extra" + std::to_string(i);
+            network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
         }
     }
 
