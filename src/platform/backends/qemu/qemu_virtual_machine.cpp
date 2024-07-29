@@ -720,14 +720,11 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
 
 void mp::QemuVirtualMachine::remove_snapshots_from_image() const
 {
-    const QStringList tag_list = extract_snapshot_tags(backend::snapshot_list_output(desc.image.image_path));
+    const QStringList snapshot_tag_list = extract_snapshot_tags(backend::snapshot_list_output(desc.image.image_path));
 
-    for (const auto& tag : tag_list)
+    for (const auto& snapshot_tag : snapshot_tag_list)
     {
-        backend::checked_exec_qemu_img(
-            std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, desc.image.image_path},
-                                                     desc.image.image_path),
-            "Cannot delete snapshot from the image");
+        backend::delete_snapshot_from_image(desc.image.image_path, snapshot_tag);
     }
 }
 
