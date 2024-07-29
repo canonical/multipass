@@ -38,6 +38,17 @@ YAML::Node create_extra_interface_node(const std::string& extra_interface_name,
 
     return extra_interface_data;
 };
+
+YAML::Node create_default_interface_node(const std::string& default_interface_mac_address)
+{
+    YAML::Node default_interface_data{};
+
+    default_interface_data["match"]["macaddress"] = default_interface_mac_address;
+    default_interface_data["dhcp4"] = true;
+
+    return default_interface_data;
+};
+
 } // namespace
 
 std::string mp::utils::emit_yaml(const YAML::Node& node)
@@ -106,15 +117,13 @@ YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
     network_data["version"] = "2";
-    std::string name = "default";
-    network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-    network_data["ethernets"][name]["dhcp4"] = true;
+    network_data["ethernets"]["default"] = create_default_interface_node(default_mac_addr);
 
     for (size_t i = 0; i < extra_interfaces.size(); ++i)
     {
         if (extra_interfaces[i].auto_mode)
         {
-            name = "extra" + std::to_string(i);
+            const std::string name = "extra" + std::to_string(i);
             network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
         }
     }
@@ -136,9 +145,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& d
         YAML::Node network_data{};
         network_data["version"] = "2";
 
-        const std::string default_network_name = "default";
-        network_data["ethernets"][default_network_name]["match"]["macaddress"] = default_mac_addr;
-        network_data["ethernets"][default_network_name]["dhcp4"] = true;
+        network_data["ethernets"]["default"] = create_default_interface_node(default_mac_addr);
 
         const std::string extra_interface_name = "extra0";
         network_data["ethernets"][extra_interface_name] =
