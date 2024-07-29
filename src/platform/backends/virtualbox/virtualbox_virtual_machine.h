@@ -66,7 +66,7 @@ public:
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
-    void remove_all_snapshots_from_the_image() const override;
+    void remove_snapshots_from_image() const override;
 
 protected:
     void require_snapshots_support() const override;

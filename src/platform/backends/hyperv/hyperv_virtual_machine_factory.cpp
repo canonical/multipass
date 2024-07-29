@@ -295,7 +295,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
 
     copy_instance_dir_without_snapshot_and_image_files(source_instance_data_directory, dest_instance_data_directory);
 
-    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / "cloud-init-config.iso";
+    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
                                                                        dest_vm_spec.extra_interfaces,
@@ -324,7 +324,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_in
                                                    monitor,
                                                    key_provider,
                                                    get_instance_directory(dest_vm_desc.vm_name));
-    cloned_instance->remove_all_snapshots_from_the_image();
+    cloned_instance->remove_snapshots_from_image();
 
     return cloned_instance;
 }

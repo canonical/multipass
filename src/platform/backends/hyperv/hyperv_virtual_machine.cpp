@@ -18,6 +18,7 @@
 #include "hyperv_virtual_machine.h"
 #include "hyperv_snapshot.h"
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
@@ -247,7 +248,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                           "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
-    const fs::path dest_cloud_init_path = fs::path{dest_instance_dir.toStdString()} / "cloud-init-config.iso";
+    const fs::path dest_cloud_init_path = fs::path{dest_instance_dir.toStdString()} / cloud_init_file_name;
     power_shell->easy_run(
         {"Add-VMDvdDrive", "-VMName", name, "-Path", quoted(QString::fromStdString(dest_cloud_init_path.string()))},
         "Could not add the cloud-init-config.iso to the virtual machine");
@@ -496,7 +497,7 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                              smb_manager);
 }
 
-void mp::HyperVVirtualMachine::remove_all_snapshots_from_the_image() const
+void mp::HyperVVirtualMachine::remove_snapshots_from_image() const
 {
     // Get-VMSnapshot -VMName "YourVMName" | Remove-VMSnapshot
     power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"}, "Could not remove the snapshots");

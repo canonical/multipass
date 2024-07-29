@@ -501,7 +501,7 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-void mp::VirtualBoxVirtualMachine::remove_all_snapshots_from_the_image() const
+void mp::VirtualBoxVirtualMachine::remove_snapshots_from_image() const
 {
     // Name: @s1 (UUID: 93a6a9ba-9223-4b77-a8cf-80213439aaae)
     // Description: snapshot1:
