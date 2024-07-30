@@ -542,3 +542,20 @@ jobs:
         inputs: ${{ steps.prepare-dispatch.outputs.inputs }}
       # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
       continue-on-error: true
+
+  CleanupArtifacts:
+    if: ${{ success() && needs.PublishAndDispatch.result == 'success' }}
+
+    needs: [BuildAndTest, PublishAndDispatch]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Clean up artifacts
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: |
+          ${{ env.HEAD_REF }}.git
+          ${{ needs.BuildAndTest.outputs.mac-x86-package }}
+          ${{ needs.BuildAndTest.outputs.mac-arm-package }}
+        failOnError: false
