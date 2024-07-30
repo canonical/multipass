@@ -35,8 +35,6 @@
 
 #include <fmt/format.h>
 
-#include <algorithm>
-
 #include <winsock2.h>
 
 namespace mp = multipass;
