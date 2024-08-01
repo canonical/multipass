@@ -32,7 +32,7 @@ Version: 1.1.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.
 <https://github.com/zmarko/semver/releases>
 
 ### xz-embedded
-Version: 090e6a0 |
+Version: v20240322 |
 <https://git.tukaani.org/xz-embedded.git> |
 <https://tukaani.org/xz/embedded.html>
 
