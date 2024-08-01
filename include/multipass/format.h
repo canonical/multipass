@@ -20,8 +20,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-
-#include <filesystem>
+#include <fmt/ranges.h>
 
 #include <QByteArray>
 #include <QProcess>
