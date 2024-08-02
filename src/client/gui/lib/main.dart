@@ -1,3 +1,4 @@
+import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -15,6 +16,7 @@ import 'settings/hotkey.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
+import 'update_available.dart';
 import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
 
@@ -138,6 +140,10 @@ class _AppState extends ConsumerState<App> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
+    ref.read(grpcClientProvider).updateInfo().then((updateInfo) {
+      if (updateInfo.version.isBlank) return;
+      ref.read(notificationsProvider.notifier).add(UpdateAvailable(updateInfo));
+    });
   }
 
   @override
