@@ -155,7 +155,7 @@ cd build
 cmake ../
 make
 ```
-
+**Note:** if you're working on a forked repository that you created using the "Copy the main branch only" option, the repository will not include the necessary git tags to determine the Multipass version during CMake configuration. In this case, you need to manually fetch the tags from the upstream by running `git fetch --tags https://github.com/canonical/multipass.git` in the `<multipass>` source code directory. 
 ## Running Multipass daemon and client
 
 First, install multipass's runtime dependencies. On amd64 architecture, you can achieve that with:
