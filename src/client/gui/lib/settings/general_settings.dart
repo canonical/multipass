@@ -1,3 +1,4 @@
+import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,7 @@ import '../dropdown.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../switch.dart';
+import '../update_available.dart';
 import 'autostart_notifiers.dart';
 
 final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
@@ -14,6 +16,7 @@ class GeneralSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final update = ref.watch(updateProvider).valueOrNull ?? UpdateInfo();
     final autostart = ref.watch(autostartProvider).valueOrNull ?? false;
     final onAppClose = ref.watch(onAppCloseProvider);
 
@@ -23,6 +26,10 @@ class GeneralSettings extends ConsumerWidget {
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
       const SizedBox(height: 20),
+      if (update.version.isNotBlank) ...[
+        UpdateAvailable(update),
+        const SizedBox(height: 20),
+      ],
       Switch(
         label: 'Open the Multipass GUI on startup',
         value: autostart,

@@ -18,6 +18,45 @@ final installUrl = Uri.parse('https://multipass.run/install');
 
 Future<void> launchInstallUrl() => launchUrl(installUrl);
 
+class UpdateAvailable extends StatelessWidget {
+  final UpdateInfo updateInfo;
+
+  const UpdateAvailable(this.updateInfo, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = Container(
+      alignment: Alignment.center,
+      color: _color,
+      height: 40,
+      width: 40,
+      child: SvgPicture.asset('assets/multipass.svg', width: 25),
+    );
+
+    final text = Text(
+      'Multipass ${updateInfo.version} is available',
+      style: const TextStyle(fontSize: 16),
+    );
+
+    const button = TextButton(
+      onPressed: launchInstallUrl,
+      child: Text('Upgrade now'),
+    );
+
+    return Container(
+      color: const Color(0xffF7F7F7),
+      padding: const EdgeInsets.all(12),
+      child: Row(children: [
+        icon,
+        const SizedBox(width: 12),
+        text,
+        const Spacer(),
+        button,
+      ]),
+    );
+  }
+}
+
 class UpdateAvailableNotification extends StatelessWidget {
   final UpdateInfo updateInfo;
 
