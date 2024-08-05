@@ -140,10 +140,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
-    ref.read(grpcClientProvider).updateInfo().then((updateInfo) {
-      if (updateInfo.version.isBlank) return;
-      ref.read(notificationsProvider.notifier).add(UpdateAvailable(updateInfo));
-    });
+    ref.read(updateProvider.future).then(ref.showUpdateNotification);
   }
 
   @override

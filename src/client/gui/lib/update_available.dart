@@ -1,33 +1,36 @@
+import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'grpc_client.dart';
 import 'notifications/notification_entries.dart';
 import 'notifications/notifications_list.dart';
+import 'notifications/notifications_provider.dart';
 import 'providers.dart';
 
 final updateProvider = FutureProvider.autoDispose((ref) {
   return ref.watch(grpcClientProvider).updateInfo();
 });
 
-class UpdateAvailable extends StatelessWidget {
+const _color = Color(0xffE95420);
+final installUrl = Uri.parse('https://multipass.run/install');
+
+Future<void> launchInstallUrl() => launchUrl(installUrl);
+
+class UpdateAvailableNotification extends StatelessWidget {
   final UpdateInfo updateInfo;
 
-  const UpdateAvailable(this.updateInfo, {super.key});
-
-  static final installUrl = Uri.parse('https://multipass.run/install');
-  static const color = Color(0xffE95420);
+  const UpdateAvailableNotification(this.updateInfo, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return SimpleNotification(
-      barColor: color,
+      barColor: _color,
       icon: SvgPicture.asset(
         'assets/multipass.svg',
         width: 30,
-        colorFilter: const ColorFilter.mode(color, BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(_color, BlendMode.srcIn),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
@@ -37,7 +40,7 @@ class UpdateAvailable extends StatelessWidget {
         const SizedBox(height: 12),
         TextButton(
           onPressed: () async {
-            await launchUrl(installUrl);
+            await launchInstallUrl();
             if (!context.mounted) return;
             Actions.maybeInvoke(context, const CloseNotificationIntent());
           },
@@ -45,5 +48,14 @@ class UpdateAvailable extends StatelessWidget {
         ),
       ]),
     );
+  }
+}
+
+extension ShowUpdateExtension on WidgetRef {
+  void showUpdateNotification(UpdateInfo updateInfo) {
+    if (updateInfo.version.isNotBlank) {
+      read(notificationsProvider.notifier)
+          .add(UpdateAvailableNotification(updateInfo));
+    }
   }
 }
