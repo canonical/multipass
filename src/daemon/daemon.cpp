@@ -32,6 +32,7 @@
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -3075,11 +3076,13 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
 
         mounts[name].clear();
 
-        // In the case of deleting the suspended vm without purge, it should do nothing. Otherwise it falls back the
-        // general shutdown
-        if (instance->current_state() != VirtualMachine::State::suspended || purge)
+        try
         {
             instance->shutdown(purge);
+        }
+        catch (const VMStateInvalidException& exception)
+        {
+            // in the case of VMStateInvalidException, we simply just skip shutdown call
         }
 
         if (!purge)
