@@ -32,6 +32,7 @@
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -3074,7 +3075,15 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
             delayed_shutdown_instances.erase(name);
 
         mounts[name].clear();
-        instance->shutdown(purge);
+
+        try
+        {
+            instance->shutdown(purge);
+        }
+        catch (const VMStateInvalidException& exception)
+        {
+            // in the case of VMStateInvalidException, we simply just skip shutdown call
+        }
 
         if (!purge)
         {
