@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'grpc_client.dart';
 import 'notifications/notification_entries.dart';
 import 'notifications/notifications_list.dart';
+import 'providers.dart';
+
+final updateProvider = FutureProvider.autoDispose((ref) {
+  return ref.watch(grpcClientProvider).updateInfo();
+});
 
 class UpdateAvailable extends StatelessWidget {
   final UpdateInfo updateInfo;
