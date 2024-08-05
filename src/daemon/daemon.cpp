@@ -3074,7 +3074,13 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
             delayed_shutdown_instances.erase(name);
 
         mounts[name].clear();
-        instance->shutdown(purge);
+
+        // In the case of deleting the suspended vm without purge, it should do nothing. Otherwise it falls back the
+        // general shutdown
+        if (instance->current_state() != VirtualMachine::State::suspended || purge)
+        {
+            instance->shutdown(purge);
+        }
 
         if (!purge)
         {
