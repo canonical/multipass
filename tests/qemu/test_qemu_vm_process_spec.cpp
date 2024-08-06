@@ -20,6 +20,7 @@
 
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
+#include <QDir>
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -185,4 +186,27 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
     EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
     EXPECT_TRUE(spec.apparmor_profile().contains("/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/* r,"));
     EXPECT_TRUE(spec.apparmor_profile().contains(" /usr/bin/qemu-system-")); // space wanted
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_lets_bridge_helper_run_in_snap)
+{
+    const QByteArray snap_name{"multipass"};
+    QTemporaryDir snap_dir;
+
+    mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString(" %1/bin/bridge_helper").arg(snap_dir.path())));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmor_profile_lets_bridge_helper_run_outside_snap)
+{
+    const QByteArray snap_name{"multipass"};
+
+    mpt::UnsetEnvScope e("SNAP");
+    mpt::SetEnvScope e2("SNAP_NAME", snap_name);
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
+
+    EXPECT_TRUE(spec.apparmor_profile().contains(" /bin/bridge_helper"));
 }

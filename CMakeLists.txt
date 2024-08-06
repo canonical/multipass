@@ -240,7 +240,9 @@ else()
       add_definitions(-DMULTIPASS_COMPILER_GCC)
     endif()
 
-    add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds -Wnon-virtual-dtor)
+    add_compile_options(-Wextra -Wempty-body -Wformat-security -Winit-self -Warray-bounds)
+
+    string(APPEND CMAKE_CXX_FLAGS " -Wnon-virtual-dtor")
 
     if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "^arm")
       add_compile_options(-Wcast-align)
