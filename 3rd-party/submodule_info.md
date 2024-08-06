@@ -47,6 +47,6 @@ Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
 ### POCO
-Version: 1.12.4 |
+Version: 1.13.3 |
 <https://github.com/pocoproject/poco.git> |
 <https://github.com/pocoproject/poco/releases>
