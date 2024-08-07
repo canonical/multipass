@@ -12,12 +12,12 @@ Version: 1.52.1 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.
 <https://github.com/grpc/grpc/releases>
 
 ### libssh
-Version: 0.10.5 (+[our patches](https://github.com/canonical/libssh/compare/libssh-0.10.5..843b97db)) |
+Version: 0.10.6 (+[our patches](https://github.com/canonical/libssh/compare/libssh-0.10.5..843b97db)) |
 <https://github.com/canonical/libssh.git> |
 <https://www.libssh.org/>
 
 ### fmt
-Version: 10.1.1 |
+Version: 11.0.2 |
 <https://github.com/fmtlib/fmt.git> |
 <https://github.com/fmtlib/fmt/releases>
 
@@ -32,12 +32,12 @@ Version: 1.1.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.
 <https://github.com/zmarko/semver/releases>
 
 ### xz-embedded
-Version: 090e6a0 |
+Version: v20240322 |
 <https://git.tukaani.org/xz-embedded.git> |
 <https://tukaani.org/xz/embedded.html>
 
 ### yaml-cpp
-Version: 0.6.3 (+[our patches](https://github.com/canonical/yaml-cpp/compare/yaml-cpp-0.6.3..a61bca0)) |
+Version: 0.8.0 (+[our patches](https://github.com/canonical/yaml-cpp/compare/yaml-cpp-0.6.3..a61bca0)) |
 <https://github.com/canonical/yaml-cpp.git> |
 <https://github.com/jbeder/yaml-cpp/releases>
 
@@ -47,6 +47,6 @@ Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
 ### POCO
-Version: 1.12.4 |
+Version: 1.13.3 |
 <https://github.com/pocoproject/poco.git> |
 <https://github.com/pocoproject/poco/releases>
