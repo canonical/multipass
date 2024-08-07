@@ -37,7 +37,7 @@ Version: v20240322 |
 <https://tukaani.org/xz/embedded.html>
 
 ### yaml-cpp
-Version: 0.6.3 (+[our patches](https://github.com/canonical/yaml-cpp/compare/yaml-cpp-0.6.3..a61bca0)) |
+Version: 0.8.0 (+[our patches](https://github.com/canonical/yaml-cpp/compare/yaml-cpp-0.6.3..a61bca0)) |
 <https://github.com/canonical/yaml-cpp.git> |
 <https://github.com/jbeder/yaml-cpp/releases>
 
