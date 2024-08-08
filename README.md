@@ -14,13 +14,13 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 # Installation
 
-* On Linux, Multipass is available as a snap:
+* On **Linux**, Multipass is available as a snap:
 
   ```
   sudo snap install multipass
   ```
 
-* On macOS, you can download the installer [from GitHub](https://github.com/canonical/multipass/releases) or use [Homebrew](https://github.com/Homebrew/brew):
+* On **macOS**, you can download the installer [from GitHub](https://github.com/canonical/multipass/releases) or use [Homebrew](https://github.com/Homebrew/brew):
 
   ```
   brew install --cask multipass
@@ -28,7 +28,7 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
   
   Please note that you may be required to enter your password for some sudo operations during installation. You may also need to disable the firewall to launch a multipass instance successfully on macOS.
 
-* On Windows, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
+* On **Windows**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
 For more information, see [How to install Multipass](https://multipass.run/docs/install-multipass).
 
