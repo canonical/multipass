@@ -1071,17 +1071,14 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     // The sole reason to register this callback is to make the extract_snapshot_tags function get a non-empty snapshot
     // list input, so we can cover the for loops
     mpt::MockProcessFactory::Callback snapshot_list_callback = [](mpt::MockProcess* process) {
-        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot -l"))
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot") &&
+            process->arguments().contains("-l"))
         {
             constexpr auto snapshot_list_output_stream =
                 R"(Snapshot list:
             ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
             2         @s2               0 B     2024-06-11 23:22:59 00:00:00.000          0
             3         @s3               0 B     2024-06-12 12:30:37 00:00:00.000          0)";
-
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
 
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray{snapshot_list_output_stream}));
         }
@@ -1091,8 +1088,19 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_NO_THROW(machine->remove_snapshots_from_image());
+
+    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory->process_list();
+
+    EXPECT_GE(processes.size(), 2);
+    const auto lastProcessInfo = processes.back();
+    const auto last2ndProcessInfo = processes[processes.size() - 2];
+
+    EXPECT_TRUE(lastProcessInfo.command == "qemu-img" && lastProcessInfo.arguments.contains("-d") &&
+                lastProcessInfo.arguments.contains("@s3"));
+    EXPECT_TRUE(last2ndProcessInfo.command == "qemu-img" && last2ndProcessInfo.arguments.contains("-d") &&
+                last2ndProcessInfo.arguments.contains("@s2"));
 }
 
 TEST_F(QemuBackend, createVmAndCloneInstanceDirData)
