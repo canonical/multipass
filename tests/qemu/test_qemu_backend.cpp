@@ -511,8 +511,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot") &&
             process->arguments().contains("-l"))
         {
-            EXPECT_CALL(*process, read_all_standard_output())
-                .WillOnce(Return(fake_snapshot_list_with_suspend_tag));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(fake_snapshot_list_with_suspend_tag));
         }
     };
     process_factory->register_callback(snapshot_list_suspend_tag_callback);
