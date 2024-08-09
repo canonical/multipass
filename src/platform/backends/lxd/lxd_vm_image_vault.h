@@ -19,6 +19,7 @@
 #define MULTIPASS_LXD_VM_IMAGE_VAULT_H
 
 #include <multipass/days.h>
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/query.h>
 #include <shared/base_vm_image_vault.h>
 
@@ -52,6 +53,10 @@ public:
     void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override;
     MemorySize minimum_image_size_for(const std::string& id) override;
+    void clone(const std::string& source_instance_name, const std::string& destination_instance_name) override
+    {
+        throw NotImplementedOnThisBackendException("clone");
+    }
 
 private:
     void lxd_download_image(const VMImageInfo& info, const Query& query, const ProgressMonitor& monitor,

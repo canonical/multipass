@@ -48,6 +48,10 @@ YAML::Node make_cloud_init_network_config(const std::string& default_mac_addr,
 YAML::Node add_extra_interface_to_network_config(const std::string& default_mac_addr,
                                                  const NetworkInterface& extra_interface,
                                                  const std::string& network_config_file_content);
+// the make_cloud_init_network_config and add_extra_interface_to_network_config functions are adapted to generate the
+// new format network-config file (having default interface present and having dhcp-identifier: mac on every network
+// interface). At the same time, it also needs to take care of the pre-existed file, meaning that the generated file
+// from the old file should have the new format.
 } // namespace utils
 } // namespace multipass
 #endif // MULTIPASS_YAML_NODE_UTILS_H
