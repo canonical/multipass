@@ -507,24 +507,15 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
         return std::move(mock_qemu_platform);
     });
 
-    mpt::MockProcessFactory::Callback snapshot_list_callback = [](mpt::MockProcess* process) {
+    mpt::MockProcessFactory::Callback snapshot_list_suspend_tag_callback = [](mpt::MockProcess* process) {
         if (process->program().contains("qemu-img") && process->arguments().contains("snapshot") &&
             process->arguments().contains("-l"))
         {
-            constexpr auto snapshot_list_output_stream =
-                R"(Snapshot list:
-            ID        TAG                    VM SIZE                DATE     VM CLOCK     ICOUNT
-            1         @suspend               0 B     2024-06-11 23:22:59 00:00:00.000          0)";
-
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-
             EXPECT_CALL(*process, read_all_standard_output())
-                .WillRepeatedly(Return(QByteArray{snapshot_list_output_stream}));
+                .WillOnce(Return(fake_snapshot_list_with_suspend_tag));
         }
     };
-    process_factory->register_callback(snapshot_list_callback);
+    process_factory->register_callback(snapshot_list_suspend_tag_callback);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
@@ -534,7 +525,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
     machine->shutdown(true);
 
