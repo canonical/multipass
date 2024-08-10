@@ -531,6 +531,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory->process_list();
+    EXPECT_FALSE(processes.empty());
     EXPECT_TRUE(processes.back().command == "qemu-img" && processes.back().arguments.contains("-d") &&
                 processes.back().arguments.contains(suspend_tag));
 }
