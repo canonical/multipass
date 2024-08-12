@@ -28,7 +28,7 @@ using namespace testing;
 
 namespace
 {
-constexpr std::string_view meta_data_content = R"(#cloud-config
+constexpr auto* meta_data_content = R"(#cloud-config
 instance-id: vm1
 local-hostname: vm1
 cloud-name: multipass)";
@@ -329,9 +329,9 @@ TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 
 TEST_F(CloudInitIso, reads_iso_file_with_mocked_real_file_data)
 {
-    constexpr std::string_view user_data_content = R"(#cloud-config
+    constexpr auto* user_data_content = R"(#cloud-config
 {})";
-    constexpr std::string_view vendor_data_content = R"(#cloud-config
+    constexpr auto* vendor_data_content = R"(#cloud-config
 growpart:
   mode: auto
   devices: [/]
@@ -351,9 +351,9 @@ write_files:
 )";
     mp::CloudInitIso original_iso;
 
-    original_iso.add_file("meta-data", std::string(meta_data_content));
-    original_iso.add_file("vendor_data_content", std::string(vendor_data_content));
-    original_iso.add_file("user-data", std::string(user_data_content));
+    original_iso.add_file("meta-data", meta_data_content);
+    original_iso.add_file("vendor_data_content", vendor_data_content);
+    original_iso.add_file("user-data", user_data_content);
     original_iso.add_file("network-config", "some random network-data");
     original_iso.write_to(iso_path);
 
@@ -366,7 +366,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 {
     mp::CloudInitIso original_iso;
 
-    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("meta-data", meta_data_content);
     original_iso.add_file("network-config", "dummy_data");
     original_iso.write_to(iso_path);
 
@@ -378,12 +378,12 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
                                                                                       "vm2",
                                                                                       iso_path.toStdString()));
 
-    constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
+    constexpr auto* expected_modified_meta_data_content = R"(#cloud-config
 instance-id: vm2
 local-hostname: vm1
 cloud-name: multipass
 )";
-    constexpr std::string_view expected_generated_network_config_data_content = R"(#cloud-config
+    constexpr auto* expected_generated_network_config_data_content = R"(#cloud-config
 version: 2
 ethernets:
   default:
@@ -410,7 +410,7 @@ ethernets:
 TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 {
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("meta-data", meta_data_content);
     original_iso.add_file("network-config", "dummy_data");
     original_iso.write_to(iso_path);
 
@@ -428,11 +428,11 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
 TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
 {
-    constexpr std::string_view src_meta_data_content = R"(#cloud-config
+    constexpr auto* src_meta_data_content = R"(#cloud-config
 instance-id: vm1_e_e
 local-hostname: vm1
 cloud-name: multipass)";
-    constexpr std::string_view src_network_config_data_content = R"(#cloud-config
+    constexpr auto* src_network_config_data_content = R"(#cloud-config
 version: 2
 ethernets:
   default:
@@ -451,8 +451,8 @@ ethernets:
 )";
 
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", std::string(src_meta_data_content));
-    original_iso.add_file("network-config", std::string(src_network_config_data_content));
+    original_iso.add_file("meta-data", src_meta_data_content);
+    original_iso.add_file("network-config", src_network_config_data_content);
     original_iso.write_to(iso_path);
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
@@ -462,12 +462,12 @@ ethernets:
                                                                                        "vm1-clone1",
                                                                                        iso_path.toStdString()));
 
-    constexpr std::string_view expected_modified_meta_data_content = R"(#cloud-config
+    constexpr auto* expected_modified_meta_data_content = R"(#cloud-config
 instance-id: vm1-clone1_e_e
 local-hostname: vm1-clone1
 cloud-name: multipass
 )";
-    constexpr std::string_view expected_generated_network_config_data_content = R"(#cloud-config
+    constexpr auto* expected_generated_network_config_data_content = R"(#cloud-config
 version: 2
 ethernets:
   default:
@@ -493,7 +493,7 @@ ethernets:
 TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 {
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("meta-data", meta_data_content);
     original_iso.write_to(iso_path);
 
     const mp::NetworkInterface dummy_extra_interface{};
@@ -504,7 +504,7 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
 {
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", std::string(meta_data_content));
+    original_iso.add_file("meta-data", meta_data_content);
     original_iso.write_to(iso_path);
 
     EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()), "vm1");
