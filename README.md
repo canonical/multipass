@@ -42,22 +42,26 @@ Here are some pointers to get started with Multipass. For a more comprehensive l
 $ multipass find
 
 Image                       Aliases           Version          Description
-core                        core16            20200213         Ubuntu Core 16
-core18                                        20200210         Ubuntu Core 18
-16.04                       xenial            20200721         Ubuntu 16.04 LTS
-18.04                       bionic,lts        20200717         Ubuntu 18.04 LTS
-20.04                       focal             20200720         Ubuntu 20.04 LTS
-daily:20.10                 devel,groovy      20200721         Ubuntu 20.10
+20.04                       focal             20240731         Ubuntu 20.04 LTS
+22.04                       jammy             20240808         Ubuntu 22.04 LTS
+24.04                       noble,lts         20240806         Ubuntu 24.04 LTS
+
+Blueprint                   Aliases           Version          Description
+anbox-cloud-appliance                         latest           Anbox Cloud Appliance
+charm-dev                                     latest           A development and testing environment for charmers
+docker                                        0.4              A Docker environment with Portainer and related tools
+jellyfin                                      latest           Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
+minikube                                      latest           minikube is local Kubernetes
+ros-noetic                                    0.1              A development and testing environment for ROS Noetic.
+ros2-humble                                   0.1              A development and testing environment for ROS 2 Humble.
 ```
 
 ## Launch a fresh instance of the current Ubuntu LTS
 
 ```
-$ multipass launch ubuntu
+$ multipass launch lts
 
-Launching dancing-chipmunk...
-Downloading Ubuntu 18.04 LTS..........
-Launched: dancing chipmunk
+Launched: dancing-chipmunk
 ```
 
 ## Check out the running instances
@@ -65,10 +69,12 @@ Launched: dancing chipmunk
 ```
 $ multipass list
 
-Name                    State             IPv4             Release
-dancing-chipmunk        RUNNING           10.125.174.247   Ubuntu 18.04 LTS
-live-naiad              RUNNING           10.125.174.243   Ubuntu 18.04 LTS
-snapcraft-asciinema     STOPPED           --               Ubuntu Snapcraft builder for Core 18
+Name                    State             IPv4             Image
+dancing-chipmunk        Running           192.168.64.8     Ubuntu 24.04 LTS
+                                          10.1.23.64       Ubuntu 24.04 LTS
+phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
+docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
+                                          172.17.0.1               
 ```
 
 ## Learn more about an instance
@@ -77,14 +83,16 @@ snapcraft-asciinema     STOPPED           --               Ubuntu Snapcraft buil
 $ multipass info dancing-chipmunk
 
 Name:           dancing-chipmunk
-State:          RUNNING
-IPv4:           10.125.174.247
-Release:        Ubuntu 18.04.1 LTS
-Image hash:     19e9853d8267 (Ubuntu 18.04 LTS)
+Snapshots:      0
+IPv4:           192.168.64.8
+                10.1.23.64
+Release:        Ubuntu 24.04 LTS
+Image hash:     e2608bfdbc44 (Ubuntu 24.04 LTS)
 CPU(s):         1
-Load:           0.97 0.30 0.10
-Disk usage:     1.1G out of 4.7G
-Memory usage:   85.1M out of 985.4M
+Load:           5.70 4.58 2.63
+Disk usage:     3.3GiB out of 4.8GiB
+Memory usage:   769.0MiB out of 953.0MiB
+Mounts:         --
 ```
 
 ## Connect to a running instance
@@ -92,7 +100,7 @@ Memory usage:   85.1M out of 985.4M
 ```
 $ multipass shell dancing-chipmunk
 
-Welcome to Ubuntu 18.04.1 LTS (GNU/Linux 4.15.0-42-generic x86_64)
+Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0-39-generic aarch64)
 ...
 ```
 
@@ -104,10 +112,10 @@ Don't forget to logout (or Ctrl-D) or you may find yourself heading all the way 
 $ multipass exec dancing-chipmunk -- lsb_release -a
 
 No LSB modules are available.
-Distributor ID:  Ubuntu
-Description:     Ubuntu 18.04.1 LTS
-Release:         18.04
-Codename:        bionic
+Distributor ID:	 Ubuntu
+Description:	   Ubuntu 24.04 LTS
+Release:	       24.04
+Codename:	       noble
 ```
 
 ## Stop an instance to save resources
@@ -124,11 +132,14 @@ $ multipass delete dancing-chipmunk
 
 The instance will now show up as deleted:
 
-```$ multipass list
+```
+$ multipass list
 
-Name                    State             IPv4             Release
-snapcraft-asciinema     STOPPED           --               Ubuntu Snapcraft builder for Core 18
-dancing-chipmunk        DELETED           --               Not Available
+Name                    State             IPv4             Image
+dancing-chipmunk        Deleted           --               Ubuntu 24.04 LTS
+phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
+docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
+                                          172.17.0.1               
 ```
 
 If you want to completely get rid of it:
@@ -144,17 +155,17 @@ multipass help
 multipass help <command>
 ```
 
-# Make your own build
+# Start developing Multipass
 
-Here's a set of steps to make and run your own build of Multipass. 
+Here's a set of steps to build the Multipass source code on Linux.
 
-Please note that the following instructions are for building Multipass for Linux only. These instructions do not support building packages for macOS or Windows systems.
+Please note that these instructions do not support building packages for macOS or Windows systems.
 
 ## Build dependencies
 
 ```
 cd <multipass>
-apt install devscripts equivs
+sudo apt install devscripts equivs
 mk-build-deps -s sudo -i
 ```
 
@@ -202,12 +213,7 @@ Optionally, enable auto-complete in Bash:
 source <multipass>/completions/bash/multipass
 ```
 
-Finally, launch the Multipass clients:
-
-```
-<multipass>/build/bin/multipass launch --name foo  # CLI client
-<multipass>/build/bin/multipass.gui                # GUI client
-```
+Now you can use the `multipass` command from your terminal (for example `<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command `<multipass>/build/bin/multipass.gui`.
 
 # Contributing guidelines
 
