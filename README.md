@@ -82,6 +82,7 @@ docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
 $ multipass info dancing-chipmunk
 
 Name:           dancing-chipmunk
+State:          Running
 Snapshots:      0
 IPv4:           192.168.64.8
 Release:        Ubuntu 24.04 LTS
