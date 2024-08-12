@@ -84,7 +84,6 @@ $ multipass info dancing-chipmunk
 Name:           dancing-chipmunk
 Snapshots:      0
 IPv4:           192.168.64.8
-                10.1.23.64
 Release:        Ubuntu 24.04 LTS
 Image hash:     e2608bfdbc44 (Ubuntu 24.04 LTS)
 CPU(s):         1
