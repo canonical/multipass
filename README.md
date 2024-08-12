@@ -110,10 +110,10 @@ Don't forget to logout (or Ctrl-D) or you may find yourself heading all the way 
 $ multipass exec dancing-chipmunk -- lsb_release -a
 
 No LSB modules are available.
-Distributor ID:	 Ubuntu
-Description:	   Ubuntu 24.04 LTS
-Release:	       24.04
-Codename:	       noble
+Distributor ID:  Ubuntu
+Description:     Ubuntu 24.04 LTS
+Release:         24.04
+Codename:        noble
 ```
 
 ## Stop an instance to save resources
