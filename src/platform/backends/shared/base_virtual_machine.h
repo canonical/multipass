@@ -86,7 +86,7 @@ public:
     int get_snapshot_count() const override;
     void remove_snapshots_from_image() const override
     {
-        throw NotImplementedOnThisBackendException("remove all snapshots from the image");
+        throw NotImplementedOnThisBackendException("snapshots");
     }
 
 protected:
