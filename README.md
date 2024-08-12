@@ -71,7 +71,6 @@ $ multipass list
 
 Name                    State             IPv4             Image
 dancing-chipmunk        Running           192.168.64.8     Ubuntu 24.04 LTS
-                                          10.1.23.64       Ubuntu 24.04 LTS
 phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
 docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
                                           172.17.0.1               
