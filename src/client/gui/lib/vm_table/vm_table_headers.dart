@@ -1,3 +1,4 @@
+import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,6 +58,18 @@ final headers = <TableHeader<VmInfo>>[
       used: info.instanceInfo.diskUsage,
       total: info.diskTotal,
     ),
+  ),
+  TableHeader(
+    name: 'IMAGE',
+    width: 140,
+    minWidth: 70,
+    cellBuilder: (info) {
+      final image = info.instanceInfo.currentRelease;
+      return Text(
+        image.isNotBlank ? image.nonBreaking : '-',
+        overflow: TextOverflow.ellipsis,
+      );
+    },
   ),
   TableHeader(
     name: 'PRIVATE IP',
