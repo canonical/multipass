@@ -240,5 +240,6 @@ TEST_F(QemuPlatformDetail, CreateBridgeWithCallsExpectedMethods)
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    qemu_platform_detail.create_bridge_with(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true});
+    EXPECT_EQ(qemu_platform_detail.create_bridge_with(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
+              "br-en0");
 }

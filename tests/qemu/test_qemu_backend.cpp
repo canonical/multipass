@@ -802,24 +802,28 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
     EXPECT_EQ(snapshot->get_parent(), parent);
 }
 
-TEST_F(QemuBackend, networks_does_not_throw)
+TEST_F(QemuBackend, networks_returns_supported_networks)
 {
+    ON_CALL(*mock_qemu_platform, is_network_supported(_)).WillByDefault(Return(true));
+
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto [mock_platform, guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{
-            {"lxdbr0", {"lxdbr0", "bridge", "gobbledygook"}},
-            {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
-            {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
-            {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},
-            {"enxe4b97a832426", {"enxe4b97a832426", "ethernet", "gobbledygook"}}}));
+    const std::map<std::string, mp::NetworkInterfaceInfo> networks{
+        {"lxdbr0", {"lxdbr0", "bridge", "gobbledygook"}},
+        {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
+        {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
+        {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},
+        {"enxe4b97a832426", {"enxe4b97a832426", "ethernet", "gobbledygook"}}};
 
-    EXPECT_NO_THROW(backend.networks());
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(networks));
+
+    auto supported_nets = backend.networks();
+    EXPECT_EQ(supported_nets.size(), networks.size());
 }
 
 TEST_F(QemuBackend, remove_resources_for_calls_qemu_platform)
@@ -915,7 +919,7 @@ TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth1", "52:54:00:00:00:00", true}};
-    backend.prepare_networking(extra_interfaces);
+    EXPECT_NO_THROW(backend.prepare_networking(extra_interfaces));
 }
 
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
