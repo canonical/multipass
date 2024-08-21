@@ -21,8 +21,7 @@ file(
   "${CPACK_TEMPORARY_DIRECTORY}/*")
 
 foreach(subdirectory ${subdirectories})
-  execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory "${subdirectory}"
-                          "${PRIMING_DIR}")
+  file(COPY "${subdirectory}/" DESTINATION "${PRIMING_DIR}")
 endforeach()
 
 if (CPACK_BUILD_TYPE STREQUAL "Release" OR CPACK_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -43,7 +42,7 @@ execute_process(
   OUTPUT_VARIABLE build_output
   RESULT_VARIABLE result)
 
-execute_process(COMMAND ${CMAKE_COMMAND} -E rm -rf "${PRIMING_DIR}")
+file(REMOVE_RECURSE "${PRIMING_DIR}")
 
 file(WRITE ${CPACK_TEMPORARY_DIRECTORY}\\..\\WiXOutput.log "${build_output}")
 
