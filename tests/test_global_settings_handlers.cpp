@@ -142,7 +142,7 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSett
     expect_setting_values({{mp::petenv_key, "primary"}});
 }
 
-TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverriddingPlatformSettings)
+TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverridingPlatformSettings)
 {
     const auto platform_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
                                                               {mp::petenv_key, "secondary"},
