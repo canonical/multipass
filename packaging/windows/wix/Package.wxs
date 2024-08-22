@@ -80,7 +80,7 @@
             Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipassd.exe&quot; /install"
             Before="InstallClientCertsAction" Sequence="execute" />
         <CustomAction Id="InstallClientCertsAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
-            DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="yes" />
+            DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
 
 
         <!-- Detect Windows edition and set driver -->
