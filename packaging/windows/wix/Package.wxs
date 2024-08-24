@@ -67,7 +67,7 @@
         <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData"
             Return="ignore" />
         <SetProperty Id="REMOVE_DATA" After="AskRemoveDataMsgBox" Sequence="execute"
-            Value="YES" Condition="REMOVE_DATA=&quot;default&quot;" />
+            Value="yes" Condition="REMOVE_DATA=&quot;default&quot;" />
         <CustomAction Id="RemoveMPDataAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
             DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <CustomAction Id="RemoveMPInstances.SetCmdLine" Execute="immediate"
@@ -129,11 +129,11 @@
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;default&quot;" />
             <Custom Action="RemoveMPInstances.SetCmdLine" Before="RemoveMPInstances"
-                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;yes&quot;" />
             <Custom Action="RemoveMPInstances" Before="StopServices"
-                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;yes&quot;" />
             <Custom Action="RemoveMPDataAction" After="RemoveFolders"
-                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;yes&quot;" />
 
             <Custom Action="InstallClientCertsAction" Before="StartServices" />
 

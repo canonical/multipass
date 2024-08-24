@@ -22,9 +22,9 @@ UINT __stdcall AskRemoveData(__in MSIHANDLE hInstall)
     int result = MsiProcessMessage(hInstall, INSTALLMESSAGE(MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2), hRec);
 
     if (result == IDYES)
-        MsiSetProperty(hInstall, L"REMOVE_DATA", L"YES");
+        MsiSetProperty(hInstall, L"REMOVE_DATA", L"yes");
     else if (result == IDNO)
-        MsiSetProperty(hInstall, L"REMOVE_DATA", L"NO");
+        MsiSetProperty(hInstall, L"REMOVE_DATA", L"no");
 
     er = SUCCEEDED(hr) ? ERROR_SUCCESS : ERROR_UNKNOWN_PROPERTY;
     return WcaFinalize(er);
