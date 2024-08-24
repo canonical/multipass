@@ -58,7 +58,7 @@
 
 
         <!-- Remove Multipass data -->
-        <Property Id="REMOVE_DATA" Value="YES" />
+        <Property Id="REMOVE_DATA" Value="default" />
         <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
         <SetProperty Id="RemoveMPDataAction" Before="RemoveMPDataAction" Sequence="execute"
@@ -66,6 +66,8 @@
 
         <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData"
             Return="ignore" />
+        <SetProperty Id="REMOVE_DATA" After="AskRemoveDataMsgBox" Sequence="execute"
+            Value="YES" Condition="REMOVE_DATA=&quot;default&quot;" />
         <CustomAction Id="RemoveMPDataAction" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
             DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <CustomAction Id="RemoveMPInstances.SetCmdLine" Execute="immediate"
@@ -125,7 +127,7 @@
                 Condition="NOT Installed AND UNINSTALLER_PATH" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
-                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;default&quot;" />
             <Custom Action="RemoveMPInstances.SetCmdLine" Before="RemoveMPInstances"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;YES&quot;" />
             <Custom Action="RemoveMPInstances" Before="StopServices"
