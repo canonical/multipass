@@ -195,7 +195,8 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
          << QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                                                tap_device_name, vm_desc.default_mac_address));
 
-    const auto bridge_helper_exec_path = QDir(QCoreApplication::applicationDirPath()).filePath("bridge_helper");
+    const auto bridge_helper_exec_path =
+        QDir(QCoreApplication::applicationDirPath()).filePath(BRIDGE_HELPER_EXEC_NAME_CPP);
 
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
