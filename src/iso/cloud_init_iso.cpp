@@ -689,9 +689,9 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         const std::vector<uint8_t> encoded_file_name =
             read_bytes_to_vec(iso_file, file_name_start_pos, to_u32(encoded_file_name_length));
 
-        const std::string orginal_file_name = convert_u16_name_back(
+        const std::string original_file_name = convert_u16_name_back(
             std::string_view{reinterpret_cast<const char*>(encoded_file_name.data()), encoded_file_name.size()});
-        files.emplace_back(FileEntry{orginal_file_name, std::string{file_content.cbegin(), file_content.cend()}});
+        files.emplace_back(FileEntry{original_file_name, std::string{file_content.cbegin(), file_content.cend()}});
 
         current_file_record_start_pos += to_u32(file_record_data_size);
     }

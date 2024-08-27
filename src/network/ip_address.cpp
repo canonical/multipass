@@ -23,7 +23,7 @@ namespace mp = multipass;
 
 namespace
 {
-uint8_t as_octect(uint32_t value)
+uint8_t as_octet(uint32_t value)
 {
     return static_cast<uint8_t>(value);
 }
@@ -49,12 +49,12 @@ std::array<uint8_t, 4> parse(const std::string& ip)
     check_range(c);
     check_range(d);
 
-    return {{as_octect(a), as_octect(b), as_octect(c), as_octect(d)}};
+    return {{as_octet(a), as_octet(b), as_octet(c), as_octet(d)}};
 }
 
 std::array<uint8_t, 4> to_octets(uint32_t value)
 {
-    return {{as_octect(value >> 24u), as_octect(value >> 16u), as_octect(value >> 8u), as_octect(value)}};
+    return {{as_octet(value >> 24u), as_octet(value >> 16u), as_octet(value >> 8u), as_octet(value)}};
 }
 }
 

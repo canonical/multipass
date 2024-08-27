@@ -251,7 +251,7 @@ TEST_P(SshfsMountFail, test_failed_invocation)
     EXPECT_TRUE(*invoked_fail);
 }
 
-TEST_P(SshfsMountExecute, test_succesful_invocation)
+TEST_P(SshfsMountExecute, test_successful_invocation)
 {
     std::string target = GetParam().first;
     CommandVector commands = GetParam().second;
@@ -259,7 +259,7 @@ TEST_P(SshfsMountExecute, test_succesful_invocation)
     test_command_execution(commands, target);
 }
 
-TEST_P(SshfsMountExecuteAndNoFail, test_succesful_invocation_and_fail)
+TEST_P(SshfsMountExecuteAndNoFail, test_successful_invocation_and_fail)
 {
     std::string target = std::get<0>(GetParam());
     CommandVector commands = std::get<1>(GetParam());

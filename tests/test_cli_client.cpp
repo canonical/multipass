@@ -2247,7 +2247,7 @@ TEST_F(Client, start_cmd_launches_petenv_if_absent_among_others_present)
     EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_absent)
+TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amount_others_absent)
 {
     std::vector<std::string> instances{"a", "b", "c", petenv_name, "xyz"}, cmd = concat({"start"}, instances);
 
@@ -2260,7 +2260,7 @@ TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_absent)
     EXPECT_THAT(send_command(cmd), Eq(mp::ReturnCode::CommandFail));
 }
 
-TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amont_others_deleted)
+TEST_F(Client, start_cmd_fails_if_petenv_if_absent_amount_others_deleted)
 {
     std::vector<std::string> instances{"nope", petenv_name}, cmd = concat({"start"}, instances);
 
@@ -2462,7 +2462,7 @@ TEST_F(Client, stop_cmd_fails_with_time_suffix)
     EXPECT_THAT(send_command({"stop", "foo", "--time", "+10s"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, stop_cmd_succeds_with_cancel)
+TEST_F(Client, stop_cmd_succeeds_with_cancel)
 {
     EXPECT_CALL(mock_daemon, stop(_, _));
     EXPECT_THAT(send_command({"stop", "foo", "--cancel"}), Eq(mp::ReturnCode::Ok));

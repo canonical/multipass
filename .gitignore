@@ -2,6 +2,12 @@
 cmake-build-*
 .DS_Store
 CMakeLists.txt.user
+build
+
+# package build artifacts
+*.deb
+*.buildinfo
+*.changes
 
 # only care about the encrypted file
 /tools/bot-data/*

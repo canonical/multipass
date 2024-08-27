@@ -227,6 +227,7 @@ jobs:
         name: ${{ steps.build-snap.outputs.snap-file }}
         path: ${{ steps.build-snap.outputs.snap-file }}
         if-no-files-found: error
+        retention-days: 30
 
   # Publish the snap to the store if a channel was determined and we have access to secrets.
   Publish-Snap:
