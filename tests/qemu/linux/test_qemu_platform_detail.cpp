@@ -28,6 +28,8 @@
 
 #include <src/platform/backends/qemu/linux/qemu_platform_detail.h>
 
+#include <QCoreApplication>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -132,8 +134,10 @@ TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
 TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as_expected)
 {
     mp::VirtualMachineDescription vm_desc;
+    mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
     vm_desc.vm_name = "foo";
     vm_desc.default_mac_address = hw_addr;
+    vm_desc.extra_interfaces = {extra_interface};
 
     QString tap_name;
 
@@ -162,7 +166,13 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
 #endif
             "--enable-kvm", "-cpu", "host", "-nic",
             QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
-                                               tap_name, vm_desc.default_mac_address))
+                                               tap_name,
+                                               vm_desc.default_mac_address)),
+            "-nic",
+            QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                                               extra_interface.id,
+                                               extra_interface.mac_address,
+                                               QCoreApplication::applicationDirPath() + "/bridge_helper"))
     };
 
     EXPECT_THAT(platform_args, ElementsAreArray(expected_platform_args));
@@ -209,11 +219,27 @@ TEST_F(QemuPlatformDetail, writing_ipforward_file_failure_logs_expected_message)
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, add_network_interface_throws)
+TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
 {
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    mp::VirtualMachineDescription desc;
-    mp::NetworkInterface net{"id", "52:54:00:98:76:54", true};
-    EXPECT_THROW(qemu_platform_detail.add_network_interface(desc, net), mp::NotImplementedOnThisBackendException);
+    std::vector<mp::NetworkInterfaceInfo> networks{mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
+                                                   mp::NetworkInterfaceInfo{"mpbr0", "bridge", "", {}, false}};
+    const auto& bridged_network = networks.emplace_back(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, false});
+    const auto& non_bridged_network = networks.emplace_back(mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, false});
+
+    qemu_platform_detail.set_authorization(networks);
+
+    EXPECT_FALSE(bridged_network.needs_authorization);
+    EXPECT_TRUE(non_bridged_network.needs_authorization);
+}
+
+TEST_F(QemuPlatformDetail, CreateBridgeWithCallsExpectedMethods)
+{
+    EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
+
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+
+    EXPECT_EQ(qemu_platform_detail.create_bridge_with(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
+              "br-en0");
 }
