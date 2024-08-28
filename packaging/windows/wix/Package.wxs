@@ -115,6 +115,12 @@
             DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
 
 
+        <!-- Forcibly stop the Multipass service -->
+        <!-- bug#3650: remove this and it's custom action in InstallExecuteSequence when fixed -->
+        <SetProperty Id="Daemon.TaskClose" Value="&quot;[WindowsFolder]\System32\taskkill.exe&quot; /f /t /im multipassd.exe" Before="Daemon.TaskClose" Sequence="execute" />
+        <CustomAction Id="Daemon.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+
+
         <InstallUISequence>
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
         </InstallUISequence>
@@ -141,6 +147,8 @@
                 Condition="NOT CONFIG_FILE_FOUND" />
             <Custom Action="DaemonConfigFileAction" Before="StartServices"
                 Condition="NOT CONFIG_FILE_FOUND" />
+
+            <Custom Action="Daemon.TaskClose" Before="StopServices" Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
         </InstallExecuteSequence>
     </Package>
 
