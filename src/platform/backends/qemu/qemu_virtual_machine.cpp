@@ -652,6 +652,9 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             {
                 const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
                 mpl::log(log_level, vm_name, fmt::format("error: {}", process_state.error->message));
+
+                // reset force_shutdown so that subsequent errors can be accurately reported
+                force_shutdown = false;
             }
         }
 
