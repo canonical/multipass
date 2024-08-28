@@ -152,7 +152,7 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
             ? std::make_pair(QString{"Names of instances to start."}, QString{"<name> [<name> ...]"})
             : std::make_pair(QString{"Names of instances to start. If omitted, and without the --all option, '%1' (the "
                                      "configured primary instance name) will be assumed. If '%1' does not exist but is "
-                                     "included in a successful start command either implicitly or explicitly), it is "
+                                     "included in a successful start command (either implicitly or explicitly), it is "
                                      "launched automatically (see `launch` for more info)."}
                                  .arg(petenv_name),
                              QString{"[<name> ...]"});
