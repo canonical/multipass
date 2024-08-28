@@ -157,15 +157,3 @@ TEST_F(TestQemuPlatformDetail, get_directory_name_returns_expected_string)
 {
     EXPECT_EQ(qemu_platform_detail.get_directory_name(), "qemu");
 }
-TEST_F(TestQemuPlatformDetail, add_network_interface_works)
-{
-    mp::VirtualMachineDescription desc;
-    ASSERT_EQ(desc.extra_interfaces.size(), 0);
-
-    mp::NetworkInterface net{"id", "52:54:00:98:76:54", true};
-
-    qemu_platform_detail.add_network_interface(desc, net);
-
-    ASSERT_EQ(desc.extra_interfaces.size(), 1);
-    ASSERT_EQ(desc.extra_interfaces[0], net);
-}

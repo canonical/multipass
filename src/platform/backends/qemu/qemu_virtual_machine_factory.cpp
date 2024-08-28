@@ -129,10 +129,30 @@ QString mp::QemuVirtualMachineFactory::get_backend_directory_name() const
 
 auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInterfaceInfo>
 {
-    return qemu_platform->networks();
+    auto platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
+
+    std::vector<NetworkInterfaceInfo> ret;
+    for (const auto& ifs_info : platform_ifs_info)
+    {
+        const auto& info = ifs_info.second;
+        const auto& type = info.type;
+
+        if (qemu_platform->is_network_supported(type))
+            ret.push_back(info);
+    }
+
+    qemu_platform->set_authorization(ret);
+
+    return ret;
 }
 
 void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
 {
-    return qemu_platform->prepare_networking(extra_interfaces);
+    if (qemu_platform->needs_network_prep())
+        mp::BaseVirtualMachineFactory::prepare_networking(extra_interfaces);
+}
+
+std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
+{
+    return qemu_platform->create_bridge_with(interface);
 }
