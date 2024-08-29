@@ -45,7 +45,9 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 
     if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(), nullptr, cerr,
+        timer = cmd::make_timer(parser->value("timeout").toInt(),
+                                nullptr,
+                                cerr,
                                 "Timed out waiting for instance to start.");
         timer->start();
     }
@@ -108,7 +110,10 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     return return_code;
 }
 
-std::string cmd::Shell::name() const { return "shell"; }
+std::string cmd::Shell::name() const
+{
+    return "shell";
+}
 
 std::vector<std::string> cmd::Shell::aliases() const
 {
@@ -117,12 +122,13 @@ std::vector<std::string> cmd::Shell::aliases() const
 
 QString cmd::Shell::short_help() const
 {
-    return QStringLiteral("Open a shell on a running instance");
+    return QStringLiteral("Open a shell on an instance");
 }
 
 QString cmd::Shell::description() const
 {
-    return QStringLiteral("Open a shell prompt on the instance.");
+    return QStringLiteral(
+        "Open a shell prompt on the instance. If the instance is not running, it will be started automatically.");
 }
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
