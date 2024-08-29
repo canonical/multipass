@@ -128,7 +128,7 @@ QString cmd::Shell::short_help() const
 QString cmd::Shell::description() const
 {
     return QStringLiteral(
-        "Open a shell prompt on the instance. If the instance is not running, it will automatically be started.");
+        "Open a shell prompt on the instance. If the instance is not running, it will be started automatically.");
 }
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
