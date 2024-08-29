@@ -122,7 +122,7 @@ std::vector<std::string> cmd::Shell::aliases() const
 
 QString cmd::Shell::short_help() const
 {
-    return QStringLiteral("Open a shell on the primary or specified instance");
+    return QStringLiteral("Open a shell on an instance");
 }
 
 QString cmd::Shell::description() const
