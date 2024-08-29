@@ -384,7 +384,7 @@ void mp::QemuVirtualMachine::shutdown(bool force)
         {
             mpl::log(mpl::Level::warning,
                      vm_name,
-                     fmt::format("{} is suspended, but the image does not have the suspension snapshot.", vm_name));
+                     fmt::format("{} is suspended, but the image does not have the suspension snapshot", vm_name));
         }
 
         if (mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
@@ -394,7 +394,7 @@ void mp::QemuVirtualMachine::shutdown(bool force)
                 mpl::log(
                     mpl::Level::warning,
                     vm_name,
-                    fmt::format("{} has the image suspension snapshot, but it is not in the suspended state.", vm_name));
+                    fmt::format("{} has the image suspension snapshot, but it is not in the suspended state", vm_name));
             }
 
             mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");

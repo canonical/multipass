@@ -536,6 +536,65 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
                 processes.back().arguments.contains(suspend_tag));
 }
 
+TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "is suspended, but the image does not have the suspension snapshot");
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    machine->state = mp::VirtualMachine::State::suspended;
+    machine->shutdown(true);
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+}
+
+TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcessFactory::Callback snapshot_list_suspend_tag_callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot") &&
+            process->arguments().contains("-l"))
+        {
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(fake_snapshot_list_with_suspend_tag));
+        }
+    };
+    process_factory->register_callback(snapshot_list_suspend_tag_callback);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::debug);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "has the image suspension snapshot, but it is not in the suspended state");
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    machine->state = mp::VirtualMachine::State::running;
+    machine->shutdown(true);
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+
+    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory->process_list();
+    EXPECT_FALSE(processes.empty());
+    EXPECT_TRUE(processes.back().command == "qemu-img" && processes.back().arguments.contains("-d") &&
+                processes.back().arguments.contains(suspend_tag));
+}
+
 TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
