@@ -382,7 +382,13 @@ void mp::QemuVirtualMachine::shutdown(bool force)
             mpl::log(mpl::Level::debug, vm_name, "No process to kill");
         }
 
-        if (state == State::suspended || mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
+        const auto has_suspend_snapshot = mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag);
+        if (has_suspend_snapshot != (state == State::suspended)) // clang-format off
+            mpl::log(mpl::Level::warning, vm_name, fmt::format("Image has {} suspension snapshot, but the state is {}",
+                                                               has_suspend_snapshot ? "a" : "no",
+                                                               static_cast<short>(state))); // clang-format on
+
+        if (has_suspend_snapshot)
         {
             mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
             mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
