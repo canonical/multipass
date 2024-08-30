@@ -117,8 +117,24 @@
 
         <!-- Forcibly stop the Multipass service -->
         <!-- bug#3650: remove this and it's custom action in InstallExecuteSequence when fixed -->
-        <SetProperty Id="Daemon.TaskClose" Value="&quot;[WindowsFolder]\System32\taskkill.exe&quot; /f /t /im multipassd.exe" Before="Daemon.TaskClose" Sequence="execute" />
-        <CustomAction Id="Daemon.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="Daemon.TaskClose" 
+            Value="&quot;[WindowsFolder]\System32\taskkill.exe&quot; /f /t /im multipassd.exe" 
+            Before="Daemon.TaskClose" Sequence="execute" />
+        <CustomAction Id="Daemon.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" 
+            DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+
+
+        <CustomAction Id="GUI.TaskClose.SetCmdLine" Execute="immediate"
+            Property="WixQuietExecCmdLine"
+            Value="&quot;[WindowsFolder]System32\taskkill.exe&quot; /f /t /im multipass.gui.exe" />
+        <CustomAction Id="GUI.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
+
+        <CustomAction Id="CLI.TaskClose.SetCmdLine" Execute="immediate"
+            Property="WixQuietExecCmdLine"
+            Value="&quot;[WindowsFolder]System32\taskkill.exe&quot; /f /t /im multipass.exe" />
+        <CustomAction Id="CLI.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
 
 
         <InstallUISequence>
@@ -148,7 +164,16 @@
             <Custom Action="DaemonConfigFileAction" Before="StartServices"
                 Condition="NOT CONFIG_FILE_FOUND" />
 
-            <Custom Action="Daemon.TaskClose" Before="StopServices" Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+            <Custom Action="Daemon.TaskClose" Before="StopServices" 
+                Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+            <Custom Action="GUI.TaskClose.SetCmdLine" Before="GUI.TaskClose"
+                Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+            <Custom Action="GUI.TaskClose" Before="InstallValidate"
+                Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+            <Custom Action="CLI.TaskClose.SetCmdLine" Before="CLI.TaskClose"
+                Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+            <Custom Action="CLI.TaskClose" Before="InstallValidate"
+                Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
         </InstallExecuteSequence>
     </Package>
 
