@@ -68,7 +68,12 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return mp::ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        // grpc::StatusCode::INVALID_ARGUMENT matches mp::VMStateInvalidException
+        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT
+                   ? standard_failure_handler_for(name(), cerr, status, "Use --purge to forcefully delete it.")
+                   : standard_failure_handler_for(name(), cerr, status);
+    };
 
     using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
     auto streaming_callback = [this](const mp::DeleteReply& reply, Client* client) {

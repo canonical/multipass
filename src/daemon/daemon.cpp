@@ -2300,6 +2300,10 @@ try // clang-format on
     server->Write(response);
     status_promise->set_value(status);
 }
+catch (const mp::VMStateInvalidException& e)
+{
+    status_promise->set_value(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, e.what()});
+}
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
@@ -3081,13 +3085,11 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
 
         mounts[name].clear();
 
-        try
+        // Temporary solution to make multipass delete behave right.
+        // TODO, move this check into check_state_for_shutdown
+        if (!(instance->current_state() == VirtualMachine::State::suspended) || purge)
         {
             instance->shutdown(purge);
-        }
-        catch (const VMStateInvalidException& exception)
-        {
-            // in the case of VMStateInvalidException, we simply just skip shutdown call
         }
 
         if (!purge)
