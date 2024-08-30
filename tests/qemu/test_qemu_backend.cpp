@@ -545,8 +545,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
-    logger_scope.mock_logger->expect_log(mpl::Level::warning,
-                                         "is suspended, but the image does not have the suspension snapshot");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Image has no suspension snapshot, but the state is 7");
 
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
@@ -577,8 +576,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
-    logger_scope.mock_logger->expect_log(mpl::Level::warning,
-                                         "has the image suspension snapshot, but it is not in the suspended state");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Image has a suspension snapshot, but the state is 4");
 
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
