@@ -349,6 +349,8 @@ void mp::QemuVirtualMachine::shutdown(bool force)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
 
+    force_shutdown = force;
+
     try
     {
         check_state_for_shutdown(force);
@@ -624,7 +626,9 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             // out any scary error messages for this state
             if (update_shutdown_status)
             {
-                mpl::log(mpl::Level::error, vm_name,
+                const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
+                mpl::log(log_level,
+                         vm_name,
                          fmt::format("process error occurred {} {}", utils::qenum_to_string(error), error_string));
                 on_error();
             }
@@ -646,7 +650,11 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             }
             else
             {
-                mpl::log(mpl::Level::error, vm_name, fmt::format("error: {}", process_state.error->message));
+                const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
+                mpl::log(log_level, vm_name, fmt::format("error: {}", process_state.error->message));
+
+                // reset force_shutdown so that subsequent errors can be accurately reported
+                force_shutdown = false;
             }
         }
 

@@ -461,8 +461,8 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "process started");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Killing process");
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Killed");
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Force stopped");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Killed");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Force stopped");
 
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
