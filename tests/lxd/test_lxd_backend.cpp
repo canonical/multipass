@@ -1702,7 +1702,7 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
 
 TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
 {
-    const std::string error_msg{"Cannot stop suspended instance. Use --force to override."};
+    const std::string error_msg{"Cannot stop suspended instance."};
     mpt::MockVMStatusMonitor mock_monitor;
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {

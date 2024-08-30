@@ -375,7 +375,7 @@ TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
 
 TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop suspended instance. Use --force to override."};
+    const std::string error_msg{"Cannot stop suspended instance."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -395,7 +395,7 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 
 TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop instance while suspending. Use --force to override."};
+    const std::string error_msg{"Cannot stop instance while suspending."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -415,7 +415,7 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
 
 TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop instance while starting. Use --force to override."};
+    const std::string error_msg{"Cannot stop instance while starting."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);

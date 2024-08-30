@@ -2147,6 +2147,10 @@ try // clang-format on
 
     status_promise->set_value(status);
 }
+catch (const mp::VMStateInvalidException& e)
+{
+    status_promise->set_value(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, e.what()});
+}
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));

@@ -190,8 +190,6 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 
 void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
 {
-    const std::string force_statement{"Use --force to override."};
-
     // A mutex should already be locked by the caller here
     if (state == State::off || state == State::stopped)
     {
@@ -205,17 +203,17 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
 
     if (state == State::suspending)
     {
-        throw VMStateInvalidException{fmt::format("Cannot stop instance while suspending. {}", force_statement)};
+        throw VMStateInvalidException{"Cannot stop instance while suspending."};
     }
 
     if (state == State::suspended)
     {
-        throw VMStateInvalidException{fmt::format("Cannot stop suspended instance. {}", force_statement)};
+        throw VMStateInvalidException{"Cannot stop suspended instance."};
     }
 
     if (state == State::starting || state == State::restarting)
     {
-        throw VMStateInvalidException{fmt::format("Cannot stop instance while starting. {}", force_statement)};
+        throw VMStateInvalidException{"Cannot stop instance while starting."};
     }
 }
 

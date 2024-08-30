@@ -44,7 +44,11 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
-        return standard_failure_handler_for(name(), cerr, status);
+
+        // grpc::StatusCode::INVALID_ARGUMENT matches mp::VMStateInvalidException
+        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT
+                   ? standard_failure_handler_for(name(), cerr, status, "Use --force to power it off.")
+                   : standard_failure_handler_for(name(), cerr, status);
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Stopping "));
