@@ -108,6 +108,7 @@ private:
     std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
+    bool force_shutdown{false};
     std::chrono::steady_clock::time_point network_deadline;
 };
 } // namespace multipass
