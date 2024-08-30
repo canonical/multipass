@@ -2538,6 +2538,13 @@ TEST_F(Client, stop_cmd_force_conflicts_with_cancel_option)
     EXPECT_THAT(send_command({"stop", "foo", "--force", "--cancel"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, stopCmdWrongVmState)
+{
+    const auto invalid_vm_state_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+    EXPECT_CALL(mock_daemon, stop(_, _)).WillOnce(Return(invalid_vm_state_failure));
+    EXPECT_THAT(send_command({"stop", "foo"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 // suspend cli tests
 TEST_F(Client, suspend_cmd_ok_with_one_arg)
 {
@@ -2831,6 +2838,13 @@ TEST_F(Client, delete_cmd_accepts_purge_option)
     EXPECT_CALL(mock_daemon, delet(_, _)).Times(2);
     EXPECT_THAT(send_command({"delete", "--purge", "foo"}), Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(send_command({"delete", "-p", "bar"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, deleteCmdWrongVmState)
+{
+    const auto invalid_vm_state_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
+    EXPECT_CALL(mock_daemon, delet(_, _)).WillOnce(Return(invalid_vm_state_failure));
+    EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 // find cli tests
