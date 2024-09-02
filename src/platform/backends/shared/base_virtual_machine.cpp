@@ -203,17 +203,17 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
 
     if (state == State::suspending)
     {
-        throw VMStateInvalidException{"Cannot stop instance while suspending."};
+        throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while suspending.", vm_name)};
     }
 
     if (state == State::suspended)
     {
-        throw VMStateInvalidException{"Cannot stop suspended instance."};
+        throw VMStateInvalidException{fmt::format("Cannot shut down suspended instance {}.", vm_name)};
     }
 
     if (state == State::starting || state == State::restarting)
     {
-        throw VMStateInvalidException{"Cannot stop instance while starting."};
+        throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while starting.", vm_name)};
     }
 }
 
