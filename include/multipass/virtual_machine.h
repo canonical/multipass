@@ -60,9 +60,10 @@ public:
 
     enum class ShutdownPolicy
     {
-        Powerdown,
-        Poweroff,
-        Halt
+        Powerdown, // gracefully shut down the vm
+        Poweroff,  // forcefully shut down the vm
+        Halt // halt the vm to non-running state. More specifically. suspended and stopped state will remain the same
+             // and running state will be shut down to stopped state
     };
 
     using UPtr = std::unique_ptr<VirtualMachine>;
