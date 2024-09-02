@@ -69,8 +69,8 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this](grpc::Status& status) {
-        // grpc::StatusCode::INVALID_ARGUMENT matches mp::VMStateInvalidException
-        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT
+        // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
+        return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
                    ? standard_failure_handler_for(name(), cerr, status, "Use --purge to forcefully delete it.")
                    : standard_failure_handler_for(name(), cerr, status);
     };

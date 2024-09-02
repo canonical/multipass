@@ -45,8 +45,8 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
 
-        // grpc::StatusCode::INVALID_ARGUMENT matches mp::VMStateInvalidException
-        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT
+        // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
+        return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
                    ? standard_failure_handler_for(name(), cerr, status, "Use --force to power it off.")
                    : standard_failure_handler_for(name(), cerr, status);
     };

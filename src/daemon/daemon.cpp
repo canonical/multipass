@@ -2149,11 +2149,11 @@ try // clang-format on
 }
 catch (const mp::VMStateInvalidException& e)
 {
-    status_promise->set_value(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, e.what()});
+    status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
@@ -2302,11 +2302,11 @@ try // clang-format on
 }
 catch (const mp::VMStateInvalidException& e)
 {
-    status_promise->set_value(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, e.what()});
+    status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
 }
 
 void mp::Daemon::umount(const UmountRequest* request,
