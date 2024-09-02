@@ -375,7 +375,7 @@ TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
 
 TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop suspended instance."};
+    const std::string sub_error_msg{"Cannot shut down suspended instance"};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -388,14 +388,15 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 
     machine->state = mp::VirtualMachine::State::suspended;
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(HasSubstr(sub_error_msg)));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
 }
 
 TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop instance while suspending."};
+    const std::string sub_error_msg1{"Cannot shut down instance"};
+    const std::string sub_error_msg2{"while suspending."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -408,14 +409,17 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
 
     machine->state = mp::VirtualMachine::State::suspending;
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine->shutdown(),
+                         mp::VMStateInvalidException,
+                         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::suspending);
 }
 
 TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop instance while starting."};
+    const std::string sub_error_msg1{"Cannot shut down instance"};
+    const std::string sub_error_msg2{"while starting."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -428,7 +432,9 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 
     machine->state = mp::VirtualMachine::State::starting;
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine->shutdown(),
+                         mp::VMStateInvalidException,
+                         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
 }
