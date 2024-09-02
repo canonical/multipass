@@ -201,15 +201,21 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         return;
     }
 
+    if (state == State::suspended)
+    {
+        if (shutdown_policy == ShutdownPolicy::Halt)
+        {
+            throw VMStateIdempotentException{"Ignoring shutdown since instance is already suspended."};
+        }
+        else // else only can be ShutdownPolicy::Powerdown since ShutdownPolicy::Poweroff check was preemptively done.
+        {
+            throw VMStateInvalidException{fmt::format("Cannot shut down suspended instance {}.", vm_name)};
+        }
+    }
+
     if (state == State::suspending)
     {
         throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while suspending.", vm_name)};
-    }
-
-    // add branching here for the halt shutdown policy
-    if (state == State::suspended)
-    {
-        throw VMStateInvalidException{fmt::format("Cannot shut down suspended instance {}.", vm_name)};
     }
 
     if (state == State::starting || state == State::restarting)

@@ -3085,14 +3085,8 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
 
         mounts[name].clear();
 
-        // Temporary solution to make multipass delete behave right.
-        // TODO, move this check into check_state_for_shutdown
-        if (!(instance->current_state() == VirtualMachine::State::suspended) || purge)
-        {
-            instance->shutdown(purge == true ? VirtualMachine::ShutdownPolicy::Poweroff
-                                             : VirtualMachine::ShutdownPolicy::Halt);
-        }
-
+        instance->shutdown(purge == true ? VirtualMachine::ShutdownPolicy::Poweroff
+                                         : VirtualMachine::ShutdownPolicy::Halt);
         if (!purge)
         {
             vm_instance_specs[name].deleted = true;
