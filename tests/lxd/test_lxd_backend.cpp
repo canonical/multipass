@@ -1843,7 +1843,9 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     ASSERT_EQ(machine.state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread = [&machine] { machine.shutdown(true); }; // force shutdown
+    mp::AutoJoinThread thread = [&machine] {
+        machine.shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+    }; // force shutdown
 
     while (machine.state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);

@@ -288,7 +288,7 @@ TEST_F(QemuBackend, throws_when_shutdown_while_starting)
 
     mp::AutoJoinThread thread{[&machine, vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
-        machine->shutdown(true);
+        machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
     }};
 
     using namespace std::chrono_literals;
@@ -481,7 +481,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
     machine->state = mp::VirtualMachine::State::running;
 
-    machine->shutdown(true); // force shutdown
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
@@ -503,7 +503,7 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 
     machine->state = mp::VirtualMachine::State::unknown;
 
-    machine->shutdown(true); // force shutdown
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
@@ -559,8 +559,8 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
-    machine->shutdown(true);
-
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+    
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
@@ -974,7 +974,7 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
     EXPECT_CALL(machine, drop_ssh_session());
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(machine, shutdown, mp::QemuVirtualMachine);
-    machine.shutdown(false);
+    machine.shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown);
 }
 
 TEST_F(QemuBackend, supportsSnapshots)

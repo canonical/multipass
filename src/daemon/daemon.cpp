@@ -3089,7 +3089,8 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
         // TODO, move this check into check_state_for_shutdown
         if (!(instance->current_state() == VirtualMachine::State::suspended) || purge)
         {
-            instance->shutdown(purge);
+            instance->shutdown(purge == true ? VirtualMachine::ShutdownPolicy::Poweroff
+                                             : VirtualMachine::ShutdownPolicy::Halt);
         }
 
         if (!purge)
@@ -3155,7 +3156,7 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
     const auto& name = vm.vm_name;
     delayed_shutdown_instances.erase(name);
 
-    vm.shutdown(true);
+    vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
 
     return grpc::Status::OK;
 }

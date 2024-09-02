@@ -345,7 +345,7 @@ void mp::QemuVirtualMachine::start()
     vm_process->write(qmp_execute_json("qmp_capabilities"));
 }
 
-void mp::QemuVirtualMachine::shutdown(bool force)
+void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
 
@@ -353,7 +353,7 @@ void mp::QemuVirtualMachine::shutdown(bool force)
 
     try
     {
-        check_state_for_shutdown(force);
+        check_state_for_shutdown(shutdown_policy);
     }
     catch (const VMStateIdempotentException& e)
     {
@@ -361,7 +361,7 @@ void mp::QemuVirtualMachine::shutdown(bool force)
         return;
     }
 
-    if (force)
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 

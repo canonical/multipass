@@ -188,7 +188,7 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
 }
 
-void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
+void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
 {
     // A mutex should already be locked by the caller here
     if (state == State::off || state == State::stopped)
@@ -196,7 +196,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
     }
 
-    if (force)
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         return;
     }
@@ -206,6 +206,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
         throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while suspending.", vm_name)};
     }
 
+    // add branching here for the halt shutdown policy 
     if (state == State::suspended)
     {
         throw VMStateInvalidException{fmt::format("Cannot shut down suspended instance {}.", vm_name)};

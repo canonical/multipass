@@ -58,12 +58,19 @@ public:
         unknown
     };
 
+    enum class ShutdownPolicy
+    {
+        Powerdown,
+        Poweroff,
+        Halt
+    };
+
     using UPtr = std::unique_ptr<VirtualMachine>;
     using ShPtr = std::shared_ptr<VirtualMachine>;
 
     virtual ~VirtualMachine() = default;
     virtual void start() = 0;
-    virtual void shutdown(bool force = false) = 0;
+    virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
