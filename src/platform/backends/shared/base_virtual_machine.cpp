@@ -206,7 +206,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while suspending.", vm_name)};
     }
 
-    // add branching here for the halt shutdown policy 
+    // add branching here for the halt shutdown policy
     if (state == State::suspended)
     {
         throw VMStateInvalidException{fmt::format("Cannot shut down suspended instance {}.", vm_name)};

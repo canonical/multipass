@@ -349,7 +349,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
 
-    force_shutdown = force;
+    force_shutdown = (shutdown_policy == ShutdownPolicy::Poweroff);
 
     try
     {

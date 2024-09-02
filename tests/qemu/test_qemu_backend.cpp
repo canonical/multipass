@@ -533,7 +533,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
-    machine->shutdown(true);
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 
@@ -560,7 +560,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
-    
+
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
@@ -590,7 +590,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::running;
-    machine->shutdown(true);
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 
