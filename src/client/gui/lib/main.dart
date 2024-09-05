@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:window_size/window_size.dart';
 
 import 'before_quit_dialog.dart';
 import 'catalogue/catalogue.dart';
@@ -21,15 +22,24 @@ import 'vm_table/vm_table_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await setupLogger();
+  // Get the current screen size
+  final screen = await getCurrentScreen();
+  Size windowSize;
 
-  await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
+  if (screen != null && screen.frame.size.width >= 1600
+      && screen.frame.size.height >= 900) {
+    windowSize = const Size(1400, 822);  // For screens larger than 1600x900
+  } else {
+    windowSize = const Size(750, 450);   // Default window size
+  }
+
+  final windowOptions = WindowOptions(
     center: true,
-    minimumSize: Size(1000, 600),
-    size: Size(1400, 822),
+    minimumSize: const Size(750, 450),
+    size: windowSize,
     title: 'Multipass',
   );
+
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
