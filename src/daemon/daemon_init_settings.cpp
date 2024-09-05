@@ -54,6 +54,13 @@ QString persistent_settings_filename()
 QString driver_interpreter(QString val)
 {
     val = val.toLower();
+
+    if (val == QStringLiteral("hyper-v"))
+        val = QStringLiteral("hyperv");
+
+    if (val == QStringLiteral("vbox"))
+        val = QStringLiteral("virtualbox");
+
     if (!MP_PLATFORM.is_backend_supported(val))
         throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");
 
