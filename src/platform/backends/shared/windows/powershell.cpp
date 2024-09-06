@@ -39,7 +39,8 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
     mpl::log(mpl::Level::trace, name, fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
     mpl::log(mpl::Level::trace, name, fmt::format("PowerShell program '{}'", power_shell->program()));
 
-    power_shell->set_process_channel_mode(QProcess::MergedChannels);
+    // handle stdout and stderr separately
+    power_shell->set_process_channel_mode(QProcess::SeparateChannels);
 
     QObject::connect(power_shell, &mp::Process::state_changed, [&name, power_shell](QProcess::ProcessState newState) {
         mpl::log(mpl::Level::trace, name,
@@ -118,16 +119,20 @@ bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
     // output and the cmdlet exit status output
     if (write((cmdlet + "\n").toUtf8()) && write(echo_cmdlet.toUtf8()))
     {
-        QString powershell_output;
+        QString powershell_stdout;
+        QString powershell_stderr;
         auto cmdlet_exit_found{false};
         while (!cmdlet_exit_found)
         {
             powershell_proc->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
 
-            powershell_output.append(powershell_proc->read_all_standard_output());
-            if (powershell_output.contains(output_end_marker))
+            // Read stdout and stderr separately
+            powershell_stdout.append(powershell_proc->read_all_standard_output());
+            powershell_stderr.append(powershell_proc->read_all_standard_error());
+
+            if (powershell_stdout.contains(output_end_marker))
             {
-                auto parsed_output = powershell_output.split(output_end_marker);
+                auto parsed_output = powershell_stdout.split(output_end_marker);
                 if (parsed_output.size() == 2)
                 {
                     // Be sure the exit status is fully read from output
@@ -143,20 +148,26 @@ bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
                         cmdlet_code = false;
                         cmdlet_exit_found = true;
                     }
-                }
 
-                // Get the actual cmdlet's output
-                if (cmdlet_exit_found)
-                {
-                    *output = parsed_output.at(0).trimmed();
-                    mpl::log(mpl::Level::trace, name, output->toStdString());
+                    // Get the actual cmdlet's output
+                    if (cmdlet_exit_found)
+                    {
+                        *output = parsed_output.at(0).trimmed();
+                        mpl::log(mpl::Level::trace, name, output->toStdString());
+                    }
                 }
             }
         }
+
+        // Always log stderr, even if command succeeded
+        if (!powershell_stderr.isEmpty())
+            mpl::log(mpl::Level::warning, name, fmt::format("[{}] stderr: {}", pid, powershell_stderr));
     }
 
+    // Log final output and status
     mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, *output));
     mpl::log(notice_level, name, fmt::format("[{}] Cmdlet exit status is '{}'", pid, cmdlet_code));
+
     return cmdlet_code;
 }
 
@@ -168,8 +179,14 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
     setup_powershell(power_shell.get(), name);
 
+    QString powershell_stderr;
+
     QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_output,
                      [output, &power_shell]() { *output += power_shell->read_all_standard_output(); });
+
+    QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_error, [&powershell_stderr, &power_shell]() {
+        powershell_stderr += power_shell->read_all_standard_error();
+    });
 
     power_shell->start();
     auto wait_result = power_shell->wait_for_finished(/* msecs = */ 60000);
@@ -183,6 +200,11 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     }
 
     *output = output->trimmed();
+
+    // Log stderr if any
+    if (!powershell_stderr.isEmpty())
+        mpl::log(mpl::Level::warning, name, fmt::format("[{}] stderr: {}", pid, powershell_stderr));
+
     mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output:\n{}", pid, *output));
 
     return wait_result && power_shell->process_state().completed_successfully();
