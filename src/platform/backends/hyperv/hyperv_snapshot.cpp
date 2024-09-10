@@ -58,7 +58,7 @@ bool snapshot_exists(mp::PowerShell& ps, const QString& vm_name, const QString& 
 void require_unique_id(mp::PowerShell& ps, const QString& vm_name, const QString& id)
 {
     if (snapshot_exists(ps, vm_name, id))
-        throw std::runtime_error{fmt::format("A snapshot called {} already exists for {} in Hyper-V", id, vm_name)};
+        throw std::runtime_error{fmt::format("A snapshot with ID {} already exists for {} in Hyper-V", id, vm_name)};
 }
 } // namespace
 

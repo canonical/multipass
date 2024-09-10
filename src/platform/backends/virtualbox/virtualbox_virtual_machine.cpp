@@ -400,7 +400,7 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
 {
     auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, extra_interface);
 
-    mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface to: {}", name);
+    mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface: {}", name);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
