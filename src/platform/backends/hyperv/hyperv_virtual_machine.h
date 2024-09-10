@@ -32,11 +32,12 @@
 namespace multipass
 {
 struct NetworkInterface;
+struct VMSpecs;
 class PowerShell;
 class SSHKeyProvider;
 class VirtualMachineDescription;
 class VMStatusMonitor;
-struct VMSpecs;
+
 class HyperVVirtualMachine final : public BaseVirtualMachine
 {
 public:
