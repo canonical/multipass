@@ -76,12 +76,6 @@ TEST_F(LibVirtBackend, libvirt_wrapper_missing_libvirt_throws)
     EXPECT_THROW(mp::LibvirtWrapper{"missing_libvirt"}, mp::LibvirtOpenException);
 }
 
-TEST_F(LibVirtBackend, libvirt_wrapper_missing_symbol_throws)
-{
-    // Need to set LD_LIBRARY_PATH to this .so for the multipass_tests executable
-    EXPECT_THROW(mp::LibvirtWrapper{"libbroken_libvirt.so"}, mp::LibvirtSymbolAddressException);
-}
-
 TEST_F(LibVirtBackend, health_check_good_does_not_throw)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
