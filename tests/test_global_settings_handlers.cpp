@@ -267,6 +267,34 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend
     ASSERT_NO_THROW(handler->set(key, val));
 }
 
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsHyperVDriver)
+{
+    const auto key = mp::driver_key;
+    const auto val = "hyper-v";
+    const auto transformed_val = "hyperv";
+
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(transformed_val))).Times(1);
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(key, val));
+}
+
+TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsVBoxDriver)
+{
+    const auto key = mp::driver_key;
+    const auto val = "vbox";
+    const auto transformed_val = "virtualbox";
+
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(transformed_val))).Times(1);
+    inject_mock_qsettings();
+
+    ASSERT_NO_THROW(handler->set(key, val));
+}
+
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)
 {
     auto key = mp::driver_key, val = "bad driver";
