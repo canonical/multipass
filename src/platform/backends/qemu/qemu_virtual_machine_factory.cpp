@@ -38,27 +38,6 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto category = "qemu factory";
-
-namespace fs = std::filesystem;
-void copy_instance_dir_without_snapshot_files(const fs::path& source_instance_dir_path,
-                                              const fs::path& dest_instance_dir_path)
-{
-    if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
-    {
-        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
-        {
-            fs::create_directory(dest_instance_dir_path);
-
-            const fs::path filename = entry.path().filename();
-            // if the filename does not contains "snapshot" sub-string, then copy
-            if (filename.string().find("snapshot") == std::string::npos)
-            {
-                const fs::path dest_file_path = dest_instance_dir_path / filename;
-                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
-            }
-        }
-    }
-}
 } // namespace
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
@@ -96,7 +75,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
     const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
     const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
 
-    copy_instance_dir_without_snapshot_files(source_instance_data_directory, dest_instance_data_directory);
+    copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / cloud_init_file_name;
 
