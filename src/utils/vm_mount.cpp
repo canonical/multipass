@@ -129,14 +129,16 @@ void mp::VMMount::resolve_source_path()
                 fmt::format("Mount symlink source path \"{}\" could not be read: {}.", source_path, err.message()));
 
         if (symlink_path.is_relative())
-            symlink_path = path.parent_path() / symlink_path; 
+            symlink_path = path.parent_path() / symlink_path;
 
         path = fs::weakly_canonical(symlink_path, err);
 
         if (err)
             throw std::runtime_error(
-                fmt::format("Mount symlink source path \"{}\" could not be made weakly canonical: {}.", source_path, err.message()));
-    
+                fmt::format("Mount symlink source path \"{}\" could not be made weakly canonical: {}.",
+                            source_path,
+                            err.message()));
+
         source_path = path.string();
     }
 }

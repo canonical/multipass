@@ -144,8 +144,7 @@ TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
 TEST_F(TestVMMount, notSymlinkSourcePathUnchanged)
 {
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status)
-        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::regular}));
+    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::regular}));
     EXPECT_CALL(*mock_file_ops, read_symlink).Times(0);
 
     mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
@@ -158,10 +157,8 @@ TEST_F(TestVMMount, notSymlinkSourcePathUnchanged)
 TEST_F(TestVMMount, absoluteSymlinkSourcePathResolved)
 {
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status)
-        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
-    EXPECT_CALL(*mock_file_ops, read_symlink)
-        .WillOnce(Return(mp::fs::path{"/home/dest"}));
+    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
+    EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce(Return(mp::fs::path{"/home/dest"}));
 
     mp::VMMount mount{"/tmp/src", {}, {}, mp::VMMount::MountType::Classic};
 
@@ -173,10 +170,8 @@ TEST_F(TestVMMount, absoluteSymlinkSourcePathResolved)
 TEST_F(TestVMMount, relativeSymlinkSourcePathResolved)
 {
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status)
-        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
-    EXPECT_CALL(*mock_file_ops, read_symlink)
-        .WillOnce(Return(mp::fs::path{"./dest"}));
+    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
+    EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce(Return(mp::fs::path{"./dest"}));
 
     mp::VMMount mount{"/tmp/src", {}, {}, mp::VMMount::MountType::Classic};
 
