@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'notifications_list.dart';
 
 class SimpleNotification extends StatelessWidget {
-  final String text;
+  final Widget child;
   final Widget icon;
   final Color barColor;
   final bool closeable;
@@ -11,7 +11,7 @@ class SimpleNotification extends StatelessWidget {
 
   const SimpleNotification({
     super.key,
-    required this.text,
+    required this.child,
     required this.icon,
     required this.barColor,
     this.closeable = true,
@@ -40,7 +40,7 @@ class SimpleNotification extends StatelessWidget {
               child: FittedBox(fit: BoxFit.fill, child: icon),
             ),
             const SizedBox(width: 8),
-            Expanded(child: Text(text)),
+            Expanded(child: child),
           ]),
         ),
       ),
@@ -113,10 +113,10 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
       child: AnimatedBuilder(
         animation: timeoutController,
         builder: (_, __) => SimpleNotification(
-          text: widget.text,
           icon: widget.icon,
           barColor: widget.barColor,
           barFullness: 1.0 - timeoutController.value,
+          child: Text(widget.text),
         ),
       ),
     );
@@ -124,10 +124,11 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
 }
 
 class ErrorNotification extends SimpleNotification {
-  const ErrorNotification({
+  ErrorNotification({
     super.key,
-    required super.text,
+    required String text,
   }) : super(
+          child: Text(text),
           barColor: Colors.red,
           icon: const Icon(Icons.cancel_outlined, color: Colors.red),
         );
@@ -167,7 +168,6 @@ class OperationNotification extends StatelessWidget {
         }
 
         return SimpleNotification(
-          text: text,
           barColor: Colors.blue,
           closeable: false,
           icon: const CircularProgressIndicator(
@@ -175,6 +175,7 @@ class OperationNotification extends StatelessWidget {
             strokeAlign: -2,
             strokeWidth: 3.5,
           ),
+          child: Text(text),
         );
       },
     );
