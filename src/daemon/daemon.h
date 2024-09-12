@@ -173,7 +173,7 @@ private:
                                std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                                VirtualMachine* vm);
 
-    MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount);
+    MountHandler::UPtr make_mount(VirtualMachine* vm, const std::string& target, VMMount mount);
 
     struct AsyncOperationStatus
     {

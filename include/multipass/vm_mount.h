@@ -39,6 +39,8 @@ public:
     explicit VMMount(const QJsonObject& json);
     VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType);
 
+    void resolve_source_path();
+
     QJsonObject serialize() const;
 
     const std::string& get_source_path() const noexcept;
