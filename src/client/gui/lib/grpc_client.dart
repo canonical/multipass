@@ -22,8 +22,8 @@ extension on RpcMessage {
   String get repr => '$runtimeType${toProto3Json()}';
 }
 
-T checkForUpdate<T extends RpcMessage>(T t) {
-  final updateInfo = switch (t) {
+void checkForUpdate(RpcMessage message) {
+  final updateInfo = switch (message) {
     LaunchReply launchReply => launchReply.updateInfo,
     InfoReply infoReply => infoReply.updateInfo,
     ListReply listReply => listReply.updateInfo,
@@ -35,8 +35,6 @@ T checkForUpdate<T extends RpcMessage>(T t) {
   };
 
   providerContainer.read(updateProvider.notifier).set(updateInfo);
-
-  return t;
 }
 
 void Function(StreamNotification<RpcMessage>) logGrpc(RpcMessage request) {
@@ -80,7 +78,7 @@ class GrpcClient {
       logger.i('Sent ${request.repr}');
       yield* _client
           .launch(Stream.value(request))
-          .map(checkForUpdate)
+          .doOnData(checkForUpdate)
           .doOnEach(logGrpc(request))
           .map(Either.left);
       for (final mountRequest in mountRequests) {
@@ -103,7 +101,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .start(Stream.value(request))
-        .map(checkForUpdate)
+        .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
         .firstOrNull;
   }
@@ -137,7 +135,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .restart(Stream.value(request))
-        .map(checkForUpdate)
+        .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
         .firstOrNull;
   }
@@ -188,7 +186,7 @@ class GrpcClient {
     );
     return _client
         .info(Stream.value(request))
-        .map(checkForUpdate)
+        .doOnData(checkForUpdate)
         .last
         .then((r) => r.details.toList());
   }
@@ -226,7 +224,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .networks(Stream.value(request))
-        .map(checkForUpdate)
+        .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
         .last
         .then((r) => r.interfaces);
@@ -237,7 +235,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .version(Stream.value(request))
-        .map(checkForUpdate)
+        .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
         .last
         .then((reply) => reply.version);
