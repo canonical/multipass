@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_file_ops.h"
 
 #include <multipass/vm_mount.h>
 
@@ -139,4 +140,49 @@ TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
                                                HasSubstr("1002:1001"),
                                                HasSubstr("1000:1001"))));
 }
+
+TEST_F(TestVMMount, notSymlinkSourcePathUnchanged)
+{
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, symlink_status)
+        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::regular}));
+    EXPECT_CALL(*mock_file_ops, read_symlink).Times(0);
+
+    mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
+
+    mount.resolve_source_path();
+
+    EXPECT_EQ(mount.get_source_path(), "src");
+}
+
+TEST_F(TestVMMount, absoluteSymlinkSourcePathResolved)
+{
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, symlink_status)
+        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
+    EXPECT_CALL(*mock_file_ops, read_symlink)
+        .WillOnce(Return(mp::fs::path{"/home/dest"}));
+
+    mp::VMMount mount{"/tmp/src", {}, {}, mp::VMMount::MountType::Classic};
+
+    mount.resolve_source_path();
+
+    EXPECT_EQ(mount.get_source_path(), "/home/dest");
+}
+
+TEST_F(TestVMMount, relativeSymlinkSourcePathResolved)
+{
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, symlink_status)
+        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
+    EXPECT_CALL(*mock_file_ops, read_symlink)
+        .WillOnce(Return(mp::fs::path{"./dest"}));
+
+    mp::VMMount mount{"/tmp/src", {}, {}, mp::VMMount::MountType::Classic};
+
+    mount.resolve_source_path();
+
+    EXPECT_EQ(mount.get_source_path(), "/tmp/dest");
+}
+
 } // namespace
