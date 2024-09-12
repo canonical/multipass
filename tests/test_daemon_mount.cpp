@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_mount_handler.h"
 #include "mock_platform.h"
@@ -266,4 +267,49 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), StrEq("The native mounts feature is not implemented on this backend."));
+}
+
+TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
+{
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, symlink_status)
+        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
+    EXPECT_CALL(*mock_file_ops, read_symlink)
+        .WillOnce(Return(mp::fs::path{config_builder.data_directory.toStdString()}));
+
+
+    auto original_implementation_of_mkpath = [](const QDir& dir, const QString& dirName) -> bool {
+        return MP_FILEOPS.FileOps::mkpath(dir, dirName);
+    };
+    EXPECT_CALL(*mock_file_ops, mkpath)
+        .WillRepeatedly(original_implementation_of_mkpath);
+
+    auto original_implementation_of_open = [](QFileDevice& dev, QIODevice::OpenMode mode) -> bool {
+        return MP_FILEOPS.FileOps::open(dev, mode);
+    };
+    EXPECT_CALL(*mock_file_ops, open(A<QFileDevice&>(), A<QIODevice::OpenMode>()))
+        .WillRepeatedly(original_implementation_of_open);
+
+    auto original_implementation_of_commit = [](QSaveFile& file) -> bool {
+        return MP_FILEOPS.FileOps::commit(file);
+    };
+    EXPECT_CALL(*mock_file_ops, commit)
+        .WillRepeatedly(original_implementation_of_commit);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::MountRequest request;
+    request.set_source_path(mount_dir.path().toStdString());
+    request.set_mount_type(mp::MountRequest::NATIVE);
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+    entry->set_target_path(fake_target_path);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
+
+    EXPECT_TRUE(status.ok());
 }

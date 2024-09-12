@@ -119,9 +119,6 @@ void mp::VMMount::resolve_source_path()
     fs::path path{source_path};
 
     auto status = MP_FILEOPS.symlink_status(path, err);
-    if (err)
-        throw std::runtime_error(
-            fmt::format("Mount source path \"{}\" is not accessible: {}.", source_path, err.message()));
 
     if (status.type() == fs::file_type::symlink)
     {
