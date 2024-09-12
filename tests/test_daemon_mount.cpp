@@ -275,17 +275,14 @@ TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
     config_builder.data_directory = temp_dir->path();
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status)
-        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
+    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
     EXPECT_CALL(*mock_file_ops, read_symlink)
         .WillOnce(Return(mp::fs::path{config_builder.data_directory.toStdString()}));
-
 
     auto original_implementation_of_mkpath = [](const QDir& dir, const QString& dirName) -> bool {
         return MP_FILEOPS.FileOps::mkpath(dir, dirName);
     };
-    EXPECT_CALL(*mock_file_ops, mkpath)
-        .WillRepeatedly(original_implementation_of_mkpath);
+    EXPECT_CALL(*mock_file_ops, mkpath).WillRepeatedly(original_implementation_of_mkpath);
 
     auto original_implementation_of_open = [](QFileDevice& dev, QIODevice::OpenMode mode) -> bool {
         return MP_FILEOPS.FileOps::open(dev, mode);
@@ -293,11 +290,8 @@ TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
     EXPECT_CALL(*mock_file_ops, open(A<QFileDevice&>(), A<QIODevice::OpenMode>()))
         .WillRepeatedly(original_implementation_of_open);
 
-    auto original_implementation_of_commit = [](QSaveFile& file) -> bool {
-        return MP_FILEOPS.FileOps::commit(file);
-    };
-    EXPECT_CALL(*mock_file_ops, commit)
-        .WillRepeatedly(original_implementation_of_commit);
+    auto original_implementation_of_commit = [](QSaveFile& file) -> bool { return MP_FILEOPS.FileOps::commit(file); };
+    EXPECT_CALL(*mock_file_ops, commit).WillRepeatedly(original_implementation_of_commit);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -308,7 +302,9 @@ TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::mount, request,
+    auto status = call_daemon_slot(daemon,
+                                   &mp::Daemon::mount,
+                                   request,
                                    StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_TRUE(status.ok());
