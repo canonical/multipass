@@ -22,16 +22,19 @@ import 'vm_table/vm_table_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Get the current screen size
-  final screen = await getCurrentScreen();
-  Size windowSize;
+  await setupLogger();
 
-  if (screen != null && screen.frame.size.width >= 1600
-      && screen.frame.size.height >= 900) {
-    windowSize = const Size(1400, 822);  // For screens larger than 1600x900
-  } else {
-    windowSize = const Size(750, 450);   // Default window size
-  }
+  // Get the current screen size
+  final screenSize = await getCurrentScreen().then((screen) {
+    return screen?.frame.size;
+  });
+
+  final windowSize = (screenSize != null && screenSize.width >= 1600
+      && screenSize.height >= 900)
+      ? const Size(1400, 822) // For screens 1600x900 or larger
+      : const Size(750, 450); // Default window size
+
+  await windowManager.ensureInitialized();
 
   final windowOptions = WindowOptions(
     center: true,
