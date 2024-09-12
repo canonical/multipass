@@ -2070,7 +2070,9 @@ try // clang-format on
         {
         case VirtualMachine::State::unknown:
         {
-            auto error_string = fmt::format("Instance \'{}\' is already running, but in an unknown state", name);
+            auto error_string = fmt::format("Instance \'{0}\' is already running, but in an unknown state\n"
+                                            "Try 'multipass stop {0}'",
+                                            name);
             mpl::log(mpl::Level::warning, category, error_string);
             fmt::format_to(std::back_inserter(start_errors), error_string);
             continue;
@@ -3110,7 +3112,10 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 
     if (!MP_UTILS.is_running(vm.current_state()))
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
-                            fmt::format("instance \"{}\" is not running", vm.vm_name), ""};
+                            fmt::format("Instance \"{0}\" is already running, but in an unknown state\n"
+                                        "Try 'multipass stop {0}'",
+                                        vm.vm_name),
+                            ""};
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
     return ssh_reboot(vm);
