@@ -254,6 +254,7 @@ message InfoReply {
     repeated DetailedInfoItem details = 1;
     bool snapshots = 2; // useful to determine what entity (instance/snapshot) was absent when details are empty
     string log_line = 3;
+    UpdateInfo update_info = 4;
 }
 
 message ListRequest {
