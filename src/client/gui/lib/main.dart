@@ -129,7 +129,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
     final primary = ref.read(clientSettingProvider(primaryNameKey));
     if (vms.contains(primary)) {
       ref.read(sidebarKeyProvider.notifier).set('vm-$primary');
-      windowManager.show();
+      windowManager.showAndRestore();
     }
   }
 

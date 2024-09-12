@@ -19,6 +19,13 @@ import 'vm_action.dart';
 import 'vm_details/terminal_tabs.dart';
 import 'vm_details/vm_details.dart';
 
+extension WindowManagerExtensions on WindowManager {
+  Future<void> showAndRestore() async {
+    await show();
+    await restore();
+  }
+}
+
 final trayMenuDataProvider = Provider.autoDispose((ref) {
   return ref.watch(daemonAvailableProvider)
       ? ref.watch(vmStatusesProvider)
@@ -57,7 +64,7 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
       label: 'Toggle window',
       callback: (_, __) async => await windowManager.isVisible()
           ? windowManager.hide()
-          : windowManager.show(),
+          : windowManager.showAndRestore(),
     );
   }
 
@@ -207,7 +214,7 @@ Future<void> _updateTrayMenu(
           if (providerContainer.exists(provider)) {
             providerContainer.read(provider.notifier).start();
           }
-          windowManager.show();
+          windowManager.showAndRestore();
         },
       );
     } else {
