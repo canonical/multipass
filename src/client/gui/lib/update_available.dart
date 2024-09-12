@@ -9,9 +9,31 @@ import 'notifications/notifications_list.dart';
 import 'notifications/notifications_provider.dart';
 import 'providers.dart';
 
-final updateProvider = FutureProvider.autoDispose((ref) {
-  return ref.watch(grpcClientProvider).updateInfo();
-});
+class UpdateNotifier extends Notifier<UpdateInfo> {
+  @override
+  UpdateInfo build() => UpdateInfo();
+
+  void set(UpdateInfo updateInfo) {
+    if (updateInfo.version.isBlank) return;
+    final updateNotificationExists = ref.read(notificationsProvider).any((n) {
+      return n is UpdateAvailableNotification && n.updateInfo == updateInfo;
+    });
+    if (updateNotificationExists) return;
+    ref
+        .read(notificationsProvider.notifier)
+        .add(UpdateAvailableNotification(updateInfo));
+    state = updateInfo;
+  }
+
+  @override
+  bool updateShouldNotify(UpdateInfo previous, UpdateInfo next) {
+    return previous != next;
+  }
+}
+
+final updateProvider = NotifierProvider<UpdateNotifier, UpdateInfo>(
+  UpdateNotifier.new,
+);
 
 const _color = Color(0xffE95420);
 final installUrl = Uri.parse('https://multipass.run/install');
@@ -87,14 +109,5 @@ class UpdateAvailableNotification extends StatelessWidget {
         ),
       ]),
     );
-  }
-}
-
-extension ShowUpdateExtension on WidgetRef {
-  void showUpdateNotification(UpdateInfo updateInfo) {
-    if (updateInfo.version.isNotBlank) {
-      read(notificationsProvider.notifier)
-          .add(UpdateAvailableNotification(updateInfo));
-    }
   }
 }
