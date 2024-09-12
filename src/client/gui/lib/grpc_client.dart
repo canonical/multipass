@@ -6,8 +6,9 @@ import 'package:grpc/grpc.dart';
 import 'package:protobuf/protobuf.dart' hide RpcClient;
 import 'package:rxdart/rxdart.dart';
 
-import 'generated/multipass.pbgrpc.dart';
 import 'logger.dart';
+import 'providers.dart';
+import 'update_available.dart';
 
 export 'generated/multipass.pbgrpc.dart';
 
@@ -19,6 +20,23 @@ typedef RpcMessage = GeneratedMessage;
 
 extension on RpcMessage {
   String get repr => '$runtimeType${toProto3Json()}';
+}
+
+T checkForUpdate<T extends RpcMessage>(T t) {
+  final updateInfo = switch (t) {
+    LaunchReply launchReply => launchReply.updateInfo,
+    InfoReply infoReply => infoReply.updateInfo,
+    ListReply listReply => listReply.updateInfo,
+    NetworksReply networksReply => networksReply.updateInfo,
+    StartReply startReply => startReply.updateInfo,
+    RestartReply restartReply => restartReply.updateInfo,
+    VersionReply versionReply => versionReply.updateInfo,
+    _ => UpdateInfo(),
+  };
+
+  providerContainer.read(updateProvider.notifier).set(updateInfo);
+
+  return t;
 }
 
 void Function(StreamNotification<RpcMessage>) logGrpc(RpcMessage request) {
@@ -62,6 +80,7 @@ class GrpcClient {
       logger.i('Sent ${request.repr}');
       yield* _client
           .launch(Stream.value(request))
+          .map(checkForUpdate)
           .doOnEach(logGrpc(request))
           .map(Either.left);
       for (final mountRequest in mountRequests) {
@@ -84,6 +103,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .start(Stream.value(request))
+        .map(checkForUpdate)
         .doOnEach(logGrpc(request))
         .firstOrNull;
   }
@@ -117,6 +137,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .restart(Stream.value(request))
+        .map(checkForUpdate)
         .doOnEach(logGrpc(request))
         .firstOrNull;
   }
@@ -167,6 +188,7 @@ class GrpcClient {
     );
     return _client
         .info(Stream.value(request))
+        .map(checkForUpdate)
         .last
         .then((r) => r.details.toList());
   }
@@ -204,6 +226,7 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .networks(Stream.value(request))
+        .map(checkForUpdate)
         .doOnEach(logGrpc(request))
         .last
         .then((r) => r.interfaces);
@@ -214,19 +237,10 @@ class GrpcClient {
     logger.i('Sent ${request.repr}');
     return _client
         .version(Stream.value(request))
+        .map(checkForUpdate)
         .doOnEach(logGrpc(request))
         .last
         .then((reply) => reply.version);
-  }
-
-  Future<UpdateInfo> updateInfo() {
-    final request = VersionRequest();
-    logger.i('Sent ${request.repr}');
-    return _client
-        .version(Stream.value(request))
-        .doOnEach(logGrpc(request))
-        .last
-        .then((reply) => reply.updateInfo);
   }
 
   Future<String> get(String key) {
