@@ -38,7 +38,7 @@ void main() async {
   await hotKeyManager.unregisterAll();
   final sharedPreferences = await SharedPreferences.getInstance();
 
-  final providerContainer = ProviderContainer(overrides: [
+  providerContainer = ProviderContainer(overrides: [
     guiSettingProvider.overrideWith(() {
       return GuiSettingNotifier(sharedPreferences);
     }),

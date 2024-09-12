@@ -14,6 +14,8 @@ import 'logger.dart';
 
 export 'grpc_client.dart';
 
+late final ProviderContainer providerContainer;
+
 final grpcClientProvider = Provider((_) {
   final address = getServerAddress();
   final certPair = getCertPair();
