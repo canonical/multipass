@@ -3271,13 +3271,11 @@ bool mp::Daemon::create_missing_mounts(std::unordered_map<std::string, VMMount>&
     return mount_specs.size() != initial_mount_count;
 }
 
-mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, VMMount mount)
+mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm, const std::string& target, const VMMount& mount)
 {
-    mount.resolve_source_path();
-
     return mount.get_mount_type() == VMMount::MountType::Classic
-               ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, std::move(mount))
-               : vm->make_native_mount_handler(target, std::move(mount));
+               ? std::make_unique<SSHFSMountHandler>(vm, config->ssh_key_provider.get(), target, mount)
+               : vm->make_native_mount_handler(target, mount);
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>*

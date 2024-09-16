@@ -149,8 +149,6 @@ TEST_F(TestVMMount, notSymlinkSourcePathUnchanged)
 
     mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
 
-    mount.resolve_source_path();
-
     EXPECT_EQ(mount.get_source_path(), "src");
 }
 
@@ -165,8 +163,6 @@ TEST_F(TestVMMount, absoluteSymlinkSourcePathResolved)
 
     mp::VMMount mount{source_path.string(), {}, {}, mp::VMMount::MountType::Classic};
 
-    mount.resolve_source_path();
-
     EXPECT_EQ(mount.get_source_path(), symlink_path.string());
 }
 
@@ -179,8 +175,6 @@ TEST_F(TestVMMount, relativeSymlinkSourcePathResolved)
     EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce(Return(mp::fs::path{"./dest"}));
 
     mp::VMMount mount{source_path.string(), {}, {}, mp::VMMount::MountType::Classic};
-
-    mount.resolve_source_path();
 
     EXPECT_EQ(mount.get_source_path(), source_path.replace_filename("dest").string());
 }
