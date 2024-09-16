@@ -1,6 +1,7 @@
 Source: multipass
 Build-Depends: build-essential,
                cmake,
+               curl,
                google-mock,
                libapparmor-dev,
                libvirt-dev,
