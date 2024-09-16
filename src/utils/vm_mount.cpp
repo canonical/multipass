@@ -107,6 +107,8 @@ mp::VMMount::VMMount(const std::string& sourcePath,
     if (errors.size())
         throw std::runtime_error(
             fmt::format("Mount cannot apply mapping with duplicate ids:{}", fmt::to_string(errors)));
+
+    resolve_source_path();
 }
 
 mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor
