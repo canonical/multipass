@@ -164,7 +164,7 @@ Please note that these instructions do not support building packages for macOS o
 
 ```
 cd <multipass>
-sudo apt install devscripts equivs
+sudo apt install devscripts equivs curl
 mk-build-deps -s sudo -i
 ```
 
