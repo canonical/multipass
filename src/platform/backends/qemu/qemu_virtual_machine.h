@@ -98,6 +98,8 @@ private:
     void on_restart();
     void initialize_vm_process();
 
+    void connect_signals();
+
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     const std::string mac_addr;
