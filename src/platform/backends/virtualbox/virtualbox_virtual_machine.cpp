@@ -210,14 +210,14 @@ void mp::VirtualBoxVirtualMachine::start()
     mpu::process_throw_on_error("VBoxManage", {"startvm", name, "--type", "headless"}, "Could not start VM: {}", name);
 }
 
-void mp::VirtualBoxVirtualMachine::shutdown(bool force)
+void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
     const auto present_state = current_state();
 
     try
     {
-        check_state_for_shutdown(force);
+        check_state_for_shutdown(shutdown_policy);
     }
     catch (const VMStateIdempotentException& e)
     {
@@ -227,7 +227,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(bool force)
 
     drop_ssh_session();
 
-    if (force)
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
         // virtualbox needs the discardstate command to shutdown in the suspend state, it discards the saved state of
