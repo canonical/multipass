@@ -62,18 +62,18 @@ QString cmd::Clone::short_help() const
 
 QString cmd::Clone::description() const
 {
-    return QStringLiteral("Create a complete independent copy of an existing instance");
+    return QStringLiteral(
+        "Create an independent copy of an existing instance. The instance must be stopped before you proceed.");
 }
 
 mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 {
-    parser->addPositionalArgument("source_name", "The name of the source instance", "<source_name>");
+    parser->addPositionalArgument("source_name", "The name of the source instance to be cloned", "<source_name>");
 
     const QCommandLineOption destination_name_option{
         {"n", "name"},
-        "An optional name for the destination instance, it obeys the same validity rules as instance names (see "
-        "\"help launch\"). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance of the original "
-        "instance.",
+        "Specify a custom name for the cloned instance. The name must follow the same validity rules as instance names "
+        "(see \"help launch\"). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance.",
         "destination-name"};
 
     parser->addOption(destination_name_option);
