@@ -222,8 +222,6 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                          key_provider,
                          instance_dir},
       desc{desc},
-      mac_addr{desc.default_mac_address},
-      username{desc.ssh_username},
       qemu_platform{qemu_platform},
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
@@ -527,21 +525,21 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> std::optional<IPAddress> { return qemu_platform->get_ip_for(mac_addr); };
+    auto get_ip = [this]() -> std::optional<IPAddress> { return qemu_platform->get_ip_for(desc.default_mac_address); };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
 {
-    return username;
+    return desc.ssh_username;
 }
 
 std::string mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
     {
-        auto result = qemu_platform->get_ip_for(mac_addr);
+        auto result = qemu_platform->get_ip_for(desc.default_mac_address);
         if (result)
             management_ip.emplace(result.value());
         else
