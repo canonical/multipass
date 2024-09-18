@@ -3418,7 +3418,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         if (auto error = future.result(); !error.empty())
             add_fmt_to(errors, error);
 
-    if (server && std::is_same<Reply, StartReply>::value)
+    if (server && (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>))
     {
         bool write_reply{false};
         Reply reply;
