@@ -346,7 +346,7 @@ void mp::LibVirtVirtualMachine::start()
     monitor->on_resume();
 }
 
-void mp::LibVirtVirtualMachine::shutdown(bool force)
+void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
     auto domain = checked_vm_domain();
@@ -355,7 +355,7 @@ void mp::LibVirtVirtualMachine::shutdown(bool force)
 
     try
     {
-        check_state_for_shutdown(force);
+        check_state_for_shutdown(shutdown_policy);
     }
     catch (const VMStateIdempotentException& e)
     {
@@ -363,7 +363,7 @@ void mp::LibVirtVirtualMachine::shutdown(bool force)
         return;
     }
 
-    if (force) // TODO delete suspension state if it exists
+    if (shutdown_policy == ShutdownPolicy::Poweroff) // TODO delete suspension state if it exists
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
 

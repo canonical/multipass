@@ -210,14 +210,14 @@ void mp::HyperVVirtualMachine::start()
     }
 }
 
-void mp::HyperVVirtualMachine::shutdown(bool force)
+void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
     const auto present_state = current_state();
 
     try
     {
-        check_state_for_shutdown(force);
+        check_state_for_shutdown(shutdown_policy);
     }
     catch (const VMStateIdempotentException& e)
     {
@@ -227,7 +227,7 @@ void mp::HyperVVirtualMachine::shutdown(bool force)
 
     drop_ssh_session();
 
-    if (force)
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
         power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});

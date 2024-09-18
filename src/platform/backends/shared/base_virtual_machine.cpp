@@ -188,34 +188,39 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_config_iso_file_path);
 }
 
-void mp::BaseVirtualMachine::check_state_for_shutdown(bool force)
+void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
 {
-    const std::string force_statement{"Use --force to override."};
-
     // A mutex should already be locked by the caller here
     if (state == State::off || state == State::stopped)
     {
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
     }
 
-    if (force)
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         return;
     }
 
-    if (state == State::suspending)
-    {
-        throw VMStateInvalidException{fmt::format("Cannot stop instance while suspending. {}", force_statement)};
-    }
-
     if (state == State::suspended)
     {
-        throw VMStateInvalidException{fmt::format("Cannot stop suspended instance. {}", force_statement)};
+        if (shutdown_policy == ShutdownPolicy::Halt)
+        {
+            throw VMStateIdempotentException{"Ignoring shutdown since instance is already suspended."};
+        }
+        else // else only can be ShutdownPolicy::Powerdown since ShutdownPolicy::Poweroff check was preemptively done.
+        {
+            throw VMStateInvalidException{fmt::format("Cannot shut down suspended instance {}.", vm_name)};
+        }
+    }
+
+    if (state == State::suspending)
+    {
+        throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while suspending.", vm_name)};
     }
 
     if (state == State::starting || state == State::restarting)
     {
-        throw VMStateInvalidException{fmt::format("Cannot stop instance while starting. {}", force_statement)};
+        throw VMStateInvalidException{fmt::format("Cannot shut down instance {} while starting.", vm_name)};
     }
 }
 
