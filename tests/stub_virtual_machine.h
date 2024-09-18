@@ -47,7 +47,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void shutdown(bool force = false) override
+    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override
     {
     }
 
