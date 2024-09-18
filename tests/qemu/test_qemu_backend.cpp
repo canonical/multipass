@@ -287,7 +287,7 @@ TEST_F(QemuBackend, throws_when_shutdown_while_starting)
 
     mp::AutoJoinThread thread{[&machine, vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
-        machine->shutdown(true);
+        machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
     }};
 
     using namespace std::chrono_literals;
@@ -374,7 +374,7 @@ TEST_F(QemuBackend, machine_unknown_state_properly_shuts_down)
 
 TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop suspended instance. Use --force to override."};
+    const std::string sub_error_msg{"Cannot shut down suspended instance"};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -387,14 +387,15 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 
     machine->state = mp::VirtualMachine::State::suspended;
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(HasSubstr(sub_error_msg)));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
 }
 
 TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop instance while suspending. Use --force to override."};
+    const std::string sub_error_msg1{"Cannot shut down instance"};
+    const std::string sub_error_msg2{"while suspending."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -407,14 +408,17 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
 
     machine->state = mp::VirtualMachine::State::suspending;
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine->shutdown(),
+                         mp::VMStateInvalidException,
+                         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::suspending);
 }
 
 TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 {
-    const std::string error_msg{"Cannot stop instance while starting. Use --force to override."};
+    const std::string sub_error_msg1{"Cannot shut down instance"};
+    const std::string sub_error_msg2{"while starting."};
 
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
@@ -427,7 +431,9 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 
     machine->state = mp::VirtualMachine::State::starting;
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine->shutdown(),
+                         mp::VMStateInvalidException,
+                         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
 }
@@ -474,7 +480,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
     machine->state = mp::VirtualMachine::State::running;
 
-    machine->shutdown(true); // force shutdown
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
@@ -496,7 +502,7 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 
     machine->state = mp::VirtualMachine::State::unknown;
 
-    machine->shutdown(true); // force shutdown
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
@@ -526,7 +532,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
-    machine->shutdown(true);
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 
@@ -552,7 +558,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
-    machine->shutdown(true);
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
@@ -583,7 +589,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 
     const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::running;
-    machine->shutdown(true);
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 
@@ -967,7 +973,7 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
     EXPECT_CALL(machine, drop_ssh_session());
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(machine, shutdown, mp::QemuVirtualMachine);
-    machine.shutdown(false);
+    machine.shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown);
 }
 
 TEST_F(QemuBackend, supportsSnapshots)

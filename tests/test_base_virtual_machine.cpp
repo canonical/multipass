@@ -133,7 +133,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         state = St::running;
     }
 
-    void shutdown(bool force = false) override
+    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override
     {
         state = St::off;
     }
