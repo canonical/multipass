@@ -349,8 +349,6 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
 
-    force_shutdown = (shutdown_policy == ShutdownPolicy::Poweroff);
-
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -368,6 +366,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         if (vm_process)
         {
             mpl::log(mpl::Level::info, vm_name, "Killing process");
+            force_shutdown = true;
             lock.unlock();
             vm_process->kill();
             if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
