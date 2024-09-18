@@ -589,11 +589,10 @@ TEST_F(QemuBackend, verify_dnsmasq_qemuimg_and_qemu_processes_created)
         return std::move(mock_qemu_platform);
     });
 
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     auto factory = mpt::StubProcessFactory::Inject();
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -624,10 +623,9 @@ TEST_F(QemuBackend, verify_some_common_qemu_arguments)
         }
     });
 
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -649,11 +647,10 @@ TEST_F(QemuBackend, verify_qemu_arguments_when_resuming_suspend_image)
     });
 
     process_factory->register_callback(handle_external_process_calls);
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
