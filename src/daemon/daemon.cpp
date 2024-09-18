@@ -3418,26 +3418,29 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         if (auto error = future.result(); !error.empty())
             add_fmt_to(errors, error);
 
-    if (server && (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>))
+    if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {
-        bool write_reply{false};
-        Reply reply;
-
-        if (config->update_prompt->is_time_to_show())
+        if (server)
         {
-            config->update_prompt->populate(reply.mutable_update_info());
-            write_reply = true;
-        }
+            bool write_reply{false};
+            Reply reply;
 
-        if (warnings.size() > 0)
-        {
-            reply.set_log_line(fmt::to_string(warnings));
-            write_reply = true;
-        }
+            if (config->update_prompt->is_time_to_show())
+            {
+                config->update_prompt->populate(reply.mutable_update_info());
+                write_reply = true;
+            }
 
-        if (write_reply)
-        {
-            server->Write(reply);
+            if (warnings.size() > 0)
+            {
+                reply.set_log_line(fmt::to_string(warnings));
+                write_reply = true;
+            }
+
+            if (write_reply)
+            {
+                server->Write(reply);
+            }
         }
     }
 
