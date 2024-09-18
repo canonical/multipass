@@ -262,7 +262,7 @@ void mp::LXDVirtualMachine::start()
     update_state();
 }
 
-void mp::LXDVirtualMachine::shutdown(bool force)
+void mp::LXDVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
 
@@ -270,7 +270,7 @@ void mp::LXDVirtualMachine::shutdown(bool force)
 
     try
     {
-        check_state_for_shutdown(force);
+        check_state_for_shutdown(shutdown_policy);
     }
     catch (const VMStateIdempotentException& e)
     {
@@ -278,7 +278,8 @@ void mp::LXDVirtualMachine::shutdown(bool force)
         return;
     }
 
-    request_state("stop", {{"force", force}});
+    // ShutdownPolicy::Poweroff is force and the other two values are non-force
+    request_state("stop", {{"force", shutdown_policy == ShutdownPolicy::Poweroff}});
 
     state = State::off;
 

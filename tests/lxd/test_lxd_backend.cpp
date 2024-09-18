@@ -1702,7 +1702,7 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
 
 TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
 {
-    const std::string error_msg{"Cannot stop suspended instance. Use --force to override."};
+    const std::string sub_error_msg{"Cannot shut down suspended instance"};
     mpt::MockVMStatusMonitor mock_monitor;
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
@@ -1730,7 +1730,7 @@ TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
 
-    MP_EXPECT_THROW_THAT(machine.shutdown(), mp::VMStateInvalidException, mpt::match_what(StrEq(error_msg)));
+    MP_EXPECT_THROW_THAT(machine.shutdown(), mp::VMStateInvalidException, mpt::match_what(HasSubstr(sub_error_msg)));
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
 }
@@ -1843,7 +1843,9 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     ASSERT_EQ(machine.state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread = [&machine] { machine.shutdown(true); }; // force shutdown
+    mp::AutoJoinThread thread = [&machine] {
+        machine.shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+    }; // force shutdown
 
     while (machine.state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
