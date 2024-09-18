@@ -29,6 +29,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
@@ -286,14 +287,16 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
     {
         update_shutdown_status = false;
 
-        if (state == State::running)
-        {
-            suspend();
-        }
-        else
-        {
-            shutdown();
-        }
+        mp::top_catch_all(vm_name, [this]() {
+            if (state == State::running)
+            {
+                suspend();
+            }
+            else
+            {
+                shutdown();
+            }
+        });
     }
 }
 
