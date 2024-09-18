@@ -372,7 +372,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
             {
                 throw std::runtime_error{
-                    fmt::format("The QEMU process did not finish within {} seconds after being killed",
+                    fmt::format("The QEMU process did not finish within {} miliseconds after being killed",
                                 kill_process_timeout)};
             }
         }
@@ -404,7 +404,17 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         if (vm_process && vm_process->running())
         {
             vm_process->write(qmp_execute_json("system_powerdown"));
-            vm_process->wait_for_finished(shutdown_timeout);
+            if (vm_process->wait_for_finished(shutdown_timeout))
+            {
+                lock.lock();
+                state = State::off;
+            }
+            else
+            {
+                throw std::runtime_error{
+                    fmt::format("The QEMU process did not finish within {} miliseconds after being shutdown",
+                                shutdown_timeout)};
+            }
         }
     }
 }
