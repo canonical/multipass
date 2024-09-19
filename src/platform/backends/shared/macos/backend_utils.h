@@ -25,6 +25,6 @@
 
 namespace multipass::backend
 {
-std::optional<IPAddress> get_vmnet_dhcp_ip_for(const std::string& identifier);
+std::optional<IPAddress> get_ip_address_from_arp_output_stream_for(const std::string& mac_address);
 } // namespace multipass::backend
 #endif // MULTIPASS_BACKEND_UTILS_H
