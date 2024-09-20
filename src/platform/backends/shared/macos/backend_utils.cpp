@@ -24,6 +24,26 @@ namespace mp = multipass;
 
 namespace
 {
+QString simplify_mac_address(const QString& input_mac_address)
+{
+    // 04:54:00:b9:69:b5" -> "4:54:0:b9:69:b5" for example
+    // multipass mac address always holds two digits for each segment but the mac address in arp -an output stream
+    // has the leading 0 of each segment trimmed
+    QString result_mac_address = input_mac_address;
+
+    // Handle the middle segments: Replace ":0" with ":"
+    result_mac_address.replace(":0", ":");
+
+    // Handle the first segment: Remove leading zero if it exists
+    if (result_mac_address.startsWith("0"))
+    {
+        // 0 is the start index and 1 is the lengh of the sub-string to remove
+        result_mac_address.remove(0, 1);
+    }
+
+    return result_mac_address;
+}
+
 QString get_arp_output()
 {
     // -a shows all Address Resolution Protocol(ARP) entries, -n shows numeric IP addresses instead of resolving to
@@ -58,12 +78,13 @@ std::optional<mp::IPAddress> mp::backend::get_ip_address_from_arp_output_stream_
     const QRegularExpression ip_address_mac_address_pair_regex(R"(\(([^)]+)\) at ([^\s]+))");
     QRegularExpressionMatchIterator iter = ip_address_mac_address_pair_regex.globalMatch(arp_ouput_stream);
 
+    const QString arp_format_mac_address = simplify_mac_address(QString::fromStdString(mac_address));
     while (iter.hasNext())
     {
         QRegularExpressionMatch match = iter.next();
         // captured(0) is the entire match which contains a pair like (192.168.64.4) at 52:54:0:e1:cd:ab, captured(1) is
         // the first regex capture group which is the ip address and captured(2) is the mac address.
-        if (match.captured(2).toStdString() == mac_address)
+        if (match.captured(2) == arp_format_mac_address)
         {
             return {mp::IPAddress{match.captured(1).toStdString()}};
         }
