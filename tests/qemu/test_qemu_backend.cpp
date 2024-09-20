@@ -300,6 +300,38 @@ TEST_F(QemuBackend, throws_when_shutdown_while_starting)
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
+TEST_F(QemuBackend, throws_on_shutdown_timeout)
+{
+    mpt::MockProcess* vmproc = nullptr;
+    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith("qemu-system-") &&
+            !process->arguments().contains("-dump-vmstate")) // we only care about the actual vm process
+        {
+            vmproc = process; // save this to control later
+        }
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+
+    machine->start();
+
+    ASSERT_TRUE(vmproc);
+    EXPECT_CALL(*vmproc, wait_for_finished).WillOnce(Return(false)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*vmproc, running).WillOnce(Return(true)).WillRepeatedly(Return(false));
+
+    machine->state = mp::VirtualMachine::State::running;
+
+    EXPECT_THROW(machine->shutdown(), std::runtime_error);
+    EXPECT_NE(machine->current_state(), mp::VirtualMachine::State::off);
+}
+
 TEST_F(QemuBackend, includes_error_when_shutdown_while_starting)
 {
     constexpr auto error_msg = "failing spectacularly";
