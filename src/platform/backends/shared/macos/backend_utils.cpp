@@ -75,7 +75,10 @@ std::optional<mp::IPAddress> mp::backend::get_ip_address_from_arp_output_stream_
 
     const QString arp_ouput_stream = get_arp_output();
 
-    const QRegularExpression ip_address_mac_address_pair_regex(R"(\(([^)]+)\) at ([^\s]+))");
+    // The current regex relies on the pattern (<ip address>) at <mac address>. The capture group 1 captures
+    // anything except closing bracket and whitespace in the brackets, meanwhile, the capture group 2 captures any
+    // string (any characters except whitespaces) after at.
+    const QRegularExpression ip_address_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
     QRegularExpressionMatchIterator iter = ip_address_mac_address_pair_regex.globalMatch(arp_ouput_stream);
 
     const QString arp_format_mac_address = simplify_mac_address(QString::fromStdString(mac_address));
