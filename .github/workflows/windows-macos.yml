@@ -13,6 +13,10 @@ on:
     types: [public_build]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  cancel-in-progress: true
+
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
   HEAD_REF: ci${{ github.run_id }}
