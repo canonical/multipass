@@ -3422,25 +3422,16 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     {
         if (server)
         {
-            bool write_reply{false};
             Reply reply;
 
-            if (config->update_prompt->is_time_to_show())
-            {
-                config->update_prompt->populate(reply.mutable_update_info());
-                write_reply = true;
-            }
+            config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
 
             if (warnings.size() > 0)
             {
                 reply.set_log_line(fmt::to_string(warnings));
-                write_reply = true;
             }
 
-            if (write_reply)
-            {
-                server->Write(reply);
-            }
+            server->Write(reply);
         }
     }
 
