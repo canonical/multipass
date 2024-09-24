@@ -69,3 +69,8 @@ flutter:
           weight: 700
         - asset: assets/Ubuntu-L.ttf
           weight: 300
+    - family: UbuntuMono
+      fonts:
+        - asset: assets/UbuntuMono-R.ttf
+        - asset: assets/UbuntuMono-B.ttf
+          weight: 700
