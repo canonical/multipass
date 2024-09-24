@@ -1,11 +1,12 @@
 import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
 import '../providers.dart';
 import '../sidebar.dart';
+import '../tooltip.dart';
 import '../vm_details/cpu_sparkline.dart';
 import '../vm_details/ip_addresses.dart';
 import '../vm_details/memory_usage.dart';
