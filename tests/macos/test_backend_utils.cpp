@@ -33,10 +33,10 @@ const QByteArray mock_arp_output_stream = QByteArray{R"(
 ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet])"};
 }
 
-class mock_arp_output_stream_fixture : public Test
+class MockArpOutputStreamFixture : public Test
 {
 public:
-    mock_arp_output_stream_fixture() : mock_process_factory{mpt::MockProcessFactory::Inject()}
+    MockArpOutputStreamFixture() : mock_process_factory{mpt::MockProcessFactory::Inject()}
     {
         mpt::MockProcessFactory::Callback arp_output_callback = [](mpt::MockProcess* process) {
             if (process->program().contains("arp") && process->arguments().contains("-an"))
@@ -52,7 +52,7 @@ private:
     const std::unique_ptr<mpt::MockProcessFactory::Scope> mock_process_factory{nullptr};
 };
 
-TEST_F(mock_arp_output_stream_fixture, testGetIpArpSuccess)
+TEST_F(MockArpOutputStreamFixture, testGetIpArpSuccess)
 {
     constexpr auto* existed_mac = "52:54:00:85:72:55";
     constexpr auto* expected_mapped_ip = "192.168.64.3";
@@ -61,7 +61,7 @@ TEST_F(mock_arp_output_stream_fixture, testGetIpArpSuccess)
               expected_mapped_ip);
 }
 
-TEST_F(mock_arp_output_stream_fixture, testGetIpArpFailure)
+TEST_F(MockArpOutputStreamFixture, testGetIpArpFailure)
 {
     constexpr auto* non_exist_mac = "11:11:11:11:11:11";
     EXPECT_FALSE(mp::backend::get_ip_address_from_arp_output_stream_for(non_exist_mac).has_value());
