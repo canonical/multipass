@@ -77,8 +77,10 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server{};
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
 
     EXPECT_TRUE(status.ok());
 }
@@ -113,8 +115,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
     StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
-
-    EXPECT_CALL(server, Write(_, _)).Times(0);
+    EXPECT_CALL(server, Write(_, _)).Times(1);
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
 
@@ -143,8 +144,10 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server;
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
 
     EXPECT_FALSE(status.ok());
 }
@@ -170,8 +173,10 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server;
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
 
     EXPECT_FALSE(status.ok());
 
@@ -208,8 +213,10 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>{});
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server;
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
 
     EXPECT_TRUE(status.ok());
 }
@@ -238,6 +245,8 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
 
     auto log = fmt::format("Removing mount \"{}\" from '{}': {}\n", fake_target_path, mock_instance_name, error);
     StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
+
+    EXPECT_CALL(server, Write(_, _));
     EXPECT_CALL(server, Write(Property(&mp::StartReply::log_line, Eq(log)), _));
 
     config_builder.data_directory = temp_dir->path();
