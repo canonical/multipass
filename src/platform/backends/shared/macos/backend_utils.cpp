@@ -26,7 +26,7 @@ namespace
 {
 QString simplify_mac_address(const QString& input_mac_address)
 {
-    // 04:54:00:b9:69:b5" -> "4:54:0:b9:69:b5" for example, multipass mac address always holds two digits for each
+    // "04:54:00:b9:69:b5" -> "4:54:0:b9:69:b5" for example, multipass mac address always holds two digits for each
     // segment but the mac address in arp -an output stream has the leading 0 of each segment trimmed
     QString result_mac_address = input_mac_address;
 
@@ -75,10 +75,10 @@ std::optional<mp::IPAddress> mp::backend::get_ip_address_from_arp_output_stream_
     const QString arp_ouput_stream = get_arp_output();
 
     // The current regex relies on the pattern (<ip address>) at <mac address>. The capture group 1 captures
-    // anything except closing bracket and whitespace in the brackets, meanwhile, the capture group 2 captures any
+    // anything except closing bracket and whitespace in the brackets. Meanwhile, the capture group 2 captures any
     // string (any characters except whitespaces) after at.
-    const QRegularExpression ip_address_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
-    QRegularExpressionMatchIterator iter = ip_address_mac_address_pair_regex.globalMatch(arp_ouput_stream);
+    const QRegularExpression ip_and_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
+    QRegularExpressionMatchIterator iter = ip_and_mac_address_pair_regex.globalMatch(arp_ouput_stream);
 
     const QString arp_format_mac_address = simplify_mac_address(QString::fromStdString(mac_address));
     while (iter.hasNext())
