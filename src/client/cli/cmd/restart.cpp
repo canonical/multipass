@@ -39,9 +39,14 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
     if (ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    auto on_success = [](mp::RestartReply& reply) { return ReturnCode::Ok; };
-
     AnimatedSpinner spinner{cout};
+    auto on_success = [this, &spinner](mp::RestartReply& reply) {
+        spinner.stop();
+        if (term->is_live() && update_available(reply.update_info()))
+            cout << update_notice(reply.update_info());
+        return ReturnCode::Ok;
+    };
+
     auto on_failure = [this, &spinner](grpc::Status& status) {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
