@@ -4,6 +4,7 @@
 #include "multipass/memory_size.h"
 #include "multipass/name_generator.h"
 #include "multipass/settings/settings.h"
+#include "multipass/utils.h"
 #include "multipass/version.h"
 
 namespace mp = multipass;
@@ -223,6 +224,28 @@ long long memory_in_bytes(char* value)
     {
         mpl::log(mpl::Level::warning, category, error);
         return -1;
+    }
+}
+
+char* default_mount_target(char* source)
+{
+    static constexpr auto error = "failed retrieving default mount target";
+    try
+    {
+        const QString q_source{source};
+        free(source);
+        const auto target = MP_UTILS.default_mount_target(q_source).toStdString();
+        return strdup(target.c_str());
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        return nullptr;
+    }
+    catch (...)
+    {
+        mpl::log(mpl::Level::warning, category, error);
+        return nullptr;
     }
 }
 }
