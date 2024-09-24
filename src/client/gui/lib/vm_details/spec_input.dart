@@ -15,6 +15,7 @@ class SpecInput extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final double width;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
 
   const SpecInput({
     super.key,
@@ -29,6 +30,7 @@ class SpecInput extends StatelessWidget {
     this.inputFormatters,
     this.width = 170,
     this.controller,
+    this.focusNode,
   });
 
   @override
@@ -37,7 +39,10 @@ class SpecInput extends StatelessWidget {
       width: width,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (label != null) ...[
-          Text(label!, style: const TextStyle(fontSize: 16)),
+          Text(
+            label!,
+            style: const TextStyle(fontSize: 16, color: Colors.black),
+          ),
           const SizedBox(height: 8),
         ],
         TextFormField(
@@ -54,6 +59,7 @@ class SpecInput extends StatelessWidget {
             ),
           ),
           enabled: enabled,
+          focusNode: focusNode,
           initialValue: initialValue,
           inputFormatters: inputFormatters,
           onSaved: onSaved,
