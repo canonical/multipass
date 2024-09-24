@@ -180,15 +180,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
 
         auto entry = request.add_target_paths();
         entry->set_instance_name(instance_name.toStdString());
-
-        if (target_path.isEmpty())
-        {
-            entry->set_target_path(source_path.toStdString());
-        }
-        else
-        {
-            entry->set_target_path(target_path.toStdString());
-        }
+        entry->set_target_path(target_path.toStdString());
     }
 
     QRegularExpression map_matcher("^([0-9]+[:][0-9]+)$");
