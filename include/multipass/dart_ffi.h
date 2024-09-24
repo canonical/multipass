@@ -40,6 +40,8 @@ int gid();
 int default_id();
 
 long long memory_in_bytes(const char* value);
+
+const char* default_mount_target(const char* source);
 }
 
 #endif // MULTIPASS_DART_FFI_H
