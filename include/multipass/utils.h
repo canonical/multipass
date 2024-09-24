@@ -235,6 +235,8 @@ public:
     virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
     virtual void sleep_for(const std::chrono::milliseconds& ms) const;
     virtual bool is_ipv4_valid(const std::string& ipv4) const;
+
+    virtual Path default_mount_target(const Path& source) const;
 };
 } // namespace multipass
 
