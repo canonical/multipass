@@ -48,7 +48,7 @@ mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{get_common_args(host_
 
 std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
 {
-    return mp::backend::get_ip_address_from_arp_output_stream_for(hw_addr);
+    return mp::backend::get_neighbour_ip(hw_addr);
 }
 
 void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
