@@ -62,7 +62,7 @@ QString get_arp_output()
 
 } // namespace
 
-std::optional<mp::IPAddress> mp::backend::get_ip_address_from_arp_output_stream_for(const std::string& mac_address)
+std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& mac_address)
 {
     // ? (192.168.1.1) at 3c:37:86:8a:e6:84 on en0 ifscope [ethernet]
     // ? (192.168.1.255) at ff:ff:ff:ff:ff:ff on en0 ifscope [ethernet]
