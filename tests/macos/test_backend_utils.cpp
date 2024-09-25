@@ -57,12 +57,11 @@ TEST_F(MockArpOutputStreamFixture, testGetIpArpSuccess)
     constexpr auto* existed_mac = "52:54:00:85:72:55";
     constexpr auto* expected_mapped_ip = "192.168.64.3";
 
-    EXPECT_EQ(mp::backend::get_ip_address_from_arp_output_stream_for(existed_mac).value().as_string(),
-              expected_mapped_ip);
+    EXPECT_EQ(mp::backend::get_neighbour_ip(existed_mac).value().as_string(), expected_mapped_ip);
 }
 
 TEST_F(MockArpOutputStreamFixture, testGetIpArpFailure)
 {
     constexpr auto* non_exist_mac = "11:11:11:11:11:11";
-    EXPECT_FALSE(mp::backend::get_ip_address_from_arp_output_stream_for(non_exist_mac).has_value());
+    EXPECT_FALSE(mp::backend::get_neighbour_ip(non_exist_mac).has_value());
 }
