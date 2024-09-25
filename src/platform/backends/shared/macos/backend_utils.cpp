@@ -26,8 +26,8 @@ namespace
 {
 QString simplify_mac_address(const QString& input_mac_address)
 {
-    // "04:54:00:b9:69:b5" -> "4:54:0:b9:69:b5" for example, multipass mac address always holds two digits for each
-    // segment but the mac address in arp -an output stream has the leading 0 of each segment trimmed
+    // Trim the (first) leading 0 of each segment of the a MAC address.
+    // For example: "04:54:00:b9:69:b5" -> "4:54:0:b9:69:b5"
     QString result_mac_address = input_mac_address;
 
     // Handle the middle segments: Replace ":0" with ":"
