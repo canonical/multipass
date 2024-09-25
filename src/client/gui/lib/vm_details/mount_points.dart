@@ -254,22 +254,28 @@ class _ClippingTextFieldState extends State<ClippingTextField> {
   @override
   Widget build(BuildContext context) {
     if (showClipped) {
-      final clippedText = Container(
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(border: Border.all(color: Colors.black45)),
-        child: ExtendedText(
-          widget.controller.text,
-          style: const TextStyle(fontSize: 16),
-          maxLines: 1,
-          overflowWidget: const TextOverflowWidget(
-            align: TextOverflowAlign.center,
-            position: TextOverflowPosition.middle,
-            child: Text('\u2026'),
-          ),
+      final clippedText = ExtendedText(
+        widget.controller.text,
+        style: const TextStyle(fontSize: 16),
+        maxLines: 1,
+        overflowWidget: const TextOverflowWidget(
+          align: TextOverflowAlign.center,
+          position: TextOverflowPosition.middle,
+          child: Text('\u2026'),
         ),
       );
 
-      final clippedTextActivator = GestureDetector(
+      final clippedTextFormField = FormField<String>(
+        validator: (_) => widget.validator?.call(widget.controller.text),
+        builder: (field) => InputDecorator(
+          decoration: InputDecoration(
+            errorText: field.errorText,
+          ),
+          child: clippedText,
+        ),
+      );
+
+      return GestureDetector(
         onTap: () => clippedFocusNode.requestFocus(),
         child: Focus(
           focusNode: clippedFocusNode,
@@ -279,21 +285,8 @@ class _ClippingTextFieldState extends State<ClippingTextField> {
               fieldFocusNode.requestFocus();
             }
           },
-          child: clippedText,
+          child: clippedTextFormField,
         ),
-      );
-
-      return FormField<String>(
-        validator: (_) => widget.validator?.call(widget.controller.text),
-        builder: (field) {
-          return InputDecorator(
-            decoration: InputDecoration(
-              // contentPadding: EdgeInsets.zero,
-              errorText: field.errorText,
-            ),
-            child: clippedTextActivator,
-          );
-        },
       );
     }
 
