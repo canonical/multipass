@@ -84,8 +84,7 @@ std::optional<mp::IPAddress> mp::backend::get_ip_address_from_arp_output_stream_
     while (iter.hasNext())
     {
         QRegularExpressionMatch match = iter.next();
-        // captured(0) is the entire match which contains a pair like (192.168.64.4) at 52:54:0:e1:cd:ab, captured(1) is
-        // the first regex capture group which is the ip address and captured(2) is the mac address.
+        // group 0 is the full match, 1 and 2 are the inner groups
         if (match.captured(2) == arp_format_mac_address)
         {
             return {mp::IPAddress{match.captured(1).toStdString()}};
