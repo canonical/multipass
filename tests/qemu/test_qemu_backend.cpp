@@ -302,6 +302,9 @@ TEST_F(QemuBackend, throws_when_shutdown_while_starting)
 
 TEST_F(QemuBackend, throws_on_shutdown_timeout)
 {
+    static const std::string sub_error_msg1{"The QEMU process did not finish within "};
+    static const std::string sub_error_msg2{"seconds after being shutdown"};
+
     mpt::MockProcess* vmproc = nullptr;
     process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
         if (process->program().startsWith("qemu-system-") &&
@@ -328,7 +331,10 @@ TEST_F(QemuBackend, throws_on_shutdown_timeout)
 
     machine->state = mp::VirtualMachine::State::running;
 
-    EXPECT_THROW(machine->shutdown(), std::runtime_error);
+    MP_EXPECT_THROW_THAT(machine->shutdown(),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
+
     EXPECT_NE(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
