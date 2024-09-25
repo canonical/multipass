@@ -77,7 +77,7 @@ jobs:
       uses: samuelmeuli/action-snapcraft@v2
 
     - name: Install LXD
-      uses: canonical/setup-lxd@87f9a0dbf8855632e12fad0a45795338e4e97d12
+      uses: canonical/setup-lxd@8fb85546a934dfb994becf81341dd387ffe6aabb
 
     - name: Check out code
       uses: actions/checkout@v4
