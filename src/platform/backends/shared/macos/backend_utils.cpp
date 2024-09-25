@@ -17,90 +17,76 @@
 
 #include "backend_utils.h"
 
-#include <multipass/exceptions/ip_unavailable_exception.h>
-#include <multipass/file_ops.h>
-#include <multipass/format.h>
-#include <multipass/logging/log.h>
-#include <multipass/utils.h>
-
-#include <algorithm>
-#include <regex>
+#include <multipass/platform.h>
+#include <multipass/process/simple_process_spec.h>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
-// identifier can either be the MAC address or the VM name
-std::optional<mp::IPAddress> mp::backend::get_vmnet_dhcp_ip_for(const std::string& identifier)
+namespace
 {
-    // bootpd leases entries consist of:
-    // {
-    //        name=<name>
-    //        ip_address=<ipv4>
-    //        hw_address=1,<mac addr>
-    //        identifier=1,<mac addr>
-    //        lease=<lease expiration timestamp in hex>
-    // }
+QString simplify_mac_address(const QString& input_mac_address)
+{
+    // Trim the (first) leading 0 of each segment of the a MAC address.
+    // For example: "04:54:00:b9:69:b5" -> "4:54:0:b9:69:b5"
+    QString result_mac_address = input_mac_address;
 
-    QFile leases_file{"/var/db/dhcpd_leases"};
-    const std::regex name_re{fmt::format("\\s*name={}", identifier)};
-    const std::regex hw_addr_re{"\\s*hw_address=\\d+,(.+)"};
-    const std::regex ipv4_re{"\\s*ip_address=(.+)"};
-    const std::regex known_lines{"^\\s*($|\\}$|name=|hw_address=|identifier=|lease=)"};
+    // Handle the middle segments: Replace ":0" with ":"
+    result_mac_address.replace(":0", ":");
 
-    const auto orig_hw_addr_tokens{mp::utils::split(identifier, ":")};
-    const bool is_hw_addr{(orig_hw_addr_tokens.size() > 1) ? true : false};
-    std::smatch match;
-    bool identifier_matched = false;
-    std::optional<mp::IPAddress> ip_address;
-
-    if (!MP_FILEOPS.open(leases_file, QIODevice::ReadOnly | QIODevice::Text))
-        throw IPUnavailableException{fmt::format("Cannot open dhcpd_leases file: {}", leases_file.errorString())};
-
-    QTextStream input{&leases_file};
-    auto input_line = MP_FILEOPS.read_line(input);
-    while (!input_line.isNull())
+    // Handle the first segment: Remove leading zero if it exists
+    if (result_mac_address.startsWith('0'))
     {
-        auto line{input_line.toStdString()};
-        if (line == "{")
-        {
-            identifier_matched = false;
-            ip_address = std::nullopt;
-        }
-        else if (!is_hw_addr && !identifier_matched && std::regex_match(line, name_re))
-        {
-            identifier_matched = true;
-        }
-        else if (is_hw_addr && !identifier_matched && std::regex_match(line, match, hw_addr_re))
-        {
-            const auto found_hw_addr_tokens{mp::utils::split(match[1], ":")};
-            auto found_it = found_hw_addr_tokens.cbegin();
-
-            if (std::all_of(orig_hw_addr_tokens.cbegin(), orig_hw_addr_tokens.cend(),
-                            [&found_it](const auto& orig_token) {
-                                return stoi(orig_token, 0, 16) == stoi(*found_it++, 0, 16);
-                            }))
-            {
-                identifier_matched = true;
-            }
-        }
-        else if (std::regex_match(line, match, ipv4_re))
-        {
-            ip_address.emplace(match[1]);
-        }
-        else if (line == "}" && identifier_matched && !ip_address)
-        {
-            throw IPUnavailableException{"Failed to parse IP address out of the leases file."};
-        }
-        else if (!std::regex_search(line, known_lines))
-        {
-            mpl::log(mpl::Level::warning, "utils",
-                     fmt::format("Got unexpected line when parsing the leases file: {}", line));
-        }
-
-        if (identifier_matched && ip_address)
-            return ip_address;
-
-        input_line = MP_FILEOPS.read_line(input);
+        // 0 is the start index and 1 is the lengh of the sub-string to remove
+        result_mac_address.remove(0, 1);
     }
+
+    return result_mac_address;
+}
+
+QString get_arp_output()
+{
+    // -a shows all Address Resolution Protocol(ARP) entries, -n shows numeric IP addresses instead of resolving to
+    // hostnames
+    const auto arp_process = mp::platform::make_process(mp::simple_process_spec("arp", {"-an"}));
+    const auto arp_exit_state = arp_process->execute();
+
+    if (!arp_exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("arp failed ({}) with the following output:\n{}",
+                                             arp_exit_state.failure_message(),
+                                             arp_process->read_all_standard_error()));
+    }
+
+    return QString{arp_process->read_all_standard_output()};
+}
+
+} // namespace
+
+std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& mac_address)
+{
+    // Example output:
+    // ? (192.168.1.1) at 3c:37:86:8a:e6:84 on en0 ifscope [ethernet]
+    // ? (192.168.1.255) at ff:ff:ff:ff:ff:ff on en0 ifscope [ethernet]
+    // ? (192.168.64.2) at 52:54:0:2a:12:b6 on bridge100 ifscope [bridge]
+    // ? (192.168.64.3) at 52:54:0:85:72:55 on bridge100 ifscope [bridge]
+    // ? (192.168.64.4) at 52:54:0:e1:cd:ab on bridge100 ifscope [bridge]
+    // ? (192.168.64.255) at ff:ff:ff:ff:ff:ff on bridge100 ifscope [bridge]
+    // ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet]
+
+    const QString arp_ouput_stream = get_arp_output();
+    const QRegularExpression ip_and_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
+    QRegularExpressionMatchIterator iter = ip_and_mac_address_pair_regex.globalMatch(arp_ouput_stream);
+
+    const QString arp_format_mac_address = simplify_mac_address(QString::fromStdString(mac_address));
+    while (iter.hasNext())
+    {
+        QRegularExpressionMatch match = iter.next();
+        // group 0 is the full match, 1 and 2 are the inner groups
+        if (match.captured(2) == arp_format_mac_address)
+        {
+            return {mp::IPAddress{match.captured(1).toStdString()}};
+        }
+    }
+
     return std::nullopt;
 }
