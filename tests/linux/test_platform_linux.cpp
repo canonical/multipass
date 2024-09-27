@@ -71,13 +71,8 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     template <typename VMFactoryType>
     void aux_test_driver_factory(const QString& driver)
     {
-        mpt::MockDNSMasqServerFactory::GuardedMock dnsmasq_server_factory_attr{
+        const mpt::MockDNSMasqServerFactory::GuardedMock dnsmasq_server_factory_attr{
             mpt::MockDNSMasqServerFactory::inject<NiceMock>()};
-        mpt::MockDNSMasqServerFactory* mock_dnsmasq_server_factory = dnsmasq_server_factory_attr.first;
-
-        ON_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server).WillByDefault([this](auto...) {
-            return std::make_unique<mpt::MockDNSMasqServer>();
-        });
 
         auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
