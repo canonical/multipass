@@ -231,7 +231,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
     convert_to_qcow2_v3_if_necessary(desc.image.image_path,
                                      vm_name); // TODO drop in a couple of releases (went in on v1.13)
 
-    connect_signals();
+    connect_vm_signals();
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -276,7 +276,7 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->start();
-    connect_signals();
+    connect_vm_signals();
 
     if (!vm_process->wait_for_started())
     {
@@ -303,9 +303,7 @@ void mp::QemuVirtualMachine::start()
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
-    disconnect(this, &QemuVirtualMachine::on_delete_memory_snapshot, nullptr, nullptr);
-    disconnect(this, &QemuVirtualMachine::on_reset_network, nullptr, nullptr);
-    disconnect(this, &QemuVirtualMachine::on_synchronize_clock, nullptr, nullptr);
+    disconnect_vm_signals();
 
     try
     {
@@ -628,9 +626,12 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     });
 }
 
-void mp::QemuVirtualMachine::connect_signals()
+void mp::QemuVirtualMachine::connect_vm_signals()
 {
-    auto connection_type = static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection);
+    std::unique_lock lock{vm_signal_mutex};
+
+    if (vm_signals_connected)
+        return;
 
     QObject::connect(
         this,
@@ -641,7 +642,7 @@ void mp::QemuVirtualMachine::connect_signals()
             vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
             is_starting_from_suspend = false;
         },
-        connection_type);
+        Qt::QueuedConnection);
 
     // The following is the actual code to reset the network via QMP if an IP address is not obtained after
     // starting from suspend.  This will probably be deprecated in the future.
@@ -665,7 +666,7 @@ void mp::QemuVirtualMachine::connect_signals()
 
             vm_process->write(QJsonDocument(qmp).toJson());
         },
-        connection_type);
+        Qt::QueuedConnection);
 
     QObject::connect(
         this,
@@ -682,7 +683,20 @@ void mp::QemuVirtualMachine::connect_signals()
                 mpl::log(mpl::Level::warning, vm_name, fmt::format("Failed to sync clock: {}", e.what()));
             }
         },
-        connection_type);
+        Qt::QueuedConnection);
+
+    vm_signals_connected = true;
+}
+
+void mp::QemuVirtualMachine::disconnect_vm_signals()
+{
+    std::unique_lock lock{vm_signal_mutex};
+
+    disconnect(this, &QemuVirtualMachine::on_delete_memory_snapshot, nullptr, nullptr);
+    disconnect(this, &QemuVirtualMachine::on_reset_network, nullptr, nullptr);
+    disconnect(this, &QemuVirtualMachine::on_synchronize_clock, nullptr, nullptr);
+
+    vm_signals_connected = false;
 }
 
 void mp::QemuVirtualMachine::update_cpus(int num_cores)
