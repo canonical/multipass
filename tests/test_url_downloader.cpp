@@ -50,7 +50,7 @@ struct URLDownloader : public Test
     mpt::MockNetworkManagerFactory::GuardedMock attr{mpt::MockNetworkManagerFactory::inject()};
     mpt::MockNetworkManagerFactory* mock_network_manager_factory{attr.first};
     std::unique_ptr<NiceMock<mpt::MockQNetworkAccessManager>> mock_network_access_manager;
-    const QUrl fake_url{"http://a.fake.url"};
+    const QUrl fake_url{"https://a.fake.url"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 } // namespace

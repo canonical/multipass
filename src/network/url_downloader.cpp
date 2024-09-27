@@ -82,7 +82,12 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    QNetworkRequest request{url};
+    QUrl adjusted_url{url};
+
+    if (adjusted_url.scheme() == "http")
+        adjusted_url.setScheme("https");
+
+    QNetworkRequest request{adjusted_url};
     request.setRawHeader("Connection", "Keep-Alive");
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, cache_load_control);
@@ -112,11 +117,17 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
         if (cache_load_control == QNetworkRequest::CacheLoadControl::AlwaysCache)
         {
             on_error();
-            throw mp::DownloadException{url.toString().toStdString(), msg};
+            throw mp::DownloadException{adjusted_url.toString().toStdString(), msg};
         }
         mpl::log(mpl::Level::warning, category,
                  fmt::format("Error getting {}: {} - trying cache.", url.toString(), msg));
-        return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download,
+        return ::download(manager,
+                          timeout,
+                          adjusted_url,
+                          on_progress,
+                          on_download,
+                          on_error,
+                          abort_download,
                           QNetworkRequest::CacheLoadControl::AlwaysCache);
     }
 
@@ -134,7 +145,11 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    QNetworkRequest request{url};
+    QUrl adjusted_url{url};
+    if (adjusted_url.scheme() == "http")
+        adjusted_url.setScheme("https");
+
+    QNetworkRequest request{adjusted_url};
 
     NetworkReplyUPtr reply{manager->head(request)};
 
@@ -144,9 +159,11 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
     {
         const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
 
-        mpl::log(mpl::Level::warning, category, fmt::format("Cannot retrieve headers for {}: {}", url.toString(), msg));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("Cannot retrieve headers for {}: {}", adjusted_url.toString(), msg));
 
-        throw mp::DownloadException{url.toString().toStdString(), reply->errorString().toStdString()};
+        throw mp::DownloadException{adjusted_url.toString().toStdString(), reply->errorString().toStdString()};
     }
 
     return reply->header(header);
