@@ -33,10 +33,10 @@ const QByteArray mock_arp_output_stream = QByteArray{R"(
 ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet])"};
 }
 
-class getNeighbourIpFixture : public Test
+class GetNeighbourIpFixture : public Test
 {
 public:
-    getNeighbourIpFixture()
+    GetNeighbourIpFixture()
     {
         mpt::MockProcessFactory::Callback arp_output_callback = [](mpt::MockProcess* process) {
             if (process->program().contains("arp") && process->arguments().contains("-an"))
@@ -52,15 +52,23 @@ private:
     const std::unique_ptr<mpt::MockProcessFactory::Scope> mock_process_factory{mpt::MockProcessFactory::Inject()};
 };
 
-TEST_F(getNeighbourIpFixture, testGetIpArpSuccess)
+struct GetNeighbourIPValidInputsTests : public GetNeighbourIpFixture,
+                                        public WithParamInterface<std::pair<std::string, std::string>>
 {
-    constexpr auto* existed_mac = "52:54:00:85:72:55";
-    constexpr auto* expected_mapped_ip = "192.168.64.3";
+};
 
+TEST_P(GetNeighbourIPValidInputsTests, ValidInputCases)
+{
+    const auto& [existed_mac, expected_mapped_ip] = GetParam();
     EXPECT_EQ(mp::backend::get_neighbour_ip(existed_mac).value().as_string(), expected_mapped_ip);
 }
 
-TEST_F(getNeighbourIpFixture, testGetIpArpFailure)
+INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
+                         GetNeighbourIPValidInputsTests,
+                         Values(std::make_pair("52:54:00:85:72:55", "192.168.64.3"),
+                                std::make_pair("01:00:5e:00:00:fb", "224.0.0.251")));
+
+TEST_F(GetNeighbourIpFixture, testGetIpArpFailure)
 {
     constexpr auto* non_exist_mac = "11:11:11:11:11:11";
     EXPECT_FALSE(mp::backend::get_neighbour_ip(non_exist_mac).has_value());
