@@ -16,9 +16,6 @@
  */
 
 #include "tests/common.h"
-#include "tests/mock_file_ops.h"
-#include "tests/mock_logger.h"
-#include "tests/temp_dir.h"
 
 #include <src/platform/backends/qemu/macos/qemu_platform_detail.h>
 
@@ -26,8 +23,6 @@
 #include <vector>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
-namespace mpt = multipass::test;
 
 using namespace testing;
 
