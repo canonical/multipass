@@ -378,6 +378,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cloudInitOption))
     {
+        constexpr auto err_msg_template = "Could not load cloud-init configuration: {}\n";
         try
         {
             YAML::Node node;
@@ -407,7 +408,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
         catch (const std::exception& e)
         {
-            cerr << "error loading cloud-init config: " << e.what() << "\n";
+            auto err_detail = fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
+            fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
         }
     }
