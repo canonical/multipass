@@ -1104,7 +1104,7 @@ TEST_F(Client, launch_cmd_cloudinit_option_fails_with_missing_file)
 
     EXPECT_THAT(send_command({"launch", "--cloud-init", missing_file}, trash_stream, cerr_stream),
                 Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_NE(std::string::npos, cerr_stream.str().find("No such file")) << "cerr has: " << cerr_stream.str();
+    EXPECT_NE(std::string::npos, cerr_stream.str().find("Could not load")) << "cerr has: " << cerr_stream.str();
     EXPECT_NE(std::string::npos, cerr_stream.str().find(missing_file)) << "cerr has: " << cerr_stream.str();
 }
 
