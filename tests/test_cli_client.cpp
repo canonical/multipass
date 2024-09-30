@@ -1097,7 +1097,11 @@ TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)
     EXPECT_THAT(send_command({"launch", "--cloud-init", qPrintable(tmpfile.fileName())}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_cloudinit_option_fails_with_missing_file)
+struct BadCloudInitFile : public Client, WithParamInterface<std::string>
+{
+};
+
+TEST_P(BadCloudInitFile, launch_cmd_cloudinit_option_fails_with_missing_file)
 {
     std::stringstream cerr_stream;
     auto missing_file{"/definitely/missing-file"};
@@ -1107,6 +1111,10 @@ TEST_F(Client, launch_cmd_cloudinit_option_fails_with_missing_file)
     EXPECT_NE(std::string::npos, cerr_stream.str().find("Could not load")) << "cerr has: " << cerr_stream.str();
     EXPECT_NE(std::string::npos, cerr_stream.str().find(missing_file)) << "cerr has: " << cerr_stream.str();
 }
+
+INSTANTIATE_TEST_SUITE_P(Client,
+                         BadCloudInitFile,
+                         Values("/definitely/missing-file", "/dev/null", "/home", "/root/.bashrc"));
 
 TEST_F(Client, launch_cmd_cloudinit_option_fails_no_value)
 {
