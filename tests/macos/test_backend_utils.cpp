@@ -65,7 +65,9 @@ TEST_P(GetNeighbourIPValidInputsTests, ValidInputCases)
 
 INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
                          GetNeighbourIPValidInputsTests,
-                         Values(std::make_pair("52:54:00:85:72:55", "192.168.64.3"),
+                         Values(std::make_pair("52:54:00:2a:12:b6", "192.168.64.2"),
+                                std::make_pair("52:54:00:85:72:55", "192.168.64.3"),
+                                std::make_pair("52:54:00:e1:cd:ab", "192.168.64.4"),
                                 std::make_pair("01:00:5e:00:00:fb", "224.0.0.251")));
 
 struct GetNeighbourIPInValidInputsTests : public GetNeighbourIpFixture, public WithParamInterface<std::string>
