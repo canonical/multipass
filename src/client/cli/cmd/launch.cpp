@@ -397,10 +397,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             {
                 auto file_type = fs::status(cloudInitFile.toStdString()).type();
                 if (file_type != fs::file_type::regular && file_type != fs::file_type::fifo)
-                {
-                    cerr << "error: No such file: " << cloudInitFile.toStdString() << "\n";
-                    return ParseCode::CommandLineError;
-                }
+                    throw YAML::BadFile{};
 
                 node = YAML::LoadFile(cloudInitFile.toStdString());
             }
