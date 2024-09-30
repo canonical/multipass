@@ -68,8 +68,16 @@ INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
                          Values(std::make_pair("52:54:00:85:72:55", "192.168.64.3"),
                                 std::make_pair("01:00:5e:00:00:fb", "224.0.0.251")));
 
-TEST_F(GetNeighbourIpFixture, testGetIpArpFailure)
+struct GetNeighbourIPInValidInputsTests : public GetNeighbourIpFixture, public WithParamInterface<std::string>
 {
-    constexpr auto* non_exist_mac = "11:11:11:11:11:11";
+};
+
+TEST_P(GetNeighbourIPInValidInputsTests, ValidInputCases)
+{
+    const auto& non_exist_mac = GetParam();
     EXPECT_FALSE(mp::backend::get_neighbour_ip(non_exist_mac).has_value());
 }
+
+INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
+                         GetNeighbourIPInValidInputsTests,
+                         Values("11:11:11:11:11:11", "ee:ee:ee:ee:ee:ee"));
