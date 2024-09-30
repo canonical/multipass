@@ -2694,10 +2694,18 @@ void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);
     auto future_watcher = create_future_watcher([this, &name]() {
-        auto virtual_machine = operative_instances[name];
-        std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-        virtual_machine->state = VirtualMachine::State::running;
-        virtual_machine->update_state();
+        try
+        {
+            auto virtual_machine = operative_instances.at(name);
+
+            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+            virtual_machine->state = VirtualMachine::State::running;
+            virtual_machine->update_state();
+        }
+        catch (const std::out_of_range&)
+        {
+            // logging is dangerous since this thread is probably in a corrupt state
+        }
     });
     future_watcher->setFuture(QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
                                                 this,
