@@ -406,11 +406,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             }
             request.set_cloud_init_user_data(YAML::Dump(node));
         }
-        catch (const std::exception& e)
+        catch (const YAML::BadFile& e)
         {
             auto err_detail = fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
             fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
+        }
+        catch (const YAML::Exception& e)
+        {
+            fmt::println(cerr, err_msg_template, e.what());
         }
     }
 
