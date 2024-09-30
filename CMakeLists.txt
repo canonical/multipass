@@ -135,7 +135,7 @@ add_subdirectory(3rd-party)
 find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 
 # POCO config
-find_package(Poco REQUIRED COMPONENTS Foundation Zip)
+find_package(Poco REQUIRED COMPONENTS Foundation Zip Net NetSSL)
 
 function(determine_version OUTPUT_VARIABLE)
   # use upstream repo as the authoritative reference when checking for release status

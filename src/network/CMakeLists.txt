@@ -28,4 +28,5 @@ target_link_libraries(network
   fmt
   logger
   Qt6::Core
-  Qt6::Network)
+  Qt6::Network
+  Poco::Net)

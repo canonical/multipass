@@ -48,7 +48,8 @@
           "name": "poco",
           "default-features": false,
           "features": [
-            "crypto"
+            "crypto",
+            "netssl"
           ]
         }
       ]
