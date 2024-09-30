@@ -36,7 +36,7 @@ const QByteArray mock_arp_output_stream = QByteArray{R"(
 class MockArpOutputStreamFixture : public Test
 {
 public:
-    MockArpOutputStreamFixture() : mock_process_factory{mpt::MockProcessFactory::Inject()}
+    MockArpOutputStreamFixture()
     {
         mpt::MockProcessFactory::Callback arp_output_callback = [](mpt::MockProcess* process) {
             if (process->program().contains("arp") && process->arguments().contains("-an"))
@@ -49,7 +49,7 @@ public:
     }
 
 private:
-    const std::unique_ptr<mpt::MockProcessFactory::Scope> mock_process_factory{nullptr};
+    const std::unique_ptr<mpt::MockProcessFactory::Scope> mock_process_factory{mpt::MockProcessFactory::Inject()};
 };
 
 TEST_F(MockArpOutputStreamFixture, testGetIpArpSuccess)
