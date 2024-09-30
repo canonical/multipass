@@ -142,10 +142,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         title: 'Delete mount',
         body: Text.rich([
           'Are you sure you want to remove the mount\n'.span,
-          '${mountPaths.sourcePath} ⭢ $target'
-              .span
-              .font('UbuntuMono')
-              .backgroundColor(Colors.black12),
+          '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
           ' from ${widget.name}?'.span,
         ].spans),
         actionText: 'Delete',
