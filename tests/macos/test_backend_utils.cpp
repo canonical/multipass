@@ -74,7 +74,7 @@ struct GetNeighbourIPInValidInputsTests : public GetNeighbourIpFixture, public W
 {
 };
 
-TEST_P(GetNeighbourIPInValidInputsTests, ValidInputCases)
+TEST_P(GetNeighbourIPInValidInputsTests, InValidInputCases)
 {
     const auto& non_exist_mac = GetParam();
     EXPECT_FALSE(mp::backend::get_neighbour_ip(non_exist_mac).has_value());
