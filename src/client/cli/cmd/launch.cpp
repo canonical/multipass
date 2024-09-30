@@ -378,11 +378,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cloudInitOption))
     {
-        constexpr auto err_msg_template = "Could not load cloud-init configuration: {}\n";
+        constexpr auto err_msg_template = "Could not load cloud-init configuration from '{}': {}\n";
+        const QString& cloudInitFile = parser->value(cloudInitOption);
         try
         {
             YAML::Node node;
-            const QString& cloudInitFile = parser->value(cloudInitOption);
             if (cloudInitFile == "-")
             {
                 node = YAML::Load(term->read_all_cin());
@@ -406,12 +406,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         catch (const YAML::BadFile& e)
         {
             auto err_detail = fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
-            fmt::println(cerr, err_msg_template, err_detail);
+            fmt::println(cerr, err_msg_template, cloudInitFile, err_detail);
             return ParseCode::CommandLineError;
         }
         catch (const YAML::Exception& e)
         {
-            fmt::println(cerr, err_msg_template, e.what());
+            fmt::println(cerr, err_msg_template, cloudInitFile, e.what());
         }
     }
 
