@@ -29,4 +29,5 @@ target_link_libraries(network
   logger
   Qt6::Core
   Qt6::Network
-  Poco::Net)
+  Poco::Net
+  Poco::NetSSL)
