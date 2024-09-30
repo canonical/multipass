@@ -133,6 +133,8 @@ struct TestBaseSnapshot : public Test
     NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
+    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
+    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
 
@@ -301,15 +303,11 @@ TEST_F(TestBaseSnapshot, rejectsNullDiskSize)
 
 TEST_F(TestBaseSnapshot, reconstructsFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     MockBaseSnapshot{test_json_file_path, vm, desc};
 }
 
 TEST_F(TestBaseSnapshot, adoptsNameFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto* snapshot_name = "cheeseball";
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "name", snapshot_name);
@@ -320,8 +318,6 @@ TEST_F(TestBaseSnapshot, adoptsNameFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsCommentFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto* snapshot_comment = "Look behind you, a three-headed monkey!";
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "comment", snapshot_comment);
@@ -332,8 +328,6 @@ TEST_F(TestBaseSnapshot, adoptsCommentFromJson)
 
 TEST_F(TestBaseSnapshot, linksToParentFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto parent_idx = 42;
     constexpr auto parent_name = "s42";
     auto json = test_snapshot_json();
@@ -349,8 +343,6 @@ TEST_F(TestBaseSnapshot, linksToParentFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsInstanceIdFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr std::string_view new_instance_id{"vm2"};
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "cloud_init_instance_id", QJsonValue{new_instance_id.data()});
@@ -361,8 +353,6 @@ TEST_F(TestBaseSnapshot, adoptsInstanceIdFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsIndexFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto index = 31;
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
@@ -373,8 +363,6 @@ TEST_F(TestBaseSnapshot, adoptsIndexFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsTimestampFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto timestamp = "1990-10-01T01:02:03.999Z";
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "creation_timestamp", timestamp);
@@ -385,8 +373,6 @@ TEST_F(TestBaseSnapshot, adoptsTimestampFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsNumCoresFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto num_cores = 9;
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "num_cores", num_cores);
@@ -397,8 +383,6 @@ TEST_F(TestBaseSnapshot, adoptsNumCoresFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsMemSizeFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto mem = "1073741824";
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "mem_size", mem);
@@ -409,8 +393,6 @@ TEST_F(TestBaseSnapshot, adoptsMemSizeFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsDiskSpaceFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto disk = "1073741824";
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "disk_space", disk);
@@ -421,11 +403,11 @@ TEST_F(TestBaseSnapshot, adoptsDiskSpaceFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth15", "15:15:15:15:15:15", false}};
     auto json = test_snapshot_json();
-    mod_snapshot_json(json, "extra_interfaces", MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
+    mod_snapshot_json(json,
+                      "extra_interfaces",
+                      MP_JSONUTILS.JsonUtils::extra_interfaces_to_json_array(extra_interfaces));
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
@@ -433,8 +415,6 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 
 TEST_F(TestBaseSnapshot, doesNotComplainOnLegacySnapshot)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     auto json = test_legacy_snapshot_json();
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
@@ -443,8 +423,6 @@ TEST_F(TestBaseSnapshot, doesNotComplainOnLegacySnapshot)
 
 TEST_F(TestBaseSnapshot, adoptsStateFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto state = mp::VirtualMachine::State::stopped;
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "state", static_cast<int>(state));
@@ -455,8 +433,6 @@ TEST_F(TestBaseSnapshot, adoptsStateFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     auto metadata = QJsonObject{};
     metadata["arguments"] = "Meathook:\n"
                             "You've got a real attitude problem!\n"
@@ -479,8 +455,6 @@ TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto src_path = "You fight like a dairy farmer.";
     constexpr auto dst_path = "How appropriate. You fight like a cow.";
     constexpr auto host_uid = 1, instance_uid = 2, host_gid = 3, instance_gid = 4;
@@ -565,8 +539,6 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
 
 TEST_F(TestBaseSnapshot, setsName)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto new_name = "Murray";
     auto snapshot = MockBaseSnapshot{test_json_file_path, vm, desc};
 
@@ -576,8 +548,6 @@ TEST_F(TestBaseSnapshot, setsName)
 
 TEST_F(TestBaseSnapshot, setsComment)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     constexpr auto new_comment = "I once owned a dog that was smarter than you.\n"
                                  "He must have taught you everything you know.";
     auto snapshot = MockBaseSnapshot{test_json_file_path, vm, desc};
@@ -588,8 +558,6 @@ TEST_F(TestBaseSnapshot, setsComment)
 
 TEST_F(TestBaseSnapshot, setsParent)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     auto child = MockBaseSnapshot{test_json_file_path, vm, desc};
     auto parent = std::make_shared<MockBaseSnapshot>("parent", "", "", nullptr, specs, vm);
 
@@ -604,9 +572,6 @@ class TestSnapshotPersistence : public TestBaseSnapshot,
 
 TEST_P(TestSnapshotPersistence, persistsOnEdition)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
-
     constexpr auto index = 55;
     auto setter = GetParam();
 
@@ -616,7 +581,17 @@ TEST_P(TestSnapshotPersistence, persistsOnEdition)
     MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm, desc};
     const auto file_path = derive_persisted_snapshot_file_path(index);
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(file_path)));
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(file_path)))
+        .WillOnce(WithArg<0>([&snapshot_orig](const QJsonObject& obj) {
+            const auto& new_snapshot = obj["snapshot"];
+
+            ASSERT_TRUE(new_snapshot.isObject());
+            const auto& new_obj = new_snapshot.toObject();
+
+            EXPECT_EQ(snapshot_orig.get_name(), new_obj["name"].toString().toStdString());
+            EXPECT_EQ(snapshot_orig.get_comment(), new_obj["comment"].toString().toStdString());
+            EXPECT_EQ(snapshot_orig.get_parents_index(), new_obj["parent"].toInt());
+        }));
 
     setter(snapshot_orig);
 }
@@ -629,9 +604,6 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
 
 TEST_F(TestBaseSnapshot, capturePersists)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
-
     NiceMock<MockBaseSnapshot> snapshot{"Big Whoop", "treasure", "", nullptr, specs, vm};
     const auto expected_file = derive_persisted_snapshot_file_path(snapshot.get_index());
 
@@ -642,8 +614,6 @@ TEST_F(TestBaseSnapshot, capturePersists)
 
 TEST_F(TestBaseSnapshot, captureCallsImpl)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     MockBaseSnapshot snapshot{"LeChuck", "'s Revenge", "", nullptr, specs, vm};
     EXPECT_CALL(snapshot, capture_impl).Times(1);
 
@@ -660,8 +630,6 @@ TEST_F(TestBaseSnapshot, applyCallsImpl)
 
 TEST_F(TestBaseSnapshot, eraseCallsImpl)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm};
     snapshot.capture();
 
@@ -671,9 +639,6 @@ TEST_F(TestBaseSnapshot, eraseCallsImpl)
 
 TEST_F(TestBaseSnapshot, eraseRemovesFile)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
-
     NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm};
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
 
@@ -688,8 +653,6 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
 
 TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-
     NiceMock<MockBaseSnapshot> snapshot{"voodoo-sword", "Cursed Cutlass of Kaflu", "", nullptr, specs, vm};
     snapshot.capture();
 
@@ -706,9 +669,6 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 
 TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
 {
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
-
     NiceMock<MockBaseSnapshot> snapshot{"ultimate-insult",
                                         "A powerful weapon capable of crippling even the toughest pirate's ego.",
                                         "",
