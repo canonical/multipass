@@ -646,7 +646,8 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+        .WillOnce(Return(true));
 
     snapshot.erase();
 }
@@ -681,7 +682,8 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+        .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Ne(expected_file_path)), Eq(expected_file_path)));
 
     EXPECT_CALL(snapshot, erase_impl).WillOnce([&expected_file_path] {
