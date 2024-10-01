@@ -686,9 +686,7 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Ne(expected_file_path)), Eq(expected_file_path)));
 
-    EXPECT_CALL(snapshot, erase_impl).WillOnce([&expected_file_path] {
-        throw std::runtime_error{"test"};
-    });
+    EXPECT_CALL(snapshot, erase_impl).WillOnce([]() { throw std::runtime_error{"test"}; });
 
     MP_EXPECT_THROW_THAT(snapshot.erase(), std::runtime_error, mpt::match_what(StrEq("test")));
 }
