@@ -12,7 +12,7 @@ Version: 1.52.1 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.
 <https://github.com/grpc/grpc/releases>
 
 ### libssh
-Version: 0.10.6 (+[our patches](https://github.com/canonical/libssh/compare/libssh-0.10.5..843b97db)) |
+Version: 0.11.1 (+[our patches](https://github.com/canonical/libssh/compare/libssh-0.11.1...multipass)) |
 <https://github.com/canonical/libssh.git> |
 <https://www.libssh.org/>
 
@@ -37,7 +37,7 @@ Version: v20240322 |
 <https://tukaani.org/xz/embedded.html>
 
 ### yaml-cpp
-Version: 0.8.0 (+[our patches](https://github.com/canonical/yaml-cpp/compare/yaml-cpp-0.6.3..a61bca0)) |
+Version: 0.8.0 (+[our patches](https://github.com/canonical/yaml-cpp/compare/0.8.0..multipass)) |
 <https://github.com/canonical/yaml-cpp.git> |
 <https://github.com/jbeder/yaml-cpp/releases>
 
