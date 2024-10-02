@@ -18,7 +18,7 @@ set(WITH_SERVER TRUE)
 set(WITH_SFTP TRUE)
 
 if(MSVC)
-  add_definitions(-DWIN32_LEAN_AND_MEAN -Dssize_t=SSIZE_T)
+  add_definitions(-Dssize_t=SSIZE_T)
 else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion")
 endif()
