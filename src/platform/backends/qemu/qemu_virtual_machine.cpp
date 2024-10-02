@@ -230,53 +230,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
     convert_to_qcow2_v3_if_necessary(desc.image.image_path,
                                      vm_name); // TODO drop in a couple of releases (went in on v1.13)
 
-    QObject::connect(
-        this, &QemuVirtualMachine::on_delete_memory_snapshot, this,
-        [this] {
-            mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
-            vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
-            is_starting_from_suspend = false;
-        },
-        Qt::QueuedConnection);
-
-    // The following is the actual code to reset the network via QMP if an IP address is not obtained after
-    // starting from suspend.  This will probably be deprecated in the future.
-    QObject::connect(
-        this, &QemuVirtualMachine::on_reset_network, this,
-        [this] {
-            mpl::log(mpl::Level::debug, vm_name, fmt::format("Resetting the network"));
-
-            auto qmp = QJsonDocument::fromJson(qmp_execute_json("set_link")).object();
-            QJsonObject args;
-            args.insert("name", "virtio-net-pci.0");
-            args.insert("up", false);
-            qmp.insert("arguments", args);
-
-            vm_process->write(QJsonDocument(qmp).toJson());
-
-            args["up"] = true;
-            qmp["arguments"] = args;
-
-            vm_process->write(QJsonDocument(qmp).toJson());
-        },
-        Qt::QueuedConnection);
-
-    QObject::connect(
-        this,
-        &QemuVirtualMachine::on_synchronize_clock,
-        this,
-        [this]() {
-            try
-            {
-                mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
-                ssh_exec("sudo timedatectl set-local-rtc 0 --adjust-system-clock");
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(mpl::Level::warning, vm_name, fmt::format("Failed to sync clock: {}", e.what()));
-            }
-        },
-        Qt::QueuedConnection);
+    connect_vm_signals();
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -323,6 +277,7 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->start();
+    connect_vm_signals();
 
     if (!vm_process->wait_for_started())
     {
@@ -349,6 +304,7 @@ void mp::QemuVirtualMachine::start()
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
+    disconnect_vm_signals();
 
     try
     {
@@ -679,6 +635,79 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             on_shutdown();
         }
     });
+}
+
+void mp::QemuVirtualMachine::connect_vm_signals()
+{
+    std::unique_lock lock{vm_signal_mutex};
+
+    if (vm_signals_connected)
+        return;
+
+    QObject::connect(
+        this,
+        &QemuVirtualMachine::on_delete_memory_snapshot,
+        this,
+        [this] {
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
+            vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
+            is_starting_from_suspend = false;
+        },
+        Qt::QueuedConnection);
+
+    // The following is the actual code to reset the network via QMP if an IP address is not obtained after
+    // starting from suspend.  This will probably be deprecated in the future.
+    QObject::connect(
+        this,
+        &QemuVirtualMachine::on_reset_network,
+        this,
+        [this] {
+            mpl::log(mpl::Level::debug, vm_name, fmt::format("Resetting the network"));
+
+            auto qmp = QJsonDocument::fromJson(qmp_execute_json("set_link")).object();
+            QJsonObject args;
+            args.insert("name", "virtio-net-pci.0");
+            args.insert("up", false);
+            qmp.insert("arguments", args);
+
+            vm_process->write(QJsonDocument(qmp).toJson());
+
+            args["up"] = true;
+            qmp["arguments"] = args;
+
+            vm_process->write(QJsonDocument(qmp).toJson());
+        },
+        Qt::QueuedConnection);
+
+    QObject::connect(
+        this,
+        &QemuVirtualMachine::on_synchronize_clock,
+        this,
+        [this]() {
+            try
+            {
+                mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
+                ssh_exec("sudo timedatectl set-local-rtc 0 --adjust-system-clock");
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::warning, vm_name, fmt::format("Failed to sync clock: {}", e.what()));
+            }
+        },
+        Qt::QueuedConnection);
+
+    vm_signals_connected = true;
+}
+
+void mp::QemuVirtualMachine::disconnect_vm_signals()
+{
+    std::unique_lock lock{vm_signal_mutex};
+
+    disconnect(this, &QemuVirtualMachine::on_delete_memory_snapshot, nullptr, nullptr);
+    disconnect(this, &QemuVirtualMachine::on_reset_network, nullptr, nullptr);
+    disconnect(this, &QemuVirtualMachine::on_synchronize_clock, nullptr, nullptr);
+
+    vm_signals_connected = false;
 }
 
 void mp::QemuVirtualMachine::update_cpus(int num_cores)

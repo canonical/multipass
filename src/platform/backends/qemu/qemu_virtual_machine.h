@@ -98,6 +98,9 @@ private:
     void on_restart();
     void initialize_vm_process();
 
+    void connect_vm_signals();
+    void disconnect_vm_signals();
+
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     QemuPlatform* qemu_platform;
@@ -107,6 +110,8 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
+    std::mutex vm_signal_mutex;
+    bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;
 };
 } // namespace multipass
