@@ -59,7 +59,8 @@ public:
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual int chmod(const char* path, unsigned int mode) const;
-    virtual bool set_permissions(const multipass::Path path, const QFileDevice::Permissions permissions) const;
+    virtual bool set_permissions(const multipass::Path& path, const QFileDevice::Permissions permissions) const;
+    virtual bool set_root_as_owner(const multipass::Path& path) const;
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
     virtual int utime(const char* path, int atime, int mtime) const;
