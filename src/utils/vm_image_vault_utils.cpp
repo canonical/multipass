@@ -16,6 +16,7 @@
  */
 
 #include <multipass/format.h>
+#include <multipass/platform.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/xz_image_decoder.h>
@@ -45,6 +46,10 @@ QString mp::vault::copy(const QString& file_name, const QDir& output_dir)
     const auto source_name = info.fileName();
     auto new_path = output_dir.filePath(source_name);
     QFile::copy(file_name, new_path);
+
+    MP_PLATFORM.set_permissions(new_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    MP_PLATFORM.set_root_as_owner(new_path);
+
     return new_path;
 }
 
@@ -89,6 +94,9 @@ QString mp::vault::extract_image(const mp::Path& image_path, const mp::ProgressM
     new_image_path.remove(".xz");
 
     xz_decoder.decode_to(new_image_path, monitor);
+
+    MP_PLATFORM.set_permissions(new_image_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    MP_PLATFORM.set_root_as_owner(new_image_path);
 
     mp::vault::delete_file(image_path);
 
