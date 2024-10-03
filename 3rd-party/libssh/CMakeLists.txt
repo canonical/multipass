@@ -18,7 +18,7 @@ set(WITH_SERVER TRUE)
 set(WITH_SFTP TRUE)
 
 if(MSVC)
-  add_definitions(-DWIN32_LEAN_AND_MEAN -Dssize_t=SSIZE_T)
+  add_definitions(-Dssize_t=SSIZE_T)
 else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion")
 endif()
@@ -63,8 +63,8 @@ file(STRINGS libssh/CMakeLists.txt libssh_VERSION REGEX "^project\\(libssh")
 file(STRINGS libssh/CMakeLists.txt LIBRARY_VERSION REGEX "^set\\(LIBRARY_VERSION")
 file(STRINGS libssh/CMakeLists.txt LIBRARY_SOVERSION REGEX "^set\\(LIBRARY_SOVERSION")
 
-string(REGEX MATCH "^project\\(libssh VERSION ([0-9]+)\\.([0-9]+)\\.([0-9]+) LANGUAGES C\\)$"
-       libssh_VERSION "${libssh_VERSION}")
+string(REGEX MATCH "^project\\(libssh VERSION ([0-9]+)\\.([0-9]+)\\.([0-9]+) LANGUAGES C CXX\\)$"
+  libssh_VERSION "${libssh_VERSION}")
 if (NOT libssh_VERSION)
     message(FATAL_ERROR "unable to find libssh project version")
 endif()
