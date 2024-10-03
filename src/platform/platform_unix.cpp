@@ -76,6 +76,11 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return !ec;
 }
 
+bool mp::platform::Platform::set_root_as_owner(const mp::Path& path) const
+{
+    return this->chown(path.toStdString().c_str(), 0, 0) == 0;
+}
+
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
     return ::symlink(target, link) == 0;

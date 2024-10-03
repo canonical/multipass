@@ -123,6 +123,11 @@ TEST_F(BaseFactory, networks_throws)
 // at this time.  Instead, just make sure an ISO image is created and has the expected path.
 TEST_F(BaseFactory, creates_cloud_init_iso_image)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     MockBaseFactory factory;
     const std::string name{"foo"};
     const YAML::Node metadata{YAML::Load({fmt::format("name: {}", name)})}, vendor_data{metadata}, user_data{metadata},
