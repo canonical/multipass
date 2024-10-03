@@ -15,60 +15,189 @@
  *
  */
 
-#include "local_socket_reply.h"
-
-#include <multipass/exceptions/local_socket_connection_exception.h>
-#include <multipass/format.h>
 #include <multipass/network_access_manager.h>
+#include <Poco/Net/SocketAddress.h>
+#include <Poco/Exception.h>
+#include <QUrl>
+#include <QByteArray>
 
 namespace mp = multipass;
 
-mp::NetworkAccessManager::NetworkAccessManager(QObject* parent) : QNetworkAccessManager(parent)
+mp::NetworkAccessManager::NetworkAccessManager()
 {
 }
 
-QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Operation operation,
-                                                       const QNetworkRequest& orig_request, QIODevice* device)
+mp::NetworkAccessManager::~NetworkAccessManager()
 {
-    auto scheme = orig_request.url().scheme();
+}
 
-    // To support http requests over Unix sockets, the initial URL needs to be in the form of:
-    // unix:///path/to/unix_socket@path/in/server (or 'local' instead of 'unix')
-    //
-    // For example, to get the general LXD configuration when LXD is installed as a snap:
-    // unix:////var/snap/lxd/common/lxd/unix.socket@1.0
+QByteArray mp::NetworkAccessManager::sendRequest(const QUrl& url, const std::string& method, const QByteArray& data,
+                                                 const std::map<std::string, std::string>& headers)
+{
+    auto scheme = url.scheme();
+
     if (scheme == "unix" || scheme == "local")
     {
-        const auto url_parts = orig_request.url().toString().split('@');
-        if (url_parts.count() != 2)
-        {
-            throw LocalSocketConnectionException("The local socket scheme is malformed.");
-        }
-
-        const auto socket_path = QUrl(url_parts[0]).path();
-
-        LocalSocketUPtr local_socket = std::make_unique<QLocalSocket>();
-
-        local_socket->connectToServer(socket_path);
-        if (!local_socket->waitForConnected(5000))
-        {
-            throw LocalSocketConnectionException(
-                fmt::format("Cannot connect to {}: {}", socket_path, local_socket->errorString()));
-        }
-
-        const auto server_path = url_parts[1];
-        QNetworkRequest request{orig_request};
-
-        QUrl url(QString("/%1").arg(server_path));
-        url.setHost(orig_request.url().host());
-
-        request.setUrl(url);
-
-        // The caller needs to be responsible for freeing the allocated memory
-        return new LocalSocketReply(std::move(local_socket), request, device);
+        return sendUnixRequest(url, method, data, headers);
     }
     else
     {
-        return QNetworkAccessManager::createRequest(operation, orig_request, device);
+        throw std::runtime_error("Only UNIX socket requests are supported");
+    }
+}
+
+QByteArray mp::NetworkAccessManager::sendMultipartRequest(const QUrl& url, const std::string& method,
+                                                          const std::vector<std::pair<std::string, Poco::Net::PartSource*>>& parts,
+                                                          const std::map<std::string, std::string>& headers)
+{
+    auto scheme = url.scheme();
+
+    if (scheme == "unix" || scheme == "local")
+    {
+        return sendUnixMultipartRequest(url, method, parts, headers);
+    }
+    else
+    {
+        throw std::runtime_error("Only UNIX socket requests are supported");
+    }
+}
+
+QByteArray mp::NetworkAccessManager::sendUnixRequest(const QUrl& url, const std::string& method, const QByteArray& data,
+                                                     const std::map<std::string, std::string>& headers)
+{
+    // Parse the URL to get the socket path and the request path
+    auto url_str = url.toString();
+    auto url_parts = url_str.split('@');
+    if (url_parts.count() != 2)
+    {
+        throw std::runtime_error("The local socket scheme is malformed.");
+    }
+
+    auto socket_path = QUrl(url_parts[0]).path().toStdString();
+    auto request_path = url_parts[1].toStdString();
+
+    try
+    {
+        // Create a local stream socket and connect to the UNIX socket
+        Poco::Net::SocketAddress local_address(socket_path);
+        Poco::Net::StreamSocket local_socket;
+        local_socket.connect(local_address);
+
+        // Create an HTTP client session with the local socket
+        Poco::Net::HTTPClientSession session(local_socket);
+
+        // Create the request
+        Poco::Net::HTTPRequest request(method, "/" + request_path, Poco::Net::HTTPMessage::HTTP_1_1);
+        if (!data.isEmpty())
+            request.setContentLength(data.size());
+
+        // Set headers
+        for (const auto& header : headers)
+        {
+            request.set(header.first, header.second);
+        }
+
+        // Send the request
+        std::ostream& os = session.sendRequest(request);
+        if (!data.isEmpty())
+        {
+            os.write(data.constData(), data.size());
+        }
+
+        // Receive the response
+        Poco::Net::HTTPResponse response;
+        std::istream& rs = session.receiveResponse(response);
+
+        // Read the response data
+        QByteArray response_data;
+        char buffer[1024];
+        while (rs.read(buffer, sizeof(buffer)))
+        {
+            response_data.append(buffer, rs.gcount());
+        }
+        // Read any remaining bytes
+        if (rs.gcount() > 0)
+        {
+            response_data.append(buffer, rs.gcount());
+        }
+
+        return response_data;
+    }
+    catch (Poco::Exception& ex)
+    {
+        throw std::runtime_error("Failed to communicate over UNIX socket: " + ex.displayText());
+    }
+}
+
+QByteArray mp::NetworkAccessManager::sendUnixMultipartRequest(const QUrl& url, const std::string& method,
+                                                              const std::vector<std::pair<std::string, Poco::Net::PartSource*>>& parts,
+                                                              const std::map<std::string, std::string>& headers)
+{
+    // Parse the URL to get the socket path and the request path
+    auto url_str = url.toString();
+    auto url_parts = url_str.split('@');
+    if (url_parts.count() != 2)
+    {
+        throw std::runtime_error("The local socket scheme is malformed.");
+    }
+
+    auto socket_path = QUrl(url_parts[0]).path().toStdString();
+    auto request_path = url_parts[1].toStdString();
+
+    try
+    {
+        // Create a local stream socket and connect to the UNIX socket
+        Poco::Net::SocketAddress local_address(socket_path);
+        Poco::Net::StreamSocket local_socket;
+        local_socket.connect(local_address);
+
+        // Create an HTTP client session with the local socket
+        Poco::Net::HTTPClientSession session(local_socket);
+
+        // Create the request
+        Poco::Net::HTTPRequest request(method, "/" + request_path, Poco::Net::HTTPMessage::HTTP_1_1);
+
+        // Set headers
+        for (const auto& header : headers)
+        {
+            request.set(header.first, header.second);
+        }
+
+        // Create the HTMLForm and add parts
+        Poco::Net::HTMLForm form(Poco::Net::HTMLForm::ENCODING_MULTIPART);
+        for (const auto& part : parts)
+        {
+            form.addPart(part.first, part.second); // HTMLForm takes ownership of PartSource*
+        }
+
+        // Prepare the request with the form
+        form.prepareSubmit(request);
+
+        // Send the request
+        std::ostream& os = session.sendRequest(request);
+        form.write(os);
+
+        // Receive the response
+        Poco::Net::HTTPResponse response;
+        std::istream& rs = session.receiveResponse(response);
+
+        // Read the response data
+        QByteArray response_data;
+        char buffer[1024];
+        while (rs.read(buffer, sizeof(buffer)))
+        {
+            response_data.append(buffer, rs.gcount());
+        }
+        // Read any remaining bytes
+        if (rs.gcount() > 0)
+        {
+            response_data.append(buffer, rs.gcount());
+        }
+
+        return response_data;
+    }
+    catch (Poco::Exception& ex)
+    {
+        throw std::runtime_error("Failed to communicate over UNIX socket: " + ex.displayText());
     }
 }

@@ -21,28 +21,17 @@
 #include "disabled_copy_move.h"
 #include "path.h"
 #include "progress_monitor.h"
-#include "singleton.h"
 
 #include <QByteArray>
 #include <QDateTime>
-#include <QNetworkAccessManager>
+#include <QUrl>
+#include <QString>
 
 #include <atomic>
 #include <chrono>
 
-#define MP_NETMGRFACTORY multipass::NetworkManagerFactory::instance()
-
-class QUrl;
-class QString;
 namespace multipass
 {
-class NetworkManagerFactory : public Singleton<NetworkManagerFactory>
-{
-public:
-    NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass&) noexcept;
-
-    virtual std::unique_ptr<QNetworkAccessManager> make_network_manager(const Path& cache_dir_path) const;
-};
 
 class URLDownloader : private DisabledCopyMove
 {
@@ -50,10 +39,11 @@ public:
     URLDownloader(std::chrono::milliseconds timeout);
     URLDownloader(const Path& cache_dir, std::chrono::milliseconds timeout);
     virtual ~URLDownloader() = default;
-    virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+
+    virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, int download_type,
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
-    virtual QByteArray download(const QUrl& url, const bool is_force_update_from_network);
+    virtual QByteArray download(const QUrl& url, bool is_force_update_from_network);
     virtual QDateTime last_modified(const QUrl& url);
     virtual void abort_all_downloads();
 
@@ -64,5 +54,7 @@ private:
     const Path cache_dir_path;
     std::chrono::milliseconds timeout;
 };
+
 } // namespace multipass
+
 #endif // MULTIPASS_URL_DOWNLOADER_H

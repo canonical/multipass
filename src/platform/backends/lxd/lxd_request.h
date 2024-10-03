@@ -24,6 +24,7 @@
 
 #include <optional>
 #include <string>
+#include <Poco/Net/PartSource.h>
 
 namespace multipass
 {
@@ -69,7 +70,8 @@ const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& 
                               int timeout = 30000 /* in milliseconds */);
 
 const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
-                              QHttpMultiPart& multi_part, int timeout = 30000 /* in milliseconds */);
+                              const std::vector<std::pair<std::string, Poco::Net::PartSource*>>& parts,
+                              int timeout = 30000 /* in milliseconds */);
 
 const QJsonObject lxd_wait(NetworkAccessManager* manager, const QUrl& base_url, const QJsonObject& task_data,
                            int timeout /* in milliseconds */);
