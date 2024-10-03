@@ -30,6 +30,8 @@
 #include <QString>
 
 #include <grpc++/grpc++.h>
+#include <Poco/Net/SocketAddress.h>
+#include <Poco/Net/StreamSocket.h>
 
 namespace multipass
 {
@@ -102,14 +104,17 @@ protected:
             if (tokens[0] == "unix")
             {
                 socket_address = tokens[1];
-                QLocalSocket multipassd_socket;
-                multipassd_socket.connectToServer(QString::fromStdString(socket_address));
-                if (!multipassd_socket.waitForConnected() &&
-                    multipassd_socket.error() == QLocalSocket::SocketAccessError)
+                try
+                {
+                    Poco::Net::SocketAddress local_address(socket_address);
+                    Poco::Net::StreamSocket socket;
+                    socket.connect(local_address, Poco::Timespan(5, 0)); // 5 seconds timeout
+                }
+                catch (const Poco::Exception& e)
                 {
                     grpc::Status denied_status{
                         grpc::StatusCode::PERMISSION_DENIED, "multipass socket access denied",
-                        fmt::format("Please check that you have read/write permissions to '{}'", socket_address)};
+                        fmt::format("Please check that you have read/write permissions to '{}': {}", socket_address, e.displayText())};
                     return handle_failure(denied_status);
                 }
             }

@@ -37,6 +37,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
@@ -45,6 +46,9 @@
 #include <QRegularExpression>
 #include <QSysInfo>
 #include <QTemporaryDir>
+
+#include <Poco/Net/FilePartSource.h>
+#include <Poco/Net/StringPartSource.h>
 
 #include <chrono>
 #include <thread>
@@ -582,39 +586,27 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
 
 std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path)
 {
-    QHttpMultiPart lxd_multipart{QHttpMultiPart::FormDataType};
-    QFileInfo metadata_info{metadata_path}, image_info{image_path};
+    // Prepare the parts
+    std::vector<std::pair<std::string, Poco::Net::PartSource*>> parts;
 
-    QHttpPart metadata_part;
-    metadata_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    metadata_part.setHeader(
-        QNetworkRequest::ContentDispositionHeader,
-        QVariant(QString("form-data; name=\"metadata\"; filename=\"%1\"").arg(metadata_info.fileName())));
-    QFile* metadata_file = new QFile(metadata_path);
-    metadata_file->open(QIODevice::ReadOnly);
-    metadata_part.setBodyDevice(metadata_file);
-    metadata_file->setParent(&lxd_multipart);
+    // Metadata part
+    parts.emplace_back("metadata", new Poco::Net::FilePartSource(metadata_path.toStdString(), "application/octet-stream"));
 
-    QHttpPart image_part;
-    image_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    image_part.setHeader(
-        QNetworkRequest::ContentDispositionHeader,
-        QVariant(QString("form-data; name=\"rootfs.img\"; filename=\"%1\"").arg(image_info.fileName())));
-    QFile* image_file = new QFile(image_path);
-    image_file->open(QIODevice::ReadOnly);
-    image_part.setBodyDevice(image_file);
-    image_file->setParent(&lxd_multipart);
+    // Image part
+    parts.emplace_back("rootfs.img", new Poco::Net::FilePartSource(image_path.toStdString(), "application/octet-stream"));
 
-    lxd_multipart.append(metadata_part);
-    lxd_multipart.append(image_part);
+    // You can set any additional headers if required
+    std::map<std::string, std::string> headers;
+    // For example, you might want to set the 'Transfer-Encoding' header if necessary
+    // headers["Transfer-Encoding"] = "chunked";
 
-    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), lxd_multipart);
+    // Make the multipart request
+    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), parts);
 
     auto task_reply = lxd_wait(manager, base_url, json_reply, 300000);
 
     return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
 }
-
 std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
 {
     auto images = retrieve_image_list();

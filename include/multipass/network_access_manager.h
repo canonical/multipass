@@ -18,26 +18,47 @@
 #ifndef MULTIPASS_NETWORK_ACCESS_MANAGER_H
 #define MULTIPASS_NETWORK_ACCESS_MANAGER_H
 
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/Net/StreamSocket.h>
+#include <Poco/Net/HTMLForm.h>
+#include <Poco/Net/PartSource.h>
 
+#include <QString>
+#include <QUrl>
+#include <QByteArray>
+#include <map>
+#include <vector>
 #include <memory>
 
 namespace multipass
 {
 
-class NetworkAccessManager : public QNetworkAccessManager
+class NetworkAccessManager
 {
-    Q_OBJECT
 public:
     using UPtr = std::unique_ptr<NetworkAccessManager>;
+    NetworkAccessManager();
+    ~NetworkAccessManager();
 
-    NetworkAccessManager(QObject* parent = nullptr);
+    QByteArray sendRequest(const QUrl& url, const std::string& method, const QByteArray& data = QByteArray(),
+                           const std::map<std::string, std::string>& headers = {});
 
-protected:
-    QNetworkReply* createRequest(Operation op, const QNetworkRequest& orig_request,
-                                 QIODevice* outgoingData = nullptr) override;
+    // New method for multipart requests
+    QByteArray sendMultipartRequest(const QUrl& url, const std::string& method,
+                                    const std::vector<std::pair<std::string, Poco::Net::PartSource*>>& parts,
+                                    const std::map<std::string, std::string>& headers = {});
+
+private:
+    QByteArray sendUnixRequest(const QUrl& url, const std::string& method, const QByteArray& data,
+                               const std::map<std::string, std::string>& headers);
+
+    QByteArray sendUnixMultipartRequest(const QUrl& url, const std::string& method,
+                                        const std::vector<std::pair<std::string, Poco::Net::PartSource*>>& parts,
+                                        const std::map<std::string, std::string>& headers);
 };
+
 } // namespace multipass
 
 #endif // MULTIPASS_NETWORK_ACCESS_MANAGER_H
