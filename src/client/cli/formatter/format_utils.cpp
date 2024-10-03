@@ -22,6 +22,7 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
 
+#include <iomanip>
 #include <locale>
 #include <sstream>
 
