@@ -63,98 +63,118 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
     try
     {
         Poco::URI uri(url_str);
-        std::string path = uri.getPathEtc().empty() ? "/" : uri.getPathEtc();
+        int maxRedirects = 10;
+        int redirectCount = 0;
 
-        // Determine if the scheme is HTTP or HTTPS
-        std::string scheme = uri.getScheme();
-        std::unique_ptr<Poco::Net::HTTPClientSession> session;
-
-        if (scheme == "https")
+        while (redirectCount < maxRedirects)
         {
-            //Poco::Net::Context::Ptr context = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "");
-            // For HTTPS, use HTTPSClientSession
-            Poco::Net::Context::Ptr context = new Poco::Net::Context(
-    Poco::Net::Context::CLIENT_USE,
-    "",
-    "",
-    "",
-    Poco::Net::Context::VERIFY_NONE,
-    9,
-    false,
-    "ALL");
-            session = std::make_unique<Poco::Net::HTTPSClientSession>(uri.getHost(), uri.getPort(), context);
-        }
-        else
-        {
-            // For HTTP, use HTTPClientSession
-            session = std::make_unique<Poco::Net::HTTPClientSession>(uri.getHost(), uri.getPort());
-        }
+            std::string path = uri.getPathEtc().empty() ? "/" : uri.getPathEtc();
 
-        // Create and configure request
-        Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path);
-        request.set("Connection", "Keep-Alive");
-        request.set("User-Agent",
-                    QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
-                                                       mp::platform::host_version(),
-                                                       QSysInfo::currentCpuArchitecture()))
-                        .toStdString());
+            // Determine if the scheme is HTTP or HTTPS
+            std::string scheme = uri.getScheme();
+            std::unique_ptr<Poco::Net::HTTPClientSession> session;
 
-        // Send request and receive response
-        session->setTimeout(Poco::Timespan(timeout.count() / 1000, (timeout.count() % 1000) * 1000));
-        session->sendRequest(request);
-        Poco::Net::HTTPResponse response;
-        std::istream& rs = session->receiveResponse(response);
-
-        // Check for HTTP OK status
-        if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK)
-        {
-            throw mp::DownloadException{url_str, response.getReason()};
-        }
-
-        // Open file for writing
-        QFile file(file_name);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
-        {
-            mpl::log(mpl::Level::error, category, fmt::format("Error opening file {}: {}", file_name.toStdString(),
-                                                              file.errorString().toStdString()));
-            throw mp::DownloadException{url_str, "Failed to open file for writing"};
-        }
-
-        // Read data and write to file with progress monitoring
-        char buffer[8192];
-        std::streamsize total_bytes_received = 0;
-        std::streamsize content_length = response.getContentLength64();
-        if (content_length == -1 && size > 0)
-            content_length = size;
-
-        while (!rs.eof() && !abort_downloads)
-        {
-            rs.read(buffer, sizeof(buffer));
-            std::streamsize bytes_read = rs.gcount();
-            if (bytes_read > 0)
+            if (scheme == "https")
             {
-                file.write(buffer, bytes_read);
-                total_bytes_received += bytes_read;
+                Poco::Net::Context::Ptr context = new Poco::Net::Context(
+                    Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
+                session = std::make_unique<Poco::Net::HTTPSClientSession>(uri.getHost(), uri.getPort(), context);
+            }
+            else
+            {
+                session = std::make_unique<Poco::Net::HTTPClientSession>(uri.getHost(), uri.getPort());
+            }
 
-                // Update progress
-                int progress = (content_length > 0)
-                                   ? static_cast<int>(100 * total_bytes_received / content_length)
-                                   : -1;
-                if (!monitor(download_type, progress))
+            // Create and configure request
+            Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path);
+            request.set("Connection", "Keep-Alive");
+            request.set("User-Agent",
+                        QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
+                                                           mp::platform::host_version(),
+                                                           QSysInfo::currentCpuArchitecture()))
+                            .toStdString());
+
+            // Send request and receive response
+            session->setTimeout(Poco::Timespan(timeout.count() / 1000, (timeout.count() % 1000) * 1000));
+            session->sendRequest(request);
+            Poco::Net::HTTPResponse response;
+            std::istream& rs = session->receiveResponse(response);
+
+            // Check for HTTP OK status
+            if (response.getStatus() == Poco::Net::HTTPResponse::HTTP_OK)
+            {
+                // Open file for writing
+                QFile file(file_name);
+                if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
                 {
-                    abort_downloads = true;
-                    break;
+                    mpl::log(mpl::Level::error, category,
+                             fmt::format("Error opening file {}: {}", file_name.toStdString(),
+                                         file.errorString().toStdString()));
+                    throw mp::DownloadException{url_str, "Failed to open file for writing"};
                 }
+
+                // Read data and write to file with progress monitoring
+                char buffer[8192];
+                std::streamsize total_bytes_received = 0;
+                std::streamsize content_length = response.getContentLength64();
+                if (content_length == -1 && size > 0)
+                    content_length = size;
+
+                while (!rs.eof() && !abort_downloads)
+                {
+                    rs.read(buffer, sizeof(buffer));
+                    std::streamsize bytes_read = rs.gcount();
+                    if (bytes_read > 0)
+                    {
+                        file.write(buffer, bytes_read);
+                        total_bytes_received += bytes_read;
+
+                        // Update progress
+                        int progress = (content_length > 0)
+                                           ? static_cast<int>(100 * total_bytes_received / content_length)
+                                           : -1;
+                        if (!monitor(download_type, progress))
+                        {
+                            abort_downloads = true;
+                            break;
+                        }
+                    }
+                }
+
+                file.close();
+
+                if (abort_downloads)
+                {
+                    file.remove();
+                    throw mp::AbortedDownloadException{"Download aborted"};
+                }
+
+                // Download successful
+                return;
+            }
+            else if (response.getStatus() == Poco::Net::HTTPResponse::HTTP_MOVED_PERMANENTLY ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_FOUND ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_SEE_OTHER ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT)
+            {
+                // Handle redirect
+                std::string location = response.get("Location");
+                if (location.empty())
+                {
+                    throw mp::DownloadException{url_str, "Redirect without Location header"};
+                }
+                uri = Poco::URI(location);
+                url_str = uri.toString();
+                redirectCount++;
+            }
+            else
+            {
+                throw mp::DownloadException{url_str, response.getReason()};
             }
         }
 
-        file.close();
-
-        if (abort_downloads)
-        {
-            file.remove();
-            throw mp::AbortedDownloadException{"Download aborted"};
-        }
+        throw mp::DownloadException{url_str, "Too many redirects when trying to download URL"};
     }
     catch (Poco::Exception& ex)
     {
@@ -175,70 +195,87 @@ QByteArray mp::URLDownloader::download(const QUrl& url, bool is_force_update_fro
     try
     {
         Poco::URI uri(url_str);
-        std::string path = uri.getPathEtc().empty() ? "/" : uri.getPathEtc();
-        std::string scheme = uri.getScheme();
-        std::unique_ptr<Poco::Net::HTTPClientSession> session;
+        int maxRedirects = 10;
+        int redirectCount = 0;
 
-        if (scheme == "https")
+        while (redirectCount < maxRedirects)
         {
-            //Poco::Net::Context::Ptr context = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "");
-            Poco::Net::Context::Ptr context = new Poco::Net::Context(
-    Poco::Net::Context::CLIENT_USE,
-    "",
-    "",
-    "",
-    Poco::Net::Context::VERIFY_NONE,
-    9,
-    false,
-    "ALL");
-            session = std::make_unique<Poco::Net::HTTPSClientSession>(uri.getHost(), uri.getPort(), context);
-        }
-        else
-        {
-            session = std::make_unique<Poco::Net::HTTPClientSession>(uri.getHost(), uri.getPort());
-        }
+            std::string path = uri.getPathEtc().empty() ? "/" : uri.getPathEtc();
+            std::string scheme = uri.getScheme();
+            std::unique_ptr<Poco::Net::HTTPClientSession> session;
 
-
-        // Create and configure request
-        Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path);
-        request.set("Connection", "Keep-Alive");
-        request.set("User-Agent",
-                    QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
-                                                       mp::platform::host_version(),
-                                                       QSysInfo::currentCpuArchitecture()))
-                        .toStdString());
-
-        // Send request and receive response
-        session->setTimeout(Poco::Timespan(timeout.count() / 1000, (timeout.count() % 1000) * 1000));
-        session->sendRequest(request);
-        Poco::Net::HTTPResponse response;
-        std::istream& rs = session->receiveResponse(response);
-
-        if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK)
-        {
-            throw mp::DownloadException{url_str, response.getReason()};
-        }
-
-        // Read response into QByteArray
-        QByteArray data;
-        char buffer[8192];
-
-        while (!rs.eof() && !abort_downloads)
-        {
-            rs.read(buffer, sizeof(buffer));
-            std::streamsize bytes_read = rs.gcount();
-            if (bytes_read > 0)
+            if (scheme == "https")
             {
-                data.append(buffer, static_cast<int>(bytes_read));
+                Poco::Net::Context::Ptr context = new Poco::Net::Context(
+                    Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
+                session = std::make_unique<Poco::Net::HTTPSClientSession>(uri.getHost(), uri.getPort(), context);
+            }
+            else
+            {
+                session = std::make_unique<Poco::Net::HTTPClientSession>(uri.getHost(), uri.getPort());
+            }
+
+            // Create and configure request
+            Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path);
+            request.set("Connection", "Keep-Alive");
+            request.set("User-Agent",
+                        QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
+                                                           mp::platform::host_version(),
+                                                           QSysInfo::currentCpuArchitecture()))
+                            .toStdString());
+
+            // Send request and receive response
+            session->setTimeout(Poco::Timespan(timeout.count() / 1000, (timeout.count() % 1000) * 1000));
+            session->sendRequest(request);
+            Poco::Net::HTTPResponse response;
+            std::istream& rs = session->receiveResponse(response);
+
+            if (response.getStatus() == Poco::Net::HTTPResponse::HTTP_OK)
+            {
+                // Read response into QByteArray
+                QByteArray data;
+                char buffer[8192];
+
+                while (!rs.eof() && !abort_downloads)
+                {
+                    rs.read(buffer, sizeof(buffer));
+                    std::streamsize bytes_read = rs.gcount();
+                    if (bytes_read > 0)
+                    {
+                        data.append(buffer, static_cast<int>(bytes_read));
+                    }
+                }
+
+                if (abort_downloads)
+                {
+                    throw mp::AbortedDownloadException{"Download aborted"};
+                }
+
+                return data;
+            }
+            else if (response.getStatus() == Poco::Net::HTTPResponse::HTTP_MOVED_PERMANENTLY ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_FOUND ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_SEE_OTHER ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT)
+            {
+                // Handle redirect
+                std::string location = response.get("Location");
+                if (location.empty())
+                {
+                    throw mp::DownloadException{url_str, "Redirect without Location header"};
+                }
+                uri = Poco::URI(location);
+                url_str = uri.toString();
+                redirectCount++;
+            }
+            else
+            {
+                throw mp::DownloadException{url_str, response.getReason()};
             }
         }
 
-        if (abort_downloads)
-        {
-            throw mp::AbortedDownloadException{"Download aborted"};
-        }
-
-        return data;
+        throw mp::DownloadException{url_str, "Too many redirects when trying to download URL"};
     }
     catch (Poco::Exception& ex)
     {
@@ -253,56 +290,74 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
     try
     {
         Poco::URI uri(url_str);
-        std::string path = uri.getPathEtc().empty() ? "/" : uri.getPathEtc();
-        std::string scheme = uri.getScheme();
-        std::unique_ptr<Poco::Net::HTTPClientSession> session;
+        int maxRedirects = 10;
+        int redirectCount = 0;
 
-        if (scheme == "https")
+        while (redirectCount < maxRedirects)
         {
-            //Poco::Net::Context::Ptr context = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "");
-            Poco::Net::Context::Ptr context = new Poco::Net::Context(
-    Poco::Net::Context::CLIENT_USE,
-    "",
-    "",
-    "",
-    Poco::Net::Context::VERIFY_NONE,
-    9,
-    false,
-    "ALL");
-            session = std::make_unique<Poco::Net::HTTPSClientSession>(uri.getHost(), uri.getPort(), context);
-        }
-        else
-        {
-            session = std::make_unique<Poco::Net::HTTPClientSession>(uri.getHost(), uri.getPort());
+            std::string path = uri.getPathEtc().empty() ? "/" : uri.getPathEtc();
+            std::string scheme = uri.getScheme();
+            std::unique_ptr<Poco::Net::HTTPClientSession> session;
+
+            if (scheme == "https")
+            {
+                Poco::Net::Context::Ptr context = new Poco::Net::Context(
+                    Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
+                session = std::make_unique<Poco::Net::HTTPSClientSession>(uri.getHost(), uri.getPort(), context);
+            }
+            else
+            {
+                session = std::make_unique<Poco::Net::HTTPClientSession>(uri.getHost(), uri.getPort());
+            }
+
+            // Create and send HEAD request
+            Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_HEAD, path);
+            session->setTimeout(Poco::Timespan(timeout.count() / 1000, (timeout.count() % 1000) * 1000));
+            session->sendRequest(request);
+
+            // Receive response
+            Poco::Net::HTTPResponse response;
+            session->receiveResponse(response);
+
+            if (response.getStatus() == Poco::Net::HTTPResponse::HTTP_OK)
+            {
+                // Get 'Last-Modified' header
+                std::string last_modified_str = response.get("Last-Modified", "");
+                if (last_modified_str.empty())
+                {
+                    return QDateTime();
+                }
+                else
+                {
+                    // Parse date string to QDateTime
+                    QDateTime last_modified = QDateTime::fromString(QString::fromStdString(last_modified_str),
+                                                                    Qt::RFC2822Date);
+                    return last_modified;
+                }
+            }
+            else if (response.getStatus() == Poco::Net::HTTPResponse::HTTP_MOVED_PERMANENTLY ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_FOUND ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_SEE_OTHER ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT ||
+                     response.getStatus() == Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT)
+            {
+                // Handle redirect
+                std::string location = response.get("Location");
+                if (location.empty())
+                {
+                    throw mp::DownloadException{url_str, "Redirect without Location header"};
+                }
+                uri = Poco::URI(location);
+                url_str = uri.toString();
+                redirectCount++;
+            }
+            else
+            {
+                throw mp::DownloadException{url_str, response.getReason()};
+            }
         }
 
-        // Create and send HEAD request
-        Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_HEAD, path);
-        session->setTimeout(Poco::Timespan(timeout.count() / 1000, (timeout.count() % 1000) * 1000));
-        session->sendRequest(request);
-
-        // Receive response
-        Poco::Net::HTTPResponse response;
-        session->receiveResponse(response);
-
-        if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK)
-        {
-            throw mp::DownloadException{url_str, response.getReason()};
-        }
-
-        // Get 'Last-Modified' header
-        std::string last_modified_str = response.get("Last-Modified", "");
-        if (last_modified_str.empty())
-        {
-            return QDateTime();
-        }
-        else
-        {
-            // Parse date string to QDateTime
-            QDateTime last_modified = QDateTime::fromString(QString::fromStdString(last_modified_str),
-                                                            Qt::RFC2822Date);
-            return last_modified;
-        }
+        throw mp::DownloadException{url_str, "Too many redirects when trying to download URL"};
     }
     catch (Poco::Exception& ex)
     {
