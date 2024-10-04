@@ -675,7 +675,7 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
                                                     const ProgressMonitor& monitor,
                                                     const mp::Path& dest_dir)
 {
-    MP_UTILS.make_dir(dest_dir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    MP_UTILS.make_dir(dest_dir, QFile::ReadOwner | QFile::WriteOwner);
     MP_PLATFORM.set_root_as_owner(dest_dir);
 
     QFileInfo file_info{source_image.image_path};
