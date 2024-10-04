@@ -20,7 +20,9 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
   sudo snap install multipass
   ```
 
-* On **macOS**, you can download the installer [from GitHub](https://github.com/canonical/multipass/releases) or use [Homebrew](https://github.com/Homebrew/brew):
+* On **macOS**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
+
+  Alternatively, you can use [Homebrew](https://github.com/Homebrew/brew). Please note that this method is **not officially supported**, as it is not maintained by the Multipass team, but by the community. Multipass is available as a cask:
 
   ```
   brew install --cask multipass

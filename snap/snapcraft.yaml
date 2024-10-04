@@ -91,7 +91,6 @@ apps:
     environment: &_client-environment
       XDG_DATA_HOME: $SNAP_USER_DATA
       XDG_DATA_DIRS: $SNAP/usr/share
-      GDK_GL: gles
     command: bin/bundle/multipass_gui
     command-chain: [bin/set-xdg-vars]
     plugs:
