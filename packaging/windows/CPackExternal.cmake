@@ -30,13 +30,15 @@ else()
   set(CPACK_BUILD_TYPE "Debug")
 endif()
 
+string(REGEX REPLACE "-[^.]+|\\+.+|\\.pr.+" "" BUILD_VERSION ${CPACK_PACKAGE_VERSION})
+
 execute_process(
   COMMAND
     msbuild /Restore /verbosity:normal /p:RestorePackagesConfig=true 
     /p:Configuration=${CPACK_BUILD_TYPE}
     /p:PublishDir=${PRIMING_DIR}
     /p:OutputPath=${CPACK_OUTPUT_FILE_PREFIX}/packages
-    /p:BuildVersion=${CPACK_PACKAGE_VERSION}
+    /p:BuildVersion=${BUILD_VERSION}
     /p:OutputName=${CPACK_PACKAGE_FILE_NAME}
   WORKING_DIRECTORY "${CPACK_SOURCE_DIR}/packaging/windows/wix"
   OUTPUT_VARIABLE build_output
