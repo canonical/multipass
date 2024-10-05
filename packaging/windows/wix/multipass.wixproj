@@ -1,4 +1,5 @@
-﻿<Project Sdk="WixToolset.Sdk/5.0.0">
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="WixToolset.Sdk/5.0.0">
     <PropertyGroup>
         <BuildVersion>0.0</BuildVersion>
         <DefineConstants>Version=$(BuildVersion)</DefineConstants>
@@ -17,7 +18,6 @@
         <PackageReference Include="WixToolset.Util.wixext" Version="5.*" />
         <PackageReference Include="WixToolset.UI.wixext" Version="5.*" />
         <PackageReference Include="WixToolset.Heat" Version="5.*" />
-        <PackageReference Include="PanelSwWixExtension4" Version="5.*" />
     </ItemGroup>
 
     <ItemGroup>

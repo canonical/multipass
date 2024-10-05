@@ -45,6 +45,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProgramFiles(x86))\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\SDKs\DismApi\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;EXAMPLECADLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -54,7 +55,8 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>msi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dismapi.lib;msi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProgramFiles(x86))\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\SDKs\DismApi\Lib\amd64\</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
@@ -63,6 +65,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProgramFiles(x86))\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\SDKs\DismApi\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -74,7 +77,8 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>msi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dismapi.lib;msi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProgramFiles(x86))\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\SDKs\DismApi\Lib\amd64\</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>

@@ -1,6 +1,5 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
-    xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
-    xmlns:PanelSW="http://schemas.panel-sw.co.il/wix/WixExtension">
+    xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)"
         UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
@@ -123,6 +122,12 @@
         <CustomAction Id="Daemon.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" 
             DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
 
+        <!-- Enable HyperV -->
+        <CustomAction Id="EnableHyperVAction" BinaryRef="CABinary" DllEntry="EnableHyperV"
+            Return="ignore" Execute="deferred" Impersonate="no" />
+        <CustomAction Id="EnableHyperVAction.SetProperty" Property="EnableHyperVAction"
+            Value="[UILevel]" />
+        <util:CheckRebootRequired />
 
         <CustomAction Id="GUI.TaskClose.SetCmdLine" Execute="immediate"
             Property="WixQuietExecCmdLine"
@@ -144,6 +149,11 @@
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
             <Custom Action="SetWindowsEdition" After="AppSearch"
                 Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
+
+            <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
+                Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
+            <Custom Action="EnableHyperVAction" After="InstallInitialize"
+                Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
 
             <Custom Action="UninstallExeMPAction" After="InstallInitialize"
                 Condition="NOT Installed AND UNINSTALLER_PATH" />
@@ -198,12 +208,6 @@
 
             <Component>
                 <File Source="UBUNTU-LICENCE.txt" />
-            </Component>
-
-            <Component Id="EnableHyperV" Condition="DRIVER = &quot;hyperv&quot;"
-                Guid="75dab7ea-8a7e-40f8-a8f3-7a65e139f2e3">
-                <PanelSW:Dism EnableFeature="^Microsoft-Hyper-V-All$" ErrorHandling="prompt"
-                    EnableAll="yes" />
             </Component>
 
             <Component>
