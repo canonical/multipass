@@ -38,6 +38,9 @@ class MacOSPlatform extends MpPlatform {
 
   @override
   String get altKey => 'Option';
+
+  @override
+  String? get homeDirectory => Platform.environment['HOME'];
 }
 
 class MacOSAutostartNotifier extends AutostartNotifier {

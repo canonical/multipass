@@ -23,6 +23,8 @@ abstract class MpPlatform {
   String get altKey => 'Alt';
 
   String get metaKey => 'Meta';
+
+  String? get homeDirectory;
 }
 
 MpPlatform _getPlatform() {
