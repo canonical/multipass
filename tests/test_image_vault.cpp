@@ -718,6 +718,11 @@ TEST_F(ImageVault, aborted_download_throws)
 
 TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     const mp::MemorySize image_size{"1048576"};
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output(fake_img_info(image_size));
@@ -766,6 +771,11 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_
 
 TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{1}};
 
     const std::string id{"12345"};
@@ -775,6 +785,11 @@ TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     const mp::ProcessState qemuimg_exit_status{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
     const QByteArray qemuimg_output("about to crash");
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
@@ -794,6 +809,11 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_image)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     const mp::ProcessState qemuimg_exit_status{1, std::nullopt};
     const QByteArray qemuimg_output("Could not find");
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
@@ -813,6 +833,11 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_i
 
 TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understand_the_image_size)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output("virtual size: an unintelligible string");
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
