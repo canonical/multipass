@@ -530,21 +530,39 @@ TEST_F(URLDownloader, lastModifiedHeaderErrorThrows)
     EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
 }
 
-TEST_F(URLDownloader, httpUrlBecomesHttps)
+struct URLConverter : public URLDownloader
 {
-    auto http_url{fake_url};
-    http_url.setScheme("http");
+    template <class Callable>
+    decltype(auto) test_function_converts_url(Callable&& function)
+    {
+        mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
+        QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
 
-    mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
-    QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
+        ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault(Return(mock_reply));
+        ON_CALL(*mock_reply, readData(_, _)).WillByDefault(Return(0));
 
-    EXPECT_CALL(*mock_reply, readData(_, _)).WillRepeatedly(Return(0));
+        EXPECT_CALL(*mock_network_access_manager, createRequest(_, Property(&QNetworkRequest::url, Eq(https_url)), _))
+            .WillRepeatedly(Return(mock_reply));
 
-    ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault(Return(mock_reply));
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, Property(&QNetworkRequest::url, Eq(fake_url)), _))
-        .WillOnce(Return(mock_reply));
+        return function(http_url);
+    }
 
-    mp::URLDownloader downloader(cache_dir.path(), 1s);
+    const QUrl http_url{"http://a.url.net"};
+    const QUrl https_url{"https://a.url.net"};
+};
 
-    downloader.download(http_url);
+TEST_F(URLConverter, downloadHttpUrlBecomesHttps)
+{
+    test_function_converts_url([this](const QUrl& url) {
+        mp::URLDownloader downloader(cache_dir.path(), 1s);
+        return downloader.download(url);
+    });
+}
+
+TEST_F(URLConverter, lastModifiedHttpUrlBecomesHttps)
+{
+    test_function_converts_url([this](const QUrl& url) {
+        mp::URLDownloader downloader(cache_dir.path(), 1s);
+        downloader.last_modified(url);
+    });
 }
