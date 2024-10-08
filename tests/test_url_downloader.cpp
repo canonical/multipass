@@ -529,3 +529,22 @@ TEST_F(URLDownloader, lastModifiedHeaderErrorThrows)
 
     EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
 }
+
+TEST_F(URLDownloader, httpUrlBecomesHttps)
+{
+    auto http_url{fake_url};
+    http_url.setScheme("http");
+
+    mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
+    QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
+
+    EXPECT_CALL(*mock_reply, readData(_, _)).WillRepeatedly(Return(0));
+
+    ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault(Return(mock_reply));
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, Property(&QNetworkRequest::url, Eq(fake_url)), _))
+        .WillOnce(Return(mock_reply));
+
+    mp::URLDownloader downloader(cache_dir.path(), 1s);
+
+    downloader.download(http_url);
+}
