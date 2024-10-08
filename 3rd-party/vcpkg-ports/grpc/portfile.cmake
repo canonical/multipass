@@ -68,6 +68,12 @@ vcpkg_cmake_configure(
         -DgRPC_INSTALL_LIBDIR:STRING=lib
         -DgRPC_INSTALL_INCLUDEDIR:STRING=include
         -DgRPC_INSTALL_CMAKEDIR:STRING=share/grpc
+        -DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF
         "-D_gRPC_PROTOBUF_PROTOC_EXECUTABLE=${CURRENT_HOST_INSTALLED_DIR}/tools/protobuf/protoc${VCPKG_HOST_EXECUTABLE_SUFFIX}"
         "-DProtobuf_PROTOC_EXECUTABLE=${CURRENT_HOST_INSTALLED_DIR}/tools/protobuf/protoc${VCPKG_HOST_EXECUTABLE_SUFFIX}"
     MAYBE_UNUSED_VARIABLES
@@ -78,21 +84,11 @@ vcpkg_cmake_install(ADD_BIN_TO_PATH)
 
 vcpkg_cmake_config_fixup()
 
-if (gRPC_BUILD_CODEGEN)
-    vcpkg_copy_tools(
-        AUTO_CLEAN
-        TOOL_NAMES
-            grpc_php_plugin
-            grpc_python_plugin
-            grpc_node_plugin
-            grpc_objective_c_plugin
-            grpc_csharp_plugin
-            grpc_cpp_plugin
-            grpc_ruby_plugin
-    )
-else()
-    configure_file("${CMAKE_CURRENT_LIST_DIR}/gRPCTargets-vcpkg-tools.cmake" "${CURRENT_PACKAGES_DIR}/share/grpc/gRPCTargets-vcpkg-tools.cmake" @ONLY)
-endif()
+vcpkg_copy_tools(
+    AUTO_CLEAN
+    TOOL_NAMES
+        grpc_cpp_plugin
+)
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share" "${CURRENT_PACKAGES_DIR}/debug/include")
 
@@ -100,7 +96,7 @@ vcpkg_copy_pdbs()
 if (VCPKG_TARGET_IS_WINDOWS)
     file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/lib/pkgconfig" "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig")
 else()
-    vcpkg_fixup_pkgconfig()
+    vcpkg_fixup_pkgconfig(SKIP_CHECK)
 endif()
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
