@@ -56,6 +56,9 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
         url.setQuery(project_query_string);
     }
 
+    if (url.scheme() == "http")
+        url.setScheme("https");
+
     mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
     QNetworkRequest request{url};
 

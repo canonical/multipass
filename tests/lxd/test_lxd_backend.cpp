@@ -2404,3 +2404,16 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     EXPECT_EQ(patch_times_called, 1u);
 }
+
+TEST_F(LXDBackend, converts_http_to_https)
+{
+    mpt::StubVMStatusMonitor stub_monitor;
+
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillRepeatedly([](auto, auto request, auto) {
+        EXPECT_EQ(request.url().scheme(), "https");
+        return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
+    });
+
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), QUrl{"http://bar"}};
+    backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+}
