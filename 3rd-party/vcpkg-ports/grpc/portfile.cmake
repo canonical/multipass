@@ -18,6 +18,7 @@ vcpkg_from_github(
         00015-disable-download-archive.patch
         00016-fix-plugin-targets.patch
         00017-abseil.patch
+        remove_unneeded_lib_custom.patch
 )
 
 # Ensure de-vendoring
