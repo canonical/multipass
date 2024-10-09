@@ -15,7 +15,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
-  cancel-in-progress: ${{ contains('merge_group', github.event_name) }}
+  cancel-in-progress: ${{ github.event_name == 'merge_group' }}
 
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
@@ -126,6 +126,7 @@ jobs:
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+      fail-fast: ${{ github.event_name == 'merge_group' }}
 
     outputs:
       build-label:     ${{ steps.build-params.outputs.label }}
