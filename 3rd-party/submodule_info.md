@@ -7,7 +7,7 @@ info on where to find release information about the submodule.
 **This file needs updating when a submodule is updated!**
 
 ### gRPC
-Version: 1.52.1 (+[our patches](https://github.com/CanonicalLtd/grpc/compare/v1.52.1..ba8e7f72)) |
+Version: 1.60.0 (+[our patches](https://github.com/canonical/grpc/compare/v1.60.0...canonical:grpc:multipass_on_grpc_1.60.0)) |
 <https://github.com/CanonicalLtd/grpc.git> |
 <https://github.com/grpc/grpc/releases>
 
@@ -50,3 +50,8 @@ Version: 1.9.4 |
 Version: 1.13.3 |
 <https://github.com/pocoproject/poco.git> |
 <https://github.com/pocoproject/poco/releases>
+
+### vcpkg
+Version: 2024.09.30 |
+<https://github.com/microsoft/vcpkg.git> |
+<https://github.com/microsoft/vcpkg/releases>
