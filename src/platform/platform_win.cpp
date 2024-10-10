@@ -327,9 +327,10 @@ QString systemprofile_app_data_path()
     return ret;
 }
 
-bool set_file_owner(LPSTR path)
+bool set_file_owner(LPSTR path, bool isDir)
 {
-    auto ps_cmd = QString("takeown /a /r /d Y /f \"%1\"").arg(QString::fromStdString(path).replace("/", "\\"));
+    auto ps_cmd = QString("takeown /a %2 /f \"%1\"")
+                      .arg(QString::fromStdString(path).replace("/", "\\"), isDir ? QString{"/r /d Y"} : QString{""});
     return mp::PowerShell::exec({ps_cmd}, "chown");
 }
 
@@ -351,12 +352,18 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
     SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
-    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDACL, NULL);
+    auto error_code = SetNamedSecurityInfo(path,
+                                           SE_FILE_OBJECT,
+                                           DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                                           NULL,
+                                           NULL,
+                                           pDACL,
+                                           NULL);
 
     LocalFree((HLOCAL)pSD);
     LocalFree((HLOCAL)pDACL);
 
-    return success;
+    return error_code == ERROR_SUCCESS;
 }
 
 bool set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask)
@@ -640,7 +647,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, 
     std::free(lpPath);
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
-    set_root_as_owner(path);
+    success &= set_root_as_owner(path);
 
     return success;
 }
@@ -651,7 +658,7 @@ bool mp::platform::Platform::set_root_as_owner(const mp::Path& path) const
     auto success = true;
 
     // assuming the daemon is Admin.
-    success &= set_file_owner(lpPath);
+    success &= set_file_owner(lpPath, MP_FILEOPS.isDir(QFileInfo{path}));
     success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL);
 
     std::free(lpPath);
