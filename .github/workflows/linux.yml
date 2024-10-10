@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'merge_group' }}
 
 jobs:
   Lint:
@@ -73,6 +73,7 @@ jobs:
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+      fail-fast: ${{ github.event_name == 'merge_group' }}
 
     runs-on: ubuntu-latest
 
