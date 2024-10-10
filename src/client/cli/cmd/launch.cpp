@@ -412,6 +412,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         catch (const YAML::Exception& e)
         {
             fmt::println(cerr, err_msg_template, cloudInitFile, e.what());
+            return ParseCode::CommandLineError;
         }
     }
 
