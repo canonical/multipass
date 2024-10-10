@@ -26,6 +26,7 @@ dependencies:
   grpc: ^4.0.1
   hotkey_manager: ^0.2.3
   intl: ^0.19.0
+  local_notifier: ^0.1.6
   logger: ^2.4.0
   path_provider: ^2.1.4
   protobuf: ^3.1.0

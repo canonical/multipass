@@ -23,6 +23,9 @@ class WindowsPlatform extends MpPlatform {
   String get ffiLibraryName => 'dart_ffi.dll';
 
   @override
+  bool get showLocalUpdateNotifications => true;
+
+  @override
   bool get showToggleWindow => true;
 
   @override
