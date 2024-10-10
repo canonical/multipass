@@ -381,21 +381,21 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         constexpr auto err_msg_template = "Could not load cloud-init configuration: {}";
         try
         {
-            const QString& cloudInitFile = parser->value(cloudInitOption);
+            const QString& cloud_init_file = parser->value(cloudInitOption);
             YAML::Node node;
-            if (cloudInitFile == "-")
+            if (cloud_init_file == "-")
             {
                 node = YAML::Load(term->read_all_cin());
             }
-            else if (cloudInitFile.startsWith("http://") || cloudInitFile.startsWith("https://"))
+            else if (cloud_init_file.startsWith("http://") || cloud_init_file.startsWith("https://"))
             {
                 URLDownloader downloader{std::chrono::minutes{1}};
-                auto downloaded_yaml = downloader.download(QUrl(cloudInitFile));
+                auto downloaded_yaml = downloader.download(QUrl(cloud_init_file));
                 node = YAML::Load(downloaded_yaml.toStdString());
             }
             else
             {
-                auto cloud_init_file_stdstr = cloudInitFile.toStdString();
+                auto cloud_init_file_stdstr = cloud_init_file.toStdString();
                 auto file_type = fs::status(cloud_init_file_stdstr).type();
                 if (file_type != fs::file_type::regular && file_type != fs::file_type::fifo)
                     throw YAML::BadFile{cloud_init_file_stdstr};
