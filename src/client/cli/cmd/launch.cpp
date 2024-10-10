@@ -378,7 +378,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cloudInitOption))
     {
-        constexpr auto err_msg_template = "Could not load cloud-init configuration from '{}': {}\n";
+        constexpr auto err_msg_template = "Could not load cloud-init configuration from '{}': {}";
         const QString& cloudInitFile = parser->value(cloudInitOption);
         try
         {
