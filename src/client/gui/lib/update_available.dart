@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,14 +17,39 @@ class UpdateNotifier extends Notifier<UpdateInfo> {
 
   void set(UpdateInfo updateInfo) {
     if (updateInfo.version.isBlank) return;
+
     final updateNotificationExists = ref.read(notificationsProvider).any((n) {
       return n is UpdateAvailableNotification && n.updateInfo == updateInfo;
     });
     if (updateNotificationExists) return;
-    ref
-        .read(notificationsProvider.notifier)
-        .add(UpdateAvailableNotification(updateInfo));
+
+    // Existing in-app notification
+    ref.read(notificationsProvider.notifier).add(UpdateAvailableNotification(updateInfo));
+
+    // Update the state
     state = updateInfo;
+
+    // Create and show a local notification
+    _showLocalNotification(updateInfo);
+  }
+
+  void _showLocalNotification(UpdateInfo updateInfo) {
+
+    if (Platform.isLinux) {
+      // Do not show notification on Linux
+      return;
+    }
+
+    final notification = LocalNotification(
+      title: 'Multipass Update Available',
+      body: 'Version ${updateInfo.version} is available. Click to upgrade now.',
+    );
+
+    notification.onClick = () async {
+      await launchInstallUrl();
+    };
+
+    notification.show();
   }
 
   @override

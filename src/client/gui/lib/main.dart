@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart';
@@ -23,6 +24,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await setupLogger();
+
+  await localNotifier.setup(
+    appName: 'Multipass',
+    shortcutPolicy: ShortcutPolicy.requireCreate, // Only for Windows
+  );
 
   // Get the current screen size
   final screenSize = await getCurrentScreen().then((screen) {
