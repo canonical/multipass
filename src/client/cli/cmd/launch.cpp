@@ -378,10 +378,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(cloudInitOption))
     {
-        constexpr auto err_msg_template = "Could not load cloud-init configuration from '{}': {}";
-        const QString& cloudInitFile = parser->value(cloudInitOption);
+        constexpr auto err_msg_template = "Could not load cloud-init configuration: {}";
         try
         {
+            const QString& cloudInitFile = parser->value(cloudInitOption);
             YAML::Node node;
             if (cloudInitFile == "-")
             {
@@ -395,23 +395,24 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             }
             else
             {
-                auto file_type = fs::status(cloudInitFile.toStdString()).type();
+                auto cloud_init_file_stdstr = cloudInitFile.toStdString();
+                auto file_type = fs::status(cloud_init_file_stdstr).type();
                 if (file_type != fs::file_type::regular && file_type != fs::file_type::fifo)
-                    throw YAML::BadFile{};
+                    throw YAML::BadFile{cloud_init_file_stdstr};
 
-                node = YAML::LoadFile(cloudInitFile.toStdString());
+                node = YAML::LoadFile(cloud_init_file_stdstr);
             }
             request.set_cloud_init_user_data(YAML::Dump(node));
         }
         catch (const YAML::BadFile& e)
         {
             auto err_detail = fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
-            fmt::println(cerr, err_msg_template, cloudInitFile, err_detail);
+            fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
         }
         catch (const YAML::Exception& e)
         {
-            fmt::println(cerr, err_msg_template, cloudInitFile, e.what());
+            fmt::println(cerr, err_msg_template, e.what());
             return ParseCode::CommandLineError;
         }
     }
