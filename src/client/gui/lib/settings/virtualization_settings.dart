@@ -39,7 +39,7 @@ class VirtualizationSettings extends ConsumerWidget {
       ),
       const SizedBox(height: 20),
       if (networks.isNotEmpty)
-        Dropdown(
+        Dropdown<String>(
           label: 'Bridged network',
           width: 260,
           value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
