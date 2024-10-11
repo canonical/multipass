@@ -52,6 +52,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final imageInfo = ref.watch(launchingImageProvider);
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
+    final deletedVms = ref.watch(deletedVmsProvider);
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -63,7 +64,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       autofocus: true,
       helper: 'Names cannot be changed once an instance is created',
       hint: randomName,
-      validator: nameValidator(vmNames),
+      validator: nameValidator(vmNames, deletedVms),
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
@@ -312,7 +313,10 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   }
 }
 
-FormFieldValidator<String> nameValidator(Iterable<String> existingNames) {
+FormFieldValidator<String> nameValidator(
+  Iterable<String> existingNames,
+  Iterable<String> deletedNames,
+) {
   return (String? value) {
     if (value!.isEmpty) {
       return null;
@@ -331,6 +335,9 @@ FormFieldValidator<String> nameValidator(Iterable<String> existingNames) {
     }
     if (existingNames.contains(value)) {
       return 'Name is already in use';
+    }
+    if (deletedNames.contains(value)) {
+      return 'Name is already in use by a deleted instance';
     }
     return null;
   };

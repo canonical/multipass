@@ -43,10 +43,7 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
   while (true) {
     final timer = Future.delayed(1900.milliseconds);
     try {
-      final infos = await grpcClient.info();
-      yield infos
-          .where((info) => info.instanceStatus.status != Status.DELETED)
-          .toList();
+      yield await grpcClient.info();
       lastError = null;
     } catch (error, stackTrace) {
       if (error != lastError) {
@@ -78,7 +75,8 @@ final daemonAvailableProvider = Provider((ref) {
 });
 
 final vmInfosProvider = Provider((ref) {
-  return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+  final vmInfos = ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+  return vmInfos.where((info) => info.instanceStatus.status != Status.DELETED);
 });
 
 final vmInfosMapProvider = Provider((ref) {
@@ -105,6 +103,14 @@ final vmStatusesProvider = Provider((ref) {
 
 final vmNamesProvider = Provider((ref) {
   return ref.watch(vmStatusesProvider).keys.toBuiltSet();
+});
+
+final deletedVmsProvider = Provider((ref) {
+  final vmInfos = ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+  return vmInfos
+      .where((info) => info.instanceStatus.status == Status.DELETED)
+      .map((info) => info.name)
+      .toBuiltSet();
 });
 
 class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
