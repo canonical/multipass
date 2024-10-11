@@ -61,7 +61,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final nameInput = SpecInput(
       label: 'Name',
       autofocus: true,
-      helper: 'Namess cannot be changed one an instance is created',
+      helper: 'Names cannot be changed once an instance is created',
       hint: randomName,
       validator: nameValidator(vmNames),
       onSaved: (value) => launchRequest.instanceName =
