@@ -73,6 +73,10 @@ final _memoryInBytes = _lib.lookupFunction<
     ffi.LongLong Function(ffi.Pointer<Utf8>),
     int Function(ffi.Pointer<Utf8>)>('memory_in_bytes');
 
+final getTotalDiskSize =
+    _lib.lookupFunction<ffi.LongLong Function(), int Function()>(
+        'get_total_disk_size');
+
 final _defaultMountTarget = _lib.lookupFunction<
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>),
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>)>('default_mount_target');

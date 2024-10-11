@@ -41,6 +41,8 @@ int default_id();
 
 long long memory_in_bytes(char* value);
 
+long long get_total_disk_size();
+
 char* default_mount_target(char* source);
 }
 
