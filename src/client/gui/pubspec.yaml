@@ -35,6 +35,7 @@ dependencies:
   rxdart: ^0.28.0
   shared_preferences: ^2.3.2
   synchronized: ^3.3.0+3
+  system_info2: ^4.0.0
   tray_menu:
     git:
       url: https://github.com/andrei-toterman/tray_menu.git
