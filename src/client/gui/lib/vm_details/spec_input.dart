@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../ffi.dart';
-
 class SpecInput extends StatelessWidget {
   final bool autofocus;
   final bool enabled;
@@ -68,15 +66,5 @@ class SpecInput extends StatelessWidget {
         ),
       ]),
     );
-  }
-}
-
-String? memorySizeValidator(String? value) {
-  value = double.tryParse(value!) != null ? '${value}GB' : value;
-  try {
-    memoryInBytes(value);
-    return null;
-  } catch (_) {
-    return 'Invalid memory size';
   }
 }

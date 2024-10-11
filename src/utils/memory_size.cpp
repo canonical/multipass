@@ -87,6 +87,15 @@ mp::MemorySize::MemorySize(const std::string& val) : bytes{mp::in_bytes(val)}
 {
 }
 
+mp::MemorySize::MemorySize(long long bytes) noexcept : bytes{bytes}
+{
+}
+
+mp::MemorySize mp::MemorySize::from_bytes(long long value) noexcept
+{
+    return MemorySize{value};
+}
+
 long long mp::MemorySize::in_bytes() const noexcept
 {
     return bytes;
@@ -137,7 +146,7 @@ bool mp::operator>=(const MemorySize& a, const MemorySize& b) noexcept
     return a.bytes >= b.bytes;
 }
 
-std::string mp::MemorySize::human_readable() const
+std::string mp::MemorySize::human_readable(unsigned int precision) const
 {
     const auto giga = std::pair{gibi, "GiB"};
     const auto mega = std::pair{mebi, "MiB"};
@@ -145,7 +154,7 @@ std::string mp::MemorySize::human_readable() const
 
     for (auto [unit, suffix] : {giga, mega, kilo})
         if (auto quotient = bytes / static_cast<float>(unit); quotient >= 1)
-            return fmt::format("{:.1f}{}", quotient, suffix);
+            return fmt::format("{:.{}f}{}", quotient, precision, suffix);
 
     return fmt::format("{}B", bytes);
 }

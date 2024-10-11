@@ -231,6 +231,12 @@ long long memory_in_bytes(char* value)
     }
 }
 
+const char* human_readable_memory(long long bytes)
+{
+    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(2);
+    return strdup(string.c_str());
+}
+
 long long get_total_disk_size()
 {
     const auto mp_storage = MP_PLATFORM.multipass_storage_location();
