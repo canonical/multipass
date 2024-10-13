@@ -2,14 +2,17 @@ import 'dart:async';
 
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch, ImageInfo;
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../ffi.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../switch.dart';
+import '../vm_details/cpus_slider.dart';
+import '../vm_details/disk_slider.dart';
+import '../vm_details/mapping_slider.dart';
 import '../vm_details/mount_points.dart';
+import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
 import 'launch_panel.dart';
 
@@ -75,33 +78,19 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
     );
 
-    final cpusInput = SpecInput(
-      initialValue: '1',
-      validator: (value) => (int.tryParse(value!) ?? 0) > 0
-          ? null
-          : 'Number of CPUs must be greater than 0',
-      onSaved: (value) => launchRequest.numCores = int.parse(value!),
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      helper: 'Number of cores',
-      label: 'CPUs',
+    final cpusSlider = CpusSlider(
+      initialValue: 1,
+      onSaved: (value) => launchRequest.numCores = value!,
     );
 
-    final memoryInput = SpecInput(
-      initialValue: '1',
-      helper: 'Default unit in Gigabytes',
-      label: 'Memory',
-      validator: memorySizeValidator,
-      onSaved: (value) => launchRequest.memSize =
-          double.tryParse(value!) != null ? '${value}GB' : value,
+    final memorySlider = RamSlider(
+      initialValue: 1.gibi,
+      onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
-    final diskInput = SpecInput(
-      initialValue: '5',
-      helper: 'Default unit in Gigabytes',
-      label: 'Disk',
-      validator: memorySizeValidator,
-      onSaved: (value) => launchRequest.diskSpace =
-          double.tryParse(value!) != null ? '${value}GB' : value,
+    final diskSlider = DiskSlider(
+      initialValue: 5.gibi,
+      onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
     final bridgedSwitch = FormField<bool>(
@@ -212,11 +201,11 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           child: Text('Resources', style: TextStyle(fontSize: 24)),
         ),
         Row(children: [
-          cpusInput,
-          const SizedBox(width: 24),
-          memoryInput,
-          const SizedBox(width: 24),
-          diskInput,
+          Expanded(child: cpusSlider),
+          const SizedBox(width: 86),
+          Expanded(child: memorySlider),
+          const SizedBox(width: 86),
+          Expanded(child: diskSlider),
         ]),
         const Divider(height: 60),
         const SizedBox(
@@ -251,13 +240,16 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         child: Container(
           alignment: Alignment.topCenter,
           color: Colors.white,
-          padding: const EdgeInsets.all(16),
           child: Form(
             key: formKey,
             autovalidateMode: AutovalidateMode.always,
             child: SingleChildScrollView(
+              clipBehavior: Clip.none,
               controller: scrollController,
-              child: formBody,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: formBody,
+              ),
             ),
           ),
         ),
