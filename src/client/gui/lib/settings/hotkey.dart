@@ -183,15 +183,14 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
       child: TapRegion(
         onTapInside: (_) => focusNode.requestFocus(),
         onTapOutside: (_) => focusNode.unfocus(),
-        child: Container(
-          width: 260,
-          height: 42,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: hasFocus ? Colors.black : Colors.grey),
+        child: InputDecorator(
+          decoration: InputDecoration(contentPadding: EdgeInsets.zero),
+          child: Container(
+            width: 260,
+            height: 42,
+            alignment: Alignment.center,
+            child: Text(keyCombination),
           ),
-          child: Text(keyCombination),
         ),
       ),
     );
