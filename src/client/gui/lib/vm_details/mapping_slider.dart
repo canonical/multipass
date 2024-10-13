@@ -94,3 +94,67 @@ int nonLinearInverseMapping(final int value) {
   final result = tickMb + (tickMbNext - tickMb) * step ~/ _scale;
   return result * _sectorSize;
 }
+
+class CustomTrackShape extends RectangularSliderTrackShape {
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    const horizontalPadding = 3;
+    final trackHeight = sliderTheme.trackHeight!;
+    return Rect.fromLTWH(
+      offset.dx + horizontalPadding,
+      offset.dy + (parentBox.size.height - trackHeight) / 2,
+      parentBox.size.width - 2 * horizontalPadding,
+      trackHeight,
+    );
+  }
+}
+
+class CustomThumbShape extends RoundSliderThumbShape {
+  CustomThumbShape() : super(enabledThumbRadius: 8, pressedElevation: 4);
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    super.paint(
+      context,
+      center,
+      activationAnimation: activationAnimation,
+      enableAnimation: enableAnimation,
+      isDiscrete: isDiscrete,
+      labelPainter: labelPainter,
+      parentBox: parentBox,
+      sliderTheme: sliderTheme,
+      textDirection: textDirection,
+      value: value,
+      textScaleFactor: textScaleFactor,
+      sizeWithOverflow: sizeWithOverflow,
+    );
+
+    context.canvas.drawCircle(
+      center,
+      enabledThumbRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = const Color(0xff757575),
+    );
+  }
+}
