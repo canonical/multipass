@@ -43,7 +43,8 @@ class MappingSlider extends StatelessWidget {
 }
 
 extension NumToHumanString on num {
-  String toHumanString() {
+  // prints decimals only if they exist, otherwise print as int
+  String toNiceString() {
     if (this is int) return toString();
     final asInt = toInt();
     return asInt == this ? asInt.toString() : toStringAsFixed(2);
