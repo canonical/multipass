@@ -111,17 +111,10 @@ std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents)
     return temp_dir;
 }
 
-void check_interfaces_in_json(const QString& file, const std::string& mac,
+void check_interfaces_in_json(const QJsonObject& doc_object,
+                              const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_ifaces)
 {
-    QByteArray json = mpt::load(file);
-
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    EXPECT_FALSE(doc.isNull());
-    EXPECT_TRUE(doc.isObject());
-
-    const auto doc_object = doc.object();
     const auto instance_object = doc_object["real-zebraphant"].toObject();
     const auto default_mac = instance_object["mac_addr"].toString().toStdString();
     ASSERT_EQ(default_mac, mac);
@@ -140,7 +133,9 @@ void check_interfaces_in_json(const QString& file, const std::string& mac,
     }
 }
 
-void check_mounts_in_json(const QString& file, std::unordered_map<std::string, mp::VMMount>& mounts)
+void check_interfaces_in_json(const QString& file,
+                              const std::string& mac,
+                              const std::vector<mp::NetworkInterface>& extra_ifaces)
 {
     QByteArray json = mpt::load(file);
 
@@ -149,7 +144,11 @@ void check_mounts_in_json(const QString& file, std::unordered_map<std::string, m
     EXPECT_FALSE(doc.isNull());
     EXPECT_TRUE(doc.isObject());
 
-    const auto doc_object = doc.object();
+    check_interfaces_in_json(doc.object(), mac, extra_ifaces);
+}
+
+void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_map<std::string, mp::VMMount>& mounts)
+{
     const auto instance_object = doc_object["real-zebraphant"].toObject();
     const auto json_mounts = instance_object["mounts"].toArray();
     ASSERT_EQ(json_mounts.count(), mounts.size());
@@ -162,7 +161,7 @@ void check_mounts_in_json(const QString& file, std::unordered_map<std::string, m
         const auto& json_gid_mapping = json_mount["gid_mappings"].toArray();
 
         ASSERT_EQ(mounts.count(json_target_path), 1);
-        const auto& original_mount = mounts[json_target_path];
+        const auto& original_mount = mounts.at(json_target_path);
 
         ASSERT_EQ(original_mount.get_source_path(), json_source_path);
 
@@ -180,4 +179,16 @@ void check_mounts_in_json(const QString& file, std::unordered_map<std::string, m
             ASSERT_EQ(json_gid_mapping[i]["instance_gid"], original_mount.get_gid_mappings()[i].second);
         }
     }
+}
+
+void check_mounts_in_json(const QString& file, const std::unordered_map<std::string, mp::VMMount>& mounts)
+{
+    QByteArray json = mpt::load(file);
+
+    QJsonParseError parse_error;
+    const auto doc = QJsonDocument::fromJson(json, &parse_error);
+    EXPECT_FALSE(doc.isNull());
+    EXPECT_TRUE(doc.isObject());
+
+    check_mounts_in_json(doc.object(), mounts);
 }
