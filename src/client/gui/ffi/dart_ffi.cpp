@@ -22,7 +22,7 @@ const char* multipass_version()
     return mp::version_string;
 }
 
-const char* generate_petname()
+char* generate_petname()
 try
 {
     static mp::NameGenerator::UPtr generator = mp::make_default_name_generator();
@@ -40,7 +40,7 @@ catch (...)
     return nullptr;
 }
 
-const char* get_server_address()
+char* get_server_address()
 try
 {
     const auto address = mpc::get_server_address();
@@ -83,7 +83,7 @@ catch (...)
 
 static std::once_flag initialize_settings_once_flag;
 
-const char* settings_file()
+char* settings_file()
 try
 {
     const auto file_name = mpc::persistent_settings_filename().toStdString();
@@ -100,10 +100,10 @@ catch (...)
     return nullptr;
 }
 
-enum SettingResult get_setting(const char* key, const char** output)
+enum SettingResult get_setting(char* key, char** output)
 {
     const QString key_string{key};
-    free((void*)key);
+    free(key);
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
@@ -135,12 +135,12 @@ enum SettingResult get_setting(const char* key, const char** output)
     }
 }
 
-enum SettingResult set_setting(const char* key, const char* value, const char** output)
+enum SettingResult set_setting(char* key, char* value, char** output)
 {
     const QString key_string{key};
-    free((void*)key);
+    free(key);
     const QString value_string{value};
-    free((void*)value);
+    free(value);
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
@@ -197,11 +197,11 @@ int default_id()
     return mp::default_id;
 }
 
-long long memory_in_bytes(const char* value)
+long long memory_in_bytes(char* value)
 try
 {
     std::string string_value{value};
-    free((void*)value);
+    free(value);
     return mp::in_bytes(string_value);
 }
 catch (const std::exception& e)
