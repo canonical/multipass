@@ -44,6 +44,18 @@ extension TextSpanExt on TextSpan {
         style: (style ?? noStyle).copyWith(color: color),
       );
 
+  TextSpan font(String fontFamily) => TextSpan(
+        text: text,
+        children: children,
+        style: (style ?? noStyle).copyWith(fontFamily: fontFamily),
+      );
+
+  TextSpan backgroundColor(Color color) => TextSpan(
+        text: text,
+        children: children,
+        style: (style ?? noStyle).copyWith(backgroundColor: color),
+      );
+
   TextSpan link(WidgetRef ref, VoidCallback callback) {
     final hovered = ref.watch(_hoveredLinkProvider) == this;
     return TextSpan(
