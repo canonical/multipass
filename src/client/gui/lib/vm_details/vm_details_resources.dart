@@ -76,7 +76,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
           )
         : DiskSlider(
             key: Key('disk-$disk'),
-            setMinToInitial: true,
+            min: disk,
             initialValue: disk,
             onSaved: (value) {
               if (value == null || value == disk) return;
