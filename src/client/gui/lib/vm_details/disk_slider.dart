@@ -35,6 +35,7 @@ class DiskSlider extends StatelessWidget {
         initialValue: initialValue,
         min: min,
         max: max,
+        sysMax: disk,
         onSaved: onSaved,
       ),
     );

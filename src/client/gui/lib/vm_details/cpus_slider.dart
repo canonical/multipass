@@ -74,17 +74,34 @@ class _CpusSliderState extends State<CpusSlider> {
       key: formKey,
       initialValue: widget.initialValue,
       onSaved: widget.onSaved,
-      builder: (field) => Slider(
-        min: min.toDouble(),
-        max: max.toDouble(),
-        divisions: max - min,
-        value: (field.value ?? min).toDouble(),
-        onChanged: (value) {
-          final intValue = value.toInt();
-          field.didChange(intValue);
-          controller.text = intValue.toString();
-        },
-      ),
+      builder: (field) {
+        return Column(children: [
+          Slider(
+            min: min.toDouble(),
+            max: max.toDouble(),
+            divisions: max - min,
+            value: (field.value ?? min).toDouble(),
+            onChanged: (value) {
+              final intValue = value.toInt();
+              field.didChange(intValue);
+              controller.text = intValue.toString();
+            },
+          ),
+          const SizedBox(height: 5),
+          Row(children: [Text('$min'), Spacer(), Text('$max')]),
+          if ((field.value ?? min) > cores) ...[
+            const SizedBox(height: 25),
+            const Row(children: [
+              Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+              SizedBox(width: 5),
+              Text(
+                'Over-provisioning of cores',
+                style: TextStyle(fontSize: 16),
+              ),
+            ]),
+          ],
+        ]);
+      },
     );
 
     return Column(children: [
@@ -95,8 +112,6 @@ class _CpusSliderState extends State<CpusSlider> {
       ]),
       const SizedBox(height: 25),
       sliderFormField,
-      const SizedBox(height: 5),
-      Row(children: [Text('$min'), Spacer(), Text('$max')]),
     ]);
   }
 }
