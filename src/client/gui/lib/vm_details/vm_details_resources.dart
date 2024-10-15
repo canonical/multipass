@@ -134,7 +134,8 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             const Spacer(),
             editing ? cancelButton : configureButton,
           ]),
-          Row(children: [
+          const SizedBox(height: 10),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(child: cpusResource),
             const SizedBox(width: 86),
             Expanded(child: ramResource),

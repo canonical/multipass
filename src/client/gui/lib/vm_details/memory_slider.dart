@@ -8,22 +8,22 @@ import 'mapping_slider.dart';
 
 class MemorySlider extends StatefulWidget {
   final int? initialValue;
-  final bool setMinToInitial;
   final FormFieldSetter<int> onSaved;
   final String label;
   final int min;
   final int max;
   final bool enabled;
+  final int sysMax;
 
   const MemorySlider({
     super.key,
     this.initialValue,
     required this.onSaved,
-    this.setMinToInitial = false,
     required this.label,
     required this.min,
     required this.max,
     this.enabled = true,
+    required this.sysMax,
   });
 
   @override
@@ -117,17 +117,36 @@ class _MemorySliderState extends State<MemorySlider> {
       initialValue: widget.initialValue,
       onSaved: (value) => widget.onSaved(value!.clamp(widget.min, widget.max)),
       builder: (field) {
-        return MappingSlider(
-          min: widget.min,
-          max: widget.max,
-          enabled: widget.enabled,
-          value: field.value ?? widget.min,
-          onChanged: (value) {
-            field.didChange(value);
-            final clampedValue = value.clamp(widget.min, widget.max);
-            controller.text = bytesToUnit(clampedValue).toNiceString();
-          },
-        );
+        return Column(children: [
+          MappingSlider(
+            min: widget.min,
+            max: widget.max,
+            enabled: widget.enabled,
+            value: field.value ?? widget.min,
+            onChanged: (value) {
+              field.didChange(value);
+              final clampedValue = value.clamp(widget.min, widget.max);
+              controller.text = bytesToUnit(clampedValue).toNiceString();
+            },
+          ),
+          const SizedBox(height: 5),
+          Row(children: [
+            Text(humanReadableMemory(widget.min)),
+            Spacer(),
+            Text(humanReadableMemory(widget.max)),
+          ]),
+          if ((field.value ?? widget.min) > widget.sysMax) ...[
+            const SizedBox(height: 25),
+            Row(children: [
+              const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+              const SizedBox(width: 5),
+              Text(
+                'Over-provisioning of ${widget.label.toLowerCase()}',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ]),
+          ],
+        ]);
       },
     );
 
@@ -144,12 +163,6 @@ class _MemorySliderState extends State<MemorySlider> {
       ]),
       const SizedBox(height: 25),
       sliderFormField,
-      const SizedBox(height: 5),
-      Row(children: [
-        Text(humanReadableMemory(widget.min)),
-        Spacer(),
-        Text(humanReadableMemory(widget.max)),
-      ]),
     ]);
   }
 }

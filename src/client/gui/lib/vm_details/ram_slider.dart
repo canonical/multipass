@@ -25,6 +25,7 @@ class RamSlider extends StatelessWidget {
       initialValue: initialValue,
       min: 512.mebi,
       max: math.max(initialValue ?? 0, ram),
+      sysMax: ram,
       onSaved: onSaved,
     );
   }
