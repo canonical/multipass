@@ -33,11 +33,7 @@ class SSHKeyProvider;
 class SSHSession
 {
 public:
-    SSHSession(const std::string& host,
-               int port,
-               const std::string& ssh_username,
-               const SSHKeyProvider& key_provider,
-               const std::chrono::milliseconds timeout = std::chrono::seconds(20));
+    SSHSession(const std::string& host, int port, const std::string& ssh_username, const SSHKeyProvider& key_provider);
 
     // just being explicit (unique_ptr member already caused these to be deleted)
     SSHSession(const SSHSession&) = delete;
