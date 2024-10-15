@@ -33,14 +33,13 @@ namespace mpl = multipass::logging;
 mp::SSHSession::SSHSession(const std::string& host,
                            int port,
                            const std::string& username,
-                           const SSHKeyProvider& key_provider,
-                           const std::chrono::milliseconds timeout)
+                           const SSHKeyProvider& key_provider)
     : session{ssh_new(), ssh_free}, mut{}
 {
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
 
-    const long timeout_secs = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
+    const long timeout_secs = LONG_MAX;
     const int nodelay{1};
     auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation)).filePath("ssh").toStdString();
 
