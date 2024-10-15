@@ -20,6 +20,9 @@ class MacOSPlatform extends MpPlatform {
   String get ffiLibraryName => 'libdart_ffi.dylib';
 
   @override
+  bool get showLocalUpdateNotifications => true;
+
+  @override
   bool get showToggleWindow => false;
 
   @override

@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   hotkey_manager_linux
+  local_notifier
   screen_retriever
   tray_menu
   url_launcher_linux

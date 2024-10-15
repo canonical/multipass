@@ -21,6 +21,9 @@ class LinuxPlatform extends MpPlatform {
   String get ffiLibraryName => 'libdart_ffi.so';
 
   @override
+  bool get showLocalUpdateNotifications => false;
+
+  @override
   bool get showToggleWindow => true;
 
   @override
