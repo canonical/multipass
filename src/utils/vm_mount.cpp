@@ -117,32 +117,15 @@ mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // del
 
 void mp::VMMount::resolve_source_path()
 {
-    std::error_code err;
-    fs::path path{source_path};
+    std::error_code err{};
+    const auto path = MP_FILEOPS.weakly_canonical(source_path, err);
 
-    auto status = MP_FILEOPS.symlink_status(path, err);
+    if (err)
+        throw std::system_error(
+            err,
+            fmt::format("Could not resolve symlinks in mount source path  \"{}\": {}.", source_path, err.message()));
 
-    if (status.type() == fs::file_type::symlink)
-    {
-        auto symlink_path = MP_FILEOPS.read_symlink(path, err);
-
-        if (err)
-            throw std::runtime_error(
-                fmt::format("Mount symlink source path \"{}\" could not be read: {}.", source_path, err.message()));
-
-        if (symlink_path.is_relative())
-            symlink_path = path.parent_path() / symlink_path;
-
-        path = fs::weakly_canonical(symlink_path, err);
-
-        if (err)
-            throw std::runtime_error(
-                fmt::format("Mount symlink source path \"{}\" could not be made weakly canonical: {}.",
-                            source_path,
-                            err.message()));
-
-        source_path = path.string();
-    }
+    source_path = path.string();
 }
 
 QJsonObject mp::VMMount::serialize() const

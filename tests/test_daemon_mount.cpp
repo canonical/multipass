@@ -275,8 +275,7 @@ TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
     config_builder.data_directory = temp_dir->path();
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
-    EXPECT_CALL(*mock_file_ops, read_symlink)
+    EXPECT_CALL(*mock_file_ops, weakly_canonical)
         .WillOnce(Return(mp::fs::path{config_builder.data_directory.toStdString()}));
 
     auto original_implementation_of_mkpath = [](const QDir& dir, const QString& dirName) -> bool {

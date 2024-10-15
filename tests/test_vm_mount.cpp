@@ -141,42 +141,17 @@ TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
                                                HasSubstr("1000:1001"))));
 }
 
-TEST_F(TestVMMount, notSymlinkSourcePathUnchanged)
+TEST_F(TestVMMount, sourcePathResolved)
 {
-    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::regular}));
-    EXPECT_CALL(*mock_file_ops, read_symlink).Times(0);
-
-    mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
-
-    EXPECT_EQ(mount.get_source_path(), "src");
-}
-
-TEST_F(TestVMMount, absoluteSymlinkSourcePathResolved)
-{
-    auto source_path = mp::fs::weakly_canonical("/tmp/src");
-    auto symlink_path = mp::fs::weakly_canonical("/home/dest");
+    const auto source_path = mp::fs::path{"/tmp/./src/main/../../src"};
+    const auto dest_path = mp::fs::absolute(source_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
-    EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce(Return(symlink_path));
+    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce(Return(dest_path));
 
-    mp::VMMount mount{source_path.string(), {}, {}, mp::VMMount::MountType::Classic};
+    const mp::VMMount mount{source_path.string(), {}, {}, mp::VMMount::MountType::Classic};
 
-    EXPECT_EQ(mount.get_source_path(), symlink_path.string());
-}
-
-TEST_F(TestVMMount, relativeSymlinkSourcePathResolved)
-{
-    auto source_path = mp::fs::weakly_canonical("/tmp/src");
-
-    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, symlink_status).WillOnce(Return(mp::fs::file_status{mp::fs::file_type::symlink}));
-    EXPECT_CALL(*mock_file_ops, read_symlink).WillOnce(Return(mp::fs::path{"./dest"}));
-
-    mp::VMMount mount{source_path.string(), {}, {}, mp::VMMount::MountType::Classic};
-
-    EXPECT_EQ(mount.get_source_path(), source_path.replace_filename("dest").string());
+    EXPECT_EQ(mount.get_source_path(), dest_path.string());
 }
 
 } // namespace
