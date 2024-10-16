@@ -80,7 +80,12 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
 
         // do not inherit settings from stdin
         constexpr unsigned char modes[1] = {0};
-        ssh_channel_request_pty_size_modes(channel, term_type, local_pty_size.columns, local_pty_size.rows, modes, sizeof(modes));
+        ssh_channel_request_pty_size_modes(channel,
+                                           term_type,
+                                           local_pty_size.columns,
+                                           local_pty_size.rows,
+                                           modes,
+                                           sizeof(modes));
     }
 }
 
