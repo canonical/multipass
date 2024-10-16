@@ -102,7 +102,24 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
 
     if (reply->error() != QNetworkReply::NoError)
     {
-        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
+        const auto error_code = reply->error();
+        const auto error_string = reply->errorString().toStdString();
+
+        // Log the original error message at debug level
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("Qt error {}: {}", static_cast<int>(error_code), error_string));
+
+        const auto msg = (error_code == QNetworkReply::TimeoutError) ? "Network timeout" : error_string;
+
+        if (error_code == QNetworkReply::TimeoutError)
+        {
+            // Log a debug message to verify our assumption about download_timeout
+            if (download_timeout.isActive())
+            {
+                mpl::log(mpl::Level::debug, category, "Timeout error detected but download_timeout is still active");
+            }
+        }
 
         if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError || abort_download)
         {
@@ -112,10 +129,14 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
         if (cache_load_control == QNetworkRequest::CacheLoadControl::AlwaysCache)
         {
             on_error();
+            // Log at error level since we are giving up
+            mpl::log(mpl::Level::error, category, fmt::format("Failed to get {}: {}", url.toString(), msg));
             throw mp::DownloadException{url.toString().toStdString(), msg};
         }
-        mpl::log(mpl::Level::warning, category,
-                 fmt::format("Error getting {}: {} - trying cache.", url.toString(), msg));
+        // Log at warning level when we are going to retry
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("Failed to get {}: {} - trying cache.", url.toString(), msg));
         return ::download(manager, timeout, url, on_progress, on_download, on_error, abort_download,
                           QNetworkRequest::CacheLoadControl::AlwaysCache);
     }
