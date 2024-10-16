@@ -93,6 +93,9 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
         mp::vault::delete_file(original_image_path);
     }
 
+    MP_PLATFORM.set_permissions(new_image_path, QFile::ReadOwner | QFile::WriteOwner);
+    MP_PLATFORM.set_root_as_owner(new_image_path);
+
     return new_image_path;
 }
 

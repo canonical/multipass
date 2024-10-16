@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_file_ops.h"
+#include "mock_platform.h"
 #include "temp_dir.h"
 
 #include <multipass/cloud_init_iso.h>
@@ -51,9 +52,15 @@ struct CloudInitIso : public Test
     CloudInitIso()
     {
         iso_path = QDir{temp_dir.path()}.filePath("test.iso");
+
+        ON_CALL(mock_platform, set_permissions).WillByDefault(Return(true));
+        ON_CALL(mock_platform, set_root_as_owner).WillByDefault(Return(true));
     }
     mpt::TempDir temp_dir;
     QString iso_path;
+
+    const mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform& mock_platform = *attr.first;
 };
 
 TEST_F(CloudInitIso, check_contains_false)

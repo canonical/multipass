@@ -21,6 +21,7 @@
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 #include "mock_process_factory.h"
 #include "path.h"
 #include "stub_url_downloader.h"
@@ -364,6 +365,11 @@ TEST_F(ImageVault, remembers_prepared_images)
 
 TEST_F(ImageVault, uses_image_from_prepare)
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     constexpr auto expected_data = "12345-pied-piper-rats";
 
     QDir dir{cache_dir.path()};
@@ -459,6 +465,12 @@ TEST_F(ImageVault, invalid_image_dir_is_removed)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_fetch_copies_image_and_returns_expected_info))
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, is_image_url_supported).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     mpt::TempFile file;
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto query = default_query;
@@ -690,6 +702,12 @@ TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_expected_size))
 {
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+
+    ON_CALL(*mock_platform, is_image_url_supported).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
+    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+
     const mp::MemorySize image_size{"2097152"};
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output(fake_img_info(image_size));
