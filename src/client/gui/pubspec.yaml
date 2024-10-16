@@ -52,7 +52,10 @@ dependencies:
       url: https://github.com/google/flutter-desktop-embedding.git
       path: plugins/window_size
       ref: 6c66ad2
-  xterm: ^4.0.0
+  xterm:
+    git:
+      url: https://github.com/levkropp/xterm.dart
+      ref: 4.0.0+mp
 
 dependency_overrides:
   hotkey_manager_linux:
