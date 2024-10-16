@@ -50,6 +50,8 @@ public:
     friend bool operator!=(const VMMount& a, const VMMount& b) noexcept;
 
 private:
+    void resolve_source_path();
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;

@@ -521,7 +521,7 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     const auto [snapshot_mnt_dst, snapshot_mount] = *snapshot_mounts.begin();
 
     EXPECT_EQ(snapshot_mnt_dst, dst_path);
-    EXPECT_EQ(snapshot_mount.get_source_path(), src_path);
+    EXPECT_EQ(snapshot_mount.get_source_path(), mp::fs::weakly_canonical(src_path));
     EXPECT_EQ(snapshot_mount.get_mount_type(), mount_type);
 
     ASSERT_THAT(snapshot_mount.get_uid_mappings(), SizeIs(uid_mappings.size()));

@@ -117,6 +117,7 @@ public:
     virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path,
                                                                          std::error_code& err) const;
     virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path, std::error_code& err) const;
+    virtual fs::path weakly_canonical(const fs::path& path, std::error_code& err) const;
 };
 } // namespace multipass
 

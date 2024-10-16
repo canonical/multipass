@@ -282,3 +282,8 @@ std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
 {
     return std::make_unique<mp::DirIterator>(path, err);
 }
+
+fs::path mp::FileOps::weakly_canonical(const fs::path& path, std::error_code& err) const
+{
+    return fs::weakly_canonical(path, err);
+}
