@@ -64,9 +64,6 @@ struct SSHFSMountHandlerTest : public ::Test
             // Not using weakly_canonical since we don't want symlink resolution on fake paths
             return mp::fs::absolute(path, err);
         });
-
-        // mount ctor relies on MP_FILEOPS.weakly_canonical so it needs to be created here
-        mount = mp::VMMount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     }
 
     void TearDown() override
@@ -97,16 +94,16 @@ struct SSHFSMountHandlerTest : public ::Test
 
     mpt::StubSSHKeyProvider key_provider;
     std::string source_path{mp::fs::absolute("/my/source/path").string()}, target_path{"/the/target/path"};
+    mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
+    mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject();
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
-    mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     mpt::StubVirtualMachine vm;
-    mp::VMMount mount;
     std::unique_ptr<mpt::MockProcessFactory::Scope> factory = mpt::MockProcessFactory::Inject();
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
