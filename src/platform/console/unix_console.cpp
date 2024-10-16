@@ -77,7 +77,10 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
         term_type = (term_type == nullptr) ? "xterm" : term_type;
 
         update_local_pty_size(term->cout_fd());
-        ssh_channel_request_pty_size(channel, term_type, local_pty_size.columns, local_pty_size.rows);
+
+        // do not inherit settings from stdin
+        constexpr unsigned char modes[1] = {0};
+        ssh_channel_request_pty_size_modes(channel, term_type, local_pty_size.columns, local_pty_size.rows, modes, sizeof(modes));
     }
 }
 
