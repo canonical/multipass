@@ -59,6 +59,17 @@ auto make_network_manager(const mp::Path& cache_dir_path)
     return manager;
 }
 
+[[nodiscard]]
+auto make_http_url_https(const QUrl& url)
+{
+    QUrl out{url};
+
+    if (out.scheme() == "http")
+        out.setScheme("https");
+
+    return out;
+}
+
 void wait_for_reply(QNetworkReply* reply, QTimer& download_timeout)
 {
     QEventLoop event_loop;
@@ -82,10 +93,7 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    QUrl adjusted_url{url};
-
-    if (adjusted_url.scheme() == "http")
-        adjusted_url.setScheme("https");
+    const QUrl adjusted_url{make_http_url_https(url)};
 
     QNetworkRequest request{adjusted_url};
     request.setRawHeader("Connection", "Keep-Alive");
