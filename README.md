@@ -162,6 +162,12 @@ Here's a set of steps to build the Multipass source code on Linux.
 
 Please note that these instructions do not support building packages for macOS or Windows systems.
 
+Note: if building on ARM, environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must be set:
+
+```
+export VCPKG_FORCE_SYSTEM_BINARIES=1
+```
+
 ## Build dependencies
 
 ```
