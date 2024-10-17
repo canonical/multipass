@@ -175,11 +175,27 @@ sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
     return sigset;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog()
+template <class Rep, class Period>
+timespec make_timespec(std::chrono::duration<Rep, Period> duration)
 {
-    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP})]() {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        return sig;
+    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+
+    timespec out{};
+    out.tv_sec = seconds.count();
+    out.tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count();
+    return out;
+}
+
+std::function<int()> mp::platform::make_quit_watchdog(const std::chrono::milliseconds& timeout,
+                                                      const std::function<bool()>& condition)
+{
+    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP}), time = make_timespec(timeout), condition]() {
+        while (condition())
+        {
+            if (const int sig = sigtimedwait(&sigset, nullptr, &time); sig != -1)
+                return sig;
+        }
+
+        return SIGCHLD;
     };
 }
