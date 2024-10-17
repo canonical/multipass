@@ -272,7 +272,11 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return (backend == "qemu" && QEMU_ENABLED) || backend == "libvirt" || backend == "lxd";
+    return
+#if QEMU_ENABLED
+        backend == "qemu" ||
+#endif
+        backend == "libvirt" || backend == "lxd";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -347,10 +351,13 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
 
 QString mp::platform::Platform::default_driver() const
 {
-    if (QEMU_ENABLED)
-        return QStringLiteral("qemu");
-    else
-        return QStringLiteral("lxd");
+    return QStringLiteral(
+#if QEMU_ENABLED
+        "qemu"
+#else
+        "lxd"
+#endif
+        );
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
