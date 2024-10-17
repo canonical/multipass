@@ -71,21 +71,15 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
 
     if (term->is_live())
     {
-        setup_console();
-
         const char* term_type = std::getenv("TERM");
         term_type = (term_type == nullptr) ? "xterm" : term_type;
 
         update_local_pty_size(term->cout_fd());
 
-        // do not inherit settings from stdin
-        constexpr unsigned char modes[1] = {0};
-        ssh_channel_request_pty_size_modes(channel,
-                                           term_type,
-                                           local_pty_size.columns,
-                                           local_pty_size.rows,
-                                           modes,
-                                           sizeof(modes));
+        ssh_channel_request_pty_size(channel, term_type, local_pty_size.columns, local_pty_size.rows);
+
+        // set stdin to Raw Mode after libssh inherits sane settings from stdin.
+        setup_console();
     }
 }
 
