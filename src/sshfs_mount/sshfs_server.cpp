@@ -105,10 +105,12 @@ int main(int argc, char* argv[])
 
     try
     {
-        auto watchdog = mpp::make_quit_watchdog(); // called while there is only one thread
-
         mp::SSHSession session{host, port, username, mp::SSHClientKeyProvider{priv_key_blob}};
         mp::SshfsMount sshfs_mount(std::move(session), source_path, target_path, gid_mappings, uid_mappings);
+
+        auto watchdog = mpp::make_quit_watchdog(std::chrono::milliseconds{2500}, [&sshfs_mount] {
+            return sshfs_mount.alive();
+        }); // called while there is only one thread
 
         // ssh lives on its own thread, use this thread to listen for quit signal
         if (int sig = watchdog())

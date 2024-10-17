@@ -39,7 +39,7 @@ mp::SSHSession::SSHSession(const std::string& host,
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
 
-    const long timeout_secs = LONG_MAX;
+    const long timeout_secs = std::numeric_limits<long>::max();
     const int nodelay{1};
     auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation)).filePath("ssh").toStdString();
 
