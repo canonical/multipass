@@ -24,7 +24,7 @@ function(add_target TARGET_NAME)
   endif()
 
   foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
-    string(TOUPPER ${BACKEND}_ENABLED DEF)
+    string(TOUPPER ${BACKEND}_ENABLED=1 DEF)
     target_compile_definitions(${TARGET_NAME} PRIVATE -D${DEF})
 
     target_link_libraries(${TARGET_NAME}
