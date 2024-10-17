@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class Dropdown extends StatelessWidget {
+class Dropdown<T> extends StatelessWidget {
   final String? label;
-  final String? value;
-  final ValueChanged<String?> onChanged;
-  final Map<String, String> items;
+  final T? value;
+  final ValueChanged<T?> onChanged;
+  final Map<T, String> items;
   final double width;
 
   const Dropdown({
@@ -18,8 +18,9 @@ class Dropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dropdown = DropdownButton<String>(
+    final dropdown = DropdownButton<T>(
       icon: const Icon(Icons.keyboard_arrow_down),
+      isDense: true,
       isExpanded: true,
       focusColor: Colors.white,
       underline: const SizedBox.shrink(),
@@ -35,11 +36,8 @@ class Dropdown extends StatelessWidget {
       child: InputDecorator(
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
-            vertical: 2,
             horizontal: 8,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(2),
+            vertical: 13,
           ),
         ),
         child: Theme(
