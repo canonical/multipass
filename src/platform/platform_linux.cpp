@@ -33,10 +33,8 @@
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/lxd/lxd_virtual_machine_factory.h"
 
-#ifdef QEMU_ENABLED
+#if QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#else
-#define QEMU_ENABLED 0
 #endif
 
 #ifdef MULTIPASS_JOURNALD_ENABLED
