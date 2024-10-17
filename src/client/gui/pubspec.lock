@@ -701,10 +701,11 @@ packages:
   system_info2:
     dependency: "direct main"
     description:
-      name: system_info2
-      sha256: "65206bbef475217008b5827374767550a5420ce70a04d2d7e94d1d2253f3efc9"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "4.0.0+mp"
+      resolved-ref: ea5fac0e3a03db72276d946f6ca9abc9939e737a
+      url: "https://github.com/andrei-toterman/system_info.git"
+    source: git
     version: "4.0.0"
   term_glyph:
     dependency: transitive
