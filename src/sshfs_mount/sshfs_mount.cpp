@@ -151,21 +151,28 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
 
 } // namespace
 
-mp::SshfsMount::SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-                           const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
-    : sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)},
+mp::SshfsMount::SshfsMount(SSHSession&& session,
+                           const std::string& source,
+                           const std::string& target,
+                           const mp::id_mappings& gid_mappings,
+                           const mp::id_mappings& uid_mappings)
+    : running{true},
+      sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)},
       sftp_thread{[this]() {
           mp::top_catch_all(category, [this] {
               std::cout << "Connected" << std::endl;
               sftp_server->run();
               std::cout << "Stopped" << std::endl;
           });
+
+          running.store(false, std::memory_order_release);
       }}
 {
 }
 
 mp::SshfsMount::~SshfsMount()
 {
+    running.store(false, std::memory_order_release);
     stop();
 }
 
@@ -174,4 +181,9 @@ void mp::SshfsMount::stop()
     sftp_server->stop();
     if (sftp_thread.joinable())
         sftp_thread.join();
+}
+
+bool mp::SshfsMount::alive() const
+{
+    return running.load(std::memory_order_acquire);
 }
