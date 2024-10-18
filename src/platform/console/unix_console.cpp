@@ -75,7 +75,6 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
         term_type = (term_type == nullptr) ? "xterm" : term_type;
 
         update_local_pty_size(term->cout_fd());
-
         ssh_channel_request_pty_size(channel, term_type, local_pty_size.columns, local_pty_size.rows);
 
         // set stdin to Raw Mode after libssh inherits sane settings from stdin.
