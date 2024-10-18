@@ -186,16 +186,17 @@ timespec make_timespec(std::chrono::duration<Rep, Period> duration)
     return out;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog(const std::chrono::milliseconds& timeout,
-                                                      const std::function<bool()>& condition)
+std::function<int(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+    const std::chrono::milliseconds& timeout)
 {
-    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP}), time = make_timespec(timeout), condition]() {
+    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP}),
+            time = make_timespec(timeout)](const std::function<bool()>& condition) {
         while (condition())
         {
             if (const int sig = sigtimedwait(&sigset, nullptr, &time); sig != -1)
                 return sig;
         }
 
-        return SIGCHLD;
+        return -1;
     };
 }

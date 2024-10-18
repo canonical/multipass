@@ -91,9 +91,8 @@ std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& conf
 std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spec);
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 
-std::function<int()> make_quit_watchdog(
-    const std::chrono::milliseconds& timeout,
-    const std::function<bool()>& condition); // call while single-threaded; call result later, in dedicated thread
+std::function<int(const std::function<bool()>&)> make_quit_watchdog(
+    const std::chrono::milliseconds& timeout); // call while single-threaded; call result later, in dedicated thread
 
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
