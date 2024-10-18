@@ -35,7 +35,13 @@ final headers = <TableHeader<VmInfo>>[
     width: 110,
     minWidth: 70,
     sortKey: (info) => info.instanceStatus.status.name,
-    cellBuilder: (info) => VmStatusIcon(info.instanceStatus.status),
+    cellBuilder: (info) => Consumer(builder: (_, ref, __) {
+      final name = info.name;
+      final isLaunching = ref.watch(launchingVmsProvider.select((infos) {
+        return infos.any((info) => info.name == name);
+      }));
+      return VmStatusIcon(info.instanceStatus.status, isLaunching: isLaunching);
+    }),
   ),
   TableHeader(
     name: 'CPU USAGE',
