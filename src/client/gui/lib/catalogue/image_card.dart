@@ -1,13 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:rxdart/rxdart.dart';
 
-import '../notifications.dart';
 import '../providers.dart';
-import '../sidebar.dart';
 import 'launch_form.dart';
 
 class ImageCard extends ConsumerWidget {
@@ -65,7 +60,7 @@ class ImageCard extends ConsumerWidget {
                 onPressed: () {
                   final name = ref.read(randomNameProvider);
                   final aliasInfo = image.aliasesInfo.first;
-                  final request = LaunchRequest(
+                  final launchRequest = LaunchRequest(
                     instanceName: name,
                     image: aliasInfo.alias,
                     numCores: defaultCpus,
@@ -75,22 +70,7 @@ class ImageCard extends ConsumerWidget {
                         aliasInfo.hasRemoteName() ? aliasInfo.remoteName : null,
                   );
 
-                  final grpcClient = ref.read(grpcClientProvider);
-                  final launchingVmsNotifier =
-                      ref.read(launchingVmsProvider.notifier);
-
-                  launchingVmsNotifier.add(request);
-                  final cancelCompleter = Completer<void>();
-                  final notification = LaunchingNotification(
-                    name: name,
-                    cancelCompleter: cancelCompleter,
-                    stream: grpcClient
-                        .launch(request, cancel: cancelCompleter.future)
-                        .doOnDone(() => launchingVmsNotifier.remove(name)),
-                  );
-
-                  ref.read(notificationsProvider.notifier).add(notification);
-                  ref.read(sidebarKeyProvider.notifier).set('vm-$name');
+                  initiateLaunchFlow(ref, launchRequest);
                 },
                 child: const Text('Launch'),
               ),
