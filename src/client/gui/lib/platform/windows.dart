@@ -41,6 +41,9 @@ class WindowsPlatform extends MpPlatform {
 
   @override
   String get metaKey => 'Win';
+
+  @override
+  String? get homeDirectory => Platform.environment['USERPROFILE'];
 }
 
 class WindowsAutostartNotifier extends AutostartNotifier {

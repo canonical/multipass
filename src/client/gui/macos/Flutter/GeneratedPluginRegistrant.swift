@@ -5,6 +5,7 @@
 import FlutterMacOS
 import Foundation
 
+import file_selector_macos
 import hotkey_manager_macos
 import local_notifier
 import path_provider_foundation
@@ -16,6 +17,7 @@ import window_manager
 import window_size
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+  FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))
   HotkeyManagerMacosPlugin.register(with: registry.registrar(forPlugin: "HotkeyManagerMacosPlugin"))
   LocalNotifierPlugin.register(with: registry.registrar(forPlugin: "LocalNotifierPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))

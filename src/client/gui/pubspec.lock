@@ -81,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.1"
+  cross_file:
+    dependency: transitive
+    description:
+      name: cross_file
+      sha256: "7caf6a750a0c04effbb52a676dce9a4a592e10ad35c34d6d2d0e4811160d5670"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.4+2"
   crypto:
     dependency: transitive
     description:
@@ -106,6 +114,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.5"
+  extended_text:
+    dependency: "direct main"
+    description:
+      name: extended_text
+      sha256: b0cdd240b4ddf61d18d7e33e7775195971f2d033bd69706fa897446dc96c3b81
+      url: "https://pub.dev"
+    source: hosted
+    version: "14.1.0"
+  extended_text_library:
+    dependency: transitive
+    description:
+      name: extended_text_library
+      sha256: "55d09098ec56fab0d9a8a68950ca0bbf2efa1327937f7cec6af6dfa066234829"
+      url: "https://pub.dev"
+    source: hosted
+    version: "12.0.0"
   ffi:
     dependency: "direct main"
     description:
@@ -122,6 +146,70 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.0"
+  file_selector:
+    dependency: "direct main"
+    description:
+      name: file_selector
+      sha256: "5019692b593455127794d5718304ff1ae15447dea286cdda9f0db2a796a1b828"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.3"
+  file_selector_android:
+    dependency: transitive
+    description:
+      name: file_selector_android
+      sha256: "8bcc3af859e9d47fab9c7dc315537406511a894ab578e198bd8f9ed745ea5a01"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.1+2"
+  file_selector_ios:
+    dependency: transitive
+    description:
+      name: file_selector_ios
+      sha256: "38ebf91ecbcfa89a9639a0854ccaed8ab370c75678938eebca7d34184296f0bb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.3"
+  file_selector_linux:
+    dependency: transitive
+    description:
+      name: file_selector_linux
+      sha256: "045d372bf19b02aeb69cacf8b4009555fb5f6f0b7ad8016e5f46dd1387ddd492"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.2+1"
+  file_selector_macos:
+    dependency: transitive
+    description:
+      name: file_selector_macos
+      sha256: f42eacb83b318e183b1ae24eead1373ab1334084404c8c16e0354f9a3e55d385
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.4"
+  file_selector_platform_interface:
+    dependency: transitive
+    description:
+      name: file_selector_platform_interface
+      sha256: a3994c26f10378a039faa11de174d7b78eb8f79e4dd0af2a451410c1a5c3f66b
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.2"
+  file_selector_web:
+    dependency: transitive
+    description:
+      name: file_selector_web
+      sha256: c4c0ea4224d97a60a7067eca0c8fd419e708ff830e0c83b11a48faf566cec3e7
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.4+2"
+  file_selector_windows:
+    dependency: transitive
+    description:
+      name: file_selector_windows
+      sha256: "2ad726953f6e8affbc4df8dc78b77c3b4a060967a291e528ef72ae846c60fb69"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.3+2"
   fixnum:
     dependency: transitive
     description:
