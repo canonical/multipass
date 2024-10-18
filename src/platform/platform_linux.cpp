@@ -35,8 +35,6 @@
 
 #ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#else
-#define QEMU_ENABLED 0
 #endif
 
 #ifdef MULTIPASS_JOURNALD_ENABLED
@@ -274,7 +272,11 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return (backend == "qemu" && QEMU_ENABLED) || backend == "libvirt" || backend == "lxd";
+    return
+#ifdef QEMU_ENABLED
+        backend == "qemu" ||
+#endif
+        backend == "libvirt" || backend == "lxd";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -349,10 +351,13 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
 
 QString mp::platform::Platform::default_driver() const
 {
-    if (QEMU_ENABLED)
-        return QStringLiteral("qemu");
-    else
-        return QStringLiteral("lxd");
+    return QStringLiteral(
+#ifdef QEMU_ENABLED
+        "qemu"
+#else
+        "lxd"
+#endif
+    );
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -418,7 +423,7 @@ std::string mp::platform::default_server_address()
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = MP_SETTINGS.get(mp::driver_key);
-#if QEMU_ENABLED
+#ifdef QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
 #endif
