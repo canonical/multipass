@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:rxdart/rxdart.dart';
 
+import '../notifications.dart';
 import '../providers.dart';
+import '../sidebar.dart';
 import 'launch_form.dart';
-import 'launch_panel.dart';
 
 class ImageCard extends ConsumerWidget {
   final ImageInfo image;
@@ -72,14 +76,21 @@ class ImageCard extends ConsumerWidget {
                   );
 
                   final grpcClient = ref.read(grpcClientProvider);
-                  final operation = LaunchOperation(
-                    stream: grpcClient.launch(request),
+                  final launchingVmsNotifier =
+                      ref.read(launchingVmsProvider.notifier);
+
+                  launchingVmsNotifier.add(request);
+                  final cancelCompleter = Completer<void>();
+                  final notification = LaunchingNotification(
                     name: name,
-                    image: imageName(image),
+                    cancelCompleter: cancelCompleter,
+                    stream: grpcClient
+                        .launch(request, cancel: cancelCompleter.future)
+                        .doOnDone(() => launchingVmsNotifier.remove(name)),
                   );
 
-                  ref.read(launchOperationProvider.notifier).state = operation;
-                  Scaffold.of(context).openEndDrawer();
+                  ref.read(notificationsProvider.notifier).add(notification);
+                  ref.read(sidebarKeyProvider.notifier).set('vm-$name');
                 },
                 child: const Text('Launch'),
               ),
