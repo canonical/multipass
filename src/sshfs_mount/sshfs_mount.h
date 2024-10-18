@@ -38,8 +38,7 @@ public:
 
     void stop();
 
-    [[nodiscard]]
-    bool alive() const;
+    [[nodiscard]] bool alive() const;
 
 private:
     std::atomic<bool> running;
