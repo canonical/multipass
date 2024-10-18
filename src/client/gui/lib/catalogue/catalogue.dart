@@ -8,7 +8,7 @@ import 'package:grpc/grpc.dart';
 
 import '../providers.dart';
 import 'image_card.dart';
-import 'launch_panel.dart';
+import 'launch_form.dart';
 
 final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
   if (ref.watch(daemonAvailableProvider)) {
@@ -114,7 +114,7 @@ class CatalogueScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      endDrawer: const LaunchPanel(),
+      endDrawer: const LaunchForm(),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 140).copyWith(top: 40),
         child: Column(
