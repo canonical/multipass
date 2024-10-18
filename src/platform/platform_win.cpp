@@ -763,7 +763,7 @@ std::function<int(const std::function<bool()>&)> mp::platform::make_quit_watchdo
             while (condition())
             {
                 // Ctrl+C will break this wait.
-                if (WaitForSingleObject(hSemaphore, millis) != WAIT_TIMEOUT)
+                if (WaitForSingleObject(semaphore, millis) != WAIT_TIMEOUT)
                     return 0;
             }
 
