@@ -301,28 +301,37 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       mountRequest.targetPaths.first.instanceName = launchRequest.instanceName;
     }
 
-    final grpcClient = ref.read(grpcClientProvider);
-    final launchingVmsNotifier = ref.read(launchingVmsProvider.notifier);
-
-    launchingVmsNotifier.add(launchRequest);
-    final cancelCompleter = Completer<void>();
-    var launchStream = grpcClient.launch(launchRequest,
-        mountRequests: mountRequests, cancel: cancelCompleter.future);
-    launchStream = launchStream.doOnDone(
-      () => launchingVmsNotifier.remove(launchRequest.instanceName),
-    );
-    final notification = LaunchingNotification(
-      name: launchRequest.instanceName,
-      cancelCompleter: cancelCompleter,
-      stream: launchStream,
-    );
-
-    ref.read(notificationsProvider.notifier).add(notification);
-    ref
-        .read(sidebarKeyProvider.notifier)
-        .set('vm-${launchRequest.instanceName}');
+    initiateLaunchFlow(ref, launchRequest, mountRequests);
     Scaffold.of(context).closeEndDrawer();
   }
+}
+
+void initiateLaunchFlow(
+  WidgetRef ref,
+  LaunchRequest launchRequest, [
+  List<MountRequest> mountRequests = const [],
+]) {
+  final grpcClient = ref.read(grpcClientProvider);
+  final launchingVmsNotifier = ref.read(launchingVmsProvider.notifier);
+
+  launchingVmsNotifier.add(launchRequest);
+  final cancelCompleter = Completer<void>();
+  final launchStream = grpcClient
+      .launch(
+        launchRequest,
+        mountRequests: mountRequests,
+        cancel: cancelCompleter.future,
+      )
+      .doOnDone(() => launchingVmsNotifier.remove(launchRequest.instanceName));
+
+  final notification = LaunchingNotification(
+    name: launchRequest.instanceName,
+    cancelCompleter: cancelCompleter,
+    stream: launchStream,
+  );
+
+  ref.read(notificationsProvider.notifier).add(notification);
+  ref.read(sidebarKeyProvider.notifier).set('vm-${launchRequest.instanceName}');
 }
 
 FormFieldValidator<String> nameValidator(
