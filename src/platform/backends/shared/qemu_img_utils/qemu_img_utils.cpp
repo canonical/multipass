@@ -103,9 +103,17 @@ bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QStrin
     return QString{process->read_all_standard_output()}.contains(regex);
 }
 
-void mp::backend::delete_instance_suspend_image(const Path& image_path, const QString& suspend_tag)
+QByteArray mp::backend::snapshot_list_output(const Path& image_path)
+{
+    auto qemuimg_info_process = checked_exec_qemu_img(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path),
+        "Cannot list snapshots from the image");
+    return qemuimg_info_process->read_all_standard_output();
+}
+
+void mp::backend::delete_snapshot_from_image(const Path& image_path, const QString& snapshot_tag)
 {
     checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", suspend_tag, image_path}, image_path),
-        "Failed to delete suspend image");
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", snapshot_tag, image_path}, image_path),
+        "Cannot delete snapshot from the image");
 }

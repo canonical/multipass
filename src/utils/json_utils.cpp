@@ -21,7 +21,9 @@
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
 #include <multipass/utils.h>
+#include <multipass/vm_specs.h>
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
 
@@ -57,6 +59,51 @@ std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
 {
     // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a QByteArray.
     return QJsonDocument(root).toJson().toStdString();
+}
+
+QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& cloud_init_instance_id_value,
+                                                        const std::string& src_vm_name,
+                                                        const std::string& dest_vm_name) const
+{
+    std::string cloud_init_instance_id_str = cloud_init_instance_id_value.toString().toStdString();
+    assert(cloud_init_instance_id_str.size() >= src_vm_name.size());
+
+    return QJsonValue{QString::fromStdString(cloud_init_instance_id_str.replace(0, src_vm_name.size(), dest_vm_name))};
+}
+
+QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonValue& metadata_value,
+                                                                const multipass::VMSpecs& src_specs,
+                                                                const multipass::VMSpecs& dest_specs,
+                                                                const std::string& src_vm_name,
+                                                                const std::string& dest_vm_name) const
+{
+    assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
+
+    QJsonObject result_metadata_object = metadata_value.toObject();
+    QJsonValueRef arguments = result_metadata_object["arguments"];
+    QJsonArray json_array = arguments.toArray();
+    for (QJsonValueRef item : json_array)
+    {
+        QString str = item.toString();
+
+        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
+        {
+            const std::string& src_extra_interface_mac_addr = src_specs.extra_interfaces[i].mac_address;
+            if (!src_extra_interface_mac_addr.empty())
+            {
+                const std::string& dest_extra_interface_mac_addr = dest_specs.extra_interfaces[i].mac_address;
+                str.replace(src_extra_interface_mac_addr.c_str(), dest_extra_interface_mac_addr.c_str());
+            }
+        }
+        // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
+        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the metadata.
+        str.replace("instances/" + QString{src_vm_name.c_str()}, "instances/" + QString{dest_vm_name.c_str()});
+        item = str;
+    }
+    arguments = json_array;
+
+    return QJsonValue{result_metadata_object};
 }
 
 QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(

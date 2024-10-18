@@ -17,6 +17,7 @@ add_library(commands STATIC
   aliases.cpp
   animated_spinner.cpp
   authenticate.cpp
+  clone.cpp
   common_cli.cpp
   create_alias.cpp
   delete.cpp
