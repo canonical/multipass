@@ -64,6 +64,9 @@ class ImageCard extends ConsumerWidget {
                   final request = LaunchRequest(
                     instanceName: name,
                     image: aliasInfo.alias,
+                    numCores: defaultCpus,
+                    memSize: '${defaultRam}B',
+                    diskSpace: '${defaultDisk}B',
                     remoteName:
                         aliasInfo.hasRemoteName() ? aliasInfo.remoteName : null,
                   );

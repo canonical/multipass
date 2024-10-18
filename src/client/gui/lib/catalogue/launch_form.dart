@@ -29,6 +29,10 @@ String imageName(ImageInfo imageInfo) {
       : '$result ${imageInfo.codename}';
 }
 
+final defaultCpus = 1;
+final defaultRam = 1.gibi;
+final defaultDisk = 5.gibi;
+
 class LaunchForm extends ConsumerStatefulWidget {
   const LaunchForm({super.key});
 
@@ -79,17 +83,17 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final cpusSlider = CpusSlider(
-      initialValue: 1,
+      initialValue: defaultCpus,
       onSaved: (value) => launchRequest.numCores = value!,
     );
 
     final memorySlider = RamSlider(
-      initialValue: 1.gibi,
+      initialValue: defaultRam,
       onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
     final diskSlider = DiskSlider(
-      initialValue: 5.gibi,
+      initialValue: defaultDisk,
       onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
