@@ -268,6 +268,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  globbing:
+    dependency: transitive
+    description:
+      name: globbing
+      sha256: "4f89cfaf6fa74c9c1740a96259da06bd45411ede56744e28017cc534a12b6e2d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   google_identity_services_web:
     dependency: transitive
     description:
@@ -690,6 +698,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.0+3"
+  system_info2:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "4.0.0+mp"
+      resolved-ref: ea5fac0e3a03db72276d946f6ca9abc9939e737a
+      url: "https://github.com/andrei-toterman/system_info.git"
+    source: git
+    version: "4.0.0"
   term_glyph:
     dependency: transitive
     description:
