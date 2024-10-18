@@ -21,9 +21,10 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
   bool editing = false;
 
   final bridgedNetworkProvider = daemonSettingProvider('local.bridged-network');
-  late final bridgedProvider = daemonSettingProvider(
-    'local.${widget.name}.bridged',
-  );
+  late final bridgedProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.bridged,
+  ));
 
   @override
   Widget build(BuildContext context) {

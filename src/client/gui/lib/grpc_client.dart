@@ -71,27 +71,24 @@ class GrpcClient {
   GrpcClient(this._client);
 
   Stream<Either<LaunchReply, MountReply>?> launch(
-    LaunchRequest request, [
+    LaunchRequest request, {
     List<MountRequest> mountRequests = const [],
-  ]) {
-    Stream<Either<LaunchReply, MountReply>?> launchImpl() async* {
-      logger.i('Sent ${request.repr}');
+    Future<void>? cancel,
+  }) async* {
+    logger.i('Sent ${request.repr}');
+    final launchStream = _client.launch(Stream.value(request));
+    cancel?.then((_) => launchStream.cancel());
+    yield* launchStream
+        .doOnData(checkForUpdate)
+        .doOnEach(logGrpc(request))
+        .map(Either.left);
+    for (final mountRequest in mountRequests) {
+      logger.i('Sent ${mountRequest.repr}');
       yield* _client
-          .launch(Stream.value(request))
-          .doOnData(checkForUpdate)
-          .doOnEach(logGrpc(request))
-          .map(Either.left);
-      for (final mountRequest in mountRequests) {
-        logger.i('Sent ${mountRequest.repr}');
-        yield* _client
-            .mount(Stream.value(mountRequest))
-            .doOnEach(logGrpc(mountRequest))
-            .map(Either.right);
-      }
-      yield null;
+          .mount(Stream.value(mountRequest))
+          .doOnEach(logGrpc(mountRequest))
+          .map(Either.right);
     }
-
-    return BehaviorSubject()..addStream(launchImpl(), cancelOnError: true);
   }
 
   Future<StartReply?> start(Iterable<String> names) {

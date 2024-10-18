@@ -24,9 +24,18 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
   final formKey = GlobalKey<FormState>();
   bool editing = false;
 
-  late final cpusProvider = daemonSettingProvider('local.${widget.name}.cpus');
-  late final ramProvider = daemonSettingProvider('local.${widget.name}.memory');
-  late final diskProvider = daemonSettingProvider('local.${widget.name}.disk');
+  late final cpusProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.cpus,
+  ));
+  late final ramProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.memory,
+  ));
+  late final diskProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.disk,
+  ));
 
   @override
   Widget build(BuildContext context) {
