@@ -1,5 +1,13 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart' hide State;
+import 'package:grpc/grpc.dart' hide ConnectionState;
+
+import '../extensions.dart';
+import '../grpc_client.dart';
+import '../sidebar.dart';
 import 'notifications_list.dart';
 
 void closeNotification(BuildContext context) {
@@ -175,6 +183,111 @@ class OperationNotification extends StatelessWidget {
             strokeWidth: 3.5,
           ),
           child: Text(text),
+        );
+      },
+    );
+  }
+}
+
+class LaunchingNotification extends ConsumerWidget {
+  final Stream<Either<LaunchReply, MountReply>?> stream;
+  final Completer<void> cancelCompleter;
+  final String name;
+
+  const LaunchingNotification({
+    super.key,
+    required this.stream,
+    required this.cancelCompleter,
+    required this.name,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return StreamBuilder(
+      stream: stream,
+      builder: (_, snapshot) {
+        final error = snapshot.error;
+        if (error != null) {
+          final grpcErrorMessage = error is GrpcError ? error.message : null;
+          return ErrorNotification(text: grpcErrorMessage ?? error.toString());
+        }
+
+        if (snapshot.connectionState == ConnectionState.done) {
+          return SuccessNotification(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich([
+                  '$name is up and running\n'.span.bold,
+                  'You can start using using it now'.span,
+                ].spans),
+                Divider(),
+                Row(children: [
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      ref.read(sidebarKeyProvider.notifier).set('vm-$name');
+                      closeNotification(context);
+                    },
+                    child: Text('Go to instance'),
+                  ),
+                ]),
+              ],
+            ),
+          );
+        }
+
+        // returns the message to be displayed and if the operation is cancelable
+        final data = snapshot.data?.match(
+          (l) {
+            switch (l.whichCreateOneof()) {
+              case LaunchReply_CreateOneof.launchProgress:
+                final progressType = l.launchProgress.type;
+                if (progressType == LaunchProgress_ProgressTypes.VERIFY) {
+                  return ('Verifying image', false);
+                }
+
+                final downloadPercentage = l.launchProgress.percentComplete;
+                return ('Downloading image $downloadPercentage%', true);
+              case LaunchReply_CreateOneof.createMessage:
+                return (l.createMessage, false);
+              default:
+                return (l.replyMessage, false);
+            }
+          },
+          (m) => (m.replyMessage, false),
+        );
+
+        final (message, cancelable) = data ?? ('', false);
+
+        return SimpleNotification(
+          barColor: Colors.blue,
+          closeable: false,
+          icon: const CircularProgressIndicator(
+            color: Colors.blue,
+            strokeAlign: -2,
+            strokeWidth: 3.5,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text.rich(['Launching $name\n'.span.bold, message.span].spans),
+              if (cancelable) ...[
+                const Divider(),
+                Row(children: [
+                  const Spacer(),
+                  OutlinedButton(
+                    onPressed: () {
+                      closeNotification(context);
+                      cancelCompleter.complete();
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  const SizedBox(width: 20),
+                ])
+              ],
+            ],
+          ),
         );
       },
     );
