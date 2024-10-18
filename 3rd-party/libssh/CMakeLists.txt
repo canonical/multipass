@@ -59,7 +59,7 @@ file(STRINGS libssh/CMakeLists.txt libssh_VERSION REGEX "^project\\(libssh")
 file(STRINGS libssh/CMakeLists.txt LIBRARY_VERSION REGEX "^set\\(LIBRARY_VERSION")
 file(STRINGS libssh/CMakeLists.txt LIBRARY_SOVERSION REGEX "^set\\(LIBRARY_SOVERSION")
 
-string(REGEX MATCH "^project\\(libssh VERSION ([0-9]+)\\.([0-9]+)\\.([0-9]+) LANGUAGES C\\)$"
+string(REGEX MATCH "^project\\(libssh VERSION ([0-9]+)\\.([0-9]+)\\.([0-9]+) LANGUAGES C CXX\\)$"
   libssh_VERSION "${libssh_VERSION}")
 if (NOT libssh_VERSION)
     message(FATAL_ERROR "unable to find libssh project version")
