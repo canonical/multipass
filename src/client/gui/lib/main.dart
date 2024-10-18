@@ -139,7 +139,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
       ),
       const Align(
         alignment: Alignment.bottomRight,
-        child: SizedBox(width: 300, child: NotificationList()),
+        child: SizedBox(width: 400, child: NotificationList()),
       ),
       const DaemonUnavailable(),
     ]);
