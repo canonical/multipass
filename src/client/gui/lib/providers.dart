@@ -224,6 +224,42 @@ const passphraseKey = 'local.passphrase';
 final daemonSettingProvider = AsyncNotifierProvider.autoDispose
     .family<DaemonSettingNotifier, String, String>(DaemonSettingNotifier.new);
 
+enum VmResource { cpus, memory, disk, bridged }
+
+typedef VmResourceKey = ({String name, VmResource resource});
+
+class VmResourceNotifier
+    extends AutoDisposeFamilyAsyncNotifier<String, VmResourceKey> {
+  @override
+  Future<String> build(VmResourceKey arg) async {
+    final (:name, :resource) = arg;
+    final launchingVm = ref.watch(launchingVmsProvider.select((infos) {
+      return infos.firstWhereOrNull((info) => info.name == name);
+    }));
+
+    if (launchingVm != null) {
+      return switch (resource) {
+        VmResource.cpus => launchingVm.cpuCount,
+        VmResource.memory => launchingVm.memoryTotal,
+        VmResource.disk => launchingVm.diskTotal,
+        VmResource.bridged => 'false',
+      };
+    }
+
+    final key = 'local.$name.${resource.name}';
+    return await ref.watch(daemonSettingProvider(key).future);
+  }
+
+  Future<void> set(String value) async {
+    final (:name, :resource) = arg;
+    final key = 'local.$name.${resource.name}';
+    ref.read(daemonSettingProvider(key).notifier).set(value);
+  }
+}
+
+final vmResourceProvider = AsyncNotifierProvider.autoDispose
+    .family<VmResourceNotifier, String, VmResourceKey>(VmResourceNotifier.new);
+
 class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
   final SharedPreferences sharedPreferences;
 
