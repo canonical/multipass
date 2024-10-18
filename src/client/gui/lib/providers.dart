@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
@@ -76,11 +77,19 @@ final daemonAvailableProvider = Provider((ref) {
 
 final vmInfosProvider = Provider((ref) {
   final vmInfos = ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
-  return vmInfos.where((info) => info.instanceStatus.status != Status.DELETED);
+  final existingVms = vmInfos
+      .where((info) => info.instanceStatus.status != Status.DELETED)
+      .toBuiltList();
+  final existingVmNames = existingVms.map((i) => i.name).toSet();
+  final launchingVms = ref.watch(launchingVmsProvider).where((info) {
+    return !existingVmNames.contains(info.name);
+  });
+
+  return existingVms.concat(launchingVms).sortedBy((i) => i.name).toBuiltList();
 });
 
 final vmInfosMapProvider = Provider((ref) {
-  return {for (final info in ref.watch(vmInfosProvider)) info.name: info};
+  return {for (final i in ref.watch(vmInfosProvider)) i.name: i}.build();
 });
 
 class VmInfoNotifier
@@ -97,6 +106,7 @@ final vmInfoProvider = NotifierProvider.autoDispose
 final vmStatusesProvider = Provider((ref) {
   return ref
       .watch(vmInfosMapProvider)
+      .asMap()
       .mapValue((info) => info.instanceStatus.status)
       .build();
 });
@@ -112,6 +122,49 @@ final deletedVmsProvider = Provider((ref) {
       .map((info) => info.name)
       .toBuiltSet();
 });
+
+class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
+  @override
+  BuiltList<DetailedInfoItem> build() {
+    final vms = stateOrNull ?? BuiltList();
+
+    return vms;
+  }
+
+  void add(LaunchRequest request) {
+    final vms = state;
+    state = vms.rebuild((builder) {
+      builder.add(DetailedInfoItem(
+        name: request.instanceName,
+        cpuCount: request.numCores.toString(),
+        diskTotal: request.diskSpace,
+        memoryTotal: request.memSize,
+        instanceInfo: InstanceDetails(
+          currentRelease: request.image,
+        ),
+      ));
+    });
+  }
+
+  void remove(String name) {
+    final vms = state;
+    state = vms.rebuild((builder) {
+      builder.removeWhere((info) => info.name == name);
+    });
+  }
+
+  @override
+  bool updateShouldNotify(
+    BuiltList<DetailedInfoItem> previous,
+    BuiltList<DetailedInfoItem> next,
+  ) {
+    return previous != next;
+  }
+}
+
+final launchingVmsProvider =
+    NotifierProvider<LaunchingVmsNotifier, BuiltList<DetailedInfoItem>>(
+        LaunchingVmsNotifier.new);
 
 class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
   final file = File(settingsFile());
