@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch, ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../ffi.dart';
+import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../sidebar.dart';
 import '../switch.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
@@ -14,7 +17,6 @@ import '../vm_details/mapping_slider.dart';
 import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
-import 'launch_panel.dart';
 
 final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
 
@@ -300,12 +302,26 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     }
 
     final grpcClient = ref.read(grpcClientProvider);
-    final operation = LaunchOperation(
-      stream: grpcClient.launch(launchRequest, mountRequests),
-      name: launchRequest.instanceName,
-      image: imageName(imageInfo),
+    final launchingVmsNotifier = ref.read(launchingVmsProvider.notifier);
+
+    launchingVmsNotifier.add(launchRequest);
+    final cancelCompleter = Completer<void>();
+    var launchStream = grpcClient.launch(launchRequest,
+        mountRequests: mountRequests, cancel: cancelCompleter.future);
+    launchStream = launchStream.doOnDone(
+      () => launchingVmsNotifier.remove(launchRequest.instanceName),
     );
-    ref.read(launchOperationProvider.notifier).state = operation;
+    final notification = LaunchingNotification(
+      name: launchRequest.instanceName,
+      cancelCompleter: cancelCompleter,
+      stream: launchStream,
+    );
+
+    ref.read(notificationsProvider.notifier).add(notification);
+    ref
+        .read(sidebarKeyProvider.notifier)
+        .set('vm-${launchRequest.instanceName}');
+    Scaffold.of(context).closeEndDrawer();
   }
 }
 
