@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'notifications_list.dart';
 
+void closeNotification(BuildContext context) {
+  Actions.maybeInvoke(context, const CloseNotificationIntent());
+}
+
 class SimpleNotification extends StatelessWidget {
   final Widget child;
   final Widget icon;
@@ -51,9 +55,7 @@ class SimpleNotification extends StatelessWidget {
             splashRadius: 10,
             iconSize: 20,
             icon: const Icon(Icons.close),
-            onPressed: () {
-              Actions.maybeInvoke(context, const CloseNotificationIntent());
-            },
+            onPressed: () => closeNotification(context),
           ),
         ),
     ]);
@@ -91,7 +93,7 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
     );
     timeoutController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        close();
+        closeNotification(context);
       }
     });
     timeoutController.forward();
@@ -102,8 +104,6 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
     timeoutController.dispose();
     super.dispose();
   }
-
-  void close() => Actions.invoke(context, const CloseNotificationIntent());
 
   @override
   Widget build(BuildContext context) {

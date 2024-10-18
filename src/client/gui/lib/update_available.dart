@@ -6,7 +6,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'notifications/notification_entries.dart';
-import 'notifications/notifications_list.dart';
 import 'notifications/notifications_provider.dart';
 import 'platform/platform.dart';
 import 'providers.dart';
@@ -129,7 +128,7 @@ class UpdateAvailableNotification extends StatelessWidget {
           onPressed: () async {
             await launchInstallUrl();
             if (!context.mounted) return;
-            Actions.maybeInvoke(context, const CloseNotificationIntent());
+            closeNotification(context);
           },
           child: const Text('Upgrade now', style: TextStyle(fontSize: 14)),
         ),
