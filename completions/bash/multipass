@@ -230,7 +230,7 @@ _multipass_complete()
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
                     purge recover restart restore shell snapshot start stop suspend umount version get set \
-                    alias aliases unalias"
+                    clone alias aliases unalias"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
@@ -282,6 +282,9 @@ _multipass_complete()
         ;;
         "restore")
             _add_nonrepeating_args "--destructive"
+        ;;
+        "clone")
+            _add_nonrepeating_args "--name"
         ;;
         "get")
             _add_nonrepeating_args "--raw --keys"
@@ -367,6 +370,9 @@ _multipass_complete()
                 _multipass_instances "Deleted"
             ;;
             "snapshot")
+                _multipass_instances "Stopped"
+            ;;
+            "clone")
                 _multipass_instances "Stopped"
             ;;
             "restore")

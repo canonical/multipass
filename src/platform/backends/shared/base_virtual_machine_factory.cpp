@@ -19,6 +19,7 @@
 #include "multipass/platform.h"
 
 #include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
@@ -34,7 +35,7 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
     auto instance_dir{mpu::base_dir(vm_desc.image.image_path)};
-    const auto cloud_init_iso = instance_dir.filePath("cloud-init-config.iso");
+    const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
 
     if (!QFile::exists(cloud_init_iso))
     {
@@ -78,6 +79,31 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
         {
             net.id = create_bridge_with(*net_it);
             host_nets.push_back({net.id, bridge_type, "new bridge", {net_it->id}});
+        }
+    }
+}
+
+void mp::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
+                                                const fs::path& dest_instance_dir_path)
+{
+    if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
+    {
+        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
+        {
+            fs::create_directory(dest_instance_dir_path);
+
+            // 1. Only cloud-init-config.iso file and <image_name>.img file are needed for qemu
+            // 2. Only cloud-init-config.iso file is needed for virutalbox because the rest files are taken care of by
+            // clonevm command
+            // 3. Only cloud-init-config.iso file is needed for hyperv because the rest files are taken
+            // care of by export and import command
+            // By the way, snapshot related files are excluded in all three backends, so as a result we can have an
+            // inclusion file list below which works for all three backends
+            if (entry.path().extension().string() == ".iso" || entry.path().extension().string() == ".img")
+            {
+                const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
+                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
+            }
         }
     }
 }

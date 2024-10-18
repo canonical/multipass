@@ -195,7 +195,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SnapshotRequest, mp::SnapshotReply>));
     EXPECT_CALL(daemon, restore)
         .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::RestoreRequest, mp::RestoreReply>));
-
+    EXPECT_CALL(daemon, clone)
+        .WillOnce(Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CloneRequest, mp::CloneReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_keys"},
@@ -219,7 +220,8 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"find", "something"},
                    {"mount", ".", "target"},
                    {"umount", "instance"},
-                   {"networks"}});
+                   {"networks"},
+                   {"clone", "foo"}});
 }
 
 TEST_F(Daemon, provides_version)
@@ -404,7 +406,7 @@ struct LaunchWithBridges
 {
 };
 
-struct LaunchWithNoNetworkCloudInit : public Daemon, public WithParamInterface<std::vector<std::string>>
+struct LaunchWithNoExtraNetworkCloudInit : public Daemon, public WithParamInterface<std::vector<std::string>>
 {
 };
 
@@ -1109,7 +1111,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
     send_command({GetParam()});
 }
 
-TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
+TEST_P(LaunchWithNoExtraNetworkCloudInit, no_extra_network_cloud_init)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1117,9 +1119,10 @@ TEST_P(LaunchWithNoNetworkCloudInit, no_network_cloud_init)
     const auto launch_args = GetParam();
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce(Invoke([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_TRUE(desc.network_data_config.IsNull());
-        }));
+        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["default"].IsNull());
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["extra0"].IsDefined());
+        });
 
     send_command(launch_args);
 }
@@ -1134,15 +1137,22 @@ std::vector<std::string> make_args(const std::vector<std::string>& args)
     return all_args;
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Daemon, LaunchWithNoNetworkCloudInit,
-    Values(make_args({}), make_args({"xenial"}), make_args({"xenial", "--network", "name=eth0,mode=manual"}),
-           make_args({"groovy"}), make_args({"groovy", "--network", "name=eth0,mode=manual"}),
-           make_args({"--network", "name=eth0,mode=manual"}), make_args({"devel"}),
-           make_args({"hirsute", "--network", "name=eth0,mode=manual"}), make_args({"daily:21.04"}),
-           make_args({"daily:21.04", "--network", "name=eth0,mode=manual"}),
-           make_args({"appliance:openhab", "--network", "name=eth0,mode=manual"}), make_args({"appliance:nextcloud"}),
-           make_args({"snapcraft:core18", "--network", "name=eth0,mode=manual"}), make_args({"snapcraft:core20"})));
+INSTANTIATE_TEST_SUITE_P(Daemon,
+                         LaunchWithNoExtraNetworkCloudInit,
+                         Values(make_args({}),
+                                make_args({"xenial"}),
+                                make_args({"xenial", "--network", "name=eth0,mode=manual"}),
+                                make_args({"groovy"}),
+                                make_args({"groovy", "--network", "name=eth0,mode=manual"}),
+                                make_args({"--network", "name=eth0,mode=manual"}),
+                                make_args({"devel"}),
+                                make_args({"hirsute", "--network", "name=eth0,mode=manual"}),
+                                make_args({"daily:21.04"}),
+                                make_args({"daily:21.04", "--network", "name=eth0,mode=manual"}),
+                                make_args({"appliance:openhab", "--network", "name=eth0,mode=manual"}),
+                                make_args({"appliance:nextcloud"}),
+                                make_args({"snapcraft:core18", "--network", "name=eth0,mode=manual"}),
+                                make_args({"snapcraft:core20"})));
 
 TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
 {

@@ -19,6 +19,8 @@
 #include <multipass/network_interface.h>
 #include <multipass/yaml_node_utils.h>
 
+#include <cassert>
+
 namespace mp = multipass;
 
 namespace
@@ -29,6 +31,7 @@ YAML::Node create_extra_interface_node(const std::string& extra_interface_name,
     YAML::Node extra_interface_data{};
     extra_interface_data["match"]["macaddress"] = extra_interface_mac_address;
     extra_interface_data["dhcp4"] = true;
+    extra_interface_data["dhcp-identifier"] = "mac";
     // We make the default gateway associated with the first interface.
     extra_interface_data["dhcp4-overrides"]["route-metric"] = 200;
     // Make the interface optional, which means that networkd will not wait for the device to be configured.
@@ -36,6 +39,18 @@ YAML::Node create_extra_interface_node(const std::string& extra_interface_name,
 
     return extra_interface_data;
 };
+
+YAML::Node create_default_interface_node(const std::string& default_interface_mac_address)
+{
+    YAML::Node default_interface_data{};
+
+    default_interface_data["match"]["macaddress"] = default_interface_mac_address;
+    default_interface_data["dhcp4"] = true;
+    default_interface_data["dhcp-identifier"] = "mac";
+
+    return default_interface_data;
+};
+
 } // namespace
 
 std::string mp::utils::emit_yaml(const YAML::Node& node)
@@ -59,7 +74,21 @@ YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name, const
 {
     YAML::Node meta_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
-    meta_data["instance-id"] = name;
+    if (!file_content.empty())
+    {
+        const std::string old_hostname = meta_data["local-hostname"].as<std::string>();
+        std::string old_instance_id = meta_data["instance-id"].as<std::string>();
+
+        // The assumption here is that the instance_id is the hostname optionally appended _e sequence
+        assert(old_instance_id.size() >= old_hostname.size());
+        // replace the old host name with the new host name
+        meta_data["instance-id"] = old_instance_id.replace(0, old_hostname.size(), name);
+    }
+    else
+    {
+        meta_data["instance-id"] = name;
+    }
+
     meta_data["local-hostname"] = name;
     meta_data["cloud-name"] = "multipass";
 
@@ -89,24 +118,15 @@ YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_
 {
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
-    // Generate the cloud-init file only if there is at least one extra interface needing auto configuration.
-    if (std::find_if(extra_interfaces.begin(), extra_interfaces.end(), [](const auto& iface) {
-            return iface.auto_mode;
-        }) != extra_interfaces.end())
+    network_data["version"] = "2";
+    network_data["ethernets"]["default"] = create_default_interface_node(default_mac_addr);
+
+    for (size_t i = 0; i < extra_interfaces.size(); ++i)
     {
-        network_data["version"] = "2";
-
-        std::string name = "default";
-        network_data["ethernets"][name]["match"]["macaddress"] = default_mac_addr;
-        network_data["ethernets"][name]["dhcp4"] = true;
-
-        for (size_t i = 0; i < extra_interfaces.size(); ++i)
+        if (extra_interfaces[i].auto_mode)
         {
-            if (extra_interfaces[i].auto_mode)
-            {
-                name = "extra" + std::to_string(i);
-                network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
-            }
+            const std::string name = "extra" + std::to_string(i);
+            network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
         }
     }
 
@@ -127,9 +147,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& d
         YAML::Node network_data{};
         network_data["version"] = "2";
 
-        const std::string default_network_name = "default";
-        network_data["ethernets"][default_network_name]["match"]["macaddress"] = default_mac_addr;
-        network_data["ethernets"][default_network_name]["dhcp4"] = true;
+        network_data["ethernets"]["default"] = create_default_interface_node(default_mac_addr);
 
         const std::string extra_interface_name = "extra0";
         network_data["ethernets"][extra_interface_name] =
