@@ -749,15 +749,26 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     return 0;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog()
+std::function<int(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+    const std::chrono::milliseconds& timeout)
 {
-    return [hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr)]() {
-        if (hSemaphore == (HANDLE) nullptr)
-            printf("Unable to create semaphore\n");
+    auto hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr);
+    if (hSemaphore == (HANDLE) nullptr)
+        throw std::runtime_error("Unable to create semaphore\n");
 
-        WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
-        return 0;
-    };
+    auto timeout_millis = std::chrono::duration_cast<std::chrono::milliseconds>(timeout);
+
+    return
+        [semaphore = std::move(hSemaphore), millis = timeout_millis.count()](const std::function<bool()>& condition) {
+            while (condition())
+            {
+                // Ctrl+C will break this wait.
+                if (WaitForSingleObject(hSemaphore, millis) != WAIT_TIMEOUT)
+                    return 0;
+            }
+
+            return -1;
+        };
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
