@@ -63,14 +63,14 @@ class SimpleNotification extends StatelessWidget {
 }
 
 class TimeoutNotification extends StatefulWidget {
-  final String text;
+  final Widget child;
   final Widget icon;
   final Color barColor;
   final Duration duration;
 
   const TimeoutNotification({
     super.key,
-    required this.text,
+    required this.child,
     required this.icon,
     required this.barColor,
     this.duration = const Duration(seconds: 5),
@@ -116,7 +116,7 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
           icon: widget.icon,
           barColor: widget.barColor,
           barFullness: 1.0 - timeoutController.value,
-          child: Text(widget.text),
+          child: widget.child,
         ),
       ),
     );
@@ -137,7 +137,7 @@ class ErrorNotification extends SimpleNotification {
 class SuccessNotification extends TimeoutNotification {
   const SuccessNotification({
     super.key,
-    required super.text,
+    required super.child,
   }) : super(
           barColor: Colors.green,
           icon: const Icon(Icons.check_circle_outline, color: Colors.green),
@@ -163,9 +163,8 @@ class OperationNotification extends StatelessWidget {
           return ErrorNotification(text: snapshot.error.toString());
         }
 
-        if (snapshot.hasData) {
-          return SuccessNotification(text: snapshot.data!);
-        }
+        final data = snapshot.data;
+        if (data != null) return SuccessNotification(child: Text(data));
 
         return SimpleNotification(
           barColor: Colors.blue,
