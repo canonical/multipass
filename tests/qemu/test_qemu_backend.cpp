@@ -1170,6 +1170,68 @@ TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
     EXPECT_NO_THROW(backend.prepare_networking(extra_interfaces));
 }
 
+TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    // The sole reason to register this callback is to make the extract_snapshot_tags function get a non-empty snapshot
+    // list input, so we can cover the for loops
+    mpt::MockProcessFactory::Callback snapshot_list_callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot") &&
+            process->arguments().contains("-l"))
+        {
+            constexpr auto snapshot_list_output_stream =
+                R"(Snapshot list:
+            ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
+            2         @s2               0 B     2024-06-11 23:22:59 00:00:00.000          0
+            3         @s3               0 B     2024-06-12 12:30:37 00:00:00.000          0)";
+
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray{snapshot_list_output_stream}));
+        }
+    };
+
+    process_factory->register_callback(snapshot_list_callback);
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    EXPECT_NO_THROW(machine->remove_snapshots_from_image());
+
+    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory->process_list();
+
+    EXPECT_GE(processes.size(), 2);
+    const auto lastProcessInfo = processes.back();
+    const auto last2ndProcessInfo = processes[processes.size() - 2];
+
+    EXPECT_TRUE(lastProcessInfo.command == "qemu-img" && lastProcessInfo.arguments.contains("-d") &&
+                lastProcessInfo.arguments.contains("@s3"));
+    EXPECT_TRUE(last2ndProcessInfo.command == "qemu-img" && last2ndProcessInfo.arguments.contains("-d") &&
+                last2ndProcessInfo.arguments.contains("@s2"));
+}
+
+TEST_F(QemuBackend, createVmAndCloneInstanceDirData)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::StubVMStatusMonitor stub_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_cloned_cloud_init_unique_identifiers(_, _, _, _))
+        .Times(1);
+    EXPECT_TRUE(backend.create_vm_and_clone_instance_dir_data({},
+                                                              {},
+                                                              "dummy_src_name",
+                                                              "dummy_dest_name",
+                                                              {},
+                                                              key_provider,
+                                                              stub_monitor));
+}
+
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
 {
     mpt::MockQemuPlatform qemu_platform;

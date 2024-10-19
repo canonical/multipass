@@ -34,11 +34,11 @@ TEST(UtilsTests, makeCloudInitMetaConfig)
 TEST(UtilsTests, makeCloudInitMetaConfigWithYAMLStr)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
-instance-id: vm2
+instance-id: vm2_e_e
 local-hostname: vm2
 cloud-name: multipass)";
     const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1", std::string{meta_data_content});
-    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1");
+    EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1_e_e");
     EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
@@ -52,10 +52,12 @@ ethernets:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true)";
@@ -67,10 +69,12 @@ ethernets:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
@@ -78,6 +82,7 @@ ethernets:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true
@@ -103,10 +108,12 @@ ethernets:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
+    dhcp-identifier: mac
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
+    dhcp-identifier: mac
     dhcp4-overrides:
       route-metric: 200
     optional: true

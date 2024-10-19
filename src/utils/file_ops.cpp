@@ -222,6 +222,11 @@ std::unique_ptr<std::istream> mp::FileOps::open_read(const fs::path& path, std::
     return std::make_unique<std::ifstream>(path, mode);
 }
 
+void mp::FileOps::copy(const fs::path& src, const fs::path& dist, fs::copy_options copy_options) const
+{
+    fs::copy(src, dist, copy_options);
+}
+
 bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const
 {
     return fs::exists(path, err);

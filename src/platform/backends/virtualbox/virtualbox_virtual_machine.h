@@ -40,6 +40,12 @@ public:
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
                              const Path& instance_dir);
+    // Contruct the vm based on the source virtual machine
+    VirtualBoxVirtualMachine(const std::string& source_vm_name,
+                             const VirtualMachineDescription& desc,
+                             VMStatusMonitor& monitor,
+                             const SSHKeyProvider& key_provider,
+                             const Path& dest_instance_dir);
     ~VirtualBoxVirtualMachine() override;
 
     void start() override;
@@ -60,6 +66,7 @@ public:
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
+    void remove_snapshots_from_image() const override;
 
 protected:
     void require_snapshots_support() const override;

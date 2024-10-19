@@ -61,6 +61,8 @@ constexpr auto mounts_key = "local.privileged-mounts";                // idem
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
 constexpr auto mirror_key = "local.image.mirror";                     // idem; this defines the mirror of simple streams
 
+constexpr auto cloud_init_file_name = "cloud-init-config.iso";
+
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {petenv_key, driver_key, mounts_key};
 

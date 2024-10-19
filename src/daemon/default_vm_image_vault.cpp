@@ -582,6 +582,30 @@ mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string
 
     throw std::runtime_error(fmt::format("Cannot determine minimum image size for id \'{}\'", id));
 }
+void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
+                                    const std::string& destination_instance_name)
+{
+    const auto source_iter = instance_image_records.find(source_instance_name);
+
+    if (source_iter == instance_image_records.end())
+    {
+        throw std::runtime_error(source_instance_name + " does not exist in the image records");
+    }
+
+    if (instance_image_records.find(destination_instance_name) != instance_image_records.end())
+    {
+        throw std::runtime_error(destination_instance_name + " already exists in the image records");
+    }
+
+    auto& dest_vault_record = instance_image_records[destination_instance_name] =
+        instance_image_records[source_instance_name];
+
+    // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
+    // "<src_name>"->"<dest_name>", because the second one might match other substrings of the metadata.
+    dest_vault_record.image.image_path.replace("instances/" + QString{source_instance_name.c_str()},
+                                               "instances/" + QString{destination_instance_name.c_str()});
+    persist_instance_records();
+}
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     const VMImageInfo& info, std::optional<VMImage>& existing_source_image, const QDir& image_dir,

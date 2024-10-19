@@ -63,7 +63,7 @@ public:
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override
     {
         throw NotImplementedOnThisBackendException("native mounts");
-    };
+    }
 
     SnapshotVista view_snapshots() const override;
     int get_num_snapshots() const override;
@@ -84,6 +84,10 @@ public:
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
+    void remove_snapshots_from_image() const override
+    {
+        throw NotImplementedOnThisBackendException("snapshots");
+    }
 
 protected:
     virtual void require_snapshots_support() const;
@@ -156,7 +160,7 @@ private:
     std::optional<SSHSession> ssh_session = std::nullopt;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
-    int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless or deletes)
+    int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)
     mutable std::recursive_mutex snapshot_mutex;
 };
 
