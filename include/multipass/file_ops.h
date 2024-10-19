@@ -104,6 +104,7 @@ public:
                                                      std::ios_base::openmode mode = std::ios_base::out) const;
     virtual std::unique_ptr<std::istream> open_read(const fs::path& path,
                                                     std::ios_base::openmode mode = std::ios_base::in) const;
+    virtual void copy(const fs::path& src, const fs::path& dist, fs::copy_options copy_options) const;
     virtual bool exists(const fs::path& path, std::error_code& err) const;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;

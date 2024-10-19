@@ -29,6 +29,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
+#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
@@ -210,6 +211,33 @@ void convert_to_qcow2_v3_if_necessary(const mp::Path& image_path, const std::str
         mpl::log(mpl::Level::error, vm_name, e.what());
     }
 }
+
+QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
+{
+    QStringList lines = QString{snapshot_list_output_stream}.split('\n');
+    QStringList snapshot_tags;
+
+    // Snapshot list:
+    // ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
+    // 2         @s2                   0 B 2024-06-11 23:22:59 00:00:00.000          0
+    // 3         @s3                   0 B 2024-06-12 12:30:37 00:00:00.000          0
+
+    // The first two lines are headers
+    for (int i = 2; i < lines.size(); ++i)
+    {
+        // Qt::SkipEmptyParts improve the robustness of the code, it can keep the result correct in the case of leading
+        // and trailing spaces.
+        QStringList entries = lines[i].split(QRegularExpression{R"(\s+)"}, Qt::SkipEmptyParts);
+
+        if (entries.count() >= 2)
+        {
+            snapshot_tags.append(entries[1]);
+        }
+    }
+
+    return snapshot_tags;
+}
+
 } // namespace
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
@@ -347,7 +375,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         if (has_suspend_snapshot)
         {
             mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
-            mp::backend::delete_instance_suspend_image(desc.image.image_path, suspend_tag);
+            mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
         state = State::off;
@@ -741,6 +769,16 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
                                                                          const VMMount& mount)
 {
     return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
+}
+
+void mp::QemuVirtualMachine::remove_snapshots_from_image() const
+{
+    const QStringList snapshot_tag_list = extract_snapshot_tags(backend::snapshot_list_output(desc.image.image_path));
+
+    for (const auto& snapshot_tag : snapshot_tag_list)
+    {
+        backend::delete_snapshot_from_image(desc.image.image_path, snapshot_tag);
+    }
 }
 
 mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()

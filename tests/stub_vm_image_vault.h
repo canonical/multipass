@@ -64,6 +64,10 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return {};
     }
 
+    void clone(const std::string& source_instance_name, const std::string& destination_instance_name) override
+    {
+    }
+
     TempFile dummy_image;
 };
 }

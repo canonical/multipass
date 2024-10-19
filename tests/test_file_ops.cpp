@@ -64,6 +64,16 @@ TEST_F(FileOps, exists)
     EXPECT_FALSE(err);
 }
 
+TEST_F(FileOps, copy)
+{
+    const fs::path src_dir = temp_dir / "sub_src_dir";
+    const fs::path dest_dir = temp_dir / "sub_dest_dir";
+    MP_FILEOPS.create_directory(src_dir, err);
+
+    EXPECT_NO_THROW(MP_FILEOPS.copy(src_dir, dest_dir, std::filesystem::copy_options::recursive));
+    EXPECT_TRUE(MP_FILEOPS.exists(dest_dir, err));
+}
+
 TEST_F(FileOps, is_directory)
 {
     EXPECT_TRUE(MP_FILEOPS.is_directory(temp_dir, err));
