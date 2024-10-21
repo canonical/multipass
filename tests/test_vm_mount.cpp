@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_file_ops.h"
 
 #include <multipass/vm_mount.h>
 
@@ -139,4 +140,18 @@ TEST_F(TestVMMount, duplicateGidsThrowsWithDuplicateTargetID)
                                                HasSubstr("1002:1001"),
                                                HasSubstr("1000:1001"))));
 }
+
+TEST_F(TestVMMount, sourcePathResolved)
+{
+    const auto source_path = mp::fs::path{"/tmp/./src/main/../../src"};
+    const auto dest_path = mp::fs::absolute(source_path);
+
+    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce(Return(dest_path));
+
+    const mp::VMMount mount{source_path.string(), {}, {}, mp::VMMount::MountType::Classic};
+
+    EXPECT_EQ(mount.get_source_path(), dest_path.string());
+}
+
 } // namespace
