@@ -42,6 +42,11 @@ public:
     MOCK_METHOD(bool, is_alias_supported, (const std::string&, const std::string&), (const, override));
     MOCK_METHOD(int, chmod, (const char*, unsigned int), (const, override));
     MOCK_METHOD(int, chown, (const char*, unsigned int, unsigned int), (const, override));
+    MOCK_METHOD(bool,
+                set_permissions,
+                (const multipass::Path& path, const QFileDevice::Permissions),
+                (const, override));
+    MOCK_METHOD(bool, set_root_as_owner, (const multipass::Path& path), (const, override));
     MOCK_METHOD(bool, link, (const char*, const char*), (const, override));
     MOCK_METHOD(bool, symlink, (const char*, const char*, bool), (const, override));
     MOCK_METHOD(int, utime, (const char*, int, int), (const, override));
