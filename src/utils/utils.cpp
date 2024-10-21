@@ -582,6 +582,11 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
     return true;
 }
 
+mp::Path mp::Utils::default_mount_target(const Path& source) const
+{
+    return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
+}
+
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,
                                  const std::string& target_network,
                                  const std::string& bridge_type) -> std::optional<mp::NetworkInterfaceInfo>

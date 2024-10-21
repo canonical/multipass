@@ -52,6 +52,7 @@ public:
     MOCK_METHOD(QString, make_uuid, (const std::optional<std::string>&), (const, override));
     MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
     MOCK_METHOD(bool, is_ipv4_valid, (const std::string& ipv4), (const, override));
+    MOCK_METHOD(Path, default_mount_target, (const Path& source), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };
