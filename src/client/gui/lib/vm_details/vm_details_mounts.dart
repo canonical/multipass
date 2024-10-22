@@ -99,8 +99,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
           ]),
           mountPointsView,
           const SizedBox(height: 20),
-          if (phase == MountDetailsPhase.configure && mounts.isNotEmpty)
-            addMountButton,
+          if (phase == MountDetailsPhase.configure) addMountButton,
           if (phase == MountDetailsPhase.adding) ...[
             editableMountPoint,
             Padding(
