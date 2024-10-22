@@ -2741,8 +2741,8 @@ try
 
         const mp::VMImage dest_vm_image = fetch_image_for(destination_name, *config->factory, *config->vault);
 
-        // QemuVirtualMachine constructor depends on vm_instance_specs[destination_name], so the appending of the
-        // dest_spec has to be done before the function create_vm_and_clone_instance_dir_data
+        // Specs need to be in place before the factory can create the VM
+        // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
         operative_instances[destination_name] =
             config->factory->create_vm_and_clone_instance_dir_data(src_spec,
