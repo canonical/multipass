@@ -77,3 +77,9 @@ flutter:
         - asset: assets/UbuntuMono-R.ttf
         - asset: assets/UbuntuMono-B.ttf
           weight: 700
+    - family: NotoColorEmoji
+      fonts:
+        - asset: assets/NotoColorEmoji-Regular.ttf
+    - family: FreeSans
+      fonts:
+        - asset: assets/FreeSans.ttf

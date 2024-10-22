@@ -12,7 +12,11 @@ final _hoveredLinkProvider = StateProvider.autoDispose<TextSpan?>((ref) {
 extension TextSpanFromStringExt on String {
   TextSpan get span => TextSpan(
         text: this,
-        style: const TextStyle(color: Colors.black, fontFamily: 'Ubuntu'),
+        style: const TextStyle(
+          color: Colors.black,
+          fontFamily: 'Ubuntu',
+          fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+        ),
       );
 }
 

@@ -219,6 +219,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
 final theme = ThemeData(
   useMaterial3: false,
   fontFamily: 'Ubuntu',
+  fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
   inputDecorationTheme: const InputDecorationTheme(
     border: OutlineInputBorder(borderRadius: BorderRadius.zero),
     isDense: true,
