@@ -140,6 +140,12 @@ class _EditableMountPointState extends State<EditableMountPoint> {
   }
 }
 
+const middleOverflow = TextOverflowWidget(
+  align: TextOverflowAlign.center,
+  position: TextOverflowPosition.middle,
+  child: Text('\u2026'),
+);
+
 class MountPointsView extends StatelessWidget {
   final Iterable<MountPaths> mounts;
   final bool allowDelete;
@@ -202,11 +208,23 @@ class MountPointsView extends StatelessWidget {
       child: SizedBox(
         height: 30,
         child: Row(children: [
-          Expanded(child: Text(mount.sourcePath)),
+          Expanded(
+            child: ExtendedText(
+              mount.sourcePath,
+              maxLines: 1,
+              overflowWidget: middleOverflow,
+            ),
+          ),
           const SizedBox(width: 24),
           Expanded(
             child: Row(children: [
-              Expanded(child: Text(mount.targetPath)),
+              Expanded(
+                child: ExtendedText(
+                  mount.targetPath,
+                  maxLines: 1,
+                  overflowWidget: middleOverflow,
+                ),
+              ),
               if (allowDelete) button,
             ]),
           ),
@@ -258,11 +276,7 @@ class _ClippingTextFieldState extends State<ClippingTextField> {
         widget.controller.text,
         style: const TextStyle(fontSize: 16),
         maxLines: 1,
-        overflowWidget: const TextOverflowWidget(
-          align: TextOverflowAlign.center,
-          position: TextOverflowPosition.middle,
-          child: Text('\u2026'),
-        ),
+        overflowWidget: middleOverflow,
       );
 
       final clippedTextFormField = FormField<String>(
