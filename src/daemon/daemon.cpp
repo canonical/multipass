@@ -2726,11 +2726,10 @@ try
         }
 
         const std::string destination_name = generate_destination_instance_name_for_clone(*request);
-        auto rollback_resources =
-            sg::make_scope_guard([this, destination_name]() noexcept -> void {
-                release_resources(destination_name);
-                preparing_instances.erase(destination_name);
-            });
+        auto rollback_resources = sg::make_scope_guard([this, destination_name]() noexcept -> void {
+            release_resources(destination_name);
+            preparing_instances.erase(destination_name);
+        });
 
         // signal that the new instance is being cooked up
         preparing_instances.insert(destination_name);
