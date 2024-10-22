@@ -2721,8 +2721,7 @@ try
         if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
         {
             return status_promise->set_value(
-                grpc::Status{grpc::FAILED_PRECONDITION,
-                             "Please stop instance " + source_name + " before you clone it."});
+                grpc::Status{grpc::FAILED_PRECONDITION, "Multipass can only clone stopped instances."});
         }
 
         const std::string destination_name = generate_destination_instance_name_for_clone(*request);
