@@ -2726,10 +2726,10 @@ try
         }
 
         const std::string destination_name = generate_destination_instance_name_for_clone(*request);
-        auto rollback_clean_up_all_resource_of_dest_instance =
+        auto rollback_resources =
             sg::make_scope_guard([this, destination_name]() noexcept -> void {
                 release_resources(destination_name);
-                preparing_instances.erase((destination_name));
+                preparing_instances.erase(destination_name);
             });
 
         // signal that the new instance is being cooked up
@@ -2761,7 +2761,7 @@ try
         CloneReply rpc_response;
         rpc_response.set_reply_message(fmt::format("Cloned from {} to {}.\n", source_name, destination_name));
         server->Write(rpc_response);
-        rollback_clean_up_all_resource_of_dest_instance.dismiss();
+        rollback_resources.dismiss();
     }
     status_promise->set_value(status);
 }
