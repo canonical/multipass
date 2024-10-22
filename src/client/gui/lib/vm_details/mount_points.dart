@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:basics/basics.dart';
 import 'package:extended_text/extended_text.dart';
 import 'package:file_selector/file_selector.dart';
@@ -100,9 +102,12 @@ class _EditableMountPointState extends State<EditableMountPoint> {
 
     final filePicker = OutlinedButton(
       onPressed: () async {
+        final chosenSource = sourceController.text;
         final source = await getDirectoryPath(
           confirmButtonText: 'Select',
-          initialDirectory: mpPlatform.homeDirectory,
+          initialDirectory: await Directory(chosenSource).exists()
+              ? chosenSource
+              : mpPlatform.homeDirectory,
         );
         if (source == null) return;
         sourceController.text = source;
