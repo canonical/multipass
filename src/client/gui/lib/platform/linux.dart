@@ -41,7 +41,9 @@ class LinuxPlatform extends MpPlatform {
   String get metaKey => 'Super';
 
   @override
-  String? get homeDirectory => Platform.environment['HOME'];
+  String? get homeDirectory => Platform.environment['SNAP'] == null
+      ? Platform.environment['HOME']
+      : Platform.environment['SNAP_REAL_HOME'];
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {
