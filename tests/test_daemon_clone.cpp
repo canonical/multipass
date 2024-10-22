@@ -160,5 +160,5 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_EQ(status.error_message(),
-              fmt::format("Please stop instance {} before you clone it.", mock_src_instance_name));
+              fmt::format("Multipass can only clone stopped instances."));
 }
