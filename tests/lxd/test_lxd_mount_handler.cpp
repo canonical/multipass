@@ -78,6 +78,8 @@ struct LXDMountHandlerTestFixture : public testing::Test
 
     const std::string source_path{"sourcePath"};
     const std::string target_path{"targetPath"};
+    const mp::VMMount vm_mount{source_path, {}, {}, mp::VMMount::MountType::Native};
+
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject();
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
 
@@ -86,7 +88,6 @@ struct LXDMountHandlerTestFixture : public testing::Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
     const mpt::StubSSHKeyProvider key_provider;
-    const mp::VMMount vm_mount{source_path, {}, {}, mp::VMMount::MountType::Native};
     const QUrl base_url{"unix:///foo@1.0"};
     const QString default_storage_pool{"default"};
     mpt::StubVMStatusMonitor stub_monitor;

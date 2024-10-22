@@ -471,8 +471,8 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& defaul
         mount_element += gid_array_elements.join(',');
 
         mount_element += QString::fromStdString(fmt::format("\n                ],\n"
-                                                            "                \"source_path\": \"{}\",\n"
-                                                            "                \"target_path\": \"{}\",\n",
+                                                            "                \"source_path\": {:?},\n"
+                                                            "                \"target_path\": {:?},\n",
                                                             mount.get_source_path(),
                                                             mountpoint));
         mount_element += QString::fromStdString(fmt::format("                \"mount_type\": {},\n"
