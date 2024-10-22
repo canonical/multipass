@@ -77,12 +77,12 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
 
     copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
 
-    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / cloud_init_file_name;
+    const fs::path cloud_init_path = dest_instance_data_directory / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_vm_spec.default_mac_address,
                                               dest_vm_spec.extra_interfaces,
                                               destination_name,
-                                              cloud_init_config_iso_file_path);
+                                              cloud_init_path);
 
     // start to construct VirtualMachineDescription
     mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
@@ -93,7 +93,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_inst
                                                dest_vm_spec.extra_interfaces,
                                                dest_vm_spec.ssh_username,
                                                dest_vm_image,
-                                               cloud_init_config_iso_file_path.string().c_str(),
+                                               cloud_init_path.string().c_str(),
                                                {},
                                                {},
                                                {},
