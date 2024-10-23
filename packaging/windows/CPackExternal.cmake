@@ -13,7 +13,7 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 set(PRIMING_DIR
-    "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_PACKAGE_FILE_NAME}-priming")
+    "${CPACK_TEMPORARY_DIRECTORY}/priming")
 
 file(
   GLOB subdirectories
