@@ -135,9 +135,7 @@ class GeneralDetails extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final info = ref.watch(vmInfoProvider(name));
-    final isLaunching = ref.watch(launchingVmsProvider.select((infos) {
-      return infos.any((info) => info.name == name);
-    }));
+    final isLaunching = ref.watch(isLaunchingProvider(name));
 
     final status = VmStat(
       width: 100,

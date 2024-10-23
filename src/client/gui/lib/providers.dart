@@ -166,6 +166,13 @@ final launchingVmsProvider =
     NotifierProvider<LaunchingVmsNotifier, BuiltList<DetailedInfoItem>>(
         LaunchingVmsNotifier.new);
 
+final isLaunchingProvider = Provider.autoDispose.family<bool, String>(
+  (ref, name) {
+    final launchingVms = ref.watch(launchingVmsProvider);
+    return launchingVms.any((info) => info.name == name);
+  },
+);
+
 class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
   final file = File(settingsFile());
 
