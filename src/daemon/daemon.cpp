@@ -25,7 +25,6 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
-#include <multipass/exceptions/clone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
@@ -2708,14 +2707,14 @@ try
                                                        server};
 
     const auto& source_name = request->source_name();
-    const auto [instance_trail, status] = find_instance_and_react(operative_instances,
-                                                                  deleted_instances,
-                                                                  source_name,
-                                                                  require_operative_instances_reaction);
-    if (status.ok())
+    const auto [src_instance_trail, src_vm_status] = find_instance_and_react(operative_instances,
+                                                                             deleted_instances,
+                                                                             source_name,
+                                                                             require_operative_instances_reaction);
+    if (src_vm_status.ok())
     {
-        assert(instance_trail.index() == 0);
-        const auto source_vm_ptr = std::get<0>(instance_trail)->second;
+        assert(src_instance_trail.index() == 0);
+        const auto source_vm_ptr = std::get<0>(src_instance_trail)->second;
         assert(source_vm_ptr);
         const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
         if (source_vm_state != VirtualMachine::State::stopped && source_vm_state != VirtualMachine::State::off)
@@ -2724,7 +2723,24 @@ try
                 grpc::Status{grpc::FAILED_PRECONDITION, "Multipass can only clone stopped instances."});
         }
 
-        const std::string destination_name = generate_destination_instance_name_for_clone(*request);
+        const std::string destination_name = dest_name_for_clone(*request);
+        if (!mp::utils::valid_hostname(destination_name))
+            return status_promise->set_value(
+                grpc::Status{grpc::INVALID_ARGUMENT, "Invalid destination instance name: " + destination_name});
+
+        const auto [dest_instance_trail, dest_vm_status] = find_instance_and_react(operative_instances,
+                                                                                   deleted_instances,
+                                                                                   destination_name,
+                                                                                   require_missing_instances_reaction);
+        assert(dest_vm_status.ok() == (dest_instance_trail.index() == 2));
+
+        if (!dest_vm_status.ok())
+            return status_promise->set_value(dest_vm_status);
+        if (preparing_instances.find(destination_name) != preparing_instances.end())
+            return status_promise->set_value({grpc::StatusCode::INVALID_ARGUMENT,
+                                              fmt::format("instance \"{}\" is being prepared", destination_name),
+                                              ""});
+
         auto rollback_resources = sg::make_scope_guard([this, destination_name]() noexcept -> void {
             top_catch_all(category, [this, destination_name]() {
                 release_resources(destination_name);
@@ -2763,12 +2779,7 @@ try
         server->Write(rpc_response);
         rollback_resources.dismiss();
     }
-    status_promise->set_value(status);
-}
-catch (const mp::CloneInvalidNameException& e)
-{
-    // all CloneInvalidNameException throws in generate_destination_instance_name_for_clone
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what()));
+    status_promise->set_value(src_vm_status);
 }
 catch (const std::exception& e)
 {
@@ -3670,45 +3681,12 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          vm_specs.num_cores != 1);
 }
 
-bool mp::Daemon::is_instance_name_already_used(const std::string& instance_name)
+// the output name is not validated
+std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
-    return operative_instances.find(instance_name) != operative_instances.end() ||
-           deleted_instances.find(instance_name) != deleted_instances.end() ||
-           delayed_shutdown_instances.find(instance_name) != delayed_shutdown_instances.end() ||
-           preparing_instances.find(instance_name) != preparing_instances.end();
-}
-
-std::string mp::Daemon::generate_destination_instance_name_for_clone(const CloneRequest& request)
-{
-    if (request.has_destination_name())
-    {
-        if (!mp::utils::valid_hostname(request.destination_name()))
-        {
-            throw mp::CloneInvalidNameException("Invalid destination instance name: " + request.destination_name());
-        }
-
-        if (is_instance_name_already_used(request.destination_name()))
-        {
-            throw mp::CloneInvalidNameException(request.destination_name() +
-                                                " already exists, please choose a unique name.");
-        }
-
-        return request.destination_name();
-    }
-    else
-    {
-        const std::string& source_name = request.source_name();
-        const std::string destination_name =
-            generate_next_clone_name(vm_instance_specs[source_name].clone_count, source_name);
-
-        if (is_instance_name_already_used(destination_name))
-        {
-            throw mp::CloneInvalidNameException("auto-generated name " + destination_name +
-                                                " already exists, please specify a new name manually.");
-        }
-
-        return destination_name;
-    }
+    return request.has_destination_name()
+               ? request.destination_name()
+               : generate_next_clone_name(vm_instance_specs[request.source_name()].clone_count, request.source_name());
 };
 
 mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,

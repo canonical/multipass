@@ -107,7 +107,7 @@ TEST_F(TestDaemonClone, alreadyExistDestVmName)
                                          NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), HasSubstr("already exists, please choose a unique name."));
+    EXPECT_THAT(status.error_message(), HasSubstr("already exists"));
 }
 
 TEST_F(TestDaemonClone, successfulCloneGenerateDestNameOkStatus)
