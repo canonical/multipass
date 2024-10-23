@@ -39,9 +39,12 @@ public:
     long long in_megabytes() const noexcept;
     long long in_gigabytes() const noexcept;
 
-    std::string human_readable() const;
+    std::string human_readable(unsigned int precision = 1, bool trim_zeros = false) const;
+
+    static MemorySize from_bytes(long long bytes) noexcept;
 
 private:
+    explicit MemorySize(long long bytes) noexcept;
     long long bytes;
 };
 

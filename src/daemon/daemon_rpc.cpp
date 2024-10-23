@@ -407,6 +407,17 @@ grpc::Status mp::DaemonRpc::restore(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::daemon_info(grpc::ServerContext* context,
+                                        grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server)
+{
+    DaemonInfoRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_daemon_info, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal, const std::string& client_cert)
 {

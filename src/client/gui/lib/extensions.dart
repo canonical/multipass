@@ -96,3 +96,14 @@ extension WidgetGap on Iterable<Widget> {
 extension NonBreakingString on String {
   String get nonBreaking => replaceAll('-', '\u2011').replaceAll(' ', '\u00A0');
 }
+
+extension NullableMap<T> on T? {
+  U? map<U>(U? Function(T) f) {
+    final self = this;
+    try {
+      return self == null ? null : f(self);
+    } catch (_) {
+      return null;
+    }
+  }
+}

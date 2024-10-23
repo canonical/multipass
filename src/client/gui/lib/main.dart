@@ -17,6 +17,7 @@ import 'settings/hotkey.dart';
 import 'settings/settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
+import 'vm_details/mapping_slider.dart';
 import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
 
@@ -35,8 +36,9 @@ void main() async {
     return screen?.frame.size;
   });
 
-  final windowSize = (screenSize != null && screenSize.width >= 1600
-      && screenSize.height >= 900)
+  final windowSize = (screenSize != null &&
+          screenSize.width >= 1600 &&
+          screenSize.height >= 900)
       ? const Size(1400, 822) // For screens 1600x900 or larger
       : const Size(750, 450); // Default window size
 
@@ -137,7 +139,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
       ),
       const Align(
         alignment: Alignment.bottomRight,
-        child: SizedBox(width: 300, child: NotificationList()),
+        child: SizedBox(width: 400, child: NotificationList()),
       ),
       const DaemonUnavailable(),
     ]);
@@ -221,12 +223,18 @@ final theme = ThemeData(
   fontFamily: 'Ubuntu',
   fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
   inputDecorationTheme: const InputDecorationTheme(
-    border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-    isDense: true,
-    focusedBorder: OutlineInputBorder(
+    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 6),
+    fillColor: Color(0xfff2f2f2),
+    filled: true,
+    focusedBorder: UnderlineInputBorder(
+      borderSide: BorderSide(width: 2),
       borderRadius: BorderRadius.zero,
-      borderSide: BorderSide(),
     ),
+    enabledBorder: UnderlineInputBorder(
+      borderSide: BorderSide(width: 2),
+      borderRadius: BorderRadius.zero,
+    ),
+    isDense: true,
     suffixIconColor: Colors.black,
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
@@ -275,5 +283,15 @@ final theme = ThemeData(
       fontWeight: FontWeight.bold,
     ),
     tabAlignment: TabAlignment.start,
+  ),
+  sliderTheme: SliderThemeData(
+    activeTrackColor: Color(0xff0066cc),
+    inactiveTrackColor: Color(0xffd9d9d9),
+    overlayShape: SliderComponentShape.noThumb,
+    thumbColor: Colors.white,
+    thumbShape: CustomThumbShape(),
+    tickMarkShape: SliderTickMarkShape.noTickMark,
+    trackHeight: 2,
+    trackShape: CustomTrackShape(),
   ),
 );

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart' hide Tooltip;
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../extensions.dart';
 import '../ffi.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../tooltip.dart';
-import 'spec_input.dart';
+import 'cpus_slider.dart';
+import 'disk_slider.dart';
+import 'ram_slider.dart';
 import 'vm_details.dart';
 
 class ResourcesDetails extends ConsumerStatefulWidget {
@@ -22,85 +24,75 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
   final formKey = GlobalKey<FormState>();
   bool editing = false;
 
-  late final cpusProvider = daemonSettingProvider('local.${widget.name}.cpus');
-  late final memoryProvider =
-      daemonSettingProvider('local.${widget.name}.memory');
-  late final diskProvider = daemonSettingProvider('local.${widget.name}.disk');
+  late final cpusProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.cpus,
+  ));
+  late final ramProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.memory,
+  ));
+  late final diskProvider = vmResourceProvider((
+    name: widget.name,
+    resource: VmResource.disk,
+  ));
 
   @override
   Widget build(BuildContext context) {
-    final cpus = ref.watch(cpusProvider).valueOrNull;
-    final memory = ref.watch(memoryProvider).valueOrNull;
-    final disk = ref.watch(diskProvider).valueOrNull;
+    final cpus = ref.watch(cpusProvider).whenOrNull(data: int.tryParse);
+    final ram = ref.watch(ramProvider).whenOrNull(data: memoryInBytes);
+    final disk = ref.watch(diskProvider).whenOrNull(data: memoryInBytes);
     final stopped = ref.watch(vmInfoProvider(widget.name).select((info) {
       return info.instanceStatus.status == Status.STOPPED;
     }));
 
     if (!stopped) editing = false;
 
-    final cpusInput = SpecInput(
-      key: Key('cpus-$cpus'),
-      label: 'CPUs',
-      initialValue: cpus,
-      helper: editing ? 'Number of cores' : null,
-      enabled: editing,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      validator: cpus != null
-          ? (value) => (int.tryParse(value!) ?? 0) > 0
-              ? null
-              : 'Number of CPUs must be greater than 0'
-          : null,
-      onSaved: (value) {
-        if (value == cpus) return;
-        ref
-            .read(cpusProvider.notifier)
-            .set(value!)
-            .onError(ref.notifyError((error) => 'Failed to set CPUs: $error'));
-      },
-    );
+    final cpusResource = !editing
+        ? Text(
+            'CPUs ${cpus?.toString() ?? '…'}',
+            style: TextStyle(fontSize: 16),
+          )
+        : CpusSlider(
+            key: Key('cpus-$cpus'),
+            initialValue: cpus,
+            onSaved: (value) {
+              if (value == null || value == cpus) return;
+              ref.read(cpusProvider.notifier).set('$value').onError(
+                  ref.notifyError((error) => 'Failed to set CPUs : $error'));
+            },
+          );
 
-    final memoryInput = SpecInput(
-      key: Key('memory-$memory'),
-      label: 'Memory',
-      initialValue: memory,
-      helper: editing ? 'Default unit in Gigabytes' : null,
-      enabled: editing,
-      validator: memory != null ? memorySizeValidator : null,
-      onSaved: (value) {
-        if (value == memory) return;
-        ref
-            .read(memoryProvider.notifier)
-            .set(double.tryParse(value!) != null ? '${value}GB' : value)
-            .onError(ref.notifyError((e) => 'Failed to set memory size: $e'));
-      },
-    );
+    final ramResource = !editing
+        ? Text(
+            'Memory ${ram.map(humanReadableMemory) ?? '…'}',
+            style: TextStyle(fontSize: 16),
+          )
+        : RamSlider(
+            key: Key('ram-$ram'),
+            initialValue: ram,
+            onSaved: (value) {
+              if (value == null || value == ram) return;
+              ref.read(ramProvider.notifier).set('${value}B').onError(
+                  ref.notifyError((e) => 'Failed to set memory size: $e'));
+            },
+          );
 
-    final diskInput = SpecInput(
-      key: Key('disk-$disk'),
-      label: 'Disk',
-      initialValue: disk,
-      helper: editing ? 'Default unit in Gigabytes' : null,
-      enabled: editing,
-      validator: disk != null
-          ? (value) {
-              value = double.tryParse(value!) != null ? '${value}GB' : value;
-              try {
-                final givenValue = memoryInBytes(value);
-                final currentValue = memoryInBytes(disk);
-                return givenValue < currentValue ? 'Disk can only grow' : null;
-              } catch (_) {
-                return 'Invalid memory size';
-              }
-            }
-          : null,
-      onSaved: (value) {
-        if (value == disk) return;
-        ref
-            .read(diskProvider.notifier)
-            .set(double.tryParse(value!) != null ? '${value}GB' : value)
-            .onError(ref.notifyError((e) => 'Failed to set disk size: $e'));
-      },
-    );
+    final diskResource = !editing
+        ? Text(
+            'Disk ${disk.map(humanReadableMemory) ?? '…'}',
+            style: TextStyle(fontSize: 16),
+          )
+        : DiskSlider(
+            key: Key('disk-$disk'),
+            min: disk,
+            initialValue: disk,
+            onSaved: (value) {
+              if (value == null || value == disk) return;
+              ref.read(diskProvider.notifier).set('${value}B').onError(
+                  ref.notifyError((e) => 'Failed to set disk size: $e'));
+            },
+          );
 
     final saveButton = TextButton(
       onPressed: () {
@@ -151,10 +143,13 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             const Spacer(),
             editing ? cancelButton : configureButton,
           ]),
-          Wrap(spacing: 50, runSpacing: 25, children: [
-            cpusInput,
-            memoryInput,
-            diskInput,
+          const SizedBox(height: 10),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: cpusResource),
+            const SizedBox(width: 86),
+            Expanded(child: ramResource),
+            const SizedBox(width: 86),
+            Expanded(child: diskResource),
           ]),
           if (editing)
             Padding(

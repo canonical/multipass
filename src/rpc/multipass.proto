@@ -44,6 +44,7 @@ service Rpc {
     rpc snapshot (stream SnapshotRequest) returns (stream SnapshotReply);
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
     rpc clone (stream CloneRequest) returns (stream CloneReply);
+    rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
 }
 
 message LaunchRequest {
@@ -538,4 +539,12 @@ message CloneRequest {
 message CloneReply {
     string reply_message = 1;
     string log_line = 2;
+}
+message DaemonInfoRequest {
+    int32 verbosity_level = 1;
+}
+
+message DaemonInfoReply {
+    string log_line = 1;
+    uint64 available_space = 2;
 }

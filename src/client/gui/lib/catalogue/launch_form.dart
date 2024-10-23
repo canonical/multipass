@@ -2,16 +2,21 @@ import 'dart:async';
 
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch, ImageInfo;
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../ffi.dart';
+import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../sidebar.dart';
 import '../switch.dart';
+import '../vm_details/cpus_slider.dart';
+import '../vm_details/disk_slider.dart';
+import '../vm_details/mapping_slider.dart';
 import '../vm_details/mount_points.dart';
+import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
-import 'launch_panel.dart';
 
 final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
 
@@ -25,6 +30,10 @@ String imageName(ImageInfo imageInfo) {
       ? result
       : '$result ${imageInfo.codename}';
 }
+
+final defaultCpus = 1;
+final defaultRam = 1.gibi;
+final defaultDisk = 5.gibi;
 
 class LaunchForm extends ConsumerStatefulWidget {
   const LaunchForm({super.key});
@@ -75,33 +84,19 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
     );
 
-    final cpusInput = SpecInput(
-      initialValue: '1',
-      validator: (value) => (int.tryParse(value!) ?? 0) > 0
-          ? null
-          : 'Number of CPUs must be greater than 0',
-      onSaved: (value) => launchRequest.numCores = int.parse(value!),
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      helper: 'Number of cores',
-      label: 'CPUs',
+    final cpusSlider = CpusSlider(
+      initialValue: defaultCpus,
+      onSaved: (value) => launchRequest.numCores = value!,
     );
 
-    final memoryInput = SpecInput(
-      initialValue: '1',
-      helper: 'Default unit in Gigabytes',
-      label: 'Memory',
-      validator: memorySizeValidator,
-      onSaved: (value) => launchRequest.memSize =
-          double.tryParse(value!) != null ? '${value}GB' : value,
+    final memorySlider = RamSlider(
+      initialValue: defaultRam,
+      onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
-    final diskInput = SpecInput(
-      initialValue: '5',
-      helper: 'Default unit in Gigabytes',
-      label: 'Disk',
-      validator: memorySizeValidator,
-      onSaved: (value) => launchRequest.diskSpace =
-          double.tryParse(value!) != null ? '${value}GB' : value,
+    final diskSlider = DiskSlider(
+      initialValue: defaultDisk,
+      onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
     final bridgedSwitch = FormField<bool>(
@@ -211,12 +206,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           height: 50,
           child: Text('Resources', style: TextStyle(fontSize: 24)),
         ),
-        Row(children: [
-          cpusInput,
-          const SizedBox(width: 24),
-          memoryInput,
-          const SizedBox(width: 24),
-          diskInput,
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: cpusSlider),
+          const SizedBox(width: 86),
+          Expanded(child: memorySlider),
+          const SizedBox(width: 86),
+          Expanded(child: diskSlider),
         ]),
         const Divider(height: 60),
         const SizedBox(
@@ -251,13 +246,16 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         child: Container(
           alignment: Alignment.topCenter,
           color: Colors.white,
-          padding: const EdgeInsets.all(16),
           child: Form(
             key: formKey,
             autovalidateMode: AutovalidateMode.always,
             child: SingleChildScrollView(
+              clipBehavior: Clip.none,
               controller: scrollController,
-              child: formBody,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: formBody,
+              ),
             ),
           ),
         ),
@@ -303,14 +301,37 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       mountRequest.targetPaths.first.instanceName = launchRequest.instanceName;
     }
 
-    final grpcClient = ref.read(grpcClientProvider);
-    final operation = LaunchOperation(
-      stream: grpcClient.launch(launchRequest, mountRequests),
-      name: launchRequest.instanceName,
-      image: imageName(imageInfo),
-    );
-    ref.read(launchOperationProvider.notifier).state = operation;
+    initiateLaunchFlow(ref, launchRequest, mountRequests);
+    Scaffold.of(context).closeEndDrawer();
   }
+}
+
+void initiateLaunchFlow(
+  WidgetRef ref,
+  LaunchRequest launchRequest, [
+  List<MountRequest> mountRequests = const [],
+]) {
+  final grpcClient = ref.read(grpcClientProvider);
+  final launchingVmsNotifier = ref.read(launchingVmsProvider.notifier);
+
+  launchingVmsNotifier.add(launchRequest);
+  final cancelCompleter = Completer<void>();
+  final launchStream = grpcClient
+      .launch(
+        launchRequest,
+        mountRequests: mountRequests,
+        cancel: cancelCompleter.future,
+      )
+      .doOnDone(() => launchingVmsNotifier.remove(launchRequest.instanceName));
+
+  final notification = LaunchingNotification(
+    name: launchRequest.instanceName,
+    cancelCompleter: cancelCompleter,
+    stream: launchStream,
+  );
+
+  ref.read(notificationsProvider.notifier).add(notification);
+  ref.read(sidebarKeyProvider.notifier).set('vm-${launchRequest.instanceName}');
 }
 
 FormFieldValidator<String> nameValidator(

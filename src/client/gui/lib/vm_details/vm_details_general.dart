@@ -135,12 +135,13 @@ class GeneralDetails extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final info = ref.watch(vmInfoProvider(name));
+    final isLaunching = ref.watch(isLaunchingProvider(name));
 
     final status = VmStat(
       width: 100,
       height: 50,
       label: 'STATE',
-      child: VmStatusIcon(info.instanceStatus.status),
+      child: VmStatusIcon(info.instanceStatus.status, isLaunching: isLaunching),
     );
 
     final image = VmStat(
