@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Tooltip;
 
 import '../extensions.dart';
 import '../grpc_client.dart';
+import '../tooltip.dart';
 
 const unknownIcon = Icon(Icons.help, color: Color(0xff757575), size: 15);
 const icons = {

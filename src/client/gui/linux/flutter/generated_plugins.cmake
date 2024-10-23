@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  file_selector_linux
   hotkey_manager_linux
   local_notifier
   screen_retriever

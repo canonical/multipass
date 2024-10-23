@@ -39,6 +39,11 @@ class LinuxPlatform extends MpPlatform {
 
   @override
   String get metaKey => 'Super';
+
+  @override
+  String? get homeDirectory => Platform.environment['SNAP'] == null
+      ? Platform.environment['HOME']
+      : Platform.environment['SNAP_REAL_HOME'];
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {
@@ -46,7 +51,6 @@ class LinuxAutostartNotifier extends AutostartNotifier {
   final file = File(
     '${Platform.environment['HOME']}/.config/autostart/$autostartFile',
   );
-
 
   LinuxAutostartNotifier() {
     if (FileSystemEntity.isLinkSync(file.path)) {
