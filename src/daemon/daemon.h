@@ -152,6 +152,10 @@ public slots:
                          grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>* server,
                          std::promise<grpc::Status>* status_promise);
 
+    virtual void daemon_info(const DaemonInfoRequest* request,
+                             grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
+                             std::promise<grpc::Status>* status_promise);
+
 private:
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request, grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,

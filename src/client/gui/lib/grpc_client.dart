@@ -269,6 +269,15 @@ class GrpcClient {
         .first
         .then((reply) => reply.sshInfo[name]);
   }
+
+  Future<DaemonInfoReply> daemonInfo() {
+    final request = DaemonInfoRequest();
+    logger.i('Sent ${request.repr}');
+    return _client
+        .daemon_info(Stream.value(request))
+        .doOnEach(logGrpc(request))
+        .last;
+  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
