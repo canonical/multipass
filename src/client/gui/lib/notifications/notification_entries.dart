@@ -260,7 +260,7 @@ class LaunchingNotification extends ConsumerWidget {
 
         final (message, cancelable) = data ?? ('', false);
 
-        return SimpleNotification(
+        final notification = SimpleNotification(
           barColor: Colors.blue,
           closeable: false,
           icon: const CircularProgressIndicator(
@@ -287,6 +287,14 @@ class LaunchingNotification extends ConsumerWidget {
                 ])
               ],
             ],
+          ),
+        );
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => ref.read(sidebarKeyProvider.notifier).set('vm-$name'),
+            child: notification,
           ),
         );
       },
