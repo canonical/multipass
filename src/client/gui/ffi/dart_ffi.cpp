@@ -3,9 +3,13 @@
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
 #include "multipass/name_generator.h"
+#include "multipass/platform.h"
 #include "multipass/settings/settings.h"
+#include "multipass/standard_paths.h"
 #include "multipass/utils.h"
 #include "multipass/version.h"
+
+#include <QStorageInfo>
 
 namespace mp = multipass;
 namespace mpc = multipass::client;
@@ -225,6 +229,21 @@ long long memory_in_bytes(char* value)
         mpl::log(mpl::Level::warning, category, error);
         return -1;
     }
+}
+
+const char* human_readable_memory(long long bytes)
+{
+    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
+    return strdup(string.c_str());
+}
+
+long long get_total_disk_size()
+{
+    const auto mp_storage = MP_PLATFORM.multipass_storage_location();
+    const auto location =
+        mp_storage.isEmpty() ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation) : mp_storage;
+    QStorageInfo storageInfo{location};
+    return storageInfo.bytesTotal();
 }
 
 char* default_mount_target(char* source)

@@ -109,6 +109,9 @@ signals:
     void on_restore(const RestoreRequest* request,
                     grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server,
                     std::promise<grpc::Status>* status_promise);
+    void on_daemon_info(const DaemonInfoRequest* request,
+                        grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -162,6 +165,8 @@ protected:
                           grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server) override;
     grpc::Status restore(grpc::ServerContext* context,
                          grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server) override;
+    grpc::Status daemon_info(grpc::ServerContext* context,
+                             grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server) override;
 };
 } // namespace multipass
 #endif // MULTIPASS_DAEMON_RPC_H

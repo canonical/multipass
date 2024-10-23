@@ -239,6 +239,10 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           shortcuts: mpPlatform.terminalShortcuts,
           hardwareKeyboardOnly: true,
           padding: const EdgeInsets.all(4),
+          textStyle: TerminalStyle(
+            fontFamily: 'UbuntuMono',
+            fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+          ),
           theme: const TerminalTheme(
             cursor: Color(0xFFE5E5E5),
             selection: Color(0x80E5E5E5),

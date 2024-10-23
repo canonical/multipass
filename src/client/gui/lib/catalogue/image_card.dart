@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../providers.dart';
 import 'launch_form.dart';
-import 'launch_panel.dart';
 
 class ImageCard extends ConsumerWidget {
   final ImageInfo image;
@@ -61,22 +60,17 @@ class ImageCard extends ConsumerWidget {
                 onPressed: () {
                   final name = ref.read(randomNameProvider);
                   final aliasInfo = image.aliasesInfo.first;
-                  final request = LaunchRequest(
+                  final launchRequest = LaunchRequest(
                     instanceName: name,
                     image: aliasInfo.alias,
+                    numCores: defaultCpus,
+                    memSize: '${defaultRam}B',
+                    diskSpace: '${defaultDisk}B',
                     remoteName:
                         aliasInfo.hasRemoteName() ? aliasInfo.remoteName : null,
                   );
 
-                  final grpcClient = ref.read(grpcClientProvider);
-                  final operation = LaunchOperation(
-                    stream: grpcClient.launch(request),
-                    name: name,
-                    image: imageName(image),
-                  );
-
-                  ref.read(launchOperationProvider.notifier).state = operation;
-                  Scaffold.of(context).openEndDrawer();
+                  initiateLaunchFlow(ref, launchRequest);
                 },
                 child: const Text('Launch'),
               ),

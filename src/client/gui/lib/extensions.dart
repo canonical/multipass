@@ -12,7 +12,11 @@ final _hoveredLinkProvider = StateProvider.autoDispose<TextSpan?>((ref) {
 extension TextSpanFromStringExt on String {
   TextSpan get span => TextSpan(
         text: this,
-        style: const TextStyle(color: Colors.black, fontFamily: 'Ubuntu'),
+        style: const TextStyle(
+          color: Colors.black,
+          fontFamily: 'Ubuntu',
+          fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+        ),
       );
 }
 
@@ -42,6 +46,18 @@ extension TextSpanExt on TextSpan {
         text: text,
         children: children,
         style: (style ?? noStyle).copyWith(color: color),
+      );
+
+  TextSpan font(String fontFamily) => TextSpan(
+        text: text,
+        children: children,
+        style: (style ?? noStyle).copyWith(fontFamily: fontFamily),
+      );
+
+  TextSpan backgroundColor(Color color) => TextSpan(
+        text: text,
+        children: children,
+        style: (style ?? noStyle).copyWith(backgroundColor: color),
       );
 
   TextSpan link(WidgetRef ref, VoidCallback callback) {
@@ -79,4 +95,15 @@ extension WidgetGap on Iterable<Widget> {
 
 extension NonBreakingString on String {
   String get nonBreaking => replaceAll('-', '\u2011').replaceAll(' ', '\u00A0');
+}
+
+extension NullableMap<T> on T? {
+  U? map<U>(U? Function(T) f) {
+    final self = this;
+    try {
+      return self == null ? null : f(self);
+    } catch (_) {
+      return null;
+    }
+  }
 }

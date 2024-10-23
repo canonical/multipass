@@ -68,6 +68,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
@@ -578,6 +579,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
     QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
 }
 
 enum class InstanceGroup
@@ -2771,6 +2773,28 @@ catch (const mp::CloneInvalidNameException& e)
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
+}
+
+void mp::Daemon::daemon_info(const DaemonInfoRequest* request,
+                             grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
+                             std::promise<grpc::Status>* status_promise) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger<DaemonInfoReply, DaemonInfoRequest> logger{mpl::level_from(request->verbosity_level()),
+                                                                 *config->logger,
+                                                                 server};
+
+    DaemonInfoReply response;
+
+    QStorageInfo storage_info{config->data_directory};
+    response.set_available_space(storage_info.bytesTotal());
+
+    server->Write(response);
+    status_promise->set_value(grpc::Status{});
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::on_shutdown()

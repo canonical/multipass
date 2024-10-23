@@ -94,11 +94,13 @@ apps:
     command: bin/bundle/multipass_gui
     command-chain: [bin/set-xdg-vars]
     plugs:
+      - all-home
       - desktop
       - desktop-legacy
       - gsettings
       - network
       - opengl
+      - removable-media
       - unity7
       - wayland
       - x11

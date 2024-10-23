@@ -1,268 +1,318 @@
+import 'dart:io';
+
 import 'package:basics/basics.dart';
-import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:extended_text/extended_text.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart' hide Tooltip;
+import 'package:flutter_svg/flutter_svg.dart';
 
-import '../extensions.dart';
 import '../ffi.dart';
+import '../platform/platform.dart';
 import '../providers.dart';
+import '../tooltip.dart';
+import 'spec_input.dart';
 
-class MountPoint extends StatefulWidget {
-  final VoidCallback onDelete;
-  final Function(MountRequest mountRequest) onSaved;
-  final String initialSource;
-  final String initialTarget;
-  final Widget Function(
-    Widget sourceField,
-    Widget targetField,
-    Widget deleteButton,
-  ) builder;
+class EditableMountPoint extends StatefulWidget {
+  final String? initialSource;
+  final Iterable<String> existingTargets;
+  final ValueChanged<MountRequest> onSaved;
 
-  const MountPoint({
+  const EditableMountPoint({
     super.key,
-    required this.onDelete,
+    this.initialSource,
     required this.onSaved,
-    required this.initialSource,
-    required this.initialTarget,
-    required this.builder,
+    required this.existingTargets,
   });
 
   @override
-  State<MountPoint> createState() => _MountPointState();
+  State<EditableMountPoint> createState() => _EditableMountPointState();
 }
 
-class _MountPointState extends State<MountPoint> {
-  String? source;
-  String? target;
-  String? targetHint;
+class _EditableMountPointState extends State<EditableMountPoint> {
+  var targetHint = '';
+  final sourceController = TextEditingController();
 
-  void save() {
-    final (savedSource, savedTarget) = (source, target);
-    if (savedSource.isNullOrBlank || savedTarget == null) return;
+  @override
+  void initState() {
+    super.initState();
+    sourceController.addListener(() => setState(() {
+          targetHint = defaultMountTarget(source: sourceController.text);
+        }));
+    sourceController.text = widget.initialSource ?? '';
+  }
 
-    final targetPath = TargetPathInfo(
-      targetPath: savedTarget.isBlank ? savedSource : savedTarget,
-    );
+  @override
+  void dispose() {
+    sourceController.dispose();
+    super.dispose();
+  }
 
+  void save(String source, String target) {
+    target = target.isBlank ? targetHint : target;
+    if (source.isNullOrBlank) return;
     final request = MountRequest(
-      sourcePath: savedSource,
-      targetPaths: [targetPath],
+      sourcePath: source,
+      targetPaths: [TargetPathInfo(targetPath: target)],
       mountMaps: MountMaps(
         uidMappings: [IdMap(hostId: uid(), instanceId: defaultId())],
         gidMappings: [IdMap(hostId: gid(), instanceId: defaultId())],
       ),
     );
-
     widget.onSaved(request);
-    source = null;
-    target = null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final sourceField = TextFormField(
-      initialValue: widget.initialSource,
-      onChanged: (value) => setState(() => targetHint = value),
-      onSaved: (value) => source = value ?? '',
+    final headers = DefaultTextStyle.merge(
+      style: const TextStyle(color: Colors.black),
+      child: const Row(children: [
+        Expanded(
+          child: Row(children: [
+            Text('HOST DIRECTORY'),
+            SizedBox(width: 8),
+            Tooltip(
+              message:
+                  'A directory on your local machine that will be shared with the instance',
+              child: Icon(Icons.info_outline, size: 20),
+            ),
+          ]),
+        ),
+        SizedBox(width: 24),
+        Expanded(
+          child: Row(children: [
+            Text('GUEST DIRECTORY'),
+            SizedBox(width: 8),
+            Tooltip(
+              message:
+                  'A destination inside the instance for the shared directory.\n'
+                  'If the destination directory already exists, its contents will not be visible until unmounting.',
+              child: Icon(Icons.info_outline, size: 20),
+            ),
+          ]),
+        ),
+      ]),
+    );
+
+    final sourceField = ClippingTextField(
+      controller: sourceController,
       validator: (value) {
         return value.isNullOrBlank ? 'Source cannot be empty' : null;
       },
     );
 
-    final targetField = TextFormField(
-      initialValue: widget.initialTarget,
-      decoration: InputDecoration(hintText: targetHint),
-      onSaved: (value) {
-        target = value ?? '';
-        save();
+    final filePicker = OutlinedButton(
+      onPressed: () async {
+        final chosenSource = sourceController.text;
+        final source = await getDirectoryPath(
+          confirmButtonText: 'Select',
+          initialDirectory: await Directory(chosenSource).exists()
+              ? chosenSource
+              : mpPlatform.homeDirectory,
+        );
+        if (source == null) return;
+        sourceController.text = source;
+      },
+      child: const Text('Select'),
+    );
+
+    final targetField = SpecInput(
+      hint: targetHint,
+      onSaved: (target) => save(sourceController.text, target ?? ''),
+      validator: (target) {
+        target ??= '';
+        target = target.isEmpty ? targetHint : target;
+        return widget.existingTargets.contains(target)
+            ? 'This path is used by another mount'
+            : null;
       },
     );
 
-    final deleteButton = SizedBox(
-      height: 42,
-      child: OutlinedButton(
-        onPressed: widget.onDelete,
-        child: const Icon(Icons.delete_outline, color: Colors.grey),
-      ),
-    );
-
-    return widget.builder(sourceField, targetField, deleteButton);
-  }
-}
-
-class MountPointList extends StatefulWidget {
-  final double? width;
-  final ValueChanged<BuiltList<MountRequest>> onSaved;
-  final bool showLabels;
-
-  const MountPointList({
-    super.key,
-    this.width,
-    required this.onSaved,
-    this.showLabels = true,
-  });
-
-  @override
-  State<MountPointList> createState() => _MountPointListState();
-}
-
-class _MountPointListState extends State<MountPointList> {
-  static const gap = 24.0;
-  final mounts = <UniqueKey, (String, String)>{};
-  final savedMountRequests = <MountRequest>[];
-
-  void addEntry() => setState(() => mounts[UniqueKey()] = ('', ''));
-
-  void onEntryDeleted(Key key) => setState(() => mounts.remove(key));
-
-  void onEntrySaved(MountRequest request) {
-    savedMountRequests.add(request);
-    if (mounts.length == savedMountRequests.length) {
-      widget.onSaved(savedMountRequests.build());
-      savedMountRequests.clear();
-    }
-  }
-
-  Widget widthWrapper(Widget child) {
-    final width = widget.width;
-    return width == null
-        ? Expanded(child: child)
-        : SizedBox(width: width, child: child);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mountPoints = mounts.entries.map((entry) {
-      final MapEntry(:key, value: (initialSource, initialTarget)) = entry;
-      return Container(
-        key: key,
-        margin: const EdgeInsets.symmetric(vertical: gap / 2),
-        child: MountPoint(
-          initialSource: initialSource,
-          initialTarget: initialTarget,
-          onSaved: onEntrySaved,
-          onDelete: () => onEntryDeleted(key),
-          builder: (sourceField, targetField, deleteButton) => Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              widthWrapper(sourceField),
-              widthWrapper(targetField),
-              deleteButton,
-            ].gap(width: gap).toList(),
-          ),
+    return Column(children: [
+      headers,
+      const SizedBox(height: 8),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: sourceField),
+            const SizedBox(width: 10),
+            SizedBox(height: 42, child: filePicker),
+          ]),
         ),
-      );
-    }).toList();
-
-    final addMountPoint = OutlinedButton.icon(
-      onPressed: addEntry,
-      label: const Text('Add mount point'),
-      icon: const Icon(Icons.add),
-    );
-
-    final labels = DefaultTextStyle.merge(
-      style: const TextStyle(fontSize: 16),
-      child: Row(
-        children: [
-          widthWrapper(const Text('Source path')),
-          widthWrapper(const Text('Target path')),
-          const SizedBox(width: 55),
-        ].gap(width: gap).toList(),
-      ),
-    );
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (widget.showLabels && mountPoints.isNotEmpty) labels,
-      ...mountPoints,
-      addMountPoint,
+        const SizedBox(width: 24),
+        Expanded(child: targetField), // deleteButton,
+      ]),
     ]);
   }
 }
 
-class MountPointsView extends StatefulWidget {
-  final Iterable<MountPaths> existingMounts;
-  final bool editing;
-  final ValueChanged<BuiltList<String>> onSaved;
+const middleOverflow = TextOverflowWidget(
+  align: TextOverflowAlign.center,
+  position: TextOverflowPosition.middle,
+  child: Text('\u2026'),
+);
+
+class MountPointsView extends StatelessWidget {
+  final Iterable<MountPaths> mounts;
+  final bool allowDelete;
+  final void Function(MountPaths mountPaths) onDelete;
+
+  static const deleteButtonSize = 25.0;
 
   const MountPointsView({
     super.key,
-    required this.existingMounts,
-    required this.editing,
-    required this.onSaved,
+    required this.mounts,
+    required this.allowDelete,
+    required this.onDelete,
   });
 
   @override
-  State<MountPointsView> createState() => _MountPointsViewState();
-}
+  Widget build(BuildContext context) {
+    final mounts = this.mounts.toList();
 
-class _MountPointsViewState extends State<MountPointsView> {
-  static const deleteButtonSize = 25.0;
+    final headers = DefaultTextStyle.merge(
+      style: const TextStyle(color: Colors.black),
+      child: const Row(children: [
+        Expanded(child: Text('HOST DIRECTORY')),
+        SizedBox(width: 24),
+        Expanded(child: Text('GUEST DIRECTORY')),
+      ]),
+    );
 
-  final toUnmount = <String>{};
+    const divider = Divider(
+      height: 15,
+      color: Colors.black38,
+    );
 
-  @override
-  void didUpdateWidget(MountPointsView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    toUnmount.clear();
+    return Column(children: [
+      if (mounts.isNotEmpty) ...[
+        headers,
+        divider,
+      ],
+      for (final mount in mounts) ...[
+        buildEntry(mount),
+        divider,
+      ],
+    ]);
   }
 
   Widget buildEntry(MountPaths mount) {
-    final contains = toUnmount.contains(mount.targetPath);
-
     final button = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: IconButton(
         constraints: const BoxConstraints(),
-        icon: Icon(contains ? Icons.undo : Icons.delete),
+        icon: SvgPicture.asset('assets/delete.svg', height: 20),
         iconSize: deleteButtonSize,
         padding: EdgeInsets.zero,
         splashRadius: 20,
-        onPressed: () => setState(() {
-          if (!toUnmount.remove(mount.targetPath)) {
-            toUnmount.add(mount.targetPath);
-          }
-        }),
+        onPressed: () => onDelete(mount),
       ),
     );
 
     return DefaultTextStyle.merge(
-      style: TextStyle(
-        decoration: contains ? TextDecoration.lineThrough : null,
-        fontSize: 16,
-      ),
+      style: const TextStyle(fontSize: 16),
       child: SizedBox(
         height: 30,
         child: Row(children: [
-          Expanded(child: Text(mount.sourcePath)),
-          Expanded(child: Text(mount.targetPath)),
-          widget.editing
-              ? button
-              : const SizedBox(width: deleteButtonSize + 32),
+          Expanded(
+            child: ExtendedText(
+              mount.sourcePath,
+              maxLines: 1,
+              overflowWidget: middleOverflow,
+            ),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Row(children: [
+              Expanded(
+                child: ExtendedText(
+                  mount.targetPath,
+                  maxLines: 1,
+                  overflowWidget: middleOverflow,
+                ),
+              ),
+              if (allowDelete) button,
+            ]),
+          ),
         ]),
       ),
     );
   }
+}
+
+class ClippingTextField extends StatefulWidget {
+  final TextEditingController controller;
+  final FormFieldValidator<String>? validator;
+
+  const ClippingTextField({
+    super.key,
+    required this.controller,
+    this.validator,
+  });
+
+  @override
+  State<ClippingTextField> createState() => _ClippingTextFieldState();
+}
+
+class _ClippingTextFieldState extends State<ClippingTextField> {
+  var showClipped = true;
+  final clippedFocusNode = FocusNode();
+  final fieldFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    fieldFocusNode.addListener(() {
+      final hasFocus = fieldFocusNode.hasFocus;
+      if (!hasFocus) {
+        setState(() => showClipped = true);
+      }
+    });
+    widget.controller.addListener(() {
+      setState(() {
+        // rebuild in order for the clipped widget to pick up the new value
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FormField<BuiltList<String>>(
-      onSaved: (_) => widget.onSaved(toUnmount.toBuiltList()),
-      builder: (_) {
-        return Column(children: [
-          if (widget.existingMounts.isNotEmpty)
-            DefaultTextStyle.merge(
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              child: const Row(children: [
-                Expanded(child: Text('SOURCE PATH')),
-                Expanded(child: Text('TARGET PATH')),
-                SizedBox(width: deleteButtonSize + 32),
-              ]),
-            ),
-          for (final mount in widget.existingMounts) ...[
-            const Divider(height: 10),
-            buildEntry(mount),
-          ],
-        ]);
-      },
+    if (showClipped) {
+      final clippedText = ExtendedText(
+        widget.controller.text,
+        style: const TextStyle(fontSize: 16),
+        maxLines: 1,
+        overflowWidget: middleOverflow,
+      );
+
+      final clippedTextFormField = FormField<String>(
+        validator: (_) => widget.validator?.call(widget.controller.text),
+        builder: (field) => InputDecorator(
+          decoration: InputDecoration(
+            errorText: field.errorText,
+          ),
+          child: clippedText,
+        ),
+      );
+
+      return GestureDetector(
+        onTap: () => clippedFocusNode.requestFocus(),
+        child: Focus(
+          focusNode: clippedFocusNode,
+          onFocusChange: (hasFocus) {
+            if (hasFocus) {
+              setState(() => showClipped = false);
+              fieldFocusNode.requestFocus();
+            }
+          },
+          child: clippedTextFormField,
+        ),
+      );
+    }
+
+    return SpecInput(
+      controller: widget.controller,
+      focusNode: fieldFocusNode,
+      validator: widget.validator,
     );
   }
 }

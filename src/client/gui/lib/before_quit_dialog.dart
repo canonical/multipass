@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Switch;
 
+import 'confirmation_dialog.dart';
 import 'switch.dart';
 
 class BeforeQuitDialog extends StatefulWidget {
@@ -23,54 +24,24 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: const Border(),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      titlePadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
-      buttonPadding: const EdgeInsets.symmetric(horizontal: 16),
-      title: Row(children: [
-        const Expanded(child: Text('Before quitting')),
-        IconButton(
-          onPressed: widget.onClose,
-          splashRadius: 15,
-          icon: const Icon(Icons.close),
+    return ConfirmationDialog(
+      title: 'Before quitting',
+      body: Column(children: [
+        const Text(
+          'When quitting this application you can leave instances running in the background or choose to stop them completely.',
+        ),
+        const SizedBox(height: 12),
+        Switch(
+          value: remember,
+          label: 'Remember this setting',
+          onChanged: (value) => setState(() => remember = value),
         ),
       ]),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(),
-          const SizedBox(
-            width: 600,
-            child: Text(
-              'When quitting this application you can leave instances running in the background or choose to stop them completely.',
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Switch(
-              value: remember,
-              label: 'Remember this setting',
-              onChanged: (value) => setState(() => remember = value),
-            ),
-          ),
-          const Divider(),
-        ],
-      ),
-      actions: [
-        OutlinedButton(
-          onPressed: () => widget.onKeep(remember),
-          child: const Text('Leave instances running'),
-        ),
-        TextButton(
-          onPressed: () => widget.onStop(remember),
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xffC7162B),
-          ),
-          child: const Text('Stop instances'),
-        ),
-      ],
+      actionText: 'Stop instances',
+      onAction: () => widget.onStop(remember),
+      inactionText: 'Leave instances running',
+      onInaction: () => widget.onKeep(remember),
+      width: 500,
     );
   }
 }

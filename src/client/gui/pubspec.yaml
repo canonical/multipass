@@ -16,7 +16,9 @@ dependencies:
     git:
       url: https://github.com/andrei-toterman/dartssh2.git
       ref: 2.10.0+mp
+  extended_text: ^14.1.0
   ffi: ^2.1.3
+  file_selector: ^1.0.3
   fl_chart: ^0.69.0
   flutter:
     sdk: flutter
@@ -33,6 +35,10 @@ dependencies:
   rxdart: ^0.28.0
   shared_preferences: ^2.3.2
   synchronized: ^3.3.0+3
+  system_info2:
+    git:
+      url: https://github.com/andrei-toterman/system_info.git
+      ref: 4.0.0+mp
   tray_menu:
     git:
       url: https://github.com/andrei-toterman/tray_menu.git
@@ -70,3 +76,14 @@ flutter:
           weight: 700
         - asset: assets/Ubuntu-L.ttf
           weight: 300
+    - family: UbuntuMono
+      fonts:
+        - asset: assets/UbuntuMono-R.ttf
+        - asset: assets/UbuntuMono-B.ttf
+          weight: 700
+    - family: NotoColorEmoji
+      fonts:
+        - asset: assets/NotoColorEmoji-Regular.ttf
+    - family: FreeSans
+      fonts:
+        - asset: assets/FreeSans.ttf

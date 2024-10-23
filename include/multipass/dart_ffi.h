@@ -41,6 +41,10 @@ int default_id();
 
 long long memory_in_bytes(char* value);
 
+const char* human_readable_memory(long long bytes);
+
+long long get_total_disk_size();
+
 char* default_mount_target(char* source);
 }
 
