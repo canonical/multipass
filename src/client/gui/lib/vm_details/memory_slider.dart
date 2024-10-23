@@ -44,9 +44,7 @@ class _MemorySliderState extends State<MemorySlider> {
     super.initState();
     focusNode.addListener(() {
       final currentValue = formKey.currentState?.value;
-      if (!focusNode.hasFocus &&
-          controller.text.isEmpty &&
-          currentValue != null) {
+      if (!focusNode.hasFocus && currentValue != null) {
         controller.text = bytesToUnit(currentValue).toNiceString();
       }
     });
@@ -67,12 +65,7 @@ class _MemorySliderState extends State<MemorySlider> {
     final parsedValue = (unitToBytes == bytesToBytes)
         ? int.tryParse(newValue.text)
         : double.tryParse(newValue.text);
-    if (parsedValue == null) return oldValue;
-    final convertedValue = unitToBytes(parsedValue);
-    if (widget.min <= convertedValue && convertedValue <= widget.max) {
-      return newValue;
-    }
-    return oldValue;
+    return parsedValue == null ? oldValue : newValue;
   }
 
   @override
@@ -85,9 +78,11 @@ class _MemorySliderState extends State<MemorySlider> {
       inputFormatters: [TextInputFormatter.withFunction(formatFunction)],
       onChanged: (value) {
         final parsedValue = double.tryParse(value);
-        if (parsedValue != null) {
-          formKey.currentState?.didChange(unitToBytes(parsedValue).toInt());
-        }
+        if (parsedValue == null) return;
+        final convertedValue = unitToBytes(parsedValue).toInt();
+        formKey.currentState?.didChange(
+          convertedValue.clamp(widget.min, widget.max),
+        );
       },
     );
 

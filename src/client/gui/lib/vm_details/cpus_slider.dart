@@ -33,8 +33,9 @@ class _CpusSliderState extends State<CpusSlider> {
   void initState() {
     super.initState();
     focusNode.addListener(() {
-      if (!focusNode.hasFocus && controller.text.isEmpty) {
-        controller.text = formKey.currentState!.value.toString();
+      final currentValue = formKey.currentState?.value;
+      if (!focusNode.hasFocus && currentValue != null) {
+        controller.text = currentValue.toString();
       }
     });
   }
@@ -51,10 +52,7 @@ class _CpusSliderState extends State<CpusSlider> {
     TextEditingValue newValue,
   ) {
     if (newValue.text.isEmpty) return newValue;
-    final parsedValue = int.tryParse(newValue.text);
-    if (parsedValue == null) return oldValue;
-    if (min <= parsedValue && parsedValue <= max) return newValue;
-    return oldValue;
+    return int.tryParse(newValue.text) == null ? oldValue : newValue;
   }
 
   @override
@@ -66,7 +64,8 @@ class _CpusSliderState extends State<CpusSlider> {
       inputFormatters: [TextInputFormatter.withFunction(formatFunction)],
       onChanged: (value) {
         final parsedValue = int.tryParse(value);
-        if (parsedValue != null) formKey.currentState?.didChange(parsedValue);
+        if (parsedValue == null) return;
+        formKey.currentState?.didChange(parsedValue.clamp(min, max));
       },
     );
 
