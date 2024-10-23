@@ -7,9 +7,9 @@ extern "C"
 // clang-format on
 const char* multipass_version();
 
-const char* generate_petname();
+char* generate_petname();
 
-const char* get_server_address();
+char* get_server_address();
 
 struct KeyCertificatePair
 {
@@ -27,11 +27,11 @@ enum SettingResult
     UnexpectedError,
 };
 
-const char* settings_file();
+char* settings_file();
 
-enum SettingResult get_setting(const char* key, const char** output);
+enum SettingResult get_setting(char* key, char** output);
 
-enum SettingResult set_setting(const char* key, const char* value, const char** output);
+enum SettingResult set_setting(char* key, char* value, char** output);
 
 int uid();
 
@@ -39,7 +39,9 @@ int gid();
 
 int default_id();
 
-long long memory_in_bytes(const char* value);
+long long memory_in_bytes(char* value);
+
+char* default_mount_target(char* source);
 }
 
 #endif // MULTIPASS_DART_FFI_H
