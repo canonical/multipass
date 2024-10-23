@@ -36,9 +36,11 @@ UINT __stdcall AskRemoveData(__in MSIHANDLE hInstall)
         hr = MsiSetProperty(hInstall, L"REMOVE_DATA", L"no");
     ExitOnFailure(hr, "Failed setting property '%hs'", L"REMOVE_DATA")
 
+        // clang-format off
 LExit:
     er = SUCCEEDED(hr) ? ERROR_SUCCESS : ERROR_UNKNOWN_PROPERTY;
     return WcaFinalize(er);
+    // clang-format on
 }
 
 UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
@@ -129,7 +131,7 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
         WcaLog(LOGMSG_STANDARD, "Seems like DISM was canceled.");
         hr = S_FALSE;
         ExitFunction();
-    } 
+    }
 
 LExit:
     if (hCancel_)
