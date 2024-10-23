@@ -200,7 +200,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           height: 50,
           child: Text('Resources', style: TextStyle(fontSize: 24)),
         ),
-        Row(children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: cpusSlider),
           const SizedBox(width: 86),
           Expanded(child: memorySlider),
