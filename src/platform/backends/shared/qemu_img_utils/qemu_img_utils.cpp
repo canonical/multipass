@@ -96,11 +96,8 @@ void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
 
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
 {
-    auto process = checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path));
-
     QRegularExpression regex{snapshot_tag.append(R"(\s)")};
-    return QString{process->read_all_standard_output()}.contains(regex);
+    return QString{snapshot_list_output(image_path)}.contains(regex);
 }
 
 QByteArray mp::backend::snapshot_list_output(const Path& image_path)
