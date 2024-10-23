@@ -10,7 +10,7 @@ Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img nsis openssl -yfd
+    choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img openssl -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker.
 Search for Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
