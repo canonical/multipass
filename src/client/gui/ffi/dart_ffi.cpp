@@ -233,7 +233,7 @@ long long memory_in_bytes(char* value)
 
 const char* human_readable_memory(long long bytes)
 {
-    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(2);
+    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
     return strdup(string.c_str());
 }
 
