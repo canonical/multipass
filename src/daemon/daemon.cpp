@@ -3690,7 +3690,7 @@ std::string mp::Daemon::generate_destination_instance_name_for_clone(const Clone
         if (is_instance_name_already_used(request.destination_name()))
         {
             throw mp::CloneInvalidNameException(request.destination_name() +
-                                                " already exists, please choose a new name.");
+                                                " already exists, please choose a unique name.");
         }
 
         return request.destination_name();

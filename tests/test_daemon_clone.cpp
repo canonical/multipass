@@ -107,7 +107,7 @@ TEST_F(TestDaemonClone, alreadyExistDestVmName)
                                          NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), HasSubstr("already exists, please choose a new name."));
+    EXPECT_THAT(status.error_message(), HasSubstr("already exists, please choose a unique name."));
 }
 
 TEST_F(TestDaemonClone, successfulCloneGenerateDestNameOkStatus)
@@ -159,6 +159,5 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
                                          NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_EQ(status.error_message(),
-              fmt::format("Multipass can only clone stopped instances."));
+    EXPECT_EQ(status.error_message(), fmt::format("Multipass can only clone stopped instances."));
 }
