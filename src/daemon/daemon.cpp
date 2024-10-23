@@ -2724,22 +2724,8 @@ try
         }
 
         const std::string destination_name = dest_name_for_clone(*request);
-        if (!mp::utils::valid_hostname(destination_name))
-            return status_promise->set_value(
-                grpc::Status{grpc::INVALID_ARGUMENT, "Invalid destination instance name: " + destination_name});
-
-        const auto [dest_instance_trail, dest_vm_status] = find_instance_and_react(operative_instances,
-                                                                                   deleted_instances,
-                                                                                   destination_name,
-                                                                                   require_missing_instances_reaction);
-        assert(dest_vm_status.ok() == (dest_instance_trail.index() == 2));
-
-        if (!dest_vm_status.ok())
-            return status_promise->set_value(dest_vm_status);
-        if (preparing_instances.find(destination_name) != preparing_instances.end())
-            return status_promise->set_value({grpc::StatusCode::INVALID_ARGUMENT,
-                                              fmt::format("instance \"{}\" is being prepared", destination_name),
-                                              ""});
+        if (auto dest_vm_status = validate_dest_name(destination_name); !dest_vm_status.ok())
+            return status_promise->set_value(std::move(dest_vm_status));
 
         auto rollback_resources = sg::make_scope_guard([this, destination_name]() noexcept -> void {
             top_catch_all(category, [this, destination_name]() {
@@ -3681,13 +3667,37 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          vm_specs.num_cores != 1);
 }
 
-// the output name is not validated
 std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
                ? request.destination_name()
                : generate_next_clone_name(vm_instance_specs[request.source_name()].clone_count, request.source_name());
 };
+
+grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
+{
+    if (!mp::utils::valid_hostname(name))
+    {
+        return grpc::Status{grpc::INVALID_ARGUMENT, "Invalid destination instance name: " + name};
+    }
+
+    const auto [dest_instance_trail, dest_vm_status] =
+        find_instance_and_react(operative_instances, deleted_instances, name, require_missing_instances_reaction);
+    assert(dest_vm_status.ok() == (dest_instance_trail.index() == 2));
+
+    if (!dest_vm_status.ok())
+    {
+        return dest_vm_status;
+    }
+    if (preparing_instances.find(name) != preparing_instances.end())
+    {
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                            fmt::format("instance \"{}\" is being prepared", name),
+                            ""};
+    }
+
+    return dest_vm_status;
+}
 
 mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,
                                    const std::string& src_name,
