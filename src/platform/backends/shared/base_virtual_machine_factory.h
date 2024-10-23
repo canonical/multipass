@@ -81,13 +81,8 @@ public:
     };
 
     void require_snapshots_support() const override;
-
     void require_suspend_support() const override;
-
-    void require_clone_support() const override
-    {
-        throw NotImplementedOnThisBackendException{"clone"};
-    }
+    void require_clone_support() const override;
 
 protected:
     static const Path instances_subdir;
@@ -125,6 +120,11 @@ inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() co
 
 inline void multipass::BaseVirtualMachineFactory::require_suspend_support() const
 {
+}
+
+inline void multipass::BaseVirtualMachineFactory::require_clone_support() const
+{
+    throw NotImplementedOnThisBackendException{"clone"};
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
