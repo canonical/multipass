@@ -1,15 +1,21 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Tooltip;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../ffi.dart';
+import '../providers.dart';
 import '../tooltip.dart';
 import 'mapping_slider.dart';
 import 'memory_slider.dart';
 
-class DiskSlider extends StatelessWidget {
-  static final disk = getTotalDiskSize();
+final diskSizeProvider = FutureProvider((ref) {
+  return ref
+      .watch(grpcClientProvider)
+      .daemonInfo()
+      .then((r) => r.availableSpace.toInt());
+});
 
+class DiskSlider extends ConsumerWidget {
   final int? initialValue;
   final int min;
   final FormFieldSetter<int> onSaved;
@@ -22,7 +28,8 @@ class DiskSlider extends StatelessWidget {
   }) : min = min ?? 1.gibi;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final disk = ref.watch(diskSizeProvider).valueOrNull ?? min;
     final max = math.max(initialValue ?? 0, disk);
     final enabled = min != max;
 
@@ -30,7 +37,7 @@ class DiskSlider extends StatelessWidget {
       message: 'Disk size cannot be decreased',
       visible: !enabled,
       child: MemorySlider(
-        label: 'Memory',
+        label: 'Disk',
         enabled: enabled,
         initialValue: initialValue,
         min: min,
