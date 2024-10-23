@@ -22,6 +22,7 @@
 
     <ItemGroup>
         <BindVariable Include="WixUILicenseRtf=LICENCE.rtf" />
+        <BindVariable Include="WixUIBannerBmp=multipass.bmp" />
     </ItemGroup>
 
     <ItemGroup>
