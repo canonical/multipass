@@ -27,6 +27,7 @@
 
 #include <daemon/default_vm_image_vault.h>
 
+namespace fs = std::filesystem;
 namespace multipass
 {
 constexpr auto log_category = "base factory";
@@ -101,7 +102,6 @@ private:
     Path instances_dir;
 };
 
-namespace fs = std::filesystem;
 void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
                                             const fs::path& dest_instance_dir_path);
 } // namespace multipass
