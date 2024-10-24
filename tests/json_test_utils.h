@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <QJsonObject>
 #include <QString>
 
 namespace mp = multipass;
@@ -41,6 +42,12 @@ std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents); 
 void check_interfaces_in_json(const QString& file, const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_interfaces);
 
-void check_mounts_in_json(const QString& file, std::unordered_map<std::string, mp::VMMount>& mounts);
+void check_interfaces_in_json(const QJsonObject& doc_object,
+                              const std::string& mac,
+                              const std::vector<mp::NetworkInterface>& extra_interfaces);
+
+void check_mounts_in_json(const QString& file, const std::unordered_map<std::string, mp::VMMount>& mounts);
+
+void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_map<std::string, mp::VMMount>& mounts);
 
 #endif // MULTIPASS_JSON_TEST_UTILS_H
