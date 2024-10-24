@@ -347,10 +347,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         for (const auto& value : parser->values(mountOption))
         {
             // this is needed so that Windows absolute paths are not split at the colon following the drive letter
-            auto colon_split = QRegularExpression{R"(^[A-Za-z]:[\\/].*)"}.match(value).hasMatch();
-            auto mount_source = value.section(':', 0, colon_split);
-            auto mount_target = value.section(':', colon_split + 1);
-            mount_target = mount_target.isEmpty() ? mount_source : mount_target;
+            const auto colon_split = QRegularExpression{R"(^[A-Za-z]:[\\/].*)"}.match(value).hasMatch();
+            const auto mount_source = value.section(':', 0, colon_split);
+            const auto mount_target = value.section(':', colon_split + 1);
 
             // Validate source directory of client side mounts
             QFileInfo source_dir(mount_source);
