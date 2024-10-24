@@ -110,7 +110,7 @@ QString cmd::Delete::short_help() const
 QString cmd::Delete::description() const
 {
     return QStringLiteral(
-        "Delete instances and snapshots. Instances can be purged immediately or later on,\n"
+        "Delete instances and snapshots (in stopped instances). Instances can be purged immediately or later on,\n"
         "with the \"purge\" command. Until they are purged, instances can be recovered\n"
         "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be purged at once.");
 }

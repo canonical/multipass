@@ -27,6 +27,7 @@
 
 #include <daemon/default_vm_image_vault.h>
 
+namespace fs = std::filesystem;
 namespace multipass
 {
 constexpr auto log_category = "base factory";
@@ -81,13 +82,8 @@ public:
     };
 
     void require_snapshots_support() const override;
-
     void require_suspend_support() const override;
-
-    void require_clone_support() const override
-    {
-        throw NotImplementedOnThisBackendException{"clone"};
-    }
+    void require_clone_support() const override;
 
 protected:
     static const Path instances_subdir;
@@ -106,7 +102,6 @@ private:
     Path instances_dir;
 };
 
-namespace fs = std::filesystem;
 void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
                                             const fs::path& dest_instance_dir_path);
 } // namespace multipass
@@ -125,6 +120,11 @@ inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() co
 
 inline void multipass::BaseVirtualMachineFactory::require_suspend_support() const
 {
+}
+
+inline void multipass::BaseVirtualMachineFactory::require_clone_support() const
+{
+    throw NotImplementedOnThisBackendException{"clone"};
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
