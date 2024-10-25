@@ -99,12 +99,6 @@
                 Name="MULTIPASS_STORAGE" Type="raw" />
         </Property>
 
-        <Property Id="CONFIG_FILE_FOUND">
-            <DirectorySearch Id="MultipassDataDir" AssignToProperty="yes" Path="[MP_DATA_DIR]">
-                <FileSearch Id="multipass_conf" Name="multipassd.conf" />
-            </DirectorySearch>
-        </Property>
-
         <CustomAction Id="SetMP_DATA_DIR" Execute="immediate" Property="MP_DATA_DIR"
             Value="[CommonAppDataFolder]Multipass\" />
         <CustomAction Id="DaemonConfigFileAction.SetCmdLine" Execute="immediate"
@@ -170,9 +164,9 @@
             <Custom Action="InstallClientCertsAction" Before="StartServices" />
 
             <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction"
-                Condition="NOT CONFIG_FILE_FOUND" />
+                Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
             <Custom Action="DaemonConfigFileAction" Before="StartServices"
-                Condition="NOT CONFIG_FILE_FOUND" />
+                Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
 
             <Custom Action="Daemon.TaskClose" Before="StopServices" 
                 Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />

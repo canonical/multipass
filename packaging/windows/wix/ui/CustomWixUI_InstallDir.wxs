@@ -59,10 +59,10 @@
                 Value="CustomWelcomeDlg" />
             <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog"
                 Value="ChooseHypervisorDlg"
-                Condition="LicenseAccepted = &quot;1&quot; AND (NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot; AND NOT CONFIG_FILE_FOUND)" />
+                Condition="LicenseAccepted = &quot;1&quot; AND (NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot; AND NOT WIX_UPGRADE_DETECTED)" />
             <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog"
                 Value="ChoosePathInstallDlg"
-                Condition="LicenseAccepted = &quot;1&quot; AND (WINDOWS_EDITION &gt;&lt; &quot;Core&quot; OR CONFIG_FILE_FOUND)" />
+                Condition="LicenseAccepted = &quot;1&quot; AND (WINDOWS_EDITION &gt;&lt; &quot;Core&quot; OR WIX_UPGRADE_DETECTED)" />
 
             <Publish Dialog="ChooseHypervisorDlg" Control="Back" Event="NewDialog"
                 Value="LicenseAgreementDlg" />
@@ -71,10 +71,10 @@
 
             <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog"
                 Value="LicenseAgreementDlg"
-                Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot; OR CONFIG_FILE_FOUND" />
+                Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot; OR WIX_UPGRADE_DETECTED" />
             <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog"
                 Value="ChooseHypervisorDlg"
-                Condition="NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot; AND NOT CONFIG_FILE_FOUND" />
+                Condition="NOT WINDOWS_EDITION &gt;&lt; &quot;Core&quot; AND NOT WIX_UPGRADE_DETECTED" />
             <Publish Dialog="ChoosePathInstallDlg" Control="Next" Event="NewDialog"
                 Value="CustomInstallDirDlg" />
 
