@@ -128,7 +128,7 @@ void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::Network
                 fmt::format("Could not setup adapter for {}", extra_interface.id));
 }
 
-fs::path extract_the_vmcx_file(const fs::path& exported_vm_dir_path)
+fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
 {
     if (fs::exists(exported_vm_dir_path) && fs::is_directory(exported_vm_dir_path))
     {
@@ -223,7 +223,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
-    const fs::path vmcx_file_path = extract_the_vmcx_file(exported_vm_path);
+    const fs::path vmcx_file_path = locate_vmcx_file(exported_vm_path);
     // The next step needs to rename the instance, so we need to store the instance variable $imported_vm from the
     // Import-VM step. Because we can not use vm name to uniquely identify the vm due to the imported vm has the same
     // name.
