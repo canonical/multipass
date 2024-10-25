@@ -134,12 +134,13 @@ fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
     {
         const fs::path vm_state_dir = exported_vm_dir_path / "Virtual Machines";
 
-        for (const auto& entry : fs::directory_iterator(vm_state_dir))
+        if (auto iter = std::find_if(
+                fs::directory_iterator{vm_state_dir},
+                fs::directory_iterator{},
+                [](const fs::directory_entry& entry) -> bool { return entry.path().extension() == ".vmcx"; });
+            iter != fs::directory_iterator{})
         {
-            if (entry.path().extension() == ".vmcx")
-            {
-                return entry.path();
-            }
+            return iter->path();
         }
     }
 
