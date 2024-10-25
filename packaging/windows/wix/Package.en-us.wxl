@@ -21,7 +21,7 @@ This file contains the declaration of all the localizable strings.
 
     <String Id="ChoosePathInstallDlgTitle" Value="{\WixUI_Font_Title}Add multipass to PATH?" />
     <String Id="ChoosePathInstallDlgDescription"
-        Value="To run [ProductName] without having to type the full path, the PATH environment variable needs to include the installation path." />
+        Value="To run [ProductName] without having to type the full path, the PATH&#13;environment variable needs to include the installation path." />
     <String Id="WixDoNotAddPath" Value="Do not add [ProductName] to the PATH" />
     <String Id="WixAddToSystemPath" Value="Add [ProductName] to the system PATH for all users" />
     <String Id="WixAddToUserPath" Value="Add [ProductName] to the current user's PATH (Recommended)" />
