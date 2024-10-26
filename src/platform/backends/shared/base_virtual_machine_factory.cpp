@@ -23,6 +23,7 @@
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;
@@ -81,6 +82,49 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
             host_nets.push_back({net.id, bridge_type, "new bridge", {net_it->id}});
         }
     }
+}
+
+mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
+    const VMSpecs& src_vm_spec,
+    const VMSpecs& dest_vm_spec,
+    const std::string& source_name,
+    const std::string& destination_name,
+    const VMImage& dest_vm_image,
+    const multipass::SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
+{
+    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
+    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
+
+    copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
+
+    const fs::path cloud_init_path = dest_instance_data_directory / cloud_init_file_name;
+
+    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_vm_spec.default_mac_address,
+                                              dest_vm_spec.extra_interfaces,
+                                              destination_name,
+                                              cloud_init_path);
+
+    // start to construct VirtualMachineDescription
+    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
+                                               dest_vm_spec.mem_size,
+                                               dest_vm_spec.disk_space,
+                                               destination_name,
+                                               dest_vm_spec.default_mac_address,
+                                               dest_vm_spec.extra_interfaces,
+                                               dest_vm_spec.ssh_username,
+                                               dest_vm_image,
+                                               cloud_init_path.string().c_str(),
+                                               {},
+                                               {},
+                                               {},
+                                               {}};
+
+    mp::VirtualMachine::UPtr cloned_instance =
+        clone_vm_impl(source_name, src_vm_spec, dest_vm_desc, monitor, key_provider);
+    cloned_instance->remove_snapshots_from_image();
+
+    return cloned_instance;
 }
 
 void mp::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,

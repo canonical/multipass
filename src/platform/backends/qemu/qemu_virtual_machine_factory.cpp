@@ -19,13 +19,10 @@
 #include "qemu_virtual_machine.h"
 
 #include <multipass/cloud_init_iso.h>
-#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
-#include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
@@ -33,7 +30,6 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-namespace mpu = multipass::utils;
 
 namespace
 {
@@ -61,53 +57,6 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(c
                                                     monitor,
                                                     key_provider,
                                                     get_instance_directory(desc.vm_name));
-}
-
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
-    const VMSpecs& /*src_vm_spec*/,
-    const VMSpecs& dest_vm_spec,
-    const std::string& source_name,
-    const std::string& destination_name,
-    const VMImage& dest_vm_image,
-    const SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
-{
-    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
-    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
-
-    copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
-
-    const fs::path cloud_init_path = dest_instance_data_directory / cloud_init_file_name;
-
-    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_vm_spec.default_mac_address,
-                                              dest_vm_spec.extra_interfaces,
-                                              destination_name,
-                                              cloud_init_path);
-
-    // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
-                                               dest_vm_spec.mem_size,
-                                               dest_vm_spec.disk_space,
-                                               destination_name,
-                                               dest_vm_spec.default_mac_address,
-                                               dest_vm_spec.extra_interfaces,
-                                               dest_vm_spec.ssh_username,
-                                               dest_vm_image,
-                                               cloud_init_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
-
-    mp::VirtualMachine::UPtr cloned_instance =
-        std::make_unique<mp::QemuVirtualMachine>(dest_vm_desc,
-                                                 qemu_platform.get(),
-                                                 monitor,
-                                                 key_provider,
-                                                 get_instance_directory(dest_vm_desc.vm_name));
-    cloned_instance->remove_snapshots_from_image();
-
-    return cloned_instance;
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -206,4 +155,13 @@ void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterf
 std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
 {
     return qemu_platform->create_bridge_with(interface);
+}
+
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(const std::string& /*source_vm_name*/,
+                                                                      const multipass::VMSpecs& /*src_vm_specs*/,
+                                                                      const VirtualMachineDescription& desc,
+                                                                      VMStatusMonitor& monitor,
+                                                                      const SSHKeyProvider& key_provider)
+{
+    return create_virtual_machine(desc, key_provider, monitor);
 }

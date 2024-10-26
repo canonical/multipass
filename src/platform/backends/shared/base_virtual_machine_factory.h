@@ -42,10 +42,7 @@ public:
                                                                const std::string& destination_name,
                                                                const VMImage& dest_vm_image,
                                                                const SSHKeyProvider& key_provider,
-                                                               VMStatusMonitor& monitor) override
-    {
-        throw NotImplementedOnThisBackendException("clone");
-    }
+                                                               VMStatusMonitor& monitor) override final;
 
     void remove_resources_for(const std::string& name) final;
 
@@ -99,6 +96,12 @@ protected:
     virtual void remove_resources_for_impl(const std::string& name) = 0;
 
 private:
+    virtual VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
+                                               const multipass::VMSpecs& src_vm_specs,
+                                               const VirtualMachineDescription& desc,
+                                               VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider);
+
     Path instances_dir;
 };
 
@@ -123,6 +126,16 @@ inline void multipass::BaseVirtualMachineFactory::require_suspend_support() cons
 }
 
 inline void multipass::BaseVirtualMachineFactory::require_clone_support() const
+{
+    throw NotImplementedOnThisBackendException{"clone"};
+}
+
+inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
+    const std::string& source_vm_name,
+    const VMSpecs& src_vm_specs,
+    const VirtualMachineDescription& desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }
