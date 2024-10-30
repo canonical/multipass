@@ -153,10 +153,7 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    QUrl adjusted_url{url};
-    if (adjusted_url.scheme() == "http")
-        adjusted_url.setScheme("https");
-
+    const QUrl adjusted_url = make_http_url_https(url);
     QNetworkRequest request{adjusted_url};
 
     NetworkReplyUPtr reply{manager->head(request)};
