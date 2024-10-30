@@ -78,4 +78,3 @@ for binary in ${BINARIES}; do
     install_name_tool "${RPATH_CHANGES[@]}" "${BINARY_DIR}/${binary}"
 done
 
-dylibbundler -of -x "${BINARY_DIR}/${QT_COCOA_PLUGIN}" -b -d ${CMAKE_BINARY_DIR}/lib/ -p @rpath
