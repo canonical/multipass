@@ -85,11 +85,11 @@ final vmInfosProvider = Provider((ref) {
     return !existingVmNames.contains(info.name);
   });
 
-  return existingVms.concat(launchingVms).sortedBy((i) => i.name).toBuiltList();
+  return existingVms.concat(launchingVms).sortedBy((i) => i.name).toList();
 });
 
 final vmInfosMapProvider = Provider((ref) {
-  return {for (final i in ref.watch(vmInfosProvider)) i.name: i}.build();
+  return {for (final i in ref.watch(vmInfosProvider)) i.name: i};
 });
 
 class VmInfoNotifier
@@ -106,7 +106,6 @@ final vmInfoProvider = NotifierProvider.autoDispose
 final vmStatusesProvider = Provider((ref) {
   return ref
       .watch(vmInfosMapProvider)
-      .asMap()
       .mapValue((info) => info.instanceStatus.status)
       .build();
 });
