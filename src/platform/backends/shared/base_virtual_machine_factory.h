@@ -27,7 +27,6 @@
 
 #include <daemon/default_vm_image_vault.h>
 
-namespace fs = std::filesystem;
 namespace multipass
 {
 constexpr auto log_category = "base factory";
