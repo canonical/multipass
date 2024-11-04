@@ -130,9 +130,9 @@ void mp::copy_instance_dir_with_essential_files(const fs::path& source_instance_
 {
     if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
     {
+        fs::create_directory(dest_instance_dir_path);
         for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
         {
-            fs::create_directory(dest_instance_dir_path);
             // snapshot files are intentionally skipped; .iso file is included for all, .img file here is not relevant
             // for non-qemu backends.
             if (entry.path().extension().string() == ".iso" || entry.path().extension().string() == ".img")
