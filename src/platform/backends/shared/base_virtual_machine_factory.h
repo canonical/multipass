@@ -36,13 +36,13 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir);
-    VirtualMachine::UPtr create_vm_and_clone_instance_dir_data(const VMSpecs& src_vm_spec,
-                                                               const VMSpecs& dest_vm_spec,
-                                                               const std::string& source_name,
-                                                               const std::string& destination_name,
-                                                               const VMImage& dest_vm_image,
-                                                               const SSHKeyProvider& key_provider,
-                                                               VMStatusMonitor& monitor) override final;
+    VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
+                                       const VMSpecs& dest_spec,
+                                       const std::string& src_name,
+                                       const std::string& dest_name,
+                                       const VMImage& dest_image,
+                                       const SSHKeyProvider& key_provider,
+                                       VMStatusMonitor& monitor) override final;
 
     void remove_resources_for(const std::string& name) final;
 

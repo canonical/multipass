@@ -84,36 +84,35 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
     }
 }
 
-mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
-    const VMSpecs& src_vm_spec,
-    const VMSpecs& dest_vm_spec,
-    const std::string& source_name,
-    const std::string& destination_name,
-    const VMImage& dest_vm_image,
-    const multipass::SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSpecs& src_spec,
+                                                                      const VMSpecs& dest_spec,
+                                                                      const std::string& src_name,
+                                                                      const std::string& dest_name,
+                                                                      const VMImage& dest_image,
+                                                                      const multipass::SSHKeyProvider& key_provider,
+                                                                      VMStatusMonitor& monitor)
 {
-    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
-    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
+    const std::filesystem::path source_instance_data_directory{get_instance_directory(src_name).toStdString()};
+    const std::filesystem::path dest_instance_data_directory{get_instance_directory(dest_name).toStdString()};
 
     copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
 
     const fs::path cloud_init_path = dest_instance_data_directory / cloud_init_file_name;
 
-    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_vm_spec.default_mac_address,
-                                              dest_vm_spec.extra_interfaces,
-                                              destination_name,
+    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_spec.default_mac_address,
+                                              dest_spec.extra_interfaces,
+                                              dest_name,
                                               cloud_init_path);
 
     // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
-                                               dest_vm_spec.mem_size,
-                                               dest_vm_spec.disk_space,
-                                               destination_name,
-                                               dest_vm_spec.default_mac_address,
-                                               dest_vm_spec.extra_interfaces,
-                                               dest_vm_spec.ssh_username,
-                                               dest_vm_image,
+    mp::VirtualMachineDescription dest_vm_desc{dest_spec.num_cores,
+                                               dest_spec.mem_size,
+                                               dest_spec.disk_space,
+                                               dest_name,
+                                               dest_spec.default_mac_address,
+                                               dest_spec.extra_interfaces,
+                                               dest_spec.ssh_username,
+                                               dest_image,
                                                cloud_init_path.string().c_str(),
                                                {},
                                                {},
@@ -121,7 +120,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::create_vm_and_clone_inst
                                                {}};
 
     mp::VirtualMachine::UPtr cloned_instance =
-        clone_vm_impl(source_name, src_vm_spec, dest_vm_desc, monitor, key_provider);
+        clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
     cloned_instance->remove_snapshots_from_image();
 
     return cloned_instance;

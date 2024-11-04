@@ -2746,14 +2746,13 @@ try
         // Specs need to be in place before the factory can create the VM
         // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
-        operative_instances[destination_name] =
-            config->factory->create_vm_and_clone_instance_dir_data(src_spec,
-                                                                   dest_spec,
-                                                                   source_name,
-                                                                   destination_name,
-                                                                   dest_vm_image,
-                                                                   *config->ssh_key_provider,
-                                                                   *this);
+        operative_instances[destination_name] = config->factory->clone_bare_vm(src_spec,
+                                                                               dest_spec,
+                                                                               source_name,
+                                                                               destination_name,
+                                                                               dest_vm_image,
+                                                                               *config->ssh_key_provider,
+                                                                               *this);
         ++src_spec.clone_count;
         // preparing instance is done
         preparing_instances.erase(destination_name);

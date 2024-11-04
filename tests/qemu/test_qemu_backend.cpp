@@ -1222,13 +1222,7 @@ TEST_F(QemuBackend, createVmAndCloneInstanceDirData)
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_identifiers(_, _, _, _)).Times(1);
-    EXPECT_TRUE(backend.create_vm_and_clone_instance_dir_data({},
-                                                              {},
-                                                              "dummy_src_name",
-                                                              "dummy_dest_name",
-                                                              {},
-                                                              key_provider,
-                                                              stub_monitor));
+    EXPECT_TRUE(backend.clone_bare_vm({}, {}, "dummy_src_name", "dummy_dest_name", {}, key_provider, stub_monitor));
 }
 
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)

@@ -166,7 +166,7 @@ TEST_F(TestDaemonClone, successfulCloneGenerateDestNameButThrowLater)
 {
     const auto [daemon, instance] = build_daemon_with_mock_instance();
     EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
-    EXPECT_CALL(mock_factory, create_vm_and_clone_instance_dir_data).WillOnce(Throw(std::runtime_error("intentional")));
+    EXPECT_CALL(mock_factory, clone_bare_vm).WillOnce(Throw(std::runtime_error("intentional")));
 
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
