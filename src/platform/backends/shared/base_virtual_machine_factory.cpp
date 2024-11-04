@@ -120,7 +120,6 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
                                                {}};
 
     mp::VirtualMachine::UPtr cloned_instance = clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
-    cloned_instance->remove_snapshots_from_image();
 
     return cloned_instance;
 }

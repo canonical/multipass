@@ -46,7 +46,8 @@ public:
                        QemuPlatform* qemu_platform,
                        VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
-                       const Path& instance_dir);
+                       const Path& instance_dir,
+                       bool remove_snapshots = false);
     ~QemuVirtualMachine();
 
     void start() override;
@@ -69,7 +70,6 @@ public:
                                        const NetworkInterface& extra_interface) override;
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
-    void remove_snapshots_from_image() const override;
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
@@ -100,6 +100,7 @@ private:
 
     void connect_vm_signals();
     void disconnect_vm_signals();
+    void remove_snapshots_from_image() const;
 
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};

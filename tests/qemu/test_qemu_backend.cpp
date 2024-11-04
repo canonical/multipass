@@ -1196,8 +1196,12 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     mpt::StubVMStatusMonitor stub_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
-    const auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
-    EXPECT_NO_THROW(machine->remove_snapshots_from_image());
+    const mp::QemuVirtualMachine machine{default_description,
+                                         mock_qemu_platform.get(),
+                                         stub_monitor,
+                                         key_provider,
+                                         instance_dir.path(),
+                                         true};
 
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory->process_list();
 

@@ -163,5 +163,10 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(const std:
                                                                       VMStatusMonitor& monitor,
                                                                       const SSHKeyProvider& key_provider)
 {
-    return create_virtual_machine(desc, key_provider, monitor);
+    return std::make_unique<mp::QemuVirtualMachine>(desc,
+                                                    qemu_platform.get(),
+                                                    monitor,
+                                                    key_provider,
+                                                    get_instance_directory(desc.vm_name),
+                                                    true);
 }
