@@ -100,12 +100,12 @@ private:
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider);
+    static void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
+                                                       const fs::path& dest_instance_dir_path);
 
     Path instances_dir;
 };
 
-void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
-                                            const fs::path& dest_instance_dir_path);
 } // namespace multipass
 
 inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)

@@ -125,8 +125,8 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
     return cloned_instance;
 }
 
-void mp::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
-                                                const fs::path& dest_instance_dir_path)
+void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
+                                                                           const fs::path& dest_instance_dir_path)
 {
     if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
     {
