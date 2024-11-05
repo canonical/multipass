@@ -71,7 +71,6 @@ public:
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
-    void remove_snapshots_from_image() const override;
 
 protected:
     void require_snapshots_support() const override;
@@ -85,6 +84,7 @@ protected:
 private:
     void setup_network_interfaces();
     void update_network_interfaces(const VMSpecs& src_specs);
+    void remove_snapshots_from_image() const;
 
     VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;

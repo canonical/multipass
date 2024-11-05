@@ -30,13 +30,6 @@ public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
-    VirtualMachine::UPtr create_vm_and_clone_instance_dir_data(const VMSpecs& src_vm_spec,
-                                                               const VMSpecs& dest_vm_spec,
-                                                               const std::string& source_name,
-                                                               const std::string& destination_name,
-                                                               const VMImage& dest_vm_image,
-                                                               const SSHKeyProvider& key_provider,
-                                                               VMStatusMonitor& monitor) override;
 
     void prepare_networking(std::vector<NetworkInterface>& vector) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
@@ -58,6 +51,13 @@ public:
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
+
+private:
+    VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
+                                       const multipass::VMSpecs& src_vm_specs,
+                                       const VirtualMachineDescription& desc,
+                                       VMStatusMonitor& monitor,
+                                       const SSHKeyProvider& key_provider) override;
 };
 } // namespace multipass
 

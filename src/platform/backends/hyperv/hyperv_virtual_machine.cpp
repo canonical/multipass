@@ -258,6 +258,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     state = State::off;
 
+    remove_snapshots_from_image();
     fs::remove_all(exported_vm_path);
 }
 

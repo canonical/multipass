@@ -289,6 +289,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                 name);
     // 4. reset the mac addresses of vm to the spec addres
     update_mac_addresses_of_network_adapters(desc, name);
+    remove_snapshots_from_image();
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
