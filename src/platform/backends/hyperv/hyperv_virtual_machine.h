@@ -82,6 +82,12 @@ protected:
                                                      std::shared_ptr<Snapshot> parent) override;
 
 private:
+    HyperVVirtualMachine(const VirtualMachineDescription& desc,
+                         VMStatusMonitor& monitor,
+                         const SSHKeyProvider& key_provider,
+                         const Path& instance_dir,
+                         bool is_internal); // is_internal is a dummy parameter to differentiate with other constructors
+
     void setup_network_interfaces();
     void update_network_interfaces(const VMSpecs& src_specs);
     void remove_snapshots_from_image() const;

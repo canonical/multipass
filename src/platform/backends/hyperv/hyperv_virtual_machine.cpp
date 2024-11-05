@@ -152,11 +152,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
-      desc{desc},
-      name{QString::fromStdString(desc.vm_name)},
-      power_shell{std::make_unique<PowerShell>(vm_name)},
-      monitor{&monitor}
+    : HyperVVirtualMachine{desc, monitor, key_provider, instance_dir, true}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
@@ -209,11 +205,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                const Path& dest_instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, dest_instance_dir},
-      desc{desc},
-      name{QString::fromStdString(desc.vm_name)},
-      power_shell{std::make_unique<PowerShell>(vm_name)},
-      monitor{&monitor}
+    : HyperVVirtualMachine{desc, monitor, key_provider, dest_instance_dir, true}
 {
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
     power_shell->easy_run(
@@ -260,6 +252,19 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     remove_snapshots_from_image();
     fs::remove_all(exported_vm_path);
+}
+
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
+                                               VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider,
+                                               const Path& instance_dir,
+                                               bool /*is_internal*/)
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+      desc{desc},
+      name{QString::fromStdString(desc.vm_name)},
+      power_shell{std::make_unique<PowerShell>(vm_name)},
+      monitor{&monitor}
+{
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()
