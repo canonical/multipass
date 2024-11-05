@@ -2586,7 +2586,7 @@ try
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
             return status_promise->set_value(
-                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only take snapshots of stopped instances."});
+                grpc::Status{grpc::FAILED_PRECONDITION, "Multipass can only take snapshots of stopped instances."});
 
         auto snapshot_name = request->snapshot();
         if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
@@ -2641,7 +2641,7 @@ try
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
             return status_promise->set_value(
-                grpc::Status{grpc::INVALID_ARGUMENT, "Multipass can only restore snapshots of stopped instances."});
+                grpc::Status{grpc::FAILED_PRECONDITION, "Multipass can only restore snapshots of stopped instances."});
 
         auto spec_it = vm_instance_specs.find(instance_name);
         assert(spec_it != vm_instance_specs.end() && "missing instance specs");
@@ -3246,7 +3246,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
         delayed_shutdown_instances.erase(vm.vm_name);
 
     if (!MP_UTILS.is_running(vm.current_state()))
-        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
                             fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
                                         "Try to stop and start it instead.",
                                         vm.vm_name),
