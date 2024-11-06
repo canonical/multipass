@@ -360,6 +360,23 @@ DWORD convert_permissions(int unix_perms)
 
     return access_mask;
 }
+
+HANDLE signal_event = (HANDLE) nullptr;
+
+BOOL signal_handler(DWORD dwCtrlType)
+{
+    switch (dwCtrlType)
+    {
+    case CTRL_C_EVENT:
+    case CTRL_CLOSE_EVENT:
+    {
+        SetEvent(signal_event);
+        return TRUE;
+    }
+    default:
+        return FALSE;
+    }
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -749,26 +766,29 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     return 0;
 }
 
-std::function<int(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
     const std::chrono::milliseconds& timeout)
 {
-    auto hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr);
-    if (hSemaphore == (HANDLE) nullptr)
-        throw std::runtime_error("Unable to create semaphore\n");
+    signal_event = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    if (signal_event == (HANDLE) nullptr)
+        throw std::runtime_error("Unable to create signal object\n");
+
+    SetConsoleCtrlHandler(signal_handler, TRUE);
 
     auto timeout_millis = std::chrono::duration_cast<std::chrono::milliseconds>(timeout);
 
-    return
-        [semaphore = std::move(hSemaphore), millis = timeout_millis.count()](const std::function<bool()>& condition) {
-            while (condition())
-            {
-                // Ctrl+C will break this wait.
-                if (WaitForSingleObject(semaphore, millis) != WAIT_TIMEOUT)
-                    return 0;
-            }
+    return [millis = timeout_millis.count()](const std::function<bool()>& condition) -> std::optional<int> {
+        ResetEvent(signal_event);
 
-            return -1;
-        };
+        while (condition())
+        {
+            // Ctrl+C will break this wait.
+            if (WaitForSingleObject(signal_event, millis) != WAIT_TIMEOUT)
+                return 0;
+        }
+
+        return std::nullopt;
+    };
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
