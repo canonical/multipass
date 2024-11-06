@@ -57,7 +57,7 @@
 
 
         <!-- Remove Multipass data -->
-        <Property Id="REMOVE_DATA" Value="default" />
+        <Property Id="REMOVE_DATA" Value="default" Secure="yes" />
         <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
         <SetProperty Id="RemoveMPDataAction" Before="RemoveMPDataAction" Sequence="execute"
@@ -152,7 +152,7 @@
                 Condition="NOT Installed AND UNINSTALLER_PATH" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
-                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;default&quot;" />
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA &lt;&gt; &quot;yes&quot; AND REMOVE_DATA &lt;&gt; &quot;no&quot;" />
             <Custom Action="RemoveMPInstances.SetCmdLine" Before="RemoveMPInstances"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;yes&quot;" />
             <Custom Action="RemoveMPInstances" Before="StopServices"
