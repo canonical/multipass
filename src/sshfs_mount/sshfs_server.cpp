@@ -112,15 +112,15 @@ int main(int argc, char* argv[])
         mp::SshfsMount sshfs_mount(std::move(session), source_path, target_path, gid_mappings, uid_mappings);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
-        int sig = watchdog([&sshfs_mount] { return sshfs_mount.alive(); });
+        auto sig = watchdog([&sshfs_mount] { return sshfs_mount.alive(); });
 
-        if (sig != -1)
-            cout << "Received signal " << sig << ". Stopping" << endl;
+        if (sig.has_value())
+            cout << "Received signal " << *sig << ". Stopping" << endl;
         else
             cout << "SFTP server thread stopped unexpectedly." << endl;
 
         sshfs_mount.stop();
-        exit(sig == -1 ? EXIT_FAILURE : EXIT_SUCCESS);
+        exit(sig.has_value() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
     catch (const mp::SSHFSMissingError&)
     {
