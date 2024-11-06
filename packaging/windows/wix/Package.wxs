@@ -89,7 +89,8 @@
             <RegistrySearch Id="WINDOWS_EDITION" Root="HKLM"
                 Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
         </Property>
-        <CustomAction Id="SetWindowsEdition" Property="DRIVER" Value="virtualbox" />
+        <SetProperty Id="DRIVER" Value="virtualbox" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;"
+            After="AppSearch" />
 
 
         <!-- Create Multipass daemon configuration file -->
@@ -141,8 +142,6 @@
         </InstallUISequence>
         <InstallExecuteSequence>
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
-            <Custom Action="SetWindowsEdition" After="AppSearch"
-                Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;" />
 
             <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
                 Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
