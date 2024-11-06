@@ -2502,6 +2502,10 @@ catch (const mp::InvalidSettingException& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
+catch (const mp::InstanceStateSettingsException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
 catch (const std::exception& e)
 {
     status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
