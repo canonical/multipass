@@ -235,11 +235,12 @@ void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(std::vector<
     // Nothing to do here, VirtualBox takes host interfaces directly
 }
 
-mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(const std::string& src_name,
-                                                                        const multipass::VMSpecs& /*src_spec*/,
-                                                                        const VirtualMachineDescription& dest_vm_desc,
-                                                                        VMStatusMonitor& monitor,
-                                                                        const SSHKeyProvider& key_provider)
+mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
+    const std::string& src_name,
+    const multipass::VMSpecs& /*src_spec*/,
+    const VirtualMachineDescription& dest_vm_desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
 {
     return std::make_unique<mp::VirtualBoxVirtualMachine>(src_name,
                                                           dest_vm_desc,
