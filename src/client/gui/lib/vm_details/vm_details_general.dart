@@ -113,9 +113,10 @@ class VmStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScaler = MediaQuery.textScalerOf(context);
     return SizedBox(
-      width: width,
-      height: height,
+      width: textScaler.scale(width),
+      height: textScaler.scale(height),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           label,
