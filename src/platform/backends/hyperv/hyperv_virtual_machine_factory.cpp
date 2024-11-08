@@ -392,7 +392,7 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
     ps_args << expand_property << "Name";
 
     QString ps_output;
-    QString ps_outout_err;
+    QString ps_output_err;
     if (!mp::PowerShell::exec(ps_args,
                               "Hyper-V Switch Creation",
                               &ps_output,
