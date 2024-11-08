@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.20)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
