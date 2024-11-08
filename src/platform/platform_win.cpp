@@ -369,7 +369,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     static const auto ps_args = QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
-    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", &ps_output))
+    QString ps_output_err;
+    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", &ps_output, &ps_output_err))
     {
         std::map<std::string, mp::NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
@@ -389,7 +390,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
         return ret;
     }
 
-    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
     auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
     throw std::runtime_error{err};
 }
@@ -766,7 +767,8 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
                       .split(' ', Qt::SkipEmptyParts);
 
     QString ps_output;
-    if (PowerShell::exec(ps_cmd, "Adapter description from name", &ps_output))
+    QString ps_output_err;
+    if (PowerShell::exec(ps_cmd, "Adapter description from name", &ps_output, &ps_output_err))
     {
         auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)
@@ -779,7 +781,7 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
         return output_lines.first().toStdString();
     }
 
-    auto detail = ps_output.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output);
+    auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
     auto err = fmt::format(
         "Could not obtain adapter description from name \"{}\" - error executing powershell command.{}", ux_id, detail);
     throw std::runtime_error{err};

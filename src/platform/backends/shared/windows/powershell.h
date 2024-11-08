@@ -40,9 +40,12 @@ public:
 
     // require rvalue ref for the error msg, to avoid confusion with output parameter in run
     void easy_run(const QStringList& args, std::string&& error_msg); // signals failures with exception
-    bool run(const QStringList& args, QString* output = nullptr, bool whisper = false);
+    bool run(const QStringList& args, QString* output = nullptr, QString* output_err = nullptr, bool whisper = false);
 
-    static bool exec(const QStringList& args, const std::string& name, QString* output = nullptr);
+    static bool exec(const QStringList& args,
+                     const std::string& name,
+                     QString* output = nullptr,
+                     QString* output_err = nullptr);
 
     struct Snippets
     {

@@ -254,6 +254,7 @@ TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("ExtSwitch ({})", net.id)), /* succeed = */ false);
 
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
     MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), std::runtime_error,
                          mpt::match_what(HasSubstr("Could not create external switch")));
 }
@@ -264,6 +265,7 @@ TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
     ps_helper.mock_ps_exec(error, /* succeed = */ false);
 
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
     MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"Needle", "wifi", "in the hay"}),
                          std::runtime_error, mpt::match_what(HasSubstr(error)));
 }
@@ -411,11 +413,13 @@ TEST_F(HyperVNetworksPS, joinsSwitchesAndAdapters)
 
 TEST_F(HyperVNetworksPS, throwsOnFailureToExecuteCmdlet)
 {
+    constexpr auto error = "error msg";
+
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
     logger.expect_log(mpl::Level::warning, "Process failed");
+    logger.expect_log(mpl::Level::warning, error);
 
-    constexpr auto error = "error msg";
     ps_helper.mock_ps_exec(error, false);
     MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error)));
 }

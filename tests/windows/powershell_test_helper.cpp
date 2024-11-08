@@ -27,9 +27,19 @@ void mpt::PowerShellTestHelper::mock_ps_exec(const QByteArray& output, bool succ
         [output, succeed](auto* process) {
             InSequence seq;
 
-            auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
-            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
-            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+            if (succeed)
+            {
+                auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
+                EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+                EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+            }
+            else
+            {
+                auto emit_ready_read = [process] { emit process->ready_read_standard_error(); };
+                EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+                EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
+            }
+
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(succeed));
             EXPECT_CALL(*process, process_id).WillOnce(Return(9999));
         },
