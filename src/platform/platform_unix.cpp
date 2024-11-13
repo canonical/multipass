@@ -59,12 +59,7 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
-int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
-{
-    return ::chmod(path, mode);
-}
-
-bool mp::platform::Platform::set_permissions(const mp::Path path, const QFileDevice::Permissions permissions) const
+bool mp::platform::Platform::set_permissions(const mp::Path& path, const QFileDevice::Permissions permissions) const
 {
     return QFile::setPermissions(path, permissions);
 }
@@ -109,7 +104,7 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
         return;
 
     int gid{0};
-    int mode{S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP};
+    auto mode{QFileDevice::ReadUser | QFileDevice::WriteUser | QFileDevice::ReadGroup | QFileDevice::WriteGroup};
 
     if (restricted)
     {
@@ -125,14 +120,14 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
     }
     else
     {
-        mode |= S_IROTH | S_IWOTH;
+        mode |= QFileDevice::ReadOther | QFileDevice::WriteOther;
     }
 
     const auto socket_path = tokens[1];
     if (chown(socket_path.c_str(), 0, gid) == -1)
         throw std::runtime_error(fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
 
-    if (chmod(socket_path.c_str(), mode) == -1)
+    if (!set_permissions(socket_path.c_str(), mode))
         throw std::runtime_error(
             fmt::format("Could not set permissions for the multipass socket: {}", strerror(errno)));
 }
