@@ -116,9 +116,6 @@ YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_
                                                      const std::vector<mp::NetworkInterface>& extra_interfaces,
                                                      const std::string& file_content)
 {
-    // It is changed to generate new format network-config file, meaning always be present, have default interface
-    // field and dhcp-identifier: mac on every network interface. It also remains backward compatible to the absent
-    // network-config/default interface (the old format) cases.
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
     network_data["version"] = "2";
@@ -140,13 +137,12 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& d
                                                             const NetworkInterface& extra_interface,
                                                             const std::string& network_config_file_content)
 {
-    // Same as the make_cloud_init_network_config function in terms of format compatibility
     if (!extra_interface.auto_mode)
     {
         return network_config_file_content.empty() ? YAML::Node{} : YAML::Load(network_config_file_content);
     }
 
-    if (network_config_file_content.empty())
+    if (network_config_file_content.empty()) // for backward compatibility with absent default interface
     {
         YAML::Node network_data{};
         network_data["version"] = "2";
