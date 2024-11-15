@@ -59,7 +59,7 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
-bool mp::platform::Platform::set_permissions(const mp::Path& path, const QFileDevice::Permissions permissions) const
+bool mp::platform::Platform::set_permissions(const Path& path, const Perms permissions) const
 {
     return QFile::setPermissions(path, permissions);
 }
@@ -127,9 +127,8 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
     if (chown(socket_path.c_str(), 0, gid) == -1)
         throw std::runtime_error(fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
 
-    if (!set_permissions(socket_path.c_str(), mode))
-        throw std::runtime_error(
-            fmt::format("Could not set permissions for the multipass socket: {}", strerror(errno)));
+    if (!set_permissions(QString::fromStdString(socket_path), mode))
+        throw std::runtime_error(fmt::format("Could not set permissions for the multipass socket"));
 }
 
 QString mp::platform::Platform::multipass_storage_location() const

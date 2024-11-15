@@ -531,13 +531,11 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    std::error_code err;
-    MP_FILEOPS.permissions(filename, static_cast<fs::perms>(msg->attr->permissions), err);
-    if (err)
+    if (!MP_PLATFORM.set_permissions(filename, static_cast<Perms>(msg->attr->permissions)))
     {
         mpl::log(mpl::Level::trace,
                  category,
-                 fmt::format("{}: set permissions failed for '{}': {}", __FUNCTION__, filename, err.message()));
+                 fmt::format("{}: set permissions failed for '{}'", __FUNCTION__, filename));
         return reply_failure(msg);
     }
 
@@ -1022,13 +1020,11 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        std::error_code err;
-        MP_FILEOPS.permissions(file.fileName().toStdString(), static_cast<fs::perms>(msg->attr->permissions), err);
-        if (err)
+        if (!MP_PLATFORM.set_permissions(file.fileName(), static_cast<Perms>(msg->attr->permissions)))
         {
             mpl::log(mpl::Level::trace,
                      category,
-                     fmt::format("{}: set permissions failed for '{}': {}", __FUNCTION__, filename, err.message()));
+                     fmt::format("{}: set permissions failed for '{}'", __FUNCTION__, filename));
             return reply_failure(msg);
         }
     }

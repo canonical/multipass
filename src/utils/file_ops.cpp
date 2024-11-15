@@ -145,11 +145,6 @@ bool mp::FileOps::seek(QFile& file, qint64 pos) const
     return file.seek(pos);
 }
 
-bool mp::FileOps::setPermissions(QFile& file, QFileDevice::Permissions permissions) const
-{
-    return file.setPermissions(permissions);
-}
-
 qint64 mp::FileOps::size(QFile& file) const
 {
     return file.size();
@@ -265,11 +260,6 @@ void mp::FileOps::create_symlink(const fs::path& to, const fs::path& path, std::
 fs::path mp::FileOps::read_symlink(const fs::path& path, std::error_code& err) const
 {
     return fs::read_symlink(path, err);
-}
-
-void mp::FileOps::permissions(const fs::path& path, fs::perms perms, std::error_code& err) const
-{
-    fs::permissions(path, perms, err);
 }
 
 fs::file_status mp::FileOps::status(const fs::path& path, std::error_code& err) const

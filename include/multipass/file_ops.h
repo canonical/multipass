@@ -81,7 +81,6 @@ public:
     virtual bool rename(QFile& file, const QString& newName) const;
     virtual bool resize(QFile& file, qint64 sz) const;
     virtual bool seek(QFile& file, qint64 pos) const;
-    virtual bool setPermissions(QFile& file, QFileDevice::Permissions permissions) const;
     virtual qint64 size(QFile& file) const;
     virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
     virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
@@ -114,7 +113,6 @@ public:
     virtual bool remove(const fs::path& path, std::error_code& err) const;
     virtual void create_symlink(const fs::path& to, const fs::path& path, std::error_code& err) const;
     virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
-    virtual void permissions(const fs::path& path, fs::perms perms, std::error_code& err) const;
     virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
     virtual fs::file_status symlink_status(const fs::path& path, std::error_code& err) const;
     virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path,

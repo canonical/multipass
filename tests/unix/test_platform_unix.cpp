@@ -117,7 +117,7 @@ TEST_F(TestPlatformUnix, setServerSocketRestrictionsChmodFailsThrows)
     MP_EXPECT_THROW_THAT(
         MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("unix:{}", file.name()), false),
         std::runtime_error,
-        mpt::match_what(StrEq("Could not set permissions for the multipass socket: Operation not permitted")));
+        mpt::match_what(StrEq("Could not set permissions for the multipass socket")));
 }
 
 TEST_F(TestPlatformUnix, chmodSetsFileModsAndReturns)
