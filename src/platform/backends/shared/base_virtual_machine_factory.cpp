@@ -92,12 +92,12 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
                                                                       const multipass::SSHKeyProvider& key_provider,
                                                                       VMStatusMonitor& monitor)
 {
-    const std::filesystem::path source_instance_data_directory{get_instance_directory(src_name).toStdString()};
-    const std::filesystem::path dest_instance_data_directory{get_instance_directory(dest_name).toStdString()};
+    const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
+    const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
 
-    copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
+    copy_instance_dir_with_essential_files(src_instance_dir, dest_instance_dir);
 
-    const fs::path cloud_init_path = dest_instance_data_directory / cloud_init_file_name;
+    const fs::path cloud_init_path = dest_instance_dir / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_spec.default_mac_address,
                                               dest_spec.extra_interfaces,
