@@ -66,9 +66,9 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
         opts.pem_cert_chain = mpt::client_cert;
         opts.pem_private_key = mpt::client_key;
 
-        auto channel = grpc::CreateChannel(server_address, grpc::SslCredentials(opts));
-
-        return mp::Rpc::Stub(channel);
+        grpc::ChannelArguments channel_args;
+        channel_args.SetString(GRPC_ARG_DEFAULT_AUTHORITY, "localhost");
+        return mp::Rpc::Stub(grpc::CreateCustomChannel(server_address, grpc::SslCredentials(opts), channel_args));
     }
 
     mpt::MockDaemon make_secure_server()
