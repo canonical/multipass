@@ -65,7 +65,7 @@ QString cmd::Snapshot::short_help() const
 QString cmd::Snapshot::description() const
 {
     return QStringLiteral(
-        "Take a snapshot of an (stopped) instance that can later be restored to recover the current state.");
+        "Take a snapshot of a stopped instance that can later be restored to recover the current state.");
 }
 
 mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
