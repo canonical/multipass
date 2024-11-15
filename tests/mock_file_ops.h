@@ -56,7 +56,6 @@ public:
     MOCK_METHOD(bool, rename, (QFile&, const QString& newName), (const, override));
     MOCK_METHOD(bool, resize, (QFile&, qint64 sz), (const, override));
     MOCK_METHOD(bool, seek, (QFile&, qint64 pos), (const, override));
-    MOCK_METHOD(bool, setPermissions, (QFile&, QFileDevice::Permissions), (const, override));
     MOCK_METHOD(qint64, size, (QFile&), (const, override));
     MOCK_METHOD(qint64, write, (QFile&, const char*, qint64), (const, override));
     MOCK_METHOD(qint64, write, (QFileDevice&, const QByteArray&), (const, override));
@@ -89,7 +88,6 @@ public:
     MOCK_METHOD(void, create_symlink, (const fs::path& to, const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, read_symlink, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(void, permissions, (const fs::path& path, fs::perms perms, std::error_code& err), (override, const));
     MOCK_METHOD(fs::file_status, status, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(fs::file_status, symlink_status, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(std::unique_ptr<multipass::RecursiveDirIterator>, recursive_dir_iterator,
