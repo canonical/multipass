@@ -127,18 +127,17 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
                                                                            const fs::path& dest_instance_dir_path)
 {
-    if (fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path))
+    assert(fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path));
+
+    fs::create_directory(dest_instance_dir_path);
+    for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
-        fs::create_directory(dest_instance_dir_path);
-        for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
+        // snapshot files are intentionally skipped; .iso file is included for all, .img file here is not relevant
+        // for non-qemu backends.
+        if (entry.path().extension().string() == ".iso" || entry.path().extension().string() == ".img")
         {
-            // snapshot files are intentionally skipped; .iso file is included for all, .img file here is not relevant
-            // for non-qemu backends.
-            if (entry.path().extension().string() == ".iso" || entry.path().extension().string() == ".img")
-            {
-                const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
-                fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
-            }
+            const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
+            fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
         }
     }
 }

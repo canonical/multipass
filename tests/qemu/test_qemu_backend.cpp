@@ -1226,7 +1226,20 @@ TEST_F(QemuBackend, createVmAndCloneInstanceDirData)
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_identifiers(_, _, _, _)).Times(1);
-    EXPECT_TRUE(backend.clone_bare_vm({}, {}, "dummy_src_name", "dummy_dest_name", {}, key_provider, stub_monitor));
+
+    const QString instand_sub_dir = "vault/instances/";
+    namespace fs = std::filesystem;
+    const fs::path instances_dir{data_dir.filePath(instand_sub_dir).toStdString()};
+    constexpr auto* src_vm_name = "dummy_src_name";
+    const fs::path src_img_file_path = instances_dir / src_vm_name / "dummy.img";
+    fs::create_directories(src_img_file_path.parent_path());
+    // create the file with the parent directory in place
+    std::ofstream{src_img_file_path};
+    constexpr auto* dest_vm_name = "dummy_dest_name";
+    EXPECT_TRUE(backend.clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, key_provider, stub_monitor));
+
+    const fs::path dest_img_file_path = instances_dir / dest_vm_name / "dummy.img";
+    EXPECT_TRUE(fs::exists(dest_img_file_path));
 }
 
 TEST(QemuPlatform, base_qemu_platform_returns_expected_values)
