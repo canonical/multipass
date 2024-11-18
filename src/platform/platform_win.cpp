@@ -611,15 +611,10 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
-    return 0;
+    return -1;
 }
 
-int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
-{
-    return 0;
-}
-
-bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
+bool mp::platform::Platform::set_permissions(const Path& path, Perms perms) const
 {
     LPSTR lpPath = _strdup(path.toStdString().c_str());
     auto success = true;
