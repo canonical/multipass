@@ -293,7 +293,7 @@ TEST_F(SFTPClient, pull_file_success)
     REPLACE(sftp_stat, [&](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "", perms); });
     mp::Perms written_perms;
     EXPECT_CALL(mock_platform,
-                set_permissions(QString::fromStdWString(target_path.wstring()), static_cast<mp::Perms>(perms)))
+                set_permissions(QString::fromStdString(target_path.u8string()), static_cast<mp::Perms>(perms)))
         .WillOnce([&](auto, auto perms) {
             written_perms = perms;
             return true;
@@ -361,7 +361,7 @@ TEST_F(SFTPClient, pull_file_cannot_write_target)
     };
     REPLACE(sftp_read, mocked_sftp_read);
     REPLACE(sftp_stat, [&](auto...) { return get_dummy_sftp_attr(); });
-    EXPECT_CALL(mock_platform, set_permissions(QString::fromStdWString(target_path.wstring()), _))
+    EXPECT_CALL(mock_platform, set_permissions(QString::fromStdString(target_path.u8string()), _))
         .WillOnce(Return(true));
     REPLACE(sftp_setstat, [](auto...) { return SSH_FX_OK; });
 
@@ -402,7 +402,7 @@ TEST_F(SFTPClient, pull_file_cannot_set_perms)
     REPLACE(sftp_stat, [&](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "", perms); });
 
     EXPECT_CALL(mock_platform,
-                set_permissions(QString::fromStdWString(target_path.wstring()), static_cast<mp::Perms>(perms)))
+                set_permissions(QString::fromStdString(target_path.u8string()), static_cast<mp::Perms>(perms)))
         .WillOnce(Return(false));
 
     auto sftp_client = make_sftp_client();
@@ -751,13 +751,13 @@ TEST_F(SFTPClient, pull_dir_success_regular)
     mp::Perms dir_written_perms;
     EXPECT_CALL(
         mock_platform,
-        set_permissions(QString::fromStdWString((target_path / "file").wstring()), static_cast<mp::Perms>(perms)))
+        set_permissions(QString::fromStdString((target_path / "file").u8string()), static_cast<mp::Perms>(perms)))
         .WillOnce([&](auto, auto perms) {
             file_written_perms = perms;
             return true;
         });
     EXPECT_CALL(mock_platform,
-                set_permissions(QString::fromStdWString(target_path.wstring()), static_cast<mp::Perms>(perms)))
+                set_permissions(QString::fromStdString(target_path.u8string()), static_cast<mp::Perms>(perms)))
         .WillOnce([&](auto, auto perms) {
             dir_written_perms = perms;
             return true;
