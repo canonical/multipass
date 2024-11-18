@@ -3,4 +3,5 @@
   "extends": [
     "config:recommended"
   ],
+  "schedule": "every 2 weeks on Monday",
 }
