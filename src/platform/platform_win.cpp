@@ -616,6 +616,12 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
 
 bool mp::platform::Platform::set_permissions(const Path& path, Perms perms) const
 {
+    // Windows has both ACLs and very limited POSIX permissions
+
+    // This handles the POSIX side of things.
+    QFile::setPermissions(path, perms);
+
+    // Rest handles ACLs
     LPSTR lpPath = _strdup(path.toStdString().c_str());
     auto success = true;
 
