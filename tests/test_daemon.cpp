@@ -380,15 +380,7 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon, public FakeAliasConfig,
             .WillRepeatedly(Return(fake_alias_dir.path()));
 
         EXPECT_CALL(mock_json_utils, write_json(_, _)).WillRepeatedly([](auto&& a, auto&& b) {
-            // this try catch is necessary since propagating the error hangs the test.
-            try
-            {
-                MP_JSONUTILS.JsonUtils::write_json(a, b);
-            }
-            catch (...)
-            {
-                FAIL() << "write_json threw an unexpected error.";
-            }
+            MP_JSONUTILS.JsonUtils::write_json(std::forward<decltype(a)>(a), std::forward<decltype(b)>(b));
         });
     }
 };
