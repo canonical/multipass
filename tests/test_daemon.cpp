@@ -379,9 +379,7 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon, public FakeAliasConfig,
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
             .WillRepeatedly(Return(fake_alias_dir.path()));
 
-        EXPECT_CALL(mock_json_utils, write_json(_, _)).WillRepeatedly([](auto&& a, auto&& b) {
-            MP_JSONUTILS.JsonUtils::write_json(std::forward<decltype(a)>(a), std::forward<decltype(b)>(b));
-        });
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_json_utils, write_json, JsonUtils);
     }
 };
 

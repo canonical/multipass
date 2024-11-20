@@ -2900,22 +2900,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             }
             catch (const std::exception& e)
             {
-                try
-                {
+                mp::top_catch_all(category, [this, &name]() {
                     preparing_instances.erase(name);
                     release_resources(name);
                     operative_instances.erase(name);
                     persist_instances();
-                }
-                catch (const std::exception& doubleError)
-                {
-                    mpl::log(mpl::Level::error,
-                             category,
-                             fmt::format("Creation of VM \"{}\" failed to revert state while handling error \"{}\": {}",
-                                         name,
-                                         e.what(),
-                                         doubleError.what()));
-                }
+                });
 
                 status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
