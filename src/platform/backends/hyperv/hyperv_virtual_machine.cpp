@@ -322,12 +322,12 @@ void mp::HyperVVirtualMachine::start()
     state = State::starting;
     update_state();
 
-    QString output;
-    if (!power_shell->run({"Start-VM", "-Name", name}, nullptr, &output))
+    QString output_err;
+    if (!power_shell->run({"Start-VM", "-Name", name}, nullptr, &output_err))
     {
         state = instance_state_for(power_shell.get(), name);
         update_state();
-        throw StartException{vm_name, output.toStdString()};
+        throw StartException{vm_name, output_err.toStdString()};
     }
 }
 

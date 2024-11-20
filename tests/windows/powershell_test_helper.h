@@ -38,7 +38,7 @@ public:
     virtual ~PowerShellTestHelper() = default;
 
     // only the last call to this function has any effect at the moment the PS process is created
-    void mock_ps_exec(const QByteArray& output, bool succeed = true);
+    void mock_ps_exec(const QByteArray& output, const QByteArray& output_err, bool succeed = true);
 
     struct RunSpec
     {

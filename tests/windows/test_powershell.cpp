@@ -384,19 +384,9 @@ TEST_F(PowerShellTest, exec_returns_cmd_error_output)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
 
-    ps_helper.setup(
-        [](auto* process) {
-            InSequence seq;
-            auto emit_ready_read = [process] { emit process->ready_read_standard_error(); };
+    ps_helper.mock_ps_exec("", msg);
 
-            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
-            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(msg));
-            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-        },
-        /* auto_exit = */ false);
-
-    QString output;
-    QString output_err;
+    QString output{}, output_err{};
     mp::PowerShell::exec(cmdlet, "Tiamat", &output, &output_err);
     EXPECT_TRUE(output.isEmpty());
     EXPECT_EQ(output_err, msg);
