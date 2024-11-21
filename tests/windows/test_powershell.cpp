@@ -384,7 +384,7 @@ TEST_F(PowerShellTest, exec_returns_cmd_error_output)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
 
-    ps_helper.mock_ps_exec("", msg);
+    ps_helper.mock_ps_exec(std::nullopt, msg);
 
     QString output{}, output_err{};
     mp::PowerShell::exec(cmdlet, "Tiamat", &output, &output_err);

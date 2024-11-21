@@ -235,14 +235,14 @@ TEST_F(HyperVBackend, createBridgeReturnsNewSwitchName)
 {
     const mp::NetworkInterfaceInfo net{"w1", "wifi", "Wireless network"};
     const auto switch_name = fmt::format("ExtSwitch ({})", net.id);
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(switch_name), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(switch_name));
     EXPECT_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), Eq(switch_name));
 }
 
 TEST_F(HyperVBackend, createBridgeThrowsOnNameMismatch)
 {
     const auto bad = "wrong";
-    ps_helper.mock_ps_exec(bad, "");
+    ps_helper.mock_ps_exec(bad);
 
     MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"lagwagon", "wifi", "duh"}),
                          std::runtime_error, mpt::match_what(HasSubstr(bad)));
@@ -251,7 +251,9 @@ TEST_F(HyperVBackend, createBridgeThrowsOnNameMismatch)
 TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
 {
     const mp::NetworkInterfaceInfo net{"rerere", "ethernet", "lilo"};
-    ps_helper.mock_ps_exec("", QByteArray::fromStdString(fmt::format("ExtSwitch ({})", net.id)), /* succeed = */ false);
+    ps_helper.mock_ps_exec(std::nullopt,
+                           QByteArray::fromStdString(fmt::format("ExtSwitch ({})", net.id)),
+                           /* succeed = */ false);
 
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
@@ -262,7 +264,7 @@ TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
 TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
 {
     const auto error = "Bad Astronaut";
-    ps_helper.mock_ps_exec("", error, /* succeed = */ false);
+    ps_helper.mock_ps_exec(std::nullopt, error, /* succeed = */ false);
 
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
@@ -394,14 +396,14 @@ TEST_F(HyperVNetworksPS, requestsSwitches)
 
 TEST_F(HyperVNetworksPS, requestsPlatformInterfaces)
 {
-    ps_helper.mock_ps_exec("", "");
+    ps_helper.mock_ps_exec("");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).Times(1);
     backend.networks();
 }
 
 TEST_F(HyperVNetworksPS, joinsSwitchesAndAdapters)
 {
-    ps_helper.mock_ps_exec("switch,External, a switch,\n", "");
+    ps_helper.mock_ps_exec("switch,External, a switch,\n");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector({{"eth", "ethernet", "wired"}})));
 
@@ -420,14 +422,14 @@ TEST_F(HyperVNetworksPS, throwsOnFailureToExecuteCmdlet)
     logger.expect_log(mpl::Level::warning, "Process failed");
     logger.expect_log(mpl::Level::warning, error);
 
-    ps_helper.mock_ps_exec("", error, false);
+    ps_helper.mock_ps_exec(std::nullopt, error, false);
     MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error, Property(&std::runtime_error::what, HasSubstr(error)));
 }
 
 TEST_F(HyperVNetworksPS, throwsOnUnexpectedCmdletOutput)
 {
     constexpr auto output = "g1bb€r1$h";
-    ps_helper.mock_ps_exec(output, "");
+    ps_helper.mock_ps_exec(output);
     MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
 }
@@ -439,7 +441,7 @@ struct TestWrongNumFields : public HyperVNetworksPS, public WithParamInterface<s
 
 TEST_P(TestWrongNumFields, throwsOnOutputWithWrongFields)
 {
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, GetParam())));
     ASSERT_THROW(backend.networks(), std::runtime_error);
 }
 
@@ -459,7 +461,7 @@ TEST_P(TestNonExternalSwitchesWithLinks, throwsOnNonExternalSwitchWithLink)
 
     auto switch_type = GetParam();
     auto switch_line = fmt::format("a switch,{},{},", switch_type, link_description);
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, switch_line)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, switch_line)));
 
     MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Unexpected"), HasSubstr("non-external"))));
@@ -499,7 +501,7 @@ TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
     const auto matcher =
         adapt_to_single_description_matcher(make_required_forbidden_regex_matcher(type, "external|unknown"));
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,{},,", type)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,{},,", type)));
     EXPECT_THAT(backend.networks(), matcher);
 }
 
@@ -515,7 +517,7 @@ TEST_F(HyperVNetworksPS, recognizesExternalSwitch)
         Field(&mp::NetworkInterfaceInfo::description, make_required_forbidden_regex_matcher("external", "unknown"));
     const auto switch_matcher = AllOf(id_matcher, type_matcher, desc_matcher);
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("{},external,fake nic,", name)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("{},external,fake nic,", name)));
     EXPECT_THAT(backend.networks(), ElementsAre(switch_matcher));
 }
 
@@ -525,7 +527,7 @@ TEST_F(HyperVNetworksPS, handlesUnknownSwitchTypes)
     const auto matcher = adapt_to_single_description_matcher(
         AllOf(make_required_forbidden_regex_matcher("unknown", "private|internal|external"), HasSubstr(type)));
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("Custom Switch,{},,", type)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("Custom Switch,{},,", type)));
     EXPECT_THAT(backend.networks(), matcher);
 }
 
@@ -536,8 +538,7 @@ TEST_F(HyperVNetworksPS, includesSwitchLinksToKnownAdapters)
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net_a, net_c})));
     ps_helper.mock_ps_exec(
-        QByteArray::fromStdString(fmt::format("switch_{},external,{},", net_c.id, net_c.description)),
-        "");
+        QByteArray::fromStdString(fmt::format("switch_{},external,{},", net_c.id, net_c.description)));
 
     auto match = [](const auto& expect_link) {
         return AllOf(Field(&mp::NetworkInterfaceInfo::id, EndsWith(expect_link)),
@@ -554,7 +555,7 @@ struct TestSwitchUnsupportedLinks : public HyperVNetworksPS,
 TEST_P(TestSwitchUnsupportedLinks, excludesSwitchLinksToUnknownAdapters)
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector(GetParam())));
-    ps_helper.mock_ps_exec("switchin,external,crazy adapter,\nnope,external,nope,", "");
+    ps_helper.mock_ps_exec("switchin,external,crazy adapter,\nnope,external,nope,");
 
     auto switch_matcher =
         AllOf(Field(&mp::NetworkInterfaceInfo::type, Eq("switch")), Field(&mp::NetworkInterfaceInfo::links, IsEmpty()));
@@ -568,7 +569,7 @@ TEST_P(TestSwitchUnsupportedLinks, omitsUnsupportedAdapterFromExternalSwitchDesc
         Field(&mp::NetworkInterfaceInfo::description,
               make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)", "via|internal|private"));
 
-    ps_helper.mock_ps_exec("some switch,external,some unknown NIC,", "");
+    ps_helper.mock_ps_exec("some switch,external,some unknown NIC,");
     EXPECT_THAT(backend.networks(), Contains(desc_matcher));
 }
 
@@ -590,7 +591,7 @@ TEST_F(HyperVNetworksPS, includesSupportedAdapterInExternalSwitchDescription)
                      AllOf(make_required_forbidden_regex_matcher("external", "unknown"), HasSubstr(expect_link)));
     };
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{},\n", eth.description)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("some switch,external,{},\n", eth.description)));
     EXPECT_THAT(backend.networks(), IsSupersetOf({match(eth.id)}));
 }
 
@@ -602,7 +603,7 @@ TEST_F(HyperVNetworksPS, includesExistingNotesInSwitchDescription)
                                    "IntSwitch,Internal,,{0}\n"
                                    "ExtSwitchA,External,,{0}\n"
                                    "ExtSwitchB,External,{1},{0}\n";
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, notes, adapter_id)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, notes, adapter_id)));
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector({mp::NetworkInterfaceInfo{adapter_id, "ethernet", "eth adapter"}})));
@@ -621,7 +622,7 @@ TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForKnownAdaptersInSwitch
     const auto& net = GetParam();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("switch,external,{},\n", net.description)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("switch,external,{},\n", net.description)));
     EXPECT_THAT(backend.networks(), Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
                                                    Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
 }
@@ -631,7 +632,7 @@ TEST_P(TestAdapterAuthorization, requiresAuthorizationForKnownAdaptersInNoSwitch
     const auto& net = GetParam();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
 
-    ps_helper.mock_ps_exec("switch,external,unknown adapter,\n", "");
+    ps_helper.mock_ps_exec("switch,external,unknown adapter,\n");
     EXPECT_THAT(backend.networks(), Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
                                                    Field(&mp::NetworkInterfaceInfo::needs_authorization, true))));
 }
@@ -643,7 +644,7 @@ TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForSwitches)
 
     constexpr auto ps_output = "ext_switch_a,external,unknown adapter,\next_switch_a,external,{},"
                                "\nint_switch,internal,,\npriv_switch,private,,\n";
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(ps_output, net.description)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(ps_output, net.description)));
 
     const auto networks = backend.networks();
     EXPECT_THAT(std::count_if(networks.cbegin(), networks.cend(), [](const auto& x) { return x.type == "switch"; }), 4);
@@ -658,13 +659,13 @@ INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS,
 
 TEST_F(HyperVNetworksPS, getSwitchesReturnsEmptyWhenNoSwitchesFound)
 {
-    ps_helper.mock_ps_exec("", "");
+    ps_helper.mock_ps_exec("");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), IsEmpty());
 }
 
 TEST_F(HyperVNetworksPS, getSwitchesReturnsAsManyItemsAsLinesInProperOutput)
 {
-    ps_helper.mock_ps_exec("a,b,,\nd,e,,\ng,h,,\nj,k,,\n,,,\n,m,,\njj,external,asdf,\n", "");
+    ps_helper.mock_ps_exec("a,b,,\nd,e,,\ng,h,,\nj,k,,\n,,,\n,m,,\njj,external,asdf,\n");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({{}}), SizeIs(7));
 }
 
@@ -677,7 +678,7 @@ TEST_F(HyperVNetworksPS, getSwitchesReturnsProvidedInterfaceIds)
                                    "{},Internal,,\n"
                                    "{},External,adapter description,\n";
 
-    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)), "");
+    ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(output_format, id1, id2, id3)));
     auto id_matcher = [](const auto& expect) { return Field(&mp::NetworkInterfaceInfo::id, expect); };
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({{}, {}}),
                 UnorderedElementsAre(id_matcher(id1), id_matcher(id2), id_matcher(id3)));
@@ -685,7 +686,7 @@ TEST_F(HyperVNetworksPS, getSwitchesReturnsProvidedInterfaceIds)
 
 TEST_F(HyperVNetworksPS, getSwitchesReturnsOnlySwitches)
 {
-    ps_helper.mock_ps_exec("a,b,,\nc,d,,\nasdf,internal,,\nsdfg,external,dfgh,\nfghj,private,,", "");
+    ps_helper.mock_ps_exec("a,b,,\nc,d,,\nasdf,internal,,\nsdfg,external,dfgh,\nfghj,private,,");
     EXPECT_THAT(mpt::HyperVNetworkAccessor::get_switches({}), Each(Field(&mp::NetworkInterfaceInfo::type, "switch")));
 }
 

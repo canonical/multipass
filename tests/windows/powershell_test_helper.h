@@ -25,6 +25,7 @@
 
 #include <src/platform/backends/shared/windows/powershell.h>
 
+#include <optional>
 #include <string>
 
 using namespace testing;
@@ -37,8 +38,12 @@ public:
     PowerShellTestHelper() = default;
     virtual ~PowerShellTestHelper() = default;
 
+    // Mocks powershell to have output in stdout, output_err in stderr, and return succeed.
+    // use std::nullopt to specify no stdout/stderr, "" is still some output.
     // only the last call to this function has any effect at the moment the PS process is created
-    void mock_ps_exec(const QByteArray& output, const QByteArray& output_err, bool succeed = true);
+    void mock_ps_exec(const std::optional<QByteArray>& output,
+                      const std::optional<QByteArray>& output_err = std::nullopt,
+                      bool succeed = true);
 
     struct RunSpec
     {
