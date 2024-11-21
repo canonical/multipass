@@ -219,7 +219,7 @@ class LaunchingNotification extends ConsumerWidget {
               children: [
                 Text.rich([
                   '$name is up and running\n'.span.bold,
-                  'You can start using using it now'.span,
+                  'You can start using it now'.span,
                 ].spans),
                 Divider(),
                 Row(children: [
