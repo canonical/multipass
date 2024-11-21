@@ -250,7 +250,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     state = State::off;
 
-    remove_snapshots_from_image();
+    remove_snapshots_from_backend();
     fs::remove_all(exported_vm_path);
 }
 
@@ -504,7 +504,7 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                              smb_manager);
 }
 
-void mp::HyperVVirtualMachine::remove_snapshots_from_image() const
+void mp::HyperVVirtualMachine::remove_snapshots_from_backend() const
 {
     // Get-VMSnapshot -VMName "YourVMName" | Remove-VMSnapshot
     power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"}, "Could not remove the snapshots");

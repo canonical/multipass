@@ -283,7 +283,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                 name);
     // 4. reset the mac addresses of vm to the spec addres
     update_mac_addresses_of_network_adapters(desc, name);
-    remove_snapshots_from_image();
+    remove_snapshots_from_backend();
 }
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
@@ -508,7 +508,7 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-void mp::VirtualBoxVirtualMachine::remove_snapshots_from_image() const
+void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
 {
     // Name: @s1 (UUID: 93a6a9ba-9223-4b77-a8cf-80213439aaae)
     // Description: snapshot1:

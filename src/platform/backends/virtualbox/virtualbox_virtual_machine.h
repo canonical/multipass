@@ -82,7 +82,7 @@ private:
                              const SSHKeyProvider& key_provider,
                              const Path& instance_dir_qstr,
                              bool is_internal);
-    void remove_snapshots_from_image() const;
+    void remove_snapshots_from_backend() const;
 
     VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;

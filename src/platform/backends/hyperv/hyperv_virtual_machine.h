@@ -90,7 +90,7 @@ private:
 
     void setup_network_interfaces();
     void update_network_interfaces(const VMSpecs& src_specs);
-    void remove_snapshots_from_image() const;
+    void remove_snapshots_from_backend() const;
 
     VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;
