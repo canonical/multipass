@@ -59,7 +59,7 @@ auto make_network_manager(const mp::Path& cache_dir_path)
     return manager;
 }
 
-[[nodiscard]] auto make_http_url_https(const QUrl& url)
+[[nodiscard]] QUrl make_http_url_https(const QUrl& url)
 {
     QUrl out{url};
 
