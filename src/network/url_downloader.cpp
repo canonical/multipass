@@ -23,6 +23,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/utils.h>
 #include <multipass/version.h>
 
 #include <QDir>
@@ -120,35 +121,30 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
         // Log the original error message at debug level
         mpl::log(mpl::Level::debug,
                  category,
-                 fmt::format("Qt error {}: {}", static_cast<int>(error_code), error_string));
+                 fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
 
-        const auto msg = (error_code == QNetworkReply::TimeoutError) ? "Network timeout" : error_string;
-
-        if (error_code == QNetworkReply::TimeoutError)
-        {
-            // Log a debug message to verify our assumption about download_timeout
-            if (download_timeout.isActive())
-            {
-                mpl::log(mpl::Level::debug, category, "Timeout error detected but download_timeout is still active");
-            }
-        }
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
 
         if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError || abort_download)
         {
             on_error();
-            throw mp::AbortedDownloadException{msg};
+            throw mp::AbortedDownloadException{error_string};
         }
         if (cache_load_control == QNetworkRequest::CacheLoadControl::AlwaysCache)
         {
             on_error();
             // Log at error level since we are giving up
-            mpl::log(mpl::Level::error, category, fmt::format("Failed to get {}: {}", adjusted_url.toString(), msg));
-            throw mp::DownloadException{adjusted_url.toString().toStdString(), msg};
+            mpl::log(mpl::Level::error,
+                     category,
+                     fmt::format("Failed to get {}: {}", adjusted_url.toString(), error_string));
+            throw mp::DownloadException{adjusted_url.toString().toStdString(), error_string};
         }
         // Log at warning level when we are going to retry
         mpl::log(mpl::Level::warning,
                  category,
-                 fmt::format("Failed to get {}: {} - trying cache.", adjusted_url.toString(), msg));
+                 fmt::format("Failed to get {}: {} - trying cache.", adjusted_url.toString(), error_string));
         return ::download(manager,
                           timeout,
                           adjusted_url,
@@ -182,13 +178,24 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
 
     if (reply->error() != QNetworkReply::NoError)
     {
-        const auto msg = download_timeout.isActive() ? reply->errorString().toStdString() : "Network timeout";
+        const auto error_code = reply->error();
+        const auto error_string = reply->errorString().toStdString();
 
-        mpl::log(mpl::Level::warning,
+        // Log the original error message at debug level
+        mpl::log(mpl::Level::debug,
                  category,
-                 fmt::format("Cannot retrieve headers for {}: {}", adjusted_url.toString(), msg));
+                 fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
 
-        throw mp::DownloadException{adjusted_url.toString().toStdString(), reply->errorString().toStdString()};
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
+
+        // Log at error level when we give up on getting headers
+        mpl::log(mpl::Level::error,
+                 category,
+                 fmt::format("Cannot retrieve headers for {}: {}", adjusted_url.toString(), error_string));
+
+        throw mp::DownloadException{adjusted_url.toString().toStdString(), error_string};
     }
 
     return reply->header(header);
