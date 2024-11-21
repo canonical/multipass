@@ -1235,7 +1235,7 @@ TEST_F(Client, launch_cmd_mount_option)
     const QTemporaryDir fake_directory{};
 
     const auto fake_source = fake_directory.path().toStdString();
-    const auto fake_target = fake_source;
+    const auto fake_target = "";
     const auto instance_name = "some_instance";
 
     const auto mount_matcher = make_mount_matcher(fake_source, fake_target, instance_name);
