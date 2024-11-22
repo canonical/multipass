@@ -143,13 +143,13 @@
         <InstallExecuteSequence>
             <Custom Action="SetMP_DATA_DIR" Before="AppSearch" />
 
+            <Custom Action="UninstallExeMPAction" After="InstallInitialize"
+                Condition="NOT Installed AND UNINSTALLER_PATH" />
+
             <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
                 Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="InstallInitialize"
                 Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
-
-            <Custom Action="UninstallExeMPAction" After="InstallInitialize"
-                Condition="NOT Installed AND UNINSTALLER_PATH" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA &lt;&gt; &quot;yes&quot; AND REMOVE_DATA &lt;&gt; &quot;no&quot;" />
