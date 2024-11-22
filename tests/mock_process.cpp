@@ -5,8 +5,9 @@
 [[noreturn]] void crash()
 {
 #ifdef MULTIPASS_PLATFORM_WINDOWS
-    // Prevent Windows from making a dialogue box or reporting data.
-    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    // Prevent Windows from making a dialogue box and enable crash data reporting.
+    // If data reporting is not enabled, QProcess will always return NormalExit.
+    _set_abort_behavior(_CALL_REPORTFAULT, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
     abort();
 }
