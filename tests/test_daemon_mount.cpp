@@ -269,28 +269,36 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
     EXPECT_THAT(status.error_message(), StrEq("The native mounts feature is not implemented on this backend."));
 }
 
-TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
+TEST_F(TestDaemonMount, mount_uses_resolved_source)
 {
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    // can't use _ since _ is needed for gmock matching later.
+    const auto [temp_dir, ignored_filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
-    const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, weakly_canonical)
-        .WillOnce(Return(mp::fs::path{config_builder.data_directory.toStdString()}));
+    const auto target_path = config_builder.data_directory.toStdString();
 
-    auto original_implementation_of_mkpath = [](const QDir& dir, const QString& dirName) -> bool {
-        return MP_FILEOPS.FileOps::mkpath(dir, dirName);
-    };
-    EXPECT_CALL(*mock_file_ops, mkpath).WillRepeatedly(original_implementation_of_mkpath);
+    // have resolver return target_path
+    const auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce(Return(target_path));
 
-    auto original_implementation_of_open = [](QFileDevice& dev, QIODevice::OpenMode mode) -> bool {
-        return MP_FILEOPS.FileOps::open(dev, mode);
-    };
-    EXPECT_CALL(*mock_file_ops, open(A<QFileDevice&>(), A<QIODevice::OpenMode>()))
-        .WillRepeatedly(original_implementation_of_open);
+    // mock mount_handler to check the VMMount is using target_path as its source
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
-    auto original_implementation_of_commit = [](QSaveFile& file) -> bool { return MP_FILEOPS.FileOps::commit(file); };
-    EXPECT_CALL(*mock_file_ops, commit).WillRepeatedly(original_implementation_of_commit);
+    auto mock_mount_handler = std::make_unique<NiceMock<mpt::MockMountHandler>>();
+    EXPECT_CALL(*mock_vm,
+                make_native_mount_handler(
+                    _,
+                    Matcher<const mp::VMMount&>(Property(&mp::VMMount::get_source_path, Eq(target_path)))))
+        .WillOnce(Return(std::move(mock_mount_handler)));
+
+    // setup to make the daemon happy
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, mkpath, FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, commit, FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*mock_file_ops,
+                                                 open,
+                                                 FileOps,
+                                                 (A<QFileDevice&>(), A<QIODevice::OpenMode>()));
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -301,6 +309,7 @@ TEST_F(TestDaemonMount, symlinkSourceGetsResolved)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
+    // invoke daemon and expect it to be happy
     auto status = call_daemon_slot(daemon,
                                    &mp::Daemon::mount,
                                    request,

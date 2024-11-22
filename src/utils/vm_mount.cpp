@@ -83,7 +83,7 @@ mp::VMMount::VMMount(const std::string& sourcePath,
                      id_mappings gidMappings,
                      id_mappings uidMappings,
                      MountType mountType)
-    : source_path(sourcePath),
+    : source_path(MP_FILEOPS.weakly_canonical(sourcePath).string()),
       gid_mappings(std::move(gidMappings)),
       uid_mappings(std::move(uidMappings)),
       mount_type(mountType)
@@ -107,25 +107,10 @@ mp::VMMount::VMMount(const std::string& sourcePath,
     if (errors.size())
         throw std::runtime_error(
             fmt::format("Mount cannot apply mapping with duplicate ids:{}", fmt::to_string(errors)));
-
-    resolve_source_path();
 }
 
 mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor
 {
-}
-
-void mp::VMMount::resolve_source_path()
-{
-    std::error_code err{};
-    const auto path = MP_FILEOPS.weakly_canonical(source_path, err);
-
-    if (err)
-        throw std::system_error(
-            err,
-            fmt::format("Could not resolve symlinks in mount source path  \"{}\": {}.", source_path, err.message()));
-
-    source_path = path.string();
 }
 
 QJsonObject mp::VMMount::serialize() const

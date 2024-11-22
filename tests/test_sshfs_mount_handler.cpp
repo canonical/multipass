@@ -60,9 +60,9 @@ struct SSHFSMountHandlerTest : public ::Test
         EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
         EXPECT_CALL(mock_file_ops, status)
             .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
-        ON_CALL(mock_file_ops, weakly_canonical).WillByDefault([](const mp::fs::path& path, std::error_code& err) {
+        ON_CALL(mock_file_ops, weakly_canonical).WillByDefault([](const mp::fs::path& path) {
             // Not using weakly_canonical since we don't want symlink resolution on fake paths
-            return mp::fs::absolute(path, err);
+            return mp::fs::absolute(path);
         });
     }
 
