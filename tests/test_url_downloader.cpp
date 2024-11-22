@@ -50,7 +50,7 @@ struct URLDownloader : public Test
     mpt::MockNetworkManagerFactory::GuardedMock attr{mpt::MockNetworkManagerFactory::inject()};
     mpt::MockNetworkManagerFactory* mock_network_manager_factory{attr.first};
     std::unique_ptr<NiceMock<mpt::MockQNetworkAccessManager>> mock_network_access_manager;
-    const QUrl fake_url{"http://a.fake.url"};
+    const QUrl fake_url{"https://a.fake.url"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 } // namespace
@@ -528,4 +528,41 @@ TEST_F(URLDownloader, lastModifiedHeaderErrorThrows)
     mp::URLDownloader downloader(cache_dir.path(), 1s);
 
     EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
+}
+
+struct URLConverter : public URLDownloader
+{
+    template <class Callable>
+    decltype(auto) test_function_converts_url(Callable&& function)
+    {
+        mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
+        QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
+
+        ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault(Return(mock_reply));
+        ON_CALL(*mock_reply, readData(_, _)).WillByDefault(Return(0));
+
+        EXPECT_CALL(*mock_network_access_manager, createRequest(_, Property(&QNetworkRequest::url, Eq(https_url)), _))
+            .WillRepeatedly(Return(mock_reply));
+
+        return function(http_url);
+    }
+
+    const QUrl http_url{"http://a.url.net"};
+    const QUrl https_url{"https://a.url.net"};
+};
+
+TEST_F(URLConverter, downloadHttpUrlBecomesHttps)
+{
+    test_function_converts_url([this](const QUrl& url) {
+        mp::URLDownloader downloader(cache_dir.path(), 1s);
+        return downloader.download(url);
+    });
+}
+
+TEST_F(URLConverter, lastModifiedHttpUrlBecomesHttps)
+{
+    test_function_converts_url([this](const QUrl& url) {
+        mp::URLDownloader downloader(cache_dir.path(), 1s);
+        downloader.last_modified(url);
+    });
 }

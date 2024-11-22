@@ -34,6 +34,25 @@ namespace
 {
 constexpr auto request_category = "lxd request";
 
+void setup_lxd_url(QUrl& inout_url)
+{
+    if (inout_url.host().isEmpty())
+        inout_url.setHost(mp::lxd_project_name);
+
+    const QString project_query_string = QString("project=%1").arg(mp::lxd_project_name);
+    if (inout_url.hasQuery())
+    {
+        inout_url.setQuery(inout_url.query() + "&" + project_query_string);
+    }
+    else
+    {
+        inout_url.setQuery(project_query_string);
+    }
+
+    if (inout_url.scheme() == "http")
+        inout_url.setScheme("https");
+}
+
 template <typename Callable>
 const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int timeout, Callable&& handle_request)
 {
@@ -41,20 +60,7 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
 
-    if (url.host().isEmpty())
-    {
-        url.setHost(mp::lxd_project_name);
-    }
-
-    const QString project_query_string = QString("project=%1").arg(mp::lxd_project_name);
-    if (url.hasQuery())
-    {
-        url.setQuery(url.query() + "&" + project_query_string);
-    }
-    else
-    {
-        url.setQuery(project_query_string);
-    }
+    setup_lxd_url(url);
 
     mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
     QNetworkRequest request{url};
