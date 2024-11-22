@@ -283,14 +283,13 @@ TEST_F(TestDaemonMount, mount_uses_resolved_source)
 
     // mock mount_handler to check the VMMount is using target_path as its source
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
-    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
-
-    auto mock_mount_handler = std::make_unique<NiceMock<mpt::MockMountHandler>>();
     EXPECT_CALL(*mock_vm,
                 make_native_mount_handler(
                     _,
                     Matcher<const mp::VMMount&>(Property(&mp::VMMount::get_source_path, Eq(target_path)))))
         .WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     // setup to make the daemon happy
     MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, mkpath, FileOps);
