@@ -19,6 +19,7 @@
 #include "file_operations.h"
 #include "mock_cloud_init_file_ops.h"
 #include "mock_file_ops.h"
+#include "mock_json_utils.h"
 #include "mock_virtual_machine.h"
 #include "path.h"
 
@@ -49,40 +50,7 @@ public:
     MOCK_METHOD(void, capture_impl, (), (override));
     MOCK_METHOD(void, erase_impl, (), (override));
     MOCK_METHOD(void, apply_impl, (), (override));
-
-    friend bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b);
 };
-
-bool operator==(const MockBaseSnapshot& a, const MockBaseSnapshot& b)
-{
-    return std::tuple(a.get_index(),
-                      a.get_name(),
-                      a.get_comment(),
-                      a.get_cloud_init_instance_id(),
-                      a.get_creation_timestamp(),
-                      a.get_num_cores(),
-                      a.get_mem_size(),
-                      a.get_disk_space(),
-                      a.get_extra_interfaces(),
-                      a.get_state(),
-                      a.get_mounts(),
-                      a.get_metadata(),
-                      a.get_parent(),
-                      a.get_id()) == std::tuple(b.get_index(),
-                                                b.get_name(),
-                                                b.get_comment(),
-                                                a.get_cloud_init_instance_id(),
-                                                b.get_creation_timestamp(),
-                                                b.get_num_cores(),
-                                                b.get_mem_size(),
-                                                b.get_disk_space(),
-                                                b.get_extra_interfaces(),
-                                                b.get_state(),
-                                                b.get_mounts(),
-                                                b.get_metadata(),
-                                                b.get_parent(),
-                                                b.get_id());
-}
 
 struct TestBaseSnapshot : public Test
 {
@@ -165,6 +133,8 @@ struct TestBaseSnapshot : public Test
     NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
+    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
+    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
 
@@ -435,7 +405,9 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 {
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth15", "15:15:15:15:15:15", false}};
     auto json = test_snapshot_json();
-    mod_snapshot_json(json, "extra_interfaces", MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
+    mod_snapshot_json(json,
+                      "extra_interfaces",
+                      MP_JSONUTILS.JsonUtils::extra_interfaces_to_json_array(extra_interfaces));
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
@@ -607,11 +579,21 @@ TEST_P(TestSnapshotPersistence, persistsOnEdition)
     mod_snapshot_json(json, "index", index);
 
     MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm, desc};
-    setter(snapshot_orig);
-
     const auto file_path = derive_persisted_snapshot_file_path(index);
-    const MockBaseSnapshot snapshot_edited{file_path, vm, desc};
-    EXPECT_EQ(snapshot_edited, snapshot_orig);
+
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(file_path)))
+        .WillOnce(WithArg<0>([&snapshot_orig](const QJsonObject& obj) {
+            const auto& new_snapshot = obj["snapshot"];
+
+            ASSERT_TRUE(new_snapshot.isObject());
+            const auto& new_obj = new_snapshot.toObject();
+
+            EXPECT_EQ(snapshot_orig.get_name(), new_obj["name"].toString().toStdString());
+            EXPECT_EQ(snapshot_orig.get_comment(), new_obj["comment"].toString().toStdString());
+            EXPECT_EQ(snapshot_orig.get_parents_index(), new_obj["parent"].toInt());
+        }));
+
+    setter(snapshot_orig);
 }
 
 INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
@@ -623,11 +605,11 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
 TEST_F(TestBaseSnapshot, capturePersists)
 {
     NiceMock<MockBaseSnapshot> snapshot{"Big Whoop", "treasure", "", nullptr, specs, vm};
-    snapshot.capture();
+    const auto expected_file = derive_persisted_snapshot_file_path(snapshot.get_index());
 
-    const auto expected_file = QFileInfo{derive_persisted_snapshot_file_path(snapshot.get_index())};
-    EXPECT_TRUE(expected_file.exists());
-    EXPECT_TRUE(expected_file.isFile());
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file)));
+
+    snapshot.capture();
 }
 
 TEST_F(TestBaseSnapshot, captureCallsImpl)
@@ -658,13 +640,16 @@ TEST_F(TestBaseSnapshot, eraseCallsImpl)
 TEST_F(TestBaseSnapshot, eraseRemovesFile)
 {
     NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm};
+    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
+
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file_path)));
     snapshot.capture();
 
-    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
-    ASSERT_TRUE(QFileInfo{expected_file_path}.exists());
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+        .WillOnce(Return(true));
 
     snapshot.erase();
-    EXPECT_FALSE(QFileInfo{expected_file_path}.exists());
 }
 
 TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
@@ -675,6 +660,8 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
     EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(Matcher<const QFile&>(Property(&QFile::fileName, Eq(expected_file_path)))))
+        .WillOnce(Return(true));
 
     MP_EXPECT_THROW_THAT(snapshot.erase(),
                          std::runtime_error,
@@ -689,25 +676,19 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
                                         nullptr,
                                         specs,
                                         vm};
+    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
+
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file_path)));
     snapshot.capture();
 
-    const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
-    ASSERT_TRUE(QFileInfo{expected_file_path}.exists());
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Ne(expected_file_path)), Eq(expected_file_path)));
 
-    EXPECT_CALL(snapshot, erase_impl).WillOnce([&expected_file_path] {
-        ASSERT_FALSE(QFileInfo{expected_file_path}.exists());
-        throw std::runtime_error{"test"};
-    });
+    EXPECT_CALL(snapshot, erase_impl).WillOnce([]() { throw std::runtime_error{"test"}; });
 
-    try
-    {
-        snapshot.erase();
-        FAIL() << "shouldn't be here";
-    }
-    catch (const std::runtime_error&)
-    {
-        EXPECT_TRUE(QFileInfo{expected_file_path}.exists());
-    }
+    MP_EXPECT_THROW_THAT(snapshot.erase(), std::runtime_error, mpt::match_what(StrEq("test")));
 }
 
 TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)

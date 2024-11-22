@@ -19,6 +19,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
+#include "mock_json_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
@@ -51,6 +52,8 @@ struct TestDaemonLaunch : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
 };
 
 TEST_F(TestDaemonLaunch, blueprintFoundMountsWorkspaceWithNameOverride)

@@ -138,6 +138,9 @@ struct Daemon : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
+    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
 };
 
 TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
@@ -377,6 +380,8 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon, public FakeAliasConfig,
     {
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
             .WillRepeatedly(Return(fake_alias_dir.path()));
+
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_json_utils, write_json, JsonUtils);
     }
 };
 
@@ -1384,17 +1389,10 @@ TEST_F(DaemonCreateLaunchTestSuite, blueprintFromFileCallsCorrectFunction)
     send_command({"launch", "file://blah.yaml"});
 }
 
-void check_maps_in_json(const QString& file, const mp::id_mappings& expected_gid_mappings,
+void check_maps_in_json(const QJsonObject& doc_object,
+                        const mp::id_mappings& expected_gid_mappings,
                         const mp::id_mappings& expected_uid_mappings)
 {
-    QByteArray json = mpt::load(file);
-
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    EXPECT_FALSE(doc.isNull());
-    EXPECT_TRUE(doc.isObject());
-
-    const auto doc_object = doc.object();
     const auto instance_object = doc_object["real-zebraphant"].toObject();
 
     const auto mounts = instance_object["mounts"].toArray();
@@ -1454,13 +1452,12 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    // Removing the JSON is possible now because data was already read. This step is not necessary, but doing it we
-    // make sure that the file was indeed rewritten after the next step.
-    QFile::remove(filename);
-    daemon.persist_instances();
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+        .WillOnce(WithArg<0>([&mac_addr, &extra_interfaces](const QJsonObject& obj) {
+            check_interfaces_in_json(obj, mac_addr, extra_interfaces);
+        }));
 
-    // Finally, check the contents of the file. If they match with what we read, we are done.
-    check_interfaces_in_json(filename, mac_addr, extra_interfaces);
+    daemon.persist_instances();
 }
 
 TEST_F(Daemon, writesAndReadsMountsInJson)
@@ -1521,9 +1518,11 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    QFile::remove(filename);    // Remove the JSON.
-    daemon.persist_instances(); // Write it again to disk.
-    check_mounts_in_json(filename, mounts);
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename))).WillOnce(WithArg<0>([&mounts](const QJsonObject& obj) {
+        check_mounts_in_json(obj, mounts);
+    }));
+
+    daemon.persist_instances();
 }
 
 TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
@@ -1551,11 +1550,12 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     send_command({"list"}, stream);
     EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
 
-    QFile::remove(filename);
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+        .WillOnce(WithArg<0>([&uid_mappings, &gid_mappings](const QJsonObject& obj) {
+            check_maps_in_json(obj, uid_mappings, gid_mappings);
+        }));
 
     send_command({"purge"});
-
-    check_maps_in_json(filename, uid_mappings, gid_mappings);
 }
 
 TEST_F(Daemon, launches_with_valid_network_interface)
@@ -1750,6 +1750,13 @@ TEST_F(Daemon, ctor_drops_removed_instances)
     EXPECT_CALL(*mock_factory, create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+        .WillOnce(Return())
+        .WillOnce(WithArg<0>([&stayed, &gone](const QJsonObject& obj) {
+            QJsonDocument doc{obj};
+            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
+        }));
+
     mp::Daemon daemon{config_builder.build()};
 
     StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
@@ -1760,9 +1767,6 @@ TEST_F(Daemon, ctor_drops_removed_instances)
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
     EXPECT_THAT(list_reply.instance_list().instances(), stayed_matcher);
-
-    auto updated_json = mpt::load(filename);
-    EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
 }
 
 TEST_P(ListIP, lists_with_ip)
@@ -2463,15 +2467,19 @@ TEST_F(Daemon, purgePersistsInstances)
     const auto [temp_dir, filename] = plant_instance_json(json_contents);
     config_builder.data_directory = temp_dir->path();
 
+    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+        .WillOnce(Return())
+        .WillOnce(Return())
+        .WillOnce(WithArg<0>([&name1, &name2](const QJsonObject& obj) {
+            QJsonDocument doc{obj};
+            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
+        }));
+
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     mp::Daemon daemon{config_builder.build()};
 
-    QFile::remove(filename);
     call_daemon_slot(daemon, &mp::Daemon::purge, mp::PurgeRequest{},
                      NiceMock<mpt::MockServerReaderWriter<mp::PurgeReply, mp::PurgeRequest>>{});
-
-    auto updated_json = mpt::load(filename);
-    EXPECT_THAT(updated_json.toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
 }
 
 TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
