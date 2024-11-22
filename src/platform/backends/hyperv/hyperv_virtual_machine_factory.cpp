@@ -353,10 +353,10 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 {
     auto disk_size = QString::number(desc.disk_space.in_bytes()); // format documented in `Help(Resize-VHD)`
 
-    QString ps_output;
+    QString output_err;
     QStringList resize_cmd = {"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size};
-    if (!PowerShell::exec(resize_cmd, desc.vm_name, &ps_output))
-        throw std::runtime_error{error_msg_helper("Failed to resize instance image", ps_output)};
+    if (!PowerShell::exec(resize_cmd, desc.vm_name, nullptr, &output_err))
+        throw std::runtime_error{error_msg_helper("Failed to resize instance image", output_err)};
 }
 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
@@ -392,8 +392,14 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
     ps_args << expand_property << "Name";
 
     QString ps_output;
-    if (!mp::PowerShell::exec(ps_args, "Hyper-V Switch Creation", &ps_output) // TODO should probably cache PS processes
-        || ps_output != switch_name)
+    QString ps_output_err;
+    if (!mp::PowerShell::exec(ps_args,
+                              "Hyper-V Switch Creation",
+                              &ps_output,
+                              &ps_output_err)) // TODO should probably cache PS processes
+        throw std::runtime_error{error_msg_helper("Could not create external switch", ps_output_err)};
+
+    if (ps_output != switch_name)
         throw std::runtime_error{error_msg_helper("Could not create external switch", ps_output)};
 
     return ps_output.toStdString();
@@ -412,7 +418,8 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
                                 mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
-    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", &ps_output))
+    QString ps_output_err;
+    if (mp::PowerShell::exec(ps_args, "Hyper-V Switch Listing", &ps_output, &ps_output_err))
     {
         std::vector<mp::NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
@@ -432,7 +439,7 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
         return ret;
     }
 
-    throw std::runtime_error{error_msg_helper("Could not determine available networks", ps_output)};
+    throw std::runtime_error{error_msg_helper("Could not determine available networks", ps_output_err)};
 }
 
 auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInterfaceInfo>

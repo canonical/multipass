@@ -187,13 +187,14 @@ struct TestPSStatusAndOutput : public PowerShellTest, public WithParamInterface<
         return ps_helper.expect_writes(process, cmdlet);
     }
 
-    QString run()
+    std::pair<QString, QString> run()
     {
         mp::PowerShell ps{"Gvarab"};
         QString output;
-        EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), &output), GetParam());
+        QString output_err;
+        EXPECT_EQ(ps.run(QString{cmdlet}.split(' '), &output, &output_err), GetParam());
 
-        return output;
+        return {output, output_err};
     }
 
     inline static constexpr auto cmdlet = "gimme data";
@@ -211,7 +212,9 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
         EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray{data}.append(end_marker())));
     });
 
-    ASSERT_EQ(run(), data);
+    auto [out, err] = run();
+    EXPECT_TRUE(err.isEmpty());
+    ASSERT_EQ(out, data);
 }
 
 TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
@@ -234,7 +237,9 @@ TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
             .WillOnce(Return(end_marker()));
     });
 
-    ASSERT_EQ(run(), QString{datum1} + datum2 + datum3);
+    auto [out, err] = run();
+    EXPECT_TRUE(err.isEmpty());
+    ASSERT_EQ(out, QString{datum1} + datum2 + datum3);
 };
 
 auto halves(const QString& str)
@@ -263,7 +268,9 @@ TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
             .WillOnce(Return(status_halves.second));
     });
 
-    ASSERT_EQ(run(), QString{data});
+    auto [out, err] = run();
+    EXPECT_TRUE(err.isEmpty());
+    ASSERT_EQ(out, QString{data});
 }
 
 INSTANTIATE_TEST_SUITE_P(PowerShellTest, TestPSStatusAndOutput, Values(true, false));
@@ -363,6 +370,24 @@ TEST_F(PowerShellTest, exec_returns_cmd_output)
         /* auto_exit = */ false);
 
     QString output;
-    mp::PowerShell::exec(cmdlet, "Gimar", &output);
+    QString output_err;
+    mp::PowerShell::exec(cmdlet, "Gimar", &output, &output_err);
+    EXPECT_TRUE(output_err.isEmpty());
     EXPECT_EQ(output, QString{datum1} + datum2);
+}
+
+TEST_F(PowerShellTest, exec_returns_cmd_error_output)
+{
+    static constexpr auto msg = "A horrible chill runs down your spine...";
+    const auto cmdlet = QStringList{"sudo", "make", "me", "an", "error"};
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
+
+    ps_helper.mock_ps_exec(std::nullopt, msg);
+
+    QString output{}, output_err{};
+    mp::PowerShell::exec(cmdlet, "Tiamat", &output, &output_err);
+    EXPECT_TRUE(output.isEmpty());
+    EXPECT_EQ(output_err, msg);
 }

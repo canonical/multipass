@@ -40,15 +40,15 @@ bool snapshot_exists(mp::PowerShell& ps, const QString& vm_name, const QString& 
 {
     static const auto expected_error = QStringLiteral("ObjectNotFound");
 
-    QString output;
-    if (ps.run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, &output))
+    QString output_err;
+    if (ps.run({"Get-VMCheckpoint", "-VMName", vm_name, "-Name", id}, nullptr, &output_err))
         return true;
 
-    if (!output.contains(expected_error))
+    if (!output_err.contains(expected_error))
     {
         mpl::log(mpl::Level::warning,
                  vm_name.toStdString(),
-                 fmt::format("Get-VMCheckpoint failed with unexpected output: {}", output));
+                 fmt::format("Get-VMCheckpoint failed with unexpected output: {}", output_err));
         throw std::runtime_error{"Failure while looking for snapshot name"};
     }
 

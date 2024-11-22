@@ -102,10 +102,11 @@ void mp::PowerShell::easy_run(const QStringList& args, std::string&& error_msg)
         throw std::runtime_error{std::move(error_msg)};
 }
 
-bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
+bool mp::PowerShell::run(const QStringList& args, QString* output, QString* output_err, bool whisper)
 {
-    QString default_output;
+    QString default_output, default_output_err;
     output = output ? output : &default_output;
+    output_err = output_err ? output_err : &default_output_err;
 
     QString echo_cmdlet = QString("echo \"%1\" $?\n").arg(output_end_marker);
     bool cmdlet_code{false};
@@ -129,6 +130,8 @@ bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
             // Read stdout and stderr separately
             powershell_stdout.append(powershell_proc->read_all_standard_output());
             powershell_stderr.append(powershell_proc->read_all_standard_error());
+
+            *output_err = powershell_stderr;
 
             if (powershell_stdout.contains(output_end_marker))
             {
@@ -171,21 +174,20 @@ bool mp::PowerShell::run(const QStringList& args, QString* output, bool whisper)
     return cmdlet_code;
 }
 
-bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString* output)
+bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QString* output, QString* output_err)
 {
-    QString default_output;
+    QString default_output{}, default_output_err{};
     output = output ? output : &default_output;
+    output_err = output_err ? output_err : &default_output_err;
 
     auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
     setup_powershell(power_shell.get(), name);
 
-    QString powershell_stderr;
-
     QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_output,
                      [output, &power_shell]() { *output += power_shell->read_all_standard_output(); });
 
-    QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_error, [&powershell_stderr, &power_shell]() {
-        powershell_stderr += power_shell->read_all_standard_error();
+    QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_error, [&output_err, &power_shell]() {
+        *output_err += power_shell->read_all_standard_error();
     });
 
     power_shell->start();
@@ -202,8 +204,8 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     *output = output->trimmed();
 
     // Log stderr if any
-    if (!powershell_stderr.isEmpty())
-        mpl::log(mpl::Level::warning, name, fmt::format("[{}] stderr: {}", pid, powershell_stderr));
+    if (!output_err->isEmpty())
+        mpl::log(mpl::Level::warning, name, fmt::format("[{}] stderr: {}", pid, *output_err));
 
     mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output:\n{}", pid, *output));
 
