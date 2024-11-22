@@ -2,12 +2,21 @@
 #include <iostream>
 #include <string>
 
+[[noreturn]] void crash()
+{
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    // Prevent Windows from making a dialogue box or reporting data.
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
+    abort();
+}
+
 int main(int argc, char* argv[])
 {
     if (argc == 1)
     {
         // deliberately will crash if argument 1 missing
-        abort();
+        crash();
     }
     // Exit immediately if only 1 argument
     else if (argc == 2)
@@ -22,7 +31,7 @@ int main(int argc, char* argv[])
     // Crash on demand
     if (s == "crash")
     {
-        abort();
+        crash();
     }
 
     // Print out what was supplied by stdin
