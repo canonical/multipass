@@ -113,9 +113,10 @@ class VmStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScaler = MediaQuery.textScalerOf(context);
     return SizedBox(
-      width: width,
-      height: height,
+      width: textScaler.scale(width),
+      height: textScaler.scale(height),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           label,
@@ -129,6 +130,7 @@ class VmStat extends StatelessWidget {
 
 class GeneralDetails extends ConsumerWidget {
   final String name;
+  static const double baseVmStatHeight = 50;
 
   const GeneralDetails(this.name, {super.key});
 
@@ -139,35 +141,35 @@ class GeneralDetails extends ConsumerWidget {
 
     final status = VmStat(
       width: 100,
-      height: 50,
+      height: baseVmStatHeight,
       label: 'STATE',
       child: VmStatusIcon(info.instanceStatus.status, isLaunching: isLaunching),
     );
 
     final image = VmStat(
       width: 150,
-      height: 50,
+      height: baseVmStatHeight,
       label: 'IMAGE',
       child: Text(info.instanceInfo.currentRelease),
     );
 
     final privateIp = VmStat(
       width: 150,
-      height: 50,
+      height: baseVmStatHeight,
       label: 'PRIVATE IP',
       child: Text(info.instanceInfo.ipv4.firstOrNull ?? '-'),
     );
 
     final publicIp = VmStat(
       width: 150,
-      height: 50,
+      height: baseVmStatHeight,
       label: 'PUBLIC IP',
       child: Text(info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
     );
 
     final created = VmStat(
       width: 140,
-      height: 50,
+      height: baseVmStatHeight,
       label: 'CREATED',
       child: Text(
         DateFormat('yyyy-MM-dd HH:mm:ss')
@@ -177,7 +179,7 @@ class GeneralDetails extends ConsumerWidget {
 
     final uptime = VmStat(
       width: 300,
-      height: 50,
+      height: baseVmStatHeight,
       label: 'UPTIME',
       child: Text(info.instanceInfo.uptime),
     );
@@ -187,7 +189,7 @@ class GeneralDetails extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(
-          height: 50,
+          height: baseVmStatHeight,
           child: Text('General', style: TextStyle(fontSize: 24)),
         ),
         Wrap(spacing: 50, runSpacing: 25, children: [
