@@ -181,13 +181,6 @@ mp::InstanceSettingsException::InstanceSettingsException(const std::string& reas
 {
 }
 
-mp::InstanceStateSettingsException::InstanceStateSettingsException(const std::string& reason,
-                                                                   const std::string& instance,
-                                                                   const std::string& detail)
-    : SettingsException{fmt::format("{}; instance: {}; reason: {}", reason, instance, detail)}
-{
-}
-
 mp::InstanceSettingsHandler::InstanceSettingsHandler(
     std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
