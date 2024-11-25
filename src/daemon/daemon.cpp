@@ -3674,7 +3674,8 @@ std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
                ? request.destination_name()
-               : generate_next_clone_name(vm_instance_specs[request.source_name()].clone_count, request.source_name());
+               : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
+                                          request.source_name());
 };
 
 grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
