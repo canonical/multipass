@@ -1,0 +1,13 @@
+# By defaults, only bugs tagged with "jira" will be imported by this automation.
+
+name: Sync GitHub issues to Jira
+on: [issues, issue_comment]
+
+jobs:
+  sync-issues:
+    name: Sync issues to Jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: canonical/sync-issues-github-jira@v1
+        with:
+          webhook-url: ${{ secrets.JIRA_WEBHOOK_URL }}

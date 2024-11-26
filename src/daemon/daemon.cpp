@@ -3019,10 +3019,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             }
             catch (const std::exception& e)
             {
-                preparing_instances.erase(name);
-                release_resources(name);
-                operative_instances.erase(name);
-                persist_instances();
+                mp::top_catch_all(category, [this, &name]() {
+                    preparing_instances.erase(name);
+                    release_resources(name);
+                    operative_instances.erase(name);
+                    persist_instances();
+                });
+
                 status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 

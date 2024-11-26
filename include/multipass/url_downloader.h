@@ -50,6 +50,8 @@ public:
     URLDownloader(std::chrono::milliseconds timeout);
     URLDownloader(const Path& cache_dir, std::chrono::milliseconds timeout);
     virtual ~URLDownloader() = default;
+
+    // Note: All http urls are converted to https
     virtual void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
