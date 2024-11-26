@@ -481,3 +481,27 @@ TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
 
     EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()), "vm1");
 }
+
+TEST_F(CloudInitIso, write_throws_on_failure_to_set_permissions)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("test-name", "test-data");
+
+    EXPECT_CALL(mock_platform, set_permissions).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(original_iso.write_to(iso_path),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Failed to set permissions")));
+}
+
+TEST_F(CloudInitIso, write_throws_on_failure_to_set_owner)
+{
+    mp::CloudInitIso original_iso;
+    original_iso.add_file("test-name", "test-data");
+
+    EXPECT_CALL(mock_platform, set_root_as_owner).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(original_iso.write_to(iso_path),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Failed to set owner")));
+}
