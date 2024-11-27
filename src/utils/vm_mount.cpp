@@ -17,6 +17,8 @@
 
 #include <multipass/vm_mount.h>
 
+#include <multipass/file_ops.h>
+
 #include <QJsonArray>
 
 namespace mp = multipass;
@@ -81,7 +83,7 @@ mp::VMMount::VMMount(const std::string& sourcePath,
                      id_mappings gidMappings,
                      id_mappings uidMappings,
                      MountType mountType)
-    : source_path(sourcePath),
+    : source_path(MP_FILEOPS.weakly_canonical(sourcePath).string()),
       gid_mappings(std::move(gidMappings)),
       uid_mappings(std::move(uidMappings)),
       mount_type(mountType)
