@@ -1,0 +1,5 @@
+LIBRARY "custom-actions"
+
+EXPORTS
+    AskRemoveData
+    EnableHyperV

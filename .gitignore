@@ -26,3 +26,8 @@ src/client/gui/.dart_tool
 src/client/gui/flutter*.log
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# wix build artifacts
+packaging/windows/wix/obj/*
+packaging/windows/custom-actions/packages/*
+packaging/windows/custom-actions/x64/*

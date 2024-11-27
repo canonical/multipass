@@ -13,7 +13,6 @@ The open source portion is available at https://github.com/CanonicalLtd/multipas
   - zlib: https://github.com/madler/zlib
 - libssh: https://git.libssh.org/projects/libssh.git/
 - poco: https://github.com/pocoproject/poco
-- qhotkey: https://github.com/Skycoder42/QHotkey/
 - qt: https://www.qt.io/
 - semver: https://github.com/zmarko/semver
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
@@ -37,7 +36,6 @@ Below is a summary of the licensing used in the respective projects. See their s
   - GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
   - OpenSSL Exception
 - poco: Boost Software License - Version 1.0 - August 17th, 2003
-- qhotkey: BSD 3-Clause "New" or "Revised" License; Copyright (c) 2016, Felix Barz
 - qt: GNU LGPL Version 3; Copyright (c) 2016 The Qt Company
 - semver: MIT License; Copyright (c) 2015 Marko Živanović
 - xz-embedded: zx-embedded License;
