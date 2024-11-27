@@ -35,16 +35,13 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir);
-    VirtualMachine::UPtr create_vm_and_clone_instance_dir_data(const VMSpecs& src_vm_spec,
-                                                               const VMSpecs& dest_vm_spec,
-                                                               const std::string& source_name,
-                                                               const std::string& destination_name,
-                                                               const VMImage& dest_vm_image,
-                                                               const SSHKeyProvider& key_provider,
-                                                               VMStatusMonitor& monitor) override
-    {
-        throw NotImplementedOnThisBackendException("clone");
-    }
+    VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
+                                       const VMSpecs& dest_spec,
+                                       const std::string& src_name,
+                                       const std::string& dest_name,
+                                       const VMImage& dest_image,
+                                       const SSHKeyProvider& key_provider,
+                                       VMStatusMonitor& monitor) override final;
 
     void remove_resources_for(const std::string& name) final;
 
@@ -81,13 +78,8 @@ public:
     };
 
     void require_snapshots_support() const override;
-
     void require_suspend_support() const override;
-
-    void require_clone_support() const override
-    {
-        throw NotImplementedOnThisBackendException{"clone"};
-    }
+    void require_clone_support() const override;
 
 protected:
     static const Path instances_subdir;
@@ -103,12 +95,17 @@ protected:
     virtual void remove_resources_for_impl(const std::string& name) = 0;
 
 private:
+    virtual VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
+                                               const multipass::VMSpecs& src_vm_specs,
+                                               const VirtualMachineDescription& desc,
+                                               VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider);
+    static void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
+                                                       const fs::path& dest_instance_dir_path);
+
     Path instances_dir;
 };
 
-namespace fs = std::filesystem;
-void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
-                                            const fs::path& dest_instance_dir_path);
 } // namespace multipass
 
 inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)
@@ -125,6 +122,21 @@ inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() co
 
 inline void multipass::BaseVirtualMachineFactory::require_suspend_support() const
 {
+}
+
+inline void multipass::BaseVirtualMachineFactory::require_clone_support() const
+{
+    throw NotImplementedOnThisBackendException{"clone"};
+}
+
+inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
+    const std::string& source_vm_name,
+    const VMSpecs& src_vm_specs,
+    const VirtualMachineDescription& desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
+{
+    throw NotImplementedOnThisBackendException{"clone"};
 }
 
 #endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
