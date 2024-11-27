@@ -113,8 +113,8 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("target",
                                   "Target mount points, in <name>[:<path>] format, where <name> "
                                   "is an instance name, and optional <path> is the mount point. "
-                                  "If omitted, the mount point will be the same as the source's "
-                                  "absolute path",
+                                  "If omitted, the mount point will be under /home/ubuntu/<source-dir>, "
+                                  "where <source-dir> is the name of the <source> directory.",
                                   "<target> [<target> ...]");
 
     QCommandLineOption gid_mappings({"g", "gid-map"},
