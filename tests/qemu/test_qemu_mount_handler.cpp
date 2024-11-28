@@ -134,16 +134,16 @@ struct QemuMountHandlerTest : public ::Test
 
     mpt::StubSSHKeyProvider key_provider;
     std::string default_source{"source"}, default_target{"target"};
+    mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
+    mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject();
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
-    mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     NiceMock<MockQemuVirtualMachine> vm{"my_instance"};
     mp::QemuVirtualMachine::MountArgs mount_args;
-    mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
     CommandOutputs command_outputs{
         {"echo $PWD/target", {"/home/ubuntu/target"}},
         {command_get_existing_parent("/home/ubuntu/target"), {"/home/ubuntu/target"}},
