@@ -111,11 +111,9 @@
 
         <!-- Forcibly stop the Multipass service -->
         <!-- bug#3650: remove this and it's custom action in InstallExecuteSequence when fixed -->
-        <SetProperty Id="Daemon.TaskClose" 
-            Value="&quot;[WindowsFolder]\System32\taskkill.exe&quot; /f /t /im multipassd.exe" 
-            Before="Daemon.TaskClose" Sequence="execute" />
-        <CustomAction Id="Daemon.TaskClose" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" 
-            DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <util:CloseApplication RebootPrompt="no" TerminateProcess="0"
+            Target="[INSTALLFOLDER]bin\multipassd.exe" ElevatedEndSessionMessage="yes"
+            Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
 
         <!-- Enable HyperV -->
         <CustomAction Id="EnableHyperVAction" BinaryRef="CABinary" DllEntry="EnableHyperV"
@@ -167,8 +165,9 @@
             <Custom Action="DaemonConfigFileAction" Before="StartServices"
                 Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
 
-            <Custom Action="Daemon.TaskClose" Before="StopServices" 
-                Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+            <Custom Action="override Wix4CloseApplications_$(sys.BUILDARCHSHORT)"
+                Before="StopServices" />
+
             <Custom Action="GUI.TaskClose.SetCmdLine" Before="GUI.TaskClose"
                 Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
             <Custom Action="GUI.TaskClose" Before="InstallValidate"
