@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 120
     steps:
     - name: Install Snapcraft
-      uses: samuelmeuli/action-snapcraft@v2
+      uses: samuelmeuli/action-snapcraft@v3
 
     - name: Install LXD
       uses: canonical/setup-lxd@54a5806e490d92e207b57183cf111ed54bbdeff4
@@ -261,7 +261,7 @@ jobs:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
     - name: Install Snapcraft and log in
-      uses: samuelmeuli/action-snapcraft@v2
+      uses: samuelmeuli/action-snapcraft@v3
 
     - name: Publish the snap
       env:
