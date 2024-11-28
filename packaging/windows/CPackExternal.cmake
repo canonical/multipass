@@ -30,7 +30,7 @@ else()
   set(CPACK_BUILD_TYPE "Debug")
 endif()
 
-string(REGEX REPLACE "-[^.]+|\\+.+|\\.pr.+" "" BUILD_VERSION ${CPACK_PACKAGE_VERSION})
+string(REGEX REPLACE "-[^.]+|\\+.+|\\.(pr|ci).+" "" BUILD_VERSION ${CPACK_PACKAGE_VERSION})
 
 execute_process(
   COMMAND
