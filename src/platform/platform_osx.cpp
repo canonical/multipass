@@ -29,14 +29,10 @@
 
 #ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#else
-#define QEMU_ENABLED 0
 #endif
 
 #ifdef VIRTUALBOX_ENABLED
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#else
-#define VIRTUALBOX_ENABLED 0
 #endif
 
 #include "platform_proprietary.h"
@@ -251,9 +247,14 @@ bool mp::platform::Platform::is_remote_supported(const std::string& remote) cons
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return (backend == "qemu" && QEMU_ENABLED &&
-            QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
-           (backend == "virtualbox" && VIRTUALBOX_ENABLED);
+    return
+#ifdef QEMU_ENABLED
+        (backend == "qemu" && QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
+#endif
+#ifdef VIRTUALBOX_ENABLED
+        backend == "virtualbox" ||
+#endif
+        false;
 }
 
 auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
