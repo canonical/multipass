@@ -60,6 +60,10 @@ struct SSHFSMountHandlerTest : public ::Test
         EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
         EXPECT_CALL(mock_file_ops, status)
             .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
+        ON_CALL(mock_file_ops, weakly_canonical).WillByDefault([](const mp::fs::path& path) {
+            // Not using weakly_canonical since we don't want symlink resolution on fake paths
+            return mp::fs::absolute(path);
+        });
     }
 
     void TearDown() override
@@ -89,17 +93,17 @@ struct SSHFSMountHandlerTest : public ::Test
     }
 
     mpt::StubSSHKeyProvider key_provider;
-    std::string source_path{"/my/source/path"}, target_path{"/the/target/path"};
+    std::string source_path{mp::fs::absolute("/my/source/path").string()}, target_path{"/the/target/path"};
+    mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
+    mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject();
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
-    mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     mpt::StubVirtualMachine vm;
-    const mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     std::unique_ptr<mpt::MockProcessFactory::Scope> factory = mpt::MockProcessFactory::Inject();
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
@@ -131,7 +135,7 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
     EXPECT_EQ(sshfs_command.arguments[0], "localhost");
     EXPECT_EQ(sshfs_command.arguments[1], "42");
     EXPECT_EQ(sshfs_command.arguments[2], "ubuntu");
-    EXPECT_EQ(sshfs_command.arguments[3], "/my/source/path");
+    EXPECT_EQ(sshfs_command.arguments[3].toStdString(), source_path);
     EXPECT_EQ(sshfs_command.arguments[4], "/the/target/path");
     // Ordering of the next 2 options not guaranteed, hence the or-s.
     EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," || sshfs_command.arguments[5] == "5:-1,6:10,");

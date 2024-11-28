@@ -96,6 +96,7 @@ public:
                 dir_iterator,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
+    MOCK_METHOD(fs::path, weakly_canonical, (const fs::path& path), (override, const));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };

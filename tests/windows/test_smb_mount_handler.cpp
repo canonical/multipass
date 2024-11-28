@@ -126,6 +126,12 @@ struct SmbMountHandlerTest : public ::Test
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::ExitStatusMock exit_status;
 
+    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
+    std::string source{"source"}, target{"target"};
+    QString target_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
+    mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
+    mp::VMMount mount{source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
+
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
     mpt::MockLogger& logger = *logger_scope.mock_logger;
     mpt::MockFileOps::GuardedMock mock_file_ops_guard = mpt::MockFileOps::inject();
@@ -140,12 +146,6 @@ struct SmbMountHandlerTest : public ::Test
     mpt::MockAES& aes = *mock_aes_guard.first;
     std::unique_ptr<mpt::MockSFTPClient> sftp_client = std::make_unique<mpt::MockSFTPClient>();
     MockSmbManager smb_manager{};
-
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
-    std::string source{"source"}, target{"target"};
-    QString target_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
-    mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
-    mp::VMMount mount{source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
 
     QString username{"username"};
     QString username_uuid{"531b4c6f-6090-4b4c-b585-760d18db05e0"};

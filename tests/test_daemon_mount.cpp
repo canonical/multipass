@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_mount_handler.h"
 #include "mock_platform.h"
@@ -266,4 +267,52 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), StrEq("The native mounts feature is not implemented on this backend."));
+}
+
+TEST_F(TestDaemonMount, mount_uses_resolved_source)
+{
+    // can't use _ since _ is needed for gmock matching later.
+    const auto [temp_dir, ignored_filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    const auto target_path = config_builder.data_directory.toStdString();
+
+    // have resolver return target_path
+    const auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce(Return(target_path));
+
+    // mock mount_handler to check the VMMount is using target_path as its source
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    EXPECT_CALL(*mock_vm,
+                make_native_mount_handler(
+                    _,
+                    Matcher<const mp::VMMount&>(Property(&mp::VMMount::get_source_path, Eq(target_path)))))
+        .WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    // setup to make the daemon happy
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, mkpath, FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, commit, FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*mock_file_ops,
+                                                 open,
+                                                 FileOps,
+                                                 (A<QFileDevice&>(), A<QIODevice::OpenMode>()));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::MountRequest request;
+    request.set_source_path(mount_dir.path().toStdString());
+    request.set_mount_type(mp::MountRequest::NATIVE);
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+    entry->set_target_path(fake_target_path);
+
+    // invoke daemon and expect it to be happy
+    auto status = call_daemon_slot(daemon,
+                                   &mp::Daemon::mount,
+                                   request,
+                                   StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
+
+    EXPECT_TRUE(status.ok());
 }
