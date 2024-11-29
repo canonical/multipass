@@ -318,7 +318,7 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 {
-    top_catch_all("hyperv", [this]() {
+    top_catch_all(vm_name, [this]() {
         update_suspend_status = false;
 
         if (current_state() == State::running)

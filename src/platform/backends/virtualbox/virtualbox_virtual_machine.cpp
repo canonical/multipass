@@ -301,7 +301,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 {
-    top_catch_all("virtualbox", [this]() {
+    top_catch_all(vm_name, [this]() {
         update_suspend_status = false;
 
         if (current_state() == State::running)
