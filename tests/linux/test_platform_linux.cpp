@@ -24,9 +24,6 @@
 #include "tests/mock_settings.h"
 #include "tests/mock_standard_paths.h"
 #include "tests/mock_utils.h"
-#ifdef QEMU_ENABLED
-#include "tests/qemu/linux/mock_dnsmasq_server.h"
-#endif
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
@@ -35,6 +32,7 @@
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 
 #ifdef QEMU_ENABLED
+#include "tests/qemu/linux/mock_dnsmasq_server.h"
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 #define DEFAULT_FACTORY mp::QemuVirtualMachineFactory
 #define DEFAULT_DRIVER "qemu"
