@@ -261,54 +261,6 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
                                                       get_instance_directory(desc.vm_name));
 }
 
-mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
-    const VMSpecs& src_vm_spec,
-    const VMSpecs& dest_vm_spec,
-    const std::string& source_name,
-    const std::string& destination_name,
-    const VMImage& dest_vm_image,
-    const SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
-{
-    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
-    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
-
-    copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
-
-    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / cloud_init_file_name;
-
-    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
-                                                                       dest_vm_spec.extra_interfaces,
-                                                                       destination_name,
-                                                                       cloud_init_config_iso_file_path);
-
-    // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
-                                               dest_vm_spec.mem_size,
-                                               dest_vm_spec.disk_space,
-                                               destination_name,
-                                               dest_vm_spec.default_mac_address,
-                                               dest_vm_spec.extra_interfaces,
-                                               dest_vm_spec.ssh_username,
-                                               dest_vm_image,
-                                               cloud_init_config_iso_file_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
-
-    mp::VirtualMachine::UPtr cloned_instance =
-        std::make_unique<mp::HyperVVirtualMachine>(source_name,
-                                                   src_vm_spec,
-                                                   dest_vm_desc,
-                                                   monitor,
-                                                   key_provider,
-                                                   get_instance_directory(dest_vm_desc.vm_name));
-    cloned_instance->remove_snapshots_from_image();
-
-    return cloned_instance;
-}
-
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     PowerShell::exec({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
@@ -456,4 +408,18 @@ auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInter
     }
 
     return ret;
+}
+
+mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(const std::string& src_name,
+                                                                        const multipass::VMSpecs& src_spec,
+                                                                        const VirtualMachineDescription& dest_vm_desc,
+                                                                        VMStatusMonitor& monitor,
+                                                                        const SSHKeyProvider& key_provider)
+{
+    return std::make_unique<mp::HyperVVirtualMachine>(src_name,
+                                                      src_spec,
+                                                      dest_vm_desc,
+                                                      monitor,
+                                                      key_provider,
+                                                      get_instance_directory(dest_vm_desc.vm_name));
 }

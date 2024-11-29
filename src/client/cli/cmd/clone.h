@@ -20,9 +20,7 @@
 
 #include <multipass/cli/command.h>
 
-namespace multipass
-{
-namespace cmd
+namespace multipass::cmd
 {
 class Clone final : public Command
 {
@@ -39,6 +37,5 @@ private:
 
     CloneRequest rpc_request;
 };
-} // namespace cmd
 } // namespace multipass
 #endif // MULTIPASS_CLONE_H

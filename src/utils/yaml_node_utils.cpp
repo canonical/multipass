@@ -142,7 +142,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& d
         return network_config_file_content.empty() ? YAML::Node{} : YAML::Load(network_config_file_content);
     }
 
-    if (network_config_file_content.empty())
+    if (network_config_file_content.empty()) // for backward compatibility with absent default interface
     {
         YAML::Node network_data{};
         network_data["version"] = "2";

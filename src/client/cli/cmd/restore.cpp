@@ -87,7 +87,7 @@ QString cmd::Restore::short_help() const
 
 QString cmd::Restore::description() const
 {
-    return QStringLiteral("Restore an instance to the state of a previously taken snapshot.");
+    return QStringLiteral("Restore a stopped instance to the state of a previously taken snapshot.");
 }
 
 mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)

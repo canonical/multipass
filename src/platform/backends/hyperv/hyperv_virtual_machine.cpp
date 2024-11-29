@@ -24,11 +24,11 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
-
 #include <shared/shared_backend_utils.h>
 #include <shared/windows/powershell.h>
 #include <shared/windows/smb_mount_handler.h>
@@ -128,18 +128,19 @@ void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::Network
                 fmt::format("Could not setup adapter for {}", extra_interface.id));
 }
 
-fs::path extract_the_vmcx_file(const fs::path& exported_vm_dir_path)
+fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
 {
     if (fs::exists(exported_vm_dir_path) && fs::is_directory(exported_vm_dir_path))
     {
         const fs::path vm_state_dir = exported_vm_dir_path / "Virtual Machines";
 
-        for (const auto& entry : fs::directory_iterator(vm_state_dir))
+        if (auto iter = std::find_if(
+                fs::directory_iterator{vm_state_dir},
+                fs::directory_iterator{},
+                [](const fs::directory_entry& entry) -> bool { return entry.path().extension() == ".vmcx"; });
+            iter != fs::directory_iterator{})
         {
-            if (entry.path().extension() == ".vmcx")
-            {
-                return entry.path();
-            }
+            return iter->path();
         }
     }
 
@@ -151,11 +152,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                const mp::Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
-      desc{desc},
-      name{QString::fromStdString(desc.vm_name)},
-      power_shell{std::make_unique<PowerShell>(vm_name)},
-      monitor{&monitor}
+    : HyperVVirtualMachine{desc, monitor, key_provider, instance_dir, true}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
@@ -208,11 +205,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                const Path& dest_instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, dest_instance_dir},
-      desc{desc},
-      name{QString::fromStdString(desc.vm_name)},
-      power_shell{std::make_unique<PowerShell>(vm_name)},
-      monitor{&monitor}
+    : HyperVVirtualMachine{desc, monitor, key_provider, dest_instance_dir, true}
 {
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
     power_shell->easy_run(
@@ -223,7 +216,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
     const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
-    const fs::path vmcx_file_path = extract_the_vmcx_file(exported_vm_path);
+    const fs::path vmcx_file_path = locate_vmcx_file(exported_vm_path);
     // The next step needs to rename the instance, so we need to store the instance variable $imported_vm from the
     // Import-VM step. Because we can not use vm name to uniquely identify the vm due to the imported vm has the same
     // name.
@@ -257,7 +250,21 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     state = State::off;
 
+    remove_snapshots_from_backend();
     fs::remove_all(exported_vm_path);
+}
+
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
+                                               VMStatusMonitor& monitor,
+                                               const SSHKeyProvider& key_provider,
+                                               const Path& instance_dir,
+                                               bool /*is_internal*/)
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+      desc{desc},
+      name{QString::fromStdString(desc.vm_name)},
+      power_shell{std::make_unique<PowerShell>(vm_name)},
+      monitor{&monitor}
+{
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()
@@ -311,10 +318,12 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 {
-    update_suspend_status = false;
+    top_catch_all(vm_name, [this]() {
+        update_suspend_status = false;
 
-    if (current_state() == State::running)
-        suspend();
+        if (current_state() == State::running)
+            suspend();
+    });
 }
 
 void mp::HyperVVirtualMachine::start()
@@ -497,7 +506,7 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
                                              smb_manager);
 }
 
-void mp::HyperVVirtualMachine::remove_snapshots_from_image() const
+void mp::HyperVVirtualMachine::remove_snapshots_from_backend() const
 {
     // Get-VMSnapshot -VMName "YourVMName" | Remove-VMSnapshot
     power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"}, "Could not remove the snapshots");

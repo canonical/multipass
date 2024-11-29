@@ -25,6 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -173,10 +174,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        const mp::Path& instance_dir_qstr)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir_qstr},
-      desc{desc},
-      name{QString::fromStdString(desc.vm_name)},
-      monitor{&monitor}
+    : VirtualBoxVirtualMachine(desc, monitor, key_provider, instance_dir_qstr, true)
 {
     if (desc.extra_interfaces.size() > 7)
     {
@@ -228,10 +226,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        const Path& dest_instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, dest_instance_dir},
-      desc{desc},
-      name{QString::fromStdString(desc.vm_name)},
-      monitor{&monitor}
+    : VirtualBoxVirtualMachine(desc, monitor, key_provider, dest_instance_dir, true)
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
@@ -289,14 +284,29 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                 name);
     // 4. reset the mac addresses of vm to the spec addres
     update_mac_addresses_of_network_adapters(desc, name);
+    remove_snapshots_from_backend();
+}
+
+mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
+                                                       VMStatusMonitor& monitor,
+                                                       const SSHKeyProvider& key_provider,
+                                                       const mp::Path& instance_dir_qstr,
+                                                       bool /*is_internal*/)
+    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir_qstr},
+      desc{desc},
+      name{QString::fromStdString(desc.vm_name)},
+      monitor{&monitor}
+{
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 {
-    update_suspend_status = false;
+    top_catch_all(vm_name, [this]() {
+        update_suspend_status = false;
 
-    if (current_state() == State::running)
-        suspend();
+        if (current_state() == State::running)
+            suspend();
+    });
 }
 
 void mp::VirtualBoxVirtualMachine::start()
@@ -501,7 +511,7 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-void mp::VirtualBoxVirtualMachine::remove_snapshots_from_image() const
+void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
 {
     // Name: @s1 (UUID: 93a6a9ba-9223-4b77-a8cf-80213439aaae)
     // Description: snapshot1:

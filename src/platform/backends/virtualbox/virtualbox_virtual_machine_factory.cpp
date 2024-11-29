@@ -180,53 +180,6 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     return prepared_image;
 }
 
-mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::create_vm_and_clone_instance_dir_data(
-    const VMSpecs& /*src_vm_spec*/,
-    const VMSpecs& dest_vm_spec,
-    const std::string& source_name,
-    const std::string& destination_name,
-    const VMImage& dest_vm_image,
-    const SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
-{
-    const std::filesystem::path source_instance_data_directory{get_instance_directory(source_name).toStdString()};
-    const std::filesystem::path dest_instance_data_directory{get_instance_directory(destination_name).toStdString()};
-
-    copy_instance_dir_with_essential_files(source_instance_data_directory, dest_instance_data_directory);
-
-    const fs::path cloud_init_config_iso_file_path = dest_instance_data_directory / cloud_init_file_name;
-
-    MP_CLOUD_INIT_FILE_OPS.update_cloned_cloud_init_unique_identifiers(dest_vm_spec.default_mac_address,
-                                                                       dest_vm_spec.extra_interfaces,
-                                                                       destination_name,
-                                                                       cloud_init_config_iso_file_path);
-
-    // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_vm_spec.num_cores,
-                                               dest_vm_spec.mem_size,
-                                               dest_vm_spec.disk_space,
-                                               destination_name,
-                                               dest_vm_spec.default_mac_address,
-                                               dest_vm_spec.extra_interfaces,
-                                               dest_vm_spec.ssh_username,
-                                               dest_vm_image,
-                                               cloud_init_config_iso_file_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
-
-    mp::VirtualMachine::UPtr cloned_instance =
-        std::make_unique<mp::VirtualBoxVirtualMachine>(source_name,
-                                                       dest_vm_desc,
-                                                       monitor,
-                                                       key_provider,
-                                                       get_instance_directory(dest_vm_desc.vm_name));
-    cloned_instance->remove_snapshots_from_image();
-
-    return cloned_instance;
-}
-
 void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                                  const VirtualMachineDescription& desc)
 {
@@ -280,4 +233,18 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
 void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& vector)
 {
     // Nothing to do here, VirtualBox takes host interfaces directly
+}
+
+mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
+    const std::string& src_name,
+    const multipass::VMSpecs& /*src_spec*/,
+    const VirtualMachineDescription& dest_vm_desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
+{
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(src_name,
+                                                          dest_vm_desc,
+                                                          monitor,
+                                                          key_provider,
+                                                          get_instance_directory(dest_vm_desc.vm_name));
 }

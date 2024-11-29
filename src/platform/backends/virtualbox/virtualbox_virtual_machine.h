@@ -66,7 +66,6 @@ public:
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
-    void remove_snapshots_from_image() const override;
 
 protected:
     void require_snapshots_support() const override;
@@ -78,6 +77,13 @@ protected:
                                                      std::shared_ptr<Snapshot> parent) override;
 
 private:
+    VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
+                             VMStatusMonitor& monitor,
+                             const SSHKeyProvider& key_provider,
+                             const Path& instance_dir_qstr,
+                             bool is_internal);
+    void remove_snapshots_from_backend() const;
+
     VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
     const QString name;
     std::optional<int> port;

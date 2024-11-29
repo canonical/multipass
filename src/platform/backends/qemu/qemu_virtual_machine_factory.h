@@ -36,14 +36,6 @@ public:
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
-    VirtualMachine::UPtr create_vm_and_clone_instance_dir_data(const VMSpecs& src_vm_spec,
-                                                               const VMSpecs& dest_vm_spec,
-                                                               const std::string& source_name,
-                                                               const std::string& destination_name,
-                                                               const VMImage& dest_vm_image,
-                                                               const SSHKeyProvider& key_provider,
-                                                               VMStatusMonitor& monitor) override;
-
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
@@ -51,10 +43,8 @@ public:
     QString get_backend_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
     void require_snapshots_support() const override;
+    void require_clone_support() const override;
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
-    void require_clone_support() const override
-    {
-    }
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
@@ -62,6 +52,11 @@ protected:
 
 private:
     QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
+    VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
+                                       const multipass::VMSpecs& src_vm_specs,
+                                       const VirtualMachineDescription& desc,
+                                       VMStatusMonitor& monitor,
+                                       const SSHKeyProvider& key_provider) override;
 
     QemuPlatform::UPtr qemu_platform;
 };
@@ -71,4 +66,7 @@ inline void multipass::QemuVirtualMachineFactory::require_snapshots_support() co
 {
 }
 
+inline void multipass::QemuVirtualMachineFactory::require_clone_support() const
+{
+}
 #endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H

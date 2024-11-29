@@ -244,7 +244,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            QemuPlatform* qemu_platform,
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
-                                           const Path& instance_dir)
+                                           const Path& instance_dir,
+                                           bool remove_snapshots)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
                                                                                                       : State::off,
                          desc.vm_name,
@@ -259,6 +260,12 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                      vm_name); // TODO drop in a couple of releases (went in on v1.13)
 
     connect_vm_signals();
+
+    // only for clone case where the vm recreation purges the snapshot data
+    if (remove_snapshots)
+    {
+        remove_snapshots_from_backend();
+    }
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
@@ -771,7 +778,7 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
     return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
 }
 
-void mp::QemuVirtualMachine::remove_snapshots_from_image() const
+void mp::QemuVirtualMachine::remove_snapshots_from_backend() const
 {
     const QStringList snapshot_tag_list = extract_snapshot_tags(backend::snapshot_list_output(desc.image.image_path));
 

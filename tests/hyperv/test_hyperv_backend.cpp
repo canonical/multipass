@@ -155,10 +155,10 @@ TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
 
 TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
 {
-    auto run = default_network_run;
-    run.will_return = false;
+    auto default_tweaked_run = default_network_run;
+    default_tweaked_run.will_return = false;
 
-    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({run}));
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({default_tweaked_run, {"Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
                          std::runtime_error,
@@ -190,7 +190,8 @@ TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
     default_description.extra_interfaces.push_back(extra_iface);
 
     auto failing_cmd = fmt::format("Get-VMSwitch -Name \"{}\"", extra_iface.id);
-    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({default_network_run, {failing_cmd, "", false}}));
+    ps_helper.setup_mocked_run_sequence(
+        standard_ps_run_sequence({default_network_run, {failing_cmd, "", false}, {"Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -207,7 +208,7 @@ TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
                                    default_description.vm_name, extra_iface.id, extra_iface.mac_address);
 
     ps_helper.setup_mocked_run_sequence(
-        standard_ps_run_sequence({default_network_run, {"Get-VMSwitch"}, {failing_cmd, "", false}}));
+        standard_ps_run_sequence({default_network_run, {"Get-VMSwitch"}, {failing_cmd, "", false}, {"Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
