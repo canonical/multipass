@@ -24,11 +24,11 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
-
 #include <shared/shared_backend_utils.h>
 #include <shared/windows/powershell.h>
 #include <shared/windows/smb_mount_handler.h>
@@ -318,10 +318,12 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 {
-    update_suspend_status = false;
+    top_catch_all("hyperv", [this]() {
+        update_suspend_status = false;
 
-    if (current_state() == State::running)
-        suspend();
+        if (current_state() == State::running)
+            suspend();
+    });
 }
 
 void mp::HyperVVirtualMachine::start()
