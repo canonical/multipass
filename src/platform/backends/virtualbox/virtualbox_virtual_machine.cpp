@@ -25,6 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -300,10 +301,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 {
-    update_suspend_status = false;
+    top_catch_all("virtualbox", [this]() {
+        update_suspend_status = false;
 
-    if (current_state() == State::running)
-        suspend();
+        if (current_state() == State::running)
+            suspend();
+    });
 }
 
 void mp::VirtualBoxVirtualMachine::start()
