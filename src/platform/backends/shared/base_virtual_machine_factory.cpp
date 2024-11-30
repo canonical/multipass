@@ -47,7 +47,7 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
         if (!vm_desc.network_data_config.IsNull())
             iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
 
-        iso.write_to(cloud_init_iso);
+        iso.write_to(cloud_init_iso.toStdString());
     }
 
     vm_desc.cloud_init_iso = cloud_init_iso;
