@@ -29,6 +29,8 @@
 
 #define MP_CLOUD_INIT_FILE_OPS multipass::CloudInitFileOps::instance()
 
+namespace fs = std::filesystem;
+
 namespace multipass
 {
 class CloudInitIso
@@ -41,8 +43,8 @@ public:
     std::string& operator[](const std::string& name);
     bool erase(const std::string& name);
 
-    void read_from(const std::filesystem::path& path);
     void write_to(const fs::path& path);
+    void read_from(const fs::path& path);
 
     friend bool operator==(const CloudInitIso& lhs, const CloudInitIso& rhs)
     {
@@ -73,16 +75,16 @@ public:
         const std::string& default_mac_addr,
         const std::vector<NetworkInterface>& extra_interfaces,
         const std::string& new_instance_id,
-        const std::filesystem::path& cloud_init_path) const;
+        const fs::path& cloud_init_path) const;
 
     virtual void update_identifiers(const std::string& default_mac_addr,
                                     const std::vector<NetworkInterface>& extra_interfaces,
                                     const std::string& new_hostname,
-                                    const std::filesystem::path& cloud_init_path) const;
+                                    const fs::path& cloud_init_path) const;
     virtual void add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
                                                    const NetworkInterface& extra_interfaces,
-                                                   const std::filesystem::path& cloud_init_path) const;
-    virtual std::string get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const;
+                                                   const fs::path& cloud_init_path) const;
+    virtual std::string get_instance_id_from_cloud_init(const fs::path& cloud_init_path) const;
 };
 } // namespace multipass
 #endif // MULTIPASS_CLOUD_INIT_ISO_H
