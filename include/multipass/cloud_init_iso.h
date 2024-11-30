@@ -21,12 +21,11 @@
 #define MULTIPASS_CLOUD_INIT_ISO_H
 
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 
 #include <filesystem>
 #include <string>
 #include <vector>
-
-#include <multipass/singleton.h>
 
 #define MP_CLOUD_INIT_FILE_OPS multipass::CloudInitFileOps::instance()
 
