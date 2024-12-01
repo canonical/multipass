@@ -27,6 +27,7 @@
 
 namespace mp = multipass;
 namespace mpu = multipass::utils;
+namespace fs = std::filesystem;
 
 // ISO9660 + Joliet Extension format
 // ---------------------------------
@@ -526,7 +527,7 @@ bool mp::CloudInitIso::erase(const std::string& name)
     return false;
 }
 
-void mp::CloudInitIso::write_to(const std::filesystem::path& path)
+void mp::CloudInitIso::write_to(const fs::path& path)
 {
     std::ofstream f{path, std::ios::binary | std::ios::out};
     if (!f.is_open())
@@ -618,7 +619,7 @@ void mp::CloudInitIso::write_to(const std::filesystem::path& path)
     pad_to_end(f);
 }
 
-void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
+void mp::CloudInitIso::read_from(const fs::path& fs_path)
 {
     // Please refer to the cloud_Init_Iso_read_me.md file for the preliminaries and the thought process of the
     // implementation
@@ -702,7 +703,7 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
     const std::string& new_instance_id,
-    const std::filesystem::path& cloud_init_path) const
+    const fs::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
@@ -720,7 +721,7 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
 void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_addr,
                                               const std::vector<NetworkInterface>& extra_interfaces,
                                               const std::string& new_hostname,
-                                              const std::filesystem::path& cloud_init_path) const
+                                              const fs::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
@@ -738,7 +739,7 @@ void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_add
 
 void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& default_mac_addr,
                                                              const NetworkInterface& extra_interface,
-                                                             const std::filesystem::path& cloud_init_path) const
+                                                             const fs::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
@@ -751,7 +752,7 @@ void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(const std::string& 
     iso_file.write_to(cloud_init_path);
 }
 
-std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const
+std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(const fs::path& cloud_init_path) const
 {
     CloudInitIso iso_file;
     iso_file.read_from(cloud_init_path);
