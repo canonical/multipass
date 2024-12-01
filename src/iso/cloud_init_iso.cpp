@@ -22,8 +22,6 @@
 #include <multipass/format.h>
 #include <multipass/yaml_node_utils.h>
 
-#include <QFile>
-
 #include <array>
 #include <cctype>
 
@@ -127,7 +125,7 @@ void set_at(T& t, SizeType offset, const V& value)
 }
 
 template <typename T>
-void write(const T& t, QFile& f)
+void write(const T& t, std::ofstream& f)
 {
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
 }
@@ -447,22 +445,21 @@ struct RootPathTable
     std::array<uint8_t, 10> data{};
 };
 
-template <typename Size>
-Size num_blocks(Size num_bytes)
+std::size_t num_blocks(std::size_t num_bytes)
 {
     return ((num_bytes + logical_block_size - 1) / logical_block_size);
 }
 
-void seek_to_next_block(QFile& f)
+void seek_to_next_block(std::ofstream& f)
 {
-    const auto next_block_pos = num_blocks(f.pos()) * logical_block_size;
-    f.seek(next_block_pos);
+    const auto next_block_pos = num_blocks(f.tellp()) * logical_block_size;
+    f.seekp(next_block_pos);
 }
 
-void pad_to_end(QFile& f)
+void pad_to_end(std::ofstream& f)
 {
     seek_to_next_block(f);
-    f.seek(f.pos() - 1);
+    f.seekp(-1, std::ios::cur);
     char end = 0;
     f.write(&end, 1);
 }
@@ -531,16 +528,14 @@ bool mp::CloudInitIso::erase(const std::string& name)
 
 void mp::CloudInitIso::write_to(const std::filesystem::path& path)
 {
-    QFile f{QString::fromStdString(path.string())};
-    if (!f.open(QIODevice::WriteOnly))
+    std::ofstream f{path, std::ios::binary | std::ios::out};
+    if (!f.is_open())
         throw std::runtime_error{
-            fmt::format("Failed to open file for writing during cloud-init generation: {}; path: {}",
-                        f.errorString(),
-                        path.string())};
+            fmt::format("Failed to open file for writing during cloud-init generation; path: {}", path.string())};
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
-    f.seek(num_reserved_bytes);
+    f.seekp(num_reserved_bytes);
 
     PrimaryVolumeDescriptor prim_desc;
     JolietVolumeDescriptor joliet_desc;
