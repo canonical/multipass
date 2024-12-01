@@ -19,5 +19,4 @@ add_library(iso STATIC
 
 target_link_libraries(iso
   fmt
-  utils
-  Qt6::Core)
+  utils)
