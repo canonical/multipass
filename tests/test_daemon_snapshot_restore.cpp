@@ -131,7 +131,7 @@ TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
     auto status =
         this->call_daemon_slot(*daemon, TypeParam::daemon_slot_ptr, request, typename TestFixture::MockServer{});
 
-    EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
+    EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), HasSubstr("stopped"));
 }
 

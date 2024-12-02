@@ -37,5 +37,5 @@ private:
 
     CloneRequest rpc_request;
 };
-} // namespace multipass
+} // namespace multipass::cmd
 #endif // MULTIPASS_CLONE_H

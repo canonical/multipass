@@ -72,6 +72,12 @@ public:
     InstanceSettingsException(const std::string& reason, const std::string& instance, const std::string& detail);
 };
 
+class InstanceStateSettingsException : public InstanceSettingsException
+{
+public:
+    using InstanceSettingsException::InstanceSettingsException;
+};
+
 class NonAuthorizedBridgeSettingsException : public InstanceSettingsException
 {
 public:
