@@ -21,6 +21,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
+#include <multipass/utils/permission_utils.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <QFile>
@@ -537,11 +538,7 @@ void mp::CloudInitIso::write_to(const Path& path)
         throw std::runtime_error{fmt::format(
             "Failed to open file for writing during cloud-init generation: {}; path: {}", f.errorString(), path)};
 
-    if (!MP_PLATFORM.set_permissions(path, QFile::ReadOwner | QFile::WriteOwner))
-        throw std::runtime_error{fmt::format("Failed to set permissions during cloud-init generation: path: {}", path)};
-
-    if (!MP_PLATFORM.set_root_as_owner(path))
-        throw std::runtime_error{fmt::format("Failed to set owner during cloud-init generation: path: {}", path)};
+    MP_PERMISSIONS.restrict_permissions(path.toStdU16String());
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);

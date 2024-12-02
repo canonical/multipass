@@ -76,9 +76,14 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return !ec;
 }
 
-bool mp::platform::Platform::set_root_as_owner(const mp::Path& path) const
+bool mp::platform::Platform::take_ownership(const mp::Path& path, bool root) const
 {
-    return this->chown(path.toStdString().c_str(), 0, 0) == 0;
+    if (root)
+    {
+        return this->chown(path.toStdString().c_str(), 0, 0) == 0;
+    }
+
+    throw std::logic_error("NYI");
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
