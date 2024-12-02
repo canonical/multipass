@@ -20,6 +20,7 @@
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_openssl_syscalls.h"
+#include "mock_permission_utils.h"
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
 #include "mock_ssh_test_fixture.h"
@@ -715,4 +716,39 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
     auto bytes_available = MP_UTILS.filesystem_bytes_available(temp_dir.path());
 
     EXPECT_GE(bytes_available, 0);
+}
+
+TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
+{
+    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
+
+    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
+
+    mpt::TempDir temp_dir1, temp_dir2;
+    auto orig_file_path = QDir(temp_dir1.path()).filePath("test_file");
+
+    mpt::make_file_with_content(orig_file_path);
+
+    auto new_file_path = mp::vault::copy(orig_file_path, temp_dir2.path());
+
+    EXPECT_TRUE(QFile::exists(new_file_path));
+}
+
+TEST(VaultUtils, copy_returns_empty_path_when_file_name_is_empty)
+{
+    mpt::TempDir temp_dir;
+
+    auto path = mp::vault::copy("", temp_dir.path());
+
+    EXPECT_TRUE(path.isEmpty());
+}
+
+TEST(VaultUtils, copy_throws_when_file_does_not_exist)
+{
+    mpt::TempDir temp_dir;
+
+    const QString file_name{"/foo/bar"};
+
+    MP_EXPECT_THROW_THAT(mp::vault::copy(file_name, temp_dir.path()), std::runtime_error,
+                         mpt::match_what(StrEq(fmt::format("{} missing", file_name))));
 }
