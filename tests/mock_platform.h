@@ -46,7 +46,7 @@ public:
                 set_permissions,
                 (const multipass::Path& path, const QFileDevice::Permissions),
                 (const, override));
-    MOCK_METHOD(bool, set_root_as_owner, (const multipass::Path& path), (const, override));
+    MOCK_METHOD(bool, take_ownership, (const multipass::Path& path, bool root), (const, override));
     MOCK_METHOD(bool, link, (const char*, const char*), (const, override));
     MOCK_METHOD(bool, symlink, (const char*, const char*, bool), (const, override));
     MOCK_METHOD(int, utime, (const char*, int, int), (const, override));
