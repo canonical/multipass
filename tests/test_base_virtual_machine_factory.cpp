@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_logger.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_url_downloader.h"
@@ -123,10 +124,9 @@ TEST_F(BaseFactory, networks_throws)
 // at this time.  Instead, just make sure an ISO image is created and has the expected path.
 TEST_F(BaseFactory, creates_cloud_init_iso_image)
 {
-    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
 
-    ON_CALL(*mock_platform, set_permissions).WillByDefault(Return(true));
-    ON_CALL(*mock_platform, set_root_as_owner).WillByDefault(Return(true));
+    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
 
     MockBaseFactory factory;
     const std::string name{"foo"};
