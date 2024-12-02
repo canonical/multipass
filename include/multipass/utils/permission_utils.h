@@ -18,9 +18,10 @@
 #ifndef MULTIPASS_PERMISSION_UTILS_H
 #define MULTIPASS_PERMISSION_UTILS_H
 
-#include <multipass/file_ops.h>
-#include <multipass/platform.h>
 #include <multipass/singleton.h>
+
+#include <QFileDevice>
+#include <filesystem>
 
 #define MP_PERMISSIONS multipass::PermissionUtils::instance()
 
@@ -30,13 +31,15 @@ namespace multipass
 class PermissionUtils : public Singleton<PermissionUtils>
 {
 public:
+    using Path = std::filesystem::path;
+
     PermissionUtils(const PrivatePass&) noexcept;
 
-    virtual void set_permissions(const fs::path& path, const QFileDevice::Permissions& permissions) const;
-    virtual void take_ownership(const fs::path& path, bool root = true) const;
+    virtual void set_permissions(const Path& path, const QFileDevice::Permissions& permissions) const;
+    virtual void take_ownership(const Path& path, bool root = true) const;
 
     // sets owner to root and sets permissions such that only owner has access.
-    virtual void restrict_permissions(const fs::path& path) const;
+    virtual void restrict_permissions(const Path& path) const;
 };
 } // namespace multipass
 
