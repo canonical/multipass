@@ -572,7 +572,7 @@ TEST_P(TestInstanceModOnNonStoppedInstance, setRefusesToModifyNonStoppedInstance
     EXPECT_CALL(target_instance, current_state).WillOnce(Return(state));
 
     MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, property), "123"),
-                         mp::InstanceSettingsException,
+                         mp::InstanceStateSettingsException,
                          mpt::match_what(AllOf(HasSubstr("Cannot update"), HasSubstr("Instance must be stopped"))));
 
     EXPECT_EQ(original_specs, specs[target_instance_name]);

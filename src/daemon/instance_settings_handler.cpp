@@ -99,8 +99,9 @@ void check_state_for_update(mp::VirtualMachine& instance)
 {
     auto st = instance.current_state();
     if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
-        throw mp::InstanceSettingsException{operation_msg(Operation::Modify), instance.vm_name,
-                                            "Instance must be stopped for modification"};
+        throw mp::InstanceStateSettingsException{operation_msg(Operation::Modify),
+                                                 instance.vm_name,
+                                                 "Instance must be stopped for modification"};
 }
 
 mp::MemorySize get_memory_size(const QString& key, const QString& val)
