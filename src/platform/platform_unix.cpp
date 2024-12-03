@@ -179,11 +179,7 @@ template <class Rep, class Period>
 timespec make_timespec(std::chrono::duration<Rep, Period> duration)
 {
     const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
-
-    timespec out{};
-    out.tv_sec = seconds.count();
-    out.tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count();
-    return out;
+    return timespec{seconds.count(), std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count()};
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(

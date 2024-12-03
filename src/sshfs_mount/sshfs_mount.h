@@ -41,7 +41,14 @@ public:
     [[nodiscard]] bool alive() const;
 
 private:
-    std::atomic<bool> running;
+    enum class State
+    {
+        Unstarted,
+        Running,
+        Stopped
+    };
+
+    std::atomic<State> state{State::Unstarted};
     // sftp_server Doesn't need to be a pointer, but done for now to avoid bringing sftp.h
     // which has an error with -pedantic.
     std::unique_ptr<SftpServer> sftp_server;
