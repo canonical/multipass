@@ -28,6 +28,9 @@ jobs:
       with:
         fetch-depth: 2
 
+    - name: Check whitespace
+      uses: ./.github/actions/whitespace
+
     - name: Lint the code
       uses: ./.github/actions/lint
 
