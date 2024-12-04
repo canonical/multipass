@@ -20,6 +20,7 @@
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_mount_handler.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
@@ -68,6 +69,10 @@ struct TestDaemonMount : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 } // namespace
 
