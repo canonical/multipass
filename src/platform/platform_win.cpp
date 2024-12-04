@@ -647,12 +647,12 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, 
     std::free(lpPath);
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
-    success &= set_root_as_owner(path);
+    success &= take_ownership(path);
 
     return success;
 }
 
-bool mp::platform::Platform::set_root_as_owner(const mp::Path& path) const
+bool mp::platform::Platform::take_ownership(const mp::Path& path) const
 {
     LPSTR lpPath = _strdup(path.toStdString().c_str());
     auto success = true;
