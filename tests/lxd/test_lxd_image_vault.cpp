@@ -61,7 +61,7 @@ struct LXDImageVault : public Test
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
-    mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
     std::vector<mp::VMImageHost*> hosts;

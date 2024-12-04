@@ -27,6 +27,7 @@
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
@@ -138,6 +139,10 @@ struct Daemon : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 
     const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
@@ -2519,4 +2524,31 @@ TEST_F(Daemon, info_all_returns_all_instances)
     mp::Daemon daemon{config_builder.build()};
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
 }
+
+TEST_F(Daemon, sets_permissions_on_provided_storage_path)
+{
+    const QString path{"Where all the secrets go"};
+    const std::filesystem::path std_path{path.toStdU16String()};
+
+    EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(path));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_path));
+
+    config_builder.build();
+}
+
+TEST_F(Daemon, sets_permissions_on_storage_dirs)
+{
+
+    config_builder.data_directory = "Sensitive data location";
+    const std::filesystem::path std_data_path{config_builder.data_directory.toStdU16String()};
+
+    config_builder.cache_directory = "Pirate's secret cache";
+    const std::filesystem::path std_cache_path{config_builder.cache_directory.toStdU16String()};
+
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_data_path));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_cache_path));
+
+    config_builder.build();
+}
+
 } // namespace

@@ -22,6 +22,7 @@
 #include "mock_cert_store.h"
 #include "mock_client_rpc.h"
 #include "mock_daemon.h"
+#include "mock_permission_utils.h"
 #include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "stub_terminal.h"
@@ -59,6 +60,10 @@ struct TestClientCommon : public mpt::DaemonTestFixture
     std::unique_ptr<NiceMock<mpt::MockCertProvider>> mock_cert_provider{
         std::make_unique<NiceMock<mpt::MockCertProvider>>()};
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 
     const std::string server_address{"localhost:50052"};
     mpt::TempDir temp_dir;

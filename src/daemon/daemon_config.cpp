@@ -31,6 +31,7 @@
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
+#include <multipass/utils/permission_utils.h>
 
 #include <QString>
 #include <QSysInfo>
@@ -187,6 +188,16 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         else
             blueprint_provider =
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
+    }
+
+    if (!storage_path.isEmpty())
+    {
+        MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
+    }
+    else
+    {
+        MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
+        MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
     }
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{

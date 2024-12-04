@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_virtual_machine.h"
@@ -57,6 +58,10 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
 
     const mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     const mpt::MockPlatform& mock_platform = *attr.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 
 TEST_F(TestDaemonClone, missingOnSrcInstance)
