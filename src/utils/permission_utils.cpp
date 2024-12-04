@@ -35,11 +35,11 @@ void set_single_permissions(const Path& path, const QFileDevice::Permissions& pe
         throw std::runtime_error(fmt::format("Cannot set permissions for '{}'", path.string()));
 }
 
-void set_single_owner(const Path& path, bool root)
+void set_single_owner(const Path& path)
 {
     QString qpath = QString::fromUtf8(path.u8string());
 
-    if (!MP_PLATFORM.take_ownership(qpath, root))
+    if (!MP_PLATFORM.take_ownership(qpath))
         throw std::runtime_error(fmt::format("Cannot set owner for '{}'", path.string()));
 }
 
@@ -93,15 +93,15 @@ void mp::PermissionUtils::set_permissions(const Path& path, const QFileDevice::P
     apply_on_files(path, [&](const fs::path& apply_path) { set_single_permissions(apply_path, permissions); });
 }
 
-void mp::PermissionUtils::take_ownership(const Path& path, bool root) const
+void mp::PermissionUtils::take_ownership(const Path& path) const
 {
-    apply_on_files(path, [&](const fs::path& apply_path) { set_single_owner(apply_path, root); });
+    apply_on_files(path, [&](const fs::path& apply_path) { set_single_owner(apply_path); });
 }
 
 void mp::PermissionUtils::restrict_permissions(const Path& path) const
 {
     apply_on_files(path, [&](const fs::path& apply_path) {
-        set_single_owner(apply_path, true);
-        set_single_permissions(apply_path, QFile::ReadOwner | QFile::WriteOwner);
+        set_single_owner(apply_path);
+        set_single_permissions(apply_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
     });
 }

@@ -68,14 +68,9 @@ bool mp::platform::Platform::set_permissions(const mp::Path& path, const QFileDe
     return QFile::setPermissions(path, permissions);
 }
 
-bool mp::platform::Platform::take_ownership(const mp::Path& path, bool root) const
+bool mp::platform::Platform::take_ownership(const mp::Path& path) const
 {
-    if (root)
-    {
-        return this->chown(path.toStdString().c_str(), 0, 0) == 0;
-    }
-
-    throw std::logic_error("NYI");
+    return this->chown(path.toStdString().c_str(), 0, 0) == 0;
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
