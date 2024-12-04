@@ -1,3 +1,5 @@
+import 'package:async/async.dart';
+import 'package:basics/int_basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -31,25 +33,14 @@ void main() async {
     shortcutPolicy: ShortcutPolicy.requireCreate, // Only for Windows
   );
 
-  // Get the current screen size
-  final screenSize = await getCurrentScreen().then((screen) {
-    return screen?.frame.size;
-  });
-
-  final windowSize = (screenSize != null)
-    ? (screenSize.width >= 1600 && screenSize.height >= 900)
-      ? const Size(1400, 822) // For screens 1600x900 or larger
-      : (screenSize.width >= 1280 && screenSize.height >= 720)
-        ? const Size(1024, 576) // For screens 1280x720 or larger
-        : const Size(750, 450) // Default window size
-    : const Size(750, 450); // Default window size if screenSize is null
+  final sharedPreferences = await SharedPreferences.getInstance();
+  final lastWindowSize = getLastWindowSize(sharedPreferences);
 
   await windowManager.ensureInitialized();
-
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: windowSize,
+    size: lastWindowSize ?? await computeDefaultWindowSize(),
     title: 'Multipass',
   );
 
@@ -59,7 +50,6 @@ void main() async {
   });
 
   await hotKeyManager.unregisterAll();
-  final sharedPreferences = await SharedPreferences.getInstance();
 
   providerContainer = ProviderContainer(overrides: [
     guiSettingProvider.overrideWith(() {
@@ -169,6 +159,18 @@ class _AppState extends ConsumerState<App> with WindowListener {
     super.dispose();
   }
 
+  final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
+    final currentSize = await windowManager.getSize();
+    final sharedPreferences = await SharedPreferences.getInstance();
+    sharedPreferences.setDouble(windowWidthKey, currentSize.width);
+    sharedPreferences.setDouble(windowHeightKey, currentSize.height);
+  });
+
+  // this event handler is called continuously during a window resizing operation
+  // so we want to save the data to the disk only after the resizing stops
+  @override
+  void onWindowResize() => saveWindowSizeTimer.reset();
+
   @override
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
@@ -218,6 +220,40 @@ class _AppState extends ConsumerState<App> with WindowListener {
         );
     }
   }
+}
+
+const windowWidthKey = 'windowWidth';
+const windowHeightKey = 'windowHeight';
+
+Size? getLastWindowSize(SharedPreferences sharedPreferences) {
+  final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
+  final lastWindowHeight = sharedPreferences.getDouble(windowHeightKey);
+  return lastWindowWidth != null && lastWindowHeight != null
+      ? Size(lastWindowWidth, lastWindowHeight)
+      : null;
+}
+
+Future<Size> computeDefaultWindowSize() async {
+  const windowSizeFactor = 0.8;
+
+  final (screenWidth, screenHeight) = await getCurrentScreen().then((screen) {
+    final screenSize = screen?.frame.size;
+    return (screenSize?.width, screenSize?.height);
+  });
+
+  final defaultWidth = switch (screenWidth) {
+    null || <= 1024 => 750.0,
+    >= 1600 => 1400.0,
+    _ => screenWidth * windowSizeFactor,
+  };
+
+  final defaultHeight = switch (screenHeight) {
+    null || <= 576 => 450.0,
+    >= 900 => 822.0,
+    _ => defaultWidth * 9 / 16,
+  };
+
+  return Size(defaultWidth, defaultHeight);
 }
 
 final theme = ThemeData(
