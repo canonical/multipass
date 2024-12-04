@@ -36,7 +36,7 @@ public:
     PermissionUtils(const PrivatePass&) noexcept;
 
     virtual void set_permissions(const Path& path, const QFileDevice::Permissions& permissions) const;
-    virtual void take_ownership(const Path& path, bool root = true) const;
+    virtual void take_ownership(const Path& path) const;
 
     // sets owner to root and sets permissions such that only owner has access.
     virtual void restrict_permissions(const Path& path) const;

@@ -15,8 +15,6 @@
  *
  */
 
-#include <Poco/Path.h>
-
 #include "mock_file_ops.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -38,8 +36,8 @@ struct TestPermissionUtils : public Test
     const mp::PermissionUtils::Path test_path{"test_path"};
     const QString test_qpath{QString::fromUtf8(test_path.u8string())};
     static constexpr QFileDevice::Permissions test_permissions{QFileDevice::Permission::ReadOwner};
-    static constexpr QFileDevice::Permissions restricted_permissions{QFileDevice::Permission::ReadOwner |
-                                                                     QFileDevice::Permission::WriteOwner};
+    static constexpr QFileDevice::Permissions restricted_permissions{
+        QFileDevice::Permission::ReadOwner | QFileDevice::Permission::WriteOwner | QFile::ExeOwner};
 };
 
 struct TestPermissionUtilsNoFile : public TestPermissionUtils
@@ -98,21 +96,14 @@ TEST_F(TestPermissionUtilsFile, set_permissions_throws_on_failure)
 
 TEST_F(TestPermissionUtilsFile, take_ownership_takes_ownership)
 {
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, true)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
 
-    MP_PERMISSIONS.take_ownership(test_path, true);
-}
-
-TEST_F(TestPermissionUtilsFile, take_ownership_takes_user_ownership)
-{
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, false)).WillOnce(Return(true));
-
-    MP_PERMISSIONS.take_ownership(test_path, false);
+    MP_PERMISSIONS.take_ownership(test_path);
 }
 
 TEST_F(TestPermissionUtilsFile, take_ownership_throws_on_failure)
 {
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PERMISSIONS.take_ownership(test_path),
                          std::runtime_error,
@@ -121,7 +112,7 @@ TEST_F(TestPermissionUtilsFile, take_ownership_throws_on_failure)
 
 TEST_F(TestPermissionUtilsFile, restrict_permissions_restricts_permissions)
 {
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, true)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
     EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions)).WillOnce(Return(true));
 
     MP_PERMISSIONS.restrict_permissions(test_path);
@@ -165,18 +156,18 @@ TEST_F(TestPermissionUtilsDir, set_permissions_iterates_dir)
 
 TEST_F(TestPermissionUtilsDir, take_ownership_iterates_dir)
 {
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, false)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, take_ownership(qpath1, false)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, take_ownership(qpath2, false)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(qpath1)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(qpath2)).WillOnce(Return(true));
 
-    MP_PERMISSIONS.take_ownership(test_path, false);
+    MP_PERMISSIONS.take_ownership(test_path);
 }
 
 TEST_F(TestPermissionUtilsDir, restrict_permissions_iterates_dir)
 {
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, true)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, take_ownership(qpath1, true)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, take_ownership(qpath2, true)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(qpath1)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(qpath2)).WillOnce(Return(true));
 
     EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions)).WillOnce(Return(true));
     EXPECT_CALL(mock_platform, set_permissions(qpath1, restricted_permissions)).WillOnce(Return(true));
@@ -207,9 +198,9 @@ TEST_F(TestPermissionUtilsBadDir, set_permissions_throws_on_broken_iterator)
 
 TEST_F(TestPermissionUtilsBadDir, take_ownership_throws_on_broken_iterator)
 {
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, false)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
 
-    MP_EXPECT_THROW_THAT(MP_PERMISSIONS.take_ownership(test_path, false),
+    MP_EXPECT_THROW_THAT(MP_PERMISSIONS.take_ownership(test_path),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Cannot iterate"), HasSubstr(test_path.string()))));
 }
@@ -217,7 +208,7 @@ TEST_F(TestPermissionUtilsBadDir, take_ownership_throws_on_broken_iterator)
 TEST_F(TestPermissionUtilsBadDir, restrict_permissions_throws_on_broken_iterator)
 {
     EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, take_ownership(test_qpath, true)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
 
     MP_EXPECT_THROW_THAT(MP_PERMISSIONS.restrict_permissions(test_path),
                          std::runtime_error,
