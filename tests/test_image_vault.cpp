@@ -168,7 +168,7 @@ struct ImageVault : public testing::Test
     NiceMock<mpt::MockImageHost> host;
     mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
-    mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
@@ -418,9 +418,7 @@ TEST_F(ImageVault, remembers_prepared_images)
 
 TEST_F(ImageVault, uses_image_from_prepare)
 {
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
 
     constexpr auto expected_data = "12345-pied-piper-rats";
 
@@ -517,9 +515,7 @@ TEST_F(ImageVault, invalid_image_dir_is_removed)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_fetch_copies_image_and_returns_expected_info))
 {
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
 
     mpt::TempFile file;
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -752,9 +748,7 @@ TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_expected_size))
 {
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
 
     const mp::MemorySize image_size{"2097152"};
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
