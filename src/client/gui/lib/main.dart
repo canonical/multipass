@@ -36,11 +36,13 @@ void main() async {
     return screen?.frame.size;
   });
 
-  final windowSize = (screenSize != null &&
-          screenSize.width >= 1600 &&
-          screenSize.height >= 900)
+  final windowSize = (screenSize != null)
+    ? (screenSize.width >= 1600 && screenSize.height >= 900)
       ? const Size(1400, 822) // For screens 1600x900 or larger
-      : const Size(750, 450); // Default window size
+      : (screenSize.width >= 1280 && screenSize.height >= 720)
+        ? const Size(1024, 576) // For screens 1280x720 or larger
+        : const Size(750, 450) // Default window size
+    : const Size(750, 450); // Default window size if screenSize is null
 
   await windowManager.ensureInitialized();
 
