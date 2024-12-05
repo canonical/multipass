@@ -184,6 +184,14 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       run: git config --local core.autocrlf false
 
+    - name: Install winget
+      if: ${{ runner.os == 'Windows' }}
+      uses: Cyberboss/install-winget@v1
+
+    - name: Install Windows ADK
+      if: ${{ runner.os == 'Windows' }}
+      run: winget install -e --id Microsoft.WindowsADK --accept-package-agreements --accept-source-agreements
+
     - name: Check out the code
       # This can't be easily abstracted into our `checkout` action due to a chicken'n'egg problem:
       # GitHub reads ./* actions from $PWD, so it needs to be checked out. It could be extracted
@@ -282,12 +290,6 @@ jobs:
       uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install --yes openssl --version=3.1.1
-
-    - name: Install Windows ADK
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install --yes windows-adk-deploy
 
     - name: Install specific cmake
       if: ${{ runner.os == 'Windows' }}
