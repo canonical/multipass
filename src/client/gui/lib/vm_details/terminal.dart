@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
@@ -160,9 +161,27 @@ class VmTerminal extends ConsumerStatefulWidget {
   ConsumerState<VmTerminal> createState() => _VmTerminalState();
 }
 
+class IncreaseTerminalFontIntent extends Intent {
+  const IncreaseTerminalFontIntent();
+}
+
+class DecreaseTerminalFontIntent extends Intent {
+  const DecreaseTerminalFontIntent();
+}
+
+class ResetTerminalFontIntent extends Intent {
+  const ResetTerminalFontIntent();
+}
+
 class _VmTerminalState extends ConsumerState<VmTerminal> {
+  static const defaultFontSize = 13.0;
+  static const minFontSize = 2.5;
+  static const maxFontSize = 36.0;
+  static const fontSizeStep = 0.5;
+
   final scrollController = ScrollController();
   final focusNode = FocusNode();
+  var fontSize = defaultFontSize;
 
   @override
   void initState() {
@@ -228,45 +247,63 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       );
     }
 
-    return RawScrollbar(
-      controller: scrollController,
-      thickness: 9,
-      child: ClipRect(
-        child: TerminalView(
-          terminal,
-          scrollController: scrollController,
-          focusNode: focusNode,
-          shortcuts: mpPlatform.terminalShortcuts,
-          hardwareKeyboardOnly: true,
-          padding: const EdgeInsets.all(4),
-          textStyle: TerminalStyle(
-            fontFamily: 'UbuntuMono',
-            fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-          ),
-          theme: const TerminalTheme(
-            cursor: Color(0xFFE5E5E5),
-            selection: Color(0x80E5E5E5),
-            foreground: Color(0xffffffff),
-            background: Color(0xff380c2a),
-            black: Color(0xFF000000),
-            white: Color(0xFFE5E5E5),
-            red: Color(0xFFCD3131),
-            green: Color(0xFF0DBC79),
-            yellow: Color(0xFFE5E510),
-            blue: Color(0xFF2472C8),
-            magenta: Color(0xFFBC3FBC),
-            cyan: Color(0xFF11A8CD),
-            brightBlack: Color(0xFF666666),
-            brightRed: Color(0xFFF14C4C),
-            brightGreen: Color(0xFF23D18B),
-            brightYellow: Color(0xFFF5F543),
-            brightBlue: Color(0xFF3B8EEA),
-            brightMagenta: Color(0xFFD670D6),
-            brightCyan: Color(0xFF29B8DB),
-            brightWhite: Color(0xFFFFFFFF),
-            searchHitBackground: Color(0XFFFFFF2B),
-            searchHitBackgroundCurrent: Color(0XFF31FF26),
-            searchHitForeground: Color(0XFF000000),
+    return Actions(
+      actions: {
+        IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
+          onInvoke: (_) => setState(() {
+            fontSize = min(fontSize + fontSizeStep, maxFontSize);
+          }),
+        ),
+        DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
+          onInvoke: (_) => setState(() {
+            fontSize = max(fontSize - fontSizeStep, minFontSize);
+          }),
+        ),
+        ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
+          onInvoke: (_) => setState(() => fontSize = defaultFontSize),
+        ),
+      },
+      child: RawScrollbar(
+        controller: scrollController,
+        thickness: 9,
+        child: ClipRect(
+          child: TerminalView(
+            terminal,
+            scrollController: scrollController,
+            focusNode: focusNode,
+            shortcuts: mpPlatform.terminalShortcuts,
+            hardwareKeyboardOnly: true,
+            padding: const EdgeInsets.all(4),
+            textStyle: TerminalStyle(
+              fontFamily: 'UbuntuMono',
+              fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+              fontSize: fontSize,
+            ),
+            theme: const TerminalTheme(
+              cursor: Color(0xFFE5E5E5),
+              selection: Color(0x80E5E5E5),
+              foreground: Color(0xffffffff),
+              background: Color(0xff380c2a),
+              black: Color(0xFF000000),
+              white: Color(0xFFE5E5E5),
+              red: Color(0xFFCD3131),
+              green: Color(0xFF0DBC79),
+              yellow: Color(0xFFE5E510),
+              blue: Color(0xFF2472C8),
+              magenta: Color(0xFFBC3FBC),
+              cyan: Color(0xFF11A8CD),
+              brightBlack: Color(0xFF666666),
+              brightRed: Color(0xFFF14C4C),
+              brightGreen: Color(0xFF23D18B),
+              brightYellow: Color(0xFFF5F543),
+              brightBlue: Color(0xFF3B8EEA),
+              brightMagenta: Color(0xFFD670D6),
+              brightCyan: Color(0xFF29B8DB),
+              brightWhite: Color(0xFFFFFFFF),
+              searchHitBackground: Color(0XFFFFFF2B),
+              searchHitBackgroundCurrent: Color(0XFF31FF26),
+              searchHitForeground: Color(0XFF000000),
+            ),
           ),
         ),
       ),
