@@ -20,6 +20,7 @@
 #include <multipass/utils.h>
 
 #include <grp.h>
+#include <scope_guard.hpp>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -185,15 +186,35 @@ timespec make_timespec(std::chrono::duration<Rep, Period> duration)
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
     const std::chrono::milliseconds& timeout)
 {
-    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP}),
+    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
             time = make_timespec(timeout)](const std::function<bool()>& condition) -> std::optional<int> {
-        while (condition())
+        // create a timer to send SIGUSR2 which unblocks this thread
+        sigevent sevp{};
+        sevp.sigev_notify = SIGEV_SIGNAL;
+        sevp.sigev_signo = SIGUSR2;
+
+        timer_t timer{};
+        if (timer_create(CLOCK_MONOTONIC, &sevp, &timer) == -1)
+            throw std::runtime_error(fmt::format("Could not create timer: {}", strerror(errno)));
+
+        // scope guard to make sure the timer is deleted once it's no longer needed
+        const auto timer_guard = sg::make_scope_guard([timer]() noexcept { timer_delete(timer); });
+
+        // set timer interval and initial time to provided timeout
+        const itimerspec timer_interval{time, time};
+        if (timer_settime(timer, 0, &timer_interval, nullptr) == -1)
+            throw std::runtime_error(fmt::format("Could not set timer: {}", strerror(errno)));
+
+        // wait on signals and condition
+        int sig = SIGUSR2;
+        while (sig == SIGUSR2 && condition())
         {
-            if (const int sig = sigtimedwait(&sigset, nullptr, &time); sig != -1)
-                return sig;
+            // can't use sigtimedwait since macOS doesn't support it
+            sigwait(&sigset, &sig);
         }
 
-        return std::nullopt;
+        // if sig is SIGUSR2 then we know we're exiting because condition() was false
+        return sig == SIGUSR2 ? std::nullopt : std::make_optional(sig);
     };
 }
 
