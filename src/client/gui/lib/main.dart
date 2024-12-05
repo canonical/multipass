@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:async/async.dart';
 import 'package:basics/int_basics.dart';
 import 'package:flutter/material.dart';
@@ -34,13 +36,17 @@ void main() async {
   );
 
   final sharedPreferences = await SharedPreferences.getInstance();
-  final lastWindowSize = getLastWindowSize(sharedPreferences);
+  final screenSize = await getCurrentScreen().then((screen) {
+    return screen?.frame.size;
+  });
+  final lastWindowSize = getLastWindowSize(sharedPreferences, screenSize);
+  final defaultWindowSize = computeDefaultWindowSize(screenSize);
 
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: lastWindowSize ?? await computeDefaultWindowSize(),
+    size: lastWindowSize ?? defaultWindowSize,
     title: 'Multipass',
   );
 
@@ -225,21 +231,20 @@ class _AppState extends ConsumerState<App> with WindowListener {
 const windowWidthKey = 'windowWidth';
 const windowHeightKey = 'windowHeight';
 
-Size? getLastWindowSize(SharedPreferences sharedPreferences) {
+Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
   final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
   final lastWindowHeight = sharedPreferences.getDouble(windowHeightKey);
   return lastWindowWidth != null && lastWindowHeight != null
-      ? Size(lastWindowWidth, lastWindowHeight)
+      ? Size(
+          min(lastWindowWidth, screenSize?.width ?? lastWindowWidth),
+          min(lastWindowHeight, screenSize?.height ?? lastWindowHeight),
+        )
       : null;
 }
 
-Future<Size> computeDefaultWindowSize() async {
+Size computeDefaultWindowSize(Size? screenSize) {
   const windowSizeFactor = 0.8;
-
-  final (screenWidth, screenHeight) = await getCurrentScreen().then((screen) {
-    final screenSize = screen?.frame.size;
-    return (screenSize?.width, screenSize?.height);
-  });
+  final (screenWidth, screenHeight) = (screenSize?.width, screenSize?.height);
 
   final defaultWidth = switch (screenWidth) {
     null || <= 1024 => 750.0,
