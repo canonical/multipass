@@ -37,12 +37,7 @@ void main() async {
   );
 
   final sharedPreferences = await SharedPreferences.getInstance();
-  final screenSize = await getCurrentScreen().then((screen) {
-    logger.d(
-      'Got Screen{frame: ${screen?.frame.s()}, scaleFactor: ${screen?.scaleFactor}, visibleFrame: ${screen?.visibleFrame.s()}}',
-    );
-    return screen?.frame.size;
-  });
+  final screenSize = await getCurrentScreenSize();
   final lastWindowSize = getLastWindowSize(sharedPreferences, screenSize);
 
   await windowManager.ensureInitialized();
@@ -234,6 +229,20 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
 const windowWidthKey = 'windowWidth';
 const windowHeightKey = 'windowHeight';
+
+Future<Size?> getCurrentScreenSize() async {
+  try {
+    final screen = await getCurrentScreen();
+    if (screen == null) throw Exception('Screen instance is null');
+    logger.d(
+      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: ${screen.scaleFactor}, visibleFrame: ${screen.visibleFrame.s()}}',
+    );
+    return screen.visibleFrame.size;
+  } catch (e) {
+    logger.w('Failed to get current screen information: $e');
+    return null;
+  }
+}
 
 Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
   final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
