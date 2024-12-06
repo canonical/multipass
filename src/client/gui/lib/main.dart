@@ -13,6 +13,7 @@ import 'package:window_size/window_size.dart';
 import 'before_quit_dialog.dart';
 import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
+import 'extensions.dart';
 import 'help.dart';
 import 'logger.dart';
 import 'notifications.dart';
@@ -38,7 +39,7 @@ void main() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   final screenSize = await getCurrentScreen().then((screen) {
     logger.d(
-      'Got Screen{frame: ${screen?.frame}, scaleFactor: ${screen?.scaleFactor}, visibleFrame: {${screen?.visibleFrame}}}',
+      'Got Screen{frame: ${screen?.frame.s()}, scaleFactor: ${screen?.scaleFactor}, visibleFrame: ${screen?.visibleFrame.s()}}',
     );
     return screen?.frame.size;
   });
@@ -170,7 +171,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
   final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
     final currentSize = await windowManager.getSize();
     final sharedPreferences = await SharedPreferences.getInstance();
-    logger.d('Saving screen size: $currentSize');
+    logger.d('Saving screen size: ${currentSize.s()}');
     sharedPreferences.setDouble(windowWidthKey, currentSize.width);
     sharedPreferences.setDouble(windowHeightKey, currentSize.height);
   });
@@ -240,13 +241,13 @@ Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
   final size = lastWindowWidth != null && lastWindowHeight != null
       ? Size(lastWindowWidth, lastWindowHeight)
       : null;
-  logger.d('Got last window size: $size');
+  logger.d('Got last window size: ${size?.s()}');
   if (size == null) return null;
   final clampedSize = Size(
     min(size.width, screenSize?.width ?? size.width),
     min(size.height, screenSize?.height ?? size.height),
   );
-  logger.d('Using clamped window size: $clampedSize');
+  logger.d('Using clamped window size: ${clampedSize.s()}');
   return clampedSize;
 }
 
@@ -267,7 +268,7 @@ Size computeDefaultWindowSize(Size? screenSize) {
   };
 
   final size = Size(defaultWidth, defaultHeight);
-  logger.d('Computed default window size: $size');
+  logger.d('Computed default window size: ${size.s()}');
   return size;
 }
 
