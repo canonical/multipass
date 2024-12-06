@@ -195,11 +195,6 @@ std::string& mp::utils::trim_newline(std::string& s)
     return s;
 }
 
-std::string mp::utils::escape_char(const std::string& in, char c)
-{
-    return std::regex_replace(in, std::regex({c}), fmt::format("\\{}", c));
-}
-
 // Escape all characters which need to be escaped in the shell.
 std::string mp::utils::escape_for_shell(const std::string& in)
 {
@@ -216,11 +211,11 @@ std::string mp::utils::escape_for_shell(const std::string& in)
 
     for (char c : in)
     {
-        if (0xa == c) // newline
+        if ('\n' == c) // newline
         {
-            *ret_insert++ = 0x22; // double quotes
-            *ret_insert++ = 0xa;  // newline
-            *ret_insert++ = 0x22; // double quotes
+            *ret_insert++ = '"';  // double quotes
+            *ret_insert++ = '\n'; // newline
+            *ret_insert++ = '"';  // double quotes
         }
         else
         {
@@ -228,7 +223,7 @@ std::string mp::utils::escape_for_shell(const std::string& in)
             if (c < 0x25 || c > 0x7a || (c > 0x25 && c < 0x2b) || (c > 0x5a && c < 0x5f) || 0x2c == c || 0x3b == c ||
                 0x3c == c || 0x3e == c || 0x3f == c || 0x60 == c)
             {
-                *ret_insert++ = 0x5c; // backslash
+                *ret_insert++ = '\\'; // backslash
             }
 
             *ret_insert++ = c;
@@ -526,7 +521,7 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 
     std::string existing = MP_UTILS.run_in_ssh_session(
         session,
-        fmt::format("sudo /bin/bash -c 'P=\"{}\"; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
+        fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
                     absolute));
 
     return {existing,
@@ -537,7 +532,7 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
 {
     MP_UTILS.run_in_ssh_session(session,
-                                fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", root, relative_target));
+                                fmt::format("sudo /bin/bash -c 'cd {:?} && mkdir -p {:?}'", root, relative_target));
 }
 
 // Set ownership of all directories on a path starting on a given root.
@@ -546,7 +541,7 @@ void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, 
                               int vm_user, int vm_group)
 {
     MP_UTILS.run_in_ssh_session(session,
-                                fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'",
+                                fmt::format("sudo /bin/bash -c 'cd {:?} && chown -R {}:{} {:?}'",
                                             root,
                                             vm_user,
                                             vm_group,
