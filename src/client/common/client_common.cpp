@@ -137,7 +137,11 @@ void mp::client::register_global_settings_handlers()
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
                                                         const mp::CertProvider& cert_provider)
 {
-    return grpc::CreateChannel(server_address, grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)));
+    grpc::ChannelArguments channel_args;
+    channel_args.SetString(GRPC_ARG_DEFAULT_AUTHORITY, "localhost");
+    return grpc::CreateCustomChannel(server_address,
+                                     grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)),
+                                     channel_args);
 }
 
 std::string mp::client::get_server_address()
