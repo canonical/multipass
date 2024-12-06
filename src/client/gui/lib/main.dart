@@ -37,16 +37,18 @@ void main() async {
 
   final sharedPreferences = await SharedPreferences.getInstance();
   final screenSize = await getCurrentScreen().then((screen) {
+    logger.d(
+      'Got Screen{frame: ${screen?.frame}, scaleFactor: ${screen?.scaleFactor}, visibleFrame: {${screen?.visibleFrame}}}',
+    );
     return screen?.frame.size;
   });
   final lastWindowSize = getLastWindowSize(sharedPreferences, screenSize);
-  final defaultWindowSize = computeDefaultWindowSize(screenSize);
 
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: lastWindowSize ?? defaultWindowSize,
+    size: lastWindowSize ?? computeDefaultWindowSize(screenSize),
     title: 'Multipass',
   );
 
@@ -168,6 +170,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
   final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
     final currentSize = await windowManager.getSize();
     final sharedPreferences = await SharedPreferences.getInstance();
+    logger.d('Saving screen size: $currentSize');
     sharedPreferences.setDouble(windowWidthKey, currentSize.width);
     sharedPreferences.setDouble(windowHeightKey, currentSize.height);
   });
@@ -234,12 +237,17 @@ const windowHeightKey = 'windowHeight';
 Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
   final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
   final lastWindowHeight = sharedPreferences.getDouble(windowHeightKey);
-  return lastWindowWidth != null && lastWindowHeight != null
-      ? Size(
-          min(lastWindowWidth, screenSize?.width ?? lastWindowWidth),
-          min(lastWindowHeight, screenSize?.height ?? lastWindowHeight),
-        )
+  final size = lastWindowWidth != null && lastWindowHeight != null
+      ? Size(lastWindowWidth, lastWindowHeight)
       : null;
+  logger.d('Got last window size: $size');
+  if (size == null) return null;
+  final clampedSize = Size(
+    min(size.width, screenSize?.width ?? size.width),
+    min(size.height, screenSize?.height ?? size.height),
+  );
+  logger.d('Using clamped window size: $clampedSize');
+  return clampedSize;
 }
 
 Size computeDefaultWindowSize(Size? screenSize) {
@@ -258,7 +266,9 @@ Size computeDefaultWindowSize(Size? screenSize) {
     _ => defaultWidth * 9 / 16,
   };
 
-  return Size(defaultWidth, defaultHeight);
+  final size = Size(defaultWidth, defaultHeight);
+  logger.d('Computed default window size: $size');
+  return size;
 }
 
 final theme = ThemeData(
