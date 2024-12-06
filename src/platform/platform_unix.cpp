@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include <libssh/sftp.h>
+#include <multipass/auto_join_thread.h>
 
 namespace mp = multipass;
 
@@ -183,37 +184,46 @@ timespec make_timespec(std::chrono::duration<Rep, Period> duration)
     return timespec{seconds.count(), std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count()};
 }
 
+#include <iostream>
+
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
     const std::chrono::milliseconds& timeout)
 {
     return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
-            time = make_timespec(timeout)](const std::function<bool()>& condition) -> std::optional<int> {
-        // create a timer to send SIGUSR2 which unblocks this thread
-        sigevent sevp{};
-        sevp.sigev_notify = SIGEV_SIGNAL;
-        sevp.sigev_signo = SIGUSR2;
+            timeout](const std::function<bool()>& condition) -> std::optional<int> {
+        std::mutex sig_mtx;
+        std::condition_variable sig_cv;
+        int sig = SIGUSR2;
 
-        timer_t timer{};
-        if (timer_create(CLOCK_MONOTONIC, &sevp, &timer) == -1)
-            throw std::runtime_error(fmt::format("Could not create timer: {}", strerror(errno)));
+        // A signal generator that triggers after `timeout`
+        AutoJoinThread signaler([&sig_mtx, &sig_cv, &sig, &timeout, signalee = pthread_self()] {
+            std::unique_lock lock(sig_mtx);
+            while (sig == SIGUSR2)
+            {
+                auto status = sig_cv.wait_for(lock, timeout);
 
-        // scope guard to make sure the timer is deleted once it's no longer needed
-        const auto timer_guard = sg::make_scope_guard([timer]() noexcept { timer_delete(timer); });
-
-        // set timer interval and initial time to provided timeout
-        const itimerspec timer_interval{time, time};
-        if (timer_settime(timer, 0, &timer_interval, nullptr) == -1)
-            throw std::runtime_error(fmt::format("Could not set timer: {}", strerror(errno)));
+                if (sig == SIGUSR2 && status == std::cv_status::timeout)
+                {
+                    pthread_kill(signalee, SIGUSR2);
+                }
+            }
+        });
 
         // wait on signals and condition
-        int sig = SIGUSR2;
-        while (sig == SIGUSR2 && condition())
+        int ret = SIGUSR2;
+        while (ret == SIGUSR2 && condition())
         {
             // can't use sigtimedwait since macOS doesn't support it
-            sigwait(&sigset, &sig);
+            sigwait(&sigset, &ret);
         }
 
+        {
+            std::unique_lock lock(sig_mtx);
+            sig = ret == SIGUSR2 ? 0 : ret;
+        }
+        sig_cv.notify_all();
+
         // if sig is SIGUSR2 then we know we're exiting because condition() was false
-        return sig == SIGUSR2 ? std::nullopt : std::make_optional(sig);
+        return ret == SIGUSR2 ? std::nullopt : std::make_optional(sig);
     };
 }

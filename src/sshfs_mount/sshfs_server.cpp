@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
         if (sig.has_value())
             cout << "Received signal " << *sig << ". Stopping" << endl;
         else
-            cout << "SFTP server thread stopped unexpectedly." << endl;
+            cerr << "SFTP server thread stopped unexpectedly." << endl;
 
         sshfs_mount.stop();
         exit(sig.has_value() ? EXIT_SUCCESS : EXIT_FAILURE);
