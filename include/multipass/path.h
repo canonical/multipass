@@ -20,10 +20,12 @@
 #ifndef MULTIPASS_PATH_H
 #define MULTIPASS_PATH_H
 
+#include <QFileDevice>
 #include <QString>
 
 namespace multipass
 {
 using Path = QString;
+using Perms = QFileDevice::Permissions;
 }
 #endif // MULTIPASS_PATH_H
