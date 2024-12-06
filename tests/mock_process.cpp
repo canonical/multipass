@@ -2,12 +2,22 @@
 #include <iostream>
 #include <string>
 
+[[noreturn]] void crash()
+{
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    // Prevent Windows from making a dialogue box and enable crash data reporting.
+    // If data reporting is not enabled, QProcess will always return NormalExit.
+    _set_abort_behavior(_CALL_REPORTFAULT, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
+    abort();
+}
+
 int main(int argc, char* argv[])
 {
     if (argc == 1)
     {
         // deliberately will crash if argument 1 missing
-        abort();
+        crash();
     }
     // Exit immediately if only 1 argument
     else if (argc == 2)
@@ -22,7 +32,7 @@ int main(int argc, char* argv[])
     // Crash on demand
     if (s == "crash")
     {
-        abort();
+        crash();
     }
 
     // Print out what was supplied by stdin
