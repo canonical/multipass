@@ -107,3 +107,19 @@ extension NullableMap<T> on T? {
     }
   }
 }
+
+// needed because in release mode Flutter does not emit the actual code for toString for some classes
+// instead the returned strings are of type "Instance of '<Type>'"
+// this is done to reduce binary size, and it cannot be turned off :face-with-rolling-eyes:
+// see https://api.flutter.dev/flutter/dart-ui/keepToString-constant.html for more info
+extension SizeActualString on Size {
+  String s() {
+    return 'Size(${width.toStringAsFixed(1)}, ${height.toStringAsFixed(1)})';
+  }
+}
+
+extension RectActualString on Rect {
+  String s() {
+    return 'Rect.fromLTRB(${left.toStringAsFixed(1)}, ${top.toStringAsFixed(1)}, ${right.toStringAsFixed(1)}, ${bottom.toStringAsFixed(1)})';
+  }
+}
