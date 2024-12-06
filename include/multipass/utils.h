@@ -118,7 +118,6 @@ Str&& trim(Str&& s, Filter&& filter);
 template <typename Str>
 Str&& trim(Str&& s);
 std::string& trim_newline(std::string& s);
-std::string escape_char(const std::string& s, char c);
 std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
 std::string match_line_for(const std::string& output, const std::string& matcher);
