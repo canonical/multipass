@@ -28,8 +28,6 @@
 
 namespace multipass
 {
-class Terminal;
-
 class Console : private DisabledCopyMove
 {
 public:
@@ -47,7 +45,6 @@ public:
     virtual void write_console() = 0;
     virtual void exit_console() = 0;
 
-    static UPtr make_console(ssh_channel channel, Terminal* term);
     static void setup_environment();
 
 protected:

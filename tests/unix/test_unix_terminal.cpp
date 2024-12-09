@@ -19,6 +19,7 @@
 
 #include "mock_libc_functions.h"
 
+#include <src/platform/console/unix_console.h>
 #include <src/platform/console/unix_terminal.h>
 
 #include <tuple>
@@ -109,4 +110,17 @@ TEST_F(TestUnixTerminal, unsetsEchoOnTerminal)
     });
 
     unix_terminal.set_cin_echo(false);
+}
+
+TEST_F(TestUnixTerminal, make_console_makes_unix_console)
+{
+    // force is_live() to return false so UnixConsole ctor doesn't break
+    REPLACE(fileno, [this](auto) { return fake_fd; });
+    REPLACE(isatty, [this](auto fd) {
+        EXPECT_EQ(fd, fake_fd);
+        return 0;
+    });
+
+    auto console = unix_terminal.make_console(nullptr);
+    EXPECT_NE(dynamic_cast<multipass::UnixConsole*>(console.get()), nullptr);
 }
