@@ -40,6 +40,8 @@ public:
     std::string read_all_cin() override;
     void set_cin_echo(const bool enable) override;
 
+    ConsolePtr make_console(ssh_channel channel) override;
+
 private:
     const UINT input_code_page;
     const UINT output_code_page;
