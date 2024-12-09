@@ -38,9 +38,12 @@ After a fix is available to a confirmed vulnerability, we will also coordinate d
 
 Multipass is released as a snap on Linux, an MSI package on Windows, and an installer package on macOS. 
 In each of these platforms, we support the latest stable version of Multipass.
+Multipass notifies you of newer releases on Windows and macOS.
+On Linux, updates are handled automatically by the snap machinery.
+
 Please ensure you are using the latest version, to benefit from the latest patches.
 
-### Security updates
+### Release of security fixes
 
 Security updates are distributed with a new release, which becomes the new supported version.
 This can be either a bug-fix, minor, or major release, depending on what other modifications it includes.
