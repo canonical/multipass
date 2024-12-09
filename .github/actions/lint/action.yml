@@ -21,6 +21,12 @@ runs:
         exit 1
       fi
 
+  - name: Check whitespace
+    uses: ./.github/actions/whitespace
+
+  - name: Check final newline
+    uses: qwrtln/check-final-newline@v1.0.0
+
   - name: Install clang-format
     shell: bash
     run: sudo apt-get install --no-install-recommends --yes clang-format-12

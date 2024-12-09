@@ -1,0 +1,13 @@
+name: Whitespace
+description: Run Whitespace steps
+
+runs:
+  using: composite
+  steps:
+    - name: Check for bad whitespace changes
+      shell: bash
+      run: |
+        set -e -o pipefail
+
+        # On pull requests, HEAD^1 will always be the merge base
+        git diff --check HEAD^1
