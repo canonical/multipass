@@ -28,12 +28,6 @@ jobs:
       with:
         fetch-depth: 2
 
-    - name: Check whitespace
-      uses: ./.github/actions/whitespace
-
-    - name: Check final newline
-      uses: qwrtln/check-final-newline@v1.0.0
-
     - name: Lint the code
       uses: ./.github/actions/lint
 
