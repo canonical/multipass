@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:win32/win32.dart';
 
 import '../settings/autostart_notifiers.dart';
+import '../vm_details/terminal.dart';
 import 'platform.dart';
 
 class WindowsPlatform extends MpPlatform {
@@ -34,6 +35,12 @@ class WindowsPlatform extends MpPlatform {
             CopySelectionTextIntent.copy,
         SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
+        SingleActivator(LogicalKeyboardKey.equal, control: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.minus, control: true):
+            DecreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.digit0, control: true):
+            ResetTerminalFontIntent(),
       };
 
   @override
