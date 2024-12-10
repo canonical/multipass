@@ -63,26 +63,15 @@ public:
     {
     }
 
-    ConsolePtr set_console(ConsolePtr new_console)
-    {
-        return std::exchange(console, std::move(new_console));
-    }
-
     ConsolePtr make_console(ssh_channel channel) override
     {
-        if (!console)
-        {
-            return std::make_unique<StubConsole>();
-        }
-
-        return std::exchange(console, nullptr);
+        return std::make_unique<StubConsole>();
     }
 
 private:
     std::ostream &cout_stream;
     std::ostream& cerr_stream;
     std::istream& cin_stream;
-    ConsolePtr console{nullptr};
 };
 
 } // namespace test
