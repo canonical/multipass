@@ -68,9 +68,6 @@ final daemonAvailableProvider = Provider((ref) {
     if (message.contains('failed to obtain exit status for remote process')) {
       return true;
     }
-    if (message.contains('Connection is being forcefully terminated')) {
-      return true;
-    }
   }
   return false;
 });
