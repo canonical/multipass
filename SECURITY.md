@@ -5,7 +5,7 @@
 
 All vulnerabilities are bugs, but not every bug is a vulnerability. Vulnerabilities compromise one or more of:
 
-- Confidentiality (personal or corporate confidential data).
+- Confidentiality (personal and corporate confidential data).
 - Integrity (trustworthiness and correctness).
 - Availability (uptime and service).
 
