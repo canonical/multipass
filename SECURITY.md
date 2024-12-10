@@ -32,7 +32,7 @@ Vulnerabilities are classified by risk, which factors in impact and likelihood.
 The Multipass project will prioritize responding to all High and Critical severity vulnerabilities.
 
 When we receive an issue, we will work with the reporter to determine how best to proceed. 
-After a fix is available to a confirmed vulnerability, we will also coordinate disclosure with releasing to the various platforms.
+After a fix is available to a confirmed vulnerability, we will also coordinate disclosing and releasing to the various platforms.
 
 ## Supported version
 
