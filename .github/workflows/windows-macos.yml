@@ -90,7 +90,7 @@ jobs:
       run: |
         git checkout --progress --force ${{ env.HEAD_REF }}
 
-    - name: Run clang-format through the diff
+    - name: Lint the code
       uses: ./.github/actions/lint
 
   GetMatrix:
