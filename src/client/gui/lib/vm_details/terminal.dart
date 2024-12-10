@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:math';
@@ -14,6 +15,7 @@ import '../logger.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../vm_action.dart';
 
 final runningShellsProvider =
     StateProvider.autoDispose.family<int, String>((_, __) {
@@ -182,6 +184,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final scrollController = ScrollController();
   final focusNode = FocusNode();
   var fontSize = defaultFontSize;
+  late final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
 
   @override
   void initState() {
@@ -202,13 +205,35 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     if (widget.isCurrent) focusNode.requestFocus();
   }
 
+  Future<void> startVmIfNeeded(final bool vmRunning) async {
+    if (vmRunning) return;
+    final name = widget.name;
+    final action = VmAction.start;
+    final operation = ref.read(grpcClientProvider).start([name]);
+    ref.read(notificationsProvider.notifier).addOperation(
+          operation,
+          loading: '${action.continuousTense} $name',
+          onSuccess: (_) => '${action.pastTense} $name',
+          onError: (error) {
+            return 'Failed to ${action.name.toLowerCase()} $name: $error';
+          },
+        );
+    await operation;
+    await ref.read(allVmInfosProvider.notifier).update();
+  }
+
+  void openShell() {
+    ref.read(terminalProvider(terminalIdentifier).notifier).start();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
     final terminal = ref.watch(terminalProvider(terminalIdentifier));
-    final vmRunning = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status == Status.RUNNING;
+    final vmStatus = ref.watch(vmInfoProvider(widget.name).select((info) {
+      return info.instanceStatus.status;
     }));
+    final vmRunning = vmStatus == Status.RUNNING;
+    final canStartVm = [Status.STOPPED, Status.SUSPENDED].contains(vmStatus);
 
     final buttonStyle = ButtonStyle(
       foregroundColor: WidgetStateColor.resolveWith((states) {
@@ -234,10 +259,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
             const SizedBox(height: 12),
             OutlinedButton(
               style: buttonStyle,
-              onPressed: vmRunning
-                  ? () => ref
-                      .read(terminalProvider(terminalIdentifier).notifier)
-                      .start()
+              onPressed: canStartVm || vmRunning
+                  ? () => startVmIfNeeded(vmRunning).then((_) => openShell())
                   : null,
               child: const Text('Open shell'),
             ),
