@@ -10,7 +10,7 @@ All vulnerabilities are bugs, but not every bug is a vulnerability. Vulnerabilit
 - Availability (uptime and service).
 
 If you discover a security vulnerability within Multipass, we encourage responsible disclosure. 
-If you're not sure whether you found a vulnerability, a bug, or neither, please use the process below for reporting a vulnerability. 
+If you're not sure whether you found a vulnerability, a bug, or something else, please use the process below for reporting a vulnerability. 
 We will then assess and triage accordingly.
 
 ## Reporting a Vulnerability
