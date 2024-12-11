@@ -28,6 +28,7 @@
 #include "file_operations.h"
 #include "json_test_utils.h"
 #include "mock_file_ops.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_vm_image_vault.h"
@@ -607,6 +608,10 @@ struct DaemonAliasTestsuite
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 
 TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
