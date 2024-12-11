@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:async/async.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
 import 'package:protobuf/protobuf.dart' hide RpcClient;
@@ -100,7 +100,7 @@ class GrpcClient {
         .start(Stream.value(request))
         .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<StopReply?> stop(Iterable<String> names) {
@@ -111,7 +111,7 @@ class GrpcClient {
     return _client
         .stop(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<SuspendReply?> suspend(Iterable<String> names) {
@@ -122,7 +122,7 @@ class GrpcClient {
     return _client
         .suspend(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<RestartReply?> restart(Iterable<String> names) {
@@ -134,7 +134,7 @@ class GrpcClient {
         .restart(Stream.value(request))
         .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<DeleteReply?> delete(Iterable<String> names) {
@@ -147,7 +147,7 @@ class GrpcClient {
     return _client
         .delet(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<RecoverReply?> recover(Iterable<String> names) {
@@ -158,7 +158,7 @@ class GrpcClient {
     return _client
         .recover(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<DeleteReply?> purge(Iterable<String> names) {
@@ -172,7 +172,7 @@ class GrpcClient {
     return _client
         .delet(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<List<VmInfo>> info([Iterable<String> names = const []]) {
@@ -193,7 +193,7 @@ class GrpcClient {
     return _client
         .mount(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<void> umount(String name, [String? path]) {
@@ -204,7 +204,7 @@ class GrpcClient {
     return _client
         .umount(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<FindReply> find({bool images = true, bool blueprints = true}) {
@@ -254,7 +254,7 @@ class GrpcClient {
     return _client
         .set(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .firstOrNull;
+        .lastOrNull;
   }
 
   Future<SSHInfo?> sshInfo(String name) {
@@ -263,7 +263,7 @@ class GrpcClient {
     return _client
         .ssh_info(Stream.value(request))
         .doOnEach(logGrpc(request))
-        .first
+        .last
         .then((reply) => reply.sshInfo[name]);
   }
 
@@ -297,5 +297,19 @@ class CustomChannelCredentials extends ChannelCredentials {
     ctx.useCertificateChainBytes(certificateChain);
     ctx.usePrivateKeyBytes(certificateKey);
     return ctx;
+  }
+}
+
+extension<T> on Stream<T> {
+  Future<T?> get lastOrNull {
+    final completer = Completer<T?>.sync();
+    T? result;
+    listen(
+      (event) => result = event,
+      onError: completer.completeError,
+      onDone: () => completer.complete(result),
+      cancelOnError: true,
+    );
+    return completer.future;
   }
 }
