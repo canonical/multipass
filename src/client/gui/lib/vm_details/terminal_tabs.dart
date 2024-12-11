@@ -149,6 +149,7 @@ class TerminalTabs extends ConsumerWidget {
       );
 
       final shell = VmTerminal(
+        key: GlobalObjectKey(shellId),
         name,
         shellId,
         isCurrent: index == currentIndex,

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../settings/autostart_notifiers.dart';
+import '../vm_details/terminal.dart';
 import 'platform.dart';
 
 class LinuxPlatform extends MpPlatform {
@@ -32,6 +33,20 @@ class LinuxPlatform extends MpPlatform {
             CopySelectionTextIntent.copy,
         SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
+        SingleActivator(LogicalKeyboardKey.equal, control: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.add, control: true, shift: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadAdd, control: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.minus, control: true):
+            DecreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadSubtract, control: true):
+            DecreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.digit0, control: true):
+            ResetTerminalFontIntent(),
       };
 
   @override
