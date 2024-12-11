@@ -20,11 +20,13 @@
 #include <multipass/utils.h>
 
 #include <grp.h>
+#include <scope_guard.hpp>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 
 #include <libssh/sftp.h>
+#include <multipass/auto_join_thread.h>
 
 namespace mp = multipass;
 
@@ -175,11 +177,51 @@ sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
     return sigset;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog()
+template <class Rep, class Period>
+timespec make_timespec(std::chrono::duration<Rep, Period> duration)
 {
-    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP})]() {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        return sig;
+    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+    return timespec{seconds.count(), std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count()};
+}
+
+std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+    const std::chrono::milliseconds& timeout)
+{
+    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
+            timeout](const std::function<bool()>& condition) -> std::optional<int> {
+        std::mutex sig_mtx;
+        std::condition_variable sig_cv;
+        int sig = SIGUSR2;
+
+        // A signal generator that triggers after `timeout`
+        AutoJoinThread signaler([&sig_mtx, &sig_cv, &sig, &timeout, signalee = pthread_self()] {
+            std::unique_lock lock(sig_mtx);
+            while (sig == SIGUSR2)
+            {
+                auto status = sig_cv.wait_for(lock, timeout);
+
+                if (sig == SIGUSR2 && status == std::cv_status::timeout)
+                {
+                    pthread_kill(signalee, SIGUSR2);
+                }
+            }
+        });
+
+        // wait on signals and condition
+        int ret = SIGUSR2;
+        while (ret == SIGUSR2 && condition())
+        {
+            // can't use sigtimedwait since macOS doesn't support it
+            sigwait(&sigset, &ret);
+        }
+
+        {
+            std::unique_lock lock(sig_mtx);
+            sig = ret == SIGUSR2 ? 0 : ret;
+        }
+        sig_cv.notify_all();
+
+        // if sig is SIGUSR2 then we know we're exiting because condition() was false
+        return ret == SIGUSR2 ? std::nullopt : std::make_optional(sig);
     };
 }
