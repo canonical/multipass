@@ -184,8 +184,6 @@ timespec make_timespec(std::chrono::duration<Rep, Period> duration)
     return timespec{seconds.count(), std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count()};
 }
 
-#include <iostream>
-
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
     const std::chrono::milliseconds& timeout)
 {
