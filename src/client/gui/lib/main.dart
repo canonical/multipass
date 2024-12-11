@@ -17,6 +17,9 @@ import 'extensions.dart';
 import 'help.dart';
 import 'logger.dart';
 import 'notifications.dart';
+import 'platform/linux.dart';
+import 'platform/platform.dart';
+import 'platform/windows.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
@@ -234,10 +237,20 @@ Future<Size?> getCurrentScreenSize() async {
   try {
     final screen = await getCurrentScreen();
     if (screen == null) throw Exception('Screen instance is null');
+
+    final scaleFactor = screen.scaleFactor;
+    var size = screen.visibleFrame.size;
+
+    // Adjust size based on the platform
+    if (mpPlatform is LinuxPlatform || mpPlatform is WindowsPlatform) {
+      size = Size(size.width * scaleFactor, size.height * scaleFactor);
+    }
+
     logger.d(
-      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: ${screen.scaleFactor}, visibleFrame: ${screen.visibleFrame.s()}}',
+      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: $scaleFactor, visibleFrame: ${screen.visibleFrame.s()}, adjustedSize: ${size.s()}}',
     );
-    return screen.visibleFrame.size;
+
+    return size;
   } catch (e) {
     logger.w('Failed to get current screen information: $e');
     return null;
@@ -252,10 +265,9 @@ Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
       : null;
   logger.d('Got last window size: ${size?.s()}');
   if (size == null) return null;
-  final clampedSize = Size(
-    min(size.width, screenSize?.width ?? size.width),
-    min(size.height, screenSize?.height ?? size.height),
-  );
+  final clampedSize = size.width >= screenSize!.width || size.height >= screenSize.height
+      ? computeDefaultWindowSize(screenSize)
+      : size;
   logger.d('Using clamped window size: ${clampedSize.s()}');
   return clampedSize;
 }
