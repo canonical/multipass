@@ -22,6 +22,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "unix_console.h"
+
 namespace mp = multipass;
 
 int mp::UnixTerminal::cin_fd() const
@@ -55,4 +57,9 @@ void mp::UnixTerminal::set_cin_echo(const bool enable)
         tty.c_lflag |= ECHO;
 
     tcsetattr(cin_fd(), TCSANOW, &tty);
+}
+
+mp::UnixTerminal::ConsolePtr mp::UnixTerminal::make_console(ssh_channel channel)
+{
+    return std::make_unique<UnixConsole>(channel, this);
 }

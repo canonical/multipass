@@ -445,6 +445,29 @@ auto make_info_function(const std::string& source_path = "", const std::string& 
     return info_function;
 }
 
+mp::SSHInfo make_ssh_info(const std::string& host = "222.222.222.222",
+                          int port = 22,
+                          const std::string& priv_key = mpt::fake_key_data,
+                          const std::string& username = "user")
+{
+    mp::SSHInfo ssh_info;
+
+    ssh_info.set_host(host);
+    ssh_info.set_port(port);
+    ssh_info.set_priv_key_base64(priv_key);
+    ssh_info.set_username(username);
+
+    return ssh_info;
+}
+
+mp::SSHInfoReply make_fake_ssh_info_response(const std::string& instance_name)
+{
+    mp::SSHInfoReply response;
+    (*response.mutable_ssh_info())[instance_name] = make_ssh_info();
+
+    return response;
+}
+
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
 const std::string csv_header{"Alias,Instance,Command,Working directory,Context\n"};
@@ -741,6 +764,27 @@ TEST_F(Client, shell_cmd_no_args_targets_petenv)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce(WithArg<1>(check_request_and_return<mp::SSHInfoReply, mp::SSHInfoRequest>(petenv_matcher, ok)));
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, shell_cmd_creates_console)
+{
+    EXPECT_CALL(mock_daemon, ssh_info)
+        .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+            server->Write(make_fake_ssh_info_response("fake-instance"));
+            return grpc::Status{};
+        });
+
+    std::string error_string = "attempted to create console";
+    std::stringstream cerr_stream;
+
+    mpt::MockTerminal term{};
+    EXPECT_CALL(term, cin()).WillRepeatedly(ReturnRef(trash_stream));
+    EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(trash_stream));
+    EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr_stream));
+    EXPECT_CALL(term, make_console(_)).WillOnce(Throw(std::runtime_error(error_string)));
+
+    EXPECT_EQ(setup_client_and_run({"shell"}, term), mp::ReturnCode::CommandFail);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(error_string));
 }
 
 TEST_F(Client, shell_cmd_considers_configured_petenv)
@@ -1543,27 +1587,6 @@ TEST_F(Client, exec_cmd_fails_on_other_absent_instance)
             WithArg<1>(check_request_and_return<mp::SSHInfoReply, mp::SSHInfoRequest>(instance_matcher, notfound)));
     EXPECT_THAT(send_command({"exec", instance, "--no-map-working-directory", "--", "command"}),
                 Eq(mp::ReturnCode::CommandFail));
-}
-
-mp::SSHInfo make_ssh_info(const std::string& host = "222.222.222.222", int port = 22,
-                          const std::string& priv_key = mpt::fake_key_data, const std::string& username = "user")
-{
-    mp::SSHInfo ssh_info;
-
-    ssh_info.set_host(host);
-    ssh_info.set_port(port);
-    ssh_info.set_priv_key_base64(priv_key);
-    ssh_info.set_username(username);
-
-    return ssh_info;
-}
-
-mp::SSHInfoReply make_fake_ssh_info_response(const std::string& instance_name)
-{
-    mp::SSHInfoReply response;
-    (*response.mutable_ssh_info())[instance_name] = make_ssh_info();
-
-    return response;
 }
 
 struct SSHClientReturnTest : Client, WithParamInterface<int>

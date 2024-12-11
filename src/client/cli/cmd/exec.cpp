@@ -160,7 +160,7 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
 
     try
     {
-        auto console_creator = [&term](auto channel) { return Console::make_console(channel, term); };
+        auto console_creator = [&term](auto channel) { return term->make_console(channel); };
         mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
 
         std::vector<std::vector<std::string>> all_args;
