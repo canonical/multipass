@@ -34,7 +34,15 @@ class MacOSPlatform extends MpPlatform {
             PasteTextIntent(SelectionChangedCause.keyboard),
         SingleActivator(LogicalKeyboardKey.equal, meta: true):
             IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.equal, meta: true, shift: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.add, meta: true, shift: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadAdd, meta: true):
+            IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.minus, meta: true):
+            DecreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadSubtract, meta: true):
             DecreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.digit0, meta: true):
             ResetTerminalFontIntent(),

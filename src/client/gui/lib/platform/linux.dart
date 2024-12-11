@@ -35,7 +35,15 @@ class LinuxPlatform extends MpPlatform {
             PasteTextIntent(SelectionChangedCause.keyboard),
         SingleActivator(LogicalKeyboardKey.equal, control: true):
             IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.add, control: true, shift: true):
+            IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadAdd, control: true):
+            IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.minus, control: true):
+            DecreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadSubtract, control: true):
             DecreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.digit0, control: true):
             ResetTerminalFontIntent(),
