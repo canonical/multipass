@@ -219,8 +219,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                   .arg(petenv_name, mp::home_automount_dir, valid_name_desc);
 
     QCommandLineOption nameOption({"n", "name"}, name_option_desc, "name");
-    QCommandLineOption cloudInitOption(
-        "cloud-init", "Path or URL to a user-data cloud-init configuration, or '-' for stdin", "file> | <url");
+    QCommandLineOption cloudInitOption("cloud-init",
+                                       "Path or URL to a user-data cloud-init configuration, or '-' for stdin.",
+                                       "file> | <url");
     QCommandLineOption networkOption("network",
                                      "Add a network interface to the instance, where <spec> is in the "
                                      "\"key=value,key=value\" format, with the following keys available:\n"
@@ -235,7 +236,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption mountOption("mount",
                                    "Mount a local directory inside the instance. If <target> is omitted, the "
                                    "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
-                                   "the name of the <source> directory",
+                                   "the name of the <source> directory.",
                                    "source>:<target");
 
     parser->addOptions({cpusOption, diskOption, memOption, memOptionDeprecated, nameOption, cloudInitOption,
