@@ -1,3 +1,7 @@
+import 'dart:math';
+
+import 'package:async/async.dart';
+import 'package:basics/int_basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -9,9 +13,13 @@ import 'package:window_size/window_size.dart';
 import 'before_quit_dialog.dart';
 import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
+import 'extensions.dart';
 import 'help.dart';
 import 'logger.dart';
 import 'notifications.dart';
+import 'platform/linux.dart';
+import 'platform/platform.dart';
+import 'platform/windows.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
@@ -31,25 +39,15 @@ void main() async {
     shortcutPolicy: ShortcutPolicy.requireCreate, // Only for Windows
   );
 
-  // Get the current screen size
-  final screenSize = await getCurrentScreen().then((screen) {
-    return screen?.frame.size;
-  });
-
-  final windowSize = (screenSize != null)
-    ? (screenSize.width >= 1600 && screenSize.height >= 900)
-      ? const Size(1400, 822) // For screens 1600x900 or larger
-      : (screenSize.width >= 1280 && screenSize.height >= 720)
-        ? const Size(1024, 576) // For screens 1280x720 or larger
-        : const Size(750, 450) // Default window size
-    : const Size(750, 450); // Default window size if screenSize is null
+  final sharedPreferences = await SharedPreferences.getInstance();
+  final screenSize = await getCurrentScreenSize();
+  final lastWindowSize = getLastWindowSize(sharedPreferences, screenSize);
 
   await windowManager.ensureInitialized();
-
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: windowSize,
+    size: lastWindowSize ?? computeDefaultWindowSize(screenSize),
     title: 'Multipass',
   );
 
@@ -59,7 +57,6 @@ void main() async {
   });
 
   await hotKeyManager.unregisterAll();
-  final sharedPreferences = await SharedPreferences.getInstance();
 
   providerContainer = ProviderContainer(overrides: [
     guiSettingProvider.overrideWith(() {
@@ -169,6 +166,19 @@ class _AppState extends ConsumerState<App> with WindowListener {
     super.dispose();
   }
 
+  final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
+    final currentSize = await windowManager.getSize();
+    final sharedPreferences = await SharedPreferences.getInstance();
+    logger.d('Saving screen size: ${currentSize.s()}');
+    sharedPreferences.setDouble(windowWidthKey, currentSize.width);
+    sharedPreferences.setDouble(windowHeightKey, currentSize.height);
+  });
+
+  // this event handler is called continuously during a window resizing operation
+  // so we want to save the data to the disk only after the resizing stops
+  @override
+  void onWindowResize() => saveWindowSizeTimer.reset();
+
   @override
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
@@ -218,6 +228,69 @@ class _AppState extends ConsumerState<App> with WindowListener {
         );
     }
   }
+}
+
+const windowWidthKey = 'windowWidth';
+const windowHeightKey = 'windowHeight';
+
+Future<Size?> getCurrentScreenSize() async {
+  try {
+    final screen = await getCurrentScreen();
+    if (screen == null) throw Exception('Screen instance is null');
+
+    final scaleFactor = screen.scaleFactor;
+    var size = screen.visibleFrame.size;
+
+    // Adjust size based on the platform
+    if (mpPlatform is LinuxPlatform || mpPlatform is WindowsPlatform) {
+      size = Size(size.width * scaleFactor, size.height * scaleFactor);
+    }
+
+    logger.d(
+      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: $scaleFactor, visibleFrame: ${screen.visibleFrame.s()}, adjustedSize: ${size.s()}}',
+    );
+
+    return size;
+  } catch (e) {
+    logger.w('Failed to get current screen information: $e');
+    return null;
+  }
+}
+
+Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
+  final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
+  final lastWindowHeight = sharedPreferences.getDouble(windowHeightKey);
+  final size = lastWindowWidth != null && lastWindowHeight != null
+      ? Size(lastWindowWidth, lastWindowHeight)
+      : null;
+  logger.d('Got last window size: ${size?.s()}');
+  if (size == null) return null;
+  final clampedSize = size.width >= screenSize!.width || size.height >= screenSize.height
+      ? computeDefaultWindowSize(screenSize)
+      : size;
+  logger.d('Using clamped window size: ${clampedSize.s()}');
+  return clampedSize;
+}
+
+Size computeDefaultWindowSize(Size? screenSize) {
+  const windowSizeFactor = 0.8;
+  final (screenWidth, screenHeight) = (screenSize?.width, screenSize?.height);
+
+  final defaultWidth = switch (screenWidth) {
+    null || <= 1024 => 750.0,
+    >= 1600 => 1400.0,
+    _ => screenWidth * windowSizeFactor,
+  };
+
+  final defaultHeight = switch (screenHeight) {
+    null || <= 576 => 450.0,
+    >= 900 => 822.0,
+    _ => defaultWidth * 9 / 16,
+  };
+
+  final size = Size(defaultWidth, defaultHeight);
+  logger.d('Computed default window size: ${size.s()}');
+  return size;
 }
 
 final theme = ThemeData(
