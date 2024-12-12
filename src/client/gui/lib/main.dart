@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:async/async.dart';
 import 'package:basics/int_basics.dart';
 import 'package:flutter/material.dart';
@@ -17,9 +15,7 @@ import 'extensions.dart';
 import 'help.dart';
 import 'logger.dart';
 import 'notifications.dart';
-import 'platform/linux.dart';
 import 'platform/platform.dart';
-import 'platform/windows.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
@@ -41,13 +37,11 @@ void main() async {
 
   final sharedPreferences = await SharedPreferences.getInstance();
   final screenSize = await getCurrentScreenSize();
-  final lastWindowSize = getLastWindowSize(sharedPreferences, screenSize);
-
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: lastWindowSize ?? computeDefaultWindowSize(screenSize),
+    size: deriveWindowSize(sharedPreferences, screenSize),
     title: 'Multipass',
   );
 
@@ -239,15 +233,13 @@ Future<Size?> getCurrentScreenSize() async {
     if (screen == null) throw Exception('Screen instance is null');
 
     final scaleFactor = screen.scaleFactor;
-    var size = screen.visibleFrame.size;
-
-    // Adjust size based on the platform
-    if (mpPlatform is LinuxPlatform || mpPlatform is WindowsPlatform) {
-      size = Size(size.width * scaleFactor, size.height * scaleFactor);
-    }
+    final visibleFrameSize = screen.visibleFrame.size;
+    final size = mpPlatform.multiplyScreenScaleFactor
+        ? visibleFrameSize * scaleFactor
+        : visibleFrameSize;
 
     logger.d(
-      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: $scaleFactor, visibleFrame: ${screen.visibleFrame.s()}, adjustedSize: ${size.s()}}',
+      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: $scaleFactor, visibleFrame: ${screen.visibleFrame.s()}, scaledSize: ${size.s()}}',
     );
 
     return size;
@@ -257,17 +249,16 @@ Future<Size?> getCurrentScreenSize() async {
   }
 }
 
-Size? getLastWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
+Size deriveWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
   final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
   final lastWindowHeight = sharedPreferences.getDouble(windowHeightKey);
   final size = lastWindowWidth != null && lastWindowHeight != null
       ? Size(lastWindowWidth, lastWindowHeight)
       : null;
   logger.d('Got last window size: ${size?.s()}');
-  if (size == null) return null;
-  final clampedSize = size.width >= screenSize!.width || size.height >= screenSize.height
-      ? computeDefaultWindowSize(screenSize)
-      : size;
+  final clampedSize = size != null && screenSize != null && size < screenSize
+      ? size
+      : computeDefaultWindowSize(screenSize);
   logger.d('Using clamped window size: ${clampedSize.s()}');
   return clampedSize;
 }
