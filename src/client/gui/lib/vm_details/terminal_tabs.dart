@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../confirmation_dialog.dart';
 import 'terminal.dart';
 
 typedef ShellIds = ({
@@ -144,7 +145,31 @@ class TerminalTabs extends ConsumerWidget {
           title: 'Shell ${shellId.id}',
           selected: index == currentIndex,
           onTap: () => ref.read(notifier).setCurrent(index),
-          onClose: () => ref.read(notifier).remove(index),
+          onClose: () {
+            final terminalKey = (vmName: name, shellId: shellId);
+            final terminal = ref.read(terminalProvider(terminalKey));
+            if (terminal == null) {
+              ref.read(notifier).remove(index);
+              return;
+            }
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return ConfirmationDialog(
+                  title: 'Are you sure you want to close this terminal?',
+                  body: Text('Its current state will be lost.'),
+                  actionText: 'Yes',
+                  onAction: () {
+                    Navigator.pop(context);
+                    ref.read(notifier).remove(index);
+                  },
+                  inactionText: 'No',
+                  onInaction: () => Navigator.pop(context),
+                );
+              },
+            );
+          },
         ),
       );
 
