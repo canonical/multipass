@@ -25,10 +25,7 @@
 #include <unordered_map>
 #include <vector>
 
-#define MP_IMAGE_VAULT_UTILS                                                                                           \
-    multipass::ImageVaultUtils                                                                                         \
-    {                                                                                                                  \
-    }
+#define MP_IMAGE_VAULT_UTILS multipass::ImageVaultUtils()
 
 namespace multipass
 {
@@ -62,6 +59,9 @@ template <class Hasher>
 void ImageVaultUtils::verify_file_hash(const QString& file, const QString& hash, const Hasher& hasher)
 {
     auto file_hash = hasher.compute_file_hash(file);
+
+    if (file_hash != hash)
+        throw std::runtime_error(fmt::format("Hash of {} does not match {}", file, hash));
 }
 
 template <class Decoder>
