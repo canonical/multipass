@@ -266,6 +266,7 @@ Size deriveWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
 Size computeDefaultWindowSize(Size? screenSize) {
   const windowSizeFactor = 0.8;
   final (screenWidth, screenHeight) = (screenSize?.width, screenSize?.height);
+  final aspectRatioFactor = screenSize?.flipped.aspectRatio;
 
   final defaultWidth = switch (screenWidth) {
     null || <= 1024 => 750.0,
@@ -276,7 +277,9 @@ Size computeDefaultWindowSize(Size? screenSize) {
   final defaultHeight = switch (screenHeight) {
     null || <= 576 => 450.0,
     >= 900 => 822.0,
-    _ => defaultWidth * 9 / 16,
+    _ => aspectRatioFactor != null
+        ? defaultWidth * aspectRatioFactor
+        : screenHeight * windowSizeFactor,
   };
 
   final size = Size(defaultWidth, defaultHeight);
