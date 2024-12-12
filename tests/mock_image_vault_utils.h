@@ -19,22 +19,28 @@
 #define MULTIPASS_MOCK_IMAGE_VALUE_UTILS_H
 
 #include "common.h"
-#include "mock_image_decoder.h"
 
 #include <multipass/vm_image_vault_utils.h>
 
 namespace multipass::test
 {
 
-class MockImageVaultUtils
+class MockImageVaultUtils : public ImageVaultUtils
 {
 public:
-    MOCK_METHOD(QString, copy_to_dir, (const QString&, const QDir&), (const));
-    MOCK_METHOD(QString, compute_hash, (QIODevice&), (const));
-    MOCK_METHOD(QString, compute_file_hash, (const QString&), (const));
-    MOCK_METHOD(void, verify_file_hash, (const QString&, const QString&), (const));
+    using ImageVaultUtils::ImageVaultUtils;
 
-    MOCK_METHOD(void, extract_file, (const QString&, const ProgressMonitor&, bool, const MockImageDecoder&), (const));
+    MOCK_METHOD(QString, copy_to_dir, (const QString&, const QDir&), (const, override));
+
+    MOCK_METHOD(QString, compute_hash, (QIODevice&), (const, override));
+    MOCK_METHOD(QString, compute_file_hash, (const QString&), (const, override));
+    MOCK_METHOD(void, verify_file_hash, (const QString&, const QString&), (const, override));
+
+    MOCK_METHOD(QString, extract_file, (const QString&, const Decoder&, bool), (const, override));
+
+    MOCK_METHOD(HostMap, configure_image_host_map, (const Hosts&), (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockImageVaultUtils, ImageVaultUtils);
 };
 
 } // namespace multipass::test

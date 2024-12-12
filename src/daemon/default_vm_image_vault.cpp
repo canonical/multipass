@@ -655,8 +655,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path =
-                MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path, monitor, true, XzImageDecoder{});
+            source_image.image_path = MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path, monitor, true);
         }
 
         auto prepared_image = prepare(source_image);
