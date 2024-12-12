@@ -32,11 +32,11 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 * On **Windows**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
-For more information, see [How to install Multipass](https://multipass.run/docs/install-multipass).
+For more information, see [How to install Multipass](https://canonical.com/multipass/docs/install-multipass).
 
 # Usage
 
-Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the Multipass [Tutorial](https://multipass.run/docs/tutorial).
+Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
 
 ## Find available images
 
@@ -246,7 +246,7 @@ Changes to this project should be proposed as pull requests. Proposed changes wi
 
 # Additional information
 
-[Multipass documentation](https://multipass.run/docs)
+[Multipass documentation](https://canonical.com/multipass/docs)
 
 [gha-image]: https://github.com/canonical/multipass/workflows/Linux/badge.svg?branch=main
 [gha-url]: https://github.com/canonical/multipass/actions?query=branch%3Amain+workflow%3ALinux
