@@ -30,25 +30,42 @@ namespace mp = multipass;
 
 QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output_dir)
 {
-    return "";
+    if (file.isEmpty())
+        return "";
+
+    const QFileInfo info{file};
+    if (!MP_FILEOPS.exists(info))
+        throw std::runtime_error(fmt::format("File {} not found", file));
+
+    auto new_location = output_dir.filePath(info.fileName());
+
+    if (!MP_FILEOPS.copy(file, new_location))
+        throw std::runtime_error(fmt::format("Failed to copy {} to {}", file, new_location));
+
+    return new_location;
 }
 
 QString mp::ImageVaultUtils::compute_hash(QIODevice& device)
 {
-    return "";
+    QCryptographicHash hash{QCryptographicHash::Sha256};
+    if (!hash.addData(std::addressof(device)))
+        throw std::runtime_error("Failed to read data from device to hash");
+
+    return hash.result().toHex();
 }
 
 QString mp::ImageVaultUtils::compute_file_hash(const QString& path)
 {
-    return "";
+    QFile file{path};
+    if (!MP_FILEOPS.open(file, QFile::ReadOnly))
+        throw std::runtime_error(fmt::format("Failed to open {}", path));
+
+    return compute_hash(file);
 }
 
 mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const Hosts& image_hosts)
 {
-    return {};
-    /*
-    std::unordered_map<std::string, mp::VMImageHost*> remote_image_host_map;
-
+    HostMap remote_image_host_map{};
     for (const auto& image_host : image_hosts)
     {
         for (const auto& remote : image_host->supported_remotes())
@@ -57,5 +74,5 @@ mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const
         }
     }
 
-    return remote_image_host_map;*/
+    return remote_image_host_map;
 }

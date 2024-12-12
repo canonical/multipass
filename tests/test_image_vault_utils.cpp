@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_file_ops.h"
 #include "mock_image_decoder.h"
+#include "mock_image_host.h"
 #include "mock_image_vault_utils.h"
 
 #include <QBuffer>
@@ -116,9 +117,10 @@ TEST_F(TestImageVaultUtils, verify_file_hash_throws_on_bad_hash)
     mpt::MockImageVaultUtils mock_utils;
     EXPECT_CALL(mock_utils, compute_file_hash(test_path)).WillOnce(Return(":("));
 
-    MP_EXPECT_THROW_THAT(MP_IMAGE_VAULT_UTILS.verify_file_hash(test_path, ":)", mock_utils),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("hash does not match")));
+    MP_EXPECT_THROW_THAT(
+        MP_IMAGE_VAULT_UTILS.verify_file_hash(test_path, ":)", mock_utils),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr(":)"), HasSubstr("does not match"))));
 }
 
 TEST_F(TestImageVaultUtils, verify_file_hash_doesnt_throw_on_good_hash)
@@ -168,6 +170,43 @@ TEST_F(TestImageVaultUtils, extract_image_extracts_image)
 
     auto res = MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, false, decoder);
     EXPECT_EQ(res, dest);
+}
+
+TEST_F(TestImageVaultUtils, empty_hosts_produces_empty_map)
+{
+    auto map = MP_IMAGE_VAULT_UTILS.configure_image_host_map({});
+    EXPECT_TRUE(map.empty());
+}
+
+TEST_F(TestImageVaultUtils, configure_image_host_map_maps_hosts)
+{
+    mpt::MockImageHost mock1{};
+    std::vector<std::string> hosts1{"this", "is", "a", "remotes"};
+    EXPECT_CALL(mock1, supported_remotes()).WillOnce(Return(hosts1));
+
+    mpt::MockImageHost mock2{};
+    std::vector<std::string> hosts2{"hi"};
+    EXPECT_CALL(mock2, supported_remotes()).WillOnce(Return(hosts2));
+
+    auto map = MP_IMAGE_VAULT_UTILS.configure_image_host_map({&mock1, &mock2});
+
+    EXPECT_EQ(map.size(), hosts1.size() + hosts2.size());
+
+    for (const auto& host : hosts1)
+    {
+        if (auto it = map.find(host); it != map.end())
+            EXPECT_EQ(it->second, &mock1);
+        else
+            ADD_FAILURE() << fmt::format("{} was not mapped", host);
+    }
+
+    for (const auto& host : hosts2)
+    {
+        if (auto it = map.find(host); it != map.end())
+            EXPECT_EQ(it->second, &mock2);
+        else
+            ADD_FAILURE() << fmt::format("{} was not mapped", host);
+    }
 }
 
 } // namespace
