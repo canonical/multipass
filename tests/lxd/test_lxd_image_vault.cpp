@@ -22,7 +22,6 @@
 #include "tests/common.h"
 #include "tests/mock_image_host.h"
 #include "tests/mock_logger.h"
-#include "tests/mock_permission_utils.h"
 #include "tests/mock_process_factory.h"
 #include "tests/stub_url_downloader.h"
 #include "tests/temp_dir.h"
@@ -61,9 +60,6 @@ struct LXDImageVault : public Test
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     std::unique_ptr<NiceMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
-    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
-        mpt::MockPermissionUtils::inject<NiceMock>();
-    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
     std::vector<mp::VMImageHost*> hosts;
     NiceMock<mpt::MockImageHost> host;
     QUrl base_url{"unix:///foo@1.0"};
