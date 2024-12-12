@@ -299,7 +299,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
         }
 
         vm_image = prepare(source_image);
-        vm_image.id = mp::vault::compute_image_hash(vm_image.image_path).toStdString();
+        vm_image.id = MP_IMAGE_VAULT_UTILS.compute_file_hash(vm_image.image_path).toStdString();
 
         remove_source_images(source_image, vm_image);
 
@@ -360,7 +360,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                                        last_modified.toString(),
                                        0,
                                        checksum.has_value()};
-                const auto image_filename = mp::vault::filename_for(image_url.path());
+
+                QFileInfo file_info{image_url.path()};
+                const auto image_filename = file_info.fileName();
                 // Attempt to make a sane directory name based on the filename of the image
 
                 const auto image_dir_name =
@@ -624,8 +626,10 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
     else
     {
+        QFileInfo file_info{info.image_location};
+
         source_image.id = id.toStdString();
-        source_image.image_path = image_dir.filePath(mp::vault::filename_for(info.image_location));
+        source_image.image_path = image_dir.filePath(file_info.fileName());
         source_image.original_release = info.release_title.toStdString();
         source_image.release_date = info.version.toStdString();
 
@@ -646,12 +650,13 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         {
             mpl::log(mpl::Level::debug, category, fmt::format("Verifying hash \"{}\"", id));
             monitor(LaunchProgress::VERIFY, -1);
-            mp::vault::verify_image_download(source_image.image_path, id);
+            MP_IMAGE_VAULT_UTILS.verify_file_hash(source_image.image_path, id);
         }
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path = mp::vault::extract_image(source_image.image_path, monitor, true);
+            source_image.image_path =
+                MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path, monitor, true, XzImageDecoder{});
         }
 
         auto prepared_image = prepare(source_image);
@@ -678,14 +683,14 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = QDir(dest_dir).filePath(image_name);
 
-    return mp::vault::extract_image(image_path, monitor);
+    return MP_IMAGE_VAULT_UTILS.extract_file(image_path, monitor);
 }
 
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image, const mp::Path& dest_dir)
 {
     MP_UTILS.make_dir(dest_dir);
 
-    return {mp::vault::copy(prepared_image.image_path, dest_dir),
+    return {MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path, dest_dir),
             prepared_image.id,
             prepared_image.original_release,
             prepared_image.current_release,

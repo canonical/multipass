@@ -172,8 +172,9 @@ bool mp::FileOps::flush(QFile& file) const
 
 QString mp::FileOps::remove_extension(const QString& path) const
 {
-    QFileInfo info{path};
-    return info.dir().path() + info.completeBaseName();
+    const QFileInfo info{path};
+    auto extension_len = info.suffix().size();
+    return path.chopped(extension_len != 0 ? extension_len + 1 : 0);
 }
 
 bool mp::FileOps::copy(const QString& from, const QString& to) const
