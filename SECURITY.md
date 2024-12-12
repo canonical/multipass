@@ -17,7 +17,7 @@ We will then assess and triage accordingly.
 
 Multipass accepts private reports of security vulnerabilities submitted through
 [GitHub security advisories](https://docs.github.com/en/code-security/security-advisories/working-with-repository-security-advisories/about-repository-security-advisories).
-For detailed instructions, please review GitHub's documentation on [privately reporting a security vulnerability](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability).
+For detailed instructions, please review GitHub documentation on [privately reporting a security vulnerability](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability).
 
 ### How to submit a report
 
