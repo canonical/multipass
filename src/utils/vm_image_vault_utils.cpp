@@ -48,8 +48,6 @@ QString mp::vault::copy(const QString& file_name, const QDir& output_dir)
     auto new_path = output_dir.filePath(source_name);
     QFile::copy(file_name, new_path);
 
-    MP_PERMISSIONS.restrict_permissions(new_path.toStdU16String());
-
     return new_path;
 }
 
@@ -94,8 +92,6 @@ QString mp::vault::extract_image(const mp::Path& image_path, const mp::ProgressM
     new_image_path.remove(".xz");
 
     xz_decoder.decode_to(new_image_path, monitor);
-
-    MP_PERMISSIONS.restrict_permissions(new_image_path.toStdU16String());
 
     mp::vault::delete_file(image_path);
 
