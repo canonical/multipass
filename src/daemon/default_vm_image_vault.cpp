@@ -41,6 +41,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include <exception>
+#include <multipass/file_ops.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -170,7 +171,10 @@ void remove_source_images(const mp::VMImage& source_image, const mp::VMImage& pr
 {
     // The prepare phase may have been a no-op, check and only remove source images
     if (source_image.image_path != prepared_image.image_path)
-        mp::vault::delete_file(source_image.image_path);
+    {
+        QFile source_file{source_image.image_path};
+        MP_FILEOPS.remove(source_file);
+    }
 }
 
 void delete_image_dir(const mp::Path& image_path)

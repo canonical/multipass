@@ -47,6 +47,7 @@
 #include <QTemporaryDir>
 
 #include <chrono>
+#include <multipass/file_ops.h>
 #include <thread>
 
 namespace mp = multipass;
@@ -90,7 +91,8 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
 
     if (original_image_path != new_image_path)
     {
-        mp::vault::delete_file(original_image_path);
+        QFile original_file{original_image_path};
+        MP_FILEOPS.remove(original_file);
     }
 
     return new_image_path;
