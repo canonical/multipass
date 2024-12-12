@@ -2,8 +2,6 @@ name: multipass_gui
 description: A new Flutter project.
 publish_to: 'none'
 
-version: 1.15.0
-
 environment:
   sdk: '>=3.0.3 <4.0.0'
 
