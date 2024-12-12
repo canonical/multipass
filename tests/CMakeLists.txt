@@ -124,6 +124,7 @@ add_executable(multipass_tests
   test_sftp_utils.cpp
   test_file_ops.cpp
   test_recursive_dir_iter.cpp
+        test_image_vault_utils.cpp
 )
 
 target_include_directories(multipass_tests

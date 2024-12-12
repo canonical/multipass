@@ -15,31 +15,23 @@
  *
  */
 
-#ifndef MULTIPASS_XZ_IMAGE_DECODER_H
-#define MULTIPASS_XZ_IMAGE_DECODER_H
+#ifndef MULTIPASS_MOCK_IMAGE_DECODER_H
+#define MULTIPASS_MOCK_IMAGE_DECODER_H
+
+#include "common.h"
 
 #include <multipass/path.h>
 #include <multipass/progress_monitor.h>
 
-#include <memory>
-
-#include <QFile>
-
-#include <xz.h>
-
-namespace multipass
+namespace multipass::test
 {
-class XzImageDecoder
+
+class MockImageDecoder
 {
 public:
-    XzImageDecoder();
-
-    void decode_to(const Path& xz_file_path, const Path& decoded_file_path, const ProgressMonitor& monitor) const;
-
-    using XzDecoderUPtr = std::unique_ptr<xz_dec, decltype(xz_dec_end)*>;
-
-private:
-    XzDecoderUPtr xz_decoder;
+    MOCK_METHOD(void, decode_to, (const Path&, const Path&, const ProgressMonitor&), (const));
 };
-} // namespace multipass
-#endif // MULTIPASS_XZ_IMAGE_DECODER_H
+
+} // namespace multipass::test
+
+#endif // MULTIPASS_MOCK_IMAGE_DECODER_H
