@@ -83,7 +83,7 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
 
     if (image_path.endsWith(".xz"))
     {
-        new_image_path = MP_IMAGE_VAULT_UTILS.extract_file(image_path, monitor, true, mp::XzImageDecoder{});
+        new_image_path = MP_IMAGE_VAULT_UTILS.extract_file(image_path, monitor, true);
     }
 
     QString original_image_path{new_image_path};

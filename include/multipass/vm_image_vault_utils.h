@@ -21,65 +21,56 @@
 #include "file_ops.h"
 #include "xz_image_decoder.h"
 
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#define MP_IMAGE_VAULT_UTILS multipass::ImageVaultUtils()
+#define MP_IMAGE_VAULT_UTILS multipass::ImageVaultUtils::instance()
 
 namespace multipass
 {
 class VMImageHost;
 
-class ImageVaultUtils
+class ImageVaultUtils : public Singleton<ImageVaultUtils>
 {
 public:
-    using DefaultDecoder = XzImageDecoder;
+    ImageVaultUtils(const PrivatePass&) noexcept;
 
-    static QString copy_to_dir(const QString& file, const QDir& output_dir);
-    static QString compute_hash(QIODevice& device);
-    static QString compute_file_hash(const QString& file);
+    using Decoder = std::function<void(const QString&, const QString&)>;
+    using DefaultDecoderT = XzImageDecoder;
 
-    template <class Hasher = ImageVaultUtils>
-    static void verify_file_hash(const QString& file, const QString& hash, const Hasher& hasher = ImageVaultUtils{});
+    virtual QString copy_to_dir(const QString& file, const QDir& output_dir) const;
+    [[nodiscard]] virtual QString compute_hash(QIODevice& device) const;
+    [[nodiscard]] virtual QString compute_file_hash(const QString& file) const;
 
-    template <class Decoder = DefaultDecoder>
-    static QString extract_file(const QString& file,
-                                const ProgressMonitor& monitor,
-                                bool delete_original = false,
-                                const Decoder& decoder = DefaultDecoder{});
+    virtual void verify_file_hash(const QString& file, const QString& hash) const;
+
+    virtual QString extract_file(const QString& file, const Decoder& decoder, bool delete_original = false) const;
+
+    template <class DecoderT = DefaultDecoderT>
+    QString extract_file(const QString& file,
+                         const ProgressMonitor& monitor,
+                         bool delete_original = false,
+                         const DecoderT& = DefaultDecoderT{}) const;
 
     using HostMap = std::unordered_map<std::string, VMImageHost*>;
     using Hosts = std::vector<VMImageHost*>;
 
-    static HostMap configure_image_host_map(const Hosts& image_hosts);
+    [[nodiscard]] virtual HostMap configure_image_host_map(const Hosts& image_hosts) const;
 };
 
-template <class Hasher>
-void ImageVaultUtils::verify_file_hash(const QString& file, const QString& hash, const Hasher& hasher)
-{
-    auto file_hash = hasher.compute_file_hash(file);
-
-    if (file_hash != hash)
-        throw std::runtime_error(fmt::format("Hash of {} does not match {}", file, hash));
-}
-
-template <class Decoder>
+template <class DecoderT>
 QString ImageVaultUtils::extract_file(const QString& file,
                                       const ProgressMonitor& monitor,
                                       bool delete_original,
-                                      const Decoder& decoder)
+                                      const DecoderT& decoder) const
 {
-    auto new_path = MP_FILEOPS.remove_extension(file);
-    decoder.decode_to(file, new_path, monitor);
+    auto decoder_fn = [&monitor, &decoder](const QString& encoded_file, const QString& destination) {
+        return decoder.decode_to(encoded_file, destination, monitor);
+    };
 
-    if (delete_original)
-    {
-        QFile qfile{file};
-        MP_FILEOPS.remove(qfile);
-    }
-
-    return new_path;
+    return extract_file(file, decoder_fn, delete_original);
 }
 
 } // namespace multipass
