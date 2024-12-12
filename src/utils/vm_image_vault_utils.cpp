@@ -28,7 +28,11 @@
 
 namespace mp = multipass;
 
-QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output_dir)
+mp::ImageVaultUtils::ImageVaultUtils(const PrivatePass& pass) noexcept : Singleton{pass}
+{
+}
+
+QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output_dir) const
 {
     if (file.isEmpty())
         return "";
@@ -45,7 +49,7 @@ QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output
     return new_location;
 }
 
-QString mp::ImageVaultUtils::compute_hash(QIODevice& device)
+QString mp::ImageVaultUtils::compute_hash(QIODevice& device) const
 {
     QCryptographicHash hash{QCryptographicHash::Sha256};
     if (!hash.addData(std::addressof(device)))
@@ -54,7 +58,7 @@ QString mp::ImageVaultUtils::compute_hash(QIODevice& device)
     return hash.result().toHex();
 }
 
-QString mp::ImageVaultUtils::compute_file_hash(const QString& path)
+QString mp::ImageVaultUtils::compute_file_hash(const QString& path) const
 {
     QFile file{path};
     if (!MP_FILEOPS.open(file, QFile::ReadOnly))
@@ -63,7 +67,30 @@ QString mp::ImageVaultUtils::compute_file_hash(const QString& path)
     return compute_hash(file);
 }
 
-mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const Hosts& image_hosts)
+void mp::ImageVaultUtils::verify_file_hash(const QString& file, const QString& hash) const
+{
+    const auto file_hash = compute_file_hash(file);
+
+    if (file_hash != hash)
+        throw std::runtime_error(fmt::format("Hash of {} does not match {}", file, hash));
+}
+
+QString mp::ImageVaultUtils::extract_file(const QString& file, const Decoder& decoder, bool delete_original) const
+{
+    auto new_path = MP_FILEOPS.remove_extension(file);
+
+    decoder(file, new_path);
+
+    if (delete_original)
+    {
+        QFile qfile{file};
+        MP_FILEOPS.remove(qfile);
+    }
+
+    return new_path;
+}
+
+mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const Hosts& image_hosts) const
 {
     HostMap remote_image_host_map{};
     for (const auto& image_host : image_hosts)

@@ -40,7 +40,6 @@ struct TestImageVaultUtils : public ::testing::Test
 
     const QDir test_dir{"secrets/secret_filled_folder"};
     const QString test_path{"not_secrets/a_secret.txt"};
-    QFile test_file{test_path};
     const QFileInfo test_info{test_path};
 
     const QString test_output{"secrets/secret_filled_folder/a_secret.txt"};
@@ -114,62 +113,85 @@ TEST_F(TestImageVaultUtils, compute_file_hash_throws_when_cant_open)
 
 TEST_F(TestImageVaultUtils, verify_file_hash_throws_on_bad_hash)
 {
-    mpt::MockImageVaultUtils mock_utils;
-    EXPECT_CALL(mock_utils, compute_file_hash(test_path)).WillOnce(Return(":("));
+    auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
+    EXPECT_CALL(*mock_utils, compute_file_hash(test_path)).WillOnce(Return(":("));
 
     MP_EXPECT_THROW_THAT(
-        MP_IMAGE_VAULT_UTILS.verify_file_hash(test_path, ":)", mock_utils),
+        mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"),
         std::runtime_error,
         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr(":)"), HasSubstr("does not match"))));
 }
 
 TEST_F(TestImageVaultUtils, verify_file_hash_doesnt_throw_on_good_hash)
 {
-    mpt::MockImageVaultUtils mock_utils;
-    EXPECT_CALL(mock_utils, compute_file_hash(test_path)).WillOnce(Return(":)"));
+    auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
+    EXPECT_CALL(*mock_utils, compute_file_hash(test_path)).WillOnce(Return(":)"));
 
-    EXPECT_NO_THROW(MP_IMAGE_VAULT_UTILS.verify_file_hash(test_path, ":)", mock_utils));
+    EXPECT_NO_THROW(mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"));
 }
 
-TEST_F(TestImageVaultUtils, extract_image_will_delete_file)
+TEST_F(TestImageVaultUtils, extract_file_will_delete_file)
 {
-    mpt::MockImageDecoder decoder{};
-    EXPECT_CALL(decoder, decode_to(_, _, _));
-
-    mp::ProgressMonitor monitor = [](int, int) { return true; };
+    auto decoder = [](const QString&, const QString&) {};
 
     EXPECT_CALL(mock_file_ops, remove(Property(&QFile::fileName, test_path)));
 
-    MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, true, decoder);
+    MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, true);
 }
 
-TEST_F(TestImageVaultUtils, extract_image_wont_delete_file)
+TEST_F(TestImageVaultUtils, extract_file_wont_delete_file)
 {
-    const QString dest{"not_secrets/a_secret"};
-    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(dest));
+    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
 
-    mpt::MockImageDecoder decoder{};
-    EXPECT_CALL(decoder, decode_to(_, _, _));
-
-    mp::ProgressMonitor monitor = [](int, int) { return true; };
+    int calls = 0;
+    auto decoder = [&](const QString& path, const QString& target) {
+        EXPECT_EQ(test_path, path);
+        EXPECT_EQ(test_output, target);
+        ++calls;
+    };
 
     EXPECT_CALL(mock_file_ops, remove(_)).Times(0);
 
-    MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, false, decoder);
+    MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, false);
+    EXPECT_EQ(calls, 1);
 }
 
-TEST_F(TestImageVaultUtils, extract_image_extracts_image)
+TEST_F(TestImageVaultUtils, extract_file_extracts_file)
 {
-    const QString dest{"not_secrets/a_secret"};
-    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(dest));
+    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
 
-    mp::ProgressMonitor monitor = [](int, int) { return true; };
+    int calls = 0;
+    auto decoder = [&](const QString& path, const QString& target) {
+        EXPECT_EQ(test_path, path);
+        EXPECT_EQ(test_output, target);
+        ++calls;
+    };
+
+    auto res = MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, false);
+    EXPECT_EQ(res, test_output);
+    EXPECT_EQ(calls, 1);
+}
+
+TEST_F(TestImageVaultUtils, extract_file_with_decoder_binds_monitor)
+{
+    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
+
+    int type = 1337;
+    int progress = 42;
+    int calls = 0;
+    auto monitor = [&calls, &type, &progress](int in_type, int in_progress) {
+        EXPECT_EQ(in_type, type);
+        EXPECT_EQ(in_progress, progress);
+        ++calls;
+        return true;
+    };
 
     mpt::MockImageDecoder decoder{};
-    EXPECT_CALL(decoder, decode_to(test_path, dest, _));
+    EXPECT_CALL(decoder, decode_to(test_path, test_output, Truly([&](const auto& m) { return m(type, progress); })));
 
-    auto res = MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, false, decoder);
-    EXPECT_EQ(res, dest);
+    MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, false, decoder);
+
+    EXPECT_EQ(calls, 1);
 }
 
 TEST_F(TestImageVaultUtils, empty_hosts_produces_empty_map)
