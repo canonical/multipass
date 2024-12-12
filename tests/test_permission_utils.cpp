@@ -33,7 +33,7 @@ struct TestPermissionUtils : public Test
     const mpt::MockPlatform::GuardedMock guarded_mock_platform = mpt::MockPlatform::inject<StrictMock>();
     mpt::MockPlatform& mock_platform = *guarded_mock_platform.first;
 
-    const mp::PermissionUtils::Path test_path{"test_path"};
+    const mp::fs::path test_path{"test_path"};
     const QString test_qpath{QString::fromUtf8(test_path.u8string())};
     static constexpr QFileDevice::Permissions test_permissions{QFileDevice::Permission::ReadOwner};
     static constexpr QFileDevice::Permissions restricted_permissions{
@@ -136,11 +136,11 @@ struct TestPermissionUtilsDir : public TestPermissionUtils
         EXPECT_CALL(mock_file_ops, recursive_dir_iterator(test_path, _)).WillOnce(Return(std::move(iter)));
     }
 
-    const mp::PermissionUtils::Path path1{"Hello.txt"};
+    const mp::fs::path path1{"Hello.txt"};
     const QString qpath1{QString::fromUtf8(path1.u8string())};
     mpt::MockDirectoryEntry entry1;
 
-    const mp::PermissionUtils::Path path2{"World.txt"};
+    const mp::fs::path path2{"World.txt"};
     const QString qpath2{QString::fromUtf8(path2.u8string())};
     mpt::MockDirectoryEntry entry2;
 };
