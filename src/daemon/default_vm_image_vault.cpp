@@ -676,8 +676,7 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
                                                     const ProgressMonitor& monitor,
                                                     const mp::Path& dest_dir)
 {
-    MP_UTILS.make_dir(dest_dir, QFile::ReadOwner | QFile::WriteOwner);
-    MP_PERMISSIONS.take_ownership(dest_dir.toStdU16String());
+    MP_UTILS.make_dir(dest_dir);
 
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
@@ -688,8 +687,7 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
 
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image, const mp::Path& dest_dir)
 {
-    MP_UTILS.make_dir(dest_dir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-    MP_PERMISSIONS.take_ownership(dest_dir.toStdU16String());
+    MP_UTILS.make_dir(dest_dir);
 
     return {MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path, dest_dir),
             prepared_image.id,

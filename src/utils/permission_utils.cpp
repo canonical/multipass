@@ -23,11 +23,9 @@
 namespace mp = multipass;
 namespace fs = mp::fs;
 
-using Path = mp::PermissionUtils::Path;
-
 namespace
 {
-void set_single_permissions(const Path& path, const QFileDevice::Permissions& permissions)
+void set_single_permissions(const fs::path& path, const QFileDevice::Permissions& permissions)
 {
     QString qpath = QString::fromUtf8(path.u8string());
 
@@ -35,7 +33,7 @@ void set_single_permissions(const Path& path, const QFileDevice::Permissions& pe
         throw std::runtime_error(fmt::format("Cannot set permissions for '{}'", path.string()));
 }
 
-void set_single_owner(const Path& path)
+void set_single_owner(const fs::path& path)
 {
     QString qpath = QString::fromUtf8(path.u8string());
 
@@ -44,7 +42,7 @@ void set_single_owner(const Path& path)
 }
 
 // only exists because MP_FILEOPS doesn't overload the throwing variaions of std::filesystem functions
-void throw_if_error(const Path& path, const std::error_code& ec)
+void throw_if_error(const fs::path& path, const std::error_code& ec)
 {
     if (ec)
         throw std::system_error(
@@ -54,7 +52,7 @@ void throw_if_error(const Path& path, const std::error_code& ec)
 
 // recursively iterates over all files in folder and applies a function that takes a path
 template <class Func>
-void apply_on_files(const Path& path, Func&& func)
+void apply_on_files(const fs::path& path, Func&& func)
 {
     std::error_code ec{};
     if (!MP_FILEOPS.exists(path, ec) || ec)
@@ -83,22 +81,21 @@ void apply_on_files(const Path& path, Func&& func)
 }
 } // namespace
 
-mp::PermissionUtils::PermissionUtils(const Singleton<PermissionUtils>::PrivatePass& pass) noexcept
-    : Singleton<PermissionUtils>::Singleton{pass}
+mp::PermissionUtils::PermissionUtils(const PrivatePass& pass) noexcept : Singleton{pass}
 {
 }
 
-void mp::PermissionUtils::set_permissions(const Path& path, const QFileDevice::Permissions& permissions) const
+void mp::PermissionUtils::set_permissions(const fs::path& path, const QFileDevice::Permissions& permissions) const
 {
     apply_on_files(path, [&](const fs::path& apply_path) { set_single_permissions(apply_path, permissions); });
 }
 
-void mp::PermissionUtils::take_ownership(const Path& path) const
+void mp::PermissionUtils::take_ownership(const fs::path& path) const
 {
     apply_on_files(path, [&](const fs::path& apply_path) { set_single_owner(apply_path); });
 }
 
-void mp::PermissionUtils::restrict_permissions(const Path& path) const
+void mp::PermissionUtils::restrict_permissions(const fs::path& path) const
 {
     apply_on_files(path, [&](const fs::path& apply_path) {
         set_single_owner(apply_path);
