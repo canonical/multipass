@@ -59,6 +59,9 @@ class MacOSPlatform extends MpPlatform {
 
   @override
   String? get homeDirectory => Platform.environment['HOME'];
+
+  @override
+  bool get multiplyScreenScaleFactor => false;
 }
 
 class MacOSAutostartNotifier extends AutostartNotifier {
