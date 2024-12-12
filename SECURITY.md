@@ -9,8 +9,8 @@ All vulnerabilities are bugs, but not every bug is a vulnerability. Vulnerabilit
 - Integrity (trustworthiness and correctness)
 - Availability (uptime and service)
 
-If you discover a security vulnerability within Multipass, we encourage responsible disclosure. 
-If you're not sure whether you found a vulnerability, a bug, or something else, please use the process below for reporting a vulnerability. 
+If you discover a security vulnerability within Multipass, we encourage responsible disclosure.
+If you're not sure whether you found a vulnerability, a bug, or something else, please use the process below for reporting a vulnerability.
 We will then assess and triage accordingly.
 
 ## Reporting vulnerabilities
@@ -28,15 +28,15 @@ For detailed instructions, please review GitHub documentation on [privately repo
 
 ## Our response process
 
-Vulnerabilities are classified by risk, which factors in impact and likelihood. 
+Vulnerabilities are classified by risk, which factors in impact and likelihood.
 The Multipass project will prioritize responding to all High and Critical severity vulnerabilities.
 
-When we receive an issue, we will work with the reporter to determine how best to proceed. 
+When we receive an issue, we will work with the reporter to determine how best to proceed.
 After a fix is available for a confirmed vulnerability, we will also coordinate disclosing and releasing it to the various platforms.
 
 ## Supported versions
 
-Multipass is released as a snap on Linux, an MSI package on Windows, and an installer package on macOS. 
+Multipass is released as a snap on Linux, an MSI package on Windows, and an installer package on macOS.
 We support the latest stable version of Multipass on each of these platforms.
 Multipass notifies you of newer releases on all platforms.
 On Linux, updates are handled automatically by the snap machinery.
