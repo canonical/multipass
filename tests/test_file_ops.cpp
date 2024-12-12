@@ -192,3 +192,10 @@ TEST_F(FileOps, posix_lseek)
     EXPECT_EQ(r, file_content.size() - seek);
     EXPECT_STREQ(buffer.data(), file_content.c_str() + seek);
 }
+
+TEST_F(FileOps, remove_extension)
+{
+    EXPECT_EQ(MP_FILEOPS.remove_extension("test.txt"), "test");
+    EXPECT_EQ(MP_FILEOPS.remove_extension("tests/test.test.txt"), "tests/test.test");
+    EXPECT_EQ(MP_FILEOPS.remove_extension("/sets/test.png"), "/sets/test.png");
+}

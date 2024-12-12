@@ -18,6 +18,7 @@
 #include <multipass/format.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
+#include <multipass/vm_image_vault_utils.h>
 #include <multipass/xz_image_decoder.h>
 
 #include <QCryptographicHash>
@@ -27,77 +28,25 @@
 
 namespace mp = multipass;
 
-QString mp::vault::filename_for(const mp::Path& path)
+QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output_dir)
 {
-    QFileInfo file_info(path);
-    return file_info.fileName();
+    return "";
 }
 
-QString mp::vault::copy(const QString& file_name, const QDir& output_dir)
+QString mp::ImageVaultUtils::compute_hash(QIODevice& device)
 {
-    if (file_name.isEmpty())
-        return {};
-
-    if (!QFileInfo::exists(file_name))
-        throw std::runtime_error(fmt::format("{} missing", file_name));
-
-    QFileInfo info{file_name};
-    const auto source_name = info.fileName();
-    auto new_path = output_dir.filePath(source_name);
-    QFile::copy(file_name, new_path);
-    return new_path;
+    return "";
 }
 
-void mp::vault::delete_file(const mp::Path& path)
+QString mp::ImageVaultUtils::compute_file_hash(const QString& path)
 {
-    QFile file{path};
-    file.remove();
+    return "";
 }
 
-QString mp::vault::compute_image_hash(const mp::Path& image_path)
+mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const Hosts& image_hosts)
 {
-    QFile image_file(image_path);
-    if (!image_file.open(QFile::ReadOnly))
-    {
-        throw std::runtime_error("Cannot open image file for computing hash");
-    }
-
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    if (!hash.addData(&image_file))
-    {
-        throw std::runtime_error("Cannot read image file to compute hash");
-    }
-
-    return hash.result().toHex();
-}
-
-void mp::vault::verify_image_download(const mp::Path& image_path, const QString& image_hash)
-{
-    auto computed_hash = compute_image_hash(image_path);
-
-    if (computed_hash != image_hash)
-    {
-        throw std::runtime_error("Downloaded image hash does not match");
-    }
-}
-
-QString mp::vault::extract_image(const mp::Path& image_path, const mp::ProgressMonitor& monitor, const bool delete_file)
-{
-    mp::XzImageDecoder xz_decoder(image_path);
-    QString new_image_path{image_path};
-
-    new_image_path.remove(".xz");
-
-    xz_decoder.decode_to(new_image_path, monitor);
-
-    mp::vault::delete_file(image_path);
-
-    return new_image_path;
-}
-
-std::unordered_map<std::string, mp::VMImageHost*>
-mp::vault::configure_image_host_map(const std::vector<mp::VMImageHost*>& image_hosts)
-{
+    return {};
+    /*
     std::unordered_map<std::string, mp::VMImageHost*> remote_image_host_map;
 
     for (const auto& image_host : image_hosts)
@@ -108,5 +57,5 @@ mp::vault::configure_image_host_map(const std::vector<mp::VMImageHost*>& image_h
         }
     }
 
-    return remote_image_host_map;
+    return remote_image_host_map;*/
 }
