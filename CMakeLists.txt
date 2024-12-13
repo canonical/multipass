@@ -208,11 +208,12 @@ function(determine_version OUTPUT_VARIABLE SEMANTIC_VERSION BUILD_NUMBER)
 
   if(VERSION_MATCH)
     set(${OUTPUT_VARIABLE} ${CMAKE_MATCH_1} PARENT_SCOPE)
-    set(VERSION_STRING ${CMAKE_MATCH_1})
   else()
     message(FATAL_ERROR "Invalid tag detected: ${NEW_VERSION}")
   endif()
+endfunction()
 
+function(determine_version_components VERSION_STRING SEMANTIC_VERSION BUILD_NUMBER)
   # stuff before + is the version and after the + is the build metadata
   string(FIND "${VERSION_STRING}" "+" PLUS_POS)
   string(SUBSTRING "${VERSION_STRING}" 0 ${PLUS_POS} MULTIPASS_SEMANTIC_VERSION)
@@ -234,8 +235,6 @@ endfunction()
 determine_version(MULTIPASS_VERSION MULTIPASS_SEMANTIC_VERSION MULTIPASS_BUILD_NUMBER)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
-message(STATUS "Setting semantic version to: ${MULTIPASS_SEMANTIC_VERSION}")
-message(STATUS "Setting build number to: ${MULTIPASS_BUILD_NUMBER}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
