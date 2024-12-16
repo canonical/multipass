@@ -94,10 +94,10 @@ std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spe
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 
 // Creates a function that will wait for signals or until the passed function returns false.
-// The passed function is checked every timeout milliseconds.
+// The passed function is checked every `period` milliseconds.
 // If a signal is received the optional contains it, otherwise the optional is empty.
 std::function<std::optional<int>(const std::function<bool()>&)> make_quit_watchdog(
-    const std::chrono::milliseconds& timeout); // call while single-threaded; call result later, in dedicated thread
+    const std::chrono::milliseconds& period); // call while single-threaded; call result later, in dedicated thread
 
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
