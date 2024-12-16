@@ -185,25 +185,20 @@ timespec make_timespec(std::chrono::duration<Rep, Period> duration)
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
-    const std::chrono::milliseconds& timeout)
+    const std::chrono::milliseconds& period)
 {
     return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
-            timeout](const std::function<bool()>& condition) -> std::optional<int> {
+            period](const std::function<bool()>& condition) -> std::optional<int> {
         std::mutex sig_mtx;
         std::condition_variable sig_cv;
         int sig = SIGUSR2;
 
         // A signal generator that triggers after `timeout`
-        AutoJoinThread signaler([&sig_mtx, &sig_cv, &sig, &timeout, signalee = pthread_self()] {
+        AutoJoinThread signaler([&sig_mtx, &sig_cv, &sig, &period, signalee = pthread_self()] {
             std::unique_lock lock(sig_mtx);
-            while (sig == SIGUSR2)
+            while (!sig_cv.wait_for(lock, period, [&sig] { return sig != SIGUSR2; }))
             {
-                auto status = sig_cv.wait_for(lock, timeout);
-
-                if (sig == SIGUSR2 && status == std::cv_status::timeout)
-                {
-                    pthread_kill(signalee, SIGUSR2);
-                }
+                pthread_kill(signalee, SIGUSR2);
             }
         });
 
@@ -216,7 +211,7 @@ std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::ma
         }
 
         {
-            std::unique_lock lock(sig_mtx);
+            std::lock_guard lock(sig_mtx);
             sig = ret == SIGUSR2 ? 0 : ret;
         }
         sig_cv.notify_all();
