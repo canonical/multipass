@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart';
 
-import 'extensions.dart';
 import 'logger.dart';
 
 const windowWidthKey = 'windowWidth';
@@ -78,4 +77,20 @@ Size computeDefaultWindowSize(Size? screenSize) {
   final size = Size(defaultWidth, defaultHeight);
   logger.d('Computed default window size: ${size.s()}');
   return size;
+}
+
+// needed because in release mode Flutter does not emit the actual code for toString for some classes
+// instead the returned strings are of type "Instance of '<Type>'"
+// this is done to reduce binary size, and it cannot be turned off :face-with-rolling-eyes:
+// see https://api.flutter.dev/flutter/dart-ui/keepToString-constant.html for more info
+extension on Size {
+  String s() {
+    return 'Size(${width.toStringAsFixed(1)}, ${height.toStringAsFixed(1)})';
+  }
+}
+
+extension on Rect {
+  String s() {
+    return 'Rect.fromLTRB(${left.toStringAsFixed(1)}, ${top.toStringAsFixed(1)}, ${right.toStringAsFixed(1)}, ${bottom.toStringAsFixed(1)})';
+  }
 }

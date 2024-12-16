@@ -59,9 +59,6 @@ class LinuxPlatform extends MpPlatform {
   String? get homeDirectory => Platform.environment['SNAP'] == null
       ? Platform.environment['HOME']
       : Platform.environment['SNAP_REAL_HOME'];
-
-  @override
-  bool get multiplyScreenScaleFactor => true;
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {
