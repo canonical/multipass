@@ -21,6 +21,7 @@
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -30,7 +31,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image.h>
-#include <multipass/xz_image_decoder.h>
 
 #include <multipass/format.h>
 
@@ -41,7 +41,6 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include <exception>
-#include <multipass/file_ops.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
