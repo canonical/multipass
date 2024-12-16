@@ -27,8 +27,6 @@ abstract class MpPlatform {
   String get metaKey => 'Meta';
 
   String? get homeDirectory;
-
-  bool get multiplyScreenScaleFactor;
 }
 
 MpPlatform _getPlatform() {
