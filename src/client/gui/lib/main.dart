@@ -1,21 +1,16 @@
-import 'package:async/async.dart';
-import 'package:basics/int_basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:window_size/window_size.dart';
 
 import 'before_quit_dialog.dart';
 import 'catalogue/catalogue.dart';
 import 'daemon_unavailable.dart';
-import 'extensions.dart';
 import 'help.dart';
 import 'logger.dart';
 import 'notifications.dart';
-import 'platform/platform.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
@@ -24,6 +19,7 @@ import 'tray_menu.dart';
 import 'vm_details/mapping_slider.dart';
 import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
+import 'window_size.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,12 +32,11 @@ void main() async {
   );
 
   final sharedPreferences = await SharedPreferences.getInstance();
-  final screenSize = await getCurrentScreenSize();
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: deriveWindowSize(sharedPreferences, screenSize),
+    size: await deriveWindowSize(sharedPreferences),
     title: 'Multipass',
   );
 
@@ -160,14 +155,6 @@ class _AppState extends ConsumerState<App> with WindowListener {
     super.dispose();
   }
 
-  final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
-    final currentSize = await windowManager.getSize();
-    final sharedPreferences = await SharedPreferences.getInstance();
-    logger.d('Saving screen size: ${currentSize.s()}');
-    sharedPreferences.setDouble(windowWidthKey, currentSize.width);
-    sharedPreferences.setDouble(windowHeightKey, currentSize.height);
-  });
-
   // this event handler is called continuously during a window resizing operation
   // so we want to save the data to the disk only after the resizing stops
   @override
@@ -222,69 +209,6 @@ class _AppState extends ConsumerState<App> with WindowListener {
         );
     }
   }
-}
-
-const windowWidthKey = 'windowWidth';
-const windowHeightKey = 'windowHeight';
-
-Future<Size?> getCurrentScreenSize() async {
-  try {
-    final screen = await getCurrentScreen();
-    if (screen == null) throw Exception('Screen instance is null');
-
-    final scaleFactor = screen.scaleFactor;
-    final visibleFrameSize = screen.visibleFrame.size;
-    final size = mpPlatform.multiplyScreenScaleFactor
-        ? visibleFrameSize * scaleFactor
-        : visibleFrameSize;
-
-    logger.d(
-      'Got Screen{frame: ${screen.frame.s()}, scaleFactor: $scaleFactor, visibleFrame: ${screen.visibleFrame.s()}, scaledSize: ${size.s()}}',
-    );
-
-    return size;
-  } catch (e) {
-    logger.w('Failed to get current screen information: $e');
-    return null;
-  }
-}
-
-Size deriveWindowSize(SharedPreferences sharedPreferences, Size? screenSize) {
-  final lastWindowWidth = sharedPreferences.getDouble(windowWidthKey);
-  final lastWindowHeight = sharedPreferences.getDouble(windowHeightKey);
-  final size = lastWindowWidth != null && lastWindowHeight != null
-      ? Size(lastWindowWidth, lastWindowHeight)
-      : null;
-  logger.d('Got last window size: ${size?.s()}');
-  final clampedSize = size != null && screenSize != null && size < screenSize
-      ? size
-      : computeDefaultWindowSize(screenSize);
-  logger.d('Using clamped window size: ${clampedSize.s()}');
-  return clampedSize;
-}
-
-Size computeDefaultWindowSize(Size? screenSize) {
-  const windowSizeFactor = 0.8;
-  final (screenWidth, screenHeight) = (screenSize?.width, screenSize?.height);
-  final aspectRatioFactor = screenSize?.flipped.aspectRatio;
-
-  final defaultWidth = switch (screenWidth) {
-    null || <= 1024 => 750.0,
-    >= 1600 => 1400.0,
-    _ => screenWidth * windowSizeFactor,
-  };
-
-  final defaultHeight = switch (screenHeight) {
-    null || <= 576 => 450.0,
-    >= 900 => 822.0,
-    _ => aspectRatioFactor != null
-        ? defaultWidth * aspectRatioFactor
-        : screenHeight * windowSizeFactor,
-  };
-
-  final size = Size(defaultWidth, defaultHeight);
-  logger.d('Computed default window size: ${size.s()}');
-  return size;
 }
 
 final theme = ThemeData(
