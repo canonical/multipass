@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <multipass/auto_join_thread.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
@@ -25,7 +26,6 @@
 #include <unistd.h>
 
 #include <libssh/sftp.h>
-#include <multipass/auto_join_thread.h>
 
 namespace mp = multipass;
 
@@ -171,8 +171,10 @@ sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 
 sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
 {
-    auto sigset{make_sigset(sigs)};
-    pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
+    const auto sigset{make_sigset(sigs)};
+    if (const auto ec = pthread_sigmask(SIG_BLOCK, &sigset, nullptr); ec)
+        throw std::runtime_error(fmt::format("Failed to block signals: {}", strerror(ec)));
+
     return sigset;
 }
 
