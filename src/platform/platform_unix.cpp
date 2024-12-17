@@ -20,7 +20,6 @@
 #include <multipass/utils.h>
 
 #include <grp.h>
-#include <scope_guard.hpp>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -203,21 +202,21 @@ std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::ma
         });
 
         // wait on signals and condition
-        int ret = SIGUSR2;
-        while (ret == SIGUSR2 && condition())
+        int latest_signal = SIGUSR2;
+        while (latest_signal == SIGUSR2 && condition())
         {
             // can't use sigtimedwait since macOS doesn't support it
-            sigwait(&sigset, &ret);
+            sigwait(&sigset, &latest_signal);
         }
 
-        {
+        { // set `sig` to something other than SIGUSR2 so `signaler` knows to exit
             std::lock_guard lock(sig_mtx);
-            sig = ret == SIGUSR2 ? 0 : ret;
+            sig = latest_signal == SIGUSR2 ? 0 : latest_signal;
         }
         sig_cv.notify_all();
 
-        // if sig is SIGUSR2 then we know we're exiting because condition() was false
-        return ret == SIGUSR2 ? std::nullopt : std::make_optional(sig);
+        // if `sig` is 0 then we know we're exiting because condition() was false
+        return sig ? std::make_optional(sig) : std::nullopt;
     };
 }
 
