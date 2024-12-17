@@ -22,12 +22,25 @@
 
 #include <signal.h>
 
-namespace multipass
+#include "singleton.h"
+
+#define MP_POSIX_SIGNAL multipass::platform::SignalWrapper::instance()
+
+namespace multipass::platform
 {
-namespace platform
+
+class SignalWrapper : public Singleton<SignalWrapper>
 {
+public:
+  SignalWrapper(const PrivatePass&) noexcept;
+
+  virtual int mask_signals(int how, const sigset_t* sigset, sigset_t* old_set = nullptr) const;
+  virtual int send(pthread_t target, int signal) const;
+  virtual int wait(const sigset_t& sigset, int& got) const;
+};
+
 sigset_t make_sigset(const std::vector<int>& sigs);
 sigset_t make_and_block_signals(const std::vector<int>& sigs);
-} // namespace platform
-}
+
+} // namespace multipass::platform
 #endif // MULTIPASS_PLATFORM_UNIX_H
