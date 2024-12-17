@@ -226,6 +226,44 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     ref.read(terminalProvider(terminalIdentifier).notifier).start();
   }
 
+  final buttonStyle = ButtonStyle(
+    foregroundColor: WidgetStateColor.resolveWith((states) {
+      final disabled = states.contains(WidgetState.disabled);
+      return Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+    }),
+    side: WidgetStateBorderSide.resolveWith((states) {
+      final disabled = states.contains(WidgetState.disabled);
+      var color = Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      return BorderSide(color: color);
+    }),
+  );
+
+  final terminalTheme = TerminalTheme(
+    cursor: Color(0xFFE5E5E5),
+    selection: Color(0x80E5E5E5),
+    foreground: Color(0xffffffff),
+    background: Color(0xff380c2a),
+    black: Color(0xFF000000),
+    white: Color(0xFFE5E5E5),
+    red: Color(0xFFCD3131),
+    green: Color(0xFF0DBC79),
+    yellow: Color(0xFFE5E510),
+    blue: Color(0xFF2472C8),
+    magenta: Color(0xFFBC3FBC),
+    cyan: Color(0xFF11A8CD),
+    brightBlack: Color(0xFF666666),
+    brightRed: Color(0xFFF14C4C),
+    brightGreen: Color(0xFF23D18B),
+    brightYellow: Color(0xFFF5F543),
+    brightBlue: Color(0xFF3B8EEA),
+    brightMagenta: Color(0xFFD670D6),
+    brightCyan: Color(0xFF29B8DB),
+    brightWhite: Color(0xFFFFFFFF),
+    searchHitBackground: Color(0XFFFFFF2B),
+    searchHitBackgroundCurrent: Color(0XFF31FF26),
+    searchHitForeground: Color(0XFF000000),
+  );
+
   @override
   Widget build(BuildContext context) {
     final terminal = ref.watch(terminalProvider(terminalIdentifier));
@@ -234,18 +272,6 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     }));
     final vmRunning = vmStatus == Status.RUNNING;
     final canStartVm = [Status.STOPPED, Status.SUSPENDED].contains(vmStatus);
-
-    final buttonStyle = ButtonStyle(
-      foregroundColor: WidgetStateColor.resolveWith((states) {
-        final disabled = states.contains(WidgetState.disabled);
-        return Colors.white.withOpacity(disabled ? 0.5 : 1.0);
-      }),
-      side: WidgetStateBorderSide.resolveWith((states) {
-        final disabled = states.contains(WidgetState.disabled);
-        var color = Colors.white.withOpacity(disabled ? 0.5 : 1.0);
-        return BorderSide(color: color);
-      }),
-    );
 
     if (terminal == null) {
       return Container(
@@ -270,66 +296,46 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       );
     }
 
-    return Actions(
-      actions: {
-        IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
-          onInvoke: (_) => setState(() {
-            fontSize = min(fontSize + fontSizeStep, maxFontSize);
-          }),
-        ),
-        DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
-          onInvoke: (_) => setState(() {
-            fontSize = max(fontSize - fontSizeStep, minFontSize);
-          }),
-        ),
-        ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
-          onInvoke: (_) => setState(() => fontSize = defaultFontSize),
-        ),
-      },
-      child: RawScrollbar(
-        controller: scrollController,
-        thickness: 9,
-        child: ClipRect(
-          child: TerminalView(
-            terminal,
-            scrollController: scrollController,
-            focusNode: focusNode,
-            shortcuts: mpPlatform.terminalShortcuts,
-            hardwareKeyboardOnly: true,
-            padding: const EdgeInsets.all(4),
-            textStyle: TerminalStyle(
-              fontFamily: 'UbuntuMono',
-              fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-              fontSize: fontSize,
-            ),
-            theme: const TerminalTheme(
-              cursor: Color(0xFFE5E5E5),
-              selection: Color(0x80E5E5E5),
-              foreground: Color(0xffffffff),
-              background: Color(0xff380c2a),
-              black: Color(0xFF000000),
-              white: Color(0xFFE5E5E5),
-              red: Color(0xFFCD3131),
-              green: Color(0xFF0DBC79),
-              yellow: Color(0xFFE5E510),
-              blue: Color(0xFF2472C8),
-              magenta: Color(0xFFBC3FBC),
-              cyan: Color(0xFF11A8CD),
-              brightBlack: Color(0xFF666666),
-              brightRed: Color(0xFFF14C4C),
-              brightGreen: Color(0xFF23D18B),
-              brightYellow: Color(0xFFF5F543),
-              brightBlue: Color(0xFF3B8EEA),
-              brightMagenta: Color(0xFFD670D6),
-              brightCyan: Color(0xFF29B8DB),
-              brightWhite: Color(0xFFFFFFFF),
-              searchHitBackground: Color(0XFFFFFF2B),
-              searchHitBackgroundCurrent: Color(0XFF31FF26),
-              searchHitForeground: Color(0XFF000000),
-            ),
-          ),
-        ),
+    final terminalView = TerminalView(
+      terminal,
+      focusNode: focusNode,
+      hardwareKeyboardOnly: true,
+      padding: const EdgeInsets.all(4),
+      scrollController: scrollController,
+      shortcuts: mpPlatform.terminalShortcuts,
+      theme: terminalTheme,
+      textStyle: TerminalStyle(
+        fontFamily: 'UbuntuMono',
+        fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+        fontSize: fontSize,
       ),
+    );
+
+    final scrollableTerminal = RawScrollbar(
+      controller: scrollController,
+      thickness: 9,
+      child: ClipRect(child: terminalView),
+    );
+
+    final terminalActions = {
+      IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
+        onInvoke: (_) => setState(() {
+          fontSize = min(fontSize + fontSizeStep, maxFontSize);
+        }),
+      ),
+      DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
+        onInvoke: (_) => setState(() {
+          fontSize = max(fontSize - fontSizeStep, minFontSize);
+        }),
+      ),
+      ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
+        onInvoke: (_) => setState(() => fontSize = defaultFontSize),
+      ),
+    };
+
+    return Actions(
+      actions: terminalActions,
+      child: scrollableTerminal,
     );
   }
 }
