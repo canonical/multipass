@@ -158,9 +158,9 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     return 0;
 }
 
-mp::platform::SignalWrapper::SignalWrapper(const PrivatePass& pass) noexcept
-: Singleton(pass){}
-
+mp::platform::SignalWrapper::SignalWrapper(const PrivatePass& pass) noexcept : Singleton(pass)
+{
+}
 
 int mp::platform::SignalWrapper::mask_signals(int how, const sigset_t* sigset, sigset_t* old_set) const
 {
@@ -207,11 +207,8 @@ std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::ma
 {
     return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
             period](const std::function<bool()>& condition) -> std::optional<int> {
-
         // create a timer to periodically send SIGUSR2
-        utils::Timer signal_generator{period, [signalee = pthread_self()] {
-            MP_POSIX_SIGNAL.send(signalee, SIGUSR2);
-        }};
+        utils::Timer signal_generator{period, [signalee = pthread_self()] { MP_POSIX_SIGNAL.send(signalee, SIGUSR2); }};
 
         // wait on signals and condition
         int latest_signal = SIGUSR2;

@@ -32,11 +32,11 @@ namespace multipass::platform
 class SignalWrapper : public Singleton<SignalWrapper>
 {
 public:
-  SignalWrapper(const PrivatePass&) noexcept;
+    SignalWrapper(const PrivatePass&) noexcept;
 
-  virtual int mask_signals(int how, const sigset_t* sigset, sigset_t* old_set = nullptr) const;
-  virtual int send(pthread_t target, int signal) const;
-  virtual int wait(const sigset_t& sigset, int& got) const;
+    virtual int mask_signals(int how, const sigset_t* sigset, sigset_t* old_set = nullptr) const;
+    virtual int send(pthread_t target, int signal) const;
+    virtual int wait(const sigset_t& sigset, int& got) const;
 };
 
 sigset_t make_sigset(const std::vector<int>& sigs);
