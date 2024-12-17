@@ -28,7 +28,7 @@ For detailed instructions, please review GitHub documentation on [privately repo
 
 ## Our response process
 
-Vulnerabilities are classified by risk, which factors in impact and likelihood.
+Vulnerabilities are classified by severity, which factors in impact and likelihood.
 The Multipass project will prioritize responding to all High and Critical severity vulnerabilities.
 
 When we receive an issue, we will work with the reporter to determine how best to proceed.
