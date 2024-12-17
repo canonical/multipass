@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:async/async.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:synchronized/synchronized.dart';
@@ -182,6 +183,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   static const fontSizeStep = 0.5;
 
   final scrollController = ScrollController();
+  final contextMenuController = ContextMenuController();
+  final terminalController = TerminalController();
   final focusNode = FocusNode();
   var fontSize = defaultFontSize;
   late final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
@@ -195,6 +198,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   @override
   void dispose() {
     scrollController.dispose();
+    contextMenuController.remove();
+    terminalController.dispose();
     focusNode.dispose();
     super.dispose();
   }
@@ -264,6 +269,49 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     searchHitForeground: Color(0XFF000000),
   );
 
+  void openContextMenu(Offset offset, BuildContext context) {
+    final buttonItems = [
+      ContextMenuButtonItem(
+        label: 'Copy',
+        onPressed: () {
+          ContextMenuController.removeAny();
+          Actions.maybeInvoke(
+            context,
+            CopySelectionTextIntent.copy,
+          );
+        },
+      ),
+      ContextMenuButtonItem(
+        label: 'Paste',
+        onPressed: () {
+          ContextMenuController.removeAny();
+          Actions.maybeInvoke(
+            context,
+            PasteTextIntent(SelectionChangedCause.keyboard),
+          );
+        },
+      ),
+    ];
+
+    final style = Theme.of(context).textButtonTheme.style?.copyWith(
+          backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+        );
+
+    contextMenuController.show(
+      context: context,
+      contextMenuBuilder: (_) => TapRegion(
+        onTapOutside: (_) => ContextMenuController.removeAny(),
+        child: TextButtonTheme(
+          data: TextButtonThemeData(style: style),
+          child: AdaptiveTextSelectionToolbar.buttonItems(
+            anchors: TextSelectionToolbarAnchors(primaryAnchor: offset),
+            buttonItems: buttonItems,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final terminal = ref.watch(terminalProvider(terminalIdentifier));
@@ -274,6 +322,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     final canStartVm = [Status.STOPPED, Status.SUSPENDED].contains(vmStatus);
 
     if (terminal == null) {
+      contextMenuController.remove();
       return Container(
         color: const Color(0xff380c2a),
         alignment: Alignment.center,
@@ -296,20 +345,26 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       );
     }
 
-    final terminalView = TerminalView(
-      terminal,
-      focusNode: focusNode,
-      hardwareKeyboardOnly: true,
-      padding: const EdgeInsets.all(4),
-      scrollController: scrollController,
-      shortcuts: mpPlatform.terminalShortcuts,
-      theme: terminalTheme,
-      textStyle: TerminalStyle(
-        fontFamily: 'UbuntuMono',
-        fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-        fontSize: fontSize,
-      ),
-    );
+    // we need a builder so that we introduce a new BuildContext that will end up
+    // being below the BuildContext of the Actions widget so that the events can propagate
+    final terminalView = Builder(builder: (context) {
+      return TerminalView(
+        terminal,
+        controller: terminalController,
+        focusNode: focusNode,
+        hardwareKeyboardOnly: true,
+        onSecondaryTapUp: (d, _) => openContextMenu(d.globalPosition, context),
+        padding: const EdgeInsets.all(4),
+        scrollController: scrollController,
+        shortcuts: mpPlatform.terminalShortcuts,
+        theme: terminalTheme,
+        textStyle: TerminalStyle(
+          fontFamily: 'UbuntuMono',
+          fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+          fontSize: fontSize,
+        ),
+      );
+    });
 
     final scrollableTerminal = RawScrollbar(
       controller: scrollController,
@@ -330,6 +385,25 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
         onInvoke: (_) => setState(() => fontSize = defaultFontSize),
+      ),
+      PasteTextIntent: CallbackAction<PasteTextIntent>(
+        onInvoke: (_) async {
+          final data = await Clipboard.getData(Clipboard.kTextPlain);
+          final text = data?.text;
+          if (text == null) return null;
+          terminal.paste(text);
+          terminalController.clearSelection();
+          return null;
+        },
+      ),
+      CopySelectionTextIntent: CallbackAction<CopySelectionTextIntent>(
+        onInvoke: (_) async {
+          final selection = terminalController.selection;
+          if (selection == null) return null;
+          final text = terminal.buffer.getText(selection);
+          await Clipboard.setData(ClipboardData(text: text));
+          return null;
+        },
       ),
     };
 
