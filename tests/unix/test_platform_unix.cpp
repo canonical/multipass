@@ -27,6 +27,8 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
+#include <thread>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -274,8 +276,10 @@ TEST_F(TestPlatformUnix, quit_watchdog_signals_itself_asynchronously)
     EXPECT_CALL(*mock_signals, wait(_, _))
         .WillRepeatedly(DoAll(
             [&signaled, &times] {
+                // busy wait until signaled
                 while (!signaled.load(std::memory_order_acquire))
                 {
+                    std::this_thread::yield();
                 }
                 times.fetch_add(1, std::memory_order_release);
                 signaled.store(false, std::memory_order_release);
