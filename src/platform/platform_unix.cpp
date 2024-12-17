@@ -76,7 +76,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return !ec;
 }
 
-bool mp::platform::Platform::take_ownership(const mp::Path& path) const
+bool mp::platform::Platform::take_ownership(const Path& path) const
 {
     return this->chown(path.toStdString().c_str(), 0, 0) == 0;
 }
