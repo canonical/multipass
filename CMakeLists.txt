@@ -137,7 +137,7 @@ find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 # POCO config
 find_package(Poco REQUIRED COMPONENTS Foundation Zip)
 
-function(determine_version OUTPUT_VARIABLE SEMANTIC_VERSION BUILD_NUMBER)
+function(determine_version OUTPUT_VARIABLE)
   # use upstream repo as the authoritative reference when checking for release status
   # set -DMULTIPASS_UPSTREAM="" to use the local repository
   if(MULTIPASS_UPSTREAM)
@@ -232,7 +232,7 @@ function(determine_version_components VERSION_STRING SEMANTIC_VERSION BUILD_NUMB
   set(${BUILD_NUMBER} ${MULTIPASS_BUILD_NUMBER} PARENT_SCOPE)
 endfunction()
 
-determine_version(MULTIPASS_VERSION MULTIPASS_SEMANTIC_VERSION MULTIPASS_BUILD_NUMBER)
+determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
