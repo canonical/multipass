@@ -83,7 +83,7 @@ TEST_F(TestImageVaultUtils, copy_to_dir_copys_to_dir)
 TEST_F(TestImageVaultUtils, compute_hash_throws_when_cant_read)
 {
     QBuffer buffer{}; // note: buffer is not opened
-    MP_EXPECT_THROW_THAT(auto _ = MP_IMAGE_VAULT_UTILS.compute_hash(buffer),
+    MP_EXPECT_THROW_THAT(std::ignore = MP_IMAGE_VAULT_UTILS.compute_hash(buffer),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Failed to read")));
 }
@@ -106,7 +106,7 @@ TEST_F(TestImageVaultUtils, compute_file_hash_throws_when_cant_open)
                                     })))
         .WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(auto _ = MP_IMAGE_VAULT_UTILS.compute_file_hash(test_path),
+    MP_EXPECT_THROW_THAT(std::ignore = MP_IMAGE_VAULT_UTILS.compute_file_hash(test_path),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("Failed to open"))));
 }
