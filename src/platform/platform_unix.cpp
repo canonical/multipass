@@ -172,7 +172,7 @@ sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 
 sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
 {
-    auto sigset{make_sigset(sigs)};
+    const auto sigset{make_sigset(sigs)};
     if (const auto ec = pthread_sigmask(SIG_BLOCK, &sigset, nullptr); ec)
         throw std::runtime_error(fmt::format("Failed to block signals: {}", strerror(ec)));
 
