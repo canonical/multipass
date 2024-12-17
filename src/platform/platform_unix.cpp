@@ -17,6 +17,7 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/timer.h>
 #include <multipass/utils.h>
 
 #include <grp.h>
@@ -25,7 +26,6 @@
 #include <unistd.h>
 
 #include <libssh/sftp.h>
-#include <multipass/timer.h>
 
 namespace mp = multipass;
 
