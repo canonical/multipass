@@ -155,6 +155,12 @@ public slots:
     virtual void daemon_info(const DaemonInfoRequest* request,
                              grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
                              std::promise<grpc::Status>* status_promise);
+    virtual void zones(const ZonesRequest* request,
+                       grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+    virtual void zones_state(const ZonesStateRequest* request,
+                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+                             std::promise<grpc::Status>* status_promise);
 
 private:
     void release_resources(const std::string& instance);
