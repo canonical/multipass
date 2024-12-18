@@ -72,8 +72,8 @@ final headers = <TableHeader<VmInfo>>[
     minWidth: 70,
     cellBuilder: (info) {
       final image = info.instanceInfo.currentRelease;
-      return SelectableText(
-        image.isNotBlank ? image.nonBreaking : '-',
+      return WhitePopupMenuSelectableText(
+        text: image.isNotBlank ? image.nonBreaking : '-',
         maxLines: 1,
       );
     },
