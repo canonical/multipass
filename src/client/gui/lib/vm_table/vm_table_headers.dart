@@ -1,10 +1,11 @@
 import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:flutter/material.dart' hide Tooltip, SelectableText;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
 import '../providers.dart';
+import '../selectable_text.dart';
 import '../sidebar.dart';
 import '../tooltip.dart';
 import '../vm_details/cpu_sparkline.dart';

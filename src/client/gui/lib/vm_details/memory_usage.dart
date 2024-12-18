@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SelectableText;
+
+import '../selectable_text.dart';
 
 class MemoryUsage extends StatelessWidget {
   final String used;

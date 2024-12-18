@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:flutter/material.dart' hide Tooltip, SelectableText;
 
 import '../extensions.dart';
+import '../selectable_text.dart';
 import '../tooltip.dart';
 
 class IpAddresses extends StatelessWidget {

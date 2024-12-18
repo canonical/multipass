@@ -1,10 +1,11 @@
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SelectableText;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../extensions.dart';
 import '../providers.dart';
+import '../selectable_text.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
 import 'vm_action_buttons.dart';
