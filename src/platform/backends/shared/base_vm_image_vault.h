@@ -23,6 +23,7 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
+#include <multipass/vm_image_vault_utils.h>
 
 #include <string>
 #include <utility>
@@ -34,7 +35,8 @@ class BaseVMImageVault : public VMImageVault
 {
 public:
     explicit BaseVMImageVault(const std::vector<VMImageHost*>& image_hosts)
-        : image_hosts{image_hosts}, remote_image_host_map{vault::configure_image_host_map(image_hosts)} {};
+        : image_hosts{image_hosts},
+          remote_image_host_map{MP_IMAGE_VAULT_UTILS.configure_image_host_map(image_hosts)} {};
 
     VMImageHost* image_host_for(const std::string& remote_name) const override
     {

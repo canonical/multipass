@@ -170,6 +170,18 @@ bool mp::FileOps::flush(QFile& file) const
     return file.flush();
 }
 
+QString mp::FileOps::remove_extension(const QString& path) const
+{
+    const QFileInfo info{path};
+    auto extension_len = info.suffix().size();
+    return path.chopped(extension_len != 0 ? extension_len + 1 : 0);
+}
+
+bool mp::FileOps::copy(const QString& from, const QString& to) const
+{
+    return QFile::copy(from, to);
+}
+
 bool mp::FileOps::commit(QSaveFile& file) const
 {
     return file.commit();
