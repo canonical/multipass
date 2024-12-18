@@ -188,11 +188,20 @@ Json::Value read_winterm_settings(const QString& path)
 
 Json::Value create_primary_profile()
 {
+    static constexpr auto off_white = "#FDFDFD";
+    static constexpr auto comment_placement = Json::commentAfterOnSameLine;
+
     Json::Value primary_profile{};
     primary_profile["guid"] = mp::winterm_profile_guid;
     primary_profile["name"] = "Multipass";
     primary_profile["commandline"] = "multipass shell";
     primary_profile["background"] = "#350425";
+
+    primary_profile["cursorColor"] = off_white;
+    primary_profile["cursorColor"].setComment("// work around white showing as pale-green", comment_placement);
+    primary_profile["foreground"] = off_white;
+    primary_profile["foreground"].setComment("// match cursor", comment_placement);
+
     primary_profile["cursorShape"] = "filledBox";
     primary_profile["fontFace"] = "Ubuntu Mono";
     primary_profile["historySize"] = 50000;
