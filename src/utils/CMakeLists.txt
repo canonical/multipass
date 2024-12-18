@@ -16,6 +16,7 @@ function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     file_ops.cpp
     memory_size.cpp
+    permission_utils.cpp
     json_utils.cpp
     snap_utils.cpp
     standard_paths.cpp
