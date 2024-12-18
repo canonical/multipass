@@ -8,7 +8,7 @@
         <MediaTemplate EmbedCab="yes" />
         <Icon Id="mp.exe" SourceFile="icon.ico" />
         <Property Id="ARPPRODUCTICON" Value="mp.exe" />
-        <Property Id="ARPURLINFOABOUT" Value="https://multipass.run/" />
+        <Property Id="ARPURLINFOABOUT" Value="https://canonical.com/multipass/" />
         <Property Id="ARPHELPLINK" Value="https://github.com/CanonicalLtd/multipass" />
         <Property Id="MsiLogging" Value="vx!" />
 

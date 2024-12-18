@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Documentation
-    url: https://multipass.run/docs
+    url: https://canonical.com/multipass/docs
     about: See here about potential solutions to some common problems
   - name: Forums
     url: https://discourse.ubuntu.com/c/multipass
