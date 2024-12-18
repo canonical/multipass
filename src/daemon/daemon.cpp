@@ -579,6 +579,8 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
     QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_zones, &daemon, &mp::Daemon::zones);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_zones_state, &daemon, &mp::Daemon::zones_state);
 }
 
 enum class InstanceGroup
@@ -2793,6 +2795,37 @@ try // clang-format on
     response.set_memory(MP_PLATFORM.get_total_ram());
 
     server->Write(response);
+    status_promise->set_value(grpc::Status{});
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::zones(const ZonesRequest* request,
+                       grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
+                       std::promise<grpc::Status>* status_promise) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    ZonesReply response{};
+
+    server->Write(response);
+    status_promise->set_value(grpc::Status{});
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::zones_state(const ZonesStateRequest* request,
+                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+                             std::promise<grpc::Status>* status_promise) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
     status_promise->set_value(grpc::Status{});
 }
 catch (const std::exception& e)
