@@ -96,6 +96,8 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
         MP_FILEOPS.remove(original_file);
     }
 
+    MP_PERMISSIONS.restrict_permissions(new_image_path.toStdU16String());
+
     return new_image_path;
 }
 
