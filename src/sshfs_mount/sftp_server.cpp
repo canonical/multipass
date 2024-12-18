@@ -206,7 +206,7 @@ void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
 auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_exec_line, const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process = session.exec(fmt::format("sudo {} :\"{}\" \"{}\"", sshfs_exec_line, source, target));
+    auto sshfs_process = session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
     check_sshfs_status(session, sshfs_process);
 
@@ -235,12 +235,16 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
 }
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession&& session, const std::string& source, const std::string& target,
-                           const id_mappings& gid_mappings, const id_mappings& uid_mappings, int default_uid,
-                           int default_gid, const std::string& sshfs_exec_line)
+mp::SftpServer::SftpServer(SSHSession&& session,
+                           const std::string& source,
+                           const std::string& target,
+                           const id_mappings& gid_mappings,
+                           const id_mappings& uid_mappings,
+                           int default_uid,
+                           int default_gid,
+                           const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
-      sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source, '"'),
-                                         mp::utils::escape_char(target, '"'))},
+      sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{source},
       target_path{target},
@@ -440,9 +444,7 @@ void mp::SftpServer::run()
                     ssh_session.exec(fmt::format("sudo umount {}", mount_path));
                 }
 
-                sshfs_process =
-                    create_sshfs_process(ssh_session, sshfs_exec_line, mp::utils::escape_char(source_path, '"'),
-                                         mp::utils::escape_char(target_path, '"'));
+                sshfs_process = create_sshfs_process(ssh_session, sshfs_exec_line, source_path, target_path);
                 sftp_server_session = make_sftp_session(ssh_session, sshfs_process->release_channel());
 
                 continue;
