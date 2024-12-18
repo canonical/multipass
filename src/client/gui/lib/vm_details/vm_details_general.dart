@@ -76,11 +76,11 @@ class VmDetailsHeader extends ConsumerWidget {
 
     final list = [
       Expanded(
-        child: Text(
-          name.nonBreaking,
+        child: WhitePopupMenuSelectableText(
+          text: name.nonBreaking,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w300),
           maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.start,
         ),
       ),
       locationButtons,
@@ -150,29 +150,29 @@ class GeneralDetails extends ConsumerWidget {
       width: 150,
       height: baseVmStatHeight,
       label: 'IMAGE',
-      child: Text(info.instanceInfo.currentRelease),
+      child: WhitePopupMenuSelectableText(text: info.instanceInfo.currentRelease),
     );
 
     final privateIp = VmStat(
       width: 150,
       height: baseVmStatHeight,
       label: 'PRIVATE IP',
-      child: Text(info.instanceInfo.ipv4.firstOrNull ?? '-'),
+      child: WhitePopupMenuSelectableText(text: info.instanceInfo.ipv4.firstOrNull ?? '-'),
     );
 
     final publicIp = VmStat(
       width: 150,
       height: baseVmStatHeight,
       label: 'PUBLIC IP',
-      child: Text(info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
+      child: WhitePopupMenuSelectableText(text: info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
     );
 
     final created = VmStat(
       width: 140,
       height: baseVmStatHeight,
       label: 'CREATED',
-      child: Text(
-        DateFormat('yyyy-MM-dd HH:mm:ss')
+      child: WhitePopupMenuSelectableText(
+        text: DateFormat('yyyy-MM-dd HH:mm:ss')
             .format(info.instanceInfo.creationTimestamp.toDateTime()),
       ),
     );
@@ -181,7 +181,7 @@ class GeneralDetails extends ConsumerWidget {
       width: 300,
       height: baseVmStatHeight,
       label: 'UPTIME',
-      child: Text(info.instanceInfo.uptime),
+      child: WhitePopupMenuSelectableText(text: info.instanceInfo.uptime),
     );
 
     return Column(

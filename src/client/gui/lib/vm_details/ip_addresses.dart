@@ -17,7 +17,7 @@ class IpAddresses extends StatelessWidget {
       Expanded(
         child: Tooltip(
           message: firstIp,
-          child: Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
+          child: WhitePopupMenuSelectableText(text: firstIp.nonBreaking, maxLines: 1),
         ),
       ),
       if (restIps.isNotEmpty)

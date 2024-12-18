@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../extensions.dart';
+
 class MemoryUsage extends StatelessWidget {
   final String used;
   final String total;
@@ -21,8 +23,8 @@ class MemoryUsage extends StatelessWidget {
       color: value < 0.8 ? normalColor : almostFullColor,
     );
 
-    final label = Text(
-      value != 0 ? '${_formatMemory(used)} / ${_formatMemory(total)}' : '-',
+    final label = WhitePopupMenuSelectableText(
+      text: value != 0 ? '${_formatMemory(used)} / ${_formatMemory(total)}' : '-',
       style: const TextStyle(fontSize: 11),
     );
 
