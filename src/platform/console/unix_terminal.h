@@ -32,6 +32,8 @@ public:
     bool cout_is_live() const override;
 
     void set_cin_echo(const bool enable) override;
+
+    ConsolePtr make_console(ssh_channel channel) override;
 };
 } // namespace multipass
 
