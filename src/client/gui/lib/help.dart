@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 class HelpScreen extends StatelessWidget {
   static const sidebarKey = 'help';
 
-  static final docsUrl = Uri.parse('https://multipass.run/docs');
+  static final docsUrl = Uri.parse('https://canonical.com/multipass/docs');
 
   const HelpScreen({super.key});
 

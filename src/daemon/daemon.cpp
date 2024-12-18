@@ -1908,11 +1908,11 @@ try // clang-format on
                                                        server};
 
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
-        return status_promise->set_value(
-            grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                         "Mounts are disabled on this installation of Multipass.\n\n"
-                         "See https://multipass.run/docs/set-command#local.privileged-mounts for information\n"
-                         "on how to enable them."));
+        return status_promise->set_value(grpc::Status(
+            grpc::StatusCode::FAILED_PRECONDITION,
+            "Mounts are disabled on this installation of Multipass.\n\n"
+            "See https://canonical.com/multipass/docs/set-command#local.privileged-mounts for information\n"
+            "on how to enable them."));
 
     mp::id_mappings uid_mappings, gid_mappings;
     for (const auto& map : request->mount_maps().uid_mappings())
