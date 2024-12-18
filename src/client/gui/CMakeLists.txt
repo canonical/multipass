@@ -12,6 +12,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+determine_version_components(${MULTIPASS_VERSION} MULTIPASS_SEMANTIC_VERSION MULTIPASS_BUILD_NUMBER)
+message(STATUS "Setting semantic version to: ${MULTIPASS_SEMANTIC_VERSION}")
+message(STATUS "Setting build number to: ${MULTIPASS_BUILD_NUMBER}")
+
 add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
 
 target_link_libraries(dart_ffi

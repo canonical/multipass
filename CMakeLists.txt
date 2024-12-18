@@ -227,6 +227,25 @@ function(determine_version OUTPUT_VARIABLE)
   endif()
 endfunction()
 
+function(determine_version_components VERSION_STRING SEMANTIC_VERSION BUILD_NUMBER)
+  # stuff before + is the version and after the + is the build metadata
+  string(FIND "${VERSION_STRING}" "+" PLUS_POS)
+  string(SUBSTRING "${VERSION_STRING}" 0 ${PLUS_POS} MULTIPASS_SEMANTIC_VERSION)
+  if (PLUS_POS GREATER -1)
+      string(SUBSTRING "${VERSION_STRING}" ${PLUS_POS} -1 MULTIPASS_BUILD_STRING)
+      # if the build metadata starts with a g, the hexadecimal chars after that are a commit hash
+      # otherwise, we do not derive any build string
+      string(REGEX MATCH "^[+]g([a-f0-9]+)" "" "${MULTIPASS_BUILD_STRING}")
+      set(BUILD_NUMBER_HEX ${CMAKE_MATCH_1})
+  endif()
+  # convert the hexadecimal commit hash to decimal. if none was extracted, this defaults to 0
+  # we need it to be decimal because flutter --build-number accepts only decimal chars
+  math(EXPR MULTIPASS_BUILD_NUMBER "0x0${BUILD_NUMBER_HEX}")
+
+  set(${SEMANTIC_VERSION} ${MULTIPASS_SEMANTIC_VERSION} PARENT_SCOPE)
+  set(${BUILD_NUMBER} ${MULTIPASS_BUILD_NUMBER} PARENT_SCOPE)
+endfunction()
+
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
