@@ -46,6 +46,8 @@ service Rpc {
     rpc clone (stream CloneRequest) returns (stream CloneReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
     rpc wait_ready (stream WaitReadyRequest) returns (stream WaitReadyReply);
+    rpc zones (stream ZonesRequest) returns (stream ZonesReply);
+    rpc zones_state (stream ZonesStateRequest) returns (stream ZonesStateReply);
 }
 
 message LaunchRequest {
@@ -74,6 +76,7 @@ message LaunchRequest {
     bool permission_to_bridge = 13;
     int32 timeout = 14;
     string password = 15;
+    string zone = 16;
 }
 
 message LaunchError {
@@ -83,6 +86,8 @@ message LaunchError {
         INVALID_DISK_SIZE = 2;
         INVALID_HOSTNAME = 3;
         INVALID_NETWORK = 4;
+        INVALID_ZONE = 5;
+        ZONE_UNAVAILABLE = 6;
     }
     repeated ErrorCodes error_codes = 1;
 }
@@ -246,6 +251,8 @@ message DetailedInfoItem {
         InstanceDetails instance_info = 7;
         SnapshotDetails snapshot_info = 8;
     }
+
+    Zone zone = 9;
 }
 
 message InfoReply {
@@ -267,6 +274,7 @@ message ListVMInstance {
     repeated string ipv4 = 3;
     repeated string ipv6 = 4;
     string current_release = 5;
+    Zone zone = 6;
 }
 
 message ListVMSnapshot {
@@ -552,5 +560,29 @@ message WaitReadyRequest {
 }
 
 message WaitReadyReply {
+    string log_line = 1;
+}
+
+message Zone {
+    string name = 1;
+    bool available = 2;
+}
+
+message ZonesRequest {
+    int32 verbosity_level = 1;
+}
+
+message ZonesReply {
+    string log_line = 1;
+    repeated Zone zones = 2;
+}
+
+message ZonesStateRequest {
+    int32 verbosity_level = 1;
+    bool available = 2;
+    repeated string zones = 3;
+}
+
+message ZonesStateReply {
     string log_line = 1;
 }
