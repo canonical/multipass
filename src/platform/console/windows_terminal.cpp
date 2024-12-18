@@ -17,6 +17,8 @@
 
 #include "windows_terminal.h"
 
+#include "windows_console.h"
+
 #include <iostream>
 #include <fcntl.h>
 #include <io.h>
@@ -84,4 +86,9 @@ void mp::WindowsTerminal::set_cin_echo(const bool enable)
         console_input_mode |= ENABLE_ECHO_INPUT;
 
     SetConsoleMode(cin_handle(), console_input_mode);
+}
+
+mp::WindowsTerminal::ConsolePtr mp::WindowsTerminal::make_console(ssh_channel channel)
+{
+    return std::make_unique<WindowsConsole>(channel, this);
 }

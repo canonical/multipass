@@ -20,6 +20,8 @@
 
 #include <multipass/terminal.h>
 
+#include "stub_console.h"
+
 namespace multipass
 {
 namespace test
@@ -59,6 +61,11 @@ public:
 
     void set_cin_echo(const bool enable) override
     {
+    }
+
+    ConsolePtr make_console(ssh_channel channel) override
+    {
+        return std::make_unique<StubConsole>();
     }
 
 private:
