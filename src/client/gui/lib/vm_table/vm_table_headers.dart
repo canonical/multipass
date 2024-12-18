@@ -72,9 +72,9 @@ final headers = <TableHeader<VmInfo>>[
     minWidth: 70,
     cellBuilder: (info) {
       final image = info.instanceInfo.currentRelease;
-      return Text(
+      return SelectableText(
         image.isNotBlank ? image.nonBreaking : '-',
-        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       );
     },
   ),

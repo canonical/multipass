@@ -21,7 +21,7 @@ class MemoryUsage extends StatelessWidget {
       color: value < 0.8 ? normalColor : almostFullColor,
     );
 
-    final label = Text(
+    final label = SelectableText(
       value != 0 ? '${_formatMemory(used)} / ${_formatMemory(total)}' : '-',
       style: const TextStyle(fontSize: 11),
     );
