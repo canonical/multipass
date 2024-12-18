@@ -26,6 +26,7 @@
 #include <QFile>
 #include <QSaveFile>
 
+#include <multipass/utils/permission_utils.h>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -76,7 +77,7 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     if (!MP_FILEOPS.open(file, QIODevice::WriteOnly))
         throw std::runtime_error("failed to create file to store certificate");
 
-    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
+    MP_PERMISSIONS.restrict_permissions(file.fileName().toStdU16String());
 
     // QIODevice::Append is not supported in QSaveFile, so must write out all of the
     // existing clients certs each time.
