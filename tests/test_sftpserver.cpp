@@ -1490,6 +1490,9 @@ TEST_F(SftpServer, open_chown_failure_fails)
 
 TEST_F(SftpServer, open_no_handle_allocated_fails)
 {
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions(_, _)).WillRepeatedly(Return(true));
+
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
 
@@ -1760,6 +1763,9 @@ TEST_F(SftpServer, handles_fstat)
 
 TEST_F(SftpServer, handles_fsetstat)
 {
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions(_, _)).WillRepeatedly(Return(true));
+
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
 
@@ -1804,6 +1810,9 @@ TEST_F(SftpServer, handles_fsetstat)
 
 TEST_F(SftpServer, handles_setstat)
 {
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions(_, _)).WillRepeatedly(Return(true));
+
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
