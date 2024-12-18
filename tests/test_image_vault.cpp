@@ -21,6 +21,7 @@
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_process_factory.h"
 #include "path.h"
@@ -167,6 +168,9 @@ struct ImageVault : public testing::Test
     NiceMock<mpt::MockImageHost> host;
     mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
     mp::ProgressMonitor stub_monitor{[](int, int) { return true; }};
     mp::VMImageVault::PrepareAction stub_prepare{
         [](const mp::VMImage& source_image) -> mp::VMImage { return source_image; }};
@@ -414,6 +418,8 @@ TEST_F(ImageVault, remembers_prepared_images)
 
 TEST_F(ImageVault, uses_image_from_prepare)
 {
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
+
     constexpr auto expected_data = "12345-pied-piper-rats";
 
     QDir dir{cache_dir.path()};
@@ -509,6 +515,8 @@ TEST_F(ImageVault, invalid_image_dir_is_removed)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_fetch_copies_image_and_returns_expected_info))
 {
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
+
     mpt::TempFile file;
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
     auto query = default_query;
@@ -740,6 +748,8 @@ TEST_F(ImageVault, minimum_image_size_returns_expected_size)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_expected_size))
 {
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
+
     const mp::MemorySize image_size{"2097152"};
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output(fake_img_info(image_size));
