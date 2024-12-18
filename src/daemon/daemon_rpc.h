@@ -136,6 +136,12 @@ signals:
     void on_wait_ready(const WaitReadyRequest* request,
                        grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server,
                        std::promise<grpc::Status>* status_promise);
+    void on_zones(const ZonesRequest* request,
+                  grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server,
+                  std::promise<grpc::Status>* status_promise);
+    void on_zones_state(const ZonesStateRequest* request,
+                        grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -208,5 +214,9 @@ protected:
     grpc::Status wait_ready(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server) override;
+    grpc::Status zones(grpc::ServerContext* context,
+                       grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server) override;
+    grpc::Status zones_state(grpc::ServerContext* context,
+                             grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server) override;
 };
 } // namespace multipass

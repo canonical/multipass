@@ -473,6 +473,28 @@ grpc::Status mp::DaemonRpc::wait_ready(
         client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::zones(grpc::ServerContext* context,
+                                  grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server)
+{
+    ZonesRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_zones, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
+grpc::Status mp::DaemonRpc::zones_state(grpc::ServerContext* context,
+                                        grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server)
+{
+    ZonesStateRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_zones_state, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal,
                                                                  const std::string& client_cert)
