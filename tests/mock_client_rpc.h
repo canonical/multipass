@@ -453,5 +453,29 @@ public:
                 PrepareAsyncwait_readyRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::ZonesRequest, multipass::ZonesReply>*),
+                zonesRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ZonesRequest, multipass::ZonesReply>*),
+                AsynczonesRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ZonesRequest, multipass::ZonesReply>*),
+                PrepareAsynczonesRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::ZonesStateRequest, multipass::ZonesStateReply>*),
+                zones_stateRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ZonesStateRequest, multipass::ZonesStateReply>*),
+                Asynczones_stateRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ZonesStateRequest, multipass::ZonesStateReply>*),
+                PrepareAsynczones_stateRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
 };
 } // namespace multipass::test
