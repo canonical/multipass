@@ -19,7 +19,6 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
-#include "mock_permission_utils.h"
 #include "mock_utils.h"
 #include "temp_dir.h"
 
@@ -99,9 +98,6 @@ TEST_F(ClientCertStore, add_cert_throws_on_invalid_data)
 
 TEST_F(ClientCertStore, add_cert_stores_certificate)
 {
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
-
     mp::ClientCertStore cert_store{temp_dir.path()};
     EXPECT_NO_THROW(cert_store.add_cert(cert_data));
 
@@ -154,9 +150,6 @@ TEST_F(ClientCertStore, addCertAlreadyExistingDoesNotAddAgain)
 
 TEST_F(ClientCertStore, addCertWithExistingCertPersistsCerts)
 {
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
-
     const QDir dir{cert_dir};
     const auto cert_path = dir.filePath("multipass_client_certs.pem");
     mpt::make_file_with_content(cert_path, cert_data);
@@ -197,9 +190,6 @@ TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-    EXPECT_CALL(*mock_permission_utils, set_permissions(_, _));
-
     mp::ClientCertStore cert_store{temp_dir.path()};
 
     MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
@@ -214,9 +204,6 @@ TEST_F(ClientCertStore, writingFileFailsAndThrows)
     });
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_file_ops, commit).WillOnce(Return(false));
-
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
 
     mp::ClientCertStore cert_store{temp_dir.path()};
 
