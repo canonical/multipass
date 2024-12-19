@@ -8,6 +8,7 @@ import 'package:win32/win32.dart';
 
 import '../settings/autostart_notifiers.dart';
 import '../vm_details/terminal.dart';
+import '../vm_details/terminal_tabs.dart';
 import 'platform.dart';
 
 class WindowsPlatform extends MpPlatform {
@@ -39,6 +40,10 @@ class WindowsPlatform extends MpPlatform {
             PasteTextIntent(SelectionChangedCause.keyboard),
         SingleActivator(LogicalKeyboardKey.insert, shift: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
+        SingleActivator(LogicalKeyboardKey.keyW, control: true):
+            CloseTerminalIntent(),
+        SingleActivator(LogicalKeyboardKey.keyT, control: true):
+            AddTerminalIntent(),
         SingleActivator(LogicalKeyboardKey.equal, control: true):
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
