@@ -63,6 +63,11 @@ bool mp::platform::Platform::set_permissions(const Path& path, const Perms permi
     return QFile::setPermissions(path, permissions);
 }
 
+bool mp::platform::Platform::take_ownership(const Path& path) const
+{
+    return this->chown(path.toStdString().c_str(), 0, 0) == 0;
+}
+
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
     return ::symlink(target, link) == 0;
