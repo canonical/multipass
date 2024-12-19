@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "mock_file_ops.h"
-#include "mock_permission_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/cloud_init_iso.h>
@@ -71,14 +70,9 @@ struct CloudInitIso : public Test
     CloudInitIso()
     {
         iso_path = QDir{temp_dir.path()}.filePath("test.iso");
-        std_iso_path = std::filesystem::path(iso_path.toStdU16String());
     }
     mpt::TempDir temp_dir;
     QString iso_path;
-    std::filesystem::path std_iso_path;
-
-    const mpt::MockPermissionUtils::GuardedMock attr{mpt::MockPermissionUtils::inject<NiceMock>()};
-    mpt::MockPermissionUtils& mock_permission_utils = *attr.first;
 };
 
 TEST_F(CloudInitIso, check_contains_false)
@@ -140,8 +134,6 @@ TEST_F(CloudInitIso, check_index_operator_found_key)
 
 TEST_F(CloudInitIso, creates_iso_file)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
     iso.write_to(iso_path);
@@ -153,8 +145,6 @@ TEST_F(CloudInitIso, creates_iso_file)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
 
@@ -168,8 +158,6 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
 
@@ -188,8 +176,6 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descriptor)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
 
@@ -213,8 +199,6 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descrip
 
 TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
 
@@ -240,8 +224,6 @@ TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_read_array)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
 
@@ -263,8 +245,6 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_array)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
 
@@ -292,8 +272,6 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     // At least one actual file entry is need to reach the read_bytes_to_vec call
     original_iso.add_file("test1", "test data1");
@@ -319,8 +297,6 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
 
 TEST_F(CloudInitIso, reads_iso_file_encoded_file_name_is_not_even_length)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     // At least one actual file entry is need to reach the convert_u16_name_back call
     original_iso.add_file("test1", "test data1");
@@ -356,8 +332,6 @@ TEST_F(CloudInitIso, reads_iso_file_encoded_file_name_is_not_even_length)
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("test1", "test data1");
@@ -395,8 +369,6 @@ write_files:
     content: "multipass/version/1.14.0-dev.1209+g5b2c7f7d # written by Multipass\nmultipass/driver/qemu-8.0.4 # written by Multipass\nmultipass/host/ubuntu-23.10 # written by Multipass\nmultipass/alias/default # written by Multipass\n"
 )";
 
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("meta-data", default_meta_data_content);
@@ -412,8 +384,6 @@ write_files:
 
 TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_iso_path)).Times(2);
-
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("meta-data", default_meta_data_content);
@@ -440,8 +410,6 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 
 TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_iso_path)).Times(2);
-
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", default_meta_data_content);
     original_iso.add_file("network-config", "dummy_data");
@@ -464,8 +432,6 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
     const std::string src_meta_data_content = fmt::format(meta_data_content_template, "vm1_e_e", "vm1");
     const std::string src_network_config_data_content =
         fmt::format(network_config_data_content_template, "00:00:00:00:00:00", "00:00:00:00:00:01");
-
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_iso_path)).Times(2);
 
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", src_meta_data_content);
@@ -492,8 +458,6 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
 
 TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_iso_path)).Times(2);
-
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", default_meta_data_content);
     original_iso.write_to(iso_path);
@@ -505,8 +469,6 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 
 TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
 {
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(_));
-
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", default_meta_data_content);
     original_iso.write_to(iso_path);

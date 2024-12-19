@@ -611,7 +611,6 @@ struct DaemonAliasTestsuite
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
-    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 
 TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
