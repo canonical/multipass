@@ -20,8 +20,6 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
-#include <multipass/platform.h>
-#include <multipass/utils/permission_utils.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <QFile>
@@ -537,8 +535,6 @@ void mp::CloudInitIso::write_to(const Path& path)
     if (!f.open(QIODevice::WriteOnly))
         throw std::runtime_error{fmt::format(
             "Failed to open file for writing during cloud-init generation: {}; path: {}", f.errorString(), path)};
-
-    MP_PERMISSIONS.restrict_permissions(path.toStdU16String());
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
