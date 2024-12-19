@@ -20,7 +20,6 @@
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_openssl_syscalls.h"
-#include "mock_permission_utils.h"
 #include "mock_ssh.h"
 #include "mock_ssh_process_exit_status.h"
 #include "mock_ssh_test_fixture.h"
@@ -720,9 +719,6 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
 
 TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
 {
-    auto [mock_permission_utils, permission_utils_guard] = mpt::MockPermissionUtils::inject();
-    EXPECT_CALL(*mock_permission_utils, restrict_permissions(_));
-
     mpt::TempDir temp_dir1, temp_dir2;
     auto orig_file_path = QDir(temp_dir1.path()).filePath("test_file");
 

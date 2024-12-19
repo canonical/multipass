@@ -41,7 +41,6 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include <exception>
-#include <multipass/utils/permission_utils.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -677,7 +676,6 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
                                                     const mp::Path& dest_dir)
 {
     MP_UTILS.make_dir(dest_dir);
-
     QFileInfo file_info{source_image.image_path};
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = QDir(dest_dir).filePath(image_name);
