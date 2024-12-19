@@ -331,7 +331,8 @@ TEST(PlatformOSX, create_alias_script_overwrites)
     EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
     EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(true));
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+    EXPECT_NO_THROW(
+        mock_platform->Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
 }
 
 TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
