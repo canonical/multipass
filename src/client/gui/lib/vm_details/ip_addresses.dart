@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Tooltip;
 
 import '../extensions.dart';
+import '../selectable_text.dart';
 import '../tooltip.dart';
 
 class IpAddresses extends StatelessWidget {
@@ -17,7 +18,7 @@ class IpAddresses extends StatelessWidget {
       Expanded(
         child: Tooltip(
           message: firstIp,
-          child: Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
+          child: WhiteSelectableText(firstIp.nonBreaking, maxLines: 1),
         ),
       ),
       if (restIps.isNotEmpty)

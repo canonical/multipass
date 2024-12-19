@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../selectable_text.dart';
+
 class MemoryUsage extends StatelessWidget {
   final String used;
   final String total;
@@ -21,7 +23,7 @@ class MemoryUsage extends StatelessWidget {
       color: value < 0.8 ? normalColor : almostFullColor,
     );
 
-    final label = Text(
+    final label = WhiteSelectableText(
       value != 0 ? '${_formatMemory(used)} / ${_formatMemory(total)}' : '-',
       style: const TextStyle(fontSize: 11),
     );
