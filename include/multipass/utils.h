@@ -202,18 +202,13 @@ class Utils : public Singleton<Utils>
 public:
     Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
-    static constexpr QFileDevice::Permissions default_permissions =
-        QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner;
-
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
     virtual std::string contents_of(const multipass::Path& file_path) const;
     virtual void make_file_with_content(const std::string& file_name, const std::string& content,
                                         const bool& overwrite = false);
-    virtual Path make_dir(const QDir& a_dir,
-                          const QString& name,
-                          QFileDevice::Permissions permissions = default_permissions);
-    virtual Path make_dir(const QDir& dir, QFileDevice::Permissions permissions = default_permissions);
+    virtual Path make_dir(const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions = {0});
+    virtual Path make_dir(const QDir& dir, QFileDevice::Permissions permissions = {0});
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,
