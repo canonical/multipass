@@ -1,0 +1,21 @@
+# Leave a blank line at the end of this file to support concatenation
+cjk
+cryptographically
+dvipng
+fonts
+freefont
+github
+GPG
+gyre
+https
+lang
+latexmk
+otf
+plantuml
+tex
+texlive
+TOC
+utils
+WCAG
+xetex
+xindy

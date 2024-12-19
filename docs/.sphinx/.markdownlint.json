@@ -1,0 +1,27 @@
+{
+    "default": false,
+    "MD003": {
+        "style": "atx"
+    },
+    "MD013": {
+        "code_blocks": false,
+        "tables": false,
+        "stern": true,
+        "line_length": 150
+    },
+    "MD014": true,
+    "MD018": true,
+    "MD022": true,
+    "MD023": true,
+    "MD026": {
+        "punctuation": ".,;。，；"
+    },
+    "MD031": {
+        "list_items": false
+    },
+    "MD032": true,
+    "MD035": true,
+    "MD042": true,
+    "MD045": true,
+    "MD052": true
+}
