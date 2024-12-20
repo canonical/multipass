@@ -43,6 +43,7 @@ public:
     MOCK_METHOD(int, chown, (const char*, unsigned int, unsigned int), (const, override));
     MOCK_METHOD(bool, set_permissions, (const std::filesystem::path&, std::filesystem::perms), (const, override));
     MOCK_METHOD(bool, take_ownership, (const Path&), (const, override));
+    MOCK_METHOD(void, setup_permission_inheritance, (bool), (const, override));
     MOCK_METHOD(bool, link, (const char*, const char*), (const, override));
     MOCK_METHOD(bool, symlink, (const char*, const char*, bool), (const, override));
     MOCK_METHOD(int, utime, (const char*, int, int), (const, override));
