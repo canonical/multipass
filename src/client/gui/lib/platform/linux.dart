@@ -31,7 +31,11 @@ class LinuxPlatform extends MpPlatform {
   Map<SingleActivator, Intent> get terminalShortcuts => const {
         SingleActivator(LogicalKeyboardKey.keyC, control: true, shift: true):
             CopySelectionTextIntent.copy,
+        SingleActivator(LogicalKeyboardKey.insert, control: true):
+            CopySelectionTextIntent.copy,
         SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
+            PasteTextIntent(SelectionChangedCause.keyboard),
+        SingleActivator(LogicalKeyboardKey.insert, shift: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
         SingleActivator(LogicalKeyboardKey.equal, control: true):
             IncreaseTerminalFontIntent(),
