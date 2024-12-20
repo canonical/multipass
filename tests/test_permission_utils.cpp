@@ -80,14 +80,14 @@ struct TestPermissionUtilsFile : public TestPermissionUtils
 
 TEST_F(TestPermissionUtilsFile, set_permissions_sets_permissions)
 {
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions, false)).WillOnce(Return(true));
 
     MP_PERMISSIONS.set_permissions(test_path, test_permissions);
 }
 
 TEST_F(TestPermissionUtilsFile, set_permissions_throws_on_failure)
 {
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions)).WillOnce(Return(false));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PERMISSIONS.set_permissions(test_path, test_permissions),
                          std::runtime_error,
@@ -113,7 +113,7 @@ TEST_F(TestPermissionUtilsFile, take_ownership_throws_on_failure)
 TEST_F(TestPermissionUtilsFile, restrict_permissions_restricts_permissions)
 {
     EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions, false)).WillOnce(Return(true));
 
     MP_PERMISSIONS.restrict_permissions(test_path);
 }
@@ -147,9 +147,9 @@ struct TestPermissionUtilsDir : public TestPermissionUtils
 
 TEST_F(TestPermissionUtilsDir, set_permissions_iterates_dir)
 {
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, set_permissions(qpath1, test_permissions)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, set_permissions(qpath2, test_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions, false)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(qpath1, test_permissions, true)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(qpath2, test_permissions, true)).WillOnce(Return(true));
 
     MP_PERMISSIONS.set_permissions(test_path, test_permissions);
 }
@@ -169,9 +169,9 @@ TEST_F(TestPermissionUtilsDir, restrict_permissions_iterates_dir)
     EXPECT_CALL(mock_platform, take_ownership(qpath1)).WillOnce(Return(true));
     EXPECT_CALL(mock_platform, take_ownership(qpath2)).WillOnce(Return(true));
 
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, set_permissions(qpath1, restricted_permissions)).WillOnce(Return(true));
-    EXPECT_CALL(mock_platform, set_permissions(qpath2, restricted_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions, false)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(qpath1, restricted_permissions, true)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(qpath2, restricted_permissions, true)).WillOnce(Return(true));
 
     MP_PERMISSIONS.restrict_permissions(test_path);
 }
@@ -189,7 +189,7 @@ struct TestPermissionUtilsBadDir : public TestPermissionUtils
 
 TEST_F(TestPermissionUtilsBadDir, set_permissions_throws_on_broken_iterator)
 {
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, test_permissions, false)).WillOnce(Return(true));
 
     MP_EXPECT_THROW_THAT(MP_PERMISSIONS.set_permissions(test_path, test_permissions),
                          std::runtime_error,
@@ -207,7 +207,7 @@ TEST_F(TestPermissionUtilsBadDir, take_ownership_throws_on_broken_iterator)
 
 TEST_F(TestPermissionUtilsBadDir, restrict_permissions_throws_on_broken_iterator)
 {
-    EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(mock_platform, set_permissions(test_qpath, restricted_permissions, false)).WillOnce(Return(true));
     EXPECT_CALL(mock_platform, take_ownership(test_qpath)).WillOnce(Return(true));
 
     MP_EXPECT_THROW_THAT(MP_PERMISSIONS.restrict_permissions(test_path),

@@ -25,11 +25,11 @@ namespace fs = mp::fs;
 
 namespace
 {
-void set_single_permissions(const fs::path& path, const QFileDevice::Permissions& permissions)
+void set_single_permissions(const fs::path& path, const QFileDevice::Permissions& permissions, bool try_inherit)
 {
     QString qpath = QString::fromUtf8(path.u8string());
 
-    if (!MP_PLATFORM.set_permissions(qpath, permissions))
+    if (!MP_PLATFORM.set_permissions(qpath, permissions, try_inherit))
         throw std::runtime_error(fmt::format("Cannot set permissions for '{}'", path.string()));
 }
 
@@ -58,9 +58,9 @@ void apply_on_files(const fs::path& path, Func&& func)
     if (!MP_FILEOPS.exists(path, ec) || ec)
         throw std::runtime_error(fmt::format("Cannot handle permissions for nonexistent file '{}'", path.string()));
 
-    func(path);
+    func(path, true);
 
-    // iterate over children if directory
+    // iterate over children of directory
     if (MP_FILEOPS.is_directory(path, ec))
     {
         auto dir_iterator = MP_FILEOPS.recursive_dir_iterator(path, ec);
@@ -73,7 +73,7 @@ void apply_on_files(const fs::path& path, Func&& func)
         {
             const auto& entry = dir_iterator->next();
 
-            func(entry.path());
+            func(entry.path(), false);
         }
     }
 
@@ -87,18 +87,20 @@ mp::PermissionUtils::PermissionUtils(const PrivatePass& pass) noexcept : Singlet
 
 void mp::PermissionUtils::set_permissions(const fs::path& path, const QFileDevice::Permissions& permissions) const
 {
-    apply_on_files(path, [&](const fs::path& apply_path) { set_single_permissions(apply_path, permissions); });
+    apply_on_files(path, [&](const fs::path& apply_path, bool root_dir) {
+        set_single_permissions(apply_path, permissions, !root_dir);
+    });
 }
 
 void mp::PermissionUtils::take_ownership(const fs::path& path) const
 {
-    apply_on_files(path, [&](const fs::path& apply_path) { set_single_owner(apply_path); });
+    apply_on_files(path, [&](const fs::path& apply_path, bool) { set_single_owner(apply_path); });
 }
 
 void mp::PermissionUtils::restrict_permissions(const fs::path& path) const
 {
-    apply_on_files(path, [&](const fs::path& apply_path) {
+    apply_on_files(path, [&](const fs::path& apply_path, bool root_dir) {
         set_single_owner(apply_path);
-        set_single_permissions(apply_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+        set_single_permissions(apply_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner, !root_dir);
     });
 }

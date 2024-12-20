@@ -60,6 +60,7 @@ public:
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual bool set_permissions(const std::filesystem::path& path, std::filesystem::perms permissions) const;
     virtual bool take_ownership(const Path& path) const;
+    virtual void setup_permission_inheritance(bool restricted = true) const;
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
     virtual int utime(const char* path, int atime, int mtime) const;

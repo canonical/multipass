@@ -53,7 +53,7 @@ TEST_F(TestPlatformUnix, setServerSocketRestrictionsNotRestrictedIsCorrect)
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, chown(_, 0, 0)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_platform, set_permissions(_, relaxed_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform, set_permissions(_, relaxed_permissions, false)).WillOnce(Return(true));
 
     EXPECT_NO_THROW(MP_PLATFORM.Platform::set_server_socket_restrictions(fmt::format("unix:{}", file.name()), false));
 }
@@ -66,7 +66,7 @@ TEST_F(TestPlatformUnix, setServerSocketRestrictionsRestrictedIsCorrect)
     group.gr_gid = gid;
 
     EXPECT_CALL(*mock_platform, chown(_, 0, gid)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_platform, set_permissions(_, restricted_permissions)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform, set_permissions(_, restricted_permissions, false)).WillOnce(Return(true));
 
     REPLACE(getgrnam, [&group](auto) { return &group; });
 
@@ -110,7 +110,7 @@ TEST_F(TestPlatformUnix, setServerSocketRestrictionsChmodFailsThrows)
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, chown(_, 0, 0)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_platform, set_permissions(_, relaxed_permissions)).WillOnce([](auto...) {
+    EXPECT_CALL(*mock_platform, set_permissions(_, relaxed_permissions, false)).WillOnce([](auto...) {
         errno = EPERM;
         return false;
     });
