@@ -368,7 +368,6 @@ write_files:
   - path: /etc/pollinate/add-user-agent
     content: "multipass/version/1.14.0-dev.1209+g5b2c7f7d # written by Multipass\nmultipass/driver/qemu-8.0.4 # written by Multipass\nmultipass/host/ubuntu-23.10 # written by Multipass\nmultipass/alias/default # written by Multipass\n"
 )";
-
     mp::CloudInitIso original_iso;
 
     original_iso.add_file("meta-data", default_meta_data_content);

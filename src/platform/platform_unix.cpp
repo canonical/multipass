@@ -81,6 +81,20 @@ bool mp::platform::Platform::take_ownership(const Path& path) const
     return this->chown(path.toStdString().c_str(), 0, 0) == 0;
 }
 
+void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
+{
+    if (restricted)
+    {
+        // only user can read/write/execute
+        ::umask(~(S_IRUSR | S_IWUSR | S_IXUSR));
+    }
+    else
+    {
+        // typical default umask permissions
+        ::umask(S_IWGRP | S_IWOTH);
+    }
+}
+
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
     return ::symlink(target, link) == 0;

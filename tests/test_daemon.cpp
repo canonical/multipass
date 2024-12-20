@@ -2551,4 +2551,11 @@ TEST_F(Daemon, sets_permissions_on_storage_dirs)
     config_builder.build();
 }
 
+TEST_F(Daemon, sets_up_permission_inheritance)
+{
+    EXPECT_CALL(mock_platform, setup_permission_inheritance(true));
+
+    config_builder.build();
+}
+
 } // namespace

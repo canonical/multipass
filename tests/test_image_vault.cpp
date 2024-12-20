@@ -21,7 +21,6 @@
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
-#include "mock_platform.h"
 #include "mock_process_factory.h"
 #include "path.h"
 #include "stub_url_downloader.h"
