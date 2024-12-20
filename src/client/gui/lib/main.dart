@@ -4,7 +4,6 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:window_size/window_size.dart';
 
 import 'before_quit_dialog.dart';
 import 'catalogue/catalogue.dart';
@@ -20,6 +19,7 @@ import 'tray_menu.dart';
 import 'vm_details/mapping_slider.dart';
 import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
+import 'window_size.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,25 +31,12 @@ void main() async {
     shortcutPolicy: ShortcutPolicy.requireCreate, // Only for Windows
   );
 
-  // Get the current screen size
-  final screenSize = await getCurrentScreen().then((screen) {
-    return screen?.frame.size;
-  });
-
-  final windowSize = (screenSize != null)
-    ? (screenSize.width >= 1600 && screenSize.height >= 900)
-      ? const Size(1400, 822) // For screens 1600x900 or larger
-      : (screenSize.width >= 1280 && screenSize.height >= 720)
-        ? const Size(1024, 576) // For screens 1280x720 or larger
-        : const Size(750, 450) // Default window size
-    : const Size(750, 450); // Default window size if screenSize is null
-
+  final sharedPreferences = await SharedPreferences.getInstance();
   await windowManager.ensureInitialized();
-
   final windowOptions = WindowOptions(
     center: true,
     minimumSize: const Size(750, 450),
-    size: windowSize,
+    size: await deriveWindowSize(sharedPreferences),
     title: 'Multipass',
   );
 
@@ -59,7 +46,6 @@ void main() async {
   });
 
   await hotKeyManager.unregisterAll();
-  final sharedPreferences = await SharedPreferences.getInstance();
 
   providerContainer = ProviderContainer(overrides: [
     guiSettingProvider.overrideWith(() {
@@ -168,6 +154,11 @@ class _AppState extends ConsumerState<App> with WindowListener {
     windowManager.removeListener(this);
     super.dispose();
   }
+
+  // this event handler is called continuously during a window resizing operation
+  // so we want to save the data to the disk only after the resizing stops
+  @override
+  void onWindowResize() => saveWindowSizeTimer.reset();
 
   @override
   void onWindowClose() async {
