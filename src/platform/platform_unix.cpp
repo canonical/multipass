@@ -58,14 +58,29 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
-bool mp::platform::Platform::set_permissions(const Path& path, const Perms permissions) const
+bool mp::platform::Platform::set_permissions(const Path& path, const Perms permissions, bool try_inherit) const
 {
+    // try_inherit is ignored on unix since inheritance is global
     return QFile::setPermissions(path, permissions);
 }
 
 bool mp::platform::Platform::take_ownership(const Path& path) const
 {
     return this->chown(path.toStdString().c_str(), 0, 0) == 0;
+}
+
+void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
+{
+    if (restricted)
+    {
+        // only user can read/write/execute
+        ::umask(~(S_IRUSR | S_IWUSR | S_IXUSR));
+    }
+    else
+    {
+        // typical default umask permissions
+        ::umask(S_IWGRP | S_IWOTH);
+    }
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
