@@ -81,7 +81,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CTEST_OUTPUT_ON_FAILURE: 1
       SNAPCRAFT_BUILD_INFO: 1
 
     timeout-minutes: 120
