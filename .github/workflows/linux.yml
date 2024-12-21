@@ -51,6 +51,7 @@ jobs:
             MATRIX+='{"build-type": "Coverage" }'
         fi
 
+
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
 
   BuildAndTest:
