@@ -15,6 +15,8 @@
  *
  */
 
+#include <multipass/terminal.h>
+
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 #include "windows_terminal.h"
 #else
