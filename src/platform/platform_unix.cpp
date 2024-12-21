@@ -17,6 +17,7 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/timer.h>
 #include <multipass/utils.h>
 
 #include <grp.h>
@@ -157,6 +158,25 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     return 0;
 }
 
+mp::platform::SignalWrapper::SignalWrapper(const PrivatePass& pass) noexcept : Singleton(pass)
+{
+}
+
+int mp::platform::SignalWrapper::mask_signals(int how, const sigset_t* sigset, sigset_t* old_set) const
+{
+    return pthread_sigmask(how, sigset, old_set);
+}
+
+int mp::platform::SignalWrapper::send(pthread_t target, int signal) const
+{
+    return pthread_kill(target, signal);
+}
+
+int mp::platform::SignalWrapper::wait(const sigset_t& sigset, int& got) const
+{
+    return sigwait(std::addressof(sigset), std::addressof(got));
+}
+
 sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 {
     sigset_t sigset;
@@ -171,15 +191,38 @@ sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
 {
     auto sigset{make_sigset(sigs)};
-    pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
+    MP_POSIX_SIGNAL.mask_signals(SIG_BLOCK, &sigset, nullptr);
     return sigset;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog()
+template <class Rep, class Period>
+timespec make_timespec(std::chrono::duration<Rep, Period> duration)
 {
-    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP})]() {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        return sig;
+    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+    return timespec{seconds.count(), std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count()};
+}
+
+std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+    const std::chrono::milliseconds& period)
+{
+    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
+            period](const std::function<bool()>& condition) -> std::optional<int> {
+        // create a timer to periodically send SIGUSR2
+        utils::Timer signal_generator{period, [signalee = pthread_self()] { MP_POSIX_SIGNAL.send(signalee, SIGUSR2); }};
+
+        // wait on signals and condition
+        int latest_signal = SIGUSR2;
+        while (latest_signal == SIGUSR2 && condition())
+        {
+            signal_generator.start();
+
+            // can't use sigtimedwait since macOS doesn't support it
+            MP_POSIX_SIGNAL.wait(sigset, latest_signal);
+        }
+
+        signal_generator.stop();
+
+        // if `latest_signal` is SIGUSR2 then we know `condition()` is false
+        return latest_signal == SIGUSR2 ? std::nullopt : std::make_optional(latest_signal);
     };
 }
