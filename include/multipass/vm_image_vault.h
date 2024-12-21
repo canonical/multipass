@@ -42,14 +42,6 @@ namespace multipass
 class VMImageHost;
 namespace vault
 {
-// Helper functions and classes for all image vault types
-QString filename_for(const Path& path);
-QString copy(const QString& file_name, const QDir& output_dir);
-void delete_file(const Path& path);
-QString compute_image_hash(const Path& image_path);
-void verify_image_download(const Path& image_path, const QString& image_hash);
-QString extract_image(const Path& image_path, const ProgressMonitor& monitor, const bool delete_file = false);
-std::unordered_map<std::string, VMImageHost*> configure_image_host_map(const std::vector<VMImageHost*>& image_hosts);
 
 class DeleteOnException
 {

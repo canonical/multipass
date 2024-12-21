@@ -87,6 +87,9 @@ public:
     virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
     virtual bool flush(QFile& file) const;
 
+    virtual QString remove_extension(const QString& path) const;
+    virtual bool copy(const QString& from, const QString& to) const;
+
     // QSaveFile operations
     virtual bool commit(QSaveFile& file) const;
 
