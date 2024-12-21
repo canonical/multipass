@@ -1,7 +1,16 @@
 name: Linux
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+    - main
+    - release/[0-9]+.[0-9]+
+    tags:
+    - v[0-9]+.[0-9]+.[0-9]+
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
