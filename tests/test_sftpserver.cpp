@@ -546,7 +546,7 @@ TEST_F(SftpServer, handles_mkdir)
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
 
-    EXPECT_CALL(*platform, set_permissions(A<const mp::Path&>(), _)).WillOnce(Return(true));
+    EXPECT_CALL(*platform, set_permissions(A<const std::filesystem::path&>(), _)).WillOnce(Return(true));
     EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
 
