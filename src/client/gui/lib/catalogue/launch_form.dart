@@ -62,6 +62,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
+    final daemonInfo = ref.watch(daemonInfoProvider);
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -181,14 +182,26 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ]),
     );
 
+    final titleRow = Row(children: [
+      daemonInfo.when(
+        data: (info) => Text(
+          'Available Resources:\n'
+          'CPUs: ${info.cpus}\n'
+          'Memory: ${info.memory}\n'
+          'Storage: ${info.availableSpace}',
+          style: const TextStyle(fontSize: 16),
+        ),
+        loading: () => const CircularProgressIndicator(),
+        error: (err, stack) => Text('Error: $err'),
+      ),
+      const Spacer(),
+      closeButton,
+    ]);
+
     final formBody = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          const Text('Configure instance', style: TextStyle(fontSize: 24)),
-          const Spacer(),
-          closeButton,
-        ]),
+        titleRow,
         const SizedBox(height: 20),
         const Text(
           'Image',

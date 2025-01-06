@@ -44,6 +44,15 @@ namespace multipass
 struct DaemonConfig;
 class SettingsHandler;
 
+struct LinuxSystemInfo
+{
+    int cpus;
+    long long memory;
+    long long disk;
+};
+
+LinuxSystemInfo read_linux_system_info();
+
 class Daemon : public QObject, public multipass::VMStatusMonitor
 {
     Q_OBJECT
