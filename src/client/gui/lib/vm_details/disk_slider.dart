@@ -20,16 +20,19 @@ class DiskSlider extends ConsumerWidget {
   final int min;
   final FormFieldSetter<int> onSaved;
 
+  final int maxDisk;
+
   DiskSlider({
     super.key,
     int? min,
     this.initialValue,
     required this.onSaved,
+    this.maxDisk=1,
   }) : min = min ?? 1.gibi;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final disk = ref.watch(diskSizeProvider).valueOrNull ?? min;
+    final disk = maxDisk ?? min;
     final max = math.max(initialValue ?? 0, disk);
     final enabled = min != max;
 
