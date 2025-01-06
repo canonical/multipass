@@ -147,7 +147,7 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
     do_pull_file(source_path, *local_file);
 
     auto source_perms = mp_sftp_stat(sftp.get(), source_path.u8string().c_str())->permissions;
-    if (!MP_PLATFORM.set_permissions(QString::fromStdString(target_path.u8string()), static_cast<Perms>(source_perms)))
+    if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
         throw SFTPError{"cannot set permissions for local file {}", target_path};
 
     if (local_file->fail())
@@ -301,7 +301,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
     for (auto it = subdirectory_perms.crbegin(); it != subdirectory_perms.crend(); ++it)
     {
         const auto& [path, perms] = *it;
-        if (!MP_PLATFORM.set_permissions(QString::fromStdString(path.u8string()), static_cast<Perms>(perms)))
+        if (!MP_PLATFORM.set_permissions(path, static_cast<fs::perms>(perms)))
         {
             mpl::log(mpl::Level::error,
                      log_category,

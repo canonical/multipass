@@ -105,11 +105,6 @@ bool mp::FileOps::open(QFileDevice& file, QIODevice::OpenMode mode) const
     return file.open(mode);
 }
 
-QFileDevice::Permissions mp::FileOps::permissions(const QFile& file) const
-{
-    return file.permissions();
-}
-
 qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
 {
     return file.read(data, maxSize);
@@ -291,4 +286,9 @@ fs::path mp::FileOps::weakly_canonical(const fs::path& path) const
 fs::path mp::FileOps::remove_extension(const fs::path& path) const
 {
     return path.parent_path() / path.stem();
+}
+
+fs::perms mp::FileOps::get_permissions(const fs::path& file) const
+{
+    return fs::status(file).permissions();
 }
