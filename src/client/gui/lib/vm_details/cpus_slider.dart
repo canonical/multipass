@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:system_info2/system_info2.dart';
 
+final cpuCoreCountProvider = FutureProvider((ref) {
+  return ref
+      .watch(grpcClientProvider)
+      .daemonInfo()
+      .then((r) => r.cpus.toInt());
+});
+
 class CpusSlider extends StatefulWidget {
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
@@ -19,7 +26,7 @@ class CpusSlider extends StatefulWidget {
 }
 
 class _CpusSliderState extends State<CpusSlider> {
-  static final cores = SysInfo.cores.length;
+  static final cores = ref.watch(ramSizeProvider).valueOrNull ?? SysInfo.cores.length;
 
   final min = 1;
   late final max = math.max(widget.initialValue ?? 0, cores);

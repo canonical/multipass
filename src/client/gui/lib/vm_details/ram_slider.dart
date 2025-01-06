@@ -6,8 +6,15 @@ import 'package:system_info2/system_info2.dart';
 import 'mapping_slider.dart';
 import 'memory_slider.dart';
 
+final ramSizeProvider = FutureProvider((ref) {
+  return ref
+      .watch(grpcClientProvider)
+      .daemonInfo()
+      .then((r) => r.memory.toInt());
+});
+
 class RamSlider extends StatelessWidget {
-  static final ram = SysInfo.getTotalPhysicalMemory();
+  static final ram = ref.watch(ramSizeProvider).valueOrNull ?? 512.mebi;//?? SysInfo.getTotalPhysicalMemory();
 
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
