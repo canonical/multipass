@@ -2,34 +2,30 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:system_info2/system_info2.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final cpuCoreCountProvider = FutureProvider((ref) {
-  return ref
-      .watch(grpcClientProvider)
-      .daemonInfo()
-      .then((r) => r.cpus.toInt());
-});
-
-class CpusSlider extends StatefulWidget {
+class CpusSlider extends ConsumerStatefulWidget {
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
+
+  final int maxCpus;
 
   const CpusSlider({
     super.key,
     this.initialValue,
     required this.onSaved,
+    this.maxCpus=1,
   });
 
   @override
-  State<CpusSlider> createState() => _CpusSliderState();
+  ConsumerState<CpusSlider> createState() => _CpusSliderState();
 }
 
-class _CpusSliderState extends State<CpusSlider> {
-  static final cores = ref.watch(ramSizeProvider).valueOrNull ?? SysInfo.cores.length;
+class _CpusSliderState extends ConsumerState<CpusSlider> {
+
 
   final min = 1;
-  late final max = math.max(widget.initialValue ?? 0, cores);
+
   late final controller = TextEditingController(
     text: widget.initialValue?.toString(),
   );
@@ -64,6 +60,9 @@ class _CpusSliderState extends State<CpusSlider> {
 
   @override
   Widget build(BuildContext context) {
+    final cores = widget.maxCpus;
+    final max = math.max(widget.initialValue ?? 0, cores);
+
     final textField = TextField(
       controller: controller,
       focusNode: focusNode,
