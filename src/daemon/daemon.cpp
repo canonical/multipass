@@ -3833,5 +3833,3 @@ mp::LinuxSystemInfo mp::read_linux_system_info()
 #endif
     return info;
 }
-
-

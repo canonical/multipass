@@ -1,32 +1,31 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:system_info2/system_info2.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'mapping_slider.dart';
 import 'memory_slider.dart';
 
-final ramSizeProvider = FutureProvider((ref) {
-  return ref
-      .watch(grpcClientProvider)
-      .daemonInfo()
-      .then((r) => r.memory.toInt());
-});
+class RamSlider extends ConsumerWidget {
 
-class RamSlider extends StatelessWidget {
-  static final ram = ref.watch(ramSizeProvider).valueOrNull ?? 512.mebi;//?? SysInfo.getTotalPhysicalMemory();
 
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
+
+  final int maxRam;
 
   const RamSlider({
     super.key,
     this.initialValue,
     required this.onSaved,
+    this.maxRam=1,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+
+    final ram = maxRam ?? 512.mebi;
+
     return MemorySlider(
       label: 'Memory',
       initialValue: initialValue,
