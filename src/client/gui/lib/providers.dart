@@ -314,3 +314,7 @@ final networksProvider = Provider.autoDispose((ref) {
   }
   return BuiltSet<String>();
 });
+
+final daemonInfoProvider = FutureProvider.autoDispose<DaemonInfoReply>((ref) {
+  return ref.watch(grpcClientProvider).daemonInfo();
+});
