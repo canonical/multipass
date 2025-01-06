@@ -73,7 +73,6 @@ public:
     virtual bool exists(const QFile& file) const;
     virtual bool is_open(const QFile& file) const;
     virtual bool open(QFileDevice& file, QIODevice::OpenMode mode) const;
-    virtual QFileDevice::Permissions permissions(const QFile& file) const;
     virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
     virtual QByteArray read_all(QFile& file) const;
     virtual QString read_line(QTextStream& text_stream) const;
@@ -119,6 +118,8 @@ public:
                                                                          std::error_code& err) const;
     virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path, std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
+
+    virtual fs::perms get_permissions(const fs::path& file) const;
 
     virtual fs::path remove_extension(const fs::path& path) const;
 };

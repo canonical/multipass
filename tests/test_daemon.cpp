@@ -280,7 +280,7 @@ TEST_F(Daemon, daemonAppliesPermissionsToStorageDirectory)
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
-    EXPECT_CALL(mock_utils, make_dir(_, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+    EXPECT_CALL(mock_utils, make_dir(_, std::filesystem::perms::owner_all));
 
     auto config = config_builder.build();
 }
@@ -314,7 +314,7 @@ TEST_F(Daemon, data_path_with_storage_valid)
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(mp::utils::get_multipass_storage()));
 
     ON_CALL(mock_utils, make_dir(_, _, _))
-        .WillByDefault([this](const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions) {
+        .WillByDefault([this](const QDir& a_dir, const QString& name, std::filesystem::perms permissions) {
             return mock_utils.Utils::make_dir(a_dir, name, permissions);
         });
 
@@ -1463,7 +1463,7 @@ TEST_F(Daemon, reads_mac_addresses_from_json)
 TEST_F(Daemon, writesAndReadsMountsInJson)
 {
     ON_CALL(mock_utils, make_dir(_, _, _))
-        .WillByDefault([this](const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions) {
+        .WillByDefault([this](const QDir& a_dir, const QString& name, std::filesystem::perms permissions) {
             return mock_utils.Utils::make_dir(a_dir, name, permissions);
         });
 
@@ -1474,9 +1474,9 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     // Create a temp folder containing three subfolders, and create mount points for all of them.
     auto temp_mount_dir = QDir(mpt::TempDir().path());
-    auto temp_mount_1 = MP_UTILS.make_dir(temp_mount_dir, QString("a"), QFileDevice::Permissions{}).toStdString();
-    auto temp_mount_2 = MP_UTILS.make_dir(temp_mount_dir, QString("b"), QFileDevice::Permissions{}).toStdString();
-    auto temp_mount_3 = MP_UTILS.make_dir(temp_mount_dir, QString("c"), QFileDevice::Permissions{}).toStdString();
+    auto temp_mount_1 = MP_UTILS.make_dir(temp_mount_dir, QString("a"), std::filesystem::perms::none).toStdString();
+    auto temp_mount_2 = MP_UTILS.make_dir(temp_mount_dir, QString("b"), std::filesystem::perms::none).toStdString();
+    auto temp_mount_3 = MP_UTILS.make_dir(temp_mount_dir, QString("c"), std::filesystem::perms::none).toStdString();
 
     mp::id_mappings uid_mappings_1{{123, 321}};
     mp::id_mappings gid_mappings_1{{456, 654}};

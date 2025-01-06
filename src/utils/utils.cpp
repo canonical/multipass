@@ -275,7 +275,7 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::st
     return mp::utils::trim_end(output);
 }
 
-mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, QFileDevice::Permissions permissions)
+mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, std::filesystem::perms permissions)
 {
     mp::Path dir_path;
     bool success{false};
@@ -296,15 +296,15 @@ mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, QFileDevice
         throw std::runtime_error(fmt::format("unable to create directory '{}'", dir_path));
     }
 
-    if (permissions)
+    if (permissions != std::filesystem::perms::none)
     {
-        MP_PLATFORM.set_permissions(dir_path, permissions);
+        MP_PLATFORM.set_permissions(dir_path.toStdU16String(), permissions);
     }
 
     return dir_path;
 }
 
-mp::Path mp::Utils::make_dir(const QDir& dir, QFileDevice::Permissions permissions)
+mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions)
 {
     return make_dir(dir, QString(), permissions);
 }

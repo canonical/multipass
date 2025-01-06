@@ -48,7 +48,6 @@ public:
     MOCK_METHOD(bool, exists, (const QFile&), (const, override));
     MOCK_METHOD(bool, is_open, (const QFile&), (const, override));
     MOCK_METHOD(bool, open, (QFileDevice&, QIODevice::OpenMode), (const, override));
-    MOCK_METHOD(QFileDevice::Permissions, permissions, (const QFile&), (const, override));
     MOCK_METHOD(qint64, read, (QFile&, char*, qint64), (const, override));
     MOCK_METHOD(QByteArray, read_all, (QFile&), (const, override));
     MOCK_METHOD(QString, read_line, (QTextStream&), (const, override));
@@ -97,6 +96,7 @@ public:
                 (const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, weakly_canonical, (const fs::path& path), (override, const));
+    MOCK_METHOD(fs::perms, get_permissions, (const fs::path&), (const, override));
 
     MOCK_METHOD(fs::path, remove_extension, (const fs::path& path), (const, override));
 
