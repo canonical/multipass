@@ -105,11 +105,6 @@ bool mp::FileOps::open(QFileDevice& file, QIODevice::OpenMode mode) const
     return file.open(mode);
 }
 
-QFileDevice::Permissions mp::FileOps::permissions(const QFile& file) const
-{
-    return file.permissions();
-}
-
 qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
 {
     return file.read(data, maxSize);
@@ -281,4 +276,9 @@ std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
 fs::path mp::FileOps::weakly_canonical(const fs::path& path) const
 {
     return fs::weakly_canonical(path);
+}
+
+fs::perms mp::FileOps::get_permissions(const fs::path& file) const
+{
+    return fs::status(file).permissions();
 }
