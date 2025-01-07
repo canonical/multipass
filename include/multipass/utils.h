@@ -202,9 +202,6 @@ class Utils : public Singleton<Utils>
 public:
     Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
-    static constexpr QFileDevice::Permissions default_permissions =
-        QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner;
-
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code);
     virtual std::string contents_of(const multipass::Path& file_path) const;
