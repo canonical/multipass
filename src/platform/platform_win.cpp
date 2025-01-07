@@ -652,13 +652,13 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, 
     return success;
 }
 
-bool mp::platform::Platform::take_ownership(const mp::Path& path) const
+bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    LPSTR lpPath = _strdup(path.toStdString().c_str());
+    LPSTR lpPath = _strdup(path.u8string().c_str());
     auto success = true;
 
     // assuming the daemon is Admin.
-    success &= set_file_owner(lpPath, MP_FILEOPS.isDir(QFileInfo{path}));
+    success &= set_file_owner(lpPath, MP_FILEOPS.isDir(QFileInfo{QString::fromStdString(path.u8string())}));
     success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL);
 
     std::free(lpPath);
