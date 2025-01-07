@@ -4,17 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers.dart';
+
 class CpusSlider extends ConsumerStatefulWidget {
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
-
-  final int maxCpus;
 
   const CpusSlider({
     super.key,
     this.initialValue,
     required this.onSaved,
-    this.maxCpus=1,
   });
 
   @override
@@ -22,8 +21,6 @@ class CpusSlider extends ConsumerStatefulWidget {
 }
 
 class _CpusSliderState extends ConsumerState<CpusSlider> {
-
-
   final min = 1;
 
   late final controller = TextEditingController(
@@ -60,7 +57,8 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
 
   @override
   Widget build(BuildContext context) {
-    final cores = widget.maxCpus;
+    final daemonInfo = ref.watch(daemonInfoProvider);
+    final cores = daemonInfo.valueOrNull?.cpus.toInt() ?? min;
     final max = math.max(widget.initialValue ?? 0, cores);
 
     final textField = TextField(

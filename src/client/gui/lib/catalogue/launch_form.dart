@@ -18,11 +18,6 @@ import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
 
-// Define the daemonInfoProvider here
-final daemonInfoProvider = FutureProvider.autoDispose<DaemonInfoReply>((ref) {
-  return ref.watch(grpcClientProvider).daemonInfo();
-});
-
 final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
 
 final randomNameProvider = Provider.autoDispose(
@@ -89,36 +84,19 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
     );
 
-    final daemonInfo = ref.watch(daemonInfoProvider);
-
-    final cpusSlider = daemonInfo.when(
-      data: (info) => CpusSlider(
-        initialValue: defaultCpus,
-        maxCpus: info.cpus.toInt(), // Pass the max CPUs to the slider
-        onSaved: (value) => launchRequest.numCores = value!,
-      ),
-      loading: () => CircularProgressIndicator(),
-      error: (error, stack) => Text('Error: $error'),
+    final cpusSlider = CpusSlider(
+      initialValue: defaultCpus,
+      onSaved: (value) => launchRequest.numCores = value!,
     );
 
-    final memorySlider = daemonInfo.when(
-      data: (info) => RamSlider(
-        initialValue: defaultRam,
-        maxRam: info.memory.toInt(), // Pass the max RAM to the slider
-        onSaved: (value) => launchRequest.memSize = '${value!}B',
-      ),
-      loading: () => CircularProgressIndicator(),
-      error: (error, stack) => Text('Error: $error'),
+    final memorySlider = RamSlider(
+      initialValue: defaultRam,
+      onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
-    final diskSlider = daemonInfo.when(
-      data: (info) => DiskSlider(
-        initialValue: defaultRam,
-        maxDisk: info.availableSpace.toInt(), // Pass the available space to the slider
-        onSaved: (value) => launchRequest.memSize = '${value!}B',
-      ),
-      loading: () => CircularProgressIndicator(),
-      error: (error, stack) => Text('Error: $error'),
+    final diskSlider = DiskSlider(
+      initialValue: defaultDisk,
+      onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
     final bridgedSwitch = FormField<bool>(
