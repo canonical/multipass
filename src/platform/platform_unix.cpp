@@ -61,8 +61,11 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
 }
 
 bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
-                                             std::filesystem::perms permissions) const
+                                             std::filesystem::perms permissions,
+                                             bool) const
 {
+    // try_inherit is ignored on unix since it only pertains to ACLs
+
     std::error_code ec{};
     std::filesystem::permissions(path, permissions, ec);
 
@@ -76,9 +79,9 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return !ec;
 }
 
-bool mp::platform::Platform::take_ownership(const Path& path) const
+bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    return this->chown(path.toStdString().c_str(), 0, 0) == 0;
+    return this->chown(path.u8string().c_str(), 0, 0) == 0;
 }
 
 void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
