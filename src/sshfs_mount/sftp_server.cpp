@@ -990,7 +990,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        QFileInfo file_info{filename};
+        QFileInfo file_info{QString::fromStdString(filename.u8string())};
         if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
         {
             mpl::log(mpl::Level::trace,
@@ -1013,7 +1013,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        QFile file{filename};
+        QFile file{QString::fromStdString(filename.u8string())};
         if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
             mpl::log(mpl::Level::trace,
