@@ -72,6 +72,10 @@ final daemonAvailableProvider = Provider((ref) {
   return false;
 });
 
+final daemonInfoProvider = FutureProvider((ref) {
+  return ref.watch(grpcClientProvider).daemonInfo();
+});
+
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {

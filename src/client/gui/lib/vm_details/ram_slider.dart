@@ -3,34 +3,33 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers.dart';
 import 'mapping_slider.dart';
 import 'memory_slider.dart';
 
 class RamSlider extends ConsumerWidget {
-
-
   final int? initialValue;
+  final int min;
   final FormFieldSetter<int> onSaved;
-
-  final int maxRam;
 
   const RamSlider({
     super.key,
+    int? min,
     this.initialValue,
     required this.onSaved,
-    this.maxRam=1,
-  });
+  }) : min = min ?? 512.mebi;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
-    final ram = maxRam ?? 512.mebi;
+    final daemonInfo = ref.watch(daemonInfoProvider);
+    final ram = daemonInfo.valueOrNull?.memory.toInt() ?? min;
+    final max = math.max(initialValue ?? 0, ram);
 
     return MemorySlider(
       label: 'Memory',
       initialValue: initialValue,
-      min: 512.mebi,
-      max: math.max(initialValue ?? 0, ram),
+      min: min,
+      max: max,
       sysMax: ram,
       onSaved: onSaved,
     );
