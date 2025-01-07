@@ -633,7 +633,7 @@ TEST_F(PlatformLinux, create_alias_script_overwrites)
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
     EXPECT_CALL(*mock_file_ops, get_permissions(_))
         .WillOnce(Return(mp::fs::perms::owner_read | mp::fs::perms::owner_write));
-    EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillOnce(Return(true));
 
     // Calls the platform function directly since MP_PLATFORM is mocked.
     EXPECT_NO_THROW(MP_PLATFORM.Platform::create_alias_script("alias_name",
@@ -673,7 +673,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
     EXPECT_CALL(*mock_file_ops, get_permissions(_))
         .WillOnce(Return(mp::fs::perms::owner_read | mp::fs::perms::owner_write));
-    EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
         MP_PLATFORM.Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),

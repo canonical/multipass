@@ -34,7 +34,7 @@ class PermissionUtils : public Singleton<PermissionUtils>
 public:
     PermissionUtils(const PrivatePass&) noexcept;
 
-    virtual void set_permissions(const fs::path& path, const QFileDevice::Permissions& permissions) const;
+    virtual void set_permissions(const fs::path& path, const fs::perms& permissions) const;
     virtual void take_ownership(const fs::path& path) const;
 
     // sets owner to root and sets permissions such that only owner has access.

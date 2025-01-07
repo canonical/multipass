@@ -33,10 +33,7 @@ public:
     {
     }
 
-    MOCK_METHOD(void,
-                set_permissions,
-                (const fs::path& path, const QFileDevice::Permissions& permissions),
-                (const, override));
+    MOCK_METHOD(void, set_permissions, (const fs::path& path, const fs::perms& permissions), (const, override));
     MOCK_METHOD(void, take_ownership, (const fs::path& path), (const, override));
     MOCK_METHOD(void, restrict_permissions, (const fs::path& path), (const, override));
 

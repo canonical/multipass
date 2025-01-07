@@ -25,19 +25,15 @@ namespace fs = mp::fs;
 
 namespace
 {
-void set_single_permissions(const fs::path& path, const QFileDevice::Permissions& permissions, bool try_inherit)
+void set_single_permissions(const fs::path& path, const fs::perms& permissions, bool try_inherit)
 {
-    QString qpath = QString::fromUtf8(path.u8string());
-
-    if (!MP_PLATFORM.set_permissions(qpath, permissions, try_inherit))
+    if (!MP_PLATFORM.set_permissions(path, permissions, try_inherit))
         throw std::runtime_error(fmt::format("Cannot set permissions for '{}'", path.string()));
 }
 
 void set_single_owner(const fs::path& path)
 {
-    QString qpath = QString::fromUtf8(path.u8string());
-
-    if (!MP_PLATFORM.take_ownership(qpath))
+    if (!MP_PLATFORM.take_ownership(path))
         throw std::runtime_error(fmt::format("Cannot set owner for '{}'", path.string()));
 }
 
@@ -85,7 +81,7 @@ mp::PermissionUtils::PermissionUtils(const PrivatePass& pass) noexcept : Singlet
 {
 }
 
-void mp::PermissionUtils::set_permissions(const fs::path& path, const QFileDevice::Permissions& permissions) const
+void mp::PermissionUtils::set_permissions(const fs::path& path, const fs::perms& permissions) const
 {
     apply_on_files(path, [&](const fs::path& apply_path, bool root_dir) {
         set_single_permissions(apply_path, permissions, !root_dir);
@@ -101,6 +97,6 @@ void mp::PermissionUtils::restrict_permissions(const fs::path& path) const
 {
     apply_on_files(path, [&](const fs::path& apply_path, bool root_dir) {
         set_single_owner(apply_path);
-        set_single_permissions(apply_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner, !root_dir);
+        set_single_permissions(apply_path, fs::perms::owner_all, !root_dir);
     });
 }
