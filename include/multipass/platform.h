@@ -58,8 +58,10 @@ public:
     virtual bool is_remote_supported(const std::string& remote) const;
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
-    virtual bool set_permissions(const std::filesystem::path& path, std::filesystem::perms permissions) const;
-    virtual bool take_ownership(const Path& path) const;
+    virtual bool set_permissions(const std::filesystem::path& path,
+                                 std::filesystem::perms permissions,
+                                 bool try_inherit = false) const;
+    virtual bool take_ownership(const std::filesystem::path& path) const;
     virtual void setup_permission_inheritance(bool restricted = true) const;
     virtual bool link(const char* target, const char* link) const;
     virtual bool symlink(const char* target, const char* link, bool is_dir) const;
