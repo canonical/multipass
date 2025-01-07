@@ -2789,11 +2789,8 @@ try // clang-format on
     QStorageInfo storage_info{config->data_directory};
     response.set_available_space(storage_info.bytesTotal());
 
-#if defined(__linux__)
-    auto sys_info = read_linux_system_info();
-    response.set_cpus(sys_info.cpus);
-    response.set_memory(sys_info.memory);
-#endif
+    response.set_cpus(MP_PLATFORM.get_cpus());
+    response.set_memory(MP_PLATFORM.get_total_ram());
 
     server->Write(response);
     status_promise->set_value(grpc::Status{});
@@ -3800,36 +3797,4 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
         throw mp::BridgeFailureException("Cannot update instance settings", instance_name, preferred_net);
     }
-}
-
-mp::LinuxSystemInfo mp::read_linux_system_info()
-{
-    LinuxSystemInfo info{};
-#if defined(__linux__)
-    // Simple parsing from /proc files:
-    {
-        std::ifstream cpuinfo{"/proc/cpuinfo"};
-        std::string line;
-        while (std::getline(cpuinfo, line))
-        {
-            if (line.rfind("processor", 0) == 0)
-                info.cpus++;
-        }
-    }
-    {
-        std::ifstream meminfo{"/proc/meminfo"};
-        std::string line;
-        while (std::getline(meminfo, line))
-        {
-            if (line.rfind("MemTotal:", 0) == 0)
-            {
-                long kb = 0;
-                std::sscanf(line.c_str(), "MemTotal: %ld kB", &kb);
-                info.memory = kb * 1024LL;
-                break;
-            }
-        }
-    }
-#endif
-    return info;
 }
