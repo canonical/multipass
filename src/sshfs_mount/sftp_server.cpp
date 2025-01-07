@@ -1000,7 +1000,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    QFileInfo file_info{filename};
+    QFileInfo file_info{QString::fromStdString(filename.u8string())};
     if (!has_id_mappings_for(file_info))
     {
         mpl::log(mpl::Level::trace,
