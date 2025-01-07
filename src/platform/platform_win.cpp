@@ -352,13 +352,15 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
     SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
-    auto error_code = SetNamedSecurityInfo(path,
-                                           SE_FILE_OBJECT,
-                                           DACL_SECURITY_INFORMATION | ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION : PROTECTED_DACL_SECURITY_INFORMATION),
-                                           NULL,
-                                           NULL,
-                                           pDACL,
-                                           NULL);
+    auto error_code =
+        SetNamedSecurityInfo(path,
+                             SE_FILE_OBJECT,
+                             DACL_SECURITY_INFORMATION | ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
+                                                                    : PROTECTED_DACL_SECURITY_INFORMATION),
+                             NULL,
+                             NULL,
+                             pDACL,
+                             NULL);
 
     LocalFree((HLOCAL)pSD);
     LocalFree((HLOCAL)pDACL);
@@ -621,7 +623,9 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return -1;
 }
 
-bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, std::filesystem::perms perms, bool try_inherit) const
+bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
+                                             std::filesystem::perms perms,
+                                             bool try_inherit) const
 {
     // Windows has both ACLs and very limited POSIX permissions
 
@@ -662,6 +666,11 @@ bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) c
 
     std::free(lpPath);
     return success;
+}
+
+void mp::platform::Platform::setup_permission_inheritance(bool) const
+{
+    // this does nothing since Windows doesn't use global state
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
