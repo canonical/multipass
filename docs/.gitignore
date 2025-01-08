@@ -1,7 +1,6 @@
 /*env*/
 
 .sphinx/venv/
-.sphinx/requirements.txt
 .sphinx/warnings.txt
 .sphinx/.wordlist.dic
 .sphinx/.doctrees/
