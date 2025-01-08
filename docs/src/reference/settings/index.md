@@ -1,4 +1,6 @@
+(reference-settings-index)=
 # Settings
+
 > See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [GUI client](/reference/gui-client)
 
 Multipass can be configured with a number of **settings** that are read and written by the [`get`](/reference/command-line-interface/get) and [`set`](/reference/command-line-interface/set) CLI commands, respectively. Some settings are also available in the [GUI client](/reference/gui-client).

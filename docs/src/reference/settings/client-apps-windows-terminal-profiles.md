@@ -1,4 +1,6 @@
+(reference-settings-client-apps-windows-terminal-profiles)=
 # client.apps.windows-terminal.profiles
+
 > See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [How to integrate with Windows Terminal](/how-to-guides/customise-multipass/how-to-integrate-with-windows-terminal)
 
 ## Key

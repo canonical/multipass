@@ -1,4 +1,6 @@
+(reference-settings-client-primary-name)=
 # client.primary-name
+
 > See also: [Instance](/explanation/instance), [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [`launch`](/reference/command-line-interface/launch)
 
 ## Key

@@ -1,10 +1,13 @@
+(reference-index)=
 # Reference
+
 This section provides detailed reference material for Multipass, from CLI commands to settings keys.
  
-- [Command-Line Interface](/reference/command-line-interface/command-line-interface)
+- [Command-Line Interface](/reference/command-line-interface/index)
     - [alias](/reference/command-line-interface/alias)
     - [aliases](/reference/command-line-interface/aliases)
     - [authenticate](/reference/command-line-interface/authenticate)
+    - [clone](/reference/command-line-interface/clone)    
     - [delete](/reference/command-line-interface/delete) 
     - [exec](/reference/command-line-interface/exec)
     - [find](/reference/command-line-interface/find)
@@ -15,6 +18,7 @@ This section provides detailed reference material for Multipass, from CLI comman
     - [list](/reference/command-line-interface/list) 
     - [mount](/reference/command-line-interface/mount)
     - [networks](/reference/command-line-interface/networks)
+    - [prefer](/reference/command-line-interface/prefer)
     - [purge](/reference/command-line-interface/purge)
     - [recover](/reference/command-line-interface/recover) 
     - [restart](/reference/command-line-interface/restart) 
@@ -32,7 +36,7 @@ This section provides detailed reference material for Multipass, from CLI comman
 - [GUI client](/reference/gui-client)
 - [Instance name format](/reference/instance-name-format)
 - [Instance states](/reference/instance-states)
-- [Settings](/reference/settings/settings)
+- [Settings](/reference/settings/index)
     - [client.apps.windows-terminal.profiles](/reference/settings/client-apps-windows-terminal-profiles)
     - [client.gui.autostart](/reference/settings/client-gui-autostart)
     - [client.gui.hotkey](/reference/settings/client-gui-hotkey)

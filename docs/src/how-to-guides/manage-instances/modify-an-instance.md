@@ -1,7 +1,9 @@
+(how-to-guides-manage-instances-modify-an-instance)=
 # Modify an instance
-> See also: [Instance](/explanation/instance), [`launch`](/reference/command-line-interface/launch), [`set`](/reference/command-line-interface/set), [Settings](/reference/settings/settings)
 
-This document shows further ways to customize an instance outside of the [`launch`](/reference/command-line-interface/launch) command using the Multipass [settings](/reference/settings/settings).
+> See also: [Instance](/explanation/instance), [`launch`](/reference/command-line-interface/launch), [`set`](/reference/command-line-interface/set), [Settings](/reference/settings/index)
+
+This document shows further ways to customize an instance outside of the [`launch`](/reference/command-line-interface/launch) command using the Multipass [settings](/reference/settings/index).
 
 ## Set the CPUs , RAM or disk space of an instance
 
@@ -18,7 +20,7 @@ multipass set local.handsome-ling.disk=60G
 multipass set local.handsome-ling.memory=7G
 ```
 
-[note type="information"]
+```{note}
 The disk size can only be increased.
 ```
 
@@ -48,13 +50,13 @@ When done, run `sudo resize2fs /dev/sda1`.
 
 You can view these properties using the `get` command, without the need to stop instances. For example, `multipass get local.handsome-ling.cpus` returns the configured number of CPUs, which in our example is "4".
 
-[note type="information"]
+```{note}
 You can only update the properties of `Stopped`, non-deleted instances. If you try to update an instance that is in `Running`, `Suspended`, or `Deleted` status you'll incur an error.
 
 On the other hand, it's always possible to fetch properties for all instances. Use `multipass get --keys` to obtain their settings keys. 
 ```
 
-[note type="information"]
+```{note}
 Modifying instance settings is not supported when using the Hyperkit driver, which has been deprecated in favor of QEMU. The QEMU and VirtualBox drivers on Intel-based macOS hosts do support instance modification.
 ```
 

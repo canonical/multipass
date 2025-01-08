@@ -1,4 +1,6 @@
+(tutorial)=
 # Tutorial
+
 <!-- Merged contributions by @bagustris and @pitifulpete on the Open Documentation Academy -->
 
 Multipass is a flexible and powerful tool that can be used for many purposes. In its simplest form, you can use it to quickly create and destroy Ubuntu VMs (instances) on any host machine. But you can also use Multipass to build a local mini-cloud on your laptop, to test and develop multi-instance or container-based cloud applications.
@@ -9,7 +11,7 @@ This tutorial will help you understand how Multipass works, and the skills you n
 
 Multipass is available for Linux, macOS and Windows. To install it on the OS of your choice, please follow the instructions provided in [How to install Multipass](/how-to-guides/install-multipass). 
 
-[note type="information"]
+```{note}
 Select the tab corresponding to your operating system (e.g. Linux) to display the relevant content in each section. Your decision will stick until you select another OS from the drop-down menu.
 ```
 
@@ -676,7 +678,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 Congratulations! You can now use Multipass proficiently. 
 
-There's more to learn about Multipass and its capabilities. Check out our [How-to guides](/how-to-guides/how-to-guides) for ideas and help with your project. In our [Explanation](/explanation/explanation) and [Reference](/reference/reference) pages you can find definitions of key concepts, a complete CLI command reference, settings options and more.
+There's more to learn about Multipass and its capabilities. Check out our [How-to guides](/how-to-guides/index) for ideas and help with your project. In our [Explanation](/explanation/index) and [Reference](/reference/index) pages you can find definitions of key concepts, a complete CLI command reference, settings options and more.
 
 Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/multipass/) and let us know what you are doing with your instances!
 
@@ -687,3 +689,4 @@ Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/mult
 ---
 
 <small>**Contributors:** @nhart, @saviq, @townsend, @andreitoterman, @tmihoc, @luisp, @ricab, @sharder996, @georgeliaojia, @mscho7969, @itecompro, @mr-cal, @sally-makin, @gzanchi, @bagustris , @pitifulpete </small>
+
