@@ -16,6 +16,6 @@
 target_sources(multipass_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_platform_detail.cpp
-)   
+)
 
 target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu)
