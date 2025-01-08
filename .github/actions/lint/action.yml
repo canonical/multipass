@@ -29,7 +29,7 @@ runs:
 
   - name: Install clang-format
     shell: bash
-    run: sudo apt-get install --no-install-recommends --yes clang-format-12
+    run: sudo apt-get install --no-install-recommends --yes clang-format-16
 
   - name: Run clang-format through the diff
     shell: bash
@@ -37,7 +37,7 @@ runs:
       set -e -o pipefail
 
       # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
-      git diff -U0 --no-color HEAD^1 | clang-format-diff-12 -p1 | tee ${HOME}/clang-diff
+      git diff -U0 --no-color HEAD^1 | clang-format-diff-16 -p1 | tee ${HOME}/clang-diff
       if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
         echo "##[error] Please apply the above diff to correct formatting"
         exit 1
