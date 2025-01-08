@@ -1,4 +1,6 @@
+(how-to-guides-index)=
 # How-To-Guides
+
 The following how-to guides provide step-by-step instructions on the installation, use, management and troubleshooting of Multipass. 
 
 ## Install and deploy Multipass

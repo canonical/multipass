@@ -1,4 +1,6 @@
+(how-to-guides-manage-instances-use-an-instance)=
 # Use an instance
+
 > See also: [Instance](/explanation/instance)
 
 This document demonstrates various ways to use an instance.
@@ -45,7 +47,7 @@ As shown in the example above, an Ubuntu prompt is displayed as a result of the 
 
 To end the session, use `logout`, `exit`, or the `Ctrl-D` shortcut.
 
-[note type="information"]
+```{note}
 This is also available on the GUI.
 ```
 
@@ -85,7 +87,7 @@ multipass start --all
 
 If no options are specified, the `multipass start` command starts the primary instance, creating it if needed.
 
-[note type="information"]
+```{note}
 This is also available on the GUI.
 ```
 
@@ -147,7 +149,7 @@ multipass stop --force
 
 ```{caution} The `stop --force` command is analogous to unplugging the power cord from a physical machine – it immediately halts all computing activities. This may be necessary under certain circumstances but can potentially lead to data loss or corruption. ```
 
-[note=information] This command is also available on the Multipass GUI. ``` 
+```{note} This command is also available on the Multipass GUI. ``` 
 
 <!--?TODO: ADD RESTART?-->
 

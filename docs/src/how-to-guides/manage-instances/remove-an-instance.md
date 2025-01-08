@@ -1,4 +1,6 @@
+(how-to-guides-manage-instances-remove-an-instance)=
 # Remove an instance
+
 > See also: [Instance](/explanation/instance)
 
 This guide demonstrates how to remove an instance, either temporarily or permanently.

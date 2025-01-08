@@ -1,3 +1,4 @@
+(index)=
 
 <!--Welcome to the *Multipass Guide!*
 
@@ -9,8 +10,6 @@ Accessing files from your host machine is supported through the `multipass mount
 
 Please learn more details in the linked documentation topics.
 -->
-
-# Multipass documentation
 
 Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS and Windows. It provides a simple but powerful CLI that enables you to quickly access an Ubuntu command line or create your own local mini-cloud.
 
@@ -24,8 +23,8 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 |                                                                                                      |                                                                                             |
 |------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [Tutorial](/tutorial/tutorial)</br>  Get started - a hands-on introduction to Multipass for new users </br> | [How-to guides](/how-to-guides/how-to-guides) </br> Step-by-step guides covering key operations and common tasks |
-| [Explanation](/explanation/explanation) </br> Concepts - discussion and clarification of key topics                   | [Reference](/reference/reference) </br> Technical information - specifications, APIs, architecture       |
+| [Tutorial](/tutorial)</br>  Get started - a hands-on introduction to Multipass for new users </br> | [How-to guides](/how-to-guides/index) </br> Step-by-step guides covering key operations and common tasks |
+| [Explanation](/explanation/index) </br> Concepts - discussion and clarification of key topics                   | [Reference](/reference/index) </br> Technical information - specifications, APIs, architecture       |
 
 ---
 
@@ -39,13 +38,6 @@ We value your input and contributions! Here are some ways you can join our commu
 * Report an issue or contribute to the code on [GitHub](https://github.com/canonical/multipass/issues)
 
 
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://multipass.run/docs" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
-
-<small>**Contributors:** @nhart, @saviq, @townsend, @andreitoterman, @tmihoc, @luisp, @ricab, @sharder996, @georgeliaojia, @gzanchi </small>
-
-
 ```{toctree}
 :hidden:
 :titlesonly:
@@ -53,8 +45,8 @@ We value your input and contributions! Here are some ways you can join our commu
 :glob:
 
 Home <self>
-tutorial
+/tutorial*/index
 /how*/index
 /reference*/index
 /explanation*/index
-contribute-to-multipass-docs
+*

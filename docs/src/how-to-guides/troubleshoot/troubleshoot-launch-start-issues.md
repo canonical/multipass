@@ -1,4 +1,6 @@
+(how-to-guides-troubleshoot-troubleshoot-launch-start-issues)=
 # Troubleshoot launch/start issues
+
 <!-- this topic originates from Ricardo's suggestions here: https://github.com/canonical/multipass/discussions/3660#discussioncomment-10548808 -->
 
 This topic addresses common issues when launching or starting instances, such as *timeouts or "unknown state" errors*.

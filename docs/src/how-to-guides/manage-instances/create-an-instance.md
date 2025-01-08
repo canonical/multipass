@@ -1,4 +1,6 @@
+(how-to-guides-manage-instances-create-an-instance)=
 # Create an instance
+
 > See also: [`launch`](/reference/command-line-interface/launch), [Instance](/explanation/instance)
 
 This document demonstrates various ways to create an instance with Multipass. While every method is a one-liner involving the command `multipass launch`, each showcases a different option that you can use to get exactly the instance that you want.

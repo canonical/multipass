@@ -1,4 +1,6 @@
+(how-to-guides-manage-instances-add-a-network-to-an-existing-instance)=
 # Add a network to an existing instance
+
 > See also: [`networks`](/reference/command-line-interface/networks), [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged)
 
 This guide explains how to bridge an existing Multipass instance with the available networks.

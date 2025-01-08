@@ -1,4 +1,6 @@
+(how-to-guides-troubleshoot-troubleshoot-networking)=
 # Troubleshoot networking
+
 <!-- This document combines:
 - https://discourse.ubuntu.com/t/how-to-troubleshoot-networking-on-macos/12901
 - https://discourse.ubuntu.com/t/how-to-troubleshoot-networking-on-windows/13694
