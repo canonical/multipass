@@ -328,7 +328,8 @@ TEST(PlatformOSX, create_alias_script_overwrites)
     auto [mock_platform, guard3] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
-    EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
+    EXPECT_CALL(*mock_file_ops, get_permissions(_))
+        .WillOnce(Return(std::filesystem::perms::owner_read | std::filesystem::perms::owner_write));
     EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(true));
 
     EXPECT_NO_THROW(
