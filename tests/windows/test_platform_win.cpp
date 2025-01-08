@@ -133,7 +133,8 @@ TEST(PlatformWin, winterm_in_extra_client_settings)
     ASSERT_EQ(extras.size(), 1);
 
     auto& spec = **extras.begin();
-    MP_EXPECT_THROW_THAT(spec.interpret("wrong"), mp::InvalidSettingException,
+    MP_EXPECT_THROW_THAT(spec.interpret("wrong"),
+                         mp::InvalidSettingException,
                          mpt::match_what(HasSubstr(mp::winterm_key)));
 }
 
@@ -171,7 +172,8 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
 {
     for (const auto x : {"Unsupported", "values", "1", "000", "false", "True", "", "  "})
         MP_EXPECT_THROW_THAT(
-            mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingException,
+            mp::platform::interpret_setting(mp::winterm_key, x),
+            mp::InvalidSettingException,
             Property(&mp::InvalidSettingException::what,
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
@@ -224,7 +226,8 @@ TEST_P(TestWinTermSyncLesserLogging, logging_on_no_file)
     mp::platform::sync_winterm_profiles();
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncLesserLogging,
+INSTANTIATE_TEST_SUITE_P(PlatformWin,
+                         TestWinTermSyncLesserLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::debug),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::warning)));
 
@@ -266,7 +269,8 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unavailable_profiles)
     mp::platform::sync_winterm_profiles();
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncModerateLogging,
+INSTANTIATE_TEST_SUITE_P(PlatformWin,
+                         TestWinTermSyncModerateLogging,
                          Values(std::make_pair(QStringLiteral("none"), mpl::Level::info),
                                 std::make_pair(QStringLiteral("primary"), mpl::Level::error)));
 
@@ -291,7 +295,8 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
     mp::platform::sync_winterm_profiles();
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncGreaterLogging,
+INSTANTIATE_TEST_SUITE_P(PlatformWin,
+                         TestWinTermSyncGreaterLogging,
                          Values(QStringLiteral("none"), QStringLiteral("primary")));
 
 struct TestWinTermSyncNoLeftovers : public TestWinTermBase, public WithParamInterface<bool>
@@ -388,8 +393,9 @@ public:
     {
         const auto& profiles = get_profiles(json);
 
-        auto it = std::find_if(profiles.begin(), profiles.end(),
-                               [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
+        auto it = std::find_if(profiles.begin(), profiles.end(), [](const auto& profile) {
+            return profile["guid"] == mp::winterm_profile_guid;
+        });
 
         if (it == profiles.end())
             throw std::runtime_error{"Test error - could not find primary profile"};
@@ -601,7 +607,8 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if
     EXPECT_EQ(json, read_json(json_file_name));
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformWin, TestWinTermSyncJson,
+INSTANTIATE_TEST_SUITE_P(PlatformWin,
+                         TestWinTermSyncJson,
                          Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
 
 TEST(PlatformWin, create_alias_script_works)
@@ -639,7 +646,8 @@ TEST(PlatformWin, create_alias_script_throws_if_cannot_create_path)
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST(PlatformWin, create_alias_script_throws_if_cannot_write_script)
@@ -651,7 +659,8 @@ TEST(PlatformWin, create_alias_script_throws_if_cannot_write_script)
     EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST(PlatformWin, remove_alias_script_works)
@@ -677,7 +686,8 @@ TEST(PlatformWin, remove_alias_script_throws_if_cannot_remove_script)
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"),
+                         std::runtime_error,
                          mpt::match_what(StrEq("error removing alias script")));
 }
 

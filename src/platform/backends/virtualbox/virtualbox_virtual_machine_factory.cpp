@@ -134,15 +134,23 @@ void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::s
 
     auto cloudinit_match = cloudinit_re.match(vminfo_output);
 
-    mpu::process_log_on_error("VBoxManage", {"controlvm", QString::fromStdString(name), "poweroff"},
-                              "Could not power off VM: {}", QString::fromStdString(name), mpl::Level::warning);
-    mpu::process_log_on_error("VBoxManage", {"unregistervm", QString::fromStdString(name), "--delete"},
-                              "Could not unregister VM: {}", QString::fromStdString(name), mpl::Level::error);
+    mpu::process_log_on_error("VBoxManage",
+                              {"controlvm", QString::fromStdString(name), "poweroff"},
+                              "Could not power off VM: {}",
+                              QString::fromStdString(name),
+                              mpl::Level::warning);
+    mpu::process_log_on_error("VBoxManage",
+                              {"unregistervm", QString::fromStdString(name), "--delete"},
+                              "Could not unregister VM: {}",
+                              QString::fromStdString(name),
+                              mpl::Level::error);
 
     if (cloudinit_match.hasMatch())
     {
-        mpu::process_log_on_error("VBoxManage", {"closemedium", "dvd", cloudinit_match.captured(1)},
-                                  "Could not unregister cloud-init medium: {}", QString::fromStdString(name),
+        mpu::process_log_on_error("VBoxManage",
+                                  {"closemedium", "dvd", cloudinit_match.captured(1)},
+                                  "Could not unregister cloud-init medium: {}",
+                                  QString::fromStdString(name),
                                   mpl::Level::warning);
     }
     else
@@ -184,13 +192,16 @@ void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMIma
                                                                  const VirtualMachineDescription& desc)
 {
     // Need to generate a new medium UUID
-    mpu::process_throw_on_error("VBoxManage", {"internalcommands", "sethduuid", instance_image.image_path},
+    mpu::process_throw_on_error("VBoxManage",
+                                {"internalcommands", "sethduuid", instance_image.image_path},
                                 "Could not generate a new UUID: {}");
 
     mpu::process_log_on_error(
         "VBoxManage",
         {"modifyhd", instance_image.image_path, "--resize", QString::number(desc.disk_space.in_megabytes())},
-        "Could not resize image: {}", QString::fromStdString(desc.vm_name), mpl::Level::warning);
+        "Could not resize image: {}",
+        QString::fromStdString(desc.vm_name),
+        mpl::Level::warning);
 }
 
 void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
