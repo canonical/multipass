@@ -1,11 +1,13 @@
+(how-to-guides-install-multipass)=
 # Install Multipass
+
 <!-- This page combines the 3 different how-to pages ([Linux](/), [macOS](/), [Windows](/)) into a single page, using conditional tabs. -->
 
 <!-- Merged contributions by @bagustris on the Open Documentation Academy -->
 
 This guide explains how to install and manage Multipass on your system.
 
-[note type="information"]
+```{note}
 Select the tab corresponding to your operating system (e.g. Linux) to display the relevant content in each section. Your decision will stick until you select another OS from the drop-down menu.
 ```
 
@@ -118,11 +120,11 @@ installed:          1.3.0                            (2205) 228MB -
 
 [tab version="macOS"]
 
-[note type=information]
+```{note}
 You will need an account with administrator privileges to complete the installation.
 ```
 
-Download the latest installer from [our download page](https://multipass.run/download/macos). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.pkg` package.
+Download the latest installer from [our download page](https://canonical.com/multipass/download/macos). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.pkg` package.
 
 Run the downloaded installer and follow the guided procedure. 
 
@@ -132,11 +134,11 @@ Run the downloaded installer and follow the guided procedure.
 
 [tab version="Windows"]
 
-[note type=information]
+```{note}
 You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See [Check prerequisites](#check-prerequisites).
 ```
 
-Download the latest installer from [our download page](https://multipass.run/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/CanonicalLtd/multipass/releases/) page, look for the `.msi` file. 
+Download the latest installer from [our download page](https://canonical.com/multipass/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/CanonicalLtd/multipass/releases/) page, look for the `.msi` file. 
 
 Run the downloaded installer and follow the guided procedure. The installer will require to be granted Administrator privileges.
 
@@ -192,11 +194,11 @@ As the installation happened via snap, you don't need to worry about upgrading--
 
 [tab version="macOS"]
 
-[note type=information]
+```{note}
 You will need an account with administrator privileges to complete the upgrade.
 ```
 
-To upgrade, download the latest installer from [our download page](https://multipass.run/download/macos). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.pkg` package.
+To upgrade, download the latest installer from [our download page](https://canonical.com/multipass/download/macos). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.pkg` package.
 
 Run the downloaded installer and follow the guided procedure. 
 
@@ -206,7 +208,7 @@ Any existing instances will be preserved.
 
 [tab version="Windows"]
 
-To upgrade, [download the latest installer](https://multipass.run/download/windows) and run it. You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.msi` package.
+To upgrade, [download the latest installer](https://canonical.com/multipass/download/windows) and run it. You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.msi` package.
 
 You will be asked to uninstall the old version, and then whether to remove all data when uninstalling. If you want to keep your existing instances, answer "No" (default).
 [/tab]
@@ -242,7 +244,7 @@ Uninstall Multipass as you would any other program, following the usual procedur
 
 ---
 
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://multipass.run/docs/how-to-install-multipass" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
+*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/install-multipass" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
 
 ---
 

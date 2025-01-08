@@ -1,5 +1,7 @@
+(how-to-guides-troubleshoot-access-logs)=
 # Access logs
-Logs are our first go-to when something goes wrong. Multipass is comprised of a daemon process (service) and the [CLI](/reference/command-line-interface/command-line-interface) and [GUI](/reference/gui-client) clients, each of them reporting on their own health. 
+
+Logs are our first go-to when something goes wrong. Multipass is comprised of a daemon process (service) and the [CLI](/reference/command-line-interface/index) and [GUI](/reference/gui-client) clients, each of them reporting on their own health. 
 
 The `multipass` command accepts the `--verbose` option (`-v` for short), which can be repeated to go from the default (*error*) level through *warning*, *info*, *debug* up to *trace*.
 

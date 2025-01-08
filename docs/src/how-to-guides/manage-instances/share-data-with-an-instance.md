@@ -1,4 +1,6 @@
+(how-to-guides-manage-instances-share-data-with-an-instance)=
 # Share data with an instance
+
 > See also: [Instance](/explanation/instance), [Mount](/explanation/mount), [ID mapping](/explanation/id-mapping), [`launch`](/reference/command-line-interface/launch), [`mount`](/reference/command-line-interface/mount), [`umount`](/reference/command-line-interface/umount), [`transfer`](/reference/command-line-interface/transfer)
 
 This guide explains how to share data between your host and an instance. There are two ways to accomplish this: 

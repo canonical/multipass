@@ -1,4 +1,6 @@
+(how-to-guides-manage-instances-use-instance-command-aliases)=
 # Use instance command aliases
+
 > See also: [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases), [Instance](/explanation/instance).
 
 This guide demonstrates how to create, list, run and remove aliases for commands running inside an instance. 
@@ -124,7 +126,7 @@ You can modify the path by appending a line to the `.bashrc` file, such as:
 export PATH="$PATH:/home/user/snap/multipass/common/bin"
 ```
 
-[note type="information"]
+```{note}
 Remember to replace the correct folder, as indicated in the output of the Multipass command above, and to restart the shell when done.
 
 If your shell is `zsh` and not `bash`, the file to modify is `.zshrc` instead of `.bashrc`. The procedure is the same.
@@ -143,7 +145,7 @@ You can modify the path by appending a line to the `.zshrc` file, such as:
 export PATH="$PATH:/Users/<username>/Library/Application Support/multipass/bin"
 ```
 
-[note type="information"]
+```{note}
 Remember to replace the correct folder, as indicated in the output of the Multipass command above, and to restart the shell when done.
 ```
 
@@ -213,7 +215,7 @@ You can also use the `--all` option to remove all the defined aliases in the cur
 multipass unalias --all
 ```
 
-[note type="information]
+```{note}
 Aliases are also removed when the instance for which they were defined is deleted and purged. This means that `multipass delete crazy-cat --purge` will also remove the aliases `lscc` and `pwdcc`.
 ```
 

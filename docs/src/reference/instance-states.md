@@ -1,4 +1,6 @@
+(reference-instance-states)=
 # Instance states
+
 > See also: [Multipass CLI commands](/)
 
 Instances in Multipass can be in a number of different states:
@@ -27,7 +29,7 @@ Instances in Multipass can be in a number of different states:
 - `Unknown`: The state of the instance cannot be determined or retrieved. This might occur due to unexpected errors or issues with Multipass.
 -->
 
-These instance states reflect the various stages an instance can be in while using Multipass. Instances in different states can accept different commands. See [Multipass CLI commands](/t/multipass-cli-commands/29329) for more information on which commands can be used and when.
+These instance states reflect the various stages an instance can be in while using Multipass. Instances in different states can accept different commands. See [Multipass CLI commands](/) for more information on which commands can be used and when.
 
 ---
 
