@@ -46,7 +46,7 @@ mp::Console::ConsoleGeometry get_console_size(HANDLE handle)
 
     return {rows, columns}; // rows come before columns in ConsoleGeometry (unlike libssh)
 }
-}
+} // namespace
 
 mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
     : interactive{term->cout_is_live()},
@@ -84,7 +84,8 @@ void mp::WindowsConsole::read_console()
 
     if (!ReadConsoleInput(input_handle, input_records.data(), chunk, &num_records_read))
     {
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::warning,
+                 category,
                  fmt::format("Could not read console input; error code: {}", GetLastError()));
     }
     else
@@ -111,7 +112,8 @@ void mp::WindowsConsole::read_console()
         }
 
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        ssh_channel_write(channel, text_buffer.data(),
+        ssh_channel_write(channel,
+                          text_buffer.data(),
                           static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
     }
 }

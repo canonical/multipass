@@ -43,14 +43,17 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
     power_shell->set_process_channel_mode(QProcess::SeparateChannels);
 
     QObject::connect(power_shell, &mp::Process::state_changed, [&name, power_shell](QProcess::ProcessState newState) {
-        mpl::log(mpl::Level::trace, name,
-                 fmt::format("[{}] PowerShell state changed to {}", power_shell->process_id(),
+        mpl::log(mpl::Level::trace,
+                 name,
+                 fmt::format("[{}] PowerShell state changed to {}",
+                             power_shell->process_id(),
                              mpu::qenum_to_qstring(newState)));
     });
 
     QObject::connect(power_shell, &mp::Process::error_occurred, [&name, power_shell](QProcess::ProcessError error) {
         mpl::log(
-            mpl::Level::debug, name,
+            mpl::Level::debug,
+            name,
             fmt::format("[{}] PowerShell error occurred {}", power_shell->process_id(), mpu::qenum_to_qstring(error)));
     });
 
@@ -59,7 +62,8 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
         if (state.completed_successfully())
             mpl::log(mpl::Level::debug, name, fmt::format("[{}] PowerShell finished successfully", pid));
         else
-            mpl::log(mpl::Level::warning, name,
+            mpl::log(mpl::Level::warning,
+                     name,
                      fmt::format("[{}] PowerShell finished abnormally: {}", pid, state.failure_message()));
     });
 }
@@ -183,8 +187,9 @@ bool mp::PowerShell::exec(const QStringList& args, const std::string& name, QStr
     auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
     setup_powershell(power_shell.get(), name);
 
-    QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_output,
-                     [output, &power_shell]() { *output += power_shell->read_all_standard_output(); });
+    QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_output, [output, &power_shell]() {
+        *output += power_shell->read_all_standard_output();
+    });
 
     QObject::connect(power_shell.get(), &mp::Process::ready_read_standard_error, [&output_err, &power_shell]() {
         *output_err += power_shell->read_all_standard_error();
