@@ -648,11 +648,11 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     if (int owner = int(perms) & 0700; owner != 0)
         success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6), try_inherit);
 
-    std::free(lpPath);
-
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= take_ownership(path);
     success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, try_inherit);
+
+    std::free(lpPath);
 
     return success;
 }
