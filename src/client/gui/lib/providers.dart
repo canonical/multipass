@@ -68,16 +68,28 @@ final daemonAvailableProvider = Provider((ref) {
     if (message.contains('failed to obtain exit status for remote process')) {
       return true;
     }
-    if (message.contains('Connection is being forcefully terminated')) {
-      return true;
-    }
   }
   return false;
 });
 
+class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
+  @override
+  List<DetailedInfoItem> build() {
+    return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+  }
+
+  Future<void> update() async {
+    state = await ref.read(grpcClientProvider).info();
+  }
+}
+
+final allVmInfosProvider =
+    NotifierProvider<AllVmInfosNotifier, List<DetailedInfoItem>>(
+        AllVmInfosNotifier.new);
+
 final vmInfosProvider = Provider((ref) {
-  final vmInfos = ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
-  final existingVms = vmInfos
+  final existingVms = ref
+      .watch(allVmInfosProvider)
       .where((info) => info.instanceStatus.status != Status.DELETED)
       .toBuiltList();
   final existingVmNames = existingVms.map((i) => i.name).toSet();
@@ -115,8 +127,8 @@ final vmNamesProvider = Provider((ref) {
 });
 
 final deletedVmsProvider = Provider((ref) {
-  final vmInfos = ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
-  return vmInfos
+  return ref
+      .watch(allVmInfosProvider)
       .where((info) => info.instanceStatus.status == Status.DELETED)
       .map((info) => info.name)
       .toBuiltSet();
