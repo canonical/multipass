@@ -89,7 +89,7 @@ fi
 if [ ! -f "${PKGFILE}" ]; then
     echo "${PKGFILE}: file not found"
     exit 1
-fi 
+fi
 
 if [ -n "${NOTARIZE_ID+x}" ] && [ -z "${NOTARIZE_PASSWORD:-}" ]; then
     echo -n "Apple Developer account password: "
@@ -216,7 +216,7 @@ fi
 # Extract necessary metadata from pkg
 TITLE=$(xmllint --xpath "string(//title)" "${PKG_ROOT}/Distribution")
 VERSION=$(xmllint --xpath "string(//product/@version)" "${PKG_ROOT}/Distribution")
-echo "Title: '${TITLE}'" 
+echo "Title: '${TITLE}'"
 echo "Version: '${VERSION}'"
 
 # Generate a unique bundle id for this submission (replacing + with -)
@@ -288,7 +288,7 @@ for c in {80..0}; do
 done
 
 # Verifying notarized
-if ! xcrun stapler validate "${PKGFILENAME}" | grep worked ; then 
+if ! xcrun stapler validate "${PKGFILENAME}" | grep worked ; then
     echo "Error: final package verification failed";
     exit 5
 fi
