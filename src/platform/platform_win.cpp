@@ -329,8 +329,7 @@ QString systemprofile_app_data_path()
 
 bool set_file_owner(LPSTR path, bool isDir)
 {
-    auto ps_cmd = QString("takeown /a %2 /f \"%1\"")
-                      .arg(QString::fromStdString(path).replace("/", "\\"), isDir ? QString{"/r /d Y"} : QString{""});
+    auto ps_cmd = QString("takeown /a /f \"%1\"").arg(QString::fromStdString(path).replace("/", "\\"));
     return mp::PowerShell::exec({ps_cmd}, "chown");
 }
 
