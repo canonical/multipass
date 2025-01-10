@@ -132,14 +132,14 @@ if(cmake_build_type_lower MATCHES "coverage")
   endif()
 endif()
 
-if(APPLE)
+if(UNIX)
   set(HOST_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 
   if (${HOST_ARCH} STREQUAL "arm64")
     set(HOST_ARCH "aarch64")
   endif ()
 
-  if (${HOST_ARCH} MATCHES "x86_64")
+  if (APPLE AND ${HOST_ARCH} MATCHES "x86_64")
       list(APPEND MULTIPASS_BACKENDS virtualbox)
   endif()
 
