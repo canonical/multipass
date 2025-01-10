@@ -183,3 +183,13 @@ std::function<int()> mp::platform::make_quit_watchdog()
         return sig;
     };
 }
+
+int mp::platform::Platform::get_cpus() const
+{
+    return sysconf(_SC_NPROCESSORS_ONLN);
+}
+
+long long mp::platform::Platform::get_total_ram() const
+{
+    return (long long)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+}

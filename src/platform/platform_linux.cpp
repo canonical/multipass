@@ -472,36 +472,3 @@ std::string multipass::platform::host_version()
     return mpu::in_multipass_snap() ? multipass::platform::detail::read_os_release()
                                     : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
-
-int mp::platform::Platform::get_cpus() const
-{
-    int cpus = 0;
-    std::ifstream cpuinfo{"/proc/cpuinfo"};
-    std::string line;
-
-    while (std::getline(cpuinfo, line))
-    {
-        if (line.rfind("processor", 0) == 0)
-            cpus++;
-    }
-
-    return cpus;
-}
-
-long long mp::platform::Platform::get_total_ram() const
-{
-    std::ifstream meminfo{"/proc/meminfo"};
-    std::string line;
-
-    while (std::getline(meminfo, line))
-    {
-        if (line.rfind("MemTotal:", 0) == 0)
-        {
-            long long kb = 0;
-            std::sscanf(line.c_str(), "MemTotal: %lld kB", &kb);
-            return kb * 1024LL;
-        }
-    }
-
-    return 0; // Return 0 if "MemTotal" is not found
-}

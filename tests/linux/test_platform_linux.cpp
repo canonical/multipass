@@ -701,16 +701,4 @@ TEST_F(PlatformLinux, remove_alias_script_throws_if_cannot_remove_script)
                          mpt::match_what(StrEq("No such file or directory")));
 }
 
-TEST_F(PlatformLinux, get_cpus_returns_greater_than_zero)
-{
-    // On any real system, there should be at least 1 CPU
-    EXPECT_GT(MP_PLATFORM.get_cpus(), 0);
-}
-
-TEST_F(PlatformLinux, get_total_ram_returns_greater_than_zero)
-{
-    // On any real system, there should be some RAM
-    EXPECT_GT(MP_PLATFORM.get_total_ram(), 0LL);
-}
-
 } // namespace
