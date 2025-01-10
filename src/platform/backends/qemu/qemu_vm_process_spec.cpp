@@ -123,6 +123,10 @@ profile %1 flags=(attach_disconnected) {
   capability setgid,
   capability setuid,
 
+  # for bridge helper
+  capability net_admin,
+  capability net_raw,
+
   network inet stream,
   network inet6 stream,
 
@@ -154,7 +158,7 @@ profile %1 flags=(attach_disconnected) {
   /{usr/,}bin/cat rmix,
 
   # to execute bridge helper
-  %4/bin/bridge_helper,
+  %4/bin/bridge_helper ix,
 
   # for restore
   /{usr/,}bin/bash rmix,
