@@ -57,7 +57,6 @@
 #include <QTextStream>
 
 #include <errno.h>
-#include <fstream>
 #include <linux/if_arp.h>
 #include <string.h>
 #include <sys/stat.h>

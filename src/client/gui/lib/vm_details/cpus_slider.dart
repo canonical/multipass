@@ -58,8 +58,9 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
   @override
   Widget build(BuildContext context) {
     final daemonInfo = ref.watch(daemonInfoProvider);
-    final cores = daemonInfo.valueOrNull?.cpus.toInt() ?? min;
-    final max = math.max(widget.initialValue ?? 0, cores);
+    final cores = daemonInfo.valueOrNull?.cpus ?? min;
+    final max = math.max(widget.initialValue ?? min, cores);
+    final divisions = math.max(1, max - min); // Ensure at least 1 division
 
     final textField = TextField(
       controller: controller,
@@ -82,7 +83,7 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
           Slider(
             min: min.toDouble(),
             max: max.toDouble(),
-            divisions: max - min,
+            divisions: divisions,
             value: (field.value ?? min).toDouble(),
             onChanged: (value) {
               final intValue = value.toInt();
