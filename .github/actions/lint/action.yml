@@ -4,15 +4,18 @@ description: Run Linting steps
 runs:
   using: composite
   steps:
+  - name: Initialize and update submodules
+    shell: bash
+    run: |
+      set -e -o pipefail
+      git submodule update --init --recursive
+      
   - name: Check for forbidden tag in code
     shell: bash
     run: |
       set -e -o pipefail
-
-      # On pull requests, HEAD^1 will always be the merge base, so diff against that. Look for forbidden strings,
-      # but exclude legitimate cases.
       forbidden_regex='(?i)\bno[_-]?merge\b'
-      added_regex="^\+.*${forbidden_regex}" # we care only about additions
+      added_regex="^\+.*${forbidden_regex}"
       git diff -U0 --no-color HEAD^1 -- . ':(exclude)bors.toml' |
         (grep -P "${added_regex}" || true) |
         tee ${HOME}/forbidden_occurrences
@@ -35,10 +38,32 @@ runs:
     shell: bash
     run: |
       set -e -o pipefail
-
-      # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
       git diff -U0 --no-color HEAD^1 | clang-format-diff-16 -p1 | tee ${HOME}/clang-diff
       if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
         echo "##[error] Please apply the above diff to correct formatting"
+        exit 1
+      fi
+
+  - name: Verify Flutter installation
+    shell: bash
+    run: |
+      set -e -o pipefail
+      if [ ! -f "3rd-party/flutter/bin/dart" ]; then
+        echo "##[error] Flutter submodule not found or not properly initialized"
+        echo "##[error] Please ensure you have run 'git submodule update --init --recursive'"
+        exit 1
+      fi
+
+  - name: Run Flutter format check
+    shell: bash
+    run: |
+      set -e -o pipefail
+      if [ ! -d "3rd-party/flutter" ]; then
+        echo "##[warning] Flutter directory not found, skipping Flutter format check"
+        exit 0
+      fi
+      if ! 3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed .; then
+        echo "##[error] Flutter code is not properly formatted."
+        echo "##[error] Please run '3rd-party/flutter/bin/dart format' to fix formatting"
         exit 1
       fi
