@@ -61,3 +61,4 @@ runs:
         echo "##[error] Flutter code is not properly formatted. Run '3rd-party/flutter/bin/dart format' to fix formatting."
         exit 1
       fi
+
