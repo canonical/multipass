@@ -105,11 +105,6 @@ bool mp::FileOps::open(QFileDevice& file, QIODevice::OpenMode mode) const
     return file.open(mode);
 }
 
-QFileDevice::Permissions mp::FileOps::permissions(const QFile& file) const
-{
-    return file.permissions();
-}
-
 qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
 {
     return file.read(data, maxSize);
@@ -143,11 +138,6 @@ bool mp::FileOps::resize(QFile& file, qint64 sz) const
 bool mp::FileOps::seek(QFile& file, qint64 pos) const
 {
     return file.seek(pos);
-}
-
-bool mp::FileOps::setPermissions(QFile& file, QFileDevice::Permissions permissions) const
-{
-    return file.setPermissions(permissions);
 }
 
 qint64 mp::FileOps::size(QFile& file) const
@@ -262,11 +252,6 @@ fs::path mp::FileOps::read_symlink(const fs::path& path, std::error_code& err) c
     return fs::read_symlink(path, err);
 }
 
-void mp::FileOps::permissions(const fs::path& path, fs::perms perms, std::error_code& err) const
-{
-    fs::permissions(path, perms, err);
-}
-
 fs::file_status mp::FileOps::status(const fs::path& path, std::error_code& err) const
 {
     return fs::status(path, err);
@@ -291,4 +276,9 @@ std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
 fs::path mp::FileOps::weakly_canonical(const fs::path& path) const
 {
     return fs::weakly_canonical(path);
+}
+
+fs::perms mp::FileOps::get_permissions(const fs::path& file) const
+{
+    return fs::status(file).permissions();
 }

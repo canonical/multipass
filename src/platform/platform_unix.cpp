@@ -58,14 +58,13 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
-int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
+bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
+                                             std::filesystem::perms permissions) const
 {
-    return ::chmod(path, mode);
-}
+    std::error_code ec{};
+    std::filesystem::permissions(path, permissions, ec);
 
-bool mp::platform::Platform::set_permissions(const mp::Path path, const QFileDevice::Permissions permissions) const
-{
-    return QFile::setPermissions(path, permissions);
+    return !static_cast<bool>(ec);
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
@@ -99,6 +98,9 @@ std::string mp::platform::Platform::alias_path_message() const
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& server_address,
                                                             const bool restricted) const
 {
+    // With C++20 change to using enum
+    using namespace std::filesystem;
+
     auto tokens = mp::utils::split(server_address, ":");
     if (tokens.size() != 2u)
         throw std::runtime_error(fmt::format("invalid server address specified: {}", server_address));
@@ -108,7 +110,7 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
         return;
 
     int gid{0};
-    int mode{S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP};
+    auto mode{perms::owner_read | perms::owner_write | perms::group_read | perms::group_write};
 
     if (restricted)
     {
@@ -124,16 +126,15 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
     }
     else
     {
-        mode |= S_IROTH | S_IWOTH;
+        mode |= perms::others_read | perms::others_write;
     }
 
     const auto socket_path = tokens[1];
     if (chown(socket_path.c_str(), 0, gid) == -1)
         throw std::runtime_error(fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
 
-    if (chmod(socket_path.c_str(), mode) == -1)
-        throw std::runtime_error(
-            fmt::format("Could not set permissions for the multipass socket: {}", strerror(errno)));
+    if (!set_permissions(socket_path, mode))
+        throw std::runtime_error(fmt::format("Could not set permissions for the multipass socket"));
 }
 
 QString mp::platform::Platform::multipass_storage_location() const

@@ -110,7 +110,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
-        MP_UTILS.make_dir(storage_path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+        MP_UTILS.make_dir(storage_path, std::filesystem::perms::owner_all);
 
     if (cache_directory.isEmpty())
     {
