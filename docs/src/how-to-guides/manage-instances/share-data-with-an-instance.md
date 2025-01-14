@@ -13,19 +13,19 @@ You can use the [`multipass mount`](/reference/command-line-interface/mount) com
 
 The basic syntax of the `mount` command is:
 
-```plain
+```{code-block} text
 multipass mount <local path> <instance name>
 ```
 
 For example, to map your local home directory on a Linux system (identified as $HOME) into the `keen-yak` instance, run this command: 
 
-```plain
+```{code-block} text
 multipass mount $HOME keen-yak
 ```
 
 You can check the result running `multipass info keen-yak`:
 
-```plain
+```{code-block} text
 …
 Mounts:         /home/michal => /home/michal
 ```
@@ -34,7 +34,7 @@ From this point the local home directory `/home/michal` will be available inside
 
 If you want to mount a local directory to a different path in your instance, you can specify the target path as follows:
 
-```plain
+```{code-block} text
 multipass mount $HOME keen-yak:/some/path
 ```
 
@@ -46,7 +46,7 @@ For this reason, it is not possible to mount an external folder path over the in
 
 You can also define mounts when you create an instance, using the [`multipass launch`](/reference/command-line-interface/launch) command with the `--mount` option:
 
-```plain
+```{code-block} text
 multipass launch --mount /local/path:/instance/path
 ```
 
@@ -56,13 +56,13 @@ To unmount previously mounted paths, use the [`multipass umount`](/reference/com
 
 You can specify the folder path to unmount: 
 
-```plain
+```{code-block} text
 multipass umount keen-yak:/home/michal
 ```
 
 or, if you don't specify any paths, unmount all shared folders at once:
 
-```plain
+```{code-block} text
 multipass umount keen-yak
 ```
 
@@ -74,13 +74,13 @@ To indicate that a file is inside an instance, prefix its path with `<instance n
 
 For example, to copy the `crontab` and `fstab` files from the `/etc` directory on the `keen-yak` instance to the `/home/michal` folder in the host's filesystem:
 
-```plain
+```{code-block} text
 multipass transfer keen-yak:/etc/crontab keen-yak:/etc/fstab /home/michal
 ```
 
 The files will be copied with the correct user mapping, as you'll see running the `ls -l /home/michal` command:
 
-```plain
+```{code-block} text
 …
 -rw-r--r-- 1 michal michal 722 Oct 18 12:13 /home/michal/crontab
 -rw-r--r-- 1 michal michal  82 Oct 18 12:13 /home/michal/fstab
@@ -89,12 +89,12 @@ The files will be copied with the correct user mapping, as you'll see running th
 
 The other way around, if you want to copy these files from your local filesystem into the instance, run the command:
 
-```plain
+```{code-block} text
 multipass transfer /etc/crontab /etc/fstab keen-yak:/home/michal
 ```
 
 In this case, the output of the `ls -l /home/michal` command on the instance will be:
-```plain
+```{code-block} text
 …
 -rw-rw-r-- 1 ubuntu ubuntu 722 Oct 18 12:14 crontab
 -rw-rw-r-- 1 ubuntu ubuntu  82 Oct 18 12:14 fstab

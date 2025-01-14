@@ -11,7 +11,7 @@ This document demonstrates various ways to use an instance.
 
 To open a shell prompt on an existing instance (e.g. `loving-duck`), run the command `multipass shell loving-duck`. The output will be similar to the following:
 
-```plain
+```{code-block} text
 Welcome to Ubuntu 20.04.4 LTS (GNU/Linux 5.4.0-109-generic x86_64)
 
  * Documentation:  https://help.ubuntu.com
@@ -57,7 +57,7 @@ This is also available on the GUI.
 
 To run a single command inside an instance, you don't need to open a shell. The command can be directly called from the host using `multipass exec`. For example, the command `multipass exec loving-duck -- pwd` returns:
 
-```plain
+```{code-block} text
 /home/ubuntu
 ```
 
@@ -69,19 +69,19 @@ In the example, `/home/ubuntu` is the output of invoking the `pwd` command on th
 
 An existing instance that is in `Stopped` or `Suspended` status can be started with the `multipass start` command; for example:
 
-```plain
+```{code-block} text
 multipass start loving-duck
 ```
 
 You can start multiple instances at once, specifying the instance names in the command line:
 
-```plain
+```{code-block} text
 multipass start loving-duck devoted-lionfish sensible-shark
 ```
 
 To start all existing instances at once, use the `--all` option:
 
-```plain
+```{code-block} text
 multipass start --all
 ```
 
@@ -97,19 +97,19 @@ This is also available on the GUI.
 
 An instance can be suspended with the command:
 
-```plain
+```{code-block} text
 multipass suspend loving-duck
 ```
 
 You can suspend multiple instances at once, specifying the instance names in the command line:
 
-```plain
+```{code-block} text
 multipass suspend loving-duck devoted-lionfish sensible-shark
 ```
 
 To suspend all running instances at once, use the `--all` option:
 
-```plain
+```{code-block} text
 multipass suspend --all
 ```
 
@@ -121,19 +121,19 @@ If no options are specified, the `multipass suspend` command suspends the primar
 
 A running, not suspended instance is stopped with the command:
 
-```plain
+```{code-block} text
 multipass stop loving-duck
 ```
 
 You can stop multiple instances at once, specifying the instance names in the command line:
 
-```plain
+```{code-block} text
 multipass stop loving-duck devoted-lionfish sensible-shark
 ```
 
 To stop all running instances at once, use the `--all` option:
 
-```plain
+```{code-block} text
 $ multipass stop --all
 ```
 
@@ -143,7 +143,7 @@ If no options are specified, the `multipass stop` command stops the primary inst
 
 If the `multipass stop` command doesn’t work, you can use the `--force` argument to force the instance to shut down immediately. This is particularly useful when the virtual machine is in a non-responsive, unknown or suspended state. 
 
-```plain
+```{code-block} text
 multipass stop --force
 ```
 
