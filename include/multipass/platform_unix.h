@@ -20,23 +20,23 @@
 
 #include <vector>
 
-#include <signal.h>
+#include <csignal>
 
 #include "singleton.h"
 
-#define MP_POSIX_SIGNAL multipass::platform::SignalWrapper::instance()
+#define MP_POSIX_SIGNAL multipass::platform::PosixSignal::instance()
 
 namespace multipass::platform
 {
 
-class SignalWrapper : public Singleton<SignalWrapper>
+class PosixSignal : public Singleton<PosixSignal>
 {
 public:
-    SignalWrapper(const PrivatePass&) noexcept;
+    PosixSignal(const PrivatePass&) noexcept;
 
-    virtual int mask_signals(int how, const sigset_t* sigset, sigset_t* old_set = nullptr) const;
-    virtual int send(pthread_t target, int signal) const;
-    virtual int wait(const sigset_t& sigset, int& got) const;
+    virtual int pthread_sigmask(int how, const sigset_t* sigset, sigset_t* old_set = nullptr) const;
+    virtual int pthread_kill(pthread_t target, int signal) const;
+    virtual int sigwait(const sigset_t& sigset, int& got) const;
 };
 
 sigset_t make_sigset(const std::vector<int>& sigs);
