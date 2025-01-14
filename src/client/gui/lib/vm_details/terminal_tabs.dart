@@ -125,6 +125,14 @@ class Tab extends StatelessWidget {
   }
 }
 
+class CloseTerminalIntent extends Intent {
+  const CloseTerminalIntent();
+}
+
+class AddTerminalIntent extends Intent {
+  const AddTerminalIntent();
+}
+
 class TerminalTabs extends ConsumerWidget {
   final String name;
 
@@ -136,6 +144,14 @@ class TerminalTabs extends ConsumerWidget {
     final notifier = provider.notifier;
     final (:ids, :currentIndex) = ref.watch(provider);
 
+    void closeTab(int index) {
+      ref.read(notifier).remove(index);
+    }
+
+    void addTab() {
+      ref.read(notifier).add();
+    }
+
     final tabsAndShells = ids.mapIndexed((index, shellId) {
       final tab = ReorderableDragStartListener(
         key: ValueKey(shellId.id),
@@ -144,7 +160,7 @@ class TerminalTabs extends ConsumerWidget {
           title: 'Shell ${shellId.id}',
           selected: index == currentIndex,
           onTap: () => ref.read(notifier).setCurrent(index),
-          onClose: () => ref.read(notifier).remove(index),
+          onClose: () => closeTab(index),
         ),
       );
 
@@ -164,7 +180,7 @@ class TerminalTabs extends ConsumerWidget {
         hoverColor: Colors.white24,
         splashRadius: 10,
         icon: const Icon(Icons.add, color: Colors.white, size: 20),
-        onPressed: () => ref.read(notifier).add(),
+        onPressed: () => addTab(),
       ),
     );
 
@@ -187,13 +203,23 @@ class TerminalTabs extends ConsumerWidget {
       ),
     );
 
-    return Column(children: [
-      Container(
-        color: const Color(0xff222222),
-        height: 35,
-        child: tabList,
-      ),
-      Expanded(child: shellStack),
-    ]);
+    return Actions(
+      actions: {
+        CloseTerminalIntent: CallbackAction<CloseTerminalIntent>(
+          onInvoke: (_) => closeTab(currentIndex),
+        ),
+        AddTerminalIntent: CallbackAction<AddTerminalIntent>(
+          onInvoke: (_) => addTab(),
+        ),
+      },
+      child: Column(children: [
+        Container(
+          color: const Color(0xff222222),
+          height: 35,
+          child: tabList,
+        ),
+        Expanded(child: shellStack),
+      ]),
+    );
   }
 }
