@@ -25,16 +25,16 @@
 namespace multipass::test
 {
 
-class MockSignalWrapper : public platform::SignalWrapper
+class MockPosixSignal : public platform::PosixSignal
 {
 public:
-    using SignalWrapper::SignalWrapper;
+    using PosixSignal::PosixSignal;
 
-    MOCK_METHOD(int, mask_signals, (int, const sigset_t*, sigset_t*), (const, override));
-    MOCK_METHOD(int, send, (pthread_t, int), (const, override));
-    MOCK_METHOD(int, wait, (const sigset_t&, int&), (const, override));
+    MOCK_METHOD(int, pthread_sigmask, (int, const sigset_t*, sigset_t*), (const, override));
+    MOCK_METHOD(int, pthread_kill, (pthread_t, int), (const, override));
+    MOCK_METHOD(int, sigwait, (const sigset_t&, int&), (const, override));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockSignalWrapper, platform::SignalWrapper);
+    MP_MOCK_SINGLETON_BOILERPLATE(MockPosixSignal, platform::PosixSignal);
 };
 
 } // namespace multipass::test

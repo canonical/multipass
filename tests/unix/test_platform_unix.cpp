@@ -211,11 +211,11 @@ TEST_F(TestPlatformUnix, make_sigset_makes_sigset)
 
 TEST_F(TestPlatformUnix, make_and_block_signals_works)
 {
-    auto [mock_signals, guard] = mpt::MockSignalWrapper::inject<StrictMock>();
+    auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
     EXPECT_CALL(
         *mock_signals,
-        mask_signals(SIG_BLOCK, Pointee(Truly([](const auto& set) { return test_sigset_has(set, {SIGINT}); })), _));
+        pthread_sigmask(SIG_BLOCK, Pointee(Truly([](const auto& set) { return test_sigset_has(set, {SIGINT}); })), _));
 
     auto set = mp::platform::make_and_block_signals({SIGINT});
 
@@ -227,25 +227,25 @@ TEST_F(TestPlatformUnix, make_and_block_signals_works)
 
 TEST_F(TestPlatformUnix, make_quit_watchdog_blocks_signals)
 {
-    auto [mock_signals, guard] = mpt::MockSignalWrapper::inject<StrictMock>();
+    auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
     EXPECT_CALL(*mock_signals,
-                mask_signals(SIG_BLOCK,
-                             Pointee(Truly([](const auto& set) {
-                                 return test_sigset_has(set, {SIGQUIT, SIGTERM, SIGHUP, SIGUSR2});
-                             })),
-                             _));
+                pthread_sigmask(SIG_BLOCK,
+                                Pointee(Truly([](const auto& set) {
+                                    return test_sigset_has(set, {SIGQUIT, SIGTERM, SIGHUP, SIGUSR2});
+                                })),
+                                _));
 
     mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
 }
 
 TEST_F(TestPlatformUnix, quit_watchdog_quits_on_condition)
 {
-    auto [mock_signals, guard] = mpt::MockSignalWrapper::inject<StrictMock>();
+    auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_signals, mask_signals(SIG_BLOCK, _, _));
-    EXPECT_CALL(*mock_signals, wait(_, _)).WillRepeatedly(DoAll(SetArgReferee<1>(SIGUSR2), Return(0)));
-    ON_CALL(*mock_signals, send(pthread_self(), SIGUSR2)).WillByDefault(Return(0));
+    EXPECT_CALL(*mock_signals, pthread_sigmask(SIG_BLOCK, _, _));
+    EXPECT_CALL(*mock_signals, sigwait(_, _)).WillRepeatedly(DoAll(SetArgReferee<1>(SIGUSR2), Return(0)));
+    ON_CALL(*mock_signals, pthread_kill(pthread_self(), SIGUSR2)).WillByDefault(Return(0));
 
     auto watchdog = mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
     EXPECT_EQ(watchdog([] { return false; }), std::nullopt);
@@ -253,13 +253,13 @@ TEST_F(TestPlatformUnix, quit_watchdog_quits_on_condition)
 
 TEST_F(TestPlatformUnix, quit_watchdog_quits_on_signal)
 {
-    auto [mock_signals, guard] = mpt::MockSignalWrapper::inject<StrictMock>();
+    auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_signals, mask_signals(SIG_BLOCK, _, _));
-    EXPECT_CALL(*mock_signals, wait(_, _))
+    EXPECT_CALL(*mock_signals, pthread_sigmask(SIG_BLOCK, _, _));
+    EXPECT_CALL(*mock_signals, sigwait(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(SIGUSR2), Return(0)))
         .WillOnce(DoAll(SetArgReferee<1>(SIGTERM), Return(0)));
-    ON_CALL(*mock_signals, send(pthread_self(), SIGUSR2)).WillByDefault(Return(0));
+    ON_CALL(*mock_signals, pthread_kill(pthread_self(), SIGUSR2)).WillByDefault(Return(0));
 
     auto watchdog = mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
     EXPECT_EQ(watchdog([] { return true; }), SIGTERM);
@@ -267,13 +267,13 @@ TEST_F(TestPlatformUnix, quit_watchdog_quits_on_signal)
 
 TEST_F(TestPlatformUnix, quit_watchdog_signals_itself_asynchronously)
 {
-    auto [mock_signals, guard] = mpt::MockSignalWrapper::inject<StrictMock>();
+    auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
     std::atomic<bool> signaled = false;
     std::atomic<int> times = 0;
 
-    EXPECT_CALL(*mock_signals, mask_signals(SIG_BLOCK, _, _));
-    EXPECT_CALL(*mock_signals, wait(_, _))
+    EXPECT_CALL(*mock_signals, pthread_sigmask(SIG_BLOCK, _, _));
+    EXPECT_CALL(*mock_signals, sigwait(_, _))
         .WillRepeatedly(DoAll(
             [&signaled, &times] {
                 // busy wait until signaled
@@ -287,7 +287,7 @@ TEST_F(TestPlatformUnix, quit_watchdog_signals_itself_asynchronously)
             SetArgReferee<1>(SIGUSR2),
             Return(0)));
 
-    EXPECT_CALL(*mock_signals, send(pthread_self(), SIGUSR2))
+    EXPECT_CALL(*mock_signals, pthread_kill(pthread_self(), SIGUSR2))
         .WillRepeatedly(DoAll([&signaled] { signaled.store(true, std::memory_order_release); }, Return(0)));
 
     auto watchdog = mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
