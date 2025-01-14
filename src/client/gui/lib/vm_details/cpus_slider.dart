@@ -2,9 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:system_info2/system_info2.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CpusSlider extends StatefulWidget {
+import '../providers.dart';
+
+class CpusSlider extends ConsumerStatefulWidget {
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
 
@@ -15,14 +17,12 @@ class CpusSlider extends StatefulWidget {
   });
 
   @override
-  State<CpusSlider> createState() => _CpusSliderState();
+  ConsumerState<CpusSlider> createState() => _CpusSliderState();
 }
 
-class _CpusSliderState extends State<CpusSlider> {
-  static final cores = SysInfo.cores.length;
-
+class _CpusSliderState extends ConsumerState<CpusSlider> {
   final min = 1;
-  late final max = math.max(widget.initialValue ?? 0, cores);
+
   late final controller = TextEditingController(
     text: widget.initialValue?.toString(),
   );
@@ -57,6 +57,11 @@ class _CpusSliderState extends State<CpusSlider> {
 
   @override
   Widget build(BuildContext context) {
+    final daemonInfo = ref.watch(daemonInfoProvider);
+    final cores = daemonInfo.valueOrNull?.cpus ?? min;
+    final max = math.max(widget.initialValue ?? min, cores);
+    final divisions = math.max(1, max - min); // Ensure at least 1 division
+
     final textField = TextField(
       controller: controller,
       focusNode: focusNode,
@@ -78,7 +83,7 @@ class _CpusSliderState extends State<CpusSlider> {
           Slider(
             min: min.toDouble(),
             max: max.toDouble(),
-            divisions: max - min,
+            divisions: divisions,
             value: (field.value ?? min).toDouble(),
             onChanged: (value) {
               final intValue = value.toInt();

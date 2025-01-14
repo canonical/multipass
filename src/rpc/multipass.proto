@@ -547,4 +547,6 @@ message DaemonInfoRequest {
 message DaemonInfoReply {
     string log_line = 1;
     uint64 available_space = 2;
+    uint32 cpus = 3;
+    uint64 memory = 4;
 }

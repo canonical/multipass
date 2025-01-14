@@ -2789,6 +2789,9 @@ try // clang-format on
     QStorageInfo storage_info{config->data_directory};
     response.set_available_space(storage_info.bytesTotal());
 
+    response.set_cpus(MP_PLATFORM.get_cpus());
+    response.set_memory(MP_PLATFORM.get_total_ram());
+
     server->Write(response);
     status_promise->set_value(grpc::Status{});
 }
