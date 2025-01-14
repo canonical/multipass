@@ -1,7 +1,8 @@
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 import '../extensions.dart';
 import '../providers.dart';
@@ -10,6 +11,52 @@ import 'memory_usage.dart';
 import 'vm_action_buttons.dart';
 import 'vm_details.dart';
 import 'vm_status_icon.dart';
+import '../tooltip.dart';
+
+class CopyableText extends StatefulWidget {
+  final String text;
+  final TextStyle? style;
+
+  const CopyableText(this.text, {super.key, this.style});
+
+  @override
+  State<CopyableText> createState() => _CopyableTextState();
+}
+
+class _CopyableTextState extends State<CopyableText> {
+  bool _copied = false;
+
+  void _copyToClipboard() async {
+    await Clipboard.setData(ClipboardData(text: widget.text));
+    setState(() => _copied = true);
+  }
+
+  void _resetCopied() {
+    if (_copied) {
+      setState(() => _copied = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onExit: (_) => _resetCopied(),
+      child: GestureDetector(
+        onTap: _copyToClipboard,
+        child: Tooltip(
+          message: _copied ? 'Copied' : 'Click to copy',
+          child: Text(
+            widget.text,
+            style: widget.style,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class VmDetailsHeader extends ConsumerWidget {
   final String name;
@@ -76,11 +123,9 @@ class VmDetailsHeader extends ConsumerWidget {
 
     final list = [
       Expanded(
-        child: Text(
+        child: CopyableText(
           name.nonBreaking,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w300),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ),
       locationButtons,
@@ -150,28 +195,28 @@ class GeneralDetails extends ConsumerWidget {
       width: 150,
       height: baseVmStatHeight,
       label: 'IMAGE',
-      child: Text(info.instanceInfo.currentRelease),
+      child: CopyableText(info.instanceInfo.currentRelease),
     );
 
     final privateIp = VmStat(
       width: 150,
       height: baseVmStatHeight,
       label: 'PRIVATE IP',
-      child: Text(info.instanceInfo.ipv4.firstOrNull ?? '-'),
+      child: CopyableText(info.instanceInfo.ipv4.firstOrNull ?? '-'),
     );
 
     final publicIp = VmStat(
       width: 150,
       height: baseVmStatHeight,
       label: 'PUBLIC IP',
-      child: Text(info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
+      child: CopyableText(info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
     );
 
     final created = VmStat(
       width: 140,
       height: baseVmStatHeight,
       label: 'CREATED',
-      child: Text(
+      child: CopyableText(
         DateFormat('yyyy-MM-dd HH:mm:ss')
             .format(info.instanceInfo.creationTimestamp.toDateTime()),
       ),
