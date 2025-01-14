@@ -11,7 +11,7 @@ This feature is available starting from Multipass version 1.14.
 
 First, you need to select a Multipass-wide preferred network to bridge with (you can always change it later). To do so, list all available networks using the [`multipass networks`](/reference/command-line-interface/networks) command. The output will be similar to the following:
 
-```plain
+```{code-block} text
 Name      Type       Description
 br-eth0   bridge     Network bridge with eth0
 br-eth1   bridge     Network bridge with eth1
@@ -24,32 +24,32 @@ virbr0    bridge     Network bridge
 
 Set the preferred network (for example, `eth0`) using the [`multipass set`](/reference/command-line-interface/set) command: 
   
-```plain
+```{code-block} text
 multipass set local.bridged-network=eth0
 ```
 
 Before bridging the network, you need to stop the instance (called `ultimate-grosbeak` in our example) using the [`multipass stop`](/reference/command-line-interface/stop) command:
 
-```plain
+```{code-block} text
 multipass stop ultimate-grosbeak
 ```
 
 You can now ask Multipass to bridge your preferred network using the [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged) setting:
 
-```plain
+```{code-block} text
 multipass set local.ultimate-grosbeak.bridged=true
 ```
 
 To add further networks, update the preferred bridge and repeat:
 
-```plain
+```{code-block} text
 multipass set local.bridged-network=eth1
 multipass set local.ultimate-grosbeak.bridged=true
 ```
 
 Use the [`multipass get`](/reference/command-line-interface/get) command to check whether an instance is bridged with the currently configured preferred network:
 
-```plain
+```{code-block} text
 multipass get local.ultimate-grosbeak.bridged
 ```
 

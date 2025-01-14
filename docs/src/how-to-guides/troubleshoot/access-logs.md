@@ -7,31 +7,31 @@ The `multipass` command accepts the `--verbose` option (`-v` for short), which c
 
 We use the underlying platform's logging facilities to ensure you get the familiar behaviour wherever you are.
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux 
 
 On Linux, [`systemd-journald`](https://www.freedesktop.org/software/systemd/man/systemd-journald.service.html) is used, integrating with the de-facto standard for this on modern Linux systems.
 
 To access the daemon (and its child processes') logs:
 
-```console
+```{code-block} text
 journalctl --unit 'snap.multipass*'
 ```
 
 The Multipass GUI produces its own logs, that can be found under `~/snap/multipass/current/data/multipass_gui/multipass_gui.log`
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS 
 
 On macOS, log files are stored in `/Library/Logs/Multipass`, where `multipassd.log` has the daemon messages. You will need `sudo` to access it. 
 
 The Multipass GUI produces its own logs, that can be found under `~/Library/Application\ Support/com.canonical.multipassGui/multipass_gui.log`
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows 
 
 On Windows, the Event system is used and Event Viewer lets you access them. Our logs are currently under "Windows Logs/Application", where you can filter by "Multipass" Event source. You can then export the selected events to a file.
 
@@ -39,9 +39,9 @@ Logs from the installation and uninstall process can be found under `%APPDATA%\L
 
 The Multipass GUI produces its own logs, that can be found under `%APPDATA%\com.canonical\Multipass GUI\multipass_gui.log`
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ---
 

@@ -13,7 +13,7 @@ You can set instance properties at `launch` time, but you can also update some o
 
 To modify one of this properties, first stop the instance and then issue the [`set`](/reference/command-line-interface/set) command. For example:
 
-```plain
+```{code-block} text
 multipass stop handsome-ling
 multipass set local.handsome-ling.cpus=4
 multipass set local.handsome-ling.disk=60G
@@ -29,7 +29,7 @@ When increasing the disk size of an instance, the partition may not expand autom
 
 In such cases, you need to expand the partition manually. To do so, `shell` into the instance and run the following command:
 
-```plain 
+```{code-block} text 
 sudo parted /dev/sda resizepart 1 100%
 ```
 
@@ -68,7 +68,7 @@ This section demonstrates how to set the status of an instance to primary. This 
 
 To grant a regular instance the primary status, assign its name to the `client.primary-name`:
 
-```plain
+```{code-block} text
 multipass set client.primary-name=<instance name>
 ```
 
@@ -80,13 +80,13 @@ This provides a means of (de)selecting an existing instance as primary.
 
 Assign the primary status to an instance called "first":
 
-```
+```{code-block} text 
 multipass set client.primary-name=first
 ```
 
 This instance is picked up automatically by `multipass start`. When you run this command, the primary instance also automatically mounts the user's home directory into a directory called `Home`:
 
-```
+```{code-block} text 
 ...
 Launched: first
 Mounted '/home/ubuntu' into 'first:Home'
@@ -94,13 +94,13 @@ Mounted '/home/ubuntu' into 'first:Home'
 
 Run `multipass stop` to stop the primary instance, and then launch another instance named "second":
 
-```
+```{code-block} text 
 multipass launch --name second
 ```
 
 Now, change the primary instance to the existing "second" instance:
 
-```
+```{code-block} text 
 multipass set client.primary-name=second
 ```
 
@@ -108,7 +108,7 @@ From now on, the "second" instance will be used as the *primary* instance, so fo
 
 When listing instances, the primary one is displayed first. For example, if you run `multipass list` now, you'll see:
 
-```
+```{code-block} text 
 Name                    State             IPv4             Image
 second                  Suspended         --               Ubuntu 18.04 LTS
 first                   Stopped           --               Ubuntu 18.04 LTS

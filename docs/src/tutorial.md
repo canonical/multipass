@@ -17,9 +17,9 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 
 ## Create and use a basic instance
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 Start Multipass from the application launcher. In Ubuntu, press the super key and type "Multipass", or find Multipass in the Applications panel on the lower left of the desktop.
 
@@ -47,7 +47,7 @@ If your local home folder is encrypted using ` fscrypt` and you are having troub
 
 You can see elements of this in the printout below:
 
-```plain
+```{code-block} text
 Launched: primary                                                               
 Mounted '/home/<user>' into 'primary:Home'                                       
 Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-57-generic x86_64)
@@ -83,22 +83,22 @@ Let's test it. As you've just learnt, the previous step automatically mounted yo
 
 As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
 
-```plain
+```{code-block} text
 cd ./Home/Multipass_Files/
 cat README.md 
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 ## Shared Folder
 
 This folder could be a great place to keep files that need to be accessed by both your host machine and Ubuntu VM!
 ```
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS 
 
 Start Multipass from the application launcher. In macOS, open the application launcher, type "Multipass", and launch the application.
 
@@ -120,7 +120,7 @@ Clicking this button does many things in the background:
 
 You can see elements of this in the printout below:
 
-```plain
+```{code-block} text
 Launched: primary                                                               
 Mounted '/home/<user>' into 'primary:Home'                                       
 Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-57-generic x86_64)
@@ -152,7 +152,7 @@ Let’s test it out. As you've just learnt, the previous step automatically moun
 
 As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
 
-```plain
+```{code-block} text
 ubuntu@primary:~$ cd ./Home/Multipass_Files/
 ubuntu@primary:~/Home/Multipass_Files$ cat README.md 
 ## Shared Folder
@@ -162,9 +162,9 @@ This folder could be a great place to keep files that need to be accessed by bot
 ubuntu@primary:~/Home/Multipass_Files$
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
 
@@ -182,7 +182,7 @@ Clicking this button does many things in the background. First, it creates a new
 
 You can see elements of this in the printout below:
 
-```plain
+```{code-block} text
 Launched: primary                                                               
 Mounted '/home/<user>' into 'primary:Home'                                       
 Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-57-generic x86_64)
@@ -214,7 +214,7 @@ ubuntu@primary:~$
 
 Let’s test it out. As you've just learnt, the previous step automatically mounted your `$HOME` directory in the instance. Try out a few Linux commands to see what you’re working with.
 
-```plain
+```{code-block} text
 ubuntu@primary:~$ free
                total        used        free      shared  buff/cache   available
 Mem:          925804      203872      362484         916      359448      582120
@@ -230,9 +230,9 @@ tmpfs                92580       4      92576   1% /run/user/1000
 :C:/Users/Scott 1048576000       0 1048576000   0% /home/ubuntu/Home
 ```
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 Congratulations, you've got your first instance! 
 
@@ -250,7 +250,7 @@ In Multipass, an instance with the name "primary" is privileged. That is, it ser
 
 Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass find` command. The result shows a list of all images you can currently launch through Multipass.
 
-```plain
+```{code-block} text
 $ multipass find
 Image                       Aliases           Version          Description
 snapcraft:core18            18.04             20201111         Snapcraft builder for Core 18
@@ -280,13 +280,13 @@ minikube                                      latest           minikube is local
 
 Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipass launch kinetic` command.
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
 
-```plain
+```{code-block} text
 $ multipass launch kinetic
 Launched: coherent-trumpetfish
 ```
@@ -297,7 +297,7 @@ You can check some basic info about your new instance by running the following c
 
 This tells multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
 
-```plain
+```{code-block} text
 $ multipass exec coherent-trumpetfish -- lsb_release -a
 No LSB modules are available.
 Distributor ID:	Ubuntu
@@ -314,13 +314,13 @@ You can now launch the type of instance you need by running this command:
 
 `multipass launch lts --name ltsInstance --memory 2G --disk 10G --cpus 2`
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "breezy-liger".
 
-```plain
+```{code-block} text
 $ multipass launch kinetic
 Launched: breezy-liger
 ```
@@ -331,7 +331,7 @@ You can check some basic info about your new instance by running the following c
 
 This tells Multipass to run the command `lsb_release -a` on the “breezy-liger” instance.
 
-```plain
+```{code-block} text
 $ multipass exec breezy-liger -- lsb_release -a
 No LSB modules are available.
 Distributor ID:	Ubuntu
@@ -348,13 +348,13 @@ You can now launch the type of instance you need by running this command:
 
 `multipass launch lts --name ltsInstance --memory 2G --disk 10G --cpus 2`
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "decorous-skate".
 
-```plain
+```{code-block} text
 C:\WINDOWS\system32> multipass launch kinetic
 Launched: decorous-skate
 ```
@@ -365,7 +365,7 @@ You can check some basic info about your new instance by running the following c
 
 This tells Multipass to run the command `lsb_release -a` on the “decorous-skate” instance.
 
-```plain
+```{code-block} text
 C:\WINDOWS\system32> multipass exec decorous-skate -- lsb_release -a
 No LSB modules are available.
 Distributor ID:	Ubuntu
@@ -382,19 +382,19 @@ You can now launch the type of instance you need by running this command:
 
 `multipass launch lts --name ltsInstance --memory 2G --disk 10G --cpus 2`
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ## Manage instances
 
 You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
-```plain
+```{code-block} text
 $ multipass info ltsInstance                             
 Name:           ltsInstance
 State:          Running
@@ -410,7 +410,7 @@ Mounts:         --
 
 You've created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
 
-```plain
+```{code-block} text
 $ multipass list                                         
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
@@ -420,19 +420,18 @@ ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted. 
 
-```plain
+```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
 ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
 ```
 
+````
 
-[/tab]
+````{tab-item} macOS
 
-[tab version="macOS"]
-
-```plain
+```{code-block} text
 $ multipass info ltsInstance                             
 Name:           ltsInstance
 State:          Running
@@ -448,7 +447,7 @@ Mounts:         --
 
 You've created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
 
-```plain
+```{code-block} text
 $ multipass list                                         
 Name                    State             IPv4             Image
 primary                 Running           192.168.64.5     Ubuntu 22.04 LTS
@@ -458,18 +457,18 @@ ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "breezy-liger" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover breezy-liger`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted. 
 
-```plain
+```{code-block} text
 $ multipass list                                         
 Name                    State             IPv4             Image
 primary                 Running           192.168.64.5     Ubuntu 22.04 LTS
 ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
-```plain
+```{code-block} text
 C:\WINDOWS\system32> multipass info ltsInstance                             
 Name:           ltsInstance
 State:          Running
@@ -485,7 +484,7 @@ Mounts:         --
 
 You've created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
 
-```plain
+```{code-block} text
 C:\WINDOWS\system32> multipass list                                         
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
@@ -495,16 +494,16 @@ ltsInstance             Running           172.22.115.152   Ubuntu 22.04 LTS
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "decorous-skate" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover decorous-skate`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted. 
 
-```plain
+```{code-block} text
 C:\WINDOWS\system32> multipass list
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
 ltsInstance             Running           172.22.115.152   Ubuntu 22.04 LTS
 ```
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 You've now seen a few ways to create, customise, and delete an instance. It is time to put those instances to work!
 
@@ -523,7 +522,7 @@ Return to your customised LTS instance. Take note of its IP address, which was r
 
 From the shell, you can run:
 
-```
+```{code-block} text
 sudo apt update
 
 sudo apt install apache2
@@ -531,21 +530,21 @@ sudo apt install apache2
 
 Open a browser and type in the IP address of your instance into the address bar. You should now see the default Apache homepage.
 
-[tabs]
+`````{tab-set} 
 
-[tab version="Linux"]
+````{tab-item} Linux 
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-linux-4.png) 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-macos-5.png)
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-windows-12.png)
-[/tab]
+````
 
-[/tabs]
+`````
 
 Just like that, you've got a web server running in a Multipass instance!
 
@@ -559,11 +558,11 @@ You can launch an instance using the Docker Blueprint by running `multipass laun
 
 Once that's done, run `multipass info docker-dev` to note down the IP of the new instance.
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
-```plain
+```{code-block} text
 $ multipass launch docker --name docker-dev
 Launched: docker-dev
 $ multipass info docker-dev
@@ -596,11 +595,11 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ![|720x465](https://assets.ubuntu.com/v1/25585a03-mp-linux-8.png) 
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
-```plain
+```{code-block} text
 $ multipass launch docker --name docker-dev
 Launched: docker-dev
 $ multipass info docker-dev
@@ -633,11 +632,11 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ![|720x465](https://assets.ubuntu.com/v1/25585a03-mp-macos-9.png)
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
-```plain
+```{code-block} text
 C:\WINDOWS\system32> multipass launch docker --name docker-dev
 Launched: docker-dev
 C:\WINDOWS\system32> multipass info docker-dev
@@ -670,9 +669,9 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ![|720x465](https://assets.ubuntu.com/v1/f0b28200-mp-windows-17.png)
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ## Next steps
 

@@ -69,13 +69,13 @@ If you're having trouble downloading images and/or see `Unknown error`s when try
 
 You could try:
 
-```plain
+```{code-block} text
 sudo route -nv add -net 192.168.64.0/24 -interface bridge100
 ```
 
 If you get a "File exists" error, maybe delete and retry?
 
-```plain
+```{code-block} text
 sudo route -nv delete -net 192.168.64.0/24
 sudo route -nv add -net 192.168.64.0/24 -interface bridge100
 ```
@@ -96,13 +96,13 @@ This was reported on GitHub (issue [#495](https://github.com/CanonicalLtd/multip
 
 After the `nat …` line (if there is one, otherwise at the end) in `/etc/pf.conf`, add this line:
 
-```plain
+```{code-block} text
 nat on utun1 from bridge100:network to any -> (utun1)
 ```
 
 and reload PF with the command: 
 
-```plain
+```{code-block} text
 sudo pfctl -f /etc/pf.conf
 ```
 
@@ -119,13 +119,13 @@ If you change the subnet and launch an instance, it will get an IP from that new
 
 Can you ping IP addresses?
 
-```plain
+```{code-block} text
 ping 1.1.1.1
 ```
 
 If not, the output will be similar to the following:
 
-```plain
+```{code-block} text
 PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 ^C
 --- 1.1.1.1 ping statistics ---
@@ -138,13 +138,13 @@ Note that macOS’s firewall can block the ICMP packets that `ping` uses, which 
 
 If you try again, it should work:
 
-```plain
+```{code-block} text
 ping 1.1.1.1
 ```
 
 The output will be similar to the following:
 
-```plain
+```{code-block} text
 PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 64 bytes from 1.1.1.1: icmp_seq=1 ttl=53 time=7.02 ms
 64 bytes from 1.1.1.1: icmp_seq=2 ttl=53 time=5.91 ms
@@ -157,13 +157,13 @@ rtt min/avg/max/mdev = 5.124/6.020/7.022/0.781 ms
 
 This means the instance can indeed connect to the internet, but DNS resolution is broken. You can test DNS resolution using the `dig` tool:
 
-```plain
+```{code-block} text
 dig @192.168.64.1 google.ie
 ```
 
 If broken, the output will be similar to:
 
-```plain
+```{code-block} text
 ; <<>> DiG 9.10.3-P4-Ubuntu <<>> google.ie
 ;; global options: +cmd
 ;; connection timed out; no servers could be reached
@@ -171,7 +171,7 @@ If broken, the output will be similar to:
 
 On the other hand, if it works correctly the output will be similar to:
 
-```plain
+```{code-block} text
 ; <<>> DiG 9.10.3-P4-Ubuntu <<>> google.ie
 ;; global options: +cmd
 ;; Got answer:
@@ -194,13 +194,13 @@ google.ie.   	 15    IN    A    74.125.193.94
 
 To test further, try supplying an explicit DNS server:
 
-```plain
+```{code-block} text
 dig @1.1.1.1 google.ie
 ```
 
 If it works correctly, the output will be similar to:
 
-```plain
+```{code-block} text
 ; <<>> DiG 9.10.3-P4-Ubuntu <<>> @1.1.1.1 google.ie
 ; (1 server found)
 ;; global options: +cmd
@@ -230,13 +230,13 @@ If using Little Snitch or another per-process firewall, ensure mDNSResponder can
 
 Check what is bound to that port on the host with:
 
-```plain
+```{code-block} text
 sudo lsof -iTCP:53 -iUDP:53 -n -P
 ```
 
 The sample output below shows the correct state while a instance is running:
 
-```plain
+```{code-block} text
 sudo lsof -iTCP:53 -iUDP:53 -n -P
 COMMAND   PID       	USER   FD   TYPE         	DEVICE SIZE/OFF NODE NAME
 mDNSRespo 191 _mdnsresponder   17u  IPv4 0xa89d451b9ea11d87  	0t0  UDP *:53
@@ -290,13 +290,13 @@ Unfortunately the default switch is known to be quirky and Windows updates often
 
 The broken state also persists over reboots. The one approach that has helped is removing the network sharing from the default switch:
 
-```powershell
+```{code-block} powershell 
 Get-HNSNetwork | ? Name -Like "Default Switch" | Remove-HNSNetwork
 ```
 
 and then rebooting the system:
 
-```powershell
+```{code-block} powershell
 Restart-Computer
 ```
 

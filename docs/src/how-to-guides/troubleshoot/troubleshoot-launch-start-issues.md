@@ -24,21 +24,23 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
 
 1. If the `multipass launch` command fails with the message "Downloaded image hash does not match", see: [Stale network cache](#stale-network-cache-6). 
 
-1. [Windows, Hyper-V driver] Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that's the case, see: [Stale internet connection sharing lease](#stale-internet-connection-sharing-lease).
+1. *(Windows, Hyper-V driver)* Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that's the case, see: [Stale internet connection sharing lease](#stale-internet-connection-sharing-lease).
 
-1. [Linux/macOS, QEMU driver] Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
+1. *(Linux/macOS, QEMU driver)* Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
     * If you don't find it, it means that the VM didn't manage to bring up the interface; see: [VM boot failure](#vm-boot-failure-3).
     * If the message is present, proceed to check DHCP traffic in the next step.
 
-1. [Linux/macOS, QEMU driver] Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command *right after starting/launching* the instance:
+1. *(Linux/macOS, QEMU driver)* Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command *right after starting/launching* the instance:
    
-    ```
+    ```{code-block} text 
     sudo tcpdump -i <bridge> udp port 67 and port 68
     ```
 
     You will need to replace `<bridge>` with `mpqemubr0` on Linux and with `bridge100` on macOS.
 
-    ```{note}Note that, on macOS, `bridge100` is a virtual network interface that only appears when at least a VM is running.```
+    ```{note}
+    Note that, on macOS, `bridge100` is a virtual network interface that only appears when at least a VM is running.
+    ```
 
     * If you see `NIC_RX_FILTER_CHANGED`, you should also see DHCP requests. If you don't, see [VM boot failure](#vm-boot-failure-3) and please [let us know](https://github.com/canonical/multipass/issues/new/choose).
     * If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see: [No IP assigned](#no-ip-assigned-4).
@@ -54,7 +56,7 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
 
 To find out if something is failing during boot, you'd need to attach to the VM's console/serial and observe the output and try to find out where the VM is getting stuck. Here is how you can do that, depending on the driver:
 
-- [Linux/macOS, QEMU driver] Relaunch QEMU manually:
+- *(Linux/macOS, QEMU driver)* Relaunch QEMU manually:
     1. Look for the `qemu-system-*` command line corresponding to the failing VM in Multipass logs
     2. copy it to an editor and modify it
         1. remove `-serial chardev:char0 -nographic`
@@ -65,14 +67,14 @@ To find out if something is failing during boot, you'd need to attach to the VM'
     ```
     This will open a QEMU window where you can see the boot output. You may need to select the correct display output (Serial or VGA) from the QEMU menu.
 
-- [macOS/Windows, VirtualBox driver] Observe the output in the VirtualBox GUI:
+- *(macOS/Windows, VirtualBox driver)* Observe the output in the VirtualBox GUI:
     1. Run the VirtualBox GUI as admin/root:
         - [macOS] `sudo VirtualBox`
         - [Windows] [Run with `psexec.exe`](...):
     2. Start or launch the instance with `multipass start|launch`
     3. Select and attach to the VM in the VirtualBox GUI and observe the boot output. If it eventually arrives at a login screen, it means that the instance should've started correctly.
 
-- [Windows, Hyper-V driver]
+- *(Windows, Hyper-V driver)*
     1. Open the Hyper-V Manager GUI (look for it in your Start menu)
     2. Start or launch the instance with `multipass start|launch`
     2. Select the VM in Hyper-V manager and click "Connect" on the Actions pane, at the right-hand side. Observe the boot output.
@@ -138,7 +140,7 @@ Here are some options to attempt recovery:
      - In the recovery menu, select **`resume`** to continue with the normal boot process.
      - The system should now boot normally if `fsck` was able to repair the filesystem.
 
-- [Linux/macOS] Alternatively, run `fsck` over a [mounted image](#reading-data-from-a-qcow2-image-12) on the host.
+- *(Linux/macOS)* Alternatively, run `fsck` over a [mounted image](#reading-data-from-a-qcow2-image-12) on the host.
 - Run `qemu-img check -r` on the image. 
     * `qemu-img`, shipped with Multipass, can also be used to check and repair disk images.
     * See below how to [locate it](#locating-multipass-binaries-draft).
@@ -243,19 +245,19 @@ A workaround to resolve this issue is to run the command `multipass find --force
 
 Alternatively, try deleting the `network-cache` folder and restart the Multipass service:
 
-* (on Linux) 
+* *(on Linux)*
    ```
    sudo snap stop multipass
    sudo rm -rf /var/snap/multipass/common/cache/multipassd/network-cache/
    sudo snap start multipass
    ```
-* (on macOS)
+* *(on macOS)*
    ```
    sudo launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
    sudo rm -rf /System/Volumes/Data/private/var/root/Library/Caches/multipassd/network-cache
    sudo launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
    ```
-* (on Windows)
+* *(on Windows)*
    Remove `C:\ProgramData\Multipass\cache\network-cache` and restart the Multipass service.
 
 ### Reading data from a QCOW2 image
@@ -268,24 +270,24 @@ Once you have it, you can search the web for recipes to "mount a QCOW2 image". F
 
 ### Locating Multipass Binaries **(DRAFT)**
 You may need to locate where Multipass is installed. There are several ways to do so, depending on your platform:
-* (on Linux)
+* *(on Linux)*
   * Run the command `which multipass` or `whereis multipass`.
   * By default, Multipass is installed in the `/snap/bin` folder.
 
-* (on Windows)
+* *(on Windows)*
   * Run the command `where.exe multipass`.
   * Right-click a shortcut to Multipass in your files or Start menu and select "Open file location".
   * By default, Multipass is installed in the `C:\Program Files\Multipass\bin` folder.
 
-* (on MacOS)
+* *(on MacOS)*
   * Run the command `readlink -f $(which multipass)`
   * By default, Multipass is installed in the `/Library/Application\ Support/com.canonical.multipass/bin/` folder.
 
 ### Locating Multipass Images **(DRAFT)**
 You may need to locate where Multipass is storing instances. The location changes depending on your platform:
-* (Linux) `/root/.local/share/multipassd/vault/instances/<instance/<img>`
+* *(Linux)* `/root/.local/share/multipassd/vault/instances/<instance/<img>`
 
-* (Windows) `C:\ProgramData\Multipass\data\vault\instances\<instance>\<img>`
+* *(Windows)* `C:\ProgramData\Multipass\data\vault\instances\<instance>\<img>`
 
-* (MacOS) `/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>`
+* *(MacOS)* `/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>`
 
