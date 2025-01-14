@@ -191,5 +191,5 @@ int mp::platform::Platform::get_cpus() const
 
 long long mp::platform::Platform::get_total_ram() const
 {
-    return (long long)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+    return static_cast<long long>(sysconf(_SC_PHYS_PAGES)) * sysconf(_SC_PAGESIZE);
 }
