@@ -11,7 +11,7 @@ This guide demonstrates how to create, list, run and remove aliases for commands
 
 To create an alias that runs a command on a given instance, use the command [`multipass alias`](/reference/command-line-interface/alias). The code below uses this command to create an alias `lscc` that will run the command `ls` inside an instance `crazy-cat`:
 
-```plain
+```{code-block} text
 multipass alias crazy-cat:ls lscc
 ```
 
@@ -21,7 +21,7 @@ After running this command, the alias `lscc` is defined as running the command `
 
 By default, if the host folder on which you are running an alias is mounted on the instance, the working directory on the instance is changed to the mounted directory. To avoid this behaviour, use the option `--no-map-working-directory` when defining the alias; for example:
 
-```plain
+```{code-block} text
 multipass alias crazy-cat:pwd pwdcc --no-map-working-directory
 ```
 
@@ -41,7 +41,7 @@ To see the list of aliases defined so far, use the `multipass aliases` command.
 
 The output will be similar to the following:
 
-```plain
+```{code-block} text
 Alias   Instance     Command   Context      Working directory
 lscc    crazy-cat    ls        default      map
 pwdcc   crazy-cat    pwd       default      default
@@ -62,7 +62,7 @@ There are two ways to run an alias:
 
 The first way of running an alias is invoking it with `multipass <alias>`, for example:
 
-```plain
+```{code-block} text
 multipass lscc
 ```
 
@@ -70,19 +70,19 @@ This command opens a shell into the instance `cozy-canary`, runs `ls` and return
 
 If you want to run an alias outside the current context, you can use a fully-qualified alias name:
 
-```plain
+```{code-block} text
 multipass default.lscc
 ```
 
 Arguments are also supported, provided you separate any options with `--`:
 
-```plain
+```{code-block} text
 multipass lscc -- -l
 ```
 
 or:
 
-```plain
+```{code-block} text
 multipass default.lscc -- -l
 ```
 
@@ -97,32 +97,32 @@ The second way of running an alias is a two-step process:
 
 The instructions to add the Multipass alias script folder to the system path are displayed the first time you create an alias, and vary for each platform. For instance, when you run the command:
 
-```plain
+```{code-block} text
 multipass alias crazy-cat:ls lscc
 ```
 
 the following output is displayed:
 
-```plain
+```{code-block} text
 You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for
 aliases to work without prefixing with `multipass`:
 
 PATH="$PATH:/home/user/snap/multipass/common/bin"
 ```
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 On Linux, you'll have to edit the shell configuration file. In most Linux distributions, the shell used by default is `bash`. You can configure this option by editing the file `.bashrc` in the user's home directory using a text editor; for example:
 
-```plain
+```{code-block} text
 nano ~/.bashrc
 ```
 
 You can modify the path by appending a line to the `.bashrc` file, such as:
 
-```plain
+```{code-block} text
 export PATH="$PATH:/home/user/snap/multipass/common/bin"
 ```
 
@@ -132,16 +132,16 @@ Remember to replace the correct folder, as indicated in the output of the Multip
 If your shell is `zsh` and not `bash`, the file to modify is `.zshrc` instead of `.bashrc`. The procedure is the same.
 ```
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 On macOS, you'll have to edit the shell configuration file. The shell used by default is `zsh`. You can configure this option by editing the file `.zshrc` in the user's home directory using a text editor.
 
 You can modify the path by appending a line to the `.zshrc` file, such as:
 
 
-```plain
+```{code-block} text
 export PATH="$PATH:/Users/<username>/Library/Application Support/multipass/bin"
 ```
 
@@ -149,13 +149,13 @@ export PATH="$PATH:/Users/<username>/Library/Application Support/multipass/bin"
 Remember to replace the correct folder, as indicated in the output of the Multipass command above, and to restart the shell when done.
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 On Windows, to make the change permanent, use PowerShell to store the old system path, add the alias folder to it, and store the new path:
 
-```powershell
+```{code-block} powershell
 $old_path = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).path
 $new_path = “$old_path;C:\Users\<user>\AppData\Local\Multipass\bin”
 Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $new_path
@@ -163,27 +163,27 @@ Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Co
 
 Don't forget to restart your terminal. The folder is now permanently added to your path, and Multipass can now run aliases just invoking their name.
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 #### Run the alias
 
 Once you've added the alias folder to the system path, you can run it directly from the command line, without the need to also mention `multipass`; for example:
 
-```plain
+```{code-block} text
 lscc
 ```
 
 or:
 
-```plain
+```{code-block} text
 default.lscc
 ```
 
 Since the path has been added to the system path, this command is equivalent to `multipass lscc`. Arguments are also supported, without the need for `--`:
 
-```plain
+```{code-block} text
 lscc -l
 ```
 
@@ -193,25 +193,25 @@ lscc -l
 
 Finally, to remove the alias `lscc`, run the following command:
 
-```plain
+```{code-block} text
 multipass unalias lscc
 ```
 
 or:
 
-```plain
+```{code-block} text
 multipass unalias default.lscc
 ```
 
 The `unalias` command accepts many arguments, specifying more than one alias to remove. For example, you can remove both aliases `lscc` and `pwdcc` at once:
 
-```plain
+```{code-block} text
 multipass unalias lscc pwdcc
 ```
 
 You can also use the `--all` option to remove all the defined aliases in the current context at once:
 
-```plain
+```{code-block} text
 multipass unalias --all
 ```
 

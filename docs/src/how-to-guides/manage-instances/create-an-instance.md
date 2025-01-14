@@ -11,14 +11,14 @@ This document demonstrates various ways to create an instance with Multipass. Wh
 
 To create an instance with Multipass, run the command `multipass launch`. This launches a new instance, which is randomly named; for example: 
 
-```plain
+```{code-block} text
 …
 Launched: keen-yak
 ```
 
 In particular, when we run `multipass info keen-yak`, we find out that it is an Ubuntu LTS release, namely 18.04, with 1GB RAM, 1 CPU, 5GB of disk:
 
-```plain
+```{code-block} text
 Name:           keen-yak
 State:          RUNNING
 IPv4:           10.140.94.253
@@ -36,7 +36,7 @@ Memory usage:   71.6M out of 985.4M
 
 To find out which images are available, run `multipass find`. Here's a sample output:
 
-```plain
+```{code-block} text
 Image                       Aliases           Version          Description
 20.04                       focal             20240821         Ubuntu 20.04 LTS
 22.04                       jammy             20240912         Ubuntu 22.04 LTS
@@ -54,14 +54,14 @@ ros2-humble                                   0.1              A development and
 
 To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch jammy`:
 
-```plain
+```{code-block} text
 ...
 Launched: tenacious-mink
 ```
 
 `multipass info tenacious-mink` confirms that we've launched an instance of the selected image.
 
-```plain
+```{code-block} text
 Name:           tenacious-mink
 State:          Running
 Snapshots:      0
@@ -81,7 +81,7 @@ Mounts:         --
 
 To launch an instance with a specific name, add the `--name` option to the command line; for example `multipass launch kinetic --name helpful-duck`:
 
-```plain
+```{code-block} text
 ...
 Launched: helpful-duck
 ```
@@ -92,7 +92,7 @@ Launched: helpful-duck
 
 You can specify a custom number of CPUs, disk and RAM size using the `--cpus`, `--disk` and `--memory` arguments, respectively. For example: 
 
-```plain
+```{code-block} text
 multipass launch --cpus 4 --disk 20G --memory 8G
 ```
 
@@ -102,7 +102,7 @@ multipass launch --cpus 4 --disk 20G --memory 8G
 
 An instance can obtain the primary status at creation time if its name is `primary`:
 
-```plain
+```{code-block} text
 multipass launch kinetic --name primary
 ```
 
@@ -128,19 +128,19 @@ The `--network` option can be given multiple times to request multiple network i
 
 These properties can be specified in the format `<key>=<value>` but a simpler form with only `<name>` is available for the most common use case. Here is an example:
 
-```plain
+```{code-block} text
 multipass launch --network en0 --network name=bridge0,mode=manual
 ```
 
 You can inspect the IP addresses assigned to the network interfaces of the new instance ("upbeat-whipsnake) on the system using the command:
 
-```plain
+```{code-block} text
 multipass exec upbeat-whipsnake -- ip -br address show scope global
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 enp0s3           UP             10.0.2.15/24
 enp0s8           UP             192.168.1.146/24
 enp0s9           DOWN
@@ -148,7 +148,7 @@ enp0s9           DOWN
 
 Last, you can run `ping -c1 192.168.1.146` from the same network to verify that the IP can be reached:
 
-```plain
+```{code-block} text
 PING 192.168.1.146 (192.168.1.146): 56 data bytes
 64 bytes from 192.168.1.146: icmp_seq=0 ttl=64 time=0.378 ms
 ...
@@ -165,7 +165,7 @@ Extra interfaces are configured with a higher metric (200) than the default one 
 
 For example, if the command `multipass exec upbeat-whipsnake -- ip route` returns the following routing table:
 
-```plain
+```{code-block} text
 default via 10.0.2.2 dev enp0s3 proto dhcp src 10.0.2.15 metric 100
 default via 192.168.1.1 dev enp0s8 proto dhcp src 192.168.1.146 metric 200
 10.0.2.0/24 dev enp0s3 proto kernel scope link src 10.0.2.15
@@ -176,12 +176,12 @@ default via 192.168.1.1 dev enp0s8 proto dhcp src 192.168.1.146 metric 200
 
 you can then explore how specific IPs are routed:
 
-```plain
+```{code-block} text
 multipass exec upbeat-whipsnake -- ip route get 91.189.88.181
 ```
 
 In this case, for example:
-```plain
+```{code-block} text
 91.189.88.181 via 10.0.2.2 dev enp0s3 src 10.0.2.15 uid 1000
     cache
 ```
@@ -192,7 +192,7 @@ On Linux, when trying to connect an instance network to an ethernet device on th
 
 First, run the `multipass networks` command; for example: 
 
-```plain
+```{code-block} text
 Name             Type      Description
 eth0             ethernet  Ethernet device
 lxdbr0           bridge    Network bridge
@@ -202,7 +202,7 @@ virbr0           bridge    Network bridge
 
 Then, select an ethernet device and launch a new instance requesting to connect to it, for example via `multipass launch --network eth0`. The output will be:
 
-```plain
+```{code-block} text
 Multipass needs to create a bridge to connect to eth0.
 This will temporarily disrupt connectivity on that interface.
 
@@ -211,7 +211,7 @@ Do you want to continue (yes/no)?
 
 However, Multipass requires `NetworkManager` to achieve this. On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can still create a bridge by other means and pass that to Multipass. For instance, this configuration snippet achieves that with `netplan`:
 
-```yaml
+```{code-block} yaml 
 network:
   bridges:
     mybridge:
@@ -222,7 +222,7 @@ network:
 
 That goes somewhere in `/etc/netplan/` (e.g. `/etc/netplan/50-custom.yaml`). After a successful `netplan try` or `netplan apply`, Multipass will show the new bridge with the `networks` command and instances can be connected to it:
 
-```plain
+```{code-block} text
 multipass launch --network mybridge
 ```
 
@@ -238,7 +238,7 @@ In some scenarios the default of using the system-provided DNS will not be suffi
 
 To use a custom DNS in your instances, you can use this `cloud-init` snippet:
 
-```yaml
+```{code-block} yaml 
 #cloud-config
 bootcmd:
 - printf "[Resolve]\nDNS=8.8.8.8" > /etc/systemd/resolved.conf
@@ -247,7 +247,7 @@ bootcmd:
 
 Replace `8.8.8.8` with whatever your preferred DNS server is. You can then launch the instance using the following command:
 
-```bash
+```{code-block} text 
 multipass launch --cloud-init systemd-resolved.yaml
 ```
 
@@ -255,7 +255,7 @@ multipass launch --cloud-init systemd-resolved.yaml
 
 After the instance booted, you can modify the `/etc/netplan/50-cloud-init.yaml` file, adding the `nameservers` entry:
 
-```yaml
+```{code-block} yaml 
 network:
   ethernets:
     ens3:
@@ -270,7 +270,7 @@ network:
 
 You can then test it with the command `sudo netplan try`:
 
-```plain
+```{code-block} text
 Do you want to keep these settings?
 
 Press ENTER before the timeout to accept the new configuration

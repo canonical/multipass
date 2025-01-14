@@ -39,41 +39,41 @@ Here is a long-form example of how Multipass handles the primary instance.
 
 Set the name of the primary instance and start it:
 
-```plain
+```{code-block} text
 multipass set client.primary-name=first
 multipass start
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 Launched: first
 Mounted '/home/ubuntu' into 'first:Home'
 ```
 
 Now, stop the primary and launch another instance:
 
-```plain
+```{code-block} text
 multipass stop
 multipass launch eoan
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 Launched: calm-chimaera
 ```
 
 Change the `client.primary-name` setting to the newly launched instance, and review the list of existing instances:
 
-```plain
+```{code-block} text
 multipass set client.primary-name=calm-chimaera
 multipass list
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 Name                    State             IPv4             Image
 calm-chimaera           Running           10.122.139.63    Ubuntu 19.04 LTS
 first                   Stopped           --               Ubuntu 18.04 LTS

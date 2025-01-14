@@ -12,7 +12,7 @@ On Linux, if your local home folder is encrypted using ` fscrypt`, [snap confine
 
 A workaround is mounting the entire `/home` folder into the instance, using the command: 
 
-```plain
+```{code-block} text
 multipass mount /home primary
 ```
 

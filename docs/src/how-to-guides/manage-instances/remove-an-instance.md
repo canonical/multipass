@@ -11,32 +11,32 @@ This guide demonstrates how to remove an instance, either temporarily or permane
 
 To mark an instance as deleted, run:
 
-```plain
+```{code-block} text
 multipass delete keen-yak
 ```
 
 Now, if you run `multipass list` to list the instances, you will see that it is actually just marked for deletion (or to put it in other words, moved to the recycle bin):
 
-```plain
+```{code-block} text
 Name                    State             IPv4             Release
 keen-yak                DELETED           --               Not Available
 ```
 
 You can move all instances to the recycle bin at once using the `--all` option:
 
-```plain
+```{code-block} text
 multipass delete --all
 ```
 
 Instances that have been marked as deleted can later be recovered; for example:
 
-```plain
+```{code-block} text
 multipass recover keen-yak
 ```
 
 If you try `multipass list` again, you'll see that the instance is no longer marked for deletion:
 
-```plain
+```{code-block} text
 Name                    State             IPv4             Release
 keen-yak                STOPPED           --               Ubuntu 18.04 LTS
 ```
@@ -47,7 +47,7 @@ keen-yak                STOPPED           --               Ubuntu 18.04 LTS
 
 If you want to get rid of all instances in `Deleted` status for good, you can purge them:
 
-```plain
+```{code-block} text
 multipass delete keen-yak
 multipass purge
 ```
@@ -58,7 +58,7 @@ The `purge` command does not take an argument. It will permanently remove all in
 
 You can also use the `--purge` option to permanently delete an instance in a single command; for example:
 
-```plain
+```{code-block} text
 multipass delete --purge keen-yak
 ```
 
