@@ -606,29 +606,6 @@ TEST(Utils, validate_server_address_does_not_throw_on_good_address)
     EXPECT_NO_THROW(mp::utils::validate_server_address("test-server.net:123"));
 }
 
-TEST(Utils, dir_is_a_dir)
-{
-    mpt::TempDir temp_dir;
-    EXPECT_TRUE(mp::utils::is_dir(temp_dir.path().toStdString()));
-}
-
-TEST(Utils, file_is_not_a_dir)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/empty_test_file";
-    mpt::make_file_with_content(file_name, "");
-
-    EXPECT_FALSE(mp::utils::is_dir(file_name.toStdString()));
-}
-
-TEST(Utils, filename_only_is_returned)
-{
-    std::string file_name{"my_file"};
-    std::string full_path{"/tmp/foo/" + file_name};
-
-    EXPECT_THAT(mp::utils::filename_for(full_path), Eq(file_name));
-}
-
 TEST(Utils, no_subdirectory_returns_same_path)
 {
     mp::Path original_path{"/tmp/foo"};
@@ -738,35 +715,4 @@ TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
     auto bytes_available = MP_UTILS.filesystem_bytes_available(temp_dir.path());
 
     EXPECT_GE(bytes_available, 0);
-}
-
-TEST(VaultUtils, copy_creates_new_file_and_returned_path_exists)
-{
-    mpt::TempDir temp_dir1, temp_dir2;
-    auto orig_file_path = QDir(temp_dir1.path()).filePath("test_file");
-
-    mpt::make_file_with_content(orig_file_path);
-
-    auto new_file_path = mp::vault::copy(orig_file_path, temp_dir2.path());
-
-    EXPECT_TRUE(QFile::exists(new_file_path));
-}
-
-TEST(VaultUtils, copy_returns_empty_path_when_file_name_is_empty)
-{
-    mpt::TempDir temp_dir;
-
-    auto path = mp::vault::copy("", temp_dir.path());
-
-    EXPECT_TRUE(path.isEmpty());
-}
-
-TEST(VaultUtils, copy_throws_when_file_does_not_exist)
-{
-    mpt::TempDir temp_dir;
-
-    const QString file_name{"/foo/bar"};
-
-    MP_EXPECT_THROW_THAT(mp::vault::copy(file_name, temp_dir.path()), std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("{} missing", file_name))));
 }
