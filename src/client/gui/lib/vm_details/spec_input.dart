@@ -63,6 +63,21 @@ class SpecInput extends StatelessWidget {
           onSaved: onSaved,
           style: const TextStyle(color: Colors.black),
           validator: validator,
+          contextMenuBuilder: (context, editableTextState) {
+            final textButtonStyle = Theme.of(context).textButtonTheme.style?.copyWith(
+                  backgroundColor: const MaterialStatePropertyAll(Colors.transparent),
+                );
+            return TapRegion(
+              onTapOutside: (_) => ContextMenuController.removeAny(),
+              child: TextButtonTheme(
+                data: TextButtonThemeData(style: textButtonStyle),
+                child: AdaptiveTextSelectionToolbar.buttonItems(
+                  anchors: editableTextState.contextMenuAnchors,
+                  buttonItems: editableTextState.contextMenuButtonItems,
+                ),
+              ),
+            );
+          },
         ),
       ]),
     );
