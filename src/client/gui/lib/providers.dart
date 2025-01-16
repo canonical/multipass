@@ -72,6 +72,10 @@ final daemonAvailableProvider = Provider((ref) {
   return false;
 });
 
+final daemonInfoProvider = FutureProvider((ref) {
+  return ref.watch(grpcClientProvider).daemonInfo();
+});
+
 final vmInfosProvider = Provider((ref) {
   final vmInfos = ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
   final existingVms = vmInfos

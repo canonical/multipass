@@ -8,19 +8,12 @@ import '../tooltip.dart';
 import 'mapping_slider.dart';
 import 'memory_slider.dart';
 
-final diskSizeProvider = FutureProvider((ref) {
-  return ref
-      .watch(grpcClientProvider)
-      .daemonInfo()
-      .then((r) => r.availableSpace.toInt());
-});
-
 class DiskSlider extends ConsumerWidget {
   final int? initialValue;
   final int min;
   final FormFieldSetter<int> onSaved;
 
-  DiskSlider({
+  const DiskSlider({
     super.key,
     int? min,
     this.initialValue,
@@ -29,7 +22,8 @@ class DiskSlider extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final disk = ref.watch(diskSizeProvider).valueOrNull ?? min;
+    final daemonInfo = ref.watch(daemonInfoProvider);
+    final disk = daemonInfo.valueOrNull?.availableSpace.toInt() ?? min;
     final max = math.max(initialValue ?? 0, disk);
     final enabled = min != max;
 
