@@ -361,6 +361,8 @@ DWORD convert_permissions(int unix_perms)
     return access_mask;
 }
 
+// Since the Windows API expects a C style function pointer, we cannot pass parameters.
+// This means that only one watchdog can exist at a time.
 HANDLE signal_event = (HANDLE) nullptr;
 
 BOOL signal_handler(DWORD dwCtrlType)
@@ -368,7 +370,6 @@ BOOL signal_handler(DWORD dwCtrlType)
     switch (dwCtrlType)
     {
     case CTRL_C_EVENT:
-    case CTRL_CLOSE_EVENT:
     {
         SetEvent(signal_event);
         return TRUE;
@@ -775,9 +776,7 @@ std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::ma
 
     SetConsoleCtrlHandler(signal_handler, TRUE);
 
-    auto timeout_millis = std::chrono::duration_cast<std::chrono::milliseconds>(timeout);
-
-    return [millis = timeout_millis.count()](const std::function<bool()>& condition) -> std::optional<int> {
+    return [millis = timeout.count()](const std::function<bool()>& condition) -> std::optional<int> {
         ResetEvent(signal_event);
 
         while (condition())
