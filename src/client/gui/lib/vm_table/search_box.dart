@@ -8,6 +8,10 @@ class SearchBox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final textButtonStyle = Theme.of(context).textButtonTheme.style?.copyWith(
+          backgroundColor: const MaterialStatePropertyAll(Colors.transparent),
+        );
+
     return SizedBox(
       width: 220,
       child: TextField(
@@ -16,6 +20,18 @@ class SearchBox extends ConsumerWidget {
           suffixIcon: Icon(Icons.search),
         ),
         onChanged: (name) => ref.read(searchNameProvider.notifier).state = name,
+        contextMenuBuilder: (context, editableTextState) {
+          return TapRegion(
+            onTapOutside: (_) => ContextMenuController.removeAny(),
+            child: TextButtonTheme(
+              data: TextButtonThemeData(style: textButtonStyle),
+              child: AdaptiveTextSelectionToolbar.buttonItems(
+                anchors: editableTextState.contextMenuAnchors,
+                buttonItems: editableTextState.contextMenuButtonItems,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
