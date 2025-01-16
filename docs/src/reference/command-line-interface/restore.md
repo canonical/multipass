@@ -7,19 +7,19 @@ The `multipass restore` command restores an instance to the state that it was in
 
 For example, when you run the command:
 
-```plain
+```{code-block} text
 multipass restore relative-lion.snapshot2
 ```
 
 the system will ask you if you want to save a snapshot of your instance before proceeding:
 
-```plain
+```{code-block} text
 Do you want to take a snapshot of relative-lion before discarding its current state? (Yes/no):
 ```
 
 If you confirm, the output will be similar to the following:
 
-```plain
+```{code-block} text
 Snapshot taken: relative-lion.snapshot3
 Snapshot restored: relative-lion.snapshot2
 ```
@@ -28,13 +28,13 @@ As shown in the example, with no further options, the command will offer to take
 
 In our example, if you run:
 
-```plain
+```{code-block} text
 multipass info relative-lion.snapshot3 | grep Comment
 ```
 
 you'll find the comment:
 
-```plain
+```{code-block} text
 Comment:        Before restoring snapshot1
 ```
 
@@ -44,7 +44,7 @@ You can use the `--destructive` (or `-d`)  option to skip the question and disca
 
 The full `multipass help restore` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass restore [options] <instance>.<snapshot>
 Restore an instance to the state of a previously taken snapshot.
 

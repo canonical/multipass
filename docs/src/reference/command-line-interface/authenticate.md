@@ -7,7 +7,7 @@ The `authenticate` command is used to authenticate a client with the Multipass s
 
 To help reduce the amount of typing for `authenticate`, one can also use `multipass auth` as an alias:
 
-```plain
+```{code-block} text
 multipass auth foo
 ```
 
@@ -17,7 +17,7 @@ If no passphrase is specified in the `multipass authenticate` command line, you 
 
 The full `multipass help authenticate` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass authenticate [options] [<passphrase>]
 Authenticate with the Multipass service.
 A system administrator should provide you with a passphrase

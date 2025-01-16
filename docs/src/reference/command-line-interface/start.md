@@ -5,7 +5,7 @@ The `multipass start` command without any argument will start the [primary insta
 
 For example, the command `multipass start` will produce the following output:
 
-```plain
+```{code-block} text
 Configuring primary \
 Launching primary |
 …
@@ -17,7 +17,7 @@ Only instances in `Stopped` or `Suspended` status can be started. Running instan
 
 The full `multipass help start` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass start [options] [<name> ...]
 Start the named instances. Exits with return code 0
 when the instances start, or with an error code if

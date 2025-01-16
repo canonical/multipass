@@ -11,7 +11,7 @@ Currently, only instances that are in the `Stopped` state can be cloned.
 
 You can run the `clone` command  on a source instance without any additional options. For example, `multipass clone natty-nilgai` will produce the following output:
 
-```plain
+```{code-block} text
 …
 Cloned from natty-nilgai to natty-nilgai-clone1.
 ```
@@ -28,7 +28,7 @@ multipass clone natty-nilgai --name custom-clone
 
 The full `multipass help clone` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass clone [options] <source_name>
 Create an independent copy of an existing (stopped) instance.
 

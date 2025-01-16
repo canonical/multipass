@@ -9,7 +9,7 @@ Only instances in `Running` status can be restarted.
 
 For example:
 
-```plain
+```{code-block} text
 multipass restart desirable-earwig
 ```
 
@@ -17,7 +17,7 @@ multipass restart desirable-earwig
 
 The full `multipass help restart` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass restart [options] [<name> ...]
 Restart the named instances. Exits with return
 code 0 when the instances restart, or with an

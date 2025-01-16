@@ -13,20 +13,20 @@ There are two ways to proceed:
 
 * Set the passphrase with an echoless interactive entry, where the passphrase is hidden from view:
   
-   ```plain
+   ```{code-block} text
    multipass set local.passphrase
    ```
   
    The system will then prompt you to enter a passphrase:
   
-   ```plain
+   ```{code-block} text
    Please enter passphrase:
    Please re-enter passphrase:
    ```
   
 * Set the passphrase in the command line, where the passphrase is visible:
 
-   ```plain
+   ```{code-block} text
    multipass set local.passphrase=foo
    ```
 
@@ -36,7 +36,7 @@ A client that is not authorized to connect to the Multipass service will fail wh
 
 For example, if you try running the `multipass list` command:
 
-```plain
+```{code-block} text
 list failed: The client is not authenticated with the Multipass service.
 Please use 'multipass authenticate' before proceeding.
 ```
@@ -45,19 +45,19 @@ At this time, the client will need to provide the previously set passphrase.  Th
 
 * Authenticate with an echoless interactive entry, where the passphrase is hidden from view:
 
-    ```plain
+    ```{code-block} text
     multipass authenticate
     ```
     
     The system will prompt you to enter the passphrase:
     
-     ```plain
+     ```{code-block} text
     Please enter passphrase:
     ```
 
 * Authenticate in the command line, where the passphrase is visible:
 
-   ```plain
+   ```{code-block} text
    multipass authenticate foo
    ```
 
@@ -73,14 +73,14 @@ If this is the case, you will see something like the following when you run:
 
 * `multipass list`
   
-  ```plain
+  ```{code-block} text
   list failed: The client is not authenticated with the Multipass service.
   Please use 'multipass authenticate' before proceeding.
   ```
 
 * `multipass authenticate`
 
-  ```plain
+  ```{code-block} text
   Please enter passphrase: 
   authenticate failed: Passphrase is not set. Please `multipass set 
   local.passphrase` with a trusted client.
@@ -88,7 +88,7 @@ If this is the case, you will see something like the following when you run:
 
 * `multipass set local.passphrase`
 
-  ```plain
+  ```{code-block} text
   Please enter passphrase: 
   Please re-enter passphrase: 
   set failed: The client is not authenticated with the Multipass service.
@@ -99,7 +99,7 @@ This may not even work when using `sudo`.
 
 The following workaround should help get out of this situation:
 
-```plain
+```{code-block} text
 cat ~/snap/multipass/current/data/multipass-client-certificate/multipass_cert.pem | sudo tee -a /var/snap/multipass/common/data/multipassd/authenticated-certs/multipass_client_certs.pem > /dev/null
 snap restart multipass
 ```

@@ -5,7 +5,7 @@
 
 The `multipass unalias` command removes a previously defined alias. 
 
-```plain
+```{code-block} text
 multipass unalias name
 ```
 
@@ -17,13 +17,13 @@ If an instance is deleted and purged, it is not necessary to run `unalias` for t
 
 You can remove multiple aliases in a single command:
 
-```plain
+```{code-block} text
 multipass unalias name1 name2 name3
 ```
 
 Or, use the argument `--all` to remove all the defined aliases:
 
-```plain
+```{code-block} text
 multipass unalias --all
 ```
 
@@ -31,7 +31,7 @@ multipass unalias --all
 
 The full `multipass help unalias` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass unalias [options] <name> [<name> ...]
 Remove aliases
 

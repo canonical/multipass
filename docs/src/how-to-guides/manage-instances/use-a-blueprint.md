@@ -7,7 +7,7 @@ Blueprints provide a shortcut to initialising Multipass instances for a variety 
 
 To see what blueprints are available, run 
 
-```plain
+```{code-block} text
 multipass find --only-blueprints
 ```
 
@@ -15,13 +15,13 @@ multipass find --only-blueprints
 
 To use a blueprint run:
 
-```plain
+```{code-block} text
 multipass launch <blueprint name>
 ```
 
 Launching a blueprint can take the same arguments as launching any other type of instance. If no further arguments are specified, the instance will launch with the defaults defined in the blueprint. Here’s an example of creating an instance from the Docker blueprint with a few more parameters specified:
 
-```plain
+```{code-block} text
 multipass launch docker --name docker-dev --cpus 4 --memory 8G --disk 50G --bridged
 ```
 

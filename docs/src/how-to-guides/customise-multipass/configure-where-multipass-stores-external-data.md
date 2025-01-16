@@ -11,32 +11,32 @@ This document demonstrates how to configure the location where Multipass stores 
 - When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to deleted it manually.
 ```
 
-[tabs] 
+`````{tab-set} 
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 First, stop the Multipass daemon:
 
-```plain
+```{code-block} text
 sudo snap stop multipass
 ```
 
 Since Multipass is installed using a strictly confined snap, it is limited on what it can do or access on your host. Depending on where the new storage directory is located, you will need to connect the respective interface to the Multipass snap. Because of [snap confinement](https://snapcraft.io/docs/snap-confinement), this directory needs to be located in either `/home` (connected by default) or one of the removable mounts points (`/mnt` or `/media`). To connect the removable mount points, use the command: 
 
-  ```plain
+  ```{code-block} text
   sudo snap connect multipass:removable-media
   ```
 
 Create the new directory in which Multipass will store its data:
 
-```plain
+```{code-block} text
 mkdir -p <path>
 sudo chown root <path>
 ```
 
 After that, create the override config file, replacing `<path>` with the absolute path of the directory created above.
 
-```plain
+```{code-block} text
 sudo mkdir /etc/systemd/system/snap.multipass.multipassd.service.d/
 sudo tee /etc/systemd/system/snap.multipass.multipassd.service.d/override.conf <<EOF
 [Service]
@@ -45,20 +45,20 @@ EOF
 ```
 
 The output at this point will be:
-```plain
+```{code-block} text
 [Service]
 Environment=MULTIPASS_STORAGE=<path>
 ```
 
 Then, instruct `systemd` to reload the daemon configuration files:
 
-```plain
+```{code-block} text
 sudo systemctl daemon-reload
 ```
 
 Now you can transfer the data from its original location to the new location:
 
-```plain
+```{code-block} text
 sudo cp -r /var/snap/multipass/common/data/multipassd <path>/data
 sudo cp -r /var/snap/multipass/common/cache/multipassd <path>/cache
 ```
@@ -72,36 +72,36 @@ You also need to edit the following configuration files so that the specified pa
 
 Finally, start the Multipass daemon:
 
-```plain
+```{code-block} text
 sudo snap start multipass
 ```
 
 You can delete the original data at your discretion, to free up space:
 
-```plain
+```{code-block} text
 sudo rm -rf /var/snap/multipass/common/data/multipassd
 sudo rm -rf /var/snap/multipass/common/cache/multipassd
 ```
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 First, become `root`:
 
-```plain
+```{code-block} text
 sudo su
 ```
 
 Stop the Multipass daemon:
 
-```plain
+```{code-block} text
 launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
 Move your current data from its original location to `<path>`, replacing `<path>` with your custom location of choice:
 
-```plain
+```{code-block} text
 mv /var/root/Library/Application\ Support/multipassd <path>
 ```
 
@@ -111,38 +111,38 @@ Make sure the `multipassd` directory is moved to `<path>`, and not inside the  `
 
 Define a symbolic link from the original location to the absolute path of new location:
 
-```plain
+```{code-block} text
 ln -s <path> /var/root/Library/Application\ Support/multipassd
 ```
 
 Finally, start the Multipass daemon:
 
-```plain
+```{code-block} text
 launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 First, open a PowerShell prompt with administration privileges.
 
 Stop the Multipass daemon:
 
-```powershell
+```{code-block} powershell
 Stop-Service Multipass
 ```
 
 Create and set the new storage location, replacing `<path>` with the absolute path of your choice:
 
-```powershell
+```{code-block} powershell
 New-Item -ItemType Directory -Path "<path>"
 Set-ItemProperty -Path "HKLM:System\CurrentControlSet\Control\Session Manager\Environment" -Name MULTIPASS_STORAGE -Value "<path>"
 ```
 
 Now you can transfer the data from its original location to the new location:
 
-```powershell
+```{code-block} powershell
 Copy-Item -Path "C:\ProgramData\Multipass\*" -Destination "<path>" -Recurse
 ```
 
@@ -152,139 +152,138 @@ It is important to copy any existing data to the new location. This avoids unaut
 
 Finally, start the Multipass daemon:
 
-```powershell
+```{code-block} powershell
 Start-Service Multipass
 ```
 
 You can delete the original data at your discretion, to free up space:
 
-```powershell
+```{code-block} powershell
 Remove-Item -Path "C:\ProgramData\Multipass\*" -Recurse
 ```
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ## Reverting back to the default location
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 Stop the Multipass daemon:
 
-```plain
+```{code-block} text
 sudo snap stop multipass
 ```
 
 Although not required, to make sure that Multipass does not have access to directories that it shouldn't, you can disconnect the respective interface depending on where the custom storage location was set (see [Configuring a new storage location](#configuring-a-new-storage-location) above). For example, to disconnect the removable mounts points (`/mnt` or `/media`), run:
 
-```plain
+```{code-block} text
 sudo snap disconnect multipass:removable-media
 ```
 
 Then, remove the override config file:
 
-```plain
+```{code-block} text
 sudo rm /etc/systemd/system/snap.multipass.multipassd.service.d/override.conf
 sudo systemctl daemon-reload
 ```
 
 Now you can transfer your data from the custom location back to its original location:
 
-```plain
+```{code-block} text
 sudo cp -r <path>/data /var/snap/multipass/common/data/multipassd
 sudo cp -r <path>/cache /var/snap/multipass/common/cache/multipassd
 ```
 
 Finally, start the Multipass daemon:
 
-```plain
+```{code-block} text
 sudo snap start multipass
 ```
 
 You can delete the data from the custom location at your discretion, to free up space:
 
-```plain
+```{code-block} text
 sudo rm -rf <path>
 ```
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 First, become `root`:
 
-```plain
+```{code-block} text
 sudo su
 ```
 
 Stop the Multipass daemon:
 
-```plain
+```{code-block} text
 launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
 Remove the link pointing to your custom location:
 
-```plain
+```{code-block} text
 unlink /var/root/Library/Application\ Support/multipassd
 ```
 
 Move the data from your custom location back to its original location:
 
-```plain
+```{code-block} text
 mv <path> /var/root/Library/Application\ Support/multipassd
 ```
 
 Finally, start the Multipass daemon:
 
-```plain
+```{code-block} text
 launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 First, open a PowerShell prompt with administrator privileges.
 
 Stop the Multipass daemon:
 
-```powershell
+```{code-block} powershell
 Stop-Service Multipass
 ```
 
 Remove the setting for the custom storage location:
 
-```powershell
+```{code-block} powershell
 Remove-ItemProperty -Path "HKLM:System\CurrentControlSet\Control\Session Manager\Environment" -Name MULTIPASS_STORAGE
 ```
 
 Now you can transfer the data back to its original location:
 
-```powershell
+```{code-block} powershell
 Copy-Item -Path "<path>\*" -Destination "C:\ProgramData\Multipass" -Recurse
 ```
 
 Finally, start the Multipass daemon:
 
-```powershell
+```{code-block} powershell
 Start-Service Multipass
 ```
 
 You can delete the data from the custom location at your discretion, to free up space:
 
-```powershell
+```{code-block} powershell
 Remove-Item -Path "<path>" -Recurse
 ```
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://multipass.run/docs/configure-multipass-storage" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
