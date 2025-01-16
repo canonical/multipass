@@ -9,14 +9,14 @@ Only instances in `Running` status can be suspended.
 
 For example:
 
-```plain
+```{code-block} text
 multipass stop boisterous-tortoise
 multipass suspend boisterous-tortoise
 ```
 
 If check your instances with `multipass list`, you'll see that its status is now set to `Suspended`:
 
-```plain
+```{code-block} text
 Name                    State             IPv4             Image
 boisterous-tortoise     Suspended         --               Ubuntu 22.04 LTS
 ```
@@ -27,7 +27,7 @@ Suspended instances can be resumed with the [`multipass start`](/reference/comma
 
 The full `multipass help suspend` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass suspend [options] [<name> ...]
 Suspend the named instances, if running. Exits with
 return code 0 if successful.

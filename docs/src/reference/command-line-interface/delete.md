@@ -7,7 +7,7 @@ The `multipass delete` command deletes the instances or snapshots that are speci
 
 You can provide multiple arguments in the same delete command, including both instances and snapshots; for example:
 
-```plain
+```{code-block} text
 multipass delete --purge legal-takin calm-squirrel.snapshot2
 ```
 
@@ -26,7 +26,7 @@ The `--all` option will delete all instances and their snapshots.  Take care if 
 
 The output of `multipass help delete` explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass delete [options] <instance>[.snapshot] [<instance>[.snapshot] ...]
 Delete instances and snapshots. Instances can be purged immediately or later on,
 with the "purge" command. Until they are purged, instances can be recovered

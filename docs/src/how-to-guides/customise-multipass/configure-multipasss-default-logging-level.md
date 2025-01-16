@@ -7,19 +7,19 @@ This document demonstrates how to configure the default logging level of the Mul
 
 ## Changing the default logging level
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 First, stop the Multipass daemon:
 
-```bash
+```{code-block} text
 sudo snap stop multipass
 ```
 
 After that, create the override config file, replacing `<level>` with your desired logging level:
 
-```bash
+```{code-block} text
 sudo mkdir /etc/systemd/system/snap.multipass.multipassd.service.d/
 sudo tee /etc/systemd/system/snap.multipass.multipassd.service.d/override.conf <<EOF
 [Service]
@@ -31,23 +31,23 @@ sudo systemctl daemon-reload
 
 Finally, start the Multipass daemon:
 
-```bash
+```{code-block} text
 sudo snap start multipass
 ```
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 First, become `root`:
 
-```bash
+```{code-block} text
 sudo su
 ```
 
 Stop the Multipass daemon:
 
-```bash
+```{code-block} text
 launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
@@ -55,25 +55,25 @@ Then, open `/Library/LaunchDaemons/com.canonical.multipassd.plist` in your favor
 
 Finally, start the Multipass daemon:
 
-```bash
+```{code-block} text
 launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 First, open an administrator privileged PowerShell prompt.
 
 Stop the Multipass service:
 
-```powershell
+```{code-block} powershell
 Stop-Service Multipass
 ```
 
 Then, edit the Multipass service registry key with the following command:
 
-```powershell
+```{code-block} powershell
 Set-ItemProperty -path HKLM:\System\CurrentControlSet\Services\Multipass -Name ImagePath -Value "'C:\Program Files\Multipass\bin\multipassd.exe' /svc --verbosity <level>"
 ```
 
@@ -81,13 +81,13 @@ Replacing `<level>` with your desired logging level.
 
 Finally, start the Multipass service:
 
-```powershell
+```{code-block} powershell
 Start-Service Multipass
 ```
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ---
 

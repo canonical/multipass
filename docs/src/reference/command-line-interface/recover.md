@@ -7,7 +7,7 @@ The `multipass recover` command will revive an instance that was previously remo
 
 Use the `--all` option to recover all deleted instances at once:
 
-```plain
+```{code-block} text
 multipass recover --all
 ```
 
@@ -15,7 +15,7 @@ multipass recover --all
 
 The full `multipass help restart` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass recover [options] <name> [<name> ...]
 Recover deleted instances so they can be used again.
 

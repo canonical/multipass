@@ -44,13 +44,13 @@ Duration: 1 minute
 
 Now that Multipass is installed, you can create a VM running Docker very simply. Open up a terminal and type
 
-```plain
+```{code-block} text
 multipass launch docker
 ```
 
 This command will create a virtual machine running the latest version of Ubuntu, with Docker and Portainer installed. You can now use Docker already! Try the command below to see for yourself!
 
-```plain
+```{code-block} text
 multipass exec docker docker`
 ```
 
@@ -64,7 +64,7 @@ The Docker blueprint creates automatically two aliases, that is, two commands wh
 
 In order for these to work, you just need to add them to the path so that you can use them directly from your command line. If this was not done before, launching the Docker blueprint will return instructions showing how to add the aliases to your path. Simply copy and paste the command shown. It will likely be of this form:
 
-```plain
+```{code-block} text
 PATH="$PATH:/home/<user>/snap/multipass/common/bin"
 ```
 
@@ -72,13 +72,13 @@ PATH="$PATH:/home/<user>/snap/multipass/common/bin"
 
 Run the command:
 
-```plain
+```{code-block} text
 multipass launch docker
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for
 aliases to work without prefixing with `multipass`:
 
@@ -87,7 +87,7 @@ PATH="$PATH:/home/nhart/snap/multipass/common/bin"
 
 You can now use `docker` straight from the command line. To try it out, run
 
-```plain
+```{code-block} text
 docker run hello-world
 ```
 
@@ -97,7 +97,7 @@ Duration: 5 minutes
 
 Let's now go one step further, with Portainer. The Docker blueprint comes with Portainer installed, which gives an easy-to-use graphical interface for managing your Docker containers. To access Portainer, you will first need its IP address. The following command will show the IP addresses associated with the Ddocker VM you created in the previous steps:
 
-```plain
+```{code-block} text
 multipass list
 ```
 

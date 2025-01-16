@@ -4,6 +4,6 @@
 <!--
 The `multipass find` command without any argument will list the aliases you can use to launch instances with `multipass launch` on your system and associated version information, e.g.:
 
-```plain
+```{code-block} text
 $ multipass find
 multipass launch …   Starts an instance of           Image version

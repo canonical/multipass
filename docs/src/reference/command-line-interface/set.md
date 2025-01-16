@@ -5,7 +5,7 @@
 
 The `multipass set` command takes an argument in the form `<key>=<value>` to configure a single setting.  The *key* part is a dot-separated path identifying the setting in a hierarchical settings tree. The *value* part is what it should be set to:
 
-```plain
+```{code-block} text
 multipass set client.gui.autostart=false
 ```
 
@@ -17,7 +17,7 @@ You can read more about the available settings in the [Settings](/reference/sett
 
 The full `multipass help set` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass set [options] <key>[=<value>]
 Set, to the given value, the configuration setting corresponding to the given key.
 

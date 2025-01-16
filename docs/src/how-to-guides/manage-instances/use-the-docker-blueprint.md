@@ -7,7 +7,7 @@ To use the Docker blueprint, run `multipass launch docker`, which will launch an
 
 Next, follow the instructions in the output to add the aliased command to your path, it should look something like this:
 
-```plain
+```{code-block} text
 You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for
 
 aliases to work without prefixing with `multipass`:
@@ -15,7 +15,7 @@ aliases to work without prefixing with `multipass`:
 PATH="$PATH:/home/user/snap/multipass/common/bin"
 ```
 
-[note type=tip] 
+```{note}
 Running `which docker` from your host command line should confirm that you are running Docker inside Multipass.
 ```
 

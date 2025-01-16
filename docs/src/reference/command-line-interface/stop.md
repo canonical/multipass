@@ -15,7 +15,7 @@ You can use the `--force` option (*available starting from Multipass version 1.1
 
 The full `multipass help stop` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass stop [options] [<name> ...]
 Stop the named instances. Exits with return code 0 
 if successful.

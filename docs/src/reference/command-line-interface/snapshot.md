@@ -5,13 +5,13 @@
 
 The `multipass snapshot` command takes a snapshot of an instance; for example:
 
-```plain
+```{code-block} text
 multipass snapshot maximal-stag
 ```
 
 The output will be similar to the following:
 
-```plain
+```{code-block} text
 …
 Snapshot taken: maximal-stag.snapshot1
 ```
@@ -23,7 +23,7 @@ You have the option to specify a snapshot name using the `--name` option, follow
 
 The full `multipass help snapshot` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass snapshot [options] instance
 Take a snapshot of an instance that can later be restored to recover the current state.
 

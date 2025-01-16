@@ -13,7 +13,7 @@ Subsequent calls to [`alias`](/reference/command-line-interface/alias) , [`unali
 
 The full `multipass help prefer` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass prefer [options] <name>
 Switch the current alias context. If it does not exist, create it before switching.
 

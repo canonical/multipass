@@ -26,14 +26,14 @@ To specify a different image or image type, modify the `iso_checksum` and `iso_u
 
 You will need to install QEMU and Packer (e.g. `sudo apt install qemu packer`), and from there you can run the following commands:
 
-```plain
+```{code-block} text
 packer build template.json
 multipass launch file://$PWD/output-qemu/packer-qemu --disk 5G
 ```
 
 Now, shell into the new instance that was created, for example:
 
-```plain
+```{code-block} text
 multipass shell tolerant-hammerhead
 ```
 
