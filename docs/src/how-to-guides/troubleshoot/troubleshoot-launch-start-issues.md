@@ -190,7 +190,7 @@ Another possible reason for instance timeouts is a problem with the `Internet Co
 
 Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and look for any corruption or entries that have your instance name in it. If there is more than one entry, remove any of them except for the first one listed. Save the file and try again. If that does not work, stop any running instances, delete the file, and reboot.
 
-### SSH issues **(DRAFT)**
+### SSH issues
 
 If SSH doesn't function properly in the VM, or Multipass is blocked from accessing it, your instance may need to be reconfigured or repaired.
 
@@ -215,7 +215,7 @@ password: ubuntu
 chpasswd: { expire: false }
 ```
 
-### Cloud-init tarries during an instance launch **(DRAFT)**
+### Cloud-init tarries during an instance launch
 
 - When launching a new instance, once Multipass obtains an SSH session to the instance, it will wait for cloud-init to complete. During this phase, the CLI/GUI spinner reads "Waiting for initialization to complete".
 
@@ -268,7 +268,7 @@ One example is [`qemu-nbd`](https://manpages.ubuntu.com/manpages/oracular/en/man
 
 Once you have it, you can search the web for recipes to "mount a QCOW2 image". For example, here is a [a recipe](https://askubuntu.com/a/4404).
 
-### Locating Multipass Binaries **(DRAFT)**
+### Locating Multipass Binaries
 You may need to locate where Multipass is installed. There are several ways to do so, depending on your platform:
 * *(on Linux)*
   * Run the command `which multipass` or `whereis multipass`.
@@ -283,7 +283,7 @@ You may need to locate where Multipass is installed. There are several ways to d
   * Run the command `readlink -f $(which multipass)`
   * By default, Multipass is installed in the `/Library/Application\ Support/com.canonical.multipass/bin/` folder.
 
-### Locating Multipass Images **(DRAFT)**
+### Locating Multipass Images
 You may need to locate where Multipass is storing instances. The location changes depending on your platform:
 * *(Linux)* `/root/.local/share/multipassd/vault/instances/<instance/<img>`
 
