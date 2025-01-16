@@ -195,13 +195,6 @@ sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
     return sigset;
 }
 
-template <class Rep, class Period>
-timespec make_timespec(std::chrono::duration<Rep, Period> duration)
-{
-    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
-    return timespec{seconds.count(), std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds).count()};
-}
-
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
     const std::chrono::milliseconds& period)
 {
