@@ -786,3 +786,18 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
         "Could not obtain adapter description from name \"{}\" - error executing powershell command.{}", ux_id, detail);
     throw std::runtime_error{err};
 }
+
+int mp::platform::Platform::get_cpus() const
+{
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
+}
+
+long long mp::platform::Platform::get_total_ram() const
+{
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof(status);
+    GlobalMemoryStatusEx(&status);
+    return status.ullTotalPhys;
+}

@@ -678,4 +678,15 @@ TEST(PlatformWin, remove_alias_script_throws_if_cannot_remove_script)
     MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
                          mpt::match_what(StrEq("error removing alias script")));
 }
+
+TEST(PlatformWin, get_cpus_returns_greater_than_zero)
+{
+    EXPECT_GT(MP_PLATFORM.get_cpus(), 0);
+}
+
+TEST(PlatformWin, get_total_ram_returns_greater_than_zero)
+{
+    EXPECT_GT(MP_PLATFORM.get_total_ram(), 0LL);
+}
+
 } // namespace
