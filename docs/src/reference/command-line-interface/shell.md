@@ -5,7 +5,7 @@ The `multipass shell` command will open a shell prompt on an instance. Without a
 
 If you run `multipass shell` you'll find yourself in the *primary* instance:
 
-```plain
+```{code-block} text
 Launched: primary
 Mounted '/Users/giulia' into 'primary:Home'
 Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-44-generic aarch64)
@@ -38,7 +38,7 @@ See https://ubuntu.com/esm or run: sudo pro status
 
 To open a shell in an existing instance, run the command:
 
-```plain
+```{code-block} text
 multipass shell <instance name>
 ```
 
@@ -46,7 +46,7 @@ multipass shell <instance name>
 
 The full `multipass help shell` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass shell [options] [<name>]
 Open a shell prompt on the instance.
 

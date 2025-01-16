@@ -122,14 +122,14 @@ Here are some options to attempt recovery:
        - From the recovery menu, select **`root`** to drop to a root shell prompt.
        - At the prompt, run the following commands:
 
-         ```bash
+         ```{code-block} text
          mount -o remount,ro /
          fsck -f /
          ```
 
        - After `fsck` completes, remount the filesystem in read/write mode:
 
-         ```bash
+         ```{code-block} text
          mount -o remount,rw /
          ```
 

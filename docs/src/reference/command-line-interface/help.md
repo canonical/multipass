@@ -5,7 +5,7 @@ The `multipass help` command without an argument will list all the available com
 
 Sample output:
 
-```plain
+```{code-block} text
 Usage: multipass [options] <command>
 Create, control and connect to Ubuntu instances.
 

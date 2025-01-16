@@ -5,13 +5,13 @@ The `multipass transfer` command copies files between host and instance, without
 
 For example, to copy a local file `local_file.txt` to the default home folder of the instance `good-prawn`, use the command:
 
-```plain
+```{code-block} text
 multipass transfer local_file.txt good-prawn:.
 ```
 
 Conversely, to copy a file `instance_file.txt` from the default home folder of the `ample-pigeon` instance to the current working folder, use the command:
 
-```plain
+```{code-block} text
 multipass transfer ample-pigeon:remote_file.txt .
 ```
 
@@ -19,25 +19,25 @@ The source file can be the host standard input, in which case the stream will be
 
 If the target path does not exist, you can use the `--parents` option, that will create any missing parent directories. For example, if you run the command:
 
-```plain
+```{code-block} text
 multipass transfer local_file.txt ample-pigeon:non/existent/path/remote_file.txt
 ```
 
 and the system informs you that:
 
-```plain
+```{code-block} text
 [2022-10-11T13:07:25.789] [error] [sftp] remote target does not exist
 ```
 
 you can use the `--parents` option to create the missing parent folders:
 
-```plain
+```{code-block} text
 multipass transfer --parents local_file.txt ample-pigeon:non/existent/path/remote_file.txt
 ```
 
 You can also copy an entire directory tree using the `--recursive` option:
 
-```plain
+```{code-block} text
 multipass transfer --recursive ample-pigeon:dir .
 ```
 
@@ -46,7 +46,7 @@ multipass transfer --recursive ample-pigeon:dir .
 ---
 
 The full `multipass help transfer` output explains the available options:
-```plain
+```{code-block} text
 Usage: multipass transfer [options] <source> [<source> ...] <destination>
 Copy files and directories between the host and instances.
 

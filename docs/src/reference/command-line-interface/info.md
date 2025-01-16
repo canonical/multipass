@@ -5,7 +5,7 @@ The `multipass info` command shows properties of instances and snapshots.
 
 For example, `multipass info calm-squirrel`:
 
-```plain
+```{code-block} text
 Name:           calm-squirrel
 State:          RUNNING
 Snapshots:      2
@@ -26,7 +26,7 @@ Mounts:         /home/user => Home
 
 or, in case of a snapshot, `multipass info relative-lion.snapshot3`:
 
-```plain
+```{code-block} text
 Snapshot:       snapshot3
 Instance:       relative-lion
 CPU(s):         1
@@ -47,7 +47,7 @@ The `--format` option allows to choose how the output is formatted. The availabl
 
 For example, the command `multipass info --format yaml calm-squirrel` produces the following output:
 
-```plain
+```{code-block} text
 errors:
   - ~
 calm-squirrel:
@@ -111,7 +111,7 @@ Here you can find a comprehensive list of the details that `multipass info` prov
 ---
 
 The full `multipass help info` output explains the available options:
-```plain
+```{code-block} text
 Usage: multipass info [options] <instance>[.snapshot] [<instance>[.snapshot] ...]
 Display information about instances or snapshots
 

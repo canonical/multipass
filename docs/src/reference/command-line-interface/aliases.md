@@ -5,13 +5,13 @@
 
 The `aliases` command shows the aliases defined for all the instances. 
 
-```plain
+```{code-block} text
 multipass aliases
 ```
 
 The output will be similar to the following:
 
-```plain
+```{code-block} text
 Alias  Instance         Command  Working directory
 lsrm   rewarded-merlin  ls       default
 topfp  flying-pig       top      map
@@ -29,7 +29,7 @@ The command can be used in conjunction with the `--format` or `-f` options to sp
 
 The full `multipass help aliases` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass aliases [options]
 List available aliases
 

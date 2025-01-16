@@ -3,14 +3,14 @@
 
 The `multipass version` command without an argument will display the client and daemon versions of Multipass; for example:
 
-```plain
+```{code-block} text
 multipass  1.0.0
 multipassd 1.0.0
 ```
 
 If there is an update to Multipass available, it will be printed out in addition to the standard output; for example:
 
-```plain
+```{code-block} text
 multipass  1.0.0
 multipassd 1.0.0
 
@@ -26,7 +26,7 @@ Go here for more information: https://github.com/canonical/multipass/releases/ta
 
 The full `multipass help version` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass version [options]
 Display version information about the multipass command
 and daemon.

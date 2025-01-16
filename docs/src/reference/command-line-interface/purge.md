@@ -9,7 +9,7 @@ The `multipass purge` command will permanently remove all instances deleted with
 
 The full `multipass help purge` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass purge [options]
 Purge all deleted instances permanently, including all their data.
 

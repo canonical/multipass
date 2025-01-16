@@ -10,7 +10,7 @@ Launched: relishing-lionfish
 
 You can then shell into an instance by its name:
 
-```plain
+```{code-block} text
 multipass shell relishing-lionfish
 ```
 
@@ -36,7 +36,7 @@ Use the `--timeout` option to change how long Multipass waits for the machine to
 
 The full `multipass help launch` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass launch [options] [[<remote:>]<image> | <url>]
 Create and start a new instance.
 

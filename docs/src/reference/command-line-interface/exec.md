@@ -5,25 +5,25 @@
 
 The `exec` command runs the given commands inside the instance. The first argument is the instance to run the commands on, `--` optionally separates the `multipass` options from the rest - the command to run itself:
 
-```plain
+```{code-block} text
 multipass exec primary -- uname -r
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 4.15.0-48-generic
 ```
 
 You can pipe standard input and output to/from the command; for example:
 
-```plain
+```{code-block} text
 multipass exec primary -- lsb_release -a | grep ^Codename:
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 No LSB modules are available.
 Codename:       bionic
 ```
@@ -34,13 +34,13 @@ You can specify on which instance directory the command must be run in three dif
 
 The first one is `--working-directory <dir>`, which tells Multipass that the command must be run in the folder `<dir>`. For example:
 
-```plain
+```{code-block} text
 multipass exec arriving-pipefish --working-directory /home -- ls -a
 ```
 
 The `ls -la` command shows the contents of the `/home` directory, because it was run from there:
 
-```plain
+```{code-block} text
 .  ..  ubuntu
 ```
 
@@ -52,7 +52,7 @@ The third option is to directly run the command in the default directory in the 
 
 The full `multipass help exec` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass exec [options] <name> [--] <command>
 Run a command on an instance
 

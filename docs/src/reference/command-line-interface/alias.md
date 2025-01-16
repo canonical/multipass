@@ -5,7 +5,7 @@
 
 The `alias` command makes Multipass create a persistent alias to run commands on a given instance. Its syntax is the following:
 
-```plain
+```{code-block} text
 multipass alias instance:command [name]
 ```
 
@@ -19,7 +19,7 @@ By default, if the host folder where the alias is being executed is mounted on t
 
 The full `multipass help alias` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass alias [options] <definition> [<name>]
 Create an alias to be executed on a given instance.
 

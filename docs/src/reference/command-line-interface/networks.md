@@ -13,7 +13,7 @@ At this time, `multipass networks` can only find interfaces in the following sce
 
 For example, on Windows with Hyper-V the `multipass networks` command returns:
 
-```plain
+```{code-block} text
 Name            Type    Description
 Default Switch  switch  Virtual Switch with internal networking
 ExternalSwitch  switch  Virtual Switch with external networking via "Red Hat VirtIO Ethernet Adapter"
@@ -25,7 +25,7 @@ Like [`list`](/reference/command-line-interface/list), `networks` supports the `
 
 Another example, running the command `multipass networks --format yaml` on macOS with VirtualBox returns:
 
-```plain
+```{code-block} text
 bridge0:
   - type: bridge
     description: Network bridge with en1, en2
@@ -49,7 +49,7 @@ See [`launch`](/reference/command-line-interface/launch) and  [How to create an 
 
 The `multipass help networks` command explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass networks [options]
 List host network devices (physical interfaces, virtual switches, bridges)
 available to integrate with using the `--network` switch to the `launch`

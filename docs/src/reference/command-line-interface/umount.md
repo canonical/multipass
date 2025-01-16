@@ -11,7 +11,7 @@ You can also unmount only a specific mount if you specify the desired path.
 
 The full `multipass help umount` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass umount [options] <mount> [<mount> ...]
 Unmount a directory from an instance.
 

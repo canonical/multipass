@@ -5,19 +5,19 @@
 
 The `get` command retrieves the value of a single setting specified by a key argument. This key takes the form of a dot-separated path in a hierarchical settings tree; for example:
 
-```plain
+```{code-block} text
 multipass get client.gui.autostart
 ```
 
 You can use the `--keys` option to get a list of all available settings keys:
 
-```plain
+```{code-block} text
 multipass get --keys
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 client.primary-name
 local.bridged-network
 local.driver
@@ -34,7 +34,7 @@ You can read more about the available settings in the [Settings](/reference/sett
 
 The full `multipass help get` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass get [options] [<arg>]
 Get the configuration setting corresponding to the given key, or all settings if no key is specified.
 (Support for multiple keys and wildcards coming...)

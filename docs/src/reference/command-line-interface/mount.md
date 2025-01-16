@@ -7,7 +7,7 @@ The `multipass mount` command maps a local directory from the host to an instanc
 
 For example, here's the syntax for mapping a local directory to your virtual machine using the classic mount:
 
-```plain
+```{code-block} text
 multipass mount --type=classic /host/path <instance name>:/instance/path
 ```
 
@@ -21,7 +21,7 @@ See [How to share data with an instance](/how-to-guides/manage-instances/share-d
 
 The full `multipass help mount` output explains the available options:
 
-```plain
+```{code-block} text
 Usage: multipass mount [options] <source> <target> [<target> ...]
 Mount a local directory inside the instance. If the instance is
 not currently running, the directory will be mounted

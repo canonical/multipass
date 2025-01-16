@@ -1,4 +1,5 @@
 (index)=
+# Multipass 
 
 <!--Welcome to the *Multipass Guide!*
 
@@ -23,7 +24,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 |                                                                                                      |                                                                                             |
 |------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [Tutorial](/tutorial)</br>  Get started - a hands-on introduction to Multipass for new users </br> | [How-to guides](/how-to-guides/index) </br> Step-by-step guides covering key operations and common tasks |
+| [Tutorial](/tutorial/index)</br>  Get started - a hands-on introduction to Multipass for new users </br> | [How-to guides](/how-to-guides/index) </br> Step-by-step guides covering key operations and common tasks |
 | [Explanation](/explanation/index) </br> Concepts - discussion and clarification of key topics                   | [Reference](/reference/index) </br> Technical information - specifications, APIs, architecture       |
 
 ---

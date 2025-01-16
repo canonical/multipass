@@ -10,7 +10,7 @@ https://discourse.ubuntu.com/t/how-to-use-stand-alone-windows-in-multipass/16340
 https://github.com/canonical/open-documentation-academy/issues/128
 -->
 
-You can display the graphical desktop in various ways. In this document, we describe two options: RDP (Remote Display Protocol) and plain X11 forwarding. Other methods include VNC and running a Mir shell through X11 forwarding, as described in [A simple GUI shell for a Multipass VM](/).
+You can display the graphical desktop in various ways. In this document, we describe two options: RDP (Remote Display Protocol) and plain X11 forwarding. Other methods include VNC and running a Mir shell through X11 forwarding, as described in [A simple GUI shell for a Multipass VM](https://discourse.ubuntu.com/t/20439).
 
 ## Using RDP
 
@@ -18,33 +18,33 @@ The images used by Multipass do not come with a graphical desktop installed. For
 
 To do this, first you need to log into a running Multipass instance. Start by listing your instances:
 
-```plain
+```{code-block} text
 multipass list
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 Name                    State             IPv4             Image
 headbanging-squid       Running           10.49.93.209     Ubuntu 22.04 LTS
 ```
 
 Next, open a shell into the running instance:
 
-```plain
+```{code-block} text
 multipass shell headbanging-squid
 ```
 
 Once inside the instance, run the following commands to install `ubuntu-desktop` and `xrdp`:
 
-```plain
+```{code-block} text
 sudo apt update
 sudo apt install ubuntu-desktop xrdp
 ```
 
 Now we need a user with a password to log in. One possibility is setting a password for the default `ubuntu` user:
 
-```plain
+```{code-block} text
 sudo passwd ubuntu
 ```
 
@@ -54,13 +54,13 @@ You are done on the server side!
 
 Quit the Ubuntu shell on the running instance with the `exit` command, and take note of the IP address to connect to. You can find the instance's IP address in the output of `multipass list` from the first step above, or you can use the `multipass info` command as well.
 
-```plain
+```{code-block} text
 multipass info headbanging-squid
 ```
 
 Sample output:
 
-```plain
+```{code-block} text
 Name:           headbanging-squid
 State:          Running
 Snapshots:      0
@@ -80,15 +80,15 @@ In this example, we will use the IP address `10.49.93.209` to connect to the RDP
 If the IP address of the instance is not displayed in the output of `multipass list`, you can obtain it directly from the instance, with the command `ip addr`.
 ```
 
-[tabs]
+`````{tab-set}
 
-[tab version="Linux"]
+````{tab-item} Linux
 
 On Linux, there are applications such as Remmina to visualize the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
 
 To directly launch the client, run the following command:
 
-```plain
+```{code-block} text
 remmina -c rdp://10.49.93.209
 ```
 
@@ -96,31 +96,31 @@ The system will ask for a username (`ubuntu`) and the password set above, and th
 
 ![Logging in to the RDP server with Remmina|690x567](upload://iNMPPVChbKiM2MIo7sGoHMLctcv.png) 
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 To connect on MacOS, we can use the “Microsoft Remote Desktop” application, from the Mac App Store.
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 On Windows, we can connect to the RDP server with the “Remote Desktop Connection” application. There, we enter the virtual machine’s IP address, set the session to XOrg and enter the username and password we created on the previuos step. 
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 And we are done… a graphical desktop!
 
 ## Using X11 forwarding
 
-[tabs]
-
 It might be the case that we only want Multipass to launch one application and to see only that window, without having the need for a complete desktop. It turns out that this setup is simpler than the RDP approach, because we do not need the Multipass instance to deploy a full desktop. Instead, we can use X11 to connect the applications in the instance with the graphical capabilities of the host.
 
-[tab version="Linux"]
+`````{tab-set}
+
+````{tab-item} Linux
 
 Linux runs X by default, so no extra software in the host is needed. 
 
@@ -128,7 +128,7 @@ On Linux, we can use authentication in X forwarding to add a bit more security. 
 
 To make this possible, copy your public key, stored in `~/.ssh/id_rsa.pub`, to the list of authorized keys of the instance, into the file `~/.ssh/authorized_keys`. Remember to replace the instance name used in the example with yours:
 
-```plain
+```{code-block} text
 multipass exec headbanging-squid -- bash -c "echo `cat ~/.ssh/id_rsa.pub` >> ~/.ssh/authorized_keys"
 ```
 
@@ -138,13 +138,13 @@ If the file `~/.ssh/id_rsa.pub` does not exist, it means that you need to create
 
 Check the IP address of the instance, using `multipass info headbanging-squid` Finally, log in to the instance using X forwarding using the command (replace `xx.xx.xx.xx` with the IP address obtained above):
 
-```plain
+```{code-block} text
 ssh -X ubuntu@xx.xx.xx.xx
 ```
 
 Test the setting running a program of your choice on the instance; for example:
 
-```plain
+```{code-block} text
 sudo apt -y install x11-apps
 xlogo &
 ```
@@ -153,9 +153,9 @@ xlogo &
 
 A small window containing the X logo will show up. Done!
 
-[/tab]
+````
 
-[tab version="macOS"]
+````{tab-item} macOS
 
 The first step in Mac is to make sure a X server is running. The easiest way is to install [XQuartz](https://www.xquartz.org).
 
@@ -165,9 +165,9 @@ Once the X server is running, the procedure for macOS is the same as for Linux.
 Note to Apple Silicon users: some applications requiring OpenGL will not work through X11 forwarding.
 ```
 
-[/tab]
+````
 
-[tab version="Windows"]
+````{tab-item} Windows
 
 Windows knows nothing about X, therefore we need to install an X server. Here we will use [VcXsrv](https://sourceforge.net/projects/vcxsrv/). Other options would be [Xming](http://www.straightrunning.com/XmingNotes/) (the newest versions are paid, but older versions can still be downloaded for free from their [SourceForge site](https://sourceforge.net/projects/xming/)) or installing an X server in [Cygwin](http://cygwin.com/).
 
@@ -179,22 +179,22 @@ To configure the client (that is, the Multipass instance) you will need the host
 
 Then, start the instance and set the `DISPLAY` environment variable to the server display on the host IP (replace `xx.xx.xx.xx` with the IP address obtained above):
 
-```plain
+```{code-block} text
 export DISPLAY=xx.xx.xx.xx:0.0
 ```
 
 You are done, and you can now test forwarding running a program of your choice on the instance; for example:
 
-```plain
+```{code-block} text
 sudo snap install firefox
 firefox &
 ```
 
 ![Firefox running on the Multipass instance|690x388](upload://iy5xIwIRyMXjYqyhefIfdDoXnAi.jpeg)
 
-[/tab]
+````
 
-[/tabs]
+`````
 
 ---
 
