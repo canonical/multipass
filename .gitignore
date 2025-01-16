@@ -1,4 +1,6 @@
 .idea
+.vs
+.vscode
 cmake-build-*
 .DS_Store
 CMakeLists.txt.user
