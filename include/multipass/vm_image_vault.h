@@ -42,7 +42,6 @@ namespace multipass
 class VMImageHost;
 namespace vault
 {
-
 class DeleteOnException
 {
 public:
