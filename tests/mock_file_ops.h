@@ -48,7 +48,6 @@ public:
     MOCK_METHOD(bool, exists, (const QFile&), (const, override));
     MOCK_METHOD(bool, is_open, (const QFile&), (const, override));
     MOCK_METHOD(bool, open, (QFileDevice&, QIODevice::OpenMode), (const, override));
-    MOCK_METHOD(QFileDevice::Permissions, permissions, (const QFile&), (const, override));
     MOCK_METHOD(qint64, read, (QFile&, char*, qint64), (const, override));
     MOCK_METHOD(QByteArray, read_all, (QFile&), (const, override));
     MOCK_METHOD(QString, read_line, (QTextStream&), (const, override));
@@ -56,7 +55,6 @@ public:
     MOCK_METHOD(bool, rename, (QFile&, const QString& newName), (const, override));
     MOCK_METHOD(bool, resize, (QFile&, qint64 sz), (const, override));
     MOCK_METHOD(bool, seek, (QFile&, qint64 pos), (const, override));
-    MOCK_METHOD(bool, setPermissions, (QFile&, QFileDevice::Permissions), (const, override));
     MOCK_METHOD(qint64, size, (QFile&), (const, override));
     MOCK_METHOD(qint64, write, (QFile&, const char*, qint64), (const, override));
     MOCK_METHOD(qint64, write, (QFileDevice&, const QByteArray&), (const, override));
@@ -87,7 +85,6 @@ public:
     MOCK_METHOD(void, create_symlink, (const fs::path& to, const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, read_symlink, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(void, permissions, (const fs::path& path, fs::perms perms, std::error_code& err), (override, const));
     MOCK_METHOD(fs::file_status, status, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(fs::file_status, symlink_status, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(std::unique_ptr<multipass::RecursiveDirIterator>, recursive_dir_iterator,
@@ -97,6 +94,7 @@ public:
                 (const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, weakly_canonical, (const fs::path& path), (override, const));
+    MOCK_METHOD(fs::perms, get_permissions, (const fs::path&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
