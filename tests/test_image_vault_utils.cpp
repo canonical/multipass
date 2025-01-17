@@ -40,9 +40,11 @@ struct TestImageVaultUtils : public ::testing::Test
 
     const QDir test_dir{"secrets/secret_filled_folder"};
     const QString test_path{"not_secrets/a_secret.txt"};
+    const mp::fs::path fs_test_path{test_path.toStdU16String()};
     const QFileInfo test_info{test_path};
 
     const QString test_output{"secrets/secret_filled_folder/a_secret.txt"};
+    const mp::fs::path fs_test_output{test_output.toStdU16String()};
 };
 
 TEST_F(TestImageVaultUtils, copy_to_dir_handles_empty_file)
@@ -141,7 +143,7 @@ TEST_F(TestImageVaultUtils, extract_file_will_delete_file)
 
 TEST_F(TestImageVaultUtils, extract_file_wont_delete_file)
 {
-    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
+    EXPECT_CALL(mock_file_ops, remove_extension(fs_test_path)).WillOnce(Return(fs_test_output));
 
     int calls = 0;
     auto decoder = [&](const QString& path, const QString& target) {
@@ -158,7 +160,7 @@ TEST_F(TestImageVaultUtils, extract_file_wont_delete_file)
 
 TEST_F(TestImageVaultUtils, extract_file_extracts_file)
 {
-    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
+    EXPECT_CALL(mock_file_ops, remove_extension(fs_test_path)).WillOnce(Return(fs_test_output));
 
     int calls = 0;
     auto decoder = [&](const QString& path, const QString& target) {
@@ -174,7 +176,7 @@ TEST_F(TestImageVaultUtils, extract_file_extracts_file)
 
 TEST_F(TestImageVaultUtils, extract_file_with_decoder_binds_monitor)
 {
-    EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
+    EXPECT_CALL(mock_file_ops, remove_extension(fs_test_path)).WillOnce(Return(fs_test_output));
 
     int type = 1337;
     int progress = 42;

@@ -87,7 +87,6 @@ public:
     virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
     virtual bool flush(QFile& file) const;
 
-    virtual QString remove_extension(const QString& path) const;
     virtual bool copy(const QString& from, const QString& to) const;
 
     // QSaveFile operations
@@ -122,6 +121,8 @@ public:
                                                                          std::error_code& err) const;
     virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path, std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
+
+    virtual fs::path remove_extension(const fs::path& path) const;
 };
 } // namespace multipass
 

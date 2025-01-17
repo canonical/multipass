@@ -77,7 +77,8 @@ void mp::ImageVaultUtils::verify_file_hash(const QString& file, const QString& h
 
 QString mp::ImageVaultUtils::extract_file(const QString& file, const Decoder& decoder, bool delete_original) const
 {
-    auto new_path = MP_FILEOPS.remove_extension(file);
+    const auto fs_new_path = MP_FILEOPS.remove_extension(file.toStdU16String());
+    auto new_path = QString::fromStdString(fs_new_path.u8string());
 
     decoder(file, new_path);
 
