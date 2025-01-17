@@ -82,6 +82,7 @@ add_executable(multipass_tests
   test_global_settings_handlers.cpp
   test_id_mappings.cpp
   test_image_vault.cpp
+  test_image_vault_utils.cpp
   test_instance_settings_handler.cpp
   test_ip_address.cpp
   test_json_utils.cpp

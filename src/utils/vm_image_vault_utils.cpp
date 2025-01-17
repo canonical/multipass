@@ -18,6 +18,7 @@
 #include <multipass/format.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
+#include <multipass/vm_image_vault_utils.h>
 #include <multipass/xz_image_decoder.h>
 
 #include <QCryptographicHash>
@@ -27,79 +28,72 @@
 
 namespace mp = multipass;
 
-QString mp::vault::filename_for(const mp::Path& path)
+mp::ImageVaultUtils::ImageVaultUtils(const PrivatePass& pass) noexcept : Singleton{pass}
 {
-    QFileInfo file_info(path);
-    return file_info.fileName();
 }
 
-QString mp::vault::copy(const QString& file_name, const QDir& output_dir)
+QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output_dir) const
 {
-    if (file_name.isEmpty())
-        return {};
+    if (file.isEmpty())
+        return "";
 
-    if (!QFileInfo::exists(file_name))
-        throw std::runtime_error(fmt::format("{} missing", file_name));
+    const QFileInfo info{file};
+    if (!MP_FILEOPS.exists(info))
+        throw std::runtime_error(fmt::format("File {} not found", file));
 
-    QFileInfo info{file_name};
-    const auto source_name = info.fileName();
-    auto new_path = output_dir.filePath(source_name);
-    QFile::copy(file_name, new_path);
-    return new_path;
+    auto new_location = output_dir.filePath(info.fileName());
+
+    if (!MP_FILEOPS.copy(file, new_location))
+        throw std::runtime_error(fmt::format("Failed to copy {} to {}", file, new_location));
+
+    return new_location;
 }
 
-void mp::vault::delete_file(const mp::Path& path)
+QString mp::ImageVaultUtils::compute_hash(QIODevice& device) const
 {
-    QFile file{path};
-    file.remove();
-}
-
-QString mp::vault::compute_image_hash(const mp::Path& image_path)
-{
-    QFile image_file(image_path);
-    if (!image_file.open(QFile::ReadOnly))
-    {
-        throw std::runtime_error("Cannot open image file for computing hash");
-    }
-
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    if (!hash.addData(&image_file))
-    {
-        throw std::runtime_error("Cannot read image file to compute hash");
-    }
+    QCryptographicHash hash{QCryptographicHash::Sha256};
+    if (!hash.addData(std::addressof(device)))
+        throw std::runtime_error("Failed to read data from device to hash");
 
     return hash.result().toHex();
 }
 
-void mp::vault::verify_image_download(const mp::Path& image_path, const QString& image_hash)
+QString mp::ImageVaultUtils::compute_file_hash(const QString& path) const
 {
-    auto computed_hash = compute_image_hash(image_path);
+    QFile file{path};
+    if (!MP_FILEOPS.open(file, QFile::ReadOnly))
+        throw std::runtime_error(fmt::format("Failed to open {}", path));
 
-    if (computed_hash != image_hash)
+    return compute_hash(file);
+}
+
+void mp::ImageVaultUtils::verify_file_hash(const QString& file, const QString& hash) const
+{
+    const auto file_hash = compute_file_hash(file);
+
+    if (file_hash != hash)
+        throw std::runtime_error(fmt::format("Hash of {} does not match {}", file, hash));
+}
+
+QString mp::ImageVaultUtils::extract_file(const QString& file, const Decoder& decoder, bool delete_original) const
+{
+    const auto fs_new_path = MP_FILEOPS.remove_extension(file.toStdU16String());
+    auto new_path = QString::fromStdString(fs_new_path.u8string());
+
+    decoder(file, new_path);
+
+    if (delete_original)
     {
-        throw std::runtime_error("Downloaded image hash does not match");
+        QFile qfile{file};
+        MP_FILEOPS.remove(qfile);
     }
+
+    return new_path;
 }
 
-QString mp::vault::extract_image(const mp::Path& image_path, const mp::ProgressMonitor& monitor, const bool delete_file)
+mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const Hosts& image_hosts) const
 {
-    mp::XzImageDecoder xz_decoder(image_path);
-    QString new_image_path{image_path};
-
-    new_image_path.remove(".xz");
-
-    xz_decoder.decode_to(new_image_path, monitor);
-
-    mp::vault::delete_file(image_path);
-
-    return new_image_path;
-}
-
-std::unordered_map<std::string, mp::VMImageHost*>
-mp::vault::configure_image_host_map(const std::vector<mp::VMImageHost*>& image_hosts)
-{
-    std::unordered_map<std::string, mp::VMImageHost*> remote_image_host_map;
-
+    HostMap remote_image_host_map{};
     for (const auto& image_host : image_hosts)
     {
         for (const auto& remote : image_host->supported_remotes())
