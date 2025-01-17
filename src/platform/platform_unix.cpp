@@ -65,7 +65,14 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     std::error_code ec{};
     std::filesystem::permissions(path, permissions, ec);
 
-    return !static_cast<bool>(ec);
+    if (ec)
+    {
+        mpl::log(mpl::Level::warning,
+                 "permissions",
+                 fmt::format("failed to set permissions for {}: {}", path.u8string(), ec.message()));
+    }
+
+    return !ec;
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
