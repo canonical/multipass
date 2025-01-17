@@ -1,0 +1,14 @@
+/*env*/
+
+.sphinx/venv/
+.sphinx/warnings.txt
+.sphinx/.wordlist.dic
+.sphinx/.doctrees/
+.sphinx/node_modules/
+
+package*.json
+_build
+.DS_Store
+__pycache__
+.idea/
+.vscode/
