@@ -93,7 +93,12 @@ std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& conf
 std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spec);
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 
-std::function<int()> make_quit_watchdog(); // call while single-threaded; call result later, in dedicated thread
+// Creates a function that will wait for signals or until the passed function returns false.
+// The passed function is checked every `period` milliseconds.
+// If a signal is received the optional contains it, otherwise the optional is empty.
+// `make_quit_watchdog` should only be called once.
+std::function<std::optional<int>(const std::function<bool()>&)> make_quit_watchdog(
+    const std::chrono::milliseconds& period); // call while single-threaded; call result later, in dedicated thread
 
 std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
