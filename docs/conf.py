@@ -26,6 +26,7 @@ import ast
 project = "Multipass"
 author = "Canonical Ltd."
 
+root_doc = "src/index"
 
 # Sidebar documentation title; best kept reasonably short
 #
