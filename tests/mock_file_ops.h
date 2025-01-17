@@ -62,7 +62,6 @@ public:
     MOCK_METHOD(qint64, write, (QFileDevice&, const QByteArray&), (const, override));
     MOCK_METHOD(bool, flush, (QFile & file), (const, override));
 
-    MOCK_METHOD(QString, remove_extension, (const QString& path), (const, override));
     MOCK_METHOD(bool, copy, (const QString&, const QString&), (const, override));
 
     // QSaveFile mock methods
@@ -100,6 +99,8 @@ public:
                 (const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, weakly_canonical, (const fs::path& path), (override, const));
+
+    MOCK_METHOD(fs::path, remove_extension, (const fs::path& path), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
