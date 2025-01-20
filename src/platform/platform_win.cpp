@@ -360,6 +360,24 @@ DWORD convert_permissions(int unix_perms)
 
     return access_mask;
 }
+
+// Since the Windows API expects a C style function pointer, we cannot pass parameters.
+// This means that only one watchdog can exist at a time.
+HANDLE signal_event = (HANDLE) nullptr;
+
+BOOL signal_handler(DWORD dwCtrlType)
+{
+    switch (dwCtrlType)
+    {
+    case CTRL_C_EVENT:
+    {
+        SetEvent(signal_event);
+        return TRUE;
+    }
+    default:
+        return FALSE;
+    }
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -749,14 +767,26 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     return 0;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog()
+std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+    const std::chrono::milliseconds& timeout)
 {
-    return [hSemaphore = CreateSemaphore(nullptr, 0, 128000, nullptr)]() {
-        if (hSemaphore == (HANDLE) nullptr)
-            printf("Unable to create semaphore\n");
+    signal_event = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    if (signal_event == (HANDLE) nullptr)
+        throw std::runtime_error("Unable to create signal object\n");
 
-        WaitForSingleObject(hSemaphore, INFINITE); // Ctrl+C will break this wait.
-        return 0;
+    SetConsoleCtrlHandler(signal_handler, TRUE);
+
+    return [millis = timeout.count()](const std::function<bool()>& condition) -> std::optional<int> {
+        ResetEvent(signal_event);
+
+        while (condition())
+        {
+            // Ctrl+C will break this wait.
+            if (WaitForSingleObject(signal_event, millis) != WAIT_TIMEOUT)
+                return 0;
+        }
+
+        return std::nullopt;
     };
 }
 
