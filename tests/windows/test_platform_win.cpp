@@ -115,6 +115,8 @@ Json::Value& setup_primary_profile(Json::Value& json)
 {
     auto& ret = json["profiles"][0u];
     ret["guid"] = mp::winterm_profile_guid;
+    ret["cursorColor"] = "#FDFDFD";
+    ret["foreground"] = "#FDFDFD";
     return ret;
 }
 
