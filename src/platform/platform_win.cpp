@@ -186,6 +186,26 @@ Json::Value read_winterm_settings(const QString& path)
     return json_root;
 }
 
+// work around white showing as pale-green, unless the user has a custom value
+void wt_patch_colors(Json::Value& primary_profile)
+{
+    static constexpr auto off_white = "#FDFDFD";
+    static constexpr auto comment_placement = Json::commentAfterOnSameLine;
+
+    if (auto& cursor_color = primary_profile["cursorColor"]; cursor_color.isNull())
+    {
+        cursor_color = off_white;
+        cursor_color.setComment("// work around white showing as pale-green", comment_placement);
+
+        // match cursor color in the foreground if there is no custom value
+        if (auto& foreground = primary_profile["foreground"]; foreground.isNull())
+        {
+            foreground = off_white;
+            foreground.setComment("// match cursor", comment_placement);
+        }
+    }
+}
+
 Json::Value create_primary_profile()
 {
     Json::Value primary_profile{};
@@ -210,13 +230,18 @@ Json::Value update_profiles(const QString& path, const Json::Value& json_root, c
         return profile["guid"] == mp::winterm_profile_guid;
     });
 
+    Json::Value* primary_profile_ptr = nullptr;
     if (primary_profile_it != std::end(profiles))
     {
         if (primary_profile_it->isMember("hidden") || winterm_setting == none)
             (*primary_profile_it)["hidden"] = winterm_setting == none;
+        primary_profile_ptr = &(*primary_profile_it);
     }
     else if (winterm_setting != none)
-        profiles.append(create_primary_profile());
+        primary_profile_ptr = &profiles.append(create_primary_profile());
+
+    if (primary_profile_ptr)
+        wt_patch_colors(*primary_profile_ptr);
 
     return ret;
 }
