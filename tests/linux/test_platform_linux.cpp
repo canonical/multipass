@@ -636,9 +636,8 @@ TEST_F(PlatformLinux, create_alias_script_overwrites)
     EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(true));
 
     // Calls the platform function directly since MP_PLATFORM is mocked.
-    EXPECT_NO_THROW(
-        mock_platform->Platform::create_alias_script("alias_name",
-                                                     mp::AliasDefinition{"instance", "other_command", "map"}));
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::create_alias_script("alias_name",
+                                                              mp::AliasDefinition{"instance", "other_command", "map"}));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
@@ -677,7 +676,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
     EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
-        mock_platform->Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
+        MP_PLATFORM.Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
         std::runtime_error,
         mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
 }
