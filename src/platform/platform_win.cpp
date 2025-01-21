@@ -651,8 +651,6 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     success &= take_ownership(path);
     success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, try_inherit);
 
-    std::free(lpPath);
-
     return success;
 }
 
