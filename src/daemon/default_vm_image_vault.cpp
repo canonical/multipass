@@ -360,8 +360,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                                        0,
                                        checksum.has_value()};
 
-                QFileInfo file_info{image_url.path()};
-                const auto image_filename = file_info.fileName();
+                const auto image_filename = QFileInfo{image_url.path()}.fileName();
                 // Attempt to make a sane directory name based on the filename of the image
 
                 const auto image_dir_name =

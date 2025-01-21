@@ -52,7 +52,7 @@ public:
     QString extract_file(const QString& file,
                          const ProgressMonitor& monitor,
                          bool delete_original = false,
-                         const DecoderT& = DefaultDecoderT{}) const;
+                         const DecoderT& = DecoderT{}) const;
 
     using HostMap = std::unordered_map<std::string, VMImageHost*>;
     using Hosts = std::vector<VMImageHost*>;

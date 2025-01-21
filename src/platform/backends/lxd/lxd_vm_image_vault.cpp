@@ -307,8 +307,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
             if (query.query_type != Query::Type::LocalFile)
             {
                 // TODO: Need to make this async like in DefaultVMImageVault
-                QFileInfo file_info{info.image_location};
-                image_path = lxd_import_dir.filePath(file_info.fileName());
+                image_path = lxd_import_dir.filePath(QFileInfo{info.image_location}.fileName());
 
                 url_download_image(info, image_path, monitor);
             }
