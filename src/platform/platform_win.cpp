@@ -623,7 +623,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, 
     std::filesystem::permissions(path, perms, ec);
 
     // Rest handles ACLs
-    LPSTR lpPath = _strdup(path.u8string().c_str());
+    auto u8path = path.u8string();
+    LPSTR lpPath = u8path.c_str();
     auto success = true;
 
     // Wipe out current ACLs
