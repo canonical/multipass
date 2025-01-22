@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart' hide Tooltip;
+import '../copyable_text.dart';
 
 import '../extensions.dart';
 import '../tooltip.dart';
 
 class IpAddresses extends StatelessWidget {
   final Iterable<String> ips;
+  final bool copyable;
 
-  const IpAddresses(this.ips, {super.key});
+  const IpAddresses(this.ips, {this.copyable = false, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,10 +17,12 @@ class IpAddresses extends StatelessWidget {
 
     return Row(children: [
       Expanded(
-        child: Tooltip(
-          message: firstIp,
-          child: Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
-        ),
+        child: copyable
+            ? CopyableText(firstIp)
+            : Tooltip(
+                message: firstIp,
+                child: Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
+              ),
       ),
       if (restIps.isNotEmpty)
         Badge.count(
