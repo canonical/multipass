@@ -178,28 +178,6 @@ TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
                      AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
 }
 
-TEST(PlatformWin, blueprintsURLOverrideSetUnlockSetReturnsExpectedData)
-{
-    const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope blueprints_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
-    mpt::SetEnvScope unlock{"MULTIPASS_UNLOCK", mp::platform::unlock_code};
-
-    EXPECT_EQ(MP_PLATFORM.get_blueprints_url_override(), fake_url);
-}
-
-TEST(PlatformWin, blueprintsURLOverrideSetUnlockiNotSetReturnsEmptyString)
-{
-    const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope blueprints_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
-
-    EXPECT_TRUE(MP_PLATFORM.get_blueprints_url_override().isEmpty());
-}
-
-TEST(PlatformWin, blueprintsURLOverrideNotSetReturnsEmptyString)
-{
-    EXPECT_TRUE(MP_PLATFORM.get_blueprints_url_override().isEmpty());
-}
-
 struct TestWinTermBase : public Test
 {
     void mock_winterm_setting(const QString& ret)
