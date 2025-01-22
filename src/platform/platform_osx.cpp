@@ -209,41 +209,12 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
 bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
 {
-    auto driver = MP_SETTINGS.get(mp::driver_key);
-
-    if (check_unlock_code())
-        return true;
-
-    if (remote.empty())
-    {
-        if (supported_release_aliases.find(alias) != supported_release_aliases.end())
-            return true;
-    }
-    else
-    {
-        auto it = supported_remotes_aliases_map.find(remote);
-
-        if (it != supported_remotes_aliases_map.end())
-        {
-            if (it->second.empty() || (it->second.find(alias) != it->second.end()))
-                return true;
-        }
-    }
-
-    return false;
+    return true; // TODO@ricab remove
 }
 
 bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
 {
-    if (remote.empty() || check_unlock_code())
-        return true;
-
-    if (supported_remotes_aliases_map.find(remote) != supported_remotes_aliases_map.end())
-    {
-        return true;
-    }
-
-    return false;
+    return true; // TODO@ricab remove
 }
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
@@ -299,10 +270,7 @@ bool mp::platform::Platform::is_image_url_supported() const
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
-    if (driver == "virtualbox" || driver == "qemu")
-        return check_unlock_code();
-
-    return false;
+    return driver == "virtualbox" || driver == "qemu"; // TODO@ricab remove
 }
 
 std::string mp::platform::Platform::bridge_nomenclature() const
