@@ -36,7 +36,6 @@ public:
     };
 
     MOCK_METHOD((std::map < std::string, NetworkInterfaceInfo) >, get_network_interfaces_info, (), (const, override));
-    MOCK_METHOD(QString, get_blueprints_url_override, (), (const, override));
     MOCK_METHOD(bool, is_remote_supported, (const std::string&), (const, override));
     MOCK_METHOD(bool, is_backend_supported, (const QString&), (const, override));
     MOCK_METHOD(bool, is_alias_supported, (const std::string&, const std::string&), (const, override));

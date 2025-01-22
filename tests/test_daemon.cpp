@@ -115,7 +115,7 @@ struct Daemon : public mpt::DaemonTestFixture
             return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
         ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
-        EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillRepeatedly([] { return QString{}; });
+
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
         EXPECT_CALL(mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
         EXPECT_CALL(mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
@@ -344,9 +344,7 @@ TEST_F(Daemon, blueprintsURLOverrideIsCorrect)
     auto url_downloader = std::make_unique<mpt::TrackingURLDownloader>();
     const QString test_blueprints_zip{mpt::test_data_path() + "test-blueprints.zip"};
 
-    EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillOnce([&test_blueprints_zip] {
-        return QUrl::fromLocalFile(test_blueprints_zip).toEncoded();
-    });
+    mpt::SetEnvScope env_scope{"MULTIPASS_BLUEPRINTS_URL", QUrl::fromLocalFile(test_blueprints_zip).toEncoded()};
 
     config_builder.cache_directory = cache_dir.path();
     config_builder.url_downloader = std::move(url_downloader);
