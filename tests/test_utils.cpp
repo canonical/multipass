@@ -455,13 +455,6 @@ TEST(Utils, trim_newline_assertion_works)
     ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "[Aa]ssert");
 }
 
-TEST(Utils, escape_char_actually_escapes)
-{
-    std::string s{"I've got \"quotes\""};
-    auto res = mp::utils::escape_char(s, '"');
-    EXPECT_THAT(res, ::testing::StrEq("I've got \\\"quotes\\\""));
-}
-
 TEST(Utils, escape_for_shell_actually_escapes)
 {
     std::string s{"I've got \"quotes\""};

@@ -1,4 +1,6 @@
 .idea
+.vs
+.vscode
 cmake-build-*
 CMakeLists.txt.user
 build

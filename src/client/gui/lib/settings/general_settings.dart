@@ -44,7 +44,7 @@ class GeneralSettings extends ConsumerWidget {
       ),
       const SizedBox(height: 20),
       Dropdown(
-        label: 'On close of application',
+        label: 'When closing Multipass',
         width: 260,
         value: onAppClose ?? 'ask',
         onChanged: (value) => ref.read(onAppCloseProvider.notifier).set(value!),

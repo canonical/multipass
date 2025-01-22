@@ -17,6 +17,7 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
+#include <multipass/timer.h>
 #include <multipass/utils.h>
 
 #include <grp.h>
@@ -157,6 +158,25 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     return 0;
 }
 
+mp::platform::PosixSignal::PosixSignal(const PrivatePass& pass) noexcept : Singleton(pass)
+{
+}
+
+int mp::platform::PosixSignal::pthread_sigmask(int how, const sigset_t* sigset, sigset_t* old_set) const
+{
+    return ::pthread_sigmask(how, sigset, old_set);
+}
+
+int mp::platform::PosixSignal::pthread_kill(pthread_t target, int signal) const
+{
+    return ::pthread_kill(target, signal);
+}
+
+int mp::platform::PosixSignal::sigwait(const sigset_t& sigset, int& got) const
+{
+    return ::sigwait(std::addressof(sigset), std::addressof(got));
+}
+
 sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 {
     sigset_t sigset;
@@ -171,15 +191,42 @@ sigset_t mp::platform::make_sigset(const std::vector<int>& sigs)
 sigset_t mp::platform::make_and_block_signals(const std::vector<int>& sigs)
 {
     auto sigset{make_sigset(sigs)};
-    pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
+    MP_POSIX_SIGNAL.pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
     return sigset;
 }
 
-std::function<int()> mp::platform::make_quit_watchdog()
+std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
+    const std::chrono::milliseconds& period)
 {
-    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP})]() {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        return sig;
+    return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
+            period](const std::function<bool()>& condition) -> std::optional<int> {
+        // create a timer to periodically send SIGUSR2
+        utils::Timer signal_generator{period,
+                                      [signalee = pthread_self()] { MP_POSIX_SIGNAL.pthread_kill(signalee, SIGUSR2); }};
+
+        // wait on signals and condition
+        int latest_signal = SIGUSR2;
+        while (latest_signal == SIGUSR2 && condition())
+        {
+            signal_generator.start();
+
+            // can't use sigtimedwait since macOS doesn't support it
+            MP_POSIX_SIGNAL.sigwait(sigset, latest_signal);
+        }
+
+        signal_generator.stop();
+
+        // if `latest_signal` is SIGUSR2 then we know `condition()` is false
+        return latest_signal == SIGUSR2 ? std::nullopt : std::make_optional(latest_signal);
     };
+}
+
+int mp::platform::Platform::get_cpus() const
+{
+    return sysconf(_SC_NPROCESSORS_ONLN);
+}
+
+long long mp::platform::Platform::get_total_ram() const
+{
+    return static_cast<long long>(sysconf(_SC_PHYS_PAGES)) * sysconf(_SC_PAGESIZE);
 }

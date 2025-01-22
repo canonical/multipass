@@ -61,7 +61,7 @@ final updateProvider = NotifierProvider<UpdateNotifier, UpdateInfo>(
 );
 
 const _color = Color(0xffE95420);
-final installUrl = Uri.parse('https://multipass.run/install');
+final installUrl = Uri.parse('https://canonical.com/multipass/install');
 
 Future<void> launchInstallUrl() => launchUrl(installUrl);
 

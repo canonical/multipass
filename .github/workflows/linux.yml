@@ -194,7 +194,7 @@ jobs:
 
         # Wait for LXD container network to be ready like Snapcraft does
         timeout 40 sh -c \
-          'while /snap/bin/lxc --project snapcraft exec '$instance_name' -- getent hosts multipass.run ; \
+          'while /snap/bin/lxc --project snapcraft exec '$instance_name' -- getent hosts canonical.com ; \
              [ $? -ne 0 ] ; do sleep 1; done'
 
         # The following 2 commands workaround the issue in 20.04 where the default parsing of the coverage
