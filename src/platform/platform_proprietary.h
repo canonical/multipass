@@ -30,7 +30,6 @@ namespace multipass
 {
 namespace platform
 {
-constexpr auto unlock_code{"cherry-greyhound"};
 // clang-format off
 const std::unordered_set<std::string> supported_release_aliases{
     "core",   "core16", "core18", "core20", "core22", "core24",
@@ -46,11 +45,6 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> supported
     {"release", supported_release_aliases},
     {snapcraft_remote, supported_snapcraft_aliases},
     {"appliance", {}}};
-
-inline bool check_unlock_code()
-{
-    return qgetenv("MULTIPASS_UNLOCK") == unlock_code;
-}
 } // namespace platform
 } // namespace multipass
 #endif // MULTIPASS_PLATFORM_PROPRIETARY_H
