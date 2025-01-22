@@ -22,17 +22,6 @@
 
 namespace mp = multipass;
 
-QString mp::platform::Platform::get_blueprints_url_override() const
-{
-
-    if (check_unlock_code())
-    {
-        return QString::fromUtf8(qgetenv("MULTIPASS_BLUEPRINTS_URL"));
-    }
-
-    return {};
-}
-
 std::string mp::platform::host_version()
 {
     return fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());

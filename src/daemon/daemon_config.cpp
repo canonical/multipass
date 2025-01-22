@@ -179,7 +179,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (blueprint_provider == nullptr)
     {
-        auto blueprint_provider_url = MP_PLATFORM.get_blueprints_url_override();
+        auto blueprint_provider_url = QString::fromUtf8(qgetenv("MULTIPASS_BLUEPRINTS_URL"));
 
         if (!blueprint_provider_url.isEmpty())
             blueprint_provider = std::make_unique<DefaultVMBlueprintProvider>(
