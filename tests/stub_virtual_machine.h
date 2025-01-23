@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "stub_availability_zone.h"
 #include "stub_mount_handler.h"
 #include "stub_snapshot.h"
 #include "temp_dir.h"
@@ -39,7 +40,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir> tmp_dir)
-        : VirtualMachine{name, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : VirtualMachine{name, StubAvailabilityZone::instance(), tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -52,6 +53,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     void suspend() override
+    {
+    }
+
+    void make_available(bool) override
     {
     }
 
