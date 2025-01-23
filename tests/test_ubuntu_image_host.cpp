@@ -27,9 +27,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
-#include <multipass/exceptions/unsupported_alias_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
-#include <multipass/exceptions/unsupported_remote_exception.h>
 #include <multipass/query.h>
 
 #include <QUrl>
