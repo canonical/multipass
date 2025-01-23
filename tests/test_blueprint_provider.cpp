@@ -76,7 +76,7 @@ TEST_F(VMBlueprintProvider, fetchBlueprintForUnknownBlueprintThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -96,7 +96,7 @@ TEST_F(VMBlueprintProvider, invalidImageSchemeThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -110,7 +110,7 @@ TEST_F(VMBlueprintProvider, invalidMinCoresThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -124,7 +124,7 @@ TEST_F(VMBlueprintProvider, invalidMinMemorySizeThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -138,7 +138,7 @@ TEST_F(VMBlueprintProvider, invalidMinDiskSpaceThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -152,7 +152,7 @@ TEST_F(VMBlueprintProvider, invalidAliasDefinitionThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -166,7 +166,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedInfo)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -186,7 +186,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedAliasesAndWorkspac
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData launch_data;
 
@@ -213,7 +213,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData launch_data;
 
@@ -278,7 +278,7 @@ TEST_F(VMBlueprintProvider, invalidCloudInitThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     const std::string blueprint{"invalid-cloud-init-blueprint"};
 
@@ -294,7 +294,7 @@ TEST_F(VMBlueprintProvider, givenCoresLessThanMinimumThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{1, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{1, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -308,7 +308,7 @@ TEST_F(VMBlueprintProvider, givenMemLessThanMinimumThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, mp::MemorySize{"1G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, mp::MemorySize{"1G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -322,7 +322,7 @@ TEST_F(VMBlueprintProvider, givenDiskSpaceLessThanMinimumThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, mp::MemorySize{"20G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, mp::MemorySize{"20G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -336,8 +336,8 @@ TEST_F(VMBlueprintProvider, higherOptionsIsNotOverridden)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{
-        4, mp::MemorySize{"4G"}, mp::MemorySize{"50G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription
+        vm_desc{4, mp::MemorySize{"4G"}, mp::MemorySize{"50G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -582,7 +582,7 @@ TEST_F(VMBlueprintProvider, noImageDefinedReturnsDefault)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -596,7 +596,7 @@ TEST_F(VMBlueprintProvider, nameMismatchThrows)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -814,7 +814,7 @@ TEST_P(VMBlueprintFileLaunchFromFile, loadsFile)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &mock_url_downloader, cache_dir.path(),
                                                       default_ttl, "multivacs"};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -846,7 +846,7 @@ TEST_F(VMBlueprintFileLaunch, mergesBlueprintVendorData)
     vendor_data["system_info"]["default_user"]["name"] = "ubuntu";
     vendor_data["growpart"]["devices"].push_back("/dev/vdb1");
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -880,7 +880,7 @@ TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataDifferentTypes)
     YAML::Node vendor_data;
     vendor_data["runcmd"] = "echo 123";
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -904,7 +904,7 @@ TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataScalarValues)
     YAML::Node vendor_data;
     vendor_data["system_info"]["default_user"]["shell"] = "/bin/fish";
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -923,7 +923,7 @@ TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -941,7 +941,7 @@ TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithInvalidHostName)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -958,7 +958,7 @@ TEST_F(VMBlueprintFileLaunch, failsIfFileLaunchIsUnsupported)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -996,7 +996,7 @@ TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithNoUrl)
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "microvac"};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
