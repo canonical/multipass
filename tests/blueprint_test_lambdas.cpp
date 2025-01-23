@@ -69,8 +69,10 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote, c
     };
 }
 
-std::function<
-    mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&)>
+std::function<mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&,
+                                       const mp::SSHKeyProvider&,
+                                       mp::VMStatusMonitor&,
+                                       const mp::AvailabilityZoneManager& az_manager)>
 mpt::create_virtual_machine_lambda(const int& num_cores,
                                    const mp::MemorySize& mem_size,
                                    const mp::MemorySize& disk_space,
@@ -78,7 +80,8 @@ mpt::create_virtual_machine_lambda(const int& num_cores,
 {
     return [&num_cores, &mem_size, &disk_space, &name](const mp::VirtualMachineDescription& vm_desc,
                                                        const mp::SSHKeyProvider&,
-                                                       mp::VMStatusMonitor&) {
+                                                       mp::VMStatusMonitor&,
+                                                       const mp::AvailabilityZoneManager& az_manager) {
         EXPECT_EQ(vm_desc.num_cores, num_cores);
         EXPECT_EQ(vm_desc.mem_size, mem_size);
         EXPECT_EQ(vm_desc.disk_space, disk_space);
