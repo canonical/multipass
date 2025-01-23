@@ -23,17 +23,7 @@
 
 namespace multipass::platform
 {
-const std::unordered_set<std::string> supported_snapcraft_aliases{
-    "core18",
-    "18.04",
-    "core20",
-    "20.04",
-    "core22",
-    "22.04",
-    "core24",
-    "24.04",
-    "devel",
-};
+// TODO@no-merge remove this file
 } // namespace multipass::platform
 
 #endif // MULTIPASS_PLATFORM_SHARED_H

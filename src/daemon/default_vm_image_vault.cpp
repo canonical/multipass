@@ -260,7 +260,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                                                  const Query& query,
                                                  const PrepareAction& prepare,
                                                  const ProgressMonitor& monitor,
-                                                 const bool unlock,
+                                                 const bool unlock, // TODO@no-merge remove
                                                  const std::optional<std::string>& checksum,
                                                  const mp::Path& save_dir)
 {
@@ -274,9 +274,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             return record.image;
         }
     }
-
-    if (!unlock && query.query_type != Query::Type::Alias && !MP_PLATFORM.is_image_url_supported())
-        throw std::runtime_error(fmt::format("http and file based images are not supported"));
 
     if (query.query_type == Query::Type::LocalFile)
     {

@@ -17,13 +17,15 @@
 
 #include "common_image_host.h"
 
+#include "multipass/constants.h" // TODO@no-merge drop
+
 #include <multipass/logging/log.h>
 
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
 #include <multipass/exceptions/unsupported_alias_exception.h>
-#include <multipass/exceptions/unsupported_remote_exception.h>
+#include <multipass/exceptions/unsupported_remote_exception.h> // TODO@ricab drop
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -59,26 +61,24 @@ void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& detail
     mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: {}", details));
 }
 
-void mp::CommonVMImageHost::check_remote_is_supported(const std::string& remote_name) const
-{
-    if (!MP_PLATFORM.is_remote_supported(remote_name))
-        throw mp::UnsupportedRemoteException(
-            fmt::format("Remote \'{}\' is not a supported remote for this platform. Please use "
-                        "`multipass find` for supported remotes and images.",
-                        remote_name));
-}
-
-void mp::CommonVMImageHost::check_alias_is_supported(const std::string& alias, const std::string& remote_name) const
-{
-    if (!MP_PLATFORM.is_alias_supported(alias, remote_name))
-        throw mp::UnsupportedAliasException(fmt::format(
-            "\'{}\' is not a supported alias. Please use `multipass find` for supported image aliases.", alias));
-}
-
 bool mp::CommonVMImageHost::alias_verifies_image_is_supported(const QStringList& aliases,
                                                               const std::string& remote_name) const
 {
-    return aliases.empty() || std::any_of(aliases.cbegin(), aliases.cend(), [&remote_name](const auto& alias) {
-               return MP_PLATFORM.is_alias_supported(alias.toStdString(), remote_name);
+    // TODO@no-merge find a better place for this stuff
+    static const std::unordered_set<std::string> supported_snapcraft_aliases{
+        "core18",
+        "18.04",
+        "core20",
+        "20.04",
+        "core22",
+        "22.04",
+        "core24",
+        "24.04",
+        "devel",
+    };
+
+    return aliases.empty() || remote_name != mp::snapcraft_remote ||
+           std::any_of(aliases.cbegin(), aliases.cend(), [&remote_name](const auto& alias) {
+               return supported_snapcraft_aliases.find(alias.toStdString()) != supported_snapcraft_aliases.end();
            });
 }

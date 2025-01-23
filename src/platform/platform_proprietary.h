@@ -26,6 +26,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// TODO@no-merge remove this file
+
 namespace multipass
 {
 namespace platform
@@ -43,7 +45,6 @@ const std::unordered_set<std::string> supported_core_aliases{"core", "core16", "
 
 const std::unordered_map<std::string, std::unordered_set<std::string>> supported_remotes_aliases_map{
     {"release", supported_release_aliases},
-    {snapcraft_remote, supported_snapcraft_aliases},
     {"appliance", {}}};
 } // namespace platform
 } // namespace multipass

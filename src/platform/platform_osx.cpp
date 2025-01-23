@@ -207,16 +207,6 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return networks;
 }
 
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
-{
-    return true; // TODO@ricab remove
-}
-
-bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
-{
-    return true; // TODO@ricab remove
-}
-
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     return
@@ -264,13 +254,6 @@ QString mp::platform::Platform::default_driver() const
 QString mp::platform::Platform::default_privileged_mounts() const
 {
     return QStringLiteral("true");
-}
-
-bool mp::platform::Platform::is_image_url_supported() const
-{
-    const auto driver = MP_SETTINGS.get(mp::driver_key);
-
-    return driver == "virtualbox" || driver == "qemu"; // TODO@ricab remove
 }
 
 std::string mp::platform::Platform::bridge_nomenclature() const
