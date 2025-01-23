@@ -45,31 +45,27 @@ struct VMSpecs
     bool deleted;
     QJsonObject metadata;
     int clone_count = 0; // tracks the number of cloned vm from this source vm (regardless of deletes)
+    std::string zone;
 };
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
 {
-    return std::tie(a.num_cores,
-                    a.mem_size,
-                    a.disk_space,
-                    a.default_mac_address,
-                    a.extra_interfaces,
-                    a.ssh_username,
-                    a.state,
-                    a.mounts,
-                    a.deleted,
-                    a.metadata,
-                    a.clone_count) == std::tie(b.num_cores,
-                                               b.mem_size,
-                                               b.disk_space,
-                                               b.default_mac_address,
-                                               b.extra_interfaces,
-                                               b.ssh_username,
-                                               b.state,
-                                               b.mounts,
-                                               b.deleted,
-                                               b.metadata,
-                                               a.clone_count);
+    const auto properties = [](const VMSpecs& spec) {
+        return std::tie(spec.num_cores,
+                        spec.mem_size,
+                        spec.disk_space,
+                        spec.default_mac_address,
+                        spec.extra_interfaces,
+                        spec.ssh_username,
+                        spec.state,
+                        spec.mounts,
+                        spec.deleted,
+                        spec.metadata,
+                        spec.clone_count,
+                        spec.zone);
+    };
+
+    return properties(a) == properties(b);
 }
 
 inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20
