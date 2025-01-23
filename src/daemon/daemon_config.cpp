@@ -20,6 +20,7 @@
 #include "custom_image_host.h"
 #include "ubuntu_image_host.h"
 
+#include <multipass/base_availability_zone_manager.h>
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
@@ -257,21 +258,27 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                   fs::perms::others_exec),
             server_name_from(server_address));
 
-    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
-                                                                std::move(factory),
-                                                                std::move(image_hosts),
-                                                                std::move(vault),
-                                                                std::move(name_generator),
-                                                                std::move(ssh_key_provider),
-                                                                std::move(cert_provider),
-                                                                std::move(client_cert_store),
-                                                                std::move(update_prompt),
-                                                                multiplexing_logger,
-                                                                std::move(network_proxy),
-                                                                std::move(blueprint_provider),
-                                                                cache_directory,
-                                                                data_directory,
-                                                                server_address,
-                                                                ssh_username,
-                                                                image_refresh_timer});
+    if (az_manager == nullptr)
+        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
+
+    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
+        std::move(url_downloader),
+        std::move(factory),
+        std::move(image_hosts),
+        std::move(vault),
+        std::move(name_generator),
+        std::move(ssh_key_provider),
+        std::move(cert_provider),
+        std::move(client_cert_store),
+        std::move(update_prompt),
+        multiplexing_logger,
+        std::move(network_proxy),
+        std::move(blueprint_provider),
+        std::move(az_manager),
+        cache_directory,
+        data_directory,
+        server_address,
+        ssh_username,
+        image_refresh_timer,
+    });
 }
