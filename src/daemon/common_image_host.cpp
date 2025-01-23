@@ -74,8 +74,8 @@ bool mp::CommonVMImageHost::alias_verifies_image_is_supported(const QStringList&
         "devel",
     };
 
-    return aliases.empty() || remote_name != mp::snapcraft_remote ||
-           std::any_of(aliases.cbegin(), aliases.cend(), [&remote_name](const auto& alias) {
+    return aliases.empty() || remote_name != snapcraft_remote ||
+           std::any_of(aliases.cbegin(), aliases.cend(), [](const auto& alias) {
                return supported_snapcraft_aliases.find(alias.toStdString()) != supported_snapcraft_aliases.end();
            });
 }
