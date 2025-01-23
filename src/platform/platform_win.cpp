@@ -511,16 +511,6 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     throw std::runtime_error{err};
 }
 
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
-{
-    return true; // TODO@ricab remove
-}
-
-bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
-{
-    return true; // TODO@ricab remove
-}
-
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     return backend == "hyperv" || backend == "virtualbox";
@@ -587,11 +577,6 @@ QString mp::platform::Platform::default_driver() const
 QString mp::platform::Platform::default_privileged_mounts() const
 {
     return QStringLiteral("false");
-}
-
-bool mp::platform::Platform::is_image_url_supported() const
-{
-    return true; // TODO@ricab remove
 }
 
 std::string mp::platform::Platform::bridge_nomenclature() const

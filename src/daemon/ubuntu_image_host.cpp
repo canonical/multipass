@@ -105,7 +105,6 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& quer
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(const Query& query)
 {
     auto key = key_from(query.release);
-    check_alias_is_supported(key.toStdString(), query.remote_name);
 
     std::vector<std::string> remotes_to_search;
 
@@ -241,7 +240,6 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_netw
         const auto& [remote_name, remote_info] = remote_pair;
         try
         {
-            check_remote_is_supported(remote_name);
             auto official_site = remote_info.get_official_url();
             auto manifest_bytes_from_official =
                 download_manifest(official_site, url_downloader, is_force_update_from_network);
@@ -290,8 +288,6 @@ void mp::UbuntuVMImageHost::clear()
 
 mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::string& remote)
 {
-    check_remote_is_supported(remote);
-
     const auto it =
         std::find_if(manifests.cbegin(), manifests.cend(),
                      [&remote](const std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>& element) {
