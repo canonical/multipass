@@ -176,8 +176,8 @@ private:
         using FailureCallableArg0Type =
             std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
 
-        static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value);
-        static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value);
+        static_assert(std::is_same_v<std::remove_const_t<typename SuccessCallableTraits::return_type>, ReturnCode>);
+        static_assert(std::is_same_v<std::remove_const_t<typename FailureCallableTraits::return_type>, ReturnCode>);
 
         static_assert(SuccessCallableTraits::num_args == 1);
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,
@@ -192,7 +192,7 @@ private:
             static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
                           "`on_success` and `on_failure` should handle the same reply types");
         }
-        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value);
+        static_assert(std::is_same_v<std::remove_const_t<FailureCallableArg0Type>, grpc::Status>);
     }
 
     template <typename FailureCallable, typename Reply>
