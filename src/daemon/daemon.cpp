@@ -1912,6 +1912,9 @@ try
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
+        const auto zone = entry->mutable_zone();
+        zone->set_name(vm.get_zone().get_name());
+        zone->set_available(vm.get_zone().is_available());
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
@@ -3920,6 +3923,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     const auto& name = vm.vm_name;
     info->set_name(name);
+    const auto zone = info->mutable_zone();
+    zone->set_name(vm.get_zone().get_name());
+    zone->set_available(vm.get_zone().is_available());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);

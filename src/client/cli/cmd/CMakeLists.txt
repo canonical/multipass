@@ -47,6 +47,7 @@ add_library(commands STATIC
   unalias.cpp
   version.cpp
   wait_ready.cpp
+  zones.cpp
 )
 
 target_link_libraries(commands
