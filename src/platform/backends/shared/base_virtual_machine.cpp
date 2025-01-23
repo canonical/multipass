@@ -17,6 +17,7 @@
 
 #include "base_virtual_machine.h"
 
+#include <multipass/availability_zone.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
@@ -141,16 +142,25 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
 mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
                                            const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
+                                           AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{state, vm_name, zone, instance_dir}, key_provider{key_provider}
 {
+    zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
+                                           AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{vm_name, zone, instance_dir}, key_provider{key_provider}
 {
+    zone.add_vm(*this);
+}
+
+mp::BaseVirtualMachine::~BaseVirtualMachine()
+{
+    zone.remove_vm(*this);
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
