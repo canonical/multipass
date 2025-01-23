@@ -50,12 +50,14 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                const SSHKeyProvider& key_provider,
-                                                                               VMStatusMonitor& monitor)
+                                                                               VMStatusMonitor& monitor,
+                                                                               AvailabilityZoneManager& az_manager)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name));
 }
 
@@ -161,12 +163,14 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(const std:
                                                                       const multipass::VMSpecs& /*src_vm_specs*/,
                                                                       const VirtualMachineDescription& desc,
                                                                       VMStatusMonitor& monitor,
-                                                                      const SSHKeyProvider& key_provider)
+                                                                      const SSHKeyProvider& key_provider,
+                                                                      AvailabilityZoneManager& az_manager)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name),
                                                     true);
 }
