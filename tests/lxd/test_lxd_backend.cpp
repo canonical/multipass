@@ -25,6 +25,8 @@
 #include "tests/mock_logger.h"
 #include "tests/mock_platform.h"
 #include "tests/mock_status_monitor.h"
+#include "tests/stub_availability_zone.h"
+#include "tests/stub_availability_zone_manager.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/stub_url_downloader.h"
@@ -70,6 +72,7 @@ struct LXDBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used
                                                       "pied-piper-valley",
+                                                      "zone1",
                                                       "00:16:3e:fe:f2:b9",
                                                       {},
                                                       "yoda",
@@ -87,6 +90,8 @@ struct LXDBackend : public Test
     std::unique_ptr<StrictMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
     const QString default_storage_pool{"default"};
+    mpt::StubAvailabilityZone zone{};
+    mpt::StubAvailabilityZoneManager az_manager{};
 };
 
 struct LXDInstanceStatusTestSuite : LXDBackend, WithParamInterface<LXDInstanceStatusParamType>
@@ -383,7 +388,7 @@ TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
 
     EXPECT_NE(nullptr, machine);
 }
@@ -455,6 +460,7 @@ TEST_F(LXDBackend, creates_in_stopped_state)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_TRUE(vm_created);
@@ -509,6 +515,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(2);
@@ -565,6 +572,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(2);
@@ -616,6 +624,7 @@ TEST_F(LXDBackend, machine_persists_internal_stopped_state_on_destruction)
                                       bridge_name,
                                       default_storage_pool,
                                       key_provider,
+                                      zone,
                                       instance_dir.path()};
 
         ASSERT_EQ(machine.state, mp::VirtualMachine::State::running);
@@ -678,6 +687,7 @@ TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
                                       bridge_name,
                                       default_storage_pool,
                                       key_provider,
+                                      zone,
                                       instance_dir.path()};
     }
 
@@ -741,6 +751,7 @@ TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
                                       bridge_name,
                                       default_storage_pool,
                                       key_provider,
+                                      zone,
                                       instance_dir.path()};
         machine.shutdown();
     }
@@ -796,6 +807,7 @@ TEST_F(LXDBackend, does_not_call_stop_when_snap_refresh_is_detected)
                                       bridge_name,
                                       default_storage_pool,
                                       key_provider,
+                                      zone,
                                       instance_dir.path()};
     }
 
@@ -847,6 +859,7 @@ TEST_F(LXDBackend, calls_stop_when_snap_refresh_does_not_exist)
                                       bridge_name,
                                       default_storage_pool,
                                       key_provider,
+                                      zone,
                                       instance_dir.path()};
     }
 
@@ -937,6 +950,7 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 }
 
@@ -1165,6 +1179,7 @@ TEST_P(LXDNetworkInfoSuite, returns_expected_network_info)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_EQ(machine.management_ipv4(), "10.217.27.168");
@@ -1216,6 +1231,7 @@ TEST_F(LXDBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
@@ -1260,6 +1276,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
@@ -1610,6 +1627,7 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     MP_EXPECT_THROW_THAT(machine.suspend(),
@@ -1650,6 +1668,7 @@ TEST_F(LXDBackend, start_while_frozen_unfreezes)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1684,6 +1703,7 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
@@ -1724,6 +1744,7 @@ TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
@@ -1778,6 +1799,7 @@ TEST_F(LXDBackend, ensure_vm_running_does_not_throw_starting)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     machine.start();
@@ -1837,6 +1859,7 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     machine.start();
@@ -1898,6 +1921,7 @@ TEST_F(LXDBackend, start_failure_while_starting_throws_and_sets_correct_state)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     machine.start();
@@ -1958,6 +1982,7 @@ TEST_F(LXDBackend, reboots_while_starting_does_not_throw_and_sets_correct_state)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     machine.start();
@@ -1987,6 +2012,7 @@ TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -2047,6 +2073,7 @@ TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_sta
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 
     EXPECT_EQ(machine.current_state(), expected_state);
@@ -2285,6 +2312,7 @@ TEST_F(LXDBackend, posts_extra_network_devices)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 }
 
@@ -2309,6 +2337,7 @@ TEST_F(LXDBackend, posts_network_data_config_if_available)
                                   bridge_name,
                                   default_storage_pool,
                                   key_provider,
+                                  zone,
                                   instance_dir.path()};
 }
 
@@ -2396,7 +2425,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
 
     machine->shutdown();
 
@@ -2415,5 +2444,5 @@ TEST_F(LXDBackend, converts_http_to_https)
     });
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), QUrl{"http://bar"}};
-    backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
 }

@@ -23,6 +23,8 @@
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "stub_availability_zone.h"
+#include "stub_availability_zone_manager.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
@@ -41,6 +43,7 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
 
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     const std::string mock_instance_name{"real-zebraphant"};
@@ -54,6 +57,8 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    mpt::StubAvailabilityZone zone{};
 };
 } // namespace
 
@@ -69,7 +74,7 @@ TEST_F(TestDaemonSuspend, suspendNotSupportedDoesNotStopMounts)
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, deactivate_impl).Times(0);
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
 
@@ -104,7 +109,7 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
     EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
     EXPECT_CALL(*mock_mount_handler, deactivate_impl);
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
 

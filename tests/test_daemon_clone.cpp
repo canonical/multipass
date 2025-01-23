@@ -21,6 +21,8 @@
 #include "mock_server_reader_writer.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "stub_availability_zone.h"
+#include "stub_availability_zone_manager.h"
 
 #include <src/daemon/daemon.h>
 
@@ -33,11 +35,12 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
     void SetUp() override
     {
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     auto build_daemon_with_mock_instance()
     {
-        auto instance_unique_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_src_instance_name);
+        auto instance_unique_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_src_instance_name, zone);
         auto* instance_raw_ptr = instance_unique_ptr.get();
 
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_unique_ptr)));
@@ -52,6 +55,7 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
     const std::string mock_src_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
     std::vector<mp::NetworkInterface> extra_interfaces;
+    mpt::StubAvailabilityZone zone{};
 
     const mpt::MockVirtualMachineFactory& mock_factory = *use_a_mock_vm_factory();
 
