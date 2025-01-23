@@ -45,7 +45,8 @@ struct VMSpecs
     QJsonObject metadata;
     int clone_count =
         0; // tracks the number of cloned vm from this source vm (regardless of deletes)
-
+    std::string zone;
+    
     friend inline bool operator==(const VMSpecs& a, const VMSpecs& b) = default;
 };
 

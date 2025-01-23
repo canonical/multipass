@@ -50,15 +50,16 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu
 {
 }
 
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
-    const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                               const SSHKeyProvider& key_provider,
+                                                                               VMStatusMonitor& monitor,
+                                                                               AvailabilityZoneManager& az_manager)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name));
 }
 
@@ -163,17 +164,18 @@ std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInter
     return qemu_platform->create_bridge_with(interface);
 }
 
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
-    const std::string& /*source_vm_name*/,
-    const multipass::VMSpecs& /*src_vm_specs*/,
-    const VirtualMachineDescription& desc,
-    VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(const std::string& /*source_vm_name*/,
+                                                                      const multipass::VMSpecs& /*src_vm_specs*/,
+                                                                      const VirtualMachineDescription& desc,
+                                                                      VMStatusMonitor& monitor,
+                                                                      const SSHKeyProvider& key_provider,
+                                                                      AvailabilityZoneManager& az_manager)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name),
                                                     true);
 }
