@@ -36,7 +36,6 @@
 #endif
 
 #include "platform_proprietary.h"
-#include "platform_shared.h"
 #include "shared/macos/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>

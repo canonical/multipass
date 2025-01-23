@@ -48,7 +48,6 @@
 #endif
 
 #include "platform_linux_detail.h"
-#include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>

@@ -20,8 +20,6 @@
 
 #include <multipass/constants.h>
 
-#include "platform_shared.h"
-
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
