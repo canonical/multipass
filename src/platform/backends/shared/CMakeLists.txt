@@ -14,6 +14,7 @@
 
 add_library(shared STATIC
   base_availability_zone.cpp
+  base_availability_zone_manager.cpp
   base_snapshot.cpp
   base_virtual_machine.cpp
   base_virtual_machine_factory.cpp
