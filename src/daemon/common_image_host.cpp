@@ -24,9 +24,6 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
-#include <multipass/exceptions/unsupported_alias_exception.h>
-#include <multipass/exceptions/unsupported_remote_exception.h> // TODO@ricab drop
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 

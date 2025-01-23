@@ -18,17 +18,15 @@
 #include "ubuntu_image_host.h"
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/manifest_exceptions.h>
+#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
 #include <multipass/simple_streams_index.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
-
-#include <multipass/exceptions/download_exception.h>
-#include <multipass/exceptions/manifest_exceptions.h>
-#include <multipass/exceptions/unsupported_image_exception.h>
-#include <multipass/exceptions/unsupported_remote_exception.h>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -119,25 +117,11 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
-    mp::SimpleStreamsManifest* manifest;
-
     for (const auto& remote_name : remotes_to_search)
     {
-        try
-        {
-            manifest = manifest_from(remote_name);
-        }
-        catch (const mp::UnsupportedRemoteException&)
-        {
-            if (query.remote_name.empty())
-                continue;
+        auto* manifest = manifest_from(remote_name);
 
-            throw;
-        }
-
-        const auto* info = match_alias(key, *manifest);
-
-        if (info)
+        if (const auto* info = match_alias(key, *manifest); info)
         {
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
@@ -268,9 +252,6 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_netw
         catch (mp::DownloadException& e)
         {
             throw e;
-        }
-        catch (const mp::UnsupportedRemoteException&)
-        {
         }
         return {};
     };

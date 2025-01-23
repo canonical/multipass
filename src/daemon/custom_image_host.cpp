@@ -17,15 +17,12 @@
 
 #include "custom_image_host.h"
 
+#include <multipass/exceptions/download_exception.h>
+#include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
-
-#include <multipass/exceptions/download_exception.h>
-#include <multipass/exceptions/unsupported_remote_exception.h>
-
-#include <multipass/format.h>
 
 #include <QMap>
 #include <QUrl>
@@ -236,10 +233,6 @@ void mp::CustomVMImageHost::fetch_manifests(const bool is_force_update_from_netw
         catch (mp::DownloadException& e)
         {
             throw e;
-        }
-        catch (const mp::UnsupportedRemoteException&)
-        {
-            continue;
         }
     }
 }
