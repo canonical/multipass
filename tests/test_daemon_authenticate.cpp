@@ -22,6 +22,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_utils.h"
+#include "stub_availability_zone_manager.h"
 
 #include <multipass/constants.h>
 
@@ -42,6 +43,8 @@ struct TestDaemonAuthenticate : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler(_)).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};

@@ -24,6 +24,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
+#include "stub_availability_zone.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -122,13 +123,14 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine(St s = St::off)
-        : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
+
+    StubBaseVirtualMachine(mp::AvailabilityZone& zone, St s = St::off)
+        : StubBaseVirtualMachine{s, zone, std::make_unique<mpt::TempDir>()}
     {
     }
 
-    StubBaseVirtualMachine(St s, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, tmp_dir->path()},
+    StubBaseVirtualMachine(St s, mp::AvailabilityZone& zone, std::unique_ptr<mpt::TempDir> tmp_dir)
+        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -254,7 +256,8 @@ struct BaseVM : public Test
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
-    NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider};
+    mpt::StubAvailabilityZone zone{};
+    NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider, zone};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
@@ -303,7 +306,7 @@ TEST_F(BaseVM, getAllIpv4WorksWhenInstanceIsOff)
 
 TEST_F(BaseVM, addNetworkInterfaceThrows)
 {
-    StubBaseVirtualMachine base_vm(St::off);
+    StubBaseVirtualMachine base_vm(zone, St::off);
 
     MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, "", {"eth1", "52:54:00:00:00:00", true}),
                          mp::NotImplementedOnThisBackendException,
@@ -393,7 +396,7 @@ TEST_F(BaseVM, takesSnapshots)
 
 TEST_F(BaseVM, takeSnasphotThrowsIfSpecificSnapshotNotOverridden)
 {
-    StubBaseVirtualMachine stub{};
+    StubBaseVirtualMachine stub{zone};
     MP_EXPECT_THROW_THAT(stub.take_snapshot({}, "stub-snap", ""),
                          mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("snapshots")));
@@ -750,16 +753,20 @@ TEST_F(BaseVM, restoresSnapshots)
     QJsonObject metadata{};
     metadata["meta"] = "data";
 
-    const mp::VMSpecs original_specs{2,
-                                     mp::MemorySize{"3.5G"},
-                                     mp::MemorySize{"15G"},
-                                     "12:12:12:12:12:12",
-                                     {},
-                                     "user",
-                                     St::off,
-                                     {{"dst", mount}},
-                                     false,
-                                     metadata};
+    const mp::VMSpecs original_specs{
+        2,
+        mp::MemorySize{"3.5G"},
+        mp::MemorySize{"15G"},
+        "12:12:12:12:12:12",
+        {},
+        "user",
+        St::off,
+        {{"dst", mount}},
+        false,
+        metadata,
+        0,
+        "zone1",
+    };
 
     const auto* snapshot_name = "shoot";
     vm.take_snapshot(original_specs, snapshot_name, "");
@@ -852,7 +859,7 @@ TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
 
 TEST_F(BaseVM, loadSnasphotThrowsIfSnapshotsNotImplemented)
 {
-    StubBaseVirtualMachine stub{};
+    StubBaseVirtualMachine stub{zone};
     mpt::make_file_with_content(stub.tmp_dir->filePath("0001.snapshot.json"), "whatever-content");
     MP_EXPECT_THROW_THAT(stub.load_snapshots(),
                          mp::NotImplementedOnThisBackendException,
@@ -1214,16 +1221,20 @@ TEST_F(BaseVM, rollsbackFailedRestore)
 {
     mock_snapshotting();
 
-    const mp::VMSpecs original_specs{1,
-                                     mp::MemorySize{"1.5G"},
-                                     mp::MemorySize{"4G"},
-                                     "ab:ab:ab:ab:ab:ab",
-                                     {},
-                                     "me",
-                                     St::off,
-                                     {},
-                                     false,
-                                     {}};
+    const mp::VMSpecs original_specs{
+        1,
+        mp::MemorySize{"1.5G"},
+        mp::MemorySize{"4G"},
+        "ab:ab:ab:ab:ab:ab",
+        {},
+        "me",
+        St::off,
+        {},
+        false,
+        {},
+        0,
+        "zone1",
+    };
 
     vm.take_snapshot(original_specs, "", "");
 
