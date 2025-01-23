@@ -39,6 +39,7 @@ public:
                           VMStatusMonitor& monitor,
                           const LibvirtWrapper::UPtr& libvirt_wrapper,
                           const SSHKeyProvider& key_provider,
+                          AvailabilityZone& zone,
                           const Path& instance_dir);
     ~LibVirtVirtualMachine();
 

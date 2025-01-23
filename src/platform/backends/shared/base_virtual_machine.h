@@ -44,12 +44,20 @@ public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir);
+    ~BaseVirtualMachine();
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+
+    void make_available(bool available) override
+    {
+        throw NotImplementedOnThisBackendException("availability zones");
+    }
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;

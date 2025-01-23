@@ -17,6 +17,7 @@
 
 #include "libvirt_virtual_machine.h"
 
+#include <multipass/availability_zone.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
@@ -314,8 +315,9 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const VirtualMachineDescription
                                                  VMStatusMonitor& monitor,
                                                  const LibvirtWrapper::UPtr& libvirt_wrapper,
                                                  const SSHKeyProvider& key_provider,
+                                                 AvailabilityZone& zone,
                                                  const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
       username{desc.ssh_username},
       desc{desc},
       monitor{&monitor},
