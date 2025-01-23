@@ -51,7 +51,8 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
                 create_virtual_machine,
                 (const mp::VirtualMachineDescription&,
                  const mp::SSHKeyProvider&,
-                 mp::VMStatusMonitor&),
+                 mp::VMStatusMonitor&,
+                 mp::AvailabilityZoneManager& az_manager),
                 (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void,
@@ -147,6 +148,7 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
                                           mp::MemorySize{"3M"},
                                           mp::MemorySize{}, // not used
                                           name,
+                                          "zone1",
                                           "00:16:3e:fe:f2:b9",
                                           {},
                                           "yoda",
