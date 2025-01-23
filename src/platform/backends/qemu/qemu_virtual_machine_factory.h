@@ -35,7 +35,8 @@ public:
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
-                                                VMStatusMonitor& monitor) override;
+                                                VMStatusMonitor& monitor,
+                                                AvailabilityZoneManager& az_manager) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
@@ -56,7 +57,8 @@ private:
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,
                                        VMStatusMonitor& monitor,
-                                       const SSHKeyProvider& key_provider) override;
+                                       const SSHKeyProvider& key_provider,
+                                       AvailabilityZoneManager& az_manager) override;
 
     QemuPlatform::UPtr qemu_platform;
 };
