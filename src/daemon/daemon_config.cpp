@@ -240,6 +240,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                               fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec),
             server_name_from(server_address));
 
+    if (az_manager == nullptr)
+        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
+
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader),
         std::move(factory),
