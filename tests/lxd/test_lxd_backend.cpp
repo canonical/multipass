@@ -417,7 +417,7 @@ TEST_F(LXDBackend, factoryCreatesValidVirtualMachinePtr)
                                          az_manager,
                                          base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
 
     EXPECT_NE(nullptr, machine);
 }
@@ -2626,7 +2626,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
                                          az_manager,
                                          base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
 
     machine->shutdown();
 
