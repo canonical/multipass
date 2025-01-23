@@ -90,7 +90,8 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
                                                                       const std::string& dest_name,
                                                                       const VMImage& dest_image,
                                                                       const multipass::SSHKeyProvider& key_provider,
-                                                                      VMStatusMonitor& monitor)
+                                                                      VMStatusMonitor& monitor,
+                                                                      AvailabilityZoneManager& az_manager)
 {
     const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
     const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
@@ -109,6 +110,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
                                                dest_spec.mem_size,
                                                dest_spec.disk_space,
                                                dest_name,
+                                               dest_spec.zone,
                                                dest_spec.default_mac_address,
                                                dest_spec.extra_interfaces,
                                                dest_spec.ssh_username,
@@ -119,9 +121,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance = clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
-
-    return cloned_instance;
+    return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider, az_manager);
 }
 
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
