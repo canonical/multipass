@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
 #include <multipass/days.h>
@@ -55,6 +56,7 @@ struct DaemonConfig
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const std::unique_ptr<QNetworkProxy> network_proxy;
     const std::unique_ptr<VMBlueprintProvider> blueprint_provider;
+    const AvailabilityZoneManager::UPtr az_manager;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
@@ -76,6 +78,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
     std::unique_ptr<VMBlueprintProvider> blueprint_provider;
+    AvailabilityZoneManager::UPtr az_manager;
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;
