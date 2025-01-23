@@ -20,6 +20,7 @@
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_virtual_machine.h"
+#include "tests/stub_availability_zone.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
 #include "tests/temp_dir.h"
@@ -46,14 +47,18 @@ public:
                           const QUrl& base_url,
                           const QString& bridge_name,
                           const QString& storage_pool,
-                          const mp::SSHKeyProvider& key_provider)
-        : mpt::MockVirtualMachineT<mp::LXDVirtualMachine>{desc,
-                                                          monitor,
-                                                          manager,
-                                                          base_url,
-                                                          bridge_name,
-                                                          storage_pool,
-                                                          key_provider}
+                          const mp::SSHKeyProvider& key_provider,
+                          mp::AvailabilityZone& zone)
+        : mpt::MockVirtualMachineT<mp::LXDVirtualMachine>{
+              desc,
+              monitor,
+              manager,
+              base_url,
+              bridge_name,
+              storage_pool,
+              key_provider,
+              zone,
+          }
     {
     }
 };
@@ -94,10 +99,12 @@ struct LXDMountHandlerTestFixture : public testing::Test
     const QString default_storage_pool{"default"};
     mpt::StubVMStatusMonitor stub_monitor;
     const QString bridge_name{"mpbr0"};
+    mpt::StubAvailabilityZone zone{};
     const mp::VirtualMachineDescription default_description{2,
                                                             mp::MemorySize{"3M"},
                                                             mp::MemorySize{}, // not used
                                                             "pied-piper-valley",
+                                                            "zone1",
                                                             "00:16:3e:fe:f2:b9",
                                                             {},
                                                             "yoda",
@@ -124,13 +131,16 @@ struct LXDMountHandlerValidGidUidParameterTests
 
 TEST_F(LXDMountHandlerTestFixture, startDoesNotThrowIfVMIsStopped)
 {
-    NiceMock<MockLXDVirtualMachine> lxd_vm{default_description,
-                                           stub_monitor,
-                                           &mock_network_access_manager,
-                                           base_url,
-                                           bridge_name,
-                                           default_storage_pool,
-                                           key_provider};
+    NiceMock<MockLXDVirtualMachine> lxd_vm{
+        default_description,
+        stub_monitor,
+        &mock_network_access_manager,
+        base_url,
+        bridge_name,
+        default_storage_pool,
+        key_provider,
+        zone,
+    };
 
     mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
                                           &lxd_vm,
@@ -152,7 +162,8 @@ TEST_F(LXDMountHandlerTestFixture, startThrowsIfVMIsRunning)
                                            base_url,
                                            bridge_name,
                                            default_storage_pool,
-                                           key_provider};
+                                           key_provider,
+                                        zone};
     mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
                                           &lxd_vm,
                                           &key_provider,
@@ -175,7 +186,8 @@ TEST_F(LXDMountHandlerTestFixture, stopDoesNotThrowIfVMIsStopped)
                                            base_url,
                                            bridge_name,
                                            default_storage_pool,
-                                           key_provider};
+                                           key_provider,
+                                           zone};
     mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
                                           &lxd_vm,
                                           &key_provider,
@@ -193,13 +205,16 @@ TEST_F(LXDMountHandlerTestFixture, stopDoesNotThrowIfVMIsStopped)
 
 TEST_F(LXDMountHandlerTestFixture, stopThrowsIfVMIsRunning)
 {
-    NiceMock<MockLXDVirtualMachine> lxd_vm{default_description,
-                                           stub_monitor,
-                                           &mock_network_access_manager,
-                                           base_url,
-                                           bridge_name,
-                                           default_storage_pool,
-                                           key_provider};
+    NiceMock<MockLXDVirtualMachine> lxd_vm{
+        default_description,
+        stub_monitor,
+        &mock_network_access_manager,
+        base_url,
+        bridge_name,
+        default_storage_pool,
+        key_provider,
+        zone,
+    };
 
     mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
                                           &lxd_vm,
@@ -228,6 +243,7 @@ TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
                                  bridge_name,
                                  default_storage_pool,
                                  key_provider,
+                                 zone,
                                  instance_dir.path()};
     const auto& [host_gid, instance_gid, host_uid, instance_uid] = GetParam();
     const mp::VMMount vm_mount{source_path,
@@ -258,6 +274,7 @@ TEST_P(LXDMountHandlerValidGidUidParameterTests, mountWithGidOrUid)
                                  bridge_name,
                                  default_storage_pool,
                                  key_provider,
+                                 zone,
                                  instance_dir.path()};
     const auto& [host_gid, host_uid] = GetParam();
     const int default_instance_id = -1;

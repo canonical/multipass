@@ -25,6 +25,8 @@
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "stub_availability_zone.h"
+#include "stub_availability_zone_manager.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -41,6 +43,7 @@ struct TestDaemonUmount : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
 
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
 
         mock_factory = use_a_mock_vm_factory();
     }
@@ -62,6 +65,7 @@ struct TestDaemonUmount : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+    mpt::StubAvailabilityZone zone{};
 };
 } // namespace
 
@@ -102,7 +106,7 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false));
     EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path + "2", _))
@@ -146,7 +150,7 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
     EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false)).Times(0);
     EXPECT_CALL(*mock_mount_handler3, deactivate_impl(false));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path + "2", _))
@@ -182,7 +186,7 @@ TEST_F(TestDaemonUmount, mountNotFound)
     config_builder.data_directory = temp_dir->path();
 
     EXPECT_CALL(*mock_factory, create_virtual_machine)
-        .WillOnce(Return(std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name)));
+        .WillOnce(Return(std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone)));
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -219,7 +223,7 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false))
         .WillOnce(Throw(std::runtime_error{error}));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
 

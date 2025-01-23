@@ -22,6 +22,7 @@
 #include "tests/mock_snapshot.h"
 #include "tests/mock_virtual_machine.h"
 #include "tests/path.h"
+#include "tests/stub_availability_zone.h"
 #include "tests/stub_ssh_key_provider.h"
 
 #include <multipass/process/process.h>
@@ -92,7 +93,8 @@ struct TestQemuSnapshot : public Test
     }();
 
     mpt::StubSSHKeyProvider key_provider{};
-    NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider};
+    mpt::StubAvailabilityZone zone{};
+    NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider, zone};
     ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
@@ -113,17 +115,22 @@ struct TestQemuSnapshot : public Test
             metadata["meta"] = "data";
             return metadata;
         }();
+        const auto zone = "zone1";
 
-        return mp::VMSpecs{cpus,
-                           mem_size,
-                           disk_space,
-                           "mac",
-                           extra_interfaces,
-                           "",
-                           state,
-                           mounts,
-                           false,
-                           metadata};
+        return mp::VMSpecs{
+            cpus,
+            mem_size,
+            disk_space,
+            "mac",
+            extra_interfaces,
+            "",
+            state,
+            mounts,
+            false,
+            metadata,
+            0,
+            zone,
+        };
     }();
 };
 
@@ -136,7 +143,7 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
     const auto parent = std::make_shared<mpt::MockSnapshot>();
 
     auto desc = mp::VirtualMachineDescription{};
-    auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider};
+    auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider, zone};
 
     const auto snapshot = mp::QemuSnapshot{name, comment, instance_id, parent, specs, vm, desc};
     EXPECT_EQ(snapshot.get_name(), name);

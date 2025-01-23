@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/alias_definition.h>
+#include <multipass/availability_zone_manager.h>
 #include <multipass/fetch_type.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_image_vault.h>
@@ -48,8 +49,10 @@ fetch_image_lambda(const std::string& release,
                    const std::string& remote,
                    const bool must_have_checksum = false);
 
-std::function<
-    VirtualMachine::UPtr(const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&)>
+std::function<VirtualMachine::UPtr(const VirtualMachineDescription&,
+                                   const SSHKeyProvider&,
+                                   VMStatusMonitor&,
+                                   const AvailabilityZoneManager&)>
 create_virtual_machine_lambda(const int& num_cores,
                               const MemorySize& mem_size,
                               const MemorySize& disk_space,

@@ -22,6 +22,7 @@
 #include "mock_json_utils.h"
 #include "mock_virtual_machine.h"
 #include "path.h"
+#include "stub_availability_zone.h"
 
 #include <multipass/json_utils.h>
 #include <multipass/memory_size.h>
@@ -138,7 +139,8 @@ struct TestBaseSnapshot : public Test
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
     mp::VirtualMachineDescription desc = stub_desc();
-    NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
+    mpt::StubAvailabilityZone zone{};
+    NiceMock<mpt::MockVirtualMachine> vm{"a-vm", zone};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
     const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
