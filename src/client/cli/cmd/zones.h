@@ -15,21 +15,28 @@
  *
  */
 
-#pragma once
+#ifndef MULTIPASS_ZONES_H
+#define MULTIPASS_ZONES_H
 
+#include <multipass/cli/command.h>
 #include <multipass/cli/formatter.h>
 
-namespace multipass
+namespace multipass::cmd
 {
-class CSVFormatter final : public Formatter
+class Zones : public Command
 {
 public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const NetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
-    std::string format(const VersionReply& list, const std::string& client_version) const override;
-    std::string format(const AliasDict& aliases) const override;
-    std::string format(const ZonesReply& reply) const override;
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
+
+    std::string name() const override;
+    std::vector<std::string> aliases() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    ParseCode parse_args(ArgParser* parser);
+    Formatter* chosen_formatter;
 };
-} // namespace multipass
+} // namespace multipass::cmd
+#endif // MULTIPASS_ZONES_H
