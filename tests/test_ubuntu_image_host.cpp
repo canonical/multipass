@@ -51,9 +51,6 @@ struct UbuntuImageHost : public testing::Test
 {
     UbuntuImageHost()
     {
-        EXPECT_CALL(mock_platform, is_remote_supported(_)).WillRepeatedly(Return(true));
-        EXPECT_CALL(mock_platform, is_alias_supported(_, _)).WillRepeatedly(Return(true));
-
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu")); /* TODO parameterize driver
                                                                                               (code branches for lxd) */
         EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(""));
@@ -175,22 +172,6 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
     EXPECT_THAT(ids.count("1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4"), Eq(1u));
     EXPECT_THAT(ids.count("ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"), Eq(1u));
     EXPECT_THAT(ids.count("520224efaaf49b15a976b49c7ce7f2bd2e5b161470d684b37a838933595c0520"), Eq(1u));
-}
-
-TEST_F(UbuntuImageHost, unsupported_alias_iterates_over_expected_entries)
-{
-    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
-    host.update_manifests(false);
-
-    std::unordered_set<std::string> ids;
-    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) { ids.insert(info.id.toStdString()); };
-
-    EXPECT_CALL(mock_platform, is_alias_supported(AnyOf("zesty", "17.04", "z"), _)).WillRepeatedly(Return(false));
-
-    host.for_each_entry_do(action);
-
-    const size_t expected_entries{4};
-    EXPECT_THAT(ids.size(), Eq(expected_entries));
 }
 
 TEST_F(UbuntuImageHost, can_query_by_hash)
@@ -325,19 +306,6 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_all_matches)
 
     const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
-}
-
-TEST_F(UbuntuImageHost, all_images_for_release_unsupported_alias_returns_three_matches)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    EXPECT_CALL(mock_platform, is_alias_supported(AnyOf("zesty", "17.04", "z"), _)).WillRepeatedly(Return(false));
-
-    auto images = host.all_images_for(release_remote_spec.first, false);
-
-    const size_t expected_matches{3};
-    EXPECT_EQ(images.size(), expected_matches);
 }
 
 TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
@@ -489,42 +457,4 @@ TEST_F(UbuntuImageHost, all_info_for_unsupported_image_throw)
     MP_EXPECT_THROW_THAT(host.all_info_for(make_query(release, release_remote_spec.first)),
                          mp::UnsupportedImageException,
                          mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
-}
-
-TEST_F(UbuntuImageHost, all_info_for_unsupported_alias_throws)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    const std::string unsupported_alias{"daily"};
-    EXPECT_CALL(mock_platform, is_alias_supported(unsupported_alias, _)).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(
-        host.all_info_for(make_query(unsupported_alias, release_remote_spec.first)), mp::UnsupportedAliasException,
-        mpt::match_what(HasSubstr(fmt::format("\'{}\' is not a supported alias.", unsupported_alias))));
-}
-
-TEST_F(UbuntuImageHost, info_for_unsupported_remote_throws)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    const std::string unsupported_remote{"bar"};
-    EXPECT_CALL(mock_platform, is_remote_supported(unsupported_remote)).WillRepeatedly(Return(false));
-
-    MP_EXPECT_THROW_THAT(host.info_for(make_query("xenial", unsupported_remote)), mp::UnsupportedRemoteException,
-                         mpt::match_what(HasSubstr(fmt::format(
-                             "Remote \'{}\' is not a supported remote for this platform.", unsupported_remote))));
-}
-
-TEST_F(UbuntuImageHost, info_for_no_remote_first_unsupported_returns_expected_info)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    EXPECT_CALL(mock_platform, is_remote_supported("release")).Times(AtLeast(1)).WillRepeatedly(Return(false));
-
-    auto info = host.info_for(make_query("artful", ""));
-
-    EXPECT_EQ(info->id, "c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a");
 }
