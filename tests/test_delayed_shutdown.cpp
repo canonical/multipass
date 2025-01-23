@@ -19,6 +19,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "mock_virtual_machine.h"
 #include "signal.h"
+#include "stub_availability_zone.h"
 #include "stub_virtual_machine.h"
 
 #include <multipass/delayed_shutdown_timer.h>
@@ -45,6 +46,7 @@ struct DelayedShutdown : public Test
     mp::VirtualMachine::UPtr vm;
     QEventLoop loop;
     ssh_channel_callbacks callbacks{nullptr};
+    mpt::StubAvailabilityZone zone{};
 };
 
 TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
@@ -71,7 +73,7 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
     static const auto upcoming_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_upcoming));
     static const auto now_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_now));
 
-    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
+    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock", zone};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
     EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher, _)).Times(1); // as we start
@@ -85,7 +87,7 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
 
 TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
 {
-    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
+    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock", zone};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
     EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _)).Times(2).WillRepeatedly(Throw(mp::SSHException("nope")));
