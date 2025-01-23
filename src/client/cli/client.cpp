@@ -47,6 +47,7 @@
 #include "cmd/unalias.h"
 #include "cmd/version.h"
 #include "cmd/wait_ready.h"
+#include "cmd/zones.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
@@ -113,6 +114,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
     add_command<cmd::WaitReady>();
+    add_command<cmd::Zones>();
 
     sort_commands();
 
