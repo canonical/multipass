@@ -97,6 +97,7 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
+    instance_node["zone"] = item.zone();
 
     if (instance_details.has_num_snapshots())
         instance_node["snapshot_count"] = instance_details.num_snapshots();
@@ -179,6 +180,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
+        instance_node["zone"] = instance.zone();
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
         for (const auto& ip : instance.ipv4())
@@ -332,4 +334,18 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
     aliases_list["aliases"] = aliases_node;
 
     return mpu::emit_yaml(aliases_list);
+}
+
+std::string mp::YamlFormatter::format(const mp::ZonesReply& reply) const
+{
+    YAML::Node root_node;
+
+    for (const auto& zone : reply.zones())
+    {
+        YAML::Node zone_node;
+        zone_node["available"] = zone.available();
+        root_node[zone.name()] = zone_node;
+    }
+
+    return mpu::emit_yaml(root_node);
 }

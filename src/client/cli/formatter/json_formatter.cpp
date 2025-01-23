@@ -97,6 +97,7 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
 
     QJsonObject instance_info;
     instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(item.instance_status())));
+    instance_info.insert("zone", QString::fromStdString(item.zone()));
     instance_info.insert("image_hash", QString::fromStdString(instance_details.id()));
     instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
     instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
@@ -197,6 +198,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                             QString::fromStdString(instance.current_release().empty()
                                                        ? "Not Available"
                                                        : fmt::format("Ubuntu {}", instance.current_release())));
+        instance_obj.insert("zone", QString::fromStdString(instance.zone()));
 
         instances.append(instance_obj);
     }
@@ -381,4 +383,18 @@ std::string mp::JsonFormatter::format(const VersionReply& reply, const std::stri
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
     return MP_JSONUTILS.json_to_string(aliases.to_json());
+}
+
+std::string mp::JsonFormatter::format(const ZonesReply& reply) const
+{
+    QJsonObject root_object;
+
+    for (const auto& zone : reply.zones())
+    {
+        QJsonObject zone_object;
+        zone_object["available"] = zone.available();
+        root_object[QString::fromStdString(zone.name())] = zone_object;
+    }
+
+    return MP_JSONUTILS.json_to_string(root_object);
 }

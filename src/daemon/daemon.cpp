@@ -1798,6 +1798,7 @@ try // clang-format on
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
+        entry->set_zone(vm.zone.get().get_name());
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
@@ -3694,6 +3695,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     const auto& name = vm.vm_name;
     info->set_name(name);
+    info->set_zone(vm.zone.get().get_name());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
