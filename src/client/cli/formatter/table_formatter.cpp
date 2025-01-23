@@ -125,6 +125,10 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Zone:",
+                   fmt::format("{}({})", item.zone().name(), item.zone().available() ? "a" : "u/a"));
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -244,8 +248,9 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
         24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
+    const std::string::size_type image_column_width = 20;
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -254,22 +259,40 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                    state_column_width,
                    "IPv4",
                    ip_column_width,
-                   "Image");
+                   "Image",
+                   image_column_width,
+                   "Zone");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         int ipv4_size = instance.ipv4_size();
 
-        fmt::format_to(std::back_inserter(buf), row_format, instance.name(), name_column_width,
-                       mp::format::status_string_for(instance.instance_status()), state_column_width,
-                       ipv4_size ? instance.ipv4(0) : "--", ip_column_width,
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       instance.name(),
+                       name_column_width,
+                       mp::format::status_string_for(instance.instance_status()),
+                       state_column_width,
+                       ipv4_size ? instance.ipv4(0) : "--",
+                       ip_column_width,
                        instance.current_release().empty() ? "Not Available"
-                                                          : fmt::format("Ubuntu {}", instance.current_release()));
+                                                          : fmt::format("Ubuntu {}", instance.current_release()),
+                       image_column_width,
+                       fmt::format("{}({})", instance.zone().name(), instance.zone().available() ? "a" : "u/a"));
 
         for (int i = 1; i < ipv4_size; ++i)
         {
-            fmt::format_to(std::back_inserter(buf), row_format, "", name_column_width, "", state_column_width,
-                           instance.ipv4(i), instance.ipv4(i).size(), "");
+            fmt::format_to(std::back_inserter(buf),
+                           row_format,
+                           "",
+                           name_column_width,
+                           "",
+                           state_column_width,
+                           instance.ipv4(i),
+                           instance.ipv4(i).size(),
+                           "",
+                           0,
+                           "");
         }
     }
 
@@ -544,6 +567,37 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
             fmt::format_to(std::back_inserter(buf), row_format, name, alias_width, def.instance, instance_width,
                            def.command, command_width, shown_context, context_width, def.working_directory);
         }
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const ZonesReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    const auto& zones = reply.zones();
+
+    if (zones.empty())
+        return "No availabilty zones found.\n";
+
+    const std::string name_col_header = "Name";
+    const auto name_column_width = mp::format::column_width(
+        zones.begin(),
+        zones.end(),
+        [](const auto& zone) -> int { return zone.name().length(); },
+        name_col_header.length());
+
+    const auto row_format = "{:<{}}{:<}\n";
+    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State");
+
+    for (const auto& zone : zones)
+    {
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       zone.name(),
+                       name_column_width,
+                       zone.available() ? "Available" : "Unavailable");
     }
 
     return fmt::to_string(buf);
