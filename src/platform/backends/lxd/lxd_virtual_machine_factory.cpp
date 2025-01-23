@@ -97,20 +97,20 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
 {
 }
 
-mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(
-    const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                              const SSHKeyProvider& key_provider,
+                                                                              VMStatusMonitor& monitor,
+                                                                              AvailabilityZoneManager& az_manager)
 {
-    return std::make_unique<mp::LXDVirtualMachine>(
-        desc,
-        monitor,
-        manager.get(),
-        base_url,
-        multipass_bridge_name,
-        storage_pool,
-        key_provider,
-        MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
+    return std::make_unique<mp::LXDVirtualMachine>(desc,
+                                                   monitor,
+                                                   manager.get(),
+                                                   base_url,
+                                                   multipass_bridge_name,
+                                                   storage_pool,
+                                                   key_provider,
+                                                   az_manager.get_zone(desc.zone),
+                                                   MP_UTILS.make_dir(get_instance_directory(desc.vm_name)));
 }
 
 void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)

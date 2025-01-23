@@ -36,7 +36,8 @@ public:
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
-                                                VMStatusMonitor& monitor) override;
+                                                VMStatusMonitor& monitor,
+                                                AvailabilityZoneManager& az_manager) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;
