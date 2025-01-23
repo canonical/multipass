@@ -25,6 +25,7 @@
 #include "mock_utils.h"
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
+#include "stub_availability_zone_manager.h"
 
 #include <src/daemon/daemon.h>
 
@@ -52,6 +53,8 @@ struct DaemonFind : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};

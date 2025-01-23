@@ -81,7 +81,7 @@ TEST_F(VMBlueprintProvider, fetchBlueprintForUnknownBlueprintThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -106,7 +106,7 @@ TEST_F(VMBlueprintProvider, invalidImageSchemeThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -123,7 +123,7 @@ TEST_F(VMBlueprintProvider, invalidMinCoresThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -140,7 +140,7 @@ TEST_F(VMBlueprintProvider, invalidMinMemorySizeThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -159,7 +159,7 @@ TEST_F(VMBlueprintProvider, invalidMinDiskSpaceThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -176,7 +176,7 @@ TEST_F(VMBlueprintProvider, invalidAliasDefinitionThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -193,7 +193,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedInfo)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -215,7 +215,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint1ReturnsExpectedAliasesAndWorkspac
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData launch_data;
 
@@ -244,7 +244,7 @@ TEST_F(VMBlueprintProvider, fetchTestBlueprint2ReturnsExpectedInfo)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData launch_data;
 
@@ -327,7 +327,7 @@ TEST_F(VMBlueprintProvider, invalidCloudInitThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     const std::string blueprint{"invalid-cloud-init-blueprint"};
 
@@ -347,7 +347,7 @@ TEST_F(VMBlueprintProvider, givenCoresLessThanMinimumThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{1, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{1, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -365,7 +365,7 @@ TEST_F(VMBlueprintProvider, givenMemLessThanMinimumThrows)
                                                       default_ttl};
 
     mp::VirtualMachineDescription
-        vm_desc{0, mp::MemorySize{"1G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        vm_desc{0, mp::MemorySize{"1G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -383,7 +383,7 @@ TEST_F(VMBlueprintProvider, givenDiskSpaceLessThanMinimumThrows)
                                                       default_ttl};
 
     mp::VirtualMachineDescription
-        vm_desc{0, {}, mp::MemorySize{"20G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        vm_desc{0, {}, mp::MemorySize{"20G"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -403,6 +403,7 @@ TEST_F(VMBlueprintProvider, higherOptionsIsNotOverridden)
     mp::VirtualMachineDescription vm_desc{4,
                                           mp::MemorySize{"4G"},
                                           mp::MemorySize{"50G"},
+                                          {},
                                           {},
                                           {},
                                           {},
@@ -709,7 +710,7 @@ TEST_F(VMBlueprintProvider, noImageDefinedReturnsDefault)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -725,7 +726,7 @@ TEST_F(VMBlueprintProvider, nameMismatchThrows)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -999,7 +1000,7 @@ TEST_P(VMBlueprintFileLaunchFromFile, loadsFile)
                                                       default_ttl,
                                                       "multivacs"};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -1032,7 +1033,7 @@ TEST_F(VMBlueprintFileLaunch, mergesBlueprintVendorData)
     vendor_data["growpart"]["devices"].push_back("/dev/vdb1");
 
     mp::VirtualMachineDescription
-        vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+        vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -1068,7 +1069,7 @@ TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataDifferentTypes)
     vendor_data["runcmd"] = "echo 123";
 
     mp::VirtualMachineDescription
-        vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+        vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -1093,7 +1094,7 @@ TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataScalarValues)
     vendor_data["system_info"]["default_user"]["shell"] = "/bin/fish";
 
     mp::VirtualMachineDescription
-        vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
+        vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, vendor_data, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -1114,7 +1115,7 @@ TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -1135,7 +1136,7 @@ TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithInvalidHostName)
                                                       cache_dir.path(),
                                                       default_ttl};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
@@ -1183,7 +1184,7 @@ TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithNoUrl)
                                                       default_ttl,
                                                       "microvac"};
 
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
     mp::ClientLaunchData dummy_data;
 
