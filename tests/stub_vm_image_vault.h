@@ -32,7 +32,6 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                    const multipass::Query&,
                                    const PrepareAction& prepare,
                                    const multipass::ProgressMonitor&,
-                                   const bool,
                                    const std::optional<std::string>&,
                                    const multipass::Path&) override
     {

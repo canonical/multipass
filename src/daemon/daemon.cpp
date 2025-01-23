@@ -343,7 +343,6 @@ auto fetch_image_for(const std::string& name, mp::VirtualMachineFactory& factory
                              query,
                              stub_prepare,
                              stub_progress,
-                             false,
                              std::nullopt,
                              factory.get_instance_directory(name));
 }
@@ -3132,7 +3131,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             ClientLaunchData client_launch_data;
 
-            bool launch_from_blueprint{true};
             try
             {
                 auto image = request->image();
@@ -3184,7 +3182,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             catch (const std::out_of_range&)
             {
                 // Blueprint not found, move on
-                launch_from_blueprint = false;
                 query = query_from(request, name);
                 vm_desc.mem_size = checked_args.mem_size;
             }
@@ -3214,7 +3211,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                        query,
                                                        prepare_action,
                                                        progress_monitor,
-                                                       launch_from_blueprint,
                                                        checksum,
                                                        config->factory->get_instance_directory(name));
 

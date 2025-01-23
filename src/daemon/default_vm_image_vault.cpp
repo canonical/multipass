@@ -260,7 +260,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                                                  const Query& query,
                                                  const PrepareAction& prepare,
                                                  const ProgressMonitor& monitor,
-                                                 const bool unlock, // TODO@no-merge remove
                                                  const std::optional<std::string>& checksum,
                                                  const mp::Path& save_dir)
 {
@@ -543,7 +542,6 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
                         record.query,
                         prepare,
                         monitor,
-                        false,
                         std::nullopt,
                         QFileInfo{record.image.image_path}.absolutePath());
 
