@@ -115,7 +115,7 @@ std::string generate_instance_details(const mp::InfoReply reply)
 
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk "
+                   "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk "
                    "total,Memory usage,Memory "
                    "total,Mounts,AllIPv4,CPU(s){}\n",
                    have_num_snapshots ? ",Snapshots" : "");
@@ -125,9 +125,11 @@ std::string generate_instance_details(const mp::InfoReply reply)
         const auto& instance_details = info.instance_info();
 
         fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},{},{},{},{},{},{},{},",
+                       "{},{},{},{},{},{},{},{},{},{},{},{},{},{},",
                        info.name(),
                        mp::format::status_string_for(info.instance_status()),
+                       info.zone().name(),
+                       info.zone().available(),
                        instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
                        instance_details.ipv6_size() ? instance_details.ipv6(0) : "",
                        instance_details.current_release(),
@@ -159,20 +161,21 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
-    fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
+    fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},\"{}\"\n",
+                       "{},{},{},{},{},\"{}\",{},{}\n",
                        instance.name(),
                        mp::format::status_string_for(instance.instance_status()),
                        instance.ipv4_size() ? instance.ipv4(0) : "",
                        instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release().empty()
-                           ? "Not Available"
-                           : fmt::format("Ubuntu {}", instance.current_release()),
-                       fmt::join(instance.ipv4(), ","));
+                       instance.current_release().empty() ? "Not Available"
+                                                          : fmt::format("Ubuntu {}", instance.current_release()),
+                       fmt::join(instance.ipv4(), ","),
+                       instance.zone().name(),
+                       instance.zone().available());
     }
 
     return fmt::to_string(buf);
@@ -301,6 +304,19 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
                            def.working_directory,
                            shown_context);
         }
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::CSVFormatter::format(const ZonesReply& reply) const
+{
+    fmt::memory_buffer buf;
+    fmt::format_to(std::back_inserter(buf), "Name,Available\n");
+
+    for (const auto& zone : reply.zones())
+    {
+        fmt::format_to(std::back_inserter(buf), "{},{}\n", zone.name(), zone.available());
     }
 
     return fmt::to_string(buf);
