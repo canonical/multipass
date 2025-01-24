@@ -66,13 +66,20 @@ class UbuntuVMImageRemote
 {
 public:
     UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key = std::nullopt);
+    UbuntuVMImageRemote(std::string official_host,
+                        std::string uri,
+                        std::function<bool(const VMImageInfo&)> custom_image_filter,
+                        std::optional<QString> mirror_key = std::nullopt);
     const QString get_url() const;
     const QString get_official_url() const;
     const std::optional<QString> get_mirror_url() const;
 
-private:
+    static bool default_image_filter(const VMImageInfo&);
+
+    // private: // TODO@ricab
     const std::string official_host;
     const std::string uri;
+    const std::function<bool(const VMImageInfo&)> image_filter;
     const std::optional<QString> mirror_key;
 };
 } // namespace multipass
