@@ -322,17 +322,17 @@ std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_nam
 mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
                                              std::string uri,
                                              std::optional<QString> mirror_key)
-    : UbuntuVMImageRemote(std::move(official_host), std::move(uri), &default_image_filter, std::move(mirror_key))
+    : UbuntuVMImageRemote(std::move(official_host), std::move(uri), &default_image_admitter, std::move(mirror_key))
 {
 }
 
 multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
                                                     std::string uri,
-                                                    std::function<bool(const VMImageInfo&)> custom_image_filter,
+                                                    std::function<bool(const VMImageInfo&)> custom_image_admitter,
                                                     std::optional<QString> mirror_key)
     : official_host(std::move(official_host)),
       uri(std::move(uri)),
-      image_filter{custom_image_filter},
+      image_admitter{custom_image_admitter},
       mirror_key(std::move(mirror_key))
 {
 }
@@ -367,10 +367,10 @@ const std::optional<QString> mp::UbuntuVMImageRemote::get_mirror_url() const
 
 bool multipass::UbuntuVMImageRemote::admits_image(const VMImageInfo& info) const
 {
-    return image_filter(info);
+    return image_admitter(info);
 }
 
-bool multipass::UbuntuVMImageRemote::default_image_filter(const VMImageInfo&)
+bool multipass::UbuntuVMImageRemote::default_image_admitter(const VMImageInfo&)
 {
     return true;
 }
