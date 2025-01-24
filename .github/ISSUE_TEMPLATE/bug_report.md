@@ -22,7 +22,8 @@ What did you expect to happen?
 Please provide logs from the daemon, see [accessing logs](https://canonical.com/multipass/docs/accessing-logs) on where to find them on your platform.
 
 **Additional info**
- - OS: [e.g. macOS 10.15]
+- OS: [e.g. macOS 10.15]
+- CPU architecture or model: [e.g. x86, arm, Apple M1]
 - `multipass version`
 - `multipass info`
 - `multipass get local.driver`
