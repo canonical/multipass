@@ -93,8 +93,7 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
 
 bool bless_snapcraft_image(const mp::VMImageInfo& info)
 {
-    static const std::unordered_set<std::string> supported_snapcraft_aliases{
-        // TODO@no-merge no need for set
+    static constexpr auto supported_snapcraft_aliases = {
         "core18",
         "18.04",
         "core20",
@@ -107,9 +106,9 @@ bool bless_snapcraft_image(const mp::VMImageInfo& info)
     };
 
     const auto& aliases = info.aliases;
-    return aliases.empty() || std::any_of(aliases.cbegin(), aliases.cend(), [](const auto& alias) {
-               return supported_snapcraft_aliases.find(alias.toStdString()) != supported_snapcraft_aliases.end();
-           });
+    return aliases.empty() || std::any_of(supported_snapcraft_aliases.begin(),
+                                          supported_snapcraft_aliases.end(),
+                                          [&aliases](const auto& alias) { return aliases.contains(alias); });
 }
 } // namespace
 
