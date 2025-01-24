@@ -91,7 +91,7 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
     return proxy_ptr;
 }
 
-bool bless_snapcraft_image(const mp::VMImageInfo& info)
+bool admits_snapcraft_image(const mp::VMImageInfo& info)
 {
     static constexpr auto supported_snapcraft_aliases = {
         "core18",
@@ -173,7 +173,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 {mp::snapcraft_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
                                      "buildd/daily/",
-                                     &bless_snapcraft_image,
+                                     &admits_snapcraft_image,
                                      std::make_optional<QString>(mp::mirror_key)}},
                 {mp::appliance_remote, UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
             url_downloader.get()));

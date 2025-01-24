@@ -68,7 +68,7 @@ public:
     UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key = std::nullopt);
     UbuntuVMImageRemote(std::string official_host,
                         std::string uri,
-                        std::function<bool(const VMImageInfo&)> custom_image_filter,
+                        std::function<bool(const VMImageInfo&)> custom_image_admitter,
                         std::optional<QString> mirror_key = std::nullopt);
     const QString get_url() const;
     const QString get_official_url() const;
@@ -76,11 +76,11 @@ public:
     bool admits_image(const VMImageInfo& info) const;
 
 private:
-    static bool default_image_filter(const VMImageInfo&);
+    static bool default_image_admitter(const VMImageInfo&);
 
     const std::string official_host;
     const std::string uri;
-    const std::function<bool(const VMImageInfo&)> image_filter;
+    const std::function<bool(const VMImageInfo&)> image_admitter;
     const std::optional<QString> mirror_key;
 };
 } // namespace multipass
