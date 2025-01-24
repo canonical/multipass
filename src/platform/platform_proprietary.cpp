@@ -18,8 +18,6 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
-#include "platform_proprietary.h"
-
 namespace mp = multipass;
 
 std::string mp::platform::host_version()
