@@ -56,6 +56,7 @@
 #include <QString>
 
 #include <stdexcept>
+#include <tests/mock_platform.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -627,13 +628,16 @@ TEST_F(PlatformLinux, create_alias_script_overwrites)
 {
     auto [mock_utils, guard1] = mpt::MockUtils::inject();
     auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
+    auto [mock_platform, guard3] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
-    EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
-    EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, get_permissions(_))
+        .WillOnce(Return(mp::fs::perms::owner_read | mp::fs::perms::owner_write));
+    EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(true));
 
-    EXPECT_NO_THROW(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command", "map"}));
+    // Calls the platform function directly since MP_PLATFORM is mocked.
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::create_alias_script("alias_name",
+                                                              mp::AliasDefinition{"instance", "other_command", "map"}));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
@@ -664,14 +668,17 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
 {
     auto [mock_utils, guard1] = mpt::MockUtils::inject();
     auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
+    auto [mock_platform, guard3] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
-    EXPECT_CALL(*mock_file_ops, permissions(_)).WillOnce(Return(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
-    EXPECT_CALL(*mock_file_ops, setPermissions(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, get_permissions(_))
+        .WillOnce(Return(mp::fs::perms::owner_read | mp::fs::perms::owner_write));
+    EXPECT_CALL(*mock_platform, set_permissions(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
-        std::runtime_error, mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
+        MP_PLATFORM.Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
 }
 
 TEST_F(PlatformLinux, remove_alias_script_works)
