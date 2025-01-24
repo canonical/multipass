@@ -17,8 +17,6 @@
 
 #include "common_image_host.h"
 
-#include "multipass/constants.h" // TODO@no-merge drop
-
 #include <multipass/logging/log.h>
 
 #include <multipass/format.h>
