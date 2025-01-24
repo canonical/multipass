@@ -120,9 +120,13 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
     for (const auto& remote_name : remotes_to_search)
     {
         auto* manifest = manifest_from(remote_name);
+        const auto& remote = get_remote(remote_name);
 
         if (const auto* info = match_alias(key, *manifest); info)
         {
+            if (!remote.admits_image(*info))
+                continue;
+
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
 
@@ -136,7 +140,8 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
             for (const auto& entry : manifest->products)
             {
-                if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
+                if (entry.id.startsWith(key) && remote.admits_image(entry) &&
+                    (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
                 {
                     images.push_back(std::make_pair(
