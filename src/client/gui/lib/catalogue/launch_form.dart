@@ -56,12 +56,16 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     super.dispose();
   }
 
+  final bridgedNetworkProvider = daemonSettingProvider('local.bridged-network');
+
   @override
   Widget build(BuildContext context) {
     final imageInfo = ref.watch(launchingImageProvider);
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
+    final networks = ref.watch(networksProvider);
+    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -99,7 +103,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
+    final validBridgedNetwork = networks.contains(bridgedNetworkSetting);
     final bridgedSwitch = FormField<bool>(
+      enabled: validBridgedNetwork,
       initialValue: false,
       onSaved: (value) {
         if (value!) {
@@ -107,11 +113,20 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
               .add(LaunchRequest_NetworkOptions(id: 'bridged'));
         }
       },
-      builder: (field) => Switch(
-        label: 'Connect to bridged network',
-        value: field.value!,
-        onChanged: field.didChange,
-      ),
+      builder: (field) {
+        final message = networks.isEmpty
+            ? 'No networks found.'
+            : validBridgedNetwork
+                ? "Connect to the bridged network.\nOnce connection is established, you won't be able to unset it."
+                : 'No valid bridged network is set.\nYou can set one in the Settings page.';
+
+        return Switch(
+          label: message,
+          value: validBridgedNetwork ? field.value! : false,
+          enabled: validBridgedNetwork,
+          onChanged: field.didChange,
+        );
+      },
     );
 
     final mountPointsView = MountPointsView(
