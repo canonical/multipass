@@ -76,18 +76,21 @@ class GrpcClient {
     Future<void>? cancel,
   }) async* {
     logger.i('Sent ${request.repr}');
-    final launchStream = _client.launch(Stream.value(request));
-    cancel?.then((_) => launchStream.cancel());
-    yield* launchStream
+    final launchReplyStream = _client.launch(Stream.value(request));
+    cancel?.then((_) => launchReplyStream.cancel());
+    final launchStream = launchReplyStream
         .doOnData(checkForUpdate)
         .doOnEach(logGrpc(request))
-        .map(Either.left);
+        .map(Either<LaunchReply, MountReply>.left);
+    await for (final launchReply in launchStream) {
+      yield launchReply;
+    }
     for (final mountRequest in mountRequests) {
       logger.i('Sent ${mountRequest.repr}');
       yield* _client
           .mount(Stream.value(mountRequest))
           .doOnEach(logGrpc(mountRequest))
-          .map(Either.right);
+          .map((Either<LaunchReply, MountReply>.right));
     }
   }
 
