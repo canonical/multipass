@@ -177,7 +177,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
     for (const auto& entry : manifest->products)
     {
-        if ((entry.supported || allow_unsupported) && alias_verifies_image_is_supported(entry.aliases, remote_name))
+        if ((entry.supported || allow_unsupported) && get_remote(remote_name).image_filter(entry))
         {
             images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
         }
@@ -191,14 +191,14 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
 void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    for (const auto& manifest : manifests)
+    for (const auto& [remote_name, manifest] : manifests)
     {
-        for (const auto& product : manifest.second->products)
+        for (const auto& product : manifest->products)
         {
-            if (alias_verifies_image_is_supported(product.aliases, manifest.first))
+            if (get_remote(remote_name).image_filter(product))
             {
-                action(manifest.first,
-                       with_location_fully_resolved(QString::fromStdString(remote_url_from(manifest.first)), product));
+                action(remote_name,
+                       with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), product));
             }
         }
     }
@@ -319,9 +319,21 @@ std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_nam
     }
 }
 
-mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host, std::string uri,
+mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
+                                             std::string uri,
                                              std::optional<QString> mirror_key)
-    : official_host(std::move(official_host)), uri(std::move(uri)), mirror_key(std::move(mirror_key))
+    : UbuntuVMImageRemote(std::move(official_host), std::move(uri), &default_image_filter, std::move(mirror_key))
+{
+}
+
+multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
+                                                    std::string uri,
+                                                    std::function<bool(const VMImageInfo&)> custom_image_filter,
+                                                    std::optional<QString> mirror_key)
+    : official_host(std::move(official_host)),
+      uri(std::move(uri)),
+      image_filter{custom_image_filter},
+      mirror_key(std::move(mirror_key))
 {
 }
 
@@ -351,4 +363,9 @@ const std::optional<QString> mp::UbuntuVMImageRemote::get_mirror_url() const
     }
 
     return std::nullopt;
+}
+
+bool multipass::UbuntuVMImageRemote::default_image_filter(const VMImageInfo&)
+{
+    return true;
 }

@@ -90,6 +90,27 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
 
     return proxy_ptr;
 }
+
+bool bless_snapcraft_image(const mp::VMImageInfo& info)
+{
+    static const std::unordered_set<std::string> supported_snapcraft_aliases{
+        // TODO@no-merge no need for set
+        "core18",
+        "18.04",
+        "core20",
+        "20.04",
+        "core22",
+        "22.04",
+        "core24",
+        "24.04",
+        "devel",
+    };
+
+    const auto& aliases = info.aliases;
+    return aliases.empty() || std::any_of(aliases.cbegin(), aliases.cend(), [](const auto& alias) {
+               return supported_snapcraft_aliases.find(alias.toStdString()) != supported_snapcraft_aliases.end();
+           });
+}
 } // namespace
 
 mp::DaemonConfig::~DaemonConfig()
@@ -142,12 +163,19 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(), url_downloader.get()));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
-                {mp::release_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "releases/",
-                                                         std::make_optional<QString>(mp::mirror_key)}},
-                {mp::daily_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "daily/",
-                                                       std::make_optional<QString>(mp::mirror_key)}},
-                {mp::snapcraft_remote, UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/", "buildd/daily/",
-                                                           std::make_optional<QString>(mp::mirror_key)}},
+                {mp::release_remote,
+                 UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
+                                     "releases/",
+                                     std::make_optional<QString>(mp::mirror_key)}},
+                {mp::daily_remote,
+                 UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
+                                     "daily/",
+                                     std::make_optional<QString>(mp::mirror_key)}},
+                {mp::snapcraft_remote,
+                 UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
+                                     "buildd/daily/",
+                                     &bless_snapcraft_image,
+                                     std::make_optional<QString>(mp::mirror_key)}},
                 {mp::appliance_remote, UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
             url_downloader.get()));
     }
