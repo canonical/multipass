@@ -42,8 +42,8 @@ class VirtualizationSettings extends ConsumerWidget {
         Dropdown<String>(
           label: 'Bridged network',
           width: 260,
-          value: networks.contains(bridgedNetwork) ? bridgedNetwork : null,
-          items: Map.fromIterable(networks),
+          value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
+          items: {'': 'None', ...Map.fromIterable(networks)},
           onChanged: (value) {
             ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
                 ref.notifyError((e) => 'Failed to set bridged network: $e'));
