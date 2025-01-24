@@ -47,6 +47,7 @@
 #include <QTemporaryDir>
 
 #include <chrono>
+#include <multipass/file_ops.h>
 #include <thread>
 
 namespace mp = multipass;
@@ -82,7 +83,7 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
 
     if (image_path.endsWith(".xz"))
     {
-        new_image_path = mp::vault::extract_image(image_path, monitor, true);
+        new_image_path = MP_IMAGE_VAULT_UTILS.extract_file(image_path, monitor, true);
     }
 
     QString original_image_path{new_image_path};
@@ -90,7 +91,8 @@ QString post_process_downloaded_image(const QString& image_path, const mp::Progr
 
     if (original_image_path != new_image_path)
     {
-        mp::vault::delete_file(original_image_path);
+        QFile original_file{original_image_path};
+        MP_FILEOPS.remove(original_file);
     }
 
     return new_image_path;
@@ -261,7 +263,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
                 throw std::runtime_error(fmt::format("Custom image `{}` does not exist.", image_url.path()));
 
             source_image.image_path = image_url.path();
-            id = mp::vault::compute_image_hash(source_image.image_path);
+            id = MP_IMAGE_VAULT_UTILS.compute_file_hash(source_image.image_path);
             last_modified = QDateTime::currentDateTime();
         }
 
@@ -305,13 +307,13 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
             if (query.query_type != Query::Type::LocalFile)
             {
                 // TODO: Need to make this async like in DefaultVMImageVault
-                image_path = lxd_import_dir.filePath(mp::vault::filename_for(info.image_location));
+                image_path = lxd_import_dir.filePath(QFileInfo{info.image_location}.fileName());
 
                 url_download_image(info, image_path, monitor);
             }
             else
             {
-                image_path = mp::vault::copy(source_image.image_path, lxd_import_dir.path());
+                image_path = MP_IMAGE_VAULT_UTILS.copy_to_dir(source_image.image_path, lxd_import_dir.path());
             }
 
             image_path = post_process_downloaded_image(image_path, monitor);
@@ -522,7 +524,7 @@ void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info, const QStr
     if (info.verify)
     {
         monitor(LaunchProgress::VERIFY, -1);
-        mp::vault::verify_image_download(image_path, info.id);
+        MP_IMAGE_VAULT_UTILS.verify_file_hash(image_path, info.id);
     }
 }
 

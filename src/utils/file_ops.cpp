@@ -170,6 +170,11 @@ bool mp::FileOps::flush(QFile& file) const
     return file.flush();
 }
 
+bool mp::FileOps::copy(const QString& from, const QString& to) const
+{
+    return QFile::copy(from, to);
+}
+
 bool mp::FileOps::commit(QSaveFile& file) const
 {
     return file.commit();
@@ -291,4 +296,9 @@ std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
 fs::path mp::FileOps::weakly_canonical(const fs::path& path) const
 {
     return fs::weakly_canonical(path);
+}
+
+fs::path mp::FileOps::remove_extension(const fs::path& path) const
+{
+    return path.parent_path() / path.stem();
 }
