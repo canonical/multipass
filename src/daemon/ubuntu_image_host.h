@@ -54,11 +54,12 @@ private:
     void clear() override;
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
+    const UbuntuVMImageRemote& get_remote(const std::string& remote_name) const;
+    std::string remote_url_from(const std::string& remote_name);
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
-    std::string remote_url_from(const std::string& remote_name);
     QString index_path;
 };
 class UbuntuVMImageRemote
