@@ -177,7 +177,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
     for (const auto& entry : manifest->products)
     {
-        if ((entry.supported || allow_unsupported) && get_remote(remote_name).image_filter(entry))
+        if ((entry.supported || allow_unsupported) && get_remote(remote_name).admits_image(entry))
         {
             images.push_back(with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), entry));
         }
@@ -195,7 +195,7 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& product : manifest->products)
         {
-            if (get_remote(remote_name).image_filter(product))
+            if (get_remote(remote_name).admits_image(product))
             {
                 action(remote_name,
                        with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)), product));
@@ -363,6 +363,11 @@ const std::optional<QString> mp::UbuntuVMImageRemote::get_mirror_url() const
     }
 
     return std::nullopt;
+}
+
+bool multipass::UbuntuVMImageRemote::admits_image(const VMImageInfo& info) const
+{
+    return image_filter(info);
 }
 
 bool multipass::UbuntuVMImageRemote::default_image_filter(const VMImageInfo&)

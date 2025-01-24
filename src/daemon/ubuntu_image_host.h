@@ -73,10 +73,11 @@ public:
     const QString get_url() const;
     const QString get_official_url() const;
     const std::optional<QString> get_mirror_url() const;
+    bool admits_image(const VMImageInfo& info) const;
 
-    static bool default_image_filter(const VMImageInfo&);
+    static bool default_image_filter(const VMImageInfo&); // TODO@ricab private
 
-    // private: // TODO@ricab
+private:
     const std::string official_host;
     const std::string uri;
     const std::function<bool(const VMImageInfo&)> image_filter;
