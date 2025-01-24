@@ -75,9 +75,9 @@ public:
     const std::optional<QString> get_mirror_url() const;
     bool admits_image(const VMImageInfo& info) const;
 
-    static bool default_image_filter(const VMImageInfo&); // TODO@ricab private
-
 private:
+    static bool default_image_filter(const VMImageInfo&);
+
     const std::string official_host;
     const std::string uri;
     const std::function<bool(const VMImageInfo&)> image_filter;
