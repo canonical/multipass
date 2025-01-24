@@ -4,8 +4,10 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fpdart/fpdart.dart';
 
-import '../confirmation_dialog.dart';
+import '../close_terminal_dialog.dart';
+import '../providers.dart';
 import 'terminal.dart';
 
 typedef ShellIds = ({
@@ -136,6 +138,7 @@ class TerminalTabs extends ConsumerWidget {
     final provider = shellIdsProvider(name);
     final notifier = provider.notifier;
     final (:ids, :currentIndex) = ref.watch(provider);
+    final askTerminalCloseProvider = guiSettingProvider(askTerminalCloseKey);
 
     final tabsAndShells = ids.mapIndexed((index, shellId) {
       final tab = ReorderableDragStartListener(
@@ -146,9 +149,11 @@ class TerminalTabs extends ConsumerWidget {
           selected: index == currentIndex,
           onTap: () => ref.read(notifier).setCurrent(index),
           onClose: () {
+            final ask = ref.read(askTerminalCloseProvider.select((ask) {
+              return ask?.toBoolOption.toNullable() ?? true;
+            }));
             final terminalKey = (vmName: name, shellId: shellId);
-            final terminal = ref.read(terminalProvider(terminalKey));
-            if (terminal == null) {
+            if (!ask || ref.read(terminalProvider(terminalKey)) == null) {
               ref.read(notifier).remove(index);
               return;
             }
@@ -156,16 +161,15 @@ class TerminalTabs extends ConsumerWidget {
               context: context,
               barrierDismissible: false,
               builder: (context) {
-                return ConfirmationDialog(
-                  title: 'Are you sure you want to close this terminal?',
-                  body: Text('Its current state will be lost.'),
-                  actionText: 'Yes',
-                  onAction: () {
+                return CloseTerminalDialog(
+                  onYes: () {
                     Navigator.pop(context);
                     ref.read(notifier).remove(index);
                   },
-                  inactionText: 'No',
-                  onInaction: () => Navigator.pop(context),
+                  onNo: () => Navigator.pop(context),
+                  onDoNotAsk: (doNotAsk) => ref
+                      .read(askTerminalCloseProvider.notifier)
+                      .set('${!doNotAsk}'),
                 );
               },
             );
