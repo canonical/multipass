@@ -35,7 +35,6 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #endif
 
-#include "platform_proprietary.h"
 #include "shared/macos/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>

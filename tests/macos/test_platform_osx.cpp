@@ -26,8 +26,6 @@
 #include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
-#include <src/platform/platform_proprietary.h>
-
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
