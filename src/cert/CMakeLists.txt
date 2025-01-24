@@ -22,12 +22,10 @@ add_library(cert STATIC
 target_include_directories(cert PRIVATE
   ${OPENSSL_INCLUDE_DIR})
 
-foreach(flag -Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifiers)
-  check_cxx_compiler_flag(${flag} SUPPORTED)
-  if(SUPPORTED)
-    target_compile_options(cert PRIVATE ${flag})
-  endif()
-endforeach()
+target_compile_options(cert PRIVATE
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-nested-anon-types -Wno-gnu -Wno-pedantic -Wno-ignored-qualifiers>
+    $<$<CXX_COMPILER_ID:GNU>:-Wno-pedantic -Wno-ignored-qualifiers>
+)
 
 target_link_libraries(cert
   fmt
