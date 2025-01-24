@@ -294,22 +294,29 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(const QString& key,
 
     return nullptr;
 }
-
-std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_name)
+const mp::UbuntuVMImageRemote& mp::UbuntuVMImageHost::get_remote(const std::string& remote_name) const
 {
-    std::string url;
-
     auto it = std::find_if(remotes.cbegin(), remotes.cend(),
                            [&remote_name](const std::pair<std::string, UbuntuVMImageRemote>& element) {
                                return element.first == remote_name;
                            });
 
-    if (it != remotes.cend())
-    {
-        url = it->second.get_url().toStdString();
-    }
+    if (it == remotes.cend())
+        throw std::out_of_range{fmt::format("Unknown remote \"{}\"", remote_name)};
 
-    return url;
+    return it->second;
+}
+
+std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_name)
+{
+    try
+    {
+        return get_remote(remote_name).get_url().toStdString();
+    }
+    catch (std::out_of_range&)
+    {
+        return {};
+    }
 }
 
 mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host, std::string uri,
