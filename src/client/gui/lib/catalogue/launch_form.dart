@@ -117,7 +117,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         final message = networks.isEmpty
             ? 'No networks found.'
             : validBridgedNetwork
-                ? "Connect to the bridged network.\nOnce connection is established, you won't be able to unset it."
+                ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
                 : 'No valid bridged network is set.\nYou can set one in the Settings page.';
 
         return Switch(
