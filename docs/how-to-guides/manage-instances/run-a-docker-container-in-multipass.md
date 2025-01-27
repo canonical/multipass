@@ -24,7 +24,7 @@ In this tutorial, you will see how to get started with the Docker blueprint by c
 
 - How to alias the `docker` command to your host command line
 
-- How to use [Portainer](https://www.portainer.io/) to launch a Docker container in [Multipass](http://multipass.run)
+- How to use [Portainer](https://www.portainer.io/) to launch a Docker container in Multipass.
 
 ### What  you’ll need
 
@@ -141,5 +141,5 @@ For next steps, try out Portainer’s other App Templates (Step 5), or check out
 
 ---
 
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://multipass.run/docs/docker-how-to" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
+*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/docker-how-to" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
 
