@@ -108,14 +108,6 @@ TEST_F(FileOps, symlink)
     EXPECT_FALSE(err);
 }
 
-TEST_F(FileOps, permissions)
-{
-    MP_FILEOPS.permissions(temp_file, fs::perms::all, err);
-    EXPECT_FALSE(err);
-    MP_FILEOPS.permissions(temp_dir / "nonexistent", fs::perms::all, err);
-    EXPECT_TRUE(err);
-}
-
 TEST_F(FileOps, status)
 {
     auto dir_status = MP_FILEOPS.status(temp_dir, err);

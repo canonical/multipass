@@ -61,8 +61,7 @@ struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
     {
-        cert_dir = MP_UTILS.make_dir(temp_dir.path(), mp::authenticated_certs_dir,
-                                     QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+        cert_dir = MP_UTILS.make_dir(temp_dir.path(), mp::authenticated_certs_dir, std::filesystem::perms::owner_all);
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;

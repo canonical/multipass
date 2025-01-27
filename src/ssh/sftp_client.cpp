@@ -20,6 +20,7 @@
 #include "ssh_client_key_provider.h"
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
@@ -146,9 +147,8 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
     do_pull_file(source_path, *local_file);
 
     auto source_perms = mp_sftp_stat(sftp.get(), source_path.u8string().c_str())->permissions;
-    std::error_code err;
-    if (MP_FILEOPS.permissions(target_path, static_cast<fs::perms>(source_perms), err); err)
-        throw SFTPError{"cannot set permissions for local file {}: {}", target_path, err.message()};
+    if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
+        throw SFTPError{"cannot set permissions for local file {}", target_path};
 
     if (local_file->fail())
         throw SFTPError{"cannot write to local file {}: {}", target_path, strerror(errno)};
@@ -301,11 +301,11 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
     for (auto it = subdirectory_perms.crbegin(); it != subdirectory_perms.crend(); ++it)
     {
         const auto& [path, perms] = *it;
-        MP_FILEOPS.permissions(path, static_cast<fs::perms>(perms), err);
-        if (err)
+        if (!MP_PLATFORM.set_permissions(path, static_cast<fs::perms>(perms)))
         {
-            mpl::log(mpl::Level::error, log_category,
-                     fmt::format("cannot set permissions for local directory {}: {}", path, err.message()));
+            mpl::log(mpl::Level::error,
+                     log_category,
+                     fmt::format("cannot set permissions for local directory {}", path));
             success = false;
         }
     }

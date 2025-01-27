@@ -372,15 +372,15 @@ bool set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_m
 
 DWORD convert_permissions(int unix_perms)
 {
-    if (unix_perms & 0x7)
+    if (unix_perms & 07)
         return GENERIC_ALL;
 
     DWORD access_mask = 0;
-    if (unix_perms & 0x4)
+    if (unix_perms & 04)
         access_mask |= GENERIC_READ;
-    if (unix_perms & 0x2)
+    if (unix_perms & 02)
         access_mask |= GENERIC_WRITE;
-    if (unix_perms |= 0x1)
+    if (unix_perms & 01)
         access_mask |= GENERIC_EXECUTE;
 
     return access_mask;
@@ -611,41 +611,31 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
-    return 0;
+    return -1;
 }
 
-int mp::platform::Platform::chmod(const char* path, unsigned int mode) const
+bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, std::filesystem::perms perms) const
 {
-    return 0;
-}
+    // Windows has both ACLs and very limited POSIX permissions
 
-bool mp::platform::Platform::set_permissions(const multipass::Path path, const QFileDevice::Permissions perms) const
-{
-    LPSTR lpPath = _strdup(path.toStdString().c_str());
+    // This handles the POSIX side of things.
+    std::error_code ec{};
+    std::filesystem::permissions(path, perms, ec);
+
+    // Rest handles ACLs
+    auto u8path = path.u8string();
+    LPSTR lpPath = u8path.data();
     auto success = true;
 
     // Wipe out current ACLs
     SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
 
-    if (perms & 0x0007)
-        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions((int)(perms & 0x0007)));
-    if (perms & 0x0070)
-        success &= set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions((int)((perms & 0x0070) >> 4)));
-    if (perms & 0x0700)
-    {
-        HANDLE hToken;
-        DWORD pTokenDwSize = 0;
-        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken);
-        GetTokenInformation(hToken, TokenUser, NULL, 0, &pTokenDwSize);
-        PTOKEN_USER pTokenUser = static_cast<PTOKEN_USER>(LocalAlloc(LPTR, pTokenDwSize));
-        GetTokenInformation(hToken, TokenUser, pTokenUser, pTokenDwSize, &pTokenDwSize);
-
-        success &= set_specific_perms(lpPath, pTokenUser->User.Sid, convert_permissions((int)((perms & 0x0700) >> 8)));
-        LocalFree(pTokenUser);
-        CloseHandle(hToken);
-    }
-    if (perms & 0x7000)
-        success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions((int)((perms & 0x7000) >> 12)));
+    if (int others = int(perms) & 0007; others != 0)
+        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others));
+    if (int group = int(perms) & 0070; group != 0)
+        success &= set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group >> 3));
+    if (int owner = int(perms) & 0700; owner != 0)
+        success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6));
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= set_file_owner(lpPath);

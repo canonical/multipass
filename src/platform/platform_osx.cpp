@@ -395,11 +395,10 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 
     MP_UTILS.make_file_with_content(file_path, script, true);
 
-    QFile file(QString::fromStdString(file_path));
     auto permissions =
-        MP_FILEOPS.permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeGroup | QFileDevice::ExeOther;
+        MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec;
 
-    if (!MP_FILEOPS.setPermissions(file, permissions))
+    if (!MP_PLATFORM.set_permissions(file_path, permissions))
         throw std::runtime_error(fmt::format("cannot set permissions to alias script '{}'", file_path));
 }
 
