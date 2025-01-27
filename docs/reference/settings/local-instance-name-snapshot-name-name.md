@@ -15,7 +15,7 @@ The name that identifies the snapshot in the context of its instance. Snapshot n
 
 ## Possible values
 
-Any name that follows the same rules as [instance names](/t/28469#heading--Instance-name-format) and is not currently in use by another instance.
+Any name that follows the same rules as [instance names](/reference/instance-name-format) and is not currently in use by another instance.
 
 ## Examples
 

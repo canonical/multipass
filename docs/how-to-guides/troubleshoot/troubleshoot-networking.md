@@ -31,19 +31,20 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
 Default configuration binds to localhost port 53, clashing with Internet Sharing.
 * another dnsmasq process bound to localhost port 53
 * custom DHCP server bound to port 67? ("sudo lsof -iUDP:67 -n -P" should show launchd & bootpd only)
-* MacOS update can make changes to the firewall and leave instances in unknown state (see [below](heading--issues-caused-by-macos-update)).
+* MacOS update can make changes to the firewall and leave instances in unknown state; see {ref}`troubleshoot-networking-issues-caused-by-macos-update` below.
 
 ### Problem class
 
 * `multipass launch` fails
-  * go to ["Generic networking" section](#generic-networking-problems)
+  * see {ref}`troubleshoot-networking-generic-networking-problems`
 * `multipass shell <instance>` fails
-  * go to ["Network routing" section](#network-routing-problems)
+  * see {ref}`troubleshoot-networking-routing-problems`
 * `multipass shell <instance>` works but the instance cannot connect to the internet
-  * go to ["DNS" section](#dns-problems)
+  * see {ref}`troubleshoot-networking-dns-problems`
 * extra IPs not reachable between instances
-  * go to ["ARP" section](#arp-problems)
+  * see {ref}`troubleshoot-networking-arp-problems`
 
+(troubleshoot-networking-generic-networking-problems)=
 #### Generic networking problems
 
 `Unable to determine IP address` usually implies some networking configuration is incompatible, or there is interference from a Firewall or VPN.
@@ -65,6 +66,7 @@ If you're having trouble downloading images and/or see `Unknown error`s when try
     - It should be launched automatically when there is a request, but you can also launch it manually if needed.
     - Start it by running `sudo launchctl start com.apple.bootpd`. If that doesn't work for you, try `sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist`.
 
+(troubleshoot-networking-routing-problems)=
 #### Network routing problems
 
 You could try:
@@ -94,7 +96,7 @@ Does your VPN software provide a "split connection" option, where VPN sysadmin c
 
 This was reported on GitHub (issue [#495](https://github.com/CanonicalLtd/multipass/issues/495#issuecomment-448461250)).
 
-After the `nat …` line (if there is one, otherwise at the end) in `/etc/pf.conf`, add this line:
+After the `nat ...` line (if there is one, otherwise at the end) in `/etc/pf.conf`, add this line:
 
 ```{code-block} text
 nat on utun1 from bridge100:network to any -> (utun1)
@@ -115,6 +117,7 @@ Edit `/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist` to change 
 If you change the subnet and launch an instance, it will get an IP from that new subnet. But if you try changing it back, the change is reverted on next instance start. It appears that the DHCP server reads the last IP in `/var/db/dhcpd_leases`, decides the subnet from that, and updates Shared_Net_Address to match. So, the only way to really revert this change is to edit or delete `/var/db/dhcpd_leases`.
 ```
 
+(troubleshoot-networking-dns-problems)=
 #### DNS problems
 
 Can you ping IP addresses?
@@ -134,7 +137,8 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 
 Note that macOS’s firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
 
-![Security & Privacy|690x605](upload://nvrMzXqFsN0vezA5Fd77k5K65xo.jpg "Security and Privacy")
+![Security & Privacy|690x605](https://assets.ubuntu.com/v1/a4c00e5f-multipass-security-privacy.jpg)
+<!-- upload://nvrMzXqFsN0vezA5Fd77k5K65xo.jpg -->
 
 If you try again, it should work:
 
@@ -260,12 +264,14 @@ Any other command appearing in that output means a process is conflicting with *
     "1.1.1.1" is a free DNS service provided by CloudFlare, but you can use your own.
 2. Use a [custom cloud-init to set /etc/resolv.conf](https://cloudinit.readthedocs.io/en/latest/topics/examples.html?highlight=dns#configure-an-instances-resolv-conf) for you on first boot.
 
+(troubleshoot-networking-arp-problems)=
 #### ARP problems
 
 The macOS bridge by Multipass filters packets so that only the IP address originally assigned to the VM is allowed through. If you add an additional address (e.g. an IP alias) to the VM, the ARP broadcast will get through but the ARP response will be filtered out.
 
 This means that applications that rely on additional IP addresses, such as [metallb](https://metallb.universe.tf/) under [microk8s](https://microk8s.io/), will not work.
 
+(troubleshoot-networking-issues-caused-by-macos-update)=
 #### Issues caused by MacOS update
 
 When upgrading MacOS to 12.4 (this might happen however also when upgrading to other vesions), MacOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the MacOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests. 

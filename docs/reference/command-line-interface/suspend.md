@@ -1,7 +1,8 @@
 (reference-command-line-interface-suspend)=
 # suspend
 
-The `multipass suspend` command without any argument will suspend the [primary instance](/t/28469#primary-instance) (and fail, if it doesn’t exist). You can also pass one or more instance names or the `--all` option to suspend more instances at the same time.
+The `multipass suspend` command without any argument will suspend the {ref}`primary-instance`
+<!-- [Primary instance]( /t/28469#primary-instance) --> (and fail, if it doesn’t exist). You can also pass one or more instance names or the `--all` option to suspend more instances at the same time.
 
 ```{note}
 Only instances in `Running` status can be suspended.

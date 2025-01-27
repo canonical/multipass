@@ -7,6 +7,7 @@ An **instance** is a virtual machine created and managed by Multipass.
 
 > For more information on the naming convention, see [Instance name format](/reference/instance-name-format).
 
+(primary-instance)=
 ## Primary instance
 
 The Multipass [Command-Line Interface](/reference/command-line-interface/index) (CLI) provides a few shortcuts using a special instance, called *primary* instance. By default, this is the instance named `primary`.
@@ -16,7 +17,8 @@ When invoked without positional arguments, state transition commands — [`start
 When creating the primary instance, the Multipass CLI client automatically mounts the user's home directory into it. As with any other mount, it can be unmounted with `multipass umount`. For instance, the command `multipass umount primary` will unmount all mounts made by Multipass inside the `primary` instance, including the auto-mounted `Home`. 
 
 ```{note}
-On Windows, mounts are disabled by default for security reasons. For more details, see [Mount - Security considerations](/t/28470#security-considerations).
+On Windows, mounts are disabled by default for security reasons. For more details, see {ref}`security-considerations-mount`.
+<!-- [Mount - Security considerations]( /t/28470#security-considerations) -->
 ```
 
 In all other respects, the primary instance is the same as any other instance. Its properties are the same as if it had been launched manually with `multipass launch --name primary`.

@@ -94,7 +94,8 @@ remmina -c rdp://10.49.93.209
 
 The system will ask for a username (`ubuntu`) and the password set above, and then the Ubuntu desktop on the instance will be displayed.
 
-![Logging in to the RDP server with Remmina|690x567](upload://iNMPPVChbKiM2MIo7sGoHMLctcv.png) 
+![Logging in to the RDP server with Remmina|690x567](https://assets.ubuntu.com/v1/83c7e6d7-multipass-remmina.png)
+<!-- upload://iNMPPVChbKiM2MIo7sGoHMLctcv.png -->
 
 ````
 
@@ -112,7 +113,7 @@ On Windows, we can connect to the RDP server with the “Remote Desktop Connecti
 
 `````
 
-And we are done… a graphical desktop!
+And we are done... a graphical desktop!
 
 ## Using X11 forwarding
 
@@ -149,7 +150,8 @@ sudo apt -y install x11-apps
 xlogo &
 ```
 
-![xlogo on Linux|420x455](upload://etvJU6k1tfuZ0QsKd4TZM1ogsgR.png) 
+![Xlogo on Linux|420x455](https://assets.ubuntu.com/v1/657475f0-multipass-xlogo.png)
+<!-- upload://etvJU6k1tfuZ0QsKd4TZM1ogsgR.png -->
 
 A small window containing the X logo will show up. Done!
 
@@ -190,7 +192,8 @@ sudo snap install firefox
 firefox &
 ```
 
-![Firefox running on the Multipass instance|690x388](upload://iy5xIwIRyMXjYqyhefIfdDoXnAi.jpeg)
+![Firefox running on a Multipass instance|690x388](https://assets.ubuntu.com/v1/82019ef0-multipass-windows-desktop-firefox.jpeg)
+<!-- upload://iy5xIwIRyMXjYqyhefIfdDoXnAi.jpeg -->
 
 ````
 

@@ -1,7 +1,7 @@
 (reference-settings-client-apps-windows-terminal-profiles)=
 # client.apps.windows-terminal.profiles
 
-> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [How to integrate with Windows Terminal](/how-to-guides/customise-multipass/how-to-integrate-with-windows-terminal)
+> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [How to integrate with Windows Terminal](/how-to-guides/customise-multipass/integrate-with-windows-terminal)
 
 ## Key
 
@@ -16,7 +16,8 @@ Which profiles should be enabled in Windows Terminal.
 
 The following values are supported:
   
-  - `primary` to enable a profile for the [primary instance](/t/28469#primary-instance). Note that this value is independent of what primary name is configured.
+  - `primary` to enable a profile for the {ref}`primary-instance`
+<!-- [Primary instance]( /t/28469#primary-instance) -->. Note that this value is independent of what primary name is configured.
   - `none` to disable any profiles.
   
 ## Examples

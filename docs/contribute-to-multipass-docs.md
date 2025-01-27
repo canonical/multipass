@@ -17,7 +17,8 @@ At Canonical, we have embarked on a comprehensive, long-term project to transfor
 
 Multipass documentation is maintained on our Discourse forum. Every documentation page has an equivalent topic on the forum, that can be accessed by clicking the "Help improve this document in the forum" link at the bottom of the page.
 
-![image|540x103](upload://w2UG2yP4Vqu4VyiaLxq1SE25GI3.png)
+![Contribute to Discourse|540x103](https://assets.ubuntu.com/v1/e099e5dc-contribute-to-discourse-docs.png)
+<!-- upload://w2UG2yP4Vqu4VyiaLxq1SE25GI3.png -->
 
 To contribute to the documentation, you can leave a comment on the relevant forum topic, or edit content directly if your *Trust level* allows it. However, if your intervention is bigger than fixing a typo, it’s a good idea to comment on the page to discuss first.
 
@@ -29,7 +30,7 @@ In Discourse, content is formatted using Markdown syntax. You can also use the s
 
 > See also: [Discourse | Supported formatting in posts (markdown, BBCcode, and HTML ](https://meta.discourse.org/t/supported-formatting-in-posts-markdown-bbcode-and-html/239348) (in particular, the link to [`markdown-it` ](https://markdown-it.github.io/) and [CommonMark Spec ](https://spec.commonmark.org/))
 
-A useful trick to view the Markdown source of a Discourse page is replacing `/t/<page-slug>/` in the URL with `/raw/`. For example, to view the source of the [Multipass Documentation home](https://multipass.run/docs) topic, instead of the default Discourse URL:
+A useful trick to view the Markdown source of a Discourse page is replacing `/t/<page-slug>/` in the URL with `/raw/`. For example, to view the source of the Multipass Documentation home topic, instead of the default Discourse URL:
 
 * `https://discourse.ubuntu.com/t/multipass-documentation/8294`
 

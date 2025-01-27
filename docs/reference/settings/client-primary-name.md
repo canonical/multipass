@@ -11,7 +11,8 @@
 
 The name of the instance that is launched/recognized as primary. 
 
-> See also: [Primary instance](/t/28469#primary-instance)
+> See also: {ref}`primary-instance`.
+<!-- [Primary instance]( /t/28469#primary-instance) -->
 
 ## Possible values
 

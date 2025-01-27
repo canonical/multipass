@@ -12,7 +12,7 @@ This tutorial will help you understand how Multipass works, and the skills you n
 Multipass is available for Linux, macOS and Windows. To install it on the OS of your choice, please follow the instructions provided in [How to install Multipass](/how-to-guides/install-multipass). 
 
 ```{note}
-Select the tab corresponding to your operating system (e.g. Linux) to display the relevant content in each section. Your decision will stick until you select another OS from the drop-down menu.
+Select the tab corresponding to your operating system (e.g. Linux) to display the relevant content in each section. Your decision will stick until you select another OS from the drop-down menu. 
 ```
 
 ## Create and use a basic instance
@@ -34,7 +34,8 @@ Click on the Multipass icon and select **Open Shell**.
 ![|286x274](https://assets.ubuntu.com/v1/3ecc5e7d-mp-linux-2a.png) 
 
 Clicking this button does many things in the background:
-* It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: [Primary instance](/t/28469#primary-instance).
+* It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
+<!-- [Primary instance]( /t/28469#primary-instance) -->
 * It installs the most recent Ubuntu LTS release on that instance. 
 * It mounts your `$HOME` directory in the instance. 
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`. 
@@ -42,7 +43,7 @@ Clicking this button does many things in the background:
 <!-- note added for https://github.com/canonical/multipass/issues/3537 -->
 
 ```{caution}
-If your local home folder is encrypted using ` fscrypt` and you are having trouble accessing its contents when it is automatically mounted inside your primary instance, see: [Mount an encrypted home folder](/how-to-guides/troubleshoot/mount-an-encrypted-home-folder).
+If your local home folder is encrypted using `fscrypt` and you are having trouble accessing its contents when it is automatically mounted inside your primary instance, see: [Mount an encrypted home folder](/how-to-guides/troubleshoot/mount-an-encrypted-home-folder).
 ```
 
 You can see elements of this in the printout below:
@@ -512,9 +513,10 @@ You've now seen a few ways to create, customise, and delete an instance. It is t
 
 Let's see some practical examples of what you can do with your Multipass instances:
 
-* [Run a simple web server](#run-a-simple-web-server)
-* [Launch from a Blueprint to run Docker containers](#launch-from-a-blueprint-to-run-docker-containers)
+* {ref}`run-a-simple-web-server`
+* {ref}`launch-from-a-blueprint-to-run-docker-containers`
 
+(run-a-simple-web-server)=
 ### Run a simple web server
 
 One way to put a Multipass instance to use is by running a local web server in it.
@@ -551,6 +553,7 @@ Just like that, you've got a web server running in a Multipass instance!
 
 You can use this web server locally for any kind of local development or testing. However, if you want to access this web server from the internet (for instance, a different computer), you need an instance that is exposed to the external network.
 
+(launch-from-a-blueprint-to-run-docker-containers)=
 ### Launch from a Blueprint to run Docker containers
 
 Some environments require a lot of configuration and setup. Multipass Blueprints are instances with a deep level of customization. For example, the Docker Blueprint is a pre-configured Docker environment with a Portainer container already running. 
@@ -689,4 +692,11 @@ Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/mult
 ---
 
 <small>**Contributors:** @nhart, @saviq, @townsend, @andreitoterman, @tmihoc, @luisp, @ricab, @sharder996, @georgeliaojia, @mscho7969, @itecompro, @mr-cal, @sally-makin, @gzanchi, @bagustris , @pitifulpete </small>
+
+
+```{toctree}
+:hidden:
+:titlesonly:
+:maxdepth: 2
+:glob:
 

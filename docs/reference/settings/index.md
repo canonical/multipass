@@ -24,29 +24,31 @@ Values often express common concepts (such as `true`, `false`, `42`, etc.) and a
 At any given time, the available settings depend on the state of the system. Some settings are only available on some platforms, while daemon settings can only be accessed when the Multipass daemon itself can be reached. 
 
 Some instance properties are also exposed as settings. 
-> See also: [Set the CPU, RAM or disk of an instance](/t/28603#set-the-cpu-ram-or-disk-of-an-instance).
-
+> See also: {ref}`set-the-cpu-ram-or-disk-of-an-instance`
+<!--
+[Set the CPU, RAM or disk of an instance]( /t/28603#set-the-cpu-ram-or-disk-of-an-instance).
+-->
 The command `multipass get --keys` shows what settings are available at any given time. 
 
 As of now, this is the total set of settings available:
 
-- [`client.apps.windows-terminal.profiles`](/reference/settings/client-apps-windows-terminal-profiles)
-- [`client.primary-name`](/reference/settings/client-primary-name)
-- [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged)
-- [`local.<instance-name>.cpus`](/reference/settings/local-instance-name-cpus)
-- [`local.<instance-name>.disk`](/reference/settings/local-instance-name-disk)
-- [`local.<instance-name>.memory`](/reference/settings/local-instance-name-memory)
-- [`local.<instance-name>.<snapshot-name>.name`](/reference/settings/local-instance-name-snapshot-name-name)
-- [`local.<instance-name>.<snapshot-name>.comment`](/reference/settings/local-instance-name-snapshot-name-comment)
-- [`local.bridged-network`](/reference/settings/local-bridged-network)
-- [`local.driver`](/reference/settings/local-driver) 
-- [`local.passphrase`](/reference/settings/local-passphrase) 
-- [`local.privileged-mounts`](/reference/settings/local-privileged-mounts)
+- [`client.apps.windows-terminal.profiles`](client-apps-windows-terminal-profiles)
+- [`client.primary-name`](client-primary-name)
+- [`local.<instance-name>.bridged`](local-instance-name-bridged)
+- [`local.<instance-name>.cpus`](local-instance-name-cpus)
+- [`local.<instance-name>.disk`](local-instance-name-disk)
+- [`local.<instance-name>.memory`](local-instance-name-memory)
+- [`local.<instance-name>.<snapshot-name>.name`](local-instance-name-snapshot-name-name)
+- [`local.<instance-name>.<snapshot-name>.comment`](local-instance-name-snapshot-name-comment)
+- [`local.bridged-network`](local-bridged-network)
+- [`local.driver`](local-driver) 
+- [`local.passphrase`](local-passphrase) 
+- [`local.privileged-mounts`](local-privileged-mounts)
 
 ```{caution}
 Starting from Multipass version 1.14, the following settings have been removed from the CLI and are only available in the [GUI client](/reference/gui-client):
-- [`client.gui.autostart`](/reference/settings/client-gui-autostart) 
-- [`client.gui.hotkey`](/reference/settings/client-gui-hotkey)
+- [`client.gui.autostart`](client-gui-autostart) 
+- [`client.gui.hotkey`](client-gui-hotkey)
 ```
 
 <!-- keeping the documentation pages for now, since not everyone will update their Multipass package immediately -->
@@ -63,4 +65,3 @@ Starting from Multipass version 1.14, the following settings have been removed f
 :glob:
 
 *
-*/index

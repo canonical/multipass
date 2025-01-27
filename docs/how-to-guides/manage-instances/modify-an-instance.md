@@ -5,6 +5,7 @@
 
 This document shows further ways to customize an instance outside of the [`launch`](/reference/command-line-interface/launch) command using the Multipass [settings](/reference/settings/index).
 
+(set-the-cpu-ram-or-disk-of-an-instance)=
 ## Set the CPUs , RAM or disk space of an instance
 
 > See also:  [`local.<instance-name>.cpus`](/reference/settings/local-instance-name-cpus), [`local.<instance-name>.disk)`](/reference/settings/local-instance-name-disk), [`local.<instance-name>.memory`](/reference/settings/local-instance-name-memory)

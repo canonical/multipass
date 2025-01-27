@@ -13,37 +13,38 @@ You can launch the GUI either using your system's application launcher or by run
 > For more information on GUI logs, see [How to access logs](/how-to-guides/troubleshoot/access-logs).
 
 As of now, the Multipass GUI provides the following set of capabilities, grouped under four tabs:
-- [GUI client](#gui-client)
-  - [Catalogue tab](#catalogue-tab)
-  - [Instances tab](#instances-tab)
-  - [Settings tab](#settings-tab)
-  - [Tray icon](#tray-icon)
 
-as well as a [tray icon](#tray-icon) menu.
+- {ref}`gui-client-catalogue-tab`
+- {ref}`gui-client-instances-tab`
+- {ref}`gui-client-settings-tab`
 
+as well as a {ref}`gui-client-tray-icon` menu.
+
+(gui-client-catalogue-tab)=
 ## Catalogue tab
 
 Here you can browse the available Ubuntu images. The output is equivalent to the one given by `multipass find --only-images`. Blueprints are not yet available.
 
-![Catalogue page](https://lh3.googleusercontent.com/d/1DIbo-K2O83KHvESVvkI-QolsoYcMc-HV)
+![Catalogue page](https://assets.ubuntu.com/v1/1edb2dfb-multipass-gui-catalogue-tab.png)
 
 You can configure an instance's launch options, specifying parameters such as its name, allocated resources and mounts.
 
-![Configure instance page](https://lh3.googleusercontent.com/d/1pdJ4A0M8Yn8rp921gfivHU4VLPG7WAAk)
+![Configure instance page](https://assets.ubuntu.com/v1/6a239e67-multipass-gui-configure-instance.png)
 
 When you launch a VM, you can see details on all the steps taken and be notified of errors.
 
-![Launching page](https://lh3.googleusercontent.com/d/1fbmfomhTXcOjv22uYvvInhPh6oruTsbd)
+![Launching page](https://assets.ubuntu.com/v1/17f00d22-multipass-gui-launching-instance.png)
 
+(gui-client-instances-tab)=
 ## Instances tab
 
 Here you can see an overview of all your instances and perform bulk actions such as starting, stopping, suspending or deleting the selected ones. You can also filter instances by name and by state ("running" or "stopped").
 
-![List of all instances page](https://lh3.googleusercontent.com/d/15gDHhSDxcxYxIpJGiHTKYgRemzChk0NF)
+![List of all instances page](https://assets.ubuntu.com/v1/909fad4d-multipass-gui-instances-tab.png)
 
 You can perform actions on an individual instance, such as starting, stopping, suspending or deleting it. You can also open shells within a running instance, where you can do all of your work that is specific to that instance.
 
-![Instance shell page](https://lh3.googleusercontent.com/d/1vgF-Cezrhz8h_7PZemOoU3MaR1KgElJR)
+![Instance shell page](https://assets.ubuntu.com/v1/740d7ab4-multipass-gui-instance)
 
 ```{caution}
 Please note that when you delete an instance using the GUI client, Multipass removes it permanently and they cannot be recovered. This behaviour is equivalent to running the [`multipass delete --purge`](/reference/command-line-interface/delete) command.
@@ -51,19 +52,21 @@ Please note that when you delete an instance using the GUI client, Multipass rem
 
 You can also edit an instance; in particular, you can change its allocated resources, connect it to a bridged network or edit its mounts. Some of these settings require the instance to be stopped before they can be applied.
 
-![Edit instance page](https://lh3.googleusercontent.com/d/1vvZQUHoOJRWStjF3fALffk-jYy4N_WRi)
+![Edit instance page](https://assets.ubuntu.com/v1/38a180c4-multipass-gui-instance-edit.png)
 
+(gui-client-settings-tab)=
 ## Settings tab
 
 Here you can change various Multipass settings, although not all settings that are available in the CLI are present in the GUI and vice versa.
 
-![Settings page](https://lh3.googleusercontent.com/d/1Wkc_yUvIc2BpBufiYRcQsOD9dPnghxdc)
+![Settings page](https://assets.ubuntu.com/v1/4ad40d35-multipass-gui-settings-tab.png)
 
+(gui-client-tray-icon)=
 ## Tray icon
 
 You can manage your instances using the tray icon menu as well.
 
-![Tray icon menu](https://lh3.googleusercontent.com/d/1E8ej8AR7j9maHuqp9EA-vFDi_ojQnTgP)
+![Tray icon menu](https://assets.ubuntu.com/v1/7e16f6bd-multipass-gui-tray-icon-menu.png)
 
 ---
 

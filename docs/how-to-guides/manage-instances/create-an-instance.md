@@ -12,7 +12,7 @@ This document demonstrates various ways to create an instance with Multipass. Wh
 To create an instance with Multipass, run the command `multipass launch`. This launches a new instance, which is randomly named; for example: 
 
 ```{code-block} text
-…
+...
 Launched: keen-yak
 ```
 
@@ -108,6 +108,7 @@ multipass launch kinetic --name primary
 
 For more information, see: [How to use the primary instance](/how-to-guides/manage-instances/use-the-primary-instance).
 
+(create-an-instance-with-multiple-network-interfaces)=
 ## Create an instance with multiple network interfaces
 
 > See also: [`launch --network`](/reference/command-line-interface/launch)
@@ -117,8 +118,8 @@ Multipass can create instances with additional network interfaces using the `mul
 This feature is only supported for images with [`cloud-init` support for v2 network config](https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html), which in turn requires [netplan](https://netplan.io/) to be installed, meaning that you'll require Ubuntu 17.10 and Ubuntu Core 16 (except `snapcraft:core16`) or later. More specifically, this feature is only supported in the following scenarios:
 
 * on Linux, with LXD
-* on Windows, with both Hyper-V and [VirtualBox](https://multipass.run/docs/using-virtualbox-in-multipass-windows)
-* on macOS, with the QEMU and [VirtualBox](https://multipass.run/docs/using-virtualbox-in-multipass-macos) drivers
+* on Windows, with both Hyper-V and VirtualBox
+* on macOS, with the QEMU and VirtualBox drivers
 
 The `--network` option can be given multiple times to request multiple network interfaces beyond the default one, which is always present. Each time you add the `--network` option you also need to provide an argument specifying the properties of the desired interface:
 

@@ -4,7 +4,7 @@
 The `multipass launch` command without any argument will create and start a new instance based on the default image, using a random generated name; for example:
 
 ```
-…
+...
 Launched: relishing-lionfish
 ```
 
@@ -24,7 +24,8 @@ If you want your instance to have a name of your choice, use the `--name` option
 
 By passing a filename or an URL to `--cloud-init`, you can provide user data to [`cloud-init`](https://cloud-init.io/) to customize the instance on first boot. See [cloud-init documentation](https://cloudinit.readthedocs.io/en/latest/topics/examples.html) for examples.
 
-Use the `--network` option to [create an instance with additional network interfaces](/t/27188#create-an-instance-with-multiple-network-interfaces).
+Use the `--network` option to {ref}`create-an-instance-with-multiple-network-interfaces`.
+<!-- [create an instance with additional network interfaces]( /t/27188#create-an-instance-with-multiple-network-interfaces) -->
 
 Passing `--bridged` and `--network bridged` are shortcuts to `--network <name>`, where `<name>` is configured via `multipass set local.bridged-interface`.
 
