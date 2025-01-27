@@ -1,7 +1,7 @@
 (reference-settings-local-bridged-network)=
 # local.bridged-network
 
-> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [`launch`](/reference/command-line-interface/launch), [`networks`](/reference/command-line-interface/networks), [Create an instance with multiple network interfaces](/t/27188#create-an-instance-with-multiple-network-interfaces), [Add a network to an existing instance](/how-to-guides/manage-instances/add-a-network-to-an-existing-instance), [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged)
+> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [`launch`](/reference/command-line-interface/launch), [`networks`](/reference/command-line-interface/networks), {ref}`create-an-instance-with-multiple-network-interfaces`<!-- [Create an instance with multiple network interfaces]( /t/27188#create-an-instance-with-multiple-network-interfaces) -->, [Add a network to an existing instance](/how-to-guides/manage-instances/add-a-network-to-an-existing-instance), [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged)
 
 ## Key
 

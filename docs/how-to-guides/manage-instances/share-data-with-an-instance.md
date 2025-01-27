@@ -26,7 +26,7 @@ multipass mount $HOME keen-yak
 You can check the result running `multipass info keen-yak`:
 
 ```{code-block} text
-…
+...
 Mounts:         /home/michal => /home/michal
 ```
 
@@ -81,10 +81,10 @@ multipass transfer keen-yak:/etc/crontab keen-yak:/etc/fstab /home/michal
 The files will be copied with the correct user mapping, as you'll see running the `ls -l /home/michal` command:
 
 ```{code-block} text
-…
+...
 -rw-r--r-- 1 michal michal 722 Oct 18 12:13 /home/michal/crontab
 -rw-r--r-- 1 michal michal  82 Oct 18 12:13 /home/michal/fstab
-…
+...
 ```
 
 The other way around, if you want to copy these files from your local filesystem into the instance, run the command:
@@ -95,10 +95,10 @@ multipass transfer /etc/crontab /etc/fstab keen-yak:/home/michal
 
 In this case, the output of the `ls -l /home/michal` command on the instance will be:
 ```{code-block} text
-…
+...
 -rw-rw-r-- 1 ubuntu ubuntu 722 Oct 18 12:14 crontab
 -rw-rw-r-- 1 ubuntu ubuntu  82 Oct 18 12:14 fstab
-…
+...
 ```
 
 See also [ID mapping](/explanation/id-mapping) for more information on how the mount command maps user and group IDs between the host and the instance.

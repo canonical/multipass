@@ -1,7 +1,7 @@
 (reference-settings-local-driver)=
 # local.driver
 
-> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [Driver](/explanation/driver), [How to use libvirt in Multipass](/)
+> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [Driver](/explanation/driver), [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver)
 
 ## Key
 
@@ -13,7 +13,7 @@ A string identifying the hypervisor back-end in use.
 
 ## Possible values
 
-  - `qemu`, [`libvirt`](/) and `lxd` on Linux
+  - `qemu`, `libvirt` and `lxd` on Linux
   - `hyperv` and `virtualbox` on Windows
   - `qemu` and `virtualbox` on macOS 10.15+
   - *(deprecated)* `hyperkit` on Intel macOS 10.15+

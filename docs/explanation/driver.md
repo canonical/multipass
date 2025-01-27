@@ -31,12 +31,13 @@ When Multipass is installed, the following drivers are selected by default:
 
 ## Instance scopes
 
-In general, Multipass instances are tied to a single driver, with the [exceptions](#exceptions) listed below. The set of instances that were launched with one driver are available only while that driver is in use. 
+In general, Multipass instances are tied to a single driver, with the {ref}`explanation-driver-exceptions` listed below. The set of instances that were launched with one driver are available only while that driver is in use. 
 
 When a new driver is selected, Multipass switches to a separate instance scope. There, the set of existing instances is empty to begin with. Users can launch instances with the same name in different drivers and changes to instances with one driver have no effect on the instances of another.
 
 Nonetheless, instances are preserved across drivers. After switching back to a previously-used driver, Multipass restores the corresponding instance scope. It attempts to restore the state instances were in just before the switch and users can interact with them just as before.
 
+(explanation-driver-exceptions)=
 ### Exceptions
 
 There are two exceptions to the above:
@@ -44,6 +45,7 @@ There are two exceptions to the above:
   - On Linux, QEMU and libvirt share the same driver scope.
   - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see: [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
 
+(driver-feature-disparities)=
 ## Feature disparities
 
 While we strive to offer a uniform interface across the board, not all features are available on all backends and there are some behaviour differences:

@@ -10,7 +10,7 @@ This guide explains how to install and manage Multipass on your system.
 ```{note}
 Select the tab corresponding to your operating system (e.g. Linux) to display the relevant content in each section. Your decision will stick until you select another OS from the drop-down menu.
 ```
-
+(install-multipass-prerequisites)=
 ## Check prerequisites
 
 `````{tab-set}
@@ -132,14 +132,15 @@ Download the latest installer from [our download page](https://canonical.com/mul
 
 Run the downloaded installer and follow the guided procedure.
 
-![Multipass installer on macOS|658x475](upload://oBqM17GtMd6dzpBJ2OWl3fexIP2.png)
+![Multipass installer on macOS|658x475](https://assets.ubuntu.com/v1/ac6f638d-multipass-installer-macos.png)
+<!-- upload://oBqM17GtMd6dzpBJ2OWl3fexIP2.png -->
 
 ````
 
 ````{tab-item} Windows
 
 ```{note}
-You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See [Check prerequisites](#check-prerequisites).
+You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See {ref}`install-multipass-prerequisites`.
 ```
 
 Download the latest installer from [our download page](https://canonical.com/multipass/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/CanonicalLtd/multipass/releases/) page, look for the `.msi` file.
@@ -241,7 +242,7 @@ To uninstall Multipass, run the script:
 sudo sh "/Library/Application Support/com.canonical.multipass/uninstall.sh"
 ```
 
-````{tab-item}
+````
 
 ````{tab-item} Windows
 

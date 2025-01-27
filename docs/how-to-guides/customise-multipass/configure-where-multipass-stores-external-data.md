@@ -3,6 +3,7 @@
 
 This document demonstrates how to configure the location where Multipass stores instances, caches images, and other data. Configuring a new storage location can be useful, for example, if you need to free up storage space on your boot partition.
 
+(configuring-a-new-storage-location)=
 ## Configuring a new storage location
 
 ```{caution}
@@ -178,7 +179,8 @@ Stop the Multipass daemon:
 sudo snap stop multipass
 ```
 
-Although not required, to make sure that Multipass does not have access to directories that it shouldn't, you can disconnect the respective interface depending on where the custom storage location was set (see [Configuring a new storage location](#configuring-a-new-storage-location) above). For example, to disconnect the removable mounts points (`/mnt` or `/media`), run:
+Although not required, to make sure that Multipass does not have access to directories that it shouldn't, you can disconnect the respective interface depending on where the custom storage location was set (see {ref}`configuring-a-new-storage-location` above).
+For example, to disconnect the removable mounts points (`/mnt` or `/media`), run:
 
 ```{code-block} text
 sudo snap disconnect multipass:removable-media

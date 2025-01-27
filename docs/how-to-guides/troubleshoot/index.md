@@ -3,10 +3,10 @@
 
 The following guides provide step-by-step instructions on how to troubleshoot issues with your Multipass installation, beginning by inspecting the logs. <!--- This line added by @nielsenjared -->
 
-- [Access logs](/how-to-guides/troubleshoot/access-logs)
-- [Mount an encrypted home folder](/how-to-guides/troubleshoot/mount-an-encrypted-home-folder)
-- [Troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues)
-- [Troubleshoot networking](/how-to-guides/troubleshoot/troubleshoot-networking)
+- [Access logs](access-logs)
+- [Mount an encrypted home folder](mount-an-encrypted-home-folder)
+- [Troubleshoot launch/start issues](troubleshoot-launch-start-issues)
+- [Troubleshoot networking](troubleshoot-networking)
 
 ---
 
@@ -20,4 +20,3 @@ The following guides provide step-by-step instructions on how to troubleshoot is
 :glob:
 
 *
-*/index

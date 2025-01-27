@@ -155,7 +155,7 @@ Remember to replace the correct folder, as indicated in the output of the Multip
 
 On Windows, to make the change permanent, use PowerShell to store the old system path, add the alias folder to it, and store the new path:
 
-```{code-block} powershell
+```{code-block} text
 $old_path = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).path
 $new_path = “$old_path;C:\Users\<user>\AppData\Local\Multipass\bin”
 Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $new_path

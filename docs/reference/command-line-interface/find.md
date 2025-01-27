@@ -6,4 +6,4 @@ The `multipass find` command without any argument will list the aliases you can 
 
 ```{code-block} text
 $ multipass find
-multipass launch …   Starts an instance of           Image version
+multipass launch ...   Starts an instance of           Image version

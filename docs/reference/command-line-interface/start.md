@@ -1,14 +1,15 @@
 (reference-command-line-interface-start)=
 # start
 
-The `multipass start` command without any argument will start the [primary instance](/t/28469#primary-instance) (and also create it, if it doesn't exist). You can also pass one or more instance names or the `--all` option to start more instances at the same time. 
+The `multipass start` command without any argument will start the {ref}`primary-instance`
+<!-- [Primary instance]( /t/28469#primary-instance) --> (and also create it, if it doesn't exist). You can also pass one or more instance names or the `--all` option to start more instances at the same time. 
 
 For example, the command `multipass start` will produce the following output:
 
 ```{code-block} text
 Configuring primary \
 Launching primary |
-…
+...
 ```
 
 Only instances in `Stopped` or `Suspended` status can be started. Running instances can be restarted with [`multipass restart`](/reference/command-line-interface/restart), stopped with [`multipass stop`](/reference/command-line-interface/stop), and suspended with [`multipass suspend`](/reference/command-line-interface/suspend).

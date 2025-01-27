@@ -43,7 +43,9 @@ en2:
     description: Thunderbolt 2
 ```
 
-See [`launch`](/reference/command-line-interface/launch) and  [How to create an instance - Create an instance with multiple network interfaces](/t/27188#create-an-instance-with-multiple-network-interfaces) for instructions on how to use these.
+See [`launch`](/reference/command-line-interface/launch) and {ref}`create-an-instance-with-multiple-network-interfaces`
+<!-- [How to create an instance - Create an instance with multiple network interfaces]( /t/27188#create-an-instance-with-multiple-network-interfaces) -->
+for instructions on how to use these.
 
 ---
 

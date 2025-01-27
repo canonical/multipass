@@ -1,7 +1,10 @@
 (how-to-guides-customise-multipass-set-up-the-driver)=
 # How to set up the driver
 
-> See also: [Driver](/t/28410), [`local.driver`](/t/27357)
+> See also: {ref}`explanation-driver`, {ref}`reference-settings-local-driver`
+
+<!-- [Primary instance]( /t/28469#primary-instance) -->
+<!-- [Driver]( /t/28410), [`local.driver`]( /t/27357) -->
 
 This document demonstrates how to choose, set up, and manage the drivers behind Multipass. Multipass already has sensible defaults, so this is an optional step. 
 
@@ -119,7 +122,8 @@ The output will be similar to the following:
 ```
 Alternatively, to use the `virt-manager` GUI, ...
 
-![obraz|584x344](upload://bFIxA9CPAqBeWjuQxDaZBYBNsZK.png)
+![Virtual Machine Manager GUI|584x344](https://assets.ubuntu.com/v1/51cf2c57-multipass-virt-manager-gui.png)
+<!-- upload://bFIxA9CPAqBeWjuQxDaZBYBNsZK.png -->
 
 ````
 
@@ -131,7 +135,8 @@ Multipass runs as the `root` user, so to see the instances in  VirtualBox, or th
 sudo VirtualBox
 ```
 
-![Multipass instances in VirtualBox](upload://mld2SIalX93tc3StGHaqb6OTyDO.png) 
+![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/9c959eed-multipass-macos-virtualbox-manager.png)
+<!-- upload://mld2SIalX93tc3StGHaqb6OTyDO.png -->
 
 And, to list the instances on the command line, run:
 
@@ -158,7 +163,8 @@ Multipass runs as the _System_ account, so to see the instances in VirtualBox, o
 & $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s -i $env:VBOX_MSI_INSTALL_PATH\VirtualBox.exe
 ```
 
-![Multipass instances in VirtualBox](upload://xVIOErbwcdoppcN5KSzvHJybSi7.png) 
+![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager)
+<!-- upload://xVIOErbwcdoppcN5KSzvHJybSi7.png -->
 
 To list the instances on the command line:
 
@@ -328,7 +334,9 @@ This option only applies to macOS systems.
 
 ## Switch back to the default driver
 
-> See also: [`stop`](/t/23951), [`local.driver`](/t/27357)
+> See also: {ref}`reference-command-line-interface-stop`, {ref}`reference-settings-local-driver`
+
+<!-- [`stop`]( /t/23951), [`local.driver`]( /t/27357) --
 
 `````{tab-set}
 

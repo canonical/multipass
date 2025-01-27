@@ -3,18 +3,20 @@
 
 > See also: [`mount`](/reference/command-line-interface/mount), [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance)
 
-In Multipass, a **mount** is a directory mapping from the host to an [instance](/explanation/instance), making its contents, and changes therein, available on both ends. Make sure to review the [security considerations](#security-considerations) below.
+In Multipass, a **mount** is a directory mapping from the host to an [instance](/explanation/instance), making its contents, and changes therein, available on both ends. Make sure to review the {ref}`security-considerations-mount` below.
 
 In Multipass, there are two types of mounts: classic (default) and native. 
-* [Classic mounts](#classic-mounts) use technology built into Multipass and thus allow for higher compatibility, while slightly reduced performance. 
-* [Native mounts](#native-mounts), on the other hand, use hypervisor or platform-specific mounts to offer better performance, but limited compatibility.
+* {ref}`explanation-mount-classic` use technology built into Multipass and thus allow for higher compatibility, while slightly reduced performance. 
+* {ref}`explanation-mount-native`, on the other hand, use hypervisor or platform-specific mounts to offer better performance, but limited compatibility.
 
+(explanation-mount-classic)=
 ## Classic mounts
 
 Classic mounts use SSHFS (SSH File System) to achieve file/directory sharing. This option is available across all our backends. 
 
 SSHFS is based on SSH, which pays a performance penalty to achieve secure communication.
 
+(explanation-mount-native)=
 ## Native mounts
 
 Native mounts use driver-dependent technologies to achieve the high performance. They are only available in the following cases:
@@ -23,8 +25,10 @@ Native mounts use driver-dependent technologies to achieve the high performance.
 - On **QEMU**, where they are implemented with [9P](https://en.wikipedia.org/wiki/9P_(protocol)).
 - On **LXD**, using that backend's own mounts, which also rely on [9P](https://en.wikipedia.org/wiki/9P_(protocol)).
 
-> See also: [Driver (backend) - Feature disparities](/t/28410#feature-disparities)
+> See also: {ref}`driver-feature-disparities`.
+<!-- [Driver (backend) - Feature disparities]( /t/28410#feature-disparities) -->
 
+(security-considerations-mount)=
 ## Security considerations
 
 `````{tab-set}

@@ -22,15 +22,15 @@ The possible reasons that can lead the `launch` or `start` commands to fail are:
 
 Follow these steps to diagnose your issue and identify the most likely scenario:
 
-1. If the `multipass launch` command fails with the message "Downloaded image hash does not match", see: [Stale network cache](#stale-network-cache-6). 
+1. If the `multipass launch` command fails with the message "Downloaded image hash does not match", see: {ref}`launch-start-issues-stale-network-cache`.
 
-1. *(Windows, Hyper-V driver)* Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that's the case, see: [Stale internet connection sharing lease](#stale-internet-connection-sharing-lease).
+2. *(Windows, Hyper-V driver)* Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that's the case, see: {ref}`launch-start-issues-stale-sharing-lease`.
 
-1. *(Linux/macOS, QEMU driver)* Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
-    * If you don't find it, it means that the VM didn't manage to bring up the interface; see: [VM boot failure](#vm-boot-failure-3).
+3. *(Linux/macOS, QEMU driver)* Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
+    * If you don't find it, it means that the VM didn't manage to bring up the interface; see: {ref}`launch-start-issues-vm-boot-failure`.
     * If the message is present, proceed to check DHCP traffic in the next step.
 
-1. *(Linux/macOS, QEMU driver)* Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command *right after starting/launching* the instance:
+4. *(Linux/macOS, QEMU driver)* Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command *right after starting/launching* the instance:
    
     ```{code-block} text 
     sudo tcpdump -i <bridge> udp port 67 and port 68
@@ -42,25 +42,26 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
     Note that, on macOS, `bridge100` is a virtual network interface that only appears when at least a VM is running.
     ```
 
-    * If you see `NIC_RX_FILTER_CHANGED`, you should also see DHCP requests. If you don't, see [VM boot failure](#vm-boot-failure-3) and please [let us know](https://github.com/canonical/multipass/issues/new/choose).
-    * If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see: [No IP assigned](#no-ip-assigned-4).
+    * If you see `NIC_RX_FILTER_CHANGED`, you should also see DHCP requests. If you don't, see {ref}`launch-start-issues-vm-boot-failure` and please [let us know](https://github.com/canonical/multipass/issues/new/choose).
+    * If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see: {ref}`launch-start-issues-no-ip-assigned`.
     * If you see DHCP requests and replies, continue to the next step.
 
-1. Look for messages regarding SSH in Multipass's logs. The instance may have obtained an IP and/or be properly connected, but still refuse Multipass when it tries to SSH into it.
+5. Look for messages regarding SSH in Multipass's logs. The instance may have obtained an IP and/or be properly connected, but still refuse Multipass when it tries to SSH into it.
 
-1. Look for the message in the CLI or GUI spinner. Once it reads "Waiting for initialization to complete", Multipass willl have succeeded SSH-ing into the instance but remain waiting for cloud-init to finish.
+6. Look for the message in the CLI or GUI spinner. Once it reads "Waiting for initialization to complete", Multipass willl have succeeded SSH-ing into the instance but remain waiting for cloud-init to finish.
 
 ## Troubleshooting steps
 
+(launch-start-issues-vm-boot-failure)=
 ### VM boot failure
 
 To find out if something is failing during boot, you'd need to attach to the VM's console/serial and observe the output and try to find out where the VM is getting stuck. Here is how you can do that, depending on the driver:
 
 - *(Linux/macOS, QEMU driver)* Relaunch QEMU manually:
-    1. Look for the `qemu-system-*` command line corresponding to the failing VM in Multipass logs
-    2. copy it to an editor and modify it
-        1. remove `-serial chardev:char0 -nographic`
-        2. escape any spaces in paths (e.g. `Application Support` should become `Application\ Support`)
+    1. Look for the `qemu-system-*` command line corresponding to the failing VM in Multipass logs.
+    2. Copy it to an editor and modify it:
+        1. Remove `-serial chardev:char0 -nographic`.
+        2. Escape any spaces in paths (e.g. `Application Support` should become `Application\ Support`).
     3. Run the edited line in a terminal, with `sudo`. Here is an example:
     ```
     /Library/Application\ Support/com.canonical.multipass/bin/qemu-system-aarch64 -machine virt,gic-version=3 -accel hvf -drive file=/Library/Application\ Support/com.canonical.multipass/bin/../Resources/qemu/edk2-aarch64-code.fd,if=pflash,format=raw,readonly=on -cpu host -nic vmnet-shared,model=virtio-net-pci,mac=52:54:00:e2:30:dd -device virtio-scsi-pci,id=scsi0 -drive file=/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/superior-chihuahua/ubuntu-22.04-server-cloudimg-arm64.img,if=none,format=qcow2,discard=unmap,id=hda -device scsi-hd,drive=hda,bus=scsi0.0 -smp 2 -m 4096M -qmp stdio -cdrom /var/root/Library/Application\ Support/multipassd/qemu/vault/instances/superior-chihuahua/cloud-init-config.iso
@@ -69,14 +70,14 @@ To find out if something is failing during boot, you'd need to attach to the VM'
 
 - *(macOS/Windows, VirtualBox driver)* Observe the output in the VirtualBox GUI:
     1. Run the VirtualBox GUI as admin/root:
-        - [macOS] `sudo VirtualBox`
-        - [Windows] [Run with `psexec.exe`](...):
-    2. Start or launch the instance with `multipass start|launch`
+        - \[macOS] `sudo VirtualBox`
+        - \[Windows] Run with `psexec.exe` as explained in {ref}`launch-start-issues-windows-run-virtualbox`.
+    2. Start or launch the instance with `multipass start|launch`.
     3. Select and attach to the VM in the VirtualBox GUI and observe the boot output. If it eventually arrives at a login screen, it means that the instance should've started correctly.
 
 - *(Windows, Hyper-V driver)*
-    1. Open the Hyper-V Manager GUI (look for it in your Start menu)
-    2. Start or launch the instance with `multipass start|launch`
+    1. Open the Hyper-V Manager GUI (look for it in your Start menu).
+    2. Start or launch the instance with `multipass start|launch`.
     2. Select the VM in Hyper-V manager and click "Connect" on the Actions pane, at the right-hand side. Observe the boot output.
 
 #### VM image corruption
@@ -94,7 +95,7 @@ Here are some options to attempt recovery:
 
   1. **Access the VM's Console**
 
-     - Use the method appropriate for your driver to access the VM's console, as described in the [VM Boot Failure](#vm-boot-failure) section.
+     - Use the method appropriate for your driver to access the VM's console, as described in the {ref}`launch-start-issues-vm-boot-failure` section.
 
   2. **Interrupt the Boot Process**
 
@@ -140,17 +141,18 @@ Here are some options to attempt recovery:
      - In the recovery menu, select **`resume`** to continue with the normal boot process.
      - The system should now boot normally if `fsck` was able to repair the filesystem.
 
-- *(Linux/macOS)* Alternatively, run `fsck` over a [mounted image](#reading-data-from-a-qcow2-image-12) on the host.
+- *(Linux/macOS)* Alternatively, run `fsck` over a mounted image on the host (see: {ref}`launch-start-issues-reading-data-from-an-image`).
 - Run `qemu-img check -r` on the image. 
     * `qemu-img`, shipped with Multipass, can also be used to check and repair disk images.
-    * See below how to [locate it](#locating-multipass-binaries-draft).
-    * See [here](#locating-multipass-images-draft) on how to locate images.
+    * See {ref}`launch-start-issues-locate-multipass-binaries` below.
+    * See {ref}`launch-start-issues-locate-multipass-images` below.
     * For example:
     ```
     /Library/Application\ Support/com.canonical.multipass/bin/qemu-img check -r /var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>
     ```
-- If none of the above works, you can still try to [mount the image manually]() to recover data.
+- If none of the above works, you can still try to mount the image manually to recover data (see {ref}`launch-start-issues-reading-data-from-an-image`).
 
+(launch-start-issues-no-ip-assigned)=
 ### No IP assigned
 
 Sometimes VMs request an IP address, but don't obtain one. That can happen because of interference from other software, VPNs, network misconfiguration and, firewall settings.
@@ -183,7 +185,7 @@ If that doesn't work for you, try :
 ```
 sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist
 ```
-
+(launch-start-issues-stale-sharing-lease)=
 ### [Windows, with Hyper-V] Stale internet connection sharing lease
 
 Another possible reason for instance timeouts is a problem with the `Internet Connection Sharing` hosts file. This file sometimes gets corrupted, with jumbled or incomplete text. Other times, it contains duplicate or stale IP addresses.
@@ -200,7 +202,7 @@ If SSH doesn't function properly in the VM, or Multipass is blocked from accessi
 
 To gain access to an instance without SSH you can try the following methods.
 
-* [Mount the instance's image file](#reading-data-from-a-qcow2-image-13) on your host and make necessary changes through the filesystem.
+* Mount the instance's image file on your host (see: {ref}`launch-start-issues-reading-data-from-an-image`) and make necessary changes through the filesystem.
 
 * Run the instance VM directly. This will require a username and password to log in. The username is the default user, `ubuntu`, and the password is what was set in cloud-init if you used a custom cloud-init config. If you do not have a password you can modify the instance's `cloud-init-config.iso` file to change it. One way to do so is as follows.
   1. Back up your existing `cloud-init-config.iso`.
@@ -226,17 +228,19 @@ chpasswd: { expire: false }
 
 * You can use `multipass shell` to get a shell in the instance when Multipass is waiting for cloud-init to finish. To diagnose problems, inspect cloud-init's logs in `/var/log/cloud-init*log`.
 
+(launch-start-issues-windows-run-virtualbox)=
 ### [Windows, VirtualBox driver] Running VirtualBox with the system account
 
 To run the VirtualBox GUI with the system account, you will need a Windows tool called PsExec:
 
-1. Install [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec)
-1. Add it to your `PATH`
-1. Run PowerShell as Administrator
-1. Execute `psexec.exe -s -i "C:\Program Files\Oracle\VirtualBox\VirtualBox.exe"` (adapt the path to the VirtualBox executable as needed)
+1. Install [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec).
+1. Add it to your `PATH`.
+1. Run PowerShell as Administrator.
+1. Execute `psexec.exe -s -i "C:\Program Files\Oracle\VirtualBox\VirtualBox.exe"` (adapt the path to the VirtualBox executable as needed).
 
 When successful, you should see Multipass's instances in VirtualBox
 
+(launch-start-issues-stale-network-cache)=
 ### Stale network cache
 
 This can be caused by a known Qt bug (see issue [#1714](https://github.com/canonical/multipass/issues/1714) on our GitHub).
@@ -260,15 +264,17 @@ Alternatively, try deleting the `network-cache` folder and restart the Multipass
 * *(on Windows)*
    Remove `C:\ProgramData\Multipass\cache\network-cache` and restart the Multipass service.
 
+(launch-start-issues-reading-data-from-an-image)=
 ### Reading data from a QCOW2 image
 
 The images that Multipass uses with the QEMU driver follow a standard format — QCOW2 — which other tools can read.
 
 One example is [`qemu-nbd`](https://manpages.ubuntu.com/manpages/oracular/en/man8/qemu-nbd.8.html), which allows mounting the image. This tool is not shipped with Multipass, so you would need to install it manually.
 
-Once you have it, you can search the web for recipes to "mount a QCOW2 image". For example, here is a [a recipe](https://askubuntu.com/a/4404).
+Once you have it, you can search the web for recipes to mount a QCOW2 image. For example, here is a [a recipe](https://askubuntu.com/a/4404).
 
-### Locating Multipass Binaries
+(launch-start-issues-locate-multipass-binaries)=
+### Locating Multipass binaries
 You may need to locate where Multipass is installed. There are several ways to do so, depending on your platform:
 * *(on Linux)*
   * Run the command `which multipass` or `whereis multipass`.
@@ -283,7 +289,8 @@ You may need to locate where Multipass is installed. There are several ways to d
   * Run the command `readlink -f $(which multipass)`
   * By default, Multipass is installed in the `/Library/Application\ Support/com.canonical.multipass/bin/` folder.
 
-### Locating Multipass Images
+(launch-start-issues-locate-multipass-images)=
+### Locating Multipass images
 You may need to locate where Multipass is storing instances. The location changes depending on your platform:
 * *(Linux)* `/root/.local/share/multipassd/vault/instances/<instance/<img>`
 
