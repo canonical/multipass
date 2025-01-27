@@ -30,7 +30,6 @@
 #include <fmt/std.h>
 
 constexpr int file_mode = 0664;
-constexpr auto max_transfer = 65536u;
 const std::string stream_file_name{"stream_output.dat"};
 const char* log_category = "sftp";
 
@@ -331,7 +330,8 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}", target_path, ssh_get_error(sftp->session)};
 
-    std::array<char, max_transfer> buffer{};
+    const auto max_write = sftp_limits(sftp.get())->max_write_length;
+    std::vector<char> buffer(max_write);
     while (auto r = source.read(buffer.data(), buffer.size()).gcount())
         if (sftp_write(remote_file.get(), buffer.data(), r) < 0)
             throw SFTPError{"cannot write to remote file {}: {}", target_path, ssh_get_error(sftp->session)};
@@ -343,7 +343,8 @@ void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}", source_path, ssh_get_error(sftp->session)};
 
-    std::array<char, max_transfer> buffer{};
+    const auto max_read = sftp_limits(sftp.get())->max_read_length;
+    std::vector<char> buffer(max_read);
     while (auto r = sftp_read(remote_file.get(), buffer.data(), buffer.size()))
     {
         if (r < 0)
