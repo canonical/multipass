@@ -27,19 +27,18 @@
 #include <QString>
 
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 
-namespace multipass
-{
-namespace cmd
+namespace multipass::cmd
 {
 class Launch final : public Command
 {
 public:
     using Command::Command;
 
-    Launch(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Launch(Rpc::StubInterface& stub, Terminal* term, const AliasDict& dict) : Command(stub, term), aliases(dict)
     {
     }
 
@@ -52,18 +51,19 @@ private:
     ParseCode parse_args(ArgParser* parser);
     ReturnCode request_launch(const ArgParser* parser);
     ReturnCode mount(const ArgParser* parser, const QString& mount_source, const QString& mount_target);
-    bool ask_bridge_permission(multipass::LaunchReply& reply);
+    bool ask_bridge_permission(LaunchReply& reply);
 
     LaunchRequest request;
     QString petenv_name;
-    std::unique_ptr<multipass::AnimatedSpinner> spinner;
-    std::unique_ptr<multipass::utils::Timer> timer;
+    std::unique_ptr<AnimatedSpinner> spinner;
+    std::unique_ptr<utils::Timer> timer;
 
     std::vector<std::pair<QString, QString>> mount_routes;
     QString instance_name;
+    std::set<std::string> zone_names;
 
     AliasDict aliases;
 };
-} // namespace cmd
-} // namespace multipass
+} // namespace multipass::cmd
+
 #endif // MULTIPASS_LAUNCH_H

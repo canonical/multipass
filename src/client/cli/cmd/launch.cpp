@@ -111,10 +111,8 @@ auto net_digest(const QString& options)
 mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
-    if (auto ret = parse_args(parser); ret != ParseCode::Ok)
-    {
+    if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
-    }
 
     auto ret = request_launch(parser);
 
@@ -238,18 +236,30 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                    "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
                                    "the name of the <source> directory.",
                                    "source>:<target");
+    QCommandLineOption zonesOption{
+        "zone",
+        "Assign the instance to the specified availability zone. If not specified, one will be chosen automatically. "
+        "If multiple zones are specified, one instance will be launched for each zone.",
+        "zone",
+    };
 
-    parser->addOptions({cpusOption, diskOption, memOption, memOptionDeprecated, nameOption, cloudInitOption,
-                        networkOption, bridgedOption, mountOption});
+    parser->addOptions({
+        cpusOption,
+        diskOption,
+        memOption,
+        memOptionDeprecated,
+        nameOption,
+        cloudInitOption,
+        networkOption,
+        bridgedOption,
+        mountOption,
+        zonesOption,
+    });
 
-    mp::cmd::add_timeout(parser);
+    add_timeout(parser);
 
-    auto status = parser->commandParse(this);
-
-    if (status != ParseCode::Ok)
-    {
+    if (const auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
-    }
 
     if (parser->positionalArguments().count() > 1)
     {
@@ -259,13 +269,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (!parser->positionalArguments().isEmpty())
     {
-        auto remote_image_name = parser->positionalArguments().first();
 
-        if (remote_image_name.startsWith("file://"))
+        if (auto remote_image_name = parser->positionalArguments().first(); remote_image_name.startsWith("file://"))
         {
             // Convert to absolute because the daemon doesn't know where the client is being executed.
-            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
-            auto absolute_file_path = file_info.absoluteFilePath();
+            const auto file_info = QFileInfo(remote_image_name.remove(0, 7));
+            const auto absolute_file_path = file_info.absoluteFilePath();
 
             request.set_image("file://" + absolute_file_path.toStdString());
         }
@@ -275,9 +284,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
         else
         {
-            auto colon_count = remote_image_name.count(':');
-
-            if (colon_count > 1)
+            if (const auto colon_count = remote_image_name.count(':'); colon_count > 1)
             {
                 cerr << "Invalid remote and source image name supplied\n";
                 return ParseCode::CommandLineError;
@@ -295,9 +302,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     }
 
     if (parser->isSet(nameOption))
-    {
         request.set_instance_name(parser->value(nameOption).toStdString());
-    }
 
     if (parser->isSet(cpusOption))
     {
@@ -440,7 +445,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     request.set_time_zone(QTimeZone::systemTimeZoneId().toStdString());
     request.set_verbosity_level(parser->verbosityLevel());
 
-    return status;
+    // this is so that we can support something like --zone zone1,zone2 --zone zone3
+    for (const auto& zone_name : parser->values(zonesOption).join(',').split(','))
+        zone_names.insert(zone_name.toStdString());
+    request.set_zone(*zone_names.begin());
+
+    return ParseCode::Ok;
 }
 
 mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
@@ -553,6 +563,14 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                 // TODO: show the option which triggered the error only. This will need a refactor in the
                 // LaunchError proto.
                 error_details = "Invalid network options supplied";
+            }
+            else if (error == LaunchError::INVALID_ZONE)
+            {
+                error_details = fmt::format("Invalid zone name supplied: {}", request.zone());
+            }
+            else if (error == LaunchError::ZONE_UNAVAILABLE)
+            {
+                error_details = fmt::format("Supplied unavailable zone name: {}", request.zone());
             }
         }
 
