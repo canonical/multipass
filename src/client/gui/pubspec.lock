@@ -742,8 +742,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "7c1394c"
-      resolved-ref: "7c1394c46aac4598ebdd3fa6670e4ea2904a4d31"
+      ref: cef5b8f
+      resolved-ref: cef5b8f60d7b2717c6f2eef2163a8e11de3b8d3d
       url: "https://github.com/andrei-toterman/tray_menu.git"
     source: git
     version: "0.0.1"
