@@ -244,5 +244,5 @@ long long mp::platform::Platform::get_total_ram() const
 
 std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
-    return {"/usr/local/etc/root_cert.pem"};
+    return {"/usr/local/share/ca-certificates/multipass_root_cert.pem"};
 }
