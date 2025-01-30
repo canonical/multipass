@@ -276,7 +276,7 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
+  set(MULTIPASS_BACKENDS hyperv hyperv_api virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
