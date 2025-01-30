@@ -173,6 +173,64 @@ public:
             throw std::runtime_error("Failed to sign certificate");
     }
 
+    explicit X509Cert(const EVPKey& key) // generate root certificate only
+    {
+        if (x509 == nullptr)
+            throw std::runtime_error("Failed to allocate x509 cert structure");
+
+        long big_num{0};
+        const auto rand_bytes = MP_UTILS.random_bytes(4);
+        for (unsigned int i = 0; i < 4u; i++)
+            big_num |= rand_bytes[i] << i * 8u;
+
+        X509_set_version(x509.get(), 2); // X.509 v3
+
+        ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
+        X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);                      // Start time: now
+        X509_gmtime_adj(X509_get_notAfter(x509.get()), 3650L * 24L * 60L * 60L); // Valid for 10 years
+
+        constexpr int APPEND_ENTRY{-1};
+        constexpr int ADD_RDN{0};
+
+        const auto country = as_vector("US");
+        const auto org = as_vector("Canonical");
+        const auto cn = as_vector("Multipass Root CA");
+
+        const auto name = X509_get_subject_name(x509.get());
+        X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
+        X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
+        X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
+        X509_set_issuer_name(x509.get(), name);
+        // set_san_name(x509.get(), server_name);
+
+        if (!X509_set_pubkey(x509.get(), key.get()))
+            throw std::runtime_error("Failed to set certificate public key");
+
+        // Add X509v3 extensions
+        X509V3_CTX ctx;
+        X509V3_set_ctx(&ctx, x509.get(), x509.get(), NULL, NULL, 0);
+
+        // wrap into function or struct
+        X509_EXTENSION* ext;
+        // Subject Key Identifier
+        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
+        X509_add_ext(x509.get(), ext, -1);
+        X509_EXTENSION_free(ext);
+
+        // Authority Key Identifier
+        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, "keyid:always");
+        X509_add_ext(x509.get(), ext, -1);
+        X509_EXTENSION_free(ext);
+
+        // Basic Constraints: critical, CA:TRUE
+        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, "critical,CA:TRUE");
+        X509_add_ext(x509.get(), ext, -1);
+        X509_EXTENSION_free(ext);
+
+        if (!X509_sign(x509.get(), key.get(), EVP_sha256()))
+            throw std::runtime_error("Failed to sign certificate");
+    }
+
     std::string as_pem()
     {
         mp::BIOMem mem;
