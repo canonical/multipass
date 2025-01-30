@@ -28,7 +28,7 @@ For detailed instructions, please review GitHub documentation on [privately repo
 
 ## Our response process
 
-Vulnerabilities are classified by risk, which factors in impact and likelihood.
+Vulnerabilities are classified by severity, which factors in impact and likelihood.
 The Multipass project will prioritize responding to all High and Critical severity vulnerabilities.
 
 When we receive an issue, we will work with the reporter to determine how best to proceed.
@@ -53,7 +53,7 @@ We are committed to fixing high-risk security issues and releasing them as quick
 
 Additionally, the `candidate` channel of the Multipass snap provides frequent rebuilds of the `stable` channel with updated dependencies.
 These builds are produced from the same Multipass code, but with up-to-date `.deb` packages.
-Candidate snaps are promoted to the stable channel from time to time.
+`candidate` snaps are promoted to the `stable` channel from time to time.
 
 ### How to check your version
 
@@ -63,7 +63,7 @@ You can find out which version of Multipass is installed on your system with the
 multipass version
 ```
 
-The `snap` command provides information on exact revisions and build dates:
+The `snap` command provides information on exact snap revisions and build dates:
 
 ```
 snap info multipass
