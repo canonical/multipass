@@ -37,26 +37,16 @@ class _TooltipState extends fl.State<Tooltip> {
   fl.Widget build(fl.BuildContext context) {
     return fl.TooltipVisibility(
       visible: widget.visible,
-      child: _forceShow
-          ? fl.Tooltip(
-              key: _key,
-              message: widget.message,
-              textAlign: fl.TextAlign.center,
-              decoration: fl.BoxDecoration(
-                color: const fl.Color(0xff111111),
-                borderRadius: fl.BorderRadius.circular(2),
-              ),
-              child: widget.child,
-            )
-          : fl.Tooltip(
-              message: widget.message,
-              textAlign: fl.TextAlign.center,
-              decoration: fl.BoxDecoration(
-                color: const fl.Color(0xff111111),
-                borderRadius: fl.BorderRadius.circular(2),
-              ),
-              child: widget.child,
-            ),
+      child: fl.Tooltip(
+        key: _forceShow ? _key : null,
+        message: widget.message,
+        textAlign: fl.TextAlign.center,
+        decoration: fl.BoxDecoration(
+          color: const fl.Color(0xff111111),
+          borderRadius: fl.BorderRadius.circular(2),
+        ),
+        child: widget.child,
+      ),
     );
   }
 }

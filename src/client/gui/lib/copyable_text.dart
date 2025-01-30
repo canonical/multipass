@@ -14,8 +14,10 @@ class CopyableText extends StatefulWidget {
 
 class _CopyableTextState extends State<CopyableText> {
   bool _copied = false;
+  bool get _isCopyable => widget.text != '-';
 
   void _copyToClipboard() async {
+    if (!_isCopyable) return;
     await Clipboard.setData(ClipboardData(text: widget.text));
     setState(() => _copied = true);
   }
@@ -28,6 +30,15 @@ class _CopyableTextState extends State<CopyableText> {
 
   @override
   Widget build(BuildContext context) {
+    Widget text = Text(
+      widget.text,
+      style: widget.style,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    if (!_isCopyable) return text;
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onExit: (_) => _resetCopied(),
@@ -35,12 +46,7 @@ class _CopyableTextState extends State<CopyableText> {
         onTap: _copyToClipboard,
         child: Tooltip(
           message: _copied ? 'Copied' : 'Click to copy',
-          child: Text(
-            widget.text,
-            style: widget.style,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: text,
         ),
       ),
     );
