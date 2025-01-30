@@ -88,13 +88,13 @@ public:
         return mem.as_string();
     }
 
-    void write(const QString& name)
+    void write(const QString& key_path)
     {
-        WritableFile file{name};
+        WritableFile file{key_path};
         if (!PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr))
-            throw std::runtime_error(fmt::format("Failed writing certificate private key to file '{}'", name));
+            throw std::runtime_error(fmt::format("Failed writing certificate private key to file '{}'", key_path));
 
-        QFile::setPermissions(name, QFile::ReadOwner);
+        QFile::setPermissions(key_path, QFile::ReadOwner);
     }
 
     EVP_PKEY* get() const
@@ -304,11 +304,11 @@ public:
         return mem.as_string();
     }
 
-    void write(const QString& name)
+    void write(const QString& cert_path)
     {
-        WritableFile file{name};
+        WritableFile file{cert_path};
         if (!PEM_write_X509(file.get(), x509.get()))
-            throw std::runtime_error(fmt::format("Failed writing certificate to file '{}'", name));
+            throw std::runtime_error(fmt::format("Failed writing certificate to file '{}'", cert_path));
     }
 
 private:
