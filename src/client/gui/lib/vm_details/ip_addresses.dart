@@ -21,7 +21,8 @@ class IpAddresses extends StatelessWidget {
             ? CopyableText(firstIp)
             : Tooltip(
                 message: firstIp,
-                child: Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
+                child:
+                    Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
               ),
       ),
       if (restIps.isNotEmpty)
