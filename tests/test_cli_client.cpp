@@ -161,6 +161,7 @@ struct Client : public Test
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
         EXPECT_CALL(mock_settings, register_handler(_)).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(multipass::test::root_cert));
 
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
@@ -379,8 +380,11 @@ struct Client : public Test
     };
     std::unique_ptr<NiceMock<mpt::MockCertProvider>> daemon_cert_provider{
         std::make_unique<NiceMock<mpt::MockCertProvider>>()};
-    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
-    mpt::MockPlatform* mock_platform = attr.first;
+    const mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
+    const mpt::MockPlatform* mock_platform = platform_attr.first;
+    const mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils* mock_utils = utils_attr.first;
+
     mpt::StubCertStore cert_store;
     StrictMock<MockDaemonRpc> mock_daemon{server_address, *daemon_cert_provider,
                                           &cert_store}; // strict to fail on unexpected calls and play well with sharing
@@ -3564,7 +3568,6 @@ struct TimeoutSuite : Client, WithParamInterface<std::string>
 
 TEST_P(TimeoutSuite, command_exits_on_timeout)
 {
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
 
     EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
