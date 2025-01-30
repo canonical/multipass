@@ -249,7 +249,7 @@ public:
 
         ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
         X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
-        X509_gmtime_adj(X509_get_notAfter(x509.get()), 31536000L);// Valid for 10 years
+        X509_gmtime_adj(X509_get_notAfter(x509.get()), 31536000L); // Valid for 10 years
 
         constexpr int APPEND_ENTRY{-1};
         constexpr int ADD_RDN{0};
@@ -259,9 +259,27 @@ public:
         const auto cn = as_vector(cn_name_from(server_name));
 
         const auto server_certificate_name = X509_get_subject_name(x509.get());
-        X509_NAME_add_entry_by_txt(server_certificate_name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
-        X509_NAME_add_entry_by_txt(server_certificate_name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
-        X509_NAME_add_entry_by_txt(server_certificate_name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
+        X509_NAME_add_entry_by_txt(server_certificate_name,
+                                   "C",
+                                   MBSTRING_ASC,
+                                   country.data(),
+                                   country.size(),
+                                   APPEND_ENTRY,
+                                   ADD_RDN);
+        X509_NAME_add_entry_by_txt(server_certificate_name,
+                                   "O",
+                                   MBSTRING_ASC,
+                                   org.data(),
+                                   org.size(),
+                                   APPEND_ENTRY,
+                                   ADD_RDN);
+        X509_NAME_add_entry_by_txt(server_certificate_name,
+                                   "CN",
+                                   MBSTRING_ASC,
+                                   cn.data(),
+                                   cn.size(),
+                                   APPEND_ENTRY,
+                                   ADD_RDN);
         // Set issuer name (from root certificate)
         X509_set_issuer_name(x509.get(), X509_get_subject_name(root_certificate.x509.get()));
 
@@ -270,23 +288,23 @@ public:
         if (!X509_set_pubkey(x509.get(), server_key.get()))
             throw std::runtime_error("Failed to set certificate public key");
 
-               // Add X509v3 extensions
+        // Add X509v3 extensions
         X509V3_CTX ctx;
         X509V3_set_ctx(&ctx, root_certificate.x509.get(), x509.get(), NULL, NULL, 0);
 
-               // wrap into function or struct
+        // wrap into function or struct
         X509_EXTENSION* ext;
         // Subject Key Identifier
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
         X509_add_ext(x509.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
-               // Authority Key Identifier
+        // Authority Key Identifier
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, "keyid:always,issuer");
         X509_add_ext(x509.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
-               // Basic Constraints: critical, CA:FALSE
+        // Basic Constraints: critical, CA:FALSE
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, "critical,CA:FALSE");
         X509_add_ext(x509.get(), ext, -1);
         X509_EXTENSION_free(ext);
