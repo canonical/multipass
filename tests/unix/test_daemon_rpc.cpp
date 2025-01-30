@@ -33,36 +33,21 @@ using namespace testing;
 
 namespace
 {
-constexpr auto key_data = "-----BEGIN PRIVATE KEY-----\n"
-                          "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgsSAz5ggzrLjai0I/\n"
-                          "F0hYg5oG/shpXJiBQtJdBCG3lUShRANCAAQAFGNAqq7c5IMDeQ/cV4+Emogmkfpb\n"
-                          "TLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqaJ7sAPJJwlVj1xD0r5DX5\n"
-                          "-----END PRIVATE KEY-----\n";
-
-constexpr auto cert_data = "-----BEGIN CERTIFICATE-----\n"
-                           "MIIBUjCB+AIBKjAKBggqhkjOPQQDAjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJ\n"
-                           "Q2Fub25pY2FsMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTgwNjIxMTM0MjI5WhcN\n"
-                           "MTkwNjIxMTM0MjI5WjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJQ2Fub25pY2Fs\n"
-                           "MRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQA\n"
-                           "FGNAqq7c5IMDeQ/cV4+EmogmkfpbTLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqa\n"
-                           "J7sAPJJwlVj1xD0r5DX5MAoGCCqGSM49BAMCA0kAMEYCIQCvI0PYv9f201fbe4LP\n"
-                           "BowTeYWSqMQtLNjvZgd++AAGhgIhALNPW+NRSKCXwadiIFgpbjPInLPqXPskLWSc\n"
-                           "aXByaQyt\n"
-                           "-----END CERTIFICATE-----\n";
-
 struct TestDaemonRpc : public mpt::DaemonTestFixture
 {
     TestDaemonRpc()
     {
-        EXPECT_CALL(*mock_cert_provider, PEM_certificate()).WillOnce(Return(cert_data));
-        EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).WillOnce(Return(key_data));
+        EXPECT_CALL(*mock_cert_provider, PEM_certificate()).Times(1);
+        EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).Times(1);
         EXPECT_CALL(*mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
+        EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
     }
 
     mp::Rpc::Stub make_secure_stub()
     {
         auto opts = grpc::SslCredentialsOptions();
-        opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+        opts.pem_root_certs = mpt::root_cert;
+        opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_AND_VERIFY;
         opts.pem_cert_chain = mpt::client_cert;
         opts.pem_private_key = mpt::client_key;
 
@@ -93,7 +78,7 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
         std::make_unique<NiceMock<mpt::MockCertProvider>>()};
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
 
-    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject()};
+    mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
 
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
