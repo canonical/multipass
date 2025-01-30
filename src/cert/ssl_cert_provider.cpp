@@ -16,6 +16,7 @@
  */
 
 #include <multipass/format.h>
+#include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
 
@@ -28,7 +29,6 @@
 
 #include <QFile>
 
-#include <array>
 #include <cerrno>
 #include <cstring>
 #include <memory>
@@ -327,15 +327,32 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
         return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
     }
 
-    EVPKey key;
-    X509Cert cert{key, server_name};
+    if (!server_name.empty())
+    {
+        EVPKey root_cert_key;
+        const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
+        const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
 
-    key.write(priv_key_path);
-    cert.write(cert_path);
+        X509Cert root_cert{root_cert_key};
+        root_cert_key.write(priv_root_key_path);
+        root_cert.write(root_cert_path.u8string().c_str());
 
-    return {cert.as_pem(), key.as_pem()};
+        EVPKey server_cert_key;
+        X509Cert signed_server_cert{root_cert_key, root_cert, server_cert_key, server_name};
+        server_cert_key.write(priv_key_path);
+        signed_server_cert.write(cert_path);
+        return {signed_server_cert.as_pem(), server_cert_key.as_pem()};
+    }
+    else
+    {
+        EVPKey client_cert_key;
+        X509Cert client_cert{client_cert_key, server_name};
+        client_cert_key.write(priv_key_path);
+        client_cert.write(cert_path);
+
+        return {client_cert.as_pem(), client_cert_key.as_pem()};
+    }
 }
-
 } // namespace
 
 mp::SSLCertProvider::SSLCertProvider(const multipass::Path& cert_dir, const std::string& server_name)
