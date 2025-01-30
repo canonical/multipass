@@ -74,7 +74,8 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 {
     auto opts = grpc::SslCredentialsOptions();
 
-    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+    opts.pem_root_certs = MP_UTILS.contents_of(MP_PLATFORM.get_root_cert_path().u8string().c_str());
+    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_AND_VERIFY;
     opts.pem_cert_chain = cert_provider.PEM_certificate();
     opts.pem_private_key = cert_provider.PEM_signing_key();
 
