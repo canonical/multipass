@@ -204,7 +204,6 @@ class _AppState extends ConsumerState<App> with WindowListener {
                   .set(remember ? 'nothing' : 'ask');
               windowManager.destroy();
             },
-            onClose: () => Navigator.pop(context),
           ),
         );
     }

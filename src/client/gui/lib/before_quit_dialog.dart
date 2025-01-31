@@ -6,13 +6,11 @@ import 'switch.dart';
 class BeforeQuitDialog extends StatefulWidget {
   final Function(bool remember) onStop;
   final Function(bool remember) onKeep;
-  final Function() onClose;
 
   const BeforeQuitDialog({
     super.key,
     required this.onStop,
     required this.onKeep,
-    required this.onClose,
   });
 
   @override

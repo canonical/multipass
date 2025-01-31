@@ -14,6 +14,7 @@ import 'hotkey.dart';
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
 final passphraseProvider = daemonSettingProvider(passphraseKey);
 final privilegedMountsProvider = daemonSettingProvider(privilegedMountsKey);
+final askTerminalCloseProvider = guiSettingProvider(askTerminalCloseKey);
 
 class UsageSettings extends ConsumerWidget {
   const UsageSettings({super.key});
@@ -28,6 +29,9 @@ class UsageSettings extends ConsumerWidget {
       return value.valueOrNull?.toBoolOption.toNullable() ?? false;
     }));
     final hotkey = ref.watch(hotkeyProvider);
+    final askTerminalClose = ref.watch(askTerminalCloseProvider.select((value) {
+      return value?.toBoolOption.toNullable() ?? true;
+    }));
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text(
@@ -69,6 +73,16 @@ class UsageSettings extends ConsumerWidget {
               .onError(
                 ref.notifyError((e) => 'Failed to set privileged mounts: $e'),
               );
+        },
+      ),
+      const SizedBox(height: 20),
+      Switch(
+        label: 'Ask before closing terminal',
+        value: askTerminalClose,
+        trailingSwitch: true,
+        size: 30,
+        onChanged: (value) {
+          ref.read(askTerminalCloseProvider.notifier).set(value.toString());
         },
       ),
     ]);
