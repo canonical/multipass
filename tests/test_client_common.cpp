@@ -44,6 +44,16 @@ struct TestClientCommon : public mpt::DaemonTestFixture
     {
         ON_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericDataLocation))
             .WillByDefault(Return(temp_dir.path()));
+        ON_CALL(*mock_utils, contents_of(_)).WillByDefault(Return(multipass::test::root_cert));
+        //delegate some functions to the orignal implementation
+        ON_CALL(*mock_utils, make_dir(A<const QDir&>(), A<const QString&>(), A<std::filesystem::perms>()))
+            .WillByDefault([](const QDir& dir, const QString& name, std::filesystem::perms permissions) -> mp::Path {
+                return MP_UTILS.Utils::make_dir(dir, name, permissions);
+            });
+        ON_CALL(*mock_utils, make_dir(A<const QDir&>(), A<std::filesystem::perms>()))
+            .WillByDefault([](const QDir& dir, std::filesystem::perms permissions) -> mp::Path {
+                return MP_UTILS.Utils::make_dir(dir, permissions);
+            });
     }
 
     mpt::MockDaemon make_secure_server()
@@ -60,6 +70,8 @@ struct TestClientCommon : public mpt::DaemonTestFixture
     std::unique_ptr<NiceMock<mpt::MockCertProvider>> mock_cert_provider{
         std::make_unique<NiceMock<mpt::MockCertProvider>>()};
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
+    const mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils* mock_utils = utils_attr.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
