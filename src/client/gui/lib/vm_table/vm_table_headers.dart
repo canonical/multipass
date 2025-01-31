@@ -14,6 +14,7 @@ import '../vm_details/vm_status_icon.dart';
 import 'search_box.dart';
 import 'table.dart';
 import 'vms.dart';
+import '../copyable_text.dart';
 
 final headers = <TableHeader<VmInfo>>[
   TableHeader(
@@ -72,9 +73,8 @@ final headers = <TableHeader<VmInfo>>[
     minWidth: 70,
     cellBuilder: (info) {
       final image = info.instanceInfo.currentRelease;
-      return Text(
+      return CopyableText(
         image.isNotBlank ? image.nonBreaking : '-',
-        overflow: TextOverflow.ellipsis,
       );
     },
   ),
@@ -82,13 +82,19 @@ final headers = <TableHeader<VmInfo>>[
     name: 'PRIVATE IP',
     width: 140,
     minWidth: 100,
-    cellBuilder: (info) => IpAddresses(info.instanceInfo.ipv4.take(1)),
+    cellBuilder: (info) => IpAddresses(
+      info.instanceInfo.ipv4.take(1),
+      copyable: true,
+    ),
   ),
   TableHeader(
     name: 'PUBLIC IP',
     width: 140,
     minWidth: 100,
-    cellBuilder: (info) => IpAddresses(info.instanceInfo.ipv4.skip(1)),
+    cellBuilder: (info) => IpAddresses(
+      info.instanceInfo.ipv4.skip(1),
+      copyable: true,
+    ),
   ),
 ];
 
