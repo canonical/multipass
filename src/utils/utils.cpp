@@ -27,6 +27,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
+#include <multipass/utils/permission_utils.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -298,7 +299,7 @@ mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, std::filesy
 
     if (permissions != std::filesystem::perms::none)
     {
-        MP_PLATFORM.set_permissions(dir_path.toStdU16String(), permissions);
+        MP_PERMISSIONS.set_permissions(dir_path.toStdU16String(), permissions);
     }
 
     return dir_path;
