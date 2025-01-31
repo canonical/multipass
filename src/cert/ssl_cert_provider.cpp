@@ -119,21 +119,6 @@ std::string cn_name_from(const std::string& server_name)
     return server_name;
 }
 
-void set_san_name(X509* c, const std::string& server_name)
-{
-    std::string san_dns = server_name;
-    GENERAL_NAMES* gens = sk_GENERAL_NAME_new_null();
-    GENERAL_NAME* gen = GENERAL_NAME_new();
-    ASN1_IA5STRING* ia5 = ASN1_IA5STRING_new();
-    ASN1_STRING_set(ia5, san_dns.data(), san_dns.length());
-    GENERAL_NAME_set0_value(gen, GEN_DNS, ia5);
-    sk_GENERAL_NAME_push(gens, gen);
-
-    X509_add1_ext_i2d(c, NID_subject_alt_name, gens, 0, X509V3_ADD_DEFAULT);
-
-    GENERAL_NAMES_free(gens);
-}
-
 class X509Cert
 {
 public:
@@ -165,7 +150,6 @@ public:
         X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
         X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
         X509_set_issuer_name(x509.get(), name);
-        set_san_name(x509.get(), server_name);
 
         if (!X509_set_pubkey(x509.get(), key.get()))
             throw std::runtime_error("Failed to set certificate public key");
@@ -202,7 +186,6 @@ public:
         X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
         X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
         X509_set_issuer_name(x509.get(), name);
-        // set_san_name(x509.get(), server_name);
 
         if (!X509_set_pubkey(x509.get(), key.get()))
             throw std::runtime_error("Failed to set certificate public key");
@@ -284,8 +267,6 @@ public:
         // Set issuer name (from root certificate)
         X509_set_issuer_name(x509.get(), X509_get_subject_name(root_certificate.x509.get()));
 
-        set_san_name(x509.get(), server_name);
-
         if (!X509_set_pubkey(x509.get(), server_key.get()))
             throw std::runtime_error("Failed to set certificate public key");
 
@@ -294,7 +275,12 @@ public:
         X509V3_set_ctx(&ctx, root_certificate.x509.get(), x509.get(), NULL, NULL, 0);
 
         // wrap into function or struct
+
         X509_EXTENSION* ext;
+        // Subject Alternative Name
+        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
+        X509_add_ext(x509.get(), ext, -1);
+        X509_EXTENSION_free(ext);
         // Subject Key Identifier
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
         X509_add_ext(x509.get(), ext, -1);
