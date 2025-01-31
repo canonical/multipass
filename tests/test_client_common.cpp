@@ -44,7 +44,7 @@ struct TestClientCommon : public mpt::DaemonTestFixture
         ON_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericDataLocation))
             .WillByDefault(Return(temp_dir.path()));
         ON_CALL(*mock_utils, contents_of(_)).WillByDefault(Return(multipass::test::root_cert));
-        //delegate some functions to the orignal implementation
+        // delegate some functions to the orignal implementation
         ON_CALL(*mock_utils, make_dir(A<const QDir&>(), A<const QString&>(), A<std::filesystem::perms>()))
             .WillByDefault([](const QDir& dir, const QString& name, std::filesystem::perms permissions) -> mp::Path {
                 return MP_UTILS.Utils::make_dir(dir, name, permissions);
