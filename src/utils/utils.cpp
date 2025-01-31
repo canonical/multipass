@@ -67,7 +67,7 @@ qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory) cons
     return QStorageInfo(QDir(data_directory)).bytesAvailable();
 }
 
-void mp::Utils::exit(int code)
+void mp::Utils::exit(int code) const
 {
     std::exit(code);
 }
