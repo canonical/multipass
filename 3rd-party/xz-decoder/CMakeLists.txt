@@ -26,5 +26,7 @@ add_library(xz-embedded STATIC
   xz-embedded/linux/lib/xz/xz_dec_stream.c
 )
 
+set_property(TARGET xz-embedded PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(xz-embedded INTERFACE
   xz-embedded/linux/include/linux)
