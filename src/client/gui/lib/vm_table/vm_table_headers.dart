@@ -1,10 +1,11 @@
 import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:flutter/material.dart' hide Tooltip, SelectableText;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
 import '../providers.dart';
+import '../selectable_text.dart';
 import '../sidebar.dart';
 import '../tooltip.dart';
 import '../vm_details/cpu_sparkline.dart';
@@ -72,9 +73,9 @@ final headers = <TableHeader<VmInfo>>[
     minWidth: 70,
     cellBuilder: (info) {
       final image = info.instanceInfo.currentRelease;
-      return Text(
+      return SelectableText(
         image.isNotBlank ? image.nonBreaking : '-',
-        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       );
     },
   ),
