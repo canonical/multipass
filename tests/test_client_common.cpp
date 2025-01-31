@@ -71,7 +71,7 @@ struct TestClientCommon : public mpt::DaemonTestFixture
         std::make_unique<NiceMock<mpt::MockCertProvider>>()};
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
     const mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils* mock_utils = utils_attr.first;
+    const mpt::MockUtils* mock_utils = utils_attr.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();

@@ -38,8 +38,8 @@ public:
     MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&), ());
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
-    MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, std::filesystem::perms), (override));
-    MOCK_METHOD(Path, make_dir, (const QDir&, std::filesystem::perms), (override));
+    MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, std::filesystem::perms), (const override));
+    MOCK_METHOD(Path, make_dir, (const QDir&, std::filesystem::perms), (const override));
     MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
     MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
     MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));

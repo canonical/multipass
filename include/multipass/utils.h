@@ -209,8 +209,8 @@ public:
                                         const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir,
                           const QString& name,
-                          std::filesystem::perms permissions = std::filesystem::perms::none);
-    virtual Path make_dir(const QDir& dir, std::filesystem::perms permissions = std::filesystem::perms::none);
+                          std::filesystem::perms permissions = std::filesystem::perms::none) const;
+    virtual Path make_dir(const QDir& dir, std::filesystem::perms permissions = std::filesystem::perms::none) const;
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,
