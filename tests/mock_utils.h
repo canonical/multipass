@@ -32,7 +32,7 @@ class MockUtils : public Utils
 public:
     using Utils::Utils;
     MOCK_METHOD(qint64, filesystem_bytes_available, (const QString&), (const, override));
-    MOCK_METHOD(void, exit, (int), (override));
+    MOCK_METHOD(void, exit, (int), (const override));
     MOCK_METHOD(std::string, run_cmd_for_output, (const QString&, const QStringList&, const int), (const, override));
     MOCK_METHOD(bool, run_cmd_for_status, (const QString&, const QStringList&, const int), (const, override));
     MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));

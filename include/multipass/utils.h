@@ -203,7 +203,7 @@ public:
     Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
-    virtual void exit(int code);
+    virtual void exit(int code) const;
     virtual std::string contents_of(const multipass::Path& file_path) const;
     virtual void make_file_with_content(const std::string& file_name, const std::string& content,
                                         const bool& overwrite = false);
