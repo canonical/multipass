@@ -48,8 +48,8 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
         auto opts = grpc::SslCredentialsOptions();
         opts.pem_root_certs = mpt::root_cert;
         opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_AND_VERIFY;
-        opts.pem_cert_chain = mpt::client_cert;
-        opts.pem_private_key = mpt::client_key;
+        opts.pem_cert_chain = mpt::cert;
+        opts.pem_private_key = mpt::key;
 
         auto channel = grpc::CreateChannel(server_address, grpc::SslCredentials(opts));
 
@@ -110,7 +110,7 @@ TEST_F(TestDaemonRpc, authenticateCompletesSuccessfully)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).WillOnce(Return(true));
-    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).Times(1);
 
     mpt::MockDaemon daemon{make_secure_server()};
     EXPECT_CALL(daemon, authenticate(_, _, _)).WillOnce([](auto, auto, auto* status_promise) {
@@ -160,7 +160,7 @@ TEST_F(TestDaemonRpc, pingReturnsOkWhenCertIsVerified)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).WillOnce(Return(false));
-    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::cert))).WillOnce(Return(true));
 
     mpt::MockDaemon daemon{make_secure_server()};
     mp::Rpc::Stub stub{make_secure_stub()};
@@ -177,7 +177,7 @@ TEST_F(TestDaemonRpc, pingReturnsUnauthenticatedWhenCertIsNotVerified)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).WillOnce(Return(false));
-    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
+    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::cert))).WillOnce(Return(false));
 
     mpt::MockDaemon daemon{make_secure_server()};
     mp::Rpc::Stub stub{make_secure_stub()};
@@ -195,7 +195,7 @@ TEST_F(TestDaemonRpc, listCertExistsCompletesSuccessfully)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::cert))).WillOnce(Return(true));
 
     mpt::MockDaemon daemon{make_secure_server()};
     mock_empty_list_reply(daemon);
@@ -209,7 +209,7 @@ TEST_F(TestDaemonRpc, listNoCertsExistWillVerifyAndComplete)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).Times(1);
 
     mpt::MockDaemon daemon{make_secure_server()};
     mock_empty_list_reply(daemon);
@@ -222,7 +222,7 @@ TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
+    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::cert))).WillOnce(Return(false));
 
     mpt::MockDaemon daemon{make_secure_server()};
 
@@ -242,8 +242,8 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(1);
-    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(0);
-    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::client_cert))).WillOnce(Return(false));
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).Times(0);
+    EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::cert))).WillOnce(Return(false));
 
     mpt::MockDaemon daemon{make_secure_server()};
 
@@ -262,7 +262,7 @@ TEST_F(TestDaemonRpc, listAcceptCertFailsHasError)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).WillOnce(Throw(std::runtime_error(error_msg)));
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).WillOnce(Throw(std::runtime_error(error_msg)));
 
     mpt::MockDaemon daemon{make_secure_server()};
 
@@ -282,7 +282,7 @@ TEST_F(TestDaemonRpc, listSettingServerPermissionsFailLogsErrorAndExits)
         .WillOnce(Throw(std::runtime_error(error_msg)));
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::client_cert))).Times(1);
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).Times(1);
 
     // Detects if the daemon would actually exit
     EXPECT_CALL(*mock_utils, exit(EXIT_FAILURE)).Times(1);

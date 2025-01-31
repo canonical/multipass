@@ -57,8 +57,8 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 
     mpt::MockDaemon make_secure_server()
     {
-        EXPECT_CALL(*mock_cert_provider, PEM_certificate()).WillOnce(Return(mpt::daemon_cert));
-        EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).WillOnce(Return(mpt::daemon_key));
+        EXPECT_CALL(*mock_cert_provider, PEM_certificate()).Times(1);
+        EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).Times(1);
 
         config_builder.server_address = server_address;
         config_builder.cert_provider = std::move(mock_cert_provider);
@@ -83,8 +83,8 @@ TEST_F(TestClientCommon, usesCommonCertWhenItExists)
     const auto common_client_cert_file = common_cert_dir + "/" + mp::client_cert_file;
     const auto common_client_key_file = common_cert_dir + "/" + mp::client_key_file;
 
-    mpt::make_file_with_content(common_client_cert_file, mpt::client_cert);
-    mpt::make_file_with_content(common_client_key_file, mpt::client_key);
+    mpt::make_file_with_content(common_client_cert_file, mpt::cert);
+    mpt::make_file_with_content(common_client_key_file, mpt::key);
 
     EXPECT_TRUE(mp::client::make_channel(server_address, *mp::client::get_cert_provider()));
 }
