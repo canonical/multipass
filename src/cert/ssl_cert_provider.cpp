@@ -41,10 +41,10 @@ namespace
 class WritableFile
 {
 public:
-    explicit WritableFile(const QString& name) : fp{fopen(name.toStdString().c_str(), "wb"), fclose}
+    explicit WritableFile(const QString& file_path) : fp{fopen(file_path.toStdString().c_str(), "wb"), fclose}
     {
         if (fp == nullptr)
-            throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno));
+            throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
     }
 
     FILE* get() const
@@ -88,7 +88,7 @@ public:
         return mem.as_string();
     }
 
-    void write(const QString& key_path)
+    void write(const QString& key_path) const
     {
         WritableFile file{key_path};
         if (!PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr))
@@ -313,7 +313,7 @@ public:
             throw std::runtime_error("Failed to sign certificate");
     }
 
-    std::string as_pem()
+    std::string as_pem() const
     {
         mp::BIOMem mem;
         auto bytes = PEM_write_bio_X509(mem.get(), x509.get());
@@ -322,7 +322,7 @@ public:
         return mem.as_string();
     }
 
-    void write(const QString& cert_path)
+    void write(const QString& cert_path) const
     {
         WritableFile file{cert_path};
         if (!PEM_write_X509(file.get(), x509.get()))
@@ -335,10 +335,10 @@ private:
 
 mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir, const std::string& server_name)
 {
-    QString prefix = server_name.empty() ? "multipass_cert" : QString::fromStdString(server_name);
+    const QString prefix = server_name.empty() ? "multipass_cert" : QString::fromStdString(server_name);
 
-    auto priv_key_path = cert_dir.filePath(prefix + "_key.pem");
-    auto cert_path = cert_dir.filePath(prefix + ".pem");
+    const auto priv_key_path = cert_dir.filePath(prefix + "_key.pem");
+    const auto cert_path = cert_dir.filePath(prefix + ".pem");
 
     if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
     {
@@ -347,24 +347,24 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
     if (!server_name.empty())
     {
-        EVPKey root_cert_key;
+        const EVPKey root_cert_key;
         const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
         const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
 
-        X509Cert root_cert{root_cert_key};
+        const X509Cert root_cert{root_cert_key};
         root_cert_key.write(priv_root_key_path);
         root_cert.write(root_cert_path.u8string().c_str());
 
-        EVPKey server_cert_key;
-        X509Cert signed_server_cert{root_cert_key, root_cert, server_cert_key, server_name};
+        const EVPKey server_cert_key;
+        const X509Cert signed_server_cert{root_cert_key, root_cert, server_cert_key, server_name};
         server_cert_key.write(priv_key_path);
         signed_server_cert.write(cert_path);
         return {signed_server_cert.as_pem(), server_cert_key.as_pem()};
     }
     else
     {
-        EVPKey client_cert_key;
-        X509Cert client_cert{client_cert_key, server_name};
+        const EVPKey client_cert_key;
+        const X509Cert client_cert{client_cert_key, server_name};
         client_cert_key.write(priv_key_path);
         client_cert.write(cert_path);
 
