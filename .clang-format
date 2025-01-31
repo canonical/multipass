@@ -2,41 +2,41 @@
 # We'll use defaults from the LLVM style, but with 4 columns indentation.
 BasedOnStyle: LLVM
 ---
-Language: Cpp
-IndentWidth: 4
-IndentExternBlock: NoIndent
-BreakBeforeBraces: Custom
-BinPackArguments: false
-BinPackParameters: false
+AccessModifierOffset: -4
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
-PenaltyReturnTypeOnItsOwnLine: 120
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments: false
+BinPackParameters: false
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
   AfterControlStatement: Always
   AfterEnum: true
+  AfterExternBlock: true
   AfterFunction: true
   AfterNamespace: true
   AfterObjCDeclaration: true
   AfterStruct: true
   AfterUnion: true
-  AfterExternBlock: true
   BeforeCatch: true
   BeforeElse: true
-AccessModifierOffset: -4
-Cpp11BracedListStyle: true
-Standard: Cpp11
-DerivePointerAlignment: false
-PointerAlignment: Left
-AlwaysBreakTemplateDeclarations: true
+BreakBeforeBraces: Custom
 ColumnLimit: 120
-AllowShortBlocksOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
+Cpp11BracedListStyle: true
+DerivePointerAlignment: false
+IndentExternBlock: NoIndent
+IndentWidth: 4
 InsertNewlineAtEOF: true
+Language: Cpp
+PenaltyReturnTypeOnItsOwnLine: 120
+PointerAlignment: Left
+Standard: Cpp11
 ---
 Language: Proto
 DisableFormat: true
