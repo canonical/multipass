@@ -192,10 +192,13 @@ redirects = {}
 # TODO: Remove or adjust the ACME entry after you update the contributing guide
 
 linkcheck_ignore = [
+	"https://app.element.io/#/room/#Multipass:matrix.org",
     "http://127.0.0.1:8000",
-    "https://github.com/canonical/ACME/*"
+    "http://127.0.0.1:8001",
+    "https://github.com/canonical/*"
     ]
 
+linkcheck_retries = 3
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 

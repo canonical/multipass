@@ -1,6 +1,8 @@
 /*env*/
 
 .sphinx/venv/
+.sphinx/styles/
+.sphinx/vale.ini
 .sphinx/warnings.txt
 .sphinx/.wordlist.dic
 .sphinx/.doctrees/
@@ -12,3 +14,7 @@ _build
 __pycache__
 .idea/
 .vscode/
+
+spellcheck.txt
+linkcheck.txt
+vale-output.txt
