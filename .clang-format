@@ -2,6 +2,9 @@
 # We'll use defaults from the LLVM style, but with 4 columns indentation.
 BasedOnStyle: LLVM
 ---
+Language: Cpp
+Standard: Cpp11
+
 AccessModifierOffset: -4
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -33,10 +36,8 @@ DerivePointerAlignment: false
 IndentExternBlock: NoIndent
 IndentWidth: 4
 InsertNewlineAtEOF: true
-Language: Cpp
 PenaltyReturnTypeOnItsOwnLine: 120
 PointerAlignment: Left
-Standard: Cpp11
 ---
 Language: Proto
 DisableFormat: true
