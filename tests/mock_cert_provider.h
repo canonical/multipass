@@ -37,48 +37,32 @@ constexpr auto root_cert = "-----BEGIN CERTIFICATE-----\n"
                            "xgvZMY2ColjLunUiNG8H096n\n"
                            "-----END CERTIFICATE-----\n";
 
-constexpr auto client_cert = "-----BEGIN CERTIFICATE-----\n"
-                             "MIIByjCCAXCgAwIBAgIENvdePTAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzES\n"
-                             "MBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAe\n"
-                             "Fw0yNTAxMjkxMzAzNDBaFw0yNjAxMjkxMzAzNDBaMDUxCzAJBgNVBAYTAlVTMRIw\n"
-                             "EAYDVQQKDAlDYW5vbmljYWwxEjAQBgNVBAMMCWxvY2FsaG9zdDBZMBMGByqGSM49\n"
-                             "AgEGCCqGSM49AwEHA0IABGAw4mRhGqCg7uSIsVgBIzMOoGnlEFWga2dxUzA1YwNe\n"
-                             "8SB679smyb7KVsPg4fK/P7XS4ORxSnMVnKWvTAfYKXWjZjBkMBQGA1UdEQQNMAuC\n"
-                             "CWxvY2FsaG9zdDAdBgNVHQ4EFgQU++FdgRpFokGT+7Fdgqe4SxmSD9UwHwYDVR0j\n"
-                             "BBgwFoAUBiVDL5AyFI6H+AAKyBJ1Zsgfk2gwDAYDVR0TAQH/BAIwADAKBggqhkjO\n"
-                             "PQQDAgNIADBFAiAesF7z8ItZVxK6fgUwhWfgN5rUFzCO5tBGJFDHU7eIZgIhALdl\n"
-                             "2mAn2oocQZfHohrbVUIuWDiUr0SxOkdGUISX0ElJ\n"
-                             "-----END CERTIFICATE-----\n";
+// cert and key are used as both server certificate and client certificate in the unit test environment
+constexpr auto cert = "-----BEGIN CERTIFICATE-----\n"
+                      "MIIByjCCAXCgAwIBAgIENvdePTAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzES\n"
+                      "MBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAe\n"
+                      "Fw0yNTAxMjkxMzAzNDBaFw0yNjAxMjkxMzAzNDBaMDUxCzAJBgNVBAYTAlVTMRIw\n"
+                      "EAYDVQQKDAlDYW5vbmljYWwxEjAQBgNVBAMMCWxvY2FsaG9zdDBZMBMGByqGSM49\n"
+                      "AgEGCCqGSM49AwEHA0IABGAw4mRhGqCg7uSIsVgBIzMOoGnlEFWga2dxUzA1YwNe\n"
+                      "8SB679smyb7KVsPg4fK/P7XS4ORxSnMVnKWvTAfYKXWjZjBkMBQGA1UdEQQNMAuC\n"
+                      "CWxvY2FsaG9zdDAdBgNVHQ4EFgQU++FdgRpFokGT+7Fdgqe4SxmSD9UwHwYDVR0j\n"
+                      "BBgwFoAUBiVDL5AyFI6H+AAKyBJ1Zsgfk2gwDAYDVR0TAQH/BAIwADAKBggqhkjO\n"
+                      "PQQDAgNIADBFAiAesF7z8ItZVxK6fgUwhWfgN5rUFzCO5tBGJFDHU7eIZgIhALdl\n"
+                      "2mAn2oocQZfHohrbVUIuWDiUr0SxOkdGUISX0ElJ\n"
+                      "-----END CERTIFICATE-----\n";
 
-constexpr auto client_key = "-----BEGIN PRIVATE KEY-----\n"
-                            "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgwRNA3VMqakM32i0C\n"
-                            "PHE5i4qRNGdvgXtCWwpp0gXv+oGhRANCAARgMOJkYRqgoO7kiLFYASMzDqBp5RBV\n"
-                            "oGtncVMwNWMDXvEgeu/bJsm+ylbD4OHyvz+10uDkcUpzFZylr0wH2Cl1\n"
-                            "-----END PRIVATE KEY-----\n";
-
-constexpr auto daemon_cert = "-----BEGIN CERTIFICATE-----\n"
-                             "MIIBUjCB+AIBKjAKBggqhkjOPQQDAjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJ\n"
-                             "Q2Fub25pY2FsMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTgwNjIxMTM0MjI5WhcN\n"
-                             "MTkwNjIxMTM0MjI5WjA1MQswCQYDVQQGEwJDQTESMBAGA1UECgwJQ2Fub25pY2Fs\n"
-                             "MRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQA\n"
-                             "FGNAqq7c5IMDeQ/cV4+EmogmkfpbTLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqa\n"
-                             "J7sAPJJwlVj1xD0r5DX5MAoGCCqGSM49BAMCA0kAMEYCIQCvI0PYv9f201fbe4LP\n"
-                             "BowTeYWSqMQtLNjvZgd++AAGhgIhALNPW+NRSKCXwadiIFgpbjPInLPqXPskLWSc\n"
-                             "aXByaQyt\n"
-                             "-----END CERTIFICATE-----\n";
-
-constexpr auto daemon_key = "-----BEGIN PRIVATE KEY-----\n"
-                            "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgsSAz5ggzrLjai0I/\n"
-                            "F0hYg5oG/shpXJiBQtJdBCG3lUShRANCAAQAFGNAqq7c5IMDeQ/cV4+Emogmkfpb\n"
-                            "TLSPfXgXVLHRsvL04xUAkqGpL+eyGFVE6dqaJ7sAPJJwlVj1xD0r5DX5\n"
-                            "-----END PRIVATE KEY-----\n";
+constexpr auto key = "-----BEGIN PRIVATE KEY-----\n"
+                     "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgwRNA3VMqakM32i0C\n"
+                     "PHE5i4qRNGdvgXtCWwpp0gXv+oGhRANCAARgMOJkYRqgoO7kiLFYASMzDqBp5RBV\n"
+                     "oGtncVMwNWMDXvEgeu/bJsm+ylbD4OHyvz+10uDkcUpzFZylr0wH2Cl1\n"
+                     "-----END PRIVATE KEY-----\n";
 
 struct MockCertProvider : public CertProvider
 {
     MockCertProvider()
     {
-        ON_CALL(*this, PEM_certificate).WillByDefault(Return(client_cert));
-        ON_CALL(*this, PEM_signing_key).WillByDefault(Return(client_key));
+        ON_CALL(*this, PEM_certificate).WillByDefault(Return(cert));
+        ON_CALL(*this, PEM_signing_key).WillByDefault(Return(key));
     }
 
     MOCK_METHOD(std::string, PEM_certificate, (), (override, const));
