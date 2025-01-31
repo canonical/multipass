@@ -44,7 +44,8 @@ public:
     explicit WritableFile(const QString& file_path) : fp{fopen(file_path.toStdString().c_str(), "wb"), fclose}
     {
         if (fp == nullptr)
-            throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
+            throw std::runtime_error(
+                fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
     }
 
     FILE* get() const
