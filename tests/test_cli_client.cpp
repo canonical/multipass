@@ -383,7 +383,7 @@ struct Client : public Test
     const mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
     const mpt::MockPlatform* mock_platform = platform_attr.first;
     const mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils* mock_utils = utils_attr.first;
+    const mpt::MockUtils* mock_utils = utils_attr.first;
 
     mpt::StubCertStore cert_store;
     StrictMock<MockDaemonRpc> mock_daemon{server_address, *daemon_cert_provider,
