@@ -34,8 +34,7 @@ public:
         std::string pem_priv_key;
     };
 
-    explicit SSLCertProvider(const Path& data_dir);
-    SSLCertProvider(const Path& data_dir, const std::string& server_name);
+    SSLCertProvider(const Path& data_dir, const std::string& server_name = "");
     std::string PEM_certificate() const override;
     std::string PEM_signing_key() const override;
 
