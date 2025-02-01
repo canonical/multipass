@@ -365,10 +365,6 @@ mp::SSLCertProvider::SSLCertProvider(const multipass::Path& cert_dir, const std:
 {
 }
 
-mp::SSLCertProvider::SSLCertProvider(const multipass::Path& data_dir) : SSLCertProvider(data_dir, "")
-{
-}
-
 std::string mp::SSLCertProvider::PEM_certificate() const
 {
     return key_cert_pair.pem_cert;
