@@ -122,43 +122,12 @@ public:
         Server
     };
 
-    explicit X509Cert(const EVPKey& key, const std::string& server_name) // generate client certificate only
-    {
-        if (x509 == nullptr)
-            throw std::runtime_error("Failed to allocate x509 cert structure");
-
-        long big_num{0};
-        auto rand_bytes = MP_UTILS.random_bytes(4);
-        for (unsigned int i = 0; i < 4u; i++)
-            big_num |= rand_bytes[i] << i * 8u;
-
-        X509_set_version(x509.get(), 2);
-
-        ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
-        X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
-        X509_gmtime_adj(X509_get_notAfter(x509.get()), 31536000L);
-
-        constexpr int APPEND_ENTRY{-1};
-        constexpr int ADD_RDN{0};
-
-        auto country = as_vector("US");
-        auto org = as_vector("Canonical");
-        auto cn = as_vector(mp::utils::make_uuid().toStdString());
-
-        auto name = X509_get_subject_name(x509.get());
-        X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
-        X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
-        X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
-        X509_set_issuer_name(x509.get(), name);
-
-        if (!X509_set_pubkey(x509.get(), key.get()))
-            throw std::runtime_error("Failed to set certificate public key");
-
-        if (!X509_sign(x509.get(), key.get(), EVP_sha256()))
-            throw std::runtime_error("Failed to sign certificate");
-    }
-
-    explicit X509Cert(const EVPKey& key) // generate root certificate only
+    explicit X509Cert(const EVPKey& key,
+                      CertType cert_type,
+                      const std::string& server_name = "",
+                      const std::optional<EVPKey>& root_certificate_key = std::nullopt,
+                      const std::optional<X509Cert>& root_certificate = std::nullopt)
+    // generate root, client or signed server certificate, the third one requires the last three arguments populated
     {
         if (x509 == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
@@ -171,132 +140,71 @@ public:
         X509_set_version(x509.get(), 2); // X.509 v3
 
         ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
-        X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);                      // Start time: now
-        X509_gmtime_adj(X509_get_notAfter(x509.get()), 3650L * 24L * 60L * 60L); // Valid for 10 years
+        X509_gmtime_adj(X509_get_notBefore(x509.get()), 0); // Start time: now
+        const long valid_duration_sec = cert_type == CertType::Root ? 3650L * 24L * 60L * 60L : 365L * 24L * 60L * 60L;
+        // 10 years for root certicicate and 1 year for server and client certificate
+        X509_gmtime_adj(X509_get_notAfter(x509.get()), valid_duration_sec);
 
         constexpr int APPEND_ENTRY{-1};
         constexpr int ADD_RDN{0};
 
         const auto country = as_vector("US");
         const auto org = as_vector("Canonical");
-        const auto cn = as_vector("Multipass Root CA");
-
-        const auto name = X509_get_subject_name(x509.get());
-        X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
-        X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
-        X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
-        X509_set_issuer_name(x509.get(), name);
-
-        if (!X509_set_pubkey(x509.get(), key.get()))
-            throw std::runtime_error("Failed to set certificate public key");
-
-        // Add X509v3 extensions
-        X509V3_CTX ctx;
-        X509V3_set_ctx(&ctx, x509.get(), x509.get(), NULL, NULL, 0);
-
-        // wrap into function or struct
-        X509_EXTENSION* ext;
-        // Subject Key Identifier
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
-        X509_add_ext(x509.get(), ext, -1);
-        X509_EXTENSION_free(ext);
-
-        // Authority Key Identifier
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, "keyid:always");
-        X509_add_ext(x509.get(), ext, -1);
-        X509_EXTENSION_free(ext);
-
-        // Basic Constraints: critical, CA:TRUE
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, "critical,CA:TRUE");
-        X509_add_ext(x509.get(), ext, -1);
-        X509_EXTENSION_free(ext);
-
-        if (!X509_sign(x509.get(), key.get(), EVP_sha256()))
-            throw std::runtime_error("Failed to sign certificate");
-    }
-
-    X509Cert(const EVPKey& root_certificate_key,
-             const X509Cert& root_certificate,
-             const EVPKey& server_key,
-             const std::string& server_name)
-    // generate signed server certificates
-    {
-        if (x509 == nullptr)
-            throw std::runtime_error("Failed to allocate x509 cert structure");
-
-        long big_num{0};
-        auto rand_bytes = MP_UTILS.random_bytes(4);
-        for (unsigned int i = 0; i < 4u; i++)
-            big_num |= rand_bytes[i] << i * 8u;
-
-        X509_set_version(x509.get(), 2);
-
-        ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
-        X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
-        X509_gmtime_adj(X509_get_notAfter(x509.get()), 31536000L); // Valid for 10 years
-
-        constexpr int APPEND_ENTRY{-1};
-        constexpr int ADD_RDN{0};
-
-        const auto country = as_vector("US");
-        const auto org = as_vector("Canonical");
-        const auto cn = as_vector(server_name);
-
-        const auto server_certificate_name = X509_get_subject_name(x509.get());
-        X509_NAME_add_entry_by_txt(server_certificate_name,
+        const auto cn = as_vector(cert_type == CertType::Root     ? "Multipass Root CA"
+                                  : cert_type == CertType::Client ? mp::utils::make_uuid().toStdString()
+                                                                  : server_name);
+        const auto subject_name = X509_get_subject_name(x509.get());
+        X509_NAME_add_entry_by_txt(subject_name,
                                    "C",
                                    MBSTRING_ASC,
                                    country.data(),
                                    country.size(),
                                    APPEND_ENTRY,
                                    ADD_RDN);
-        X509_NAME_add_entry_by_txt(server_certificate_name,
-                                   "O",
-                                   MBSTRING_ASC,
-                                   org.data(),
-                                   org.size(),
-                                   APPEND_ENTRY,
-                                   ADD_RDN);
-        X509_NAME_add_entry_by_txt(server_certificate_name,
-                                   "CN",
-                                   MBSTRING_ASC,
-                                   cn.data(),
-                                   cn.size(),
-                                   APPEND_ENTRY,
-                                   ADD_RDN);
-        // Set issuer name (from root certificate)
-        X509_set_issuer_name(x509.get(), X509_get_subject_name(root_certificate.x509.get()));
+        X509_NAME_add_entry_by_txt(subject_name, "O", MBSTRING_ASC, org.data(), org.size(), APPEND_ENTRY, ADD_RDN);
+        X509_NAME_add_entry_by_txt(subject_name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
 
-        if (!X509_set_pubkey(x509.get(), server_key.get()))
+        const auto issuer_name =
+            cert_type == CertType::Server ? X509_get_subject_name(root_certificate.value().x509.get()) : subject_name;
+        X509_set_issuer_name(x509.get(), issuer_name);
+
+        if (!X509_set_pubkey(x509.get(), key.get()))
             throw std::runtime_error("Failed to set certificate public key");
 
+        const auto& issuer_x509 = cert_type == CertType::Server ? root_certificate.value().x509 : x509;
         // Add X509v3 extensions
         X509V3_CTX ctx;
-        X509V3_set_ctx(&ctx, root_certificate.x509.get(), x509.get(), NULL, NULL, 0);
+        X509V3_set_ctx(&ctx, issuer_x509.get(), x509.get(), NULL, NULL, 0);
 
         // wrap into function or struct
-
         X509_EXTENSION* ext;
         // Subject Alternative Name
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
-        X509_add_ext(x509.get(), ext, -1);
-        X509_EXTENSION_free(ext);
+        if (cert_type == CertType::Server)
+        {
+            ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
+            X509_add_ext(x509.get(), ext, -1);
+            X509_EXTENSION_free(ext);
+        }
+
         // Subject Key Identifier
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
         X509_add_ext(x509.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
         // Authority Key Identifier
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, "keyid:always,issuer");
+        const std::string is_from_issuer = cert_type == CertType::Server ? ",issuer" : "";
+        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, ("keyid:always" + is_from_issuer).c_str());
         X509_add_ext(x509.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
-        // Basic Constraints: critical, CA:FALSE
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, "critical,CA:FALSE");
+        // Basic Constraints: critical, CA:TRUE or CA:FALSE
+        const std::string is_ca = cert_type == CertType::Root ? "TRUE" : "FALSE";
+        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, ("critical,CA:" + is_ca).c_str());
         X509_add_ext(x509.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
-        if (!X509_sign(x509.get(), root_certificate_key.get(), EVP_sha256()))
+        const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
+        if (!X509_sign(x509.get(), signing_key.get(), EVP_sha256()))
             throw std::runtime_error("Failed to sign certificate");
     }
 
@@ -334,16 +242,20 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
     if (!server_name.empty())
     {
-        const EVPKey root_cert_key;
         const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
         const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
 
-        const X509Cert root_cert{root_cert_key};
+        EVPKey root_cert_key;
+        X509Cert root_cert{root_cert_key, X509Cert::CertType::Root};
         root_cert_key.write(priv_root_key_path);
         root_cert.write(root_cert_path.u8string().c_str());
 
         const EVPKey server_cert_key;
-        const X509Cert signed_server_cert{root_cert_key, root_cert, server_cert_key, server_name};
+        const X509Cert signed_server_cert{server_cert_key,
+                                          X509Cert::CertType::Server,
+                                          server_name,
+                                          std::move(root_cert_key),
+                                          std::move(root_cert)};
         server_cert_key.write(priv_key_path);
         signed_server_cert.write(cert_path);
         return {signed_server_cert.as_pem(), server_cert_key.as_pem()};
@@ -351,7 +263,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
     else
     {
         const EVPKey client_cert_key;
-        const X509Cert client_cert{client_cert_key, server_name};
+        const X509Cert client_cert{client_cert_key, X509Cert::CertType::Client};
         client_cert_key.write(priv_key_path);
         client_cert.write(cert_path);
 
