@@ -115,6 +115,13 @@ std::vector<unsigned char> as_vector(const std::string& v)
 class X509Cert
 {
 public:
+    enum class CertType
+    {
+        Root,
+        Client,
+        Server
+    };
+
     explicit X509Cert(const EVPKey& key, const std::string& server_name) // generate client certificate only
     {
         if (x509 == nullptr)
