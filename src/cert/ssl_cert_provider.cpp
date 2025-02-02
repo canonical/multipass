@@ -112,17 +112,10 @@ std::vector<unsigned char> as_vector(const std::string& v)
     return {v.begin(), v.end()};
 }
 
-std::string cn_name_from(const std::string& server_name)
-{
-    if (server_name.empty())
-        return mp::utils::make_uuid().toStdString();
-    return server_name;
-}
-
 class X509Cert
 {
 public:
-    explicit X509Cert(const EVPKey& key, const std::string& server_name)
+    explicit X509Cert(const EVPKey& key, const std::string& server_name) // generate client certificate only
     {
         if (x509 == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
@@ -143,7 +136,7 @@ public:
 
         auto country = as_vector("US");
         auto org = as_vector("Canonical");
-        auto cn = as_vector(cn_name_from(server_name));
+        auto cn = as_vector(mp::utils::make_uuid().toStdString());
 
         auto name = X509_get_subject_name(x509.get());
         X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, country.data(), country.size(), APPEND_ENTRY, ADD_RDN);
@@ -240,7 +233,7 @@ public:
 
         const auto country = as_vector("US");
         const auto org = as_vector("Canonical");
-        const auto cn = as_vector(cn_name_from(server_name));
+        const auto cn = as_vector(server_name);
 
         const auto server_certificate_name = X509_get_subject_name(x509.get());
         X509_NAME_add_entry_by_txt(server_certificate_name,
