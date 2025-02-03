@@ -69,10 +69,11 @@ public:
         }
 
         // Set EC curve (P-256)
-        OSSL_PARAM params[] = {
+        const std::array<OSSL_PARAM, 2> params = {
             OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
-            OSSL_PARAM_construct_end()};
-        EVP_PKEY_CTX_set_params(ctx.get(), params);
+            OSSL_PARAM_construct_end()
+        };
+        EVP_PKEY_CTX_set_params(ctx.get(), params.data());
 
         // Generate the key
         EVP_PKEY* raw_key = nullptr;
