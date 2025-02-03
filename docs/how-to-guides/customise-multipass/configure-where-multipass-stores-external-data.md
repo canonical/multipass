@@ -8,7 +8,7 @@ This document demonstrates how to configure the location where Multipass stores 
 
 ```{caution}
 **Caveats:**
-- Multipass will not migrate your existing data; this article explains how to do it manually. If you do not transfer the data, you will have to re-download any Ubuntu images and reinitialize any instances that you need.
+- Multipass will not migrate your existing data; this article explains how to do it manually. If you do not transfer the data, you will have to re-download any Ubuntu images and reinitialise any instances that you need.
 - When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to deleted it manually.
 ```
 

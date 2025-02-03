@@ -14,7 +14,7 @@ You can display the graphical desktop in various ways. In this document, we desc
 
 ## Using RDP
 
-The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment (here we use `ubuntu-desktop` but there are as many other options as flavors of Ubuntu exist) along with the RDP server (we will use `xrdp` but there are also other options such as `freerdp`). 
+The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment (here we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist) along with the RDP server (we will use `xrdp` but there are also other options such as `freerdp`). 
 
 To do this, first you need to log into a running Multipass instance. Start by listing your instances:
 
@@ -84,7 +84,7 @@ If the IP address of the instance is not displayed in the output of `multipass l
 
 ````{tab-item} Linux
 
-On Linux, there are applications such as Remmina to visualize the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
+On Linux, there are applications such as Remmina to visualise the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
 
 To directly launch the client, run the following command:
 
@@ -95,7 +95,6 @@ remmina -c rdp://10.49.93.209
 The system will ask for a username (`ubuntu`) and the password set above, and then the Ubuntu desktop on the instance will be displayed.
 
 ![Logging in to the RDP server with Remmina|690x567](https://assets.ubuntu.com/v1/83c7e6d7-multipass-remmina.png)
-<!-- upload://iNMPPVChbKiM2MIo7sGoHMLctcv.png -->
 
 ````
 
@@ -107,7 +106,7 @@ To connect on MacOS, we can use the “Microsoft Remote Desktop” application, 
 
 ````{tab-item} Windows
 
-On Windows, we can connect to the RDP server with the “Remote Desktop Connection” application. There, we enter the virtual machine’s IP address, set the session to XOrg and enter the username and password we created on the previuos step. 
+On Windows, we can connect to the RDP server with the “Remote Desktop Connection” application. There, we enter the virtual machine’s IP address, set the session to XOrg and enter the username and password we created on the previous step. 
 
 ````
 
@@ -127,7 +126,7 @@ Linux runs X by default, so no extra software in the host is needed.
 
 On Linux, we can use authentication in X forwarding to add a bit more security. However, we will forward through SSH to avoid struggling with `xauth`. Our user in the host will log in to the Multipass instance through SSH, so that we can pass extra parameters to it. 
 
-To make this possible, copy your public key, stored in `~/.ssh/id_rsa.pub`, to the list of authorized keys of the instance, into the file `~/.ssh/authorized_keys`. Remember to replace the instance name used in the example with yours:
+To make this possible, copy your public key, stored in `~/.ssh/id_rsa.pub`, to the list of authorised keys of the instance, into the file `~/.ssh/authorized_keys`. Remember to replace the instance name used in the example with yours:
 
 ```{code-block} text
 multipass exec headbanging-squid -- bash -c "echo `cat ~/.ssh/id_rsa.pub` >> ~/.ssh/authorized_keys"
@@ -151,7 +150,6 @@ xlogo &
 ```
 
 ![Xlogo on Linux|420x455](https://assets.ubuntu.com/v1/657475f0-multipass-xlogo.png)
-<!-- upload://etvJU6k1tfuZ0QsKd4TZM1ogsgR.png -->
 
 A small window containing the X logo will show up. Done!
 
@@ -171,7 +169,7 @@ Note to Apple Silicon users: some applications requiring OpenGL will not work th
 
 ````{tab-item} Windows
 
-Windows knows nothing about X, therefore we need to install an X server. Here we will use [VcXsrv](https://sourceforge.net/projects/vcxsrv/). Other options would be [Xming](http://www.straightrunning.com/XmingNotes/) (the newest versions are paid, but older versions can still be downloaded for free from their [SourceForge site](https://sourceforge.net/projects/xming/)) or installing an X server in [Cygwin](http://cygwin.com/).
+Windows knows nothing about X, therefore we need to install an X server. Here we will use [VcXsrv](https://sourceforge.net/projects/vcxsrv/). Other options would be [Xming](http://www.straightrunning.com/XmingNotes/) (the newest versions are paid, but older versions can still be downloaded for free from their [SourceForge site](https://sourceforge.net/projects/xming/)) or installing an X server in [Cygwin](https://cygwin.com/).
 
 The first step would be thus to install VcXsrv and run the X server through the newly created start menu entry "XLaunch". Some options will be displayed. In the first screen, select "Multiple windows" and set the display number; leaving it in -1 is a safe option. The "Next" button brings you to the "Client startup" window, where you should select "Start no client". Click "Next" to go to the "Extra settings" screen, where you should activate the option "Disable access control". When you click "Next" you will be given the option to save the settings, and finally you can start the X server. 
 
@@ -193,7 +191,6 @@ firefox &
 ```
 
 ![Firefox running on a Multipass instance|690x388](https://assets.ubuntu.com/v1/82019ef0-multipass-windows-desktop-firefox.jpeg)
-<!-- upload://iy5xIwIRyMXjYqyhefIfdDoXnAi.jpeg -->
 
 ````
 

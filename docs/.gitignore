@@ -15,6 +15,4 @@ __pycache__
 .idea/
 .vscode/
 
-spellcheck.txt
-linkcheck.txt
-vale-output.txt
+

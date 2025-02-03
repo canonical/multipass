@@ -15,7 +15,6 @@ It is now only available in the [GUI client](/reference/gui-client).
 ## Description
 
 A keyboard shortcut for the GUI to open a shell into the {ref}`primary-instance`.
-<!-- [Primary instance]( /t/28469#primary-instance) -->
 
 ## Possible values
 

@@ -7,7 +7,7 @@ Multipass requires clients to be authenticated with the service before allowing 
 
 ## Setting the passphrase
 
-The administrator needs to set a passphrase for clients to authenticate with the Multipass service. The client setting the passphrase will need to already be authenticated.  
+The administrator needs to set a passphrase for clients to authenticate with the Multipass service. The client setting the passphrase will need to already be authenticated. 
 
 There are two ways to proceed:
 
@@ -32,7 +32,7 @@ There are two ways to proceed:
 
 ## Authenticating the client
 
-A client that is not authorized to connect to the Multipass service will fail when running `multipass` commands.  An error will be displayed when this happens. 
+A client that is not authorised to connect to the Multipass service will fail when running `multipass` commands. An error will be displayed when this happens. 
 
 For example, if you try running the `multipass list` command:
 
@@ -41,7 +41,7 @@ list failed: The client is not authenticated with the Multipass service.
 Please use 'multipass authenticate' before proceeding.
 ```
 
-At this time, the client will need to provide the previously set passphrase.  This can be accomplished in two ways:
+At this time, the client will need to provide the previously set passphrase. This can be accomplished in two ways:
 
 * Authenticate with an echoless interactive entry, where the passphrase is hidden from view:
 
@@ -65,7 +65,7 @@ At this time, the client will need to provide the previously set passphrase.  Th
 
 Here you can find solutions and workarounds for common issues that may arise.
 
-### The client cannot be authorized and the passphrase cannot be set
+### The client cannot be authorised and the passphrase cannot be set
  
 It is possible that another client that is privileged to connect to the Multipass socket will connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize` the client with the service. 
 

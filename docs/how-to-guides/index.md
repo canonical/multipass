@@ -5,7 +5,7 @@ The following how-to guides provide step-by-step instructions on the installatio
 
 ## Install and deploy Multipass
 
-Installing Multipass is a straightforward process but may require some prerequisiste steps, depending on your host system. You can find specific installation instructions for your operating system in this guide:
+Installing Multipass is a straightforward process but may require some prerequisite steps, depending on your host system. You can find specific installation instructions for your operating system in this guide:
 - [How to install Multipass](install-multipass)
 
 ## Manage instances

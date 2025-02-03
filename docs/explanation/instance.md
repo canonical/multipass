@@ -18,7 +18,6 @@ When creating the primary instance, the Multipass CLI client automatically mount
 
 ```{note}
 On Windows, mounts are disabled by default for security reasons. For more details, see {ref}`security-considerations-mount`.
-<!-- [Mount - Security considerations]( /t/28470#security-considerations) -->
 ```
 
 In all other respects, the primary instance is the same as any other instance. Its properties are the same as if it had been launched manually with `multipass launch --name primary`.

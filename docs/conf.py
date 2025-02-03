@@ -195,7 +195,11 @@ linkcheck_ignore = [
 	"https://app.element.io/#/room/#Multipass:matrix.org",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:8001",
-    "https://github.com/canonical/*"
+    "https://localhost:8080",
+    "https://localhost:8081",
+    "https://github.com/canonical/*",
+    "https://sourceforge.net/projects/vcxsrv/",
+    "https://sourceforge.net/projects/xming/"
     ]
 
 linkcheck_retries = 3

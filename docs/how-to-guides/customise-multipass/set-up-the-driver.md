@@ -3,9 +3,6 @@
 
 > See also: {ref}`explanation-driver`, {ref}`reference-settings-local-driver`
 
-<!-- [Primary instance]( /t/28469#primary-instance) -->
-<!-- [Driver]( /t/28410), [`local.driver`]( /t/27357) -->
-
 This document demonstrates how to choose, set up, and manage the drivers behind Multipass. Multipass already has sensible defaults, so this is an optional step. 
 
 ## Default driver
@@ -107,7 +104,7 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
 
-To use the `virsh` CLI, launch an instance and then run the command `virsh list` (see [`man virsh`](http://manpages.ubuntu.com/manpages/xenial/man1/virsh.1.html) for a command reference):
+To use the `virsh` CLI, launch an instance and then run the command `virsh list` (see [`man virsh`](https://manpages.ubuntu.com/manpages/xenial/man1/virsh.1.html) for a command reference):
 
 ```{code-block} text
 virsh list                             
@@ -123,7 +120,6 @@ The output will be similar to the following:
 Alternatively, to use the `virt-manager` GUI, ...
 
 ![Virtual Machine Manager GUI|584x344](https://assets.ubuntu.com/v1/51cf2c57-multipass-virt-manager-gui.png)
-<!-- upload://bFIxA9CPAqBeWjuQxDaZBYBNsZK.png -->
 
 ````
 
@@ -136,7 +132,6 @@ sudo VirtualBox
 ```
 
 ![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/9c959eed-multipass-macos-virtualbox-manager.png)
-<!-- upload://mld2SIalX93tc3StGHaqb6OTyDO.png -->
 
 And, to list the instances on the command line, run:
 
@@ -164,7 +159,6 @@ Multipass runs as the _System_ account, so to see the instances in VirtualBox, o
 ```
 
 ![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager)
-<!-- upload://xVIOErbwcdoppcN5KSzvHJybSi7.png -->
 
 To list the instances on the command line:
 
@@ -205,7 +199,7 @@ To expose a service running inside the instance on your host, you can use [Virtu
 sudo VBoxManage controlvm "primary" natpf1 "myservice,tcp,,8080,,8081"
 ```
 
-You can then open, say, http://localhost:8081/, and the service running inside the instance on port 8080 will be exposed.
+You can then open, say, https://localhost:8081/, and the service running inside the instance on port 8080 will be exposed.
 
 ````
 
@@ -217,7 +211,7 @@ To expose a service running inside the instance on your host, you can use [Virtu
 & $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s $env:VBOX_MSI_INSTALL_PATH\VBoxManage.exe controlvm "primary" natpf1 "myservice,tcp,,8080,,8081"
 ```
 
-You can then open, say, http://localhost:8081/, and the service running inside the instance on port 8080 will be exposed.
+You can then open, say, https://localhost:8081/, and the service running inside the instance on port 8080 will be exposed.
 
 ````
 
@@ -287,7 +281,7 @@ In the following sample output, the name of the interface that we are looking fo
 3: enp0s8: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
 ```
 
-Now, configure that new interface (Ubuntu uses [netplan](https://netplan.io/) for that):
+Now, configure that new interface (Ubuntu uses [Netplan](https://netplan.io/) for that):
 
 ```{code-block} text
 multipass exec -- primary sudo bash -c "cat > /etc/netplan/60-bridge.yaml" <<EOF
@@ -300,7 +294,7 @@ network:
   version: 2
 EOF
 
-multipass exec primary sudo netplan apply
+multipass exec primary sudo Netplan apply
 ```
 
 Finally, find the IP of the instance given by your router:
@@ -320,7 +314,7 @@ For example:
        valid_lft forever preferred_lft forever
 ```
 
-All the services running inside the instance should now be available on your physical network under http://&lt;instance IP&gt;/.
+All the services running inside the instance should now be available on your physical network under https://&lt;instance IP&gt;/.
 
 ````
 
@@ -335,8 +329,6 @@ This option only applies to macOS systems.
 ## Switch back to the default driver
 
 > See also: {ref}`reference-command-line-interface-stop`, {ref}`reference-settings-local-driver`
-
-<!-- [`stop`]( /t/23951), [`local.driver`]( /t/27357) --
 
 `````{tab-set}
 

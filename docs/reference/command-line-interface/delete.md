@@ -20,7 +20,7 @@ When you delete a [snapshot](/explanation/snapshot), or when you delete an insta
 
 ```
 
-The `--all` option will delete all instances and their snapshots.  Take care if using this option.
+The `--all` option will delete all instances and their snapshots. Take care if using this option.
 
 ---
 

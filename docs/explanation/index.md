@@ -1,7 +1,7 @@
 (explanation-index)=
 # Explanation
 
-The following explanations provide context and clarification on key-topics related to the use and configuration of Multipass.  <!--- The following  was provided by @nielsenjared-->
+The following explanations provide context and clarification on key-topics related to the use and configuration of Multipass. <!--- The following  was provided by @nielsenjared-->
 
 - [About security](about-security)
 - [About performance](about-performance)

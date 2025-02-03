@@ -5,15 +5,13 @@ If you are on Windows and you want to use [Windows Terminal](https://aka.ms/term
 
 ## Multipass profile
 
-Currently, Multipass can add a profile to Windows Terminal for the {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) -->. When you open a Windows Terminal tab with this profile, you'll automatically find yourself in a primary instance shell. Multipass automatically starts or launches the primary instance if needed.
+Currently, Multipass can add a profile to Windows Terminal for the {ref}`primary-instance`. When you open a Windows Terminal tab with this profile, you'll automatically find yourself in a primary instance shell. Multipass automatically starts or launches the primary instance if needed.
 
 ![Screenshot: primary shell|800x490, 85%](https://assets.ubuntu.com/v1/f875c1d3-multipass-windows-terminal-1.png)
-<!-- upload://zrYHMyoT4r9Xvz8DtFLH96uPfBu.png -->
 
 ## Install Windows Terminal
 
-The first step is to [install Windows Terminal](https://github.com/microsoft/terminal#installing-and-running-windows-terminal). Once you have it along [Multipass](https://canonical.com/multipass/docs/installing-on-windows), you can enable the integration.
+The first step is to [install Windows Terminal](https://github.com/microsoft/terminal#installing-and-running-windows-terminal). Once you have it along Multipass, you can enable the integration. 
 
 ## Enable integration
 
@@ -23,14 +21,13 @@ Open a terminal (Windows Terminal or any other) and enable the integration with 
 multipass set client.apps.windows-terminal.profiles=primary
 ```
 
-The setting is documented [here](/reference/settings/client-apps-windows-terminal-profiles) for more info. Until you modify it, Multipass will try to add the profile if it finds it missing. To remove the profile see {ref}`integrate-with-windows-terminal-revert` below.
+For more information on this setting, see: [`client.apps.windows-terminal.profiles`](/reference/settings/client-apps-windows-terminal-profiles). Until you modify it, Multipass will try to add the profile if it finds it missing. To remove the profile see {ref}`integrate-with-windows-terminal-revert` below.
 
 ## Open a Multipass tab
 
 You can now open a "Multipass" tab to get a shell in the primary instance. That can be achieved by clicking the new-tab drop-down and selecting the Multipass profile:
 
 ![Screenshot: drop-down menu|800x490, 85%](https://assets.ubuntu.com/v1/d14d32d6-multipass-windows-terminal-2.jpeg)
-<!-- upload://tRzbGEZmSLvoM09kVgbG23BxU00.jpeg -->
 
 That's it!
 

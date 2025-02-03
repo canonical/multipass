@@ -3,7 +3,7 @@
 
 > See also: [`get`](/reference/command-line-interface/get), [Settings](/reference/settings/index)
 
-The `multipass set` command takes an argument in the form `<key>=<value>` to configure a single setting.  The *key* part is a dot-separated path identifying the setting in a hierarchical settings tree. The *value* part is what it should be set to:
+The `multipass set` command takes an argument in the form `<key>=<value>` to configure a single setting. The *key* part is a dot-separated path identifying the setting in a hierarchical settings tree. The *value* part is what it should be set to:
 
 ```{code-block} text
 multipass set client.gui.autostart=false

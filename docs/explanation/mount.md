@@ -26,7 +26,6 @@ Native mounts use driver-dependent technologies to achieve the high performance.
 - On **LXD**, using that backend's own mounts, which also rely on [9P](https://en.wikipedia.org/wiki/9P_(protocol)).
 
 > See also: {ref}`driver-feature-disparities`.
-<!-- [Driver (backend) - Feature disparities]( /t/28410#feature-disparities) -->
 
 (security-considerations-mount)=
 ## Security considerations

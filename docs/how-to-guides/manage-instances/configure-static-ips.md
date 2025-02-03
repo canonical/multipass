@@ -57,7 +57,7 @@ If you want to set a different name for the interface, you can add a [`set-name`
 
 ## Step 4: Apply the new configuration
 
-We now tell `netplan` apply the new configuration inside the instance:
+We now tell Netplan to apply the new configuration inside the instance:
 
 ```
 multipass exec -n test1 -- sudo netplan apply

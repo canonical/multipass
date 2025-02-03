@@ -3,7 +3,7 @@
 
 > See also: [Authentication](/explanation/authentication), [How to authenticate clients with the Multipass service](/how-to-guides/customise-multipass/authenticate-clients-with-the-multipass-service), [`local.passhprase`](/reference/settings/local-passphrase)
 
-The `authenticate` command is used to authenticate a client with the Multipass service.  Once authenticated, the client can issue commands such as `list`, `launch`, etc.
+The `authenticate` command is used to authenticate a client with the Multipass service. Once authenticated, the client can issue commands such as `list`, `launch`, etc.
 
 To help reduce the amount of typing for `authenticate`, one can also use `multipass auth` as an alias:
 

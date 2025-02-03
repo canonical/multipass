@@ -210,7 +210,7 @@ This will temporarily disrupt connectivity on that interface.
 Do you want to continue (yes/no)?
 ```
 
-However, Multipass requires `NetworkManager` to achieve this. On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can still create a bridge by other means and pass that to Multipass. For instance, this configuration snippet achieves that with `netplan`:
+However, Multipass requires `NetworkManager` to achieve this. On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can still create a bridge by other means and pass that to Multipass. For instance, this configuration snippet achieves that with Netplan:
 
 ```{code-block} yaml 
 network:
@@ -252,7 +252,7 @@ Replace `8.8.8.8` with whatever your preferred DNS server is. You can then launc
 multipass launch --cloud-init systemd-resolved.yaml
 ```
 
-### The netplan\.io approach
+### The Netplan approach
 
 After the instance booted, you can modify the `/etc/netplan/50-cloud-init.yaml` file, adding the `nameservers` entry:
 

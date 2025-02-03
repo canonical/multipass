@@ -3,9 +3,7 @@
 
 > See also: [Instance](/explanation/instance), [client.primary-name](/reference/settings/client-primary-name), [`shell`](/reference/command-line-interface/shell), [`mount`](/reference/command-line-interface/mount)
 
-Multipass offers a quick way to access an Ubuntu instance via a simple `multipass shell` command. This is achieved via the so-called {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) --> 
-that is also automatically created (if it doesn't exist) when the user runs the [`multipass start`](/reference/command-line-interface/start) or [`multipass shell`](/reference/command-line-interface/shell) commands without any arguments.
+Multipass offers a quick way to access an Ubuntu instance via a simple `multipass shell` command. This is achieved via the so-called {ref}`primary-instance` that is also automatically created (if it doesn't exist) when the user runs the [`multipass start`](/reference/command-line-interface/start) or [`multipass shell`](/reference/command-line-interface/shell) commands without any arguments.
 
 When automatically created, the primary instance gets the same properties as if [`launch`](/reference/command-line-interface/launch) was used with no arguments, except for the name (`primary` by default). In particular, this means that the instance will use the latest Ubuntu LTS image and will have the default CPU, disk and memory configuration.
 
@@ -16,7 +14,6 @@ There can be only one primary instance at any moment. If it exists, it is always
 ## Steering the primary instance
 
 The primary instance can also be controlled from the {ref}`gui-client-tray-icon`
-<!-- [tray icon]( /t/28484#tray-icon) menu. -->
 
 In the command line, it is used as the default when no instance name is specified in the `shell`, `start`, `stop`, `restart` and `suspend` commands. When issuing one of these commands with no positional arguments, the primary instance is targeted. Its name can still be given explicitly wherever an instance name is expected (e.g. `multipass start primary`).
 

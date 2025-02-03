@@ -2,7 +2,7 @@
 # stop
 
 The `multipass stop` command without any argument will stop the {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) --> (and fail, if it doesn't exist). You can also pass one or more instance names or the `--all` option to stop more instances at the same time.
+(and fail, if it doesn't exist). You can also pass one or more instance names or the `--all` option to stop more instances at the same time.
 
 ```{note}
 Only instances in `Running` status can be stopped.

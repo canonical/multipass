@@ -1,8 +1,7 @@
 (reference-command-line-interface-shell)=
 # shell
 
-The `multipass shell` command will open a shell prompt on an instance. Without any arguments, it will open the shell prompt of the {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) --> (and also create it, if it doesn't exist). You can also pass the name of an existing instance. If the instance is not running, it will be started automatically. 
+The `multipass shell` command will open a shell prompt on an instance. Without any arguments, it will open the shell prompt of the {ref}`primary-instance` (and also create it, if it doesn't exist). You can also pass the name of an existing instance. If the instance is not running, it will be started automatically. 
 
 If you run `multipass shell` you'll find yourself in the *primary* instance:
 
@@ -59,7 +58,7 @@ Options:
   --timeout <timeout>  Maximum time, in seconds, to wait for the command to
                        complete. Note that some background operations may
                        continue beyond that. By default, instance startup and
-                       initialization is limited to 5 minutes each.
+                       initialisation is limited to 5 minutes each.
 
 Arguments:
   name                 Name of the instance to open a shell on. If omitted,

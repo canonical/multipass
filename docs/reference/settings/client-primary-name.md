@@ -9,10 +9,9 @@
 
 ## Description
 
-The name of the instance that is launched/recognized as primary. 
+The name of the instance that is launched/recognised as primary. 
 
 > See also: {ref}`primary-instance`.
-<!-- [Primary instance]( /t/28469#primary-instance) -->
 
 ## Possible values
 

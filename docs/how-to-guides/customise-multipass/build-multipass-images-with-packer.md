@@ -5,16 +5,16 @@
 Custom images are only supported on Linux.
 ```
 
-[Packer](http://packer.io/) is a utility that lets you (re)build images to run in a variety of environments. Multipass can run those images too, provided some requirements are met (namely, the image has to boot on the hypervisor in use, and [cloud-init](https://cloudinit.readthedocs.io/en/latest/) needs to be available).
+[Packer](https://packer.io/) is a utility that lets you (re)build images to run in a variety of environments. Multipass can run those images too, provided some requirements are met (namely, the image has to boot on the hypervisor in use, and [cloud-init](https://cloudinit.readthedocs.io/en/latest/) needs to be available).
 
 ## Setting up the build directory
 
-The easiest way is to start from an existing [Ubuntu Cloud Image](http://cloud-images.ubuntu.com/), and the base project setup follows (you can click on the filenames to see their contents, `meta-data` is empty on purpose):
+The easiest way is to start from an existing [Ubuntu Cloud Image](https://cloud-images.ubuntu.com/), and the base project setup follows (you can click on the filenames to see their contents, `meta-data` is empty on purpose):
 
 ```
 ├── cloud-data
 │   ├── meta-data
-│   └── <a href="http://paste.ubuntu.com/p/6vbtNXttqZ/">user-data</a>
+│   └── <a href="https://paste.ubuntu.com/p/6vbtNXttqZ/">user-data</a>
 └── <a href="https://pastebin.ubuntu.com/p/nJsGtWk2N3/">template.json</a>
 
 1 directory, 3 files
@@ -37,7 +37,7 @@ Now, shell into the new instance that was created, for example:
 multipass shell tolerant-hammerhead
 ```
 
-## Customizing the image
+## Customising the image
 
 Now the above works for you, delete the test instance with `multipass delete --purge tolerant-hammerhead` and edit the following section in the `template.json` file:
 
@@ -56,7 +56,7 @@ Anything you do here will be reflected in the resulting image. You can install p
 
 ## Next steps
 
-Go to [Packer's documentation](https://developer.hashicorp.com/packer/docs) to learn about the QEMU builder, other provisioners and their configurations as well as everything else that might come in handy. Alternatively, you could extend `user-data` with other `cloud-init` [modules](https://cloudinit.readthedocs.io/en/latestreference/modules.html#modules) to provision your image.
+Go to [Packer's documentation](https://developer.hashicorp.com/packer/docs) to learn about the QEMU builder, other provisioners and their configurations as well as everything else that might come in handy. Alternatively, you could extend `user-data` with other `cloud-init` [modules](https://cloudinit.readthedocs.io/en/latest/reference/modules.html) to provision your image.
 
 Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/multipass/) and let us know about your images!
 

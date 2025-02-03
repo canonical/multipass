@@ -95,7 +95,7 @@ docker run hello-world
 
 Duration: 5 minutes
 
-Let's now go one step further, with Portainer. The Docker blueprint comes with Portainer installed, which gives an easy-to-use graphical interface for managing your Docker containers. To access Portainer, you will first need its IP address. The following command will show the IP addresses associated with the Ddocker VM you created in the previous steps:
+Let's now go one step further, with Portainer. The Docker blueprint comes with Portainer installed, which gives an easy-to-use graphical interface for managing your Docker containers. To access Portainer, you will first need its IP address. The following command will show the IP addresses associated with the Docker VM you created in the previous steps:
 
 ```{code-block} text
 multipass list

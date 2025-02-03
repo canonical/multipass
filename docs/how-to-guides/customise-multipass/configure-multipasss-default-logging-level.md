@@ -51,7 +51,7 @@ Stop the Multipass daemon:
 launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
 ```
 
-Then, open `/Library/LaunchDaemons/com.canonical.multipassd.plist` in your favorite [text editor](https://www.google.com/search?q=vi) and edit the path `/dict/array/string[2]` from `debug` to the logging level of your choice.
+Then, open `/Library/LaunchDaemons/com.canonical.multipassd.plist` in your favourite [text editor](https://www.google.com/search?q=vi) and edit the path `/dict/array/string[2]` from `debug` to the logging level of your choice.
 
 Finally, start the Multipass daemon:
 

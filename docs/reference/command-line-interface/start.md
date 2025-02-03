@@ -1,8 +1,7 @@
 (reference-command-line-interface-start)=
 # start
 
-The `multipass start` command without any argument will start the {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) --> (and also create it, if it doesn't exist). You can also pass one or more instance names or the `--all` option to start more instances at the same time. 
+The `multipass start` command without any argument will start the {ref}`primary-instance` (and also create it, if it doesn't exist). You can also pass one or more instance names or the `--all` option to start more instances at the same time. 
 
 For example, the command `multipass start` will produce the following output:
 
@@ -33,7 +32,7 @@ Options:
   --timeout <timeout>  Maximum time, in seconds, to wait for the command to
                        complete. Note that some background operations may
                        continue beyond that. By default, instance startup and
-                       initialization is limited to 5 minutes each.
+                       initialisation is limited to 5 minutes each.
 
 Arguments:
   name                 Names of instances to start. If omitted, and without the
