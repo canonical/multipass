@@ -134,7 +134,7 @@ multipass stop loving-duck devoted-lionfish sensible-shark
 To stop all running instances at once, use the `--all` option:
 
 ```{code-block} text
-$ multipass stop --all
+multipass stop --all
 ```
 
 If no options are specified, the `multipass stop` command stops the primary instance, if it exists and is running.

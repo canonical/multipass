@@ -149,7 +149,7 @@ vale: install
 	@echo ""
 	@echo "Running Vale against $(TARGET). To change target set TARGET= with make command"
 	@echo ""
-	@. $(VENV); vale --config "$(SPHINXDIR)/vale.ini" --glob='*.{md,txt,rst}' $(TARGET) || true
+	@. $(VENV); vale --config "$(SPHINXDIR)/vale.ini" --glob='*.{md,rst}' $(TARGET) || true
 	@cat $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept_backup.txt > $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept.txt && rm $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept_backup.txt
 
 pdf-prep: install

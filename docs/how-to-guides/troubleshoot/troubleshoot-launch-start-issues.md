@@ -285,7 +285,7 @@ You may need to locate where Multipass is installed. There are several ways to d
   * Right-click a shortcut to Multipass in your files or Start menu and select "Open file location".
   * By default, Multipass is installed in the `C:\Program Files\Multipass\bin` folder.
 
-* *(on MacOS)*
+* *(on macOS)*
   * Run the command `readlink -f $(which multipass)`
   * By default, Multipass is installed in the `/Library/Application\ Support/com.canonical.multipass/bin/` folder.
 
@@ -296,5 +296,5 @@ You may need to locate where Multipass is storing instances. The location change
 
 * *(Windows)* `C:\ProgramData\Multipass\data\vault\instances\<instance>\<img>`
 
-* *(MacOS)* `/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>`
+* *(macOS)* `/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>`
 

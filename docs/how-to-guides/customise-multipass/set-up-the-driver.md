@@ -344,7 +344,7 @@ multipass set local.driver=qemu
 Here, too, existing instances will be migrated.
 
 ```{note}
-This will make you lose any customisations you made to the instance in libvirt.
+This will make you lose any customisations you made to the instance in `libvirt`.
 [/note]
 
 ````
