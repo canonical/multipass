@@ -180,32 +180,32 @@ public:
         const auto& issuer_cert = cert_type == CertType::Server ? root_certificate.value().cert : cert;
         // Add X509v3 extensions
         X509V3_CTX ctx;
-        X509V3_set_ctx(&ctx, issuer_cert.get(), cert.get(), NULL, NULL, 0);
+        X509V3_set_ctx(&ctx, issuer_cert.get(), cert.get(), nullptr, nullptr, 0);
 
         // wrap into function or struct
         X509_EXTENSION* ext;
         // Subject Alternative Name
         if (cert_type == CertType::Server)
         {
-            ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
+            ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
             X509_add_ext(cert.get(), ext, -1);
             X509_EXTENSION_free(ext);
         }
 
         // Subject Key Identifier
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
+        ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_subject_key_identifier, "hash");
         X509_add_ext(cert.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
         // Authority Key Identifier
         const std::string is_from_issuer = cert_type == CertType::Server ? ",issuer" : "";
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, ("keyid:always" + is_from_issuer).c_str());
+        ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_authority_key_identifier, ("keyid:always" + is_from_issuer).c_str());
         X509_add_ext(cert.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
         // Basic Constraints: critical, CA:TRUE or CA:FALSE
         const std::string is_ca = cert_type == CertType::Root ? "TRUE" : "FALSE";
-        ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, ("critical,CA:" + is_ca).c_str());
+        ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_basic_constraints, ("critical,CA:" + is_ca).c_str());
         X509_add_ext(cert.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
