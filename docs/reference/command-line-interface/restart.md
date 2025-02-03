@@ -1,8 +1,7 @@
 (reference-command-line-interface-restart)=
 # restart
 
-The `multipass restart` command without any argument will restart the {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) --> (and fail, if it doesn't exist). You can also pass one or more instance names or the `--all` option to restart more instances at the same time. 
+The `multipass restart` command without any argument will restart the {ref}`primary-instance` (and fail, if it doesn't exist). You can also pass one or more instance names or the `--all` option to restart more instances at the same time. 
 
 ```{note}
 Only instances in `Running` status can be restarted.
@@ -33,7 +32,7 @@ Options:
   --timeout <timeout>  Maximum time, in seconds, to wait for the command to
                        complete. Note that some background operations may
                        continue beyond that. By default, instance startup and
-                       initialization is limited to 5 minutes each.
+                       initialisation is limited to 5 minutes each.
 
 Arguments:
   name                 Names of instances to restart. If omitted, and without

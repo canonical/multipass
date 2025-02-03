@@ -16,7 +16,7 @@ The possible reasons that can lead the `launch` or `start` commands to fail are:
     1. Multipass can't find it.
     2. Multipass finds an IP that doesn't match the one that was assigned to the instance.
 5. SSH doesn't function properly in the VM, or Multipass is blocked from accessing it.
-6. When you launch a new instance, it times out waiting for initialization to complete.
+6. When you launch a new instance, it times out waiting for initialisation to complete.
 
 ## Diagnose your issue
 
@@ -48,7 +48,7 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
 
 5. Look for messages regarding SSH in Multipass's logs. The instance may have obtained an IP and/or be properly connected, but still refuse Multipass when it tries to SSH into it.
 
-6. Look for the message in the CLI or GUI spinner. Once it reads "Waiting for initialization to complete", Multipass willl have succeeded SSH-ing into the instance but remain waiting for cloud-init to finish.
+6. Look for the message in the CLI or GUI spinner. Once it reads "Waiting for initialisation to complete", Multipass will have succeeded SSH-ing into the instance but remain waiting for cloud-init to finish.
 
 ## Troubleshooting steps
 
@@ -219,9 +219,9 @@ chpasswd: { expire: false }
 
 ### Cloud-init tarries during an instance launch
 
-- When launching a new instance, once Multipass obtains an SSH session to the instance, it will wait for cloud-init to complete. During this phase, the CLI/GUI spinner reads "Waiting for initialization to complete".
+- When launching a new instance, once Multipass obtains an SSH session to the instance, it will wait for cloud-init to complete. During this phase, the CLI/GUI spinner reads "Waiting for initialisation to complete".
 
-- At this point, the initialization continues in the background, even if you interrupt the launch command or if it times out.
+- At this point, the initialisation continues in the background, even if you interrupt the launch command or if it times out.
 
 - So if you wait for a little while longer, your instance may eventually finish setting up. When it does, it will have this file: `/var/lib/cloud/instance/boot-finished`.
     * Consider passing a longer timeout to the `launch` command. For example, `multipass launch --timeout 1000` sets the launch timeout to 1000 seconds.

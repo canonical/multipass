@@ -35,7 +35,7 @@ Click on the Multipass icon and select **Open Shell**.
 
 Clicking this button does many things in the background:
 * It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
-<!-- [Primary instance]( /t/28469#primary-instance) -->
+
 * It installs the most recent Ubuntu LTS release on that instance. 
 * It mounts your `$HOME` directory in the instance. 
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`. 
@@ -556,7 +556,7 @@ You can use this web server locally for any kind of local development or testing
 (launch-from-a-blueprint-to-run-docker-containers)=
 ### Launch from a Blueprint to run Docker containers
 
-Some environments require a lot of configuration and setup. Multipass Blueprints are instances with a deep level of customization. For example, the Docker Blueprint is a pre-configured Docker environment with a Portainer container already running. 
+Some environments require a lot of configuration and setup. Multipass Blueprints are instances with a deep level of customisation. For example, the Docker Blueprint is a pre-configured Docker environment with a Portainer container already running. 
 
 You can launch an instance using the Docker Blueprint by running `multipass launch docker --name docker-dev`.
 
@@ -583,7 +583,7 @@ Memory usage:   259.7MiB out of 3.8GiB
 Mounts:         --
 ```
 
-Copy the IP address starting with "10" and paste it into your browser, then add a colon and the portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
+Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
 
 ![|720x543](https://assets.ubuntu.com/v1/75a164a1-mp-linux-5.png) 
 
@@ -620,7 +620,7 @@ Memory usage:   236.4MiB out of 3.8GiB
 Mounts:         --
 ```
 
-Copy the IP address starting with "10" and paste it into your browser, then add a colon and the portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
+Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
 
 ![|720x543](https://assets.ubuntu.com/v1/75a164a1-mp-macos-6.png)
 
@@ -657,7 +657,7 @@ Memory usage:   283.3MiB out of 3.8GiB
 Mounts:         --
 ```
 
-Copy the IP address starting with "10" and paste it into your browser, then add a colon and the portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
+Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
 
 ![|720x601](https://assets.ubuntu.com/v1/75a164a1-mp-windows-14.png)
 

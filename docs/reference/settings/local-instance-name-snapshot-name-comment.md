@@ -11,7 +11,7 @@ Where `<instance-name>` is the name of a Multipass instance and `<snapshot-name>
 
 ## Description
 
-An optional free piece of text that is associated with the snapshot. This can be used to describe the snapshot, recognize its role, or any other purpose.
+An optional free piece of text that is associated with the snapshot. This can be used to describe the snapshot, recognise its role, or any other purpose.
 
 ## Possible values
 

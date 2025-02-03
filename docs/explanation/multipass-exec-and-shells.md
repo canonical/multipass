@@ -13,7 +13,7 @@ For example, when `multipass exec primary -- ls ~` is entered on a Linux shell, 
 
 Quoting also depends on the calling shell. On most Linux and macOS shells, single quotes delimit a string that the shell passes verbatim to the program. 
 
-The Windows powershell doesn't treat single quotes this way. A program called with `'abc def'` there would get two arguments: `'abc` and `def'`. Double quotes can be used instead: `"abc def"`, but the string they delimit is subject to shell expansion. For example:
+The Windows PowerShell doesn't treat single quotes this way. A program called with `'abc def'` there would get two arguments: `'abc` and `def'`. Double quotes can be used instead: `"abc def"`, but the string they delimit is subject to shell expansion. For example:
 
 ```{code-block} text
 set USER=me

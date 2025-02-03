@@ -5,7 +5,7 @@
 
 Multipass can be configured with a number of **settings** that are read and written by the [`get`](/reference/command-line-interface/get) and [`set`](/reference/command-line-interface/set) CLI commands, respectively. Some settings are also available in the [GUI client](/reference/gui-client).
 
-Settings are organized in a tree structure, where each individual setting is identified by a unique **key** and takes on a single **value** at any given time. 
+Settings are organised in a tree structure, where each individual setting is identified by a unique **key** and takes on a single **value** at any given time. 
 
 ## Settings keys
 
@@ -25,9 +25,7 @@ At any given time, the available settings depend on the state of the system. Som
 
 Some instance properties are also exposed as settings. 
 > See also: {ref}`set-the-cpu-ram-or-disk-of-an-instance`
-<!--
-[Set the CPU, RAM or disk of an instance]( /t/28603#set-the-cpu-ram-or-disk-of-an-instance).
--->
+
 The command `multipass get --keys` shows what settings are available at any given time. 
 
 As of now, this is the total set of settings available:

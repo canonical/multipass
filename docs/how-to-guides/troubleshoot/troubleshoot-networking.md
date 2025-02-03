@@ -26,7 +26,9 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
 * VPN software can be aggressive at managing routes and may route 192.168.64 subnet through the VPN interface, instead of keeping it locally available.
     * Possible culprits: OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, Jupiter Junos Pulse / Pulse Secure
     * Tunnelblick doesn’t cause problems
-* Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking instance’s DNS (ref: [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing))
+* Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking instance’s DNS 
+<!-- THIS LINK IS BROKEN
+(see: [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
 * dnscrypt-proxy/dnscrypt-wrapper/cloudflared-proxy \
 Default configuration binds to localhost port 53, clashing with Internet Sharing.
 * another dnsmasq process bound to localhost port 53
@@ -60,7 +62,7 @@ Default configuration binds to localhost port 53, clashing with Internet Sharing
        * It’s OK to block incoming connections to "multipassd" however.
 1. VPN
 1. Little Snitch - defaults are good, it should permit mDNSResponder and bootpd access to BPF
-If you're having trouble downloading images and/or see `Unknown error`s when trying to `multipass launch -vvv`, Little Snitch may be interfering with `multipassd`'s network access (ref. [#1169](https://github.com/CanonicalLtd/multipass/issues/1169))
+If you're having trouble downloading images and/or see `Unknown error`s when trying to `multipass launch -vvv`, Little Snitch may be interfering with `multipassd`'s network access (ref. [#1169](https://github.com/canonical/multipass/issues/1169))
 1. Internet Sharing - doesn’t usually clash
 1. <!-- to be removed once https://discourse.ubuntu.com/t/draft-troubleshoot-launch-start-issues/48104 has been published, as it was moved there --> Is the bootpd DHCP server alive? (`sudo lsof -iUDP:67 -n -P` should mention `bootpd`)
     - It should be launched automatically when there is a request, but you can also launch it manually if needed.
@@ -84,7 +86,7 @@ sudo route -nv add -net 192.168.64.0/24 -interface bridge100
 
 Maybe `-static` route helps?
 
-If using Cisco AnyConnect, try using OpenConnect (`brew install openconnect`) instead as it messes with routes less (but your company sysadmin/policy may not permit/authorize this).
+If using Cisco AnyConnect, try using OpenConnect (`brew install openconnect`) instead as it messes with routes less (but your company sysadmin/policy may not permit/authorise this).
 
 *   It monitors the routing table so may prevent any customisation. Here is [a very hacky workaround](https://unix.stackexchange.com/questions/106304/route-add-no-longer-works-when-i-connected-to-vpn-via-cisco-anyconnect-client/501094#501094).
 
@@ -94,7 +96,7 @@ Does your VPN software provide a "split connection" option, where VPN sysadmin c
 
 #### Potential workaround for VPN conflicts 
 
-This was reported on GitHub (issue [#495](https://github.com/CanonicalLtd/multipass/issues/495#issuecomment-448461250)).
+This was reported on GitHub (issue [#495](https://github.com/canonical/multipass/issues/495#issuecomment-448461250)).
 
 After the `nat ...` line (if there is one, otherwise at the end) in `/etc/pf.conf`, add this line:
 
@@ -138,7 +140,6 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 Note that macOS’s firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
 
 ![Security & Privacy|690x605](https://assets.ubuntu.com/v1/a4c00e5f-multipass-security-privacy.jpg)
-<!-- upload://nvrMzXqFsN0vezA5Fd77k5K65xo.jpg -->
 
 If you try again, it should work:
 
@@ -262,7 +263,7 @@ Any other command appearing in that output means a process is conflicting with *
     ```
 
     "1.1.1.1" is a free DNS service provided by CloudFlare, but you can use your own.
-2. Use a [custom cloud-init to set /etc/resolv.conf](https://cloudinit.readthedocs.io/en/latest/topics/examples.html?highlight=dns#configure-an-instances-resolv-conf) for you on first boot.
+2. Use a [custom cloud-init to set /etc/resolv.conf](https://cloudinit.readthedocs.io/en/latest/reference/yaml_examples/resolv_conf.html) for you on first boot.
 
 (troubleshoot-networking-arp-problems)=
 #### ARP problems
@@ -274,12 +275,12 @@ This means that applications that rely on additional IP addresses, such as [meta
 (troubleshoot-networking-issues-caused-by-macos-update)=
 #### Issues caused by MacOS update
 
-When upgrading MacOS to 12.4 (this might happen however also when upgrading to other vesions), MacOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the MacOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests. 
+When upgrading MacOS to 12.4 (this might happen however also when upgrading to other versions), MacOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the MacOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests. 
 
 There are some procedures that can help to overcome this issue (see [issue #2387](https://github.com/canonical/multipass/issues/2387) on the Multipass GitHub repo for a discussion on this and some alternative solutions). First, you can try to:
 
 * Reboot the computer.
-* Disable and then reenable Internet sharing and/or the firewall.
+* Disable and then re-enable Internet sharing and/or the firewall.
 * Configure the driver (QEMU) and Multipass in the firewall to allow incoming connections.
 
 ## Troubleshoot networking on Windows
@@ -314,11 +315,11 @@ Hyper-V will recreate it on next boot.
 
 Another reason for instance timeouts may be that a "stale" IP address for a particular instance name is stored in the `Internet Connection Sharing` hosts file.
 
-Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and look for any entries that have your instance name in it.  If there is more than 1 entry, remove any of them except for the first listed.  Save the file and try again.
+Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and look for any entries that have your instance name in it. If there is more than 1 entry, remove any of them except for the first listed. Save the file and try again.
 
 #### Anti-virus / security software blocking instances
 
-Anti-virus and network security software are not necessarily virtualization-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
+Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
 
 ---
 

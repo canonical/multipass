@@ -3,7 +3,7 @@
 
 > See also: [Instance](/explanation/instance), [`launch`](/reference/command-line-interface/launch), [`set`](/reference/command-line-interface/set), [Settings](/reference/settings/index)
 
-This document shows further ways to customize an instance outside of the [`launch`](/reference/command-line-interface/launch) command using the Multipass [settings](/reference/settings/index).
+This document shows further ways to customise an instance outside of the [`launch`](/reference/command-line-interface/launch) command using the Multipass [settings](/reference/settings/index).
 
 (set-the-cpu-ram-or-disk-of-an-instance)=
 ## Set the CPUs , RAM or disk space of an instance
@@ -58,7 +58,7 @@ On the other hand, it's always possible to fetch properties for all instances. U
 ```
 
 ```{note}
-Modifying instance settings is not supported when using the Hyperkit driver, which has been deprecated in favor of QEMU. The QEMU and VirtualBox drivers on Intel-based macOS hosts do support instance modification.
+Modifying instance settings is not supported when using the Hyperkit driver, which has been deprecated in favour of QEMU. The QEMU and VirtualBox drivers on Intel-based macOS hosts do support instance modification.
 ```
 
 ## Set the status of an instance to primary

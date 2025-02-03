@@ -37,7 +37,7 @@ Only **Windows 10 Pro** or **Enterprise** version **1803** ("April 2018 Update")
 
 ### VirtualBox
 
-Multipass also supports using VirtualBox as a virtualization provider.  You can download the latest version from the [VirtualBox download page](https://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html).
+Multipass also supports using VirtualBox as a virtualisation provider. You can download the latest version from the [VirtualBox download page](https://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html).
 
 ````
 
@@ -97,7 +97,7 @@ name:      multipass
 summary:   Instant Ubuntu VMs
 publisher: Canonical✓
 store-url: https://snapcraft.io/multipass
-contact:   https://github.com/CanonicalLtd/multipass/issues/new
+contact:   https://github.com/canonical/multipass/issues/new
 license:   GPL-3.0
 description: |
   Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that simulates a cloud
@@ -133,7 +133,6 @@ Download the latest installer from [our download page](https://canonical.com/mul
 Run the downloaded installer and follow the guided procedure.
 
 ![Multipass installer on macOS|658x475](https://assets.ubuntu.com/v1/ac6f638d-multipass-installer-macos.png)
-<!-- upload://oBqM17GtMd6dzpBJ2OWl3fexIP2.png -->
 
 ````
 
@@ -143,7 +142,7 @@ Run the downloaded installer and follow the guided procedure.
 You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See {ref}`install-multipass-prerequisites`.
 ```
 
-Download the latest installer from [our download page](https://canonical.com/multipass/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/CanonicalLtd/multipass/releases/) page, look for the `.msi` file.
+Download the latest installer from [our download page](https://canonical.com/multipass/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.msi` file.
 
 Run the downloaded installer and follow the guided procedure. The installer will require to be granted Administrator privileges.
 
@@ -173,9 +172,9 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 ````{tab-item} Windows
 
-You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user.  Use `multipass version` to check your version or `multipass launch` to create your first instance.
+You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user. Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
-Multipass defaults to using Hyper-V as its virtualization provider.  If you'd like to use VirtualBox, you can do so using the following command:
+Multipass defaults to using Hyper-V as its virtualisation provider. If you'd like to use VirtualBox, you can do so using the following command:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
