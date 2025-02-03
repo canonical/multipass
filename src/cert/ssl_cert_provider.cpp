@@ -234,7 +234,7 @@ public:
     }
 
 private:
-    std::unique_ptr<X509, decltype(X509_free)*> x509{X509_new(), X509_free};
+    std::unique_ptr<X509, decltype(&X509_free)> x509{X509_new(), X509_free};
 };
 
 mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir, const std::string& server_name)
