@@ -22,6 +22,7 @@
 
 #include "biomem.h"
 
+#include <openssl/core_names.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/x509.h>
@@ -62,22 +63,30 @@ class EVPKey
 public:
     EVPKey()
     {
-        if (key == nullptr)
-            throw std::runtime_error("Failed to allocate EVP_PKEY");
+        std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
+            EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
+            EVP_PKEY_CTX_free);
 
-        std::unique_ptr<EC_KEY, decltype(EC_KEY_free)*> ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1),
-                                                               EC_KEY_free);
-        if (ec_key == nullptr)
-            throw std::runtime_error("Failed to allocate ec key structure");
+        if (!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0)
+        {
+            throw std::runtime_error("Failed to initialize key generation");
+        }
 
-        if (!EC_KEY_generate_key(ec_key.get()))
-            throw std::runtime_error("Failed to generate key");
+        // Set EC curve (P-256)
+        OSSL_PARAM params[] = {
+            OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
+            OSSL_PARAM_construct_end()};
+        EVP_PKEY_CTX_set_params(ctx.get(), params);
 
-        if (!EVP_PKEY_assign_EC_KEY(key.get(), ec_key.get()))
-            throw std::runtime_error("Failed to assign key");
+        // Generate the key
+        EVP_PKEY* raw_key = nullptr;
+        if (EVP_PKEY_generate(ctx.get(), &raw_key) <= 0)
+        {
+            throw std::runtime_error("Failed to generate EC key");
+        }
 
-        // EVPKey has ownership now
-        ec_key.release();
+        // Assign generated key to unique_ptr for RAII management
+        key.reset(raw_key);
     }
 
     std::string as_pem() const
@@ -104,7 +113,7 @@ public:
     }
 
 private:
-    std::unique_ptr<EVP_PKEY, decltype(EVP_PKEY_free)*> key{EVP_PKEY_new(), EVP_PKEY_free};
+    std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> key{nullptr, EVP_PKEY_free};
 };
 
 std::vector<unsigned char> as_vector(const std::string& v)
