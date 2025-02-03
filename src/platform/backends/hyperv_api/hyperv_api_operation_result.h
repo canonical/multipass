@@ -21,6 +21,8 @@
 #include <string>
 #include <winerror.h>
 
+#include <fmt/format.h>
+
 namespace multipass::hyperv
 {
 
@@ -40,7 +42,7 @@ struct ResultCode
         return *this;
     }
 
-    [[nodiscard]] operator bool() const noexcept
+    [[nodiscard]] explicit operator bool() const noexcept
     {
         return !FAILED(result);
     }
@@ -48,6 +50,11 @@ struct ResultCode
     [[nodiscard]] explicit operator HRESULT() const noexcept
     {
         return result;
+    }
+
+    [[nodiscard]] explicit operator std::make_unsigned_t<HRESULT>() const noexcept
+    {
+        return static_cast<HRESULT>(result);
     }
 
 private:
@@ -75,11 +82,47 @@ struct OperationResult
      */
     const std::wstring status_msg;
 
-    operator bool() const noexcept
+    [[nodiscard]] explicit operator bool() const noexcept
     {
         return static_cast<bool>(code);
     }
 };
 } // namespace multipass::hyperv
+
+/**
+ * Formatter type specialization for ResultCode
+ */
+template <typename Char>
+struct fmt::formatter<multipass::hyperv::ResultCode, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::hyperv::ResultCode& rc, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "{0:#x}", static_cast<std::make_unsigned_t<HRESULT>>(rc));
+    }
+};
+
+/**
+ * Formatter type specialization for ResultCode
+ */
+template <typename Char>
+struct fmt::formatter<multipass::hyperv::OperationResult, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::hyperv::OperationResult& opr, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "{0:#x}", opr.code);
+    }
+};
 
 #endif

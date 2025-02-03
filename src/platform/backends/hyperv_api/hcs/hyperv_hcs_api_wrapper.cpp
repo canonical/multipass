@@ -30,7 +30,6 @@
 #include <fmt/xchar.h>
 
 #include <ComputeDefs.h>
-#include <wil/resource.h>
 
 #include <chrono>
 #include <memory>
@@ -45,9 +44,7 @@ static constexpr const char* kLogCategory = "HyperV-HCS-Wrapper";
 
 using UniqueHcsSystem = std::unique_ptr<std::remove_pointer_t<HCS_SYSTEM>, decltype(HCSAPITable::CloseComputeSystem)>;
 using UniqueHcsOperation = std::unique_ptr<std::remove_pointer_t<HCS_OPERATION>, decltype(HCSAPITable::CloseOperation)>;
-using UniqueHlocalString = wil::unique_hlocal_string;
-
-//  HCS_OPERATION operation{nullptr};
+using UniqueHlocalString = std::unique_ptr<wchar_t, decltype(HCSAPITable::LocalFree)>;
 
 // ---------------------------------------------------------
 
@@ -82,10 +79,12 @@ static auto wait_for_operation_result(const HCSAPITable& api,
         logging::Level::trace,
         kLogCategory,
         fmt::format("wait_for_operation_result(...) > ({}), timeout: {} ms", fmt::ptr(op.get()), timeout.count()));
-    wil::unique_hlocal_string result_msg{};
-    const auto result = api.WaitForOperationResult(op.get(), timeout.count(), &result_msg);
 
-    if (result_msg.is_valid())
+    wchar_t* result_msg_out{nullptr};
+    const auto result = api.WaitForOperationResult(op.get(), timeout.count(), &result_msg_out);
+    UniqueHlocalString result_msg{result_msg_out, api.LocalFree};
+
+    if (result_msg)
     {
         // TODO: Convert from wstring to ascii and log this
         // logging::log(logging::Level::trace,

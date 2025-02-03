@@ -14,9 +14,6 @@
 #
 
 if(WIN32)
-  # WIL is only required for Hyper-V API implementation.
-  find_package(WIL REQUIRED)
-
   add_library(hyperv_api_backend STATIC)
 
   target_sources(hyperv_api_backend PRIVATE
@@ -26,6 +23,5 @@ if(WIN32)
 
   target_link_libraries(hyperv_api_backend PRIVATE
     fmt
-    utils
-    WIL::WIL)
+    utils)
 endif()

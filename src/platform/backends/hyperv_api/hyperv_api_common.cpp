@@ -17,17 +17,54 @@
 
 #include "hyperv_api_common.h"
 
-#include <fmt/format.h>
-#include <wil/resource.h>
+#include <fmt/xchar.h>
 
 #include <cassert>
 #include <locale.h>
 #include <stdexcept>
 
+/**
+ * Formatter for GUID type
+ */
+template <typename Char>
+struct fmt::formatter<::GUID, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const ::GUID& guid, FormatContext& ctx) const
+    {
+        // The format string is laid out char by char to allow it
+        // to be used for initializing variables with different character
+        // sizes.
+        static constexpr Char guid_f[] = {'{', ':', '0', '8', 'x', '}', '-', '{', ':', '0', '4', 'x', '}', '-', '{',
+                                          ':', '0', '4', 'x', '}', '-', '{', ':', '0', '2', 'x', '}', '{', ':', '0',
+                                          '2', 'x', '}', '-', '{', ':', '0', '2', 'x', '}', '{', ':', '0', '2', 'x',
+                                          '}', '{', ':', '0', '2', 'x', '}', '{', ':', '0', '2', 'x', '}', '{', ':',
+                                          '0', '2', 'x', '}', '{', ':', '0', '2', 'x', '}', 0};
+        return format_to(ctx.out(),
+                         guid_f,
+                         guid.Data1,
+                         guid.Data2,
+                         guid.Data3,
+                         guid.Data4[0],
+                         guid.Data4[1],
+                         guid.Data4[2],
+                         guid.Data4[3],
+                         guid.Data4[4],
+                         guid.Data4[5],
+                         guid.Data4[6],
+                         guid.Data4[7]);
+    }
+};
+
 namespace multipass::hyperv
 {
 
-auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
+auto guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
 {
 
     // Since we're using the windows.h in LEAN_AND_MEAN mode, COM-provided
@@ -87,9 +124,10 @@ auto string_to_wstring(const std::string& str) -> std::wstring
     // We could've gotten away with `return std::wstring{str.begin(), str.end()}`
     // and it'd work for 99 pct of the scenarios we'd see, but... let's do the correct thing.
 
-    using unique_locale = wil::unique_any<_locale_t, decltype(&_free_locale), _free_locale>;
     // Avoid recreating the locale.
-    static unique_locale locale{_create_locale(LC_ALL, "C")};
+    static std::unique_ptr<std::remove_pointer_t<_locale_t>, decltype(&_free_locale)> locale{
+        _create_locale(LC_ALL, "C"),
+        _free_locale};
 
     // Call the function with nullptr to learn how much space we need to
     // store the result.
@@ -142,7 +180,22 @@ auto string_to_wstring(const std::string& str) -> std::wstring
 auto guid_from_string(const std::string& guid_str) -> GUID
 {
     // Just use the wide string overload.
-    return guid_from_string(string_to_wstring(guid_str));
+    return guid_from_wstring(string_to_wstring(guid_str));
+}
+
+// ---------------------------------------------------------
+
+auto guid_to_string(const ::GUID& guid) -> std::string
+{
+
+    return fmt::format("{}", guid);
+}
+
+// ---------------------------------------------------------
+
+auto guid_to_wstring(const ::GUID& guid) -> std::wstring
+{
+    return fmt::format(L"{}", guid);
 }
 
 } // namespace multipass::hyperv
