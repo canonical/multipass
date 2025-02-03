@@ -224,9 +224,10 @@ public:
 
 private:
     void add_extension(X509V3_CTX& ctx, int nid, const char* value) {
-        X509_EXTENSION* ext = X509V3_EXT_conf_nid(nullptr, &ctx, nid, value);
-        X509_add_ext(cert.get(), ext, -1);
-        X509_EXTENSION_free(ext);
+        const std::unique_ptr<X509_EXTENSION, decltype(&X509_EXTENSION_free)> ext(
+            X509V3_EXT_conf_nid(nullptr, &ctx, nid, value),
+            X509_EXTENSION_free);
+        X509_add_ext(cert.get(), ext.get(), -1);
     }
 
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
