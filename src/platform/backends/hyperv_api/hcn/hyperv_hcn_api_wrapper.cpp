@@ -39,7 +39,6 @@
 // clang-format on
 
 #include <fmt/xchar.h>
-#include <wil/resource.h>
 
 #include <cassert>
 #include <string>
@@ -47,14 +46,72 @@
 namespace multipass::hyperv::hcn
 {
 
+using UniqueHcnNetwork = std::unique_ptr<std::remove_pointer_t<HCN_NETWORK>, decltype(HCNAPITable::CloseNetwork)>;
+using UniqueHcnEndpoint = std::unique_ptr<std::remove_pointer_t<HCN_ENDPOINT>, decltype(HCNAPITable::CloseEndpoint)>;
+using UniqueCotaskmemString = std::unique_ptr<wchar_t, decltype(HCNAPITable::CoTaskMemFree)>;
+
+// ---------------------------------------------------------
+
 /**
  * Category for the log messages.
  */
 static constexpr const char* kLogCategory = "HyperV-HCN-Wrapper";
 
-using UniqueHcnNetwork = std::unique_ptr<std::remove_pointer_t<HCN_NETWORK>, decltype(HCNAPITable::CloseNetwork)>;
-using UniqueHcnEndpoint = std::unique_ptr<std::remove_pointer_t<HCN_ENDPOINT>, decltype(HCNAPITable::CloseEndpoint)>;
-using UniqueCotaskmemString = wil::unique_cotaskmem_string;
+// ---------------------------------------------------------
+
+/**
+ * HcnCreateNetwork settings JSON template
+ */
+constexpr auto network_settings_template = LR"""(
+{{
+    "Name": "{0}",
+    "Type": "ICS",
+    "Subnets" : [
+        {{
+            "GatewayAddress": "{2}",
+            "AddressPrefix" : "{1}",
+            "IpSubnets" : [
+                {{
+                    "IpAddressPrefix": "{1}"
+                }}
+            ]
+        }}
+    ],
+    "IsolateSwitch": true,
+    "Flags" : 265
+}}
+)""";
+
+// ---------------------------------------------------------
+
+/**
+ * HcnCreateEndpoint settings JSON template
+ */
+constexpr auto endpoint_settings_template = LR"(
+{{
+    "SchemaVersion": {{
+        "Major": 2,
+        "Minor": 16
+    }},
+    "HostComputeNetwork": "{0}",
+    "Policies": [
+        {{
+            "Type": "PortName"
+        }},
+        {{
+            "Type": "Firewall",
+            "Settings": {{
+                "VmCreatorId": "{1}",
+                "PolicyFlags": 0
+            }}
+        }}
+    ],
+    "IpConfigurations": [
+        {{
+            "IpAddress": "{2}"
+        }}
+    ]
+}})";
 
 // ---------------------------------------------------------
 
@@ -67,7 +124,7 @@ using UniqueCotaskmemString = wil::unique_cotaskmem_string;
  * @return HCNOperationResult Result of the performed operation
  */
 template <typename FnType, typename... Args>
-static OperationResult perform_hcn_operation(const FnType& fn, Args&&... args)
+static OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, Args&&... args)
 {
 
     // Ensure that function to call is set.
@@ -81,13 +138,16 @@ static OperationResult perform_hcn_operation(const FnType& fn, Args&&... args)
     // HCN functions will use CoTaskMemAlloc to allocate the error message buffer
     // so use UniqueCotaskmemString to auto-release it with appropriate free
     // function.
-    UniqueCotaskmemString result_msgbuf{};
+
+    wchar_t* result_msg_out{nullptr};
 
     // Perform the operation. The last argument of the all HCN operations (except
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
     // the API describing the error happened. Therefore, we can streamline all API
     // calls through perform_operation to perform co
-    const ResultCode result = fn(std::forward<Args>(args)..., &result_msgbuf);
+    const ResultCode result = fn(std::forward<Args>(args)..., &result_msg_out);
+
+    UniqueCotaskmemString result_msgbuf{result_msg_out, api.CoTaskMemFree};
 
     logging::log(logging::Level::trace,
                  kLogCategory,
@@ -98,7 +158,7 @@ static OperationResult perform_hcn_operation(const FnType& fn, Args&&... args)
     // Error message is only valid when the operation resulted in an error.
     // Passing a nullptr is well-defined in "< C++23", but it's going to be
     // forbidden afterwards. Going an extra mile just to be future-proof.
-    return {result, {result ? L"" : result_msgbuf.get()}};
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
 // ---------------------------------------------------------
@@ -121,7 +181,7 @@ static UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& 
                  fmt::format("open_network(...) > network_guid: {} ", network_guid));
     HCN_NETWORK network{nullptr};
 
-    const auto result = perform_hcn_operation(api.OpenNetwork, guid_from_string(network_guid), &network);
+    const auto result = perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), &network);
     (void)result;
     return UniqueHcnNetwork{network, api.CloseNetwork};
 }
@@ -140,25 +200,6 @@ auto HCNWrapper::create_network(const CreateNetworkParameters& params) -> Operat
     logging::log(logging::Level::trace,
                  kLogCategory,
                  fmt::format("HCNWrapper::create_network(...) > params: {} ", params));
-    constexpr auto network_settings_template = LR"""(
-                {{
-                   "Name": "{0}",
-                   "Type": "ICS",
-                   "Subnets" : [
-                       {{
-                           "GatewayAddress": "{2}",
-                           "AddressPrefix" : "{1}",
-                           "IpSubnets" : [
-                               {{
-                                   "IpAddressPrefix": "{1}"
-                               }}
-                           ]
-                       }}
-                   ] ,
-                   "IsolateSwitch": true,
-                   "Flags" : 265
-               }}
-               )""";
 
     // Render the template
     const auto network_settings = fmt::format(network_settings_template,
@@ -167,10 +208,21 @@ auto HCNWrapper::create_network(const CreateNetworkParameters& params) -> Operat
                                               string_to_wstring(params.gateway));
 
     HCN_NETWORK network{nullptr};
-    auto result =
-        perform_hcn_operation(api.CreateNetwork, guid_from_string(params.guid), network_settings.c_str(), &network);
-    // We don't need the handle.
-    api.CloseNetwork(network);
+    const auto result = perform_hcn_operation(api,
+                                              api.CreateNetwork,
+                                              guid_from_string(params.guid),
+                                              network_settings.c_str(),
+                                              &network);
+
+    if (!result)
+    {
+        // FIXME: Also include the result error message, if any.
+        logging::log(logging::Level::warning,
+                     kLogCategory,
+                     fmt::format("HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}.", result.code));
+    }
+
+    [[maybe_unused]] UniqueHcnNetwork _{network, api.CloseNetwork};
     return result;
 }
 
@@ -180,8 +232,8 @@ auto HCNWrapper::delete_network(const std::string& network_guid) -> OperationRes
 {
     logging::log(logging::Level::trace,
                  kLogCategory,
-                 fmt::format("HCNWrapper::delete_network(...) > network_guid: {} ", network_guid));
-    return perform_hcn_operation(api.DeleteNetwork, guid_from_string(network_guid));
+                 fmt::format("HCNWrapper::delete_network(...) > network_guid: {}", network_guid));
+    return perform_hcn_operation(api, api.DeleteNetwork, guid_from_string(network_guid));
 }
 
 // ---------------------------------------------------------
@@ -191,31 +243,6 @@ auto HCNWrapper::create_endpoint(const CreateEndpointParameters& params) -> Oper
     logging::log(logging::Level::trace,
                  kLogCategory,
                  fmt::format("HCNWrapper::create_endpoint(...) > params: {} ", params));
-    constexpr auto endpoint_settings_template = LR"(
-         {{
-           "SchemaVersion": {{
-               "Major": 2,
-               "Minor": 16
-           }},
-           "HostComputeNetwork": "{0}",
-           "Policies": [
-               {{
-                   "Type": "PortName"
-               }},
-               {{
-                   "Type": "Firewall",
-                   "Settings": {{
-                       "VmCreatorId": "{1}",
-                       "PolicyFlags": 0
-                   }}
-               }}
-           ],
-           "IpConfigurations": [
-               {{
-                   "IpAddress": "{2}"
-               }}
-           ]
-       }})";
 
     auto network = open_network(api, params.network_guid);
 
@@ -230,12 +257,13 @@ auto HCNWrapper::create_endpoint(const CreateEndpointParameters& params) -> Oper
                                                string_to_wstring(params.vm_creator_id),
                                                string_to_wstring(params.endpoint_ipvx_addr));
     HCN_ENDPOINT endpoint{nullptr};
-    auto result = perform_hcn_operation(api.CreateEndpoint,
+    auto result = perform_hcn_operation(api,
+                                        api.CreateEndpoint,
                                         network.get(),
                                         guid_from_string(params.endpoint_guid),
                                         endpoint_settings.c_str(),
                                         &endpoint);
-    api.CloseEndpoint(endpoint);
+    [[maybe_unused]] UniqueHcnEndpoint _{endpoint, api.CloseEndpoint};
     return result;
 }
 
@@ -246,7 +274,7 @@ auto HCNWrapper::delete_endpoint(const std::string& endpoint_guid) -> OperationR
     logging::log(logging::Level::trace,
                  kLogCategory,
                  fmt::format("HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ", endpoint_guid));
-    return perform_hcn_operation(api.DeleteEndpoint, guid_from_string(endpoint_guid));
+    return perform_hcn_operation(api, api.DeleteEndpoint, guid_from_string(endpoint_guid));
 }
 
 } // namespace multipass::hyperv::hcn

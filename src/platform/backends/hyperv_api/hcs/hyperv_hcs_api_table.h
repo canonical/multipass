@@ -69,6 +69,15 @@ struct HCSAPITable
     std::function<decltype(HcsRevokeVmAccess)> RevokeVmAccess = &HcsRevokeVmAccess;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsenumeratecomputesystems
     std::function<decltype(HcsEnumerateComputeSystems)> EnumerateComputeSystems = &HcsEnumerateComputeSystems;
+
+    /**
+     * @brief LocalAlloc/LocalFree is used by the HCS API to manage memory for the status/error
+     * messages. It's caller's responsibility to free the messages allocated by the API, that's 
+     * why the LocalFree is part of the API table.
+     *
+     * @ref https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree
+     */
+    std::function<decltype(::LocalFree)> LocalFree = &::LocalFree;
 };
 
 } // namespace multipass::hyperv::hcs
