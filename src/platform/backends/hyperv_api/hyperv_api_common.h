@@ -32,7 +32,27 @@ namespace multipass::hyperv
  *
  * @return GUID The parsed GUID
  */
-auto guid_from_string(const std::wstring& guid_wstr) -> GUID;
+auto guid_from_wstring(const std::wstring& guid_wstr) -> GUID;
+
+// ---------------------------------------------------------
+
+/**
+ * @brief 
+ * 
+ * @param guid 
+ * @return std::string 
+ */
+auto guid_to_string(const ::GUID& guid) -> std::string;
+
+// ---------------------------------------------------------
+
+/**
+ * @brief 
+ * 
+ * @param guid 
+ * @return std::wstring 
+ */
+auto guid_to_wstring(const ::GUID& guid) -> std::wstring;
 
 // ---------------------------------------------------------
 
