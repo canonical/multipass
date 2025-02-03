@@ -22,6 +22,7 @@
 // (xmkg): clang-format is messing with the include order.
 #include <windows.h>
 #include <computenetwork.h>
+#include <objbase.h> // for CoTaskMemFree
 // clang-format on
 
 #include <fmt/format.h>
@@ -51,6 +52,8 @@ struct HCNAPITable
     std::function<decltype(HcnDeleteEndpoint)> DeleteEndpoint = &HcnDeleteEndpoint;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcn/reference/hcndeleteendpoint
     std::function<decltype(HcnCloseEndpoint)> CloseEndpoint = &HcnCloseEndpoint;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
+    std::function<decltype(::CoTaskMemFree)> CoTaskMemFree = &::CoTaskMemFree;
 };
 
 } // namespace multipass::hyperv::hcn
