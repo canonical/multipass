@@ -24,11 +24,7 @@
 
 #include <openssl/core_names.h>
 #include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <openssl/x509.h>
 #include <openssl/x509v3.h>
-
-#include <QFile>
 
 #include <cerrno>
 #include <cstring>
