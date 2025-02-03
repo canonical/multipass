@@ -135,7 +135,7 @@ public:
                       const std::optional<X509Cert>& root_certificate = std::nullopt)
     // generate root, client or signed server certificate, the third one requires the last three arguments populated
     {
-        if (x509 == nullptr)
+        if (cert == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
 
         long big_num{0};
@@ -143,13 +143,13 @@ public:
         for (unsigned int i = 0; i < 4u; i++)
             big_num |= rand_bytes[i] << i * 8u;
 
-        X509_set_version(x509.get(), 2); // X.509 v3
+        X509_set_version(cert.get(), 2); // X.509 v3
 
-        ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), big_num);
-        X509_gmtime_adj(X509_get_notBefore(x509.get()), 0); // Start time: now
+        ASN1_INTEGER_set(X509_get_serialNumber(cert.get()), big_num);
+        X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
         const long valid_duration_sec = cert_type == CertType::Root ? 3650L * 24L * 60L * 60L : 365L * 24L * 60L * 60L;
         // 10 years for root certicicate and 1 year for server and client certificate
-        X509_gmtime_adj(X509_get_notAfter(x509.get()), valid_duration_sec);
+        X509_gmtime_adj(X509_get_notAfter(cert.get()), valid_duration_sec);
 
         constexpr int APPEND_ENTRY{-1};
         constexpr int ADD_RDN{0};
@@ -159,7 +159,7 @@ public:
         const auto cn = as_vector(cert_type == CertType::Root     ? "Multipass Root CA"
                                   : cert_type == CertType::Client ? mp::utils::make_uuid().toStdString()
                                                                   : server_name);
-        const auto subject_name = X509_get_subject_name(x509.get());
+        const auto subject_name = X509_get_subject_name(cert.get());
         X509_NAME_add_entry_by_txt(subject_name,
                                    "C",
                                    MBSTRING_ASC,
@@ -171,16 +171,16 @@ public:
         X509_NAME_add_entry_by_txt(subject_name, "CN", MBSTRING_ASC, cn.data(), cn.size(), APPEND_ENTRY, ADD_RDN);
 
         const auto issuer_name =
-            cert_type == CertType::Server ? X509_get_subject_name(root_certificate.value().x509.get()) : subject_name;
-        X509_set_issuer_name(x509.get(), issuer_name);
+            cert_type == CertType::Server ? X509_get_subject_name(root_certificate.value().cert.get()) : subject_name;
+        X509_set_issuer_name(cert.get(), issuer_name);
 
-        if (!X509_set_pubkey(x509.get(), key.get()))
+        if (!X509_set_pubkey(cert.get(), key.get()))
             throw std::runtime_error("Failed to set certificate public key");
 
-        const auto& issuer_x509 = cert_type == CertType::Server ? root_certificate.value().x509 : x509;
+        const auto& issuer_cert = cert_type == CertType::Server ? root_certificate.value().cert : cert;
         // Add X509v3 extensions
         X509V3_CTX ctx;
-        X509V3_set_ctx(&ctx, issuer_x509.get(), x509.get(), NULL, NULL, 0);
+        X509V3_set_ctx(&ctx, issuer_cert.get(), cert.get(), NULL, NULL, 0);
 
         // wrap into function or struct
         X509_EXTENSION* ext;
@@ -188,36 +188,36 @@ public:
         if (cert_type == CertType::Server)
         {
             ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
-            X509_add_ext(x509.get(), ext, -1);
+            X509_add_ext(cert.get(), ext, -1);
             X509_EXTENSION_free(ext);
         }
 
         // Subject Key Identifier
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_subject_key_identifier, "hash");
-        X509_add_ext(x509.get(), ext, -1);
+        X509_add_ext(cert.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
         // Authority Key Identifier
         const std::string is_from_issuer = cert_type == CertType::Server ? ",issuer" : "";
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_authority_key_identifier, ("keyid:always" + is_from_issuer).c_str());
-        X509_add_ext(x509.get(), ext, -1);
+        X509_add_ext(cert.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
         // Basic Constraints: critical, CA:TRUE or CA:FALSE
         const std::string is_ca = cert_type == CertType::Root ? "TRUE" : "FALSE";
         ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints, ("critical,CA:" + is_ca).c_str());
-        X509_add_ext(x509.get(), ext, -1);
+        X509_add_ext(cert.get(), ext, -1);
         X509_EXTENSION_free(ext);
 
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
-        if (!X509_sign(x509.get(), signing_key.get(), EVP_sha256()))
+        if (!X509_sign(cert.get(), signing_key.get(), EVP_sha256()))
             throw std::runtime_error("Failed to sign certificate");
     }
 
     std::string as_pem() const
     {
         mp::BIOMem mem;
-        auto bytes = PEM_write_bio_X509(mem.get(), x509.get());
+        auto bytes = PEM_write_bio_X509(mem.get(), cert.get());
         if (bytes == 0)
             throw std::runtime_error("Failed to write certificate in PEM format");
         return mem.as_string();
@@ -226,12 +226,12 @@ public:
     void write(const QString& cert_path) const
     {
         WritableFile file{cert_path};
-        if (!PEM_write_X509(file.get(), x509.get()))
+        if (!PEM_write_X509(file.get(), cert.get()))
             throw std::runtime_error(fmt::format("Failed writing certificate to file '{}'", cert_path));
     }
 
 private:
-    std::unique_ptr<X509, decltype(&X509_free)> x509{X509_new(), X509_free};
+    std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
 };
 
 mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir, const std::string& server_name)
