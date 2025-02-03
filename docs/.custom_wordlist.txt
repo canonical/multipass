@@ -3,7 +3,7 @@ AnyConnect
 ARP
 autostart
 backend
-backend’s
+backend's
 backends
 BBCcode
 bootpd
@@ -25,6 +25,7 @@ CPUs
 cpus
 cryptographically
 CSV
+customisations
 Cygwin
 de
 dev
@@ -75,7 +76,7 @@ liger
 localhost
 lsof
 macOS
-macOS’s
+macOS's
 MACs
 mDNSResponder
 metallb

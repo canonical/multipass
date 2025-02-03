@@ -100,7 +100,7 @@ The system will ask for a username (`ubuntu`) and the password set above, and th
 
 ````{tab-item} macOS
 
-To connect on MacOS, we can use the “Microsoft Remote Desktop” application, from the Mac App Store.
+To connect on macOS, we can use the “Microsoft Remote Desktop” application, from the Mac App Store.
 
 ````
 

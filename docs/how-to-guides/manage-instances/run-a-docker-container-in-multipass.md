@@ -32,7 +32,7 @@ In this tutorial, you will see how to get started with the Docker blueprint by c
 
 ## Install Multipass
 
-Duration: 3 minutes
+*Duration: 3 minutes*
 
 Let's start by installing Multipass on your machine, following the steps in [How to install Multipass](/how-to-guides/install-multipass). 
 
@@ -40,7 +40,7 @@ Let's start by installing Multipass on your machine, following the steps in [How
 
 ## Launch a Docker VM
 
-Duration: 1 minute
+*Duration: 1 minute*
 
 Now that Multipass is installed, you can create a VM running Docker very simply. Open up a terminal and type
 
@@ -58,7 +58,7 @@ multipass exec docker docker`
 
 ## Alias of the Docker commands
 
-Duration: 1 minute
+*Duration: 1 minute*
 
 The Docker blueprint creates automatically two aliases, that is, two commands which can be run from the host to use commands in the instance as if they were in the host. In particular, the host `docker` command executes `docker` in the instance, and the host `docker-compose` command executes `docker-compose` in the instance. 
 
@@ -93,7 +93,7 @@ docker run hello-world
 
 ## Using Portainer
 
-Duration: 5 minutes
+*Duration: 5 minutes*
 
 Let's now go one step further, with Portainer. The Docker blueprint comes with Portainer installed, which gives an easy-to-use graphical interface for managing your Docker containers. To access Portainer, you will first need its IP address. The following command will show the IP addresses associated with the Docker VM you created in the previous steps:
 
@@ -115,7 +115,7 @@ Click on the newly created “Local” environment to manage the Docker instance
 
 ## Launching a container
 
-Duration: 5 minutes
+*Duration: 5 minutes*
 
 For this tutorial, you will be creating a blog using the Ghost template in Portainer. Portainer has many other app templates if you are looking for more ideas. If you want more selection, you can launch containers from the Docker hub from Portainer or from the command line.
 

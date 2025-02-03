@@ -14,10 +14,10 @@ This document demonstrates how to troubleshoot various known Multipass networkin
 
 On macOS, the QEMU driver employs the Hypervisor.framework. This framework manages the networking stack for the instances.
 
-On creation of an instance, the Hypervisor framework on the host uses macOS’ **Internet Sharing** mechanism to:
+On creation of an instance, the Hypervisor framework on the host uses macOS's **Internet Sharing** mechanism to:
 
 1. Create a virtual switch and connect each instance to it (subnet 192.168.64.*).
-2. Provide DHCP and DNS resolution on this switch at 192.168.64.1 (via bootpd & mDNSResponder services running on the host). This is configured by an auto-generated file (`/etc/bootpd.plist`), but editing this is pointless as MacOS regenerates it as it desires.
+2. Provide DHCP and DNS resolution on this switch at 192.168.64.1 (via bootpd & mDNSResponder services running on the host). This is configured by an auto-generated file (`/etc/bootpd.plist`), but editing this is pointless as macOS regenerates it as it desires.
 
 Note that, according to **System Preferences > Sharing**, the **Internet Sharing** service can appear disabled. This is fine---in the background, it will still be enabled to support instances.
 
@@ -33,7 +33,7 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
 Default configuration binds to localhost port 53, clashing with Internet Sharing.
 * another dnsmasq process bound to localhost port 53
 * custom DHCP server bound to port 67? ("sudo lsof -iUDP:67 -n -P" should show launchd & bootpd only)
-* MacOS update can make changes to the firewall and leave instances in unknown state; see {ref}`troubleshoot-networking-issues-caused-by-macos-update` below.
+* macOS updates can make changes to the firewall and leave instances in unknown state; see {ref}`troubleshoot-networking-issues-caused-by-macos-update` below.
 
 ### Problem class
 
@@ -137,7 +137,7 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 3 packets transmitted, 0 received, 100% packet loss, time 2030ms
 ```
 
-Note that macOS’s firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
+Note that macOS's firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
 
 ![Security & Privacy|690x605](https://assets.ubuntu.com/v1/a4c00e5f-multipass-security-privacy.jpg)
 
@@ -231,7 +231,7 @@ This implies the problem is with the macOS **Internet Sharing** feature---for so
 
 The built-in DNS server should be "mDNSResponder", which binds to localhost on port 53.
 
-If using Little Snitch or another per-process firewall, ensure mDNSResponder can establish outgoing connections. MacOS’ built-in firewall should not interfere with it.
+If using Little Snitch or another per-process firewall, ensure mDNSResponder can establish outgoing connections. The macOS’s built-in firewall should not interfere with it.
 
 Check what is bound to that port on the host with:
 
@@ -273,9 +273,9 @@ The macOS bridge by Multipass filters packets so that only the IP address origin
 This means that applications that rely on additional IP addresses, such as [metallb](https://metallb.universe.tf/) under [microk8s](https://microk8s.io/), will not work.
 
 (troubleshoot-networking-issues-caused-by-macos-update)=
-#### Issues caused by MacOS update
+#### Issues caused by macOS update
 
-When upgrading MacOS to 12.4 (this might happen however also when upgrading to other versions), MacOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the MacOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests. 
+When upgrading macOS to 12.4 (this might happen however also when upgrading to other versions), macOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the macOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests. 
 
 There are some procedures that can help to overcome this issue (see [issue #2387](https://github.com/canonical/multipass/issues/2387) on the Multipass GitHub repo for a discussion on this and some alternative solutions). First, you can try to:
 
@@ -285,11 +285,15 @@ There are some procedures that can help to overcome this issue (see [issue #2387
 
 ## Troubleshoot networking on Windows
 
+This sections contains troubleshooting considerations that are specific to Windows systems.
+
 ### Architecture
 
 Multipass uses the native "Hyper-V" hypervisor on Windows, along with the "Default Switch" created for it. That, in turn, uses the "Internet Sharing" functionality, providing DHCP (IP addresses) and DNS (domain name resolution) to the instances.
 
 ### Known issues
+
+Here you can find more details on known issues affecting Windows systems.
 
 #### Default switch going awry
 
@@ -309,13 +313,13 @@ Restart-Computer
 
 Hyper-V will recreate it on next boot.
 
+<!-- This content has been moved to troubleshoot-launch-start-issues.md
 #### Stale Internet connection sharing lease
-
-<!-- to be removed once https://discourse.ubuntu.com/t/draft-troubleshoot-launch-start-issues/48104 has been published, as it was moved there -->
 
 Another reason for instance timeouts may be that a "stale" IP address for a particular instance name is stored in the `Internet Connection Sharing` hosts file.
 
-Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and look for any entries that have your instance name in it. If there is more than 1 entry, remove any of them except for the first listed. Save the file and try again.
+Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and look for any entries that have your instance name in it. If there is more than one entry, remove any of them except for the first listed. Save the file and try again.
+-->
 
 #### Anti-virus / security software blocking instances
 
