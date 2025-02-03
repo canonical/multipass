@@ -1,18 +1,17 @@
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart';
 
+import '../copyable_text.dart';
 import '../extensions.dart';
 import '../providers.dart';
+import '../tooltip.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
 import 'vm_action_buttons.dart';
 import 'vm_details.dart';
 import 'vm_status_icon.dart';
-import '../tooltip.dart';
-import '../copyable_text.dart';
 
 class VmDetailsHeader extends ConsumerWidget {
   final String name;

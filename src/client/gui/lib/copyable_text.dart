@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter/services.dart';
+
 import 'tooltip.dart';
 
 class CopyableText extends StatefulWidget {
@@ -13,20 +14,7 @@ class CopyableText extends StatefulWidget {
 }
 
 class _CopyableTextState extends State<CopyableText> {
-  bool _copied = false;
-  bool get _isCopyable => widget.text != '-';
-
-  void _copyToClipboard() async {
-    if (!_isCopyable) return;
-    await Clipboard.setData(ClipboardData(text: widget.text));
-    setState(() => _copied = true);
-  }
-
-  void _resetCopied() {
-    if (_copied) {
-      setState(() => _copied = false);
-    }
-  }
+  var _copied = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +25,17 @@ class _CopyableTextState extends State<CopyableText> {
       overflow: TextOverflow.ellipsis,
     );
 
-    if (!_isCopyable) return text;
+    // if there is no value, display "-"
+    if (widget.text == '-') return text;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onExit: (_) => _resetCopied(),
+      onExit: (_) => setState(() => _copied = false),
       child: GestureDetector(
-        onTap: _copyToClipboard,
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: widget.text));
+          setState(() => _copied = true);
+        },
         child: Tooltip(
           message: _copied ? 'Copied' : 'Click to copy',
           child: text,
