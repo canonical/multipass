@@ -182,32 +182,24 @@ public:
         X509V3_CTX ctx;
         X509V3_set_ctx(&ctx, issuer_cert.get(), cert.get(), nullptr, nullptr, 0);
 
-        // wrap into function or struct
-        X509_EXTENSION* ext;
         // Subject Alternative Name
         if (cert_type == CertType::Server)
         {
-            ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
-            X509_add_ext(cert.get(), ext, -1);
-            X509_EXTENSION_free(ext);
+            add_extension(ctx, NID_subject_alt_name, ("DNS:" + server_name).c_str());
         }
 
         // Subject Key Identifier
-        ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_subject_key_identifier, "hash");
-        X509_add_ext(cert.get(), ext, -1);
-        X509_EXTENSION_free(ext);
+        add_extension(ctx, NID_subject_key_identifier, "hash");
 
         // Authority Key Identifier
-        const std::string is_from_issuer = cert_type == CertType::Server ? ",issuer" : "";
-        ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_authority_key_identifier, ("keyid:always" + is_from_issuer).c_str());
-        X509_add_ext(cert.get(), ext, -1);
-        X509_EXTENSION_free(ext);
+        add_extension(ctx,
+                      NID_authority_key_identifier,
+                      (std::string("keyid:always") + (cert_type == CertType::Server ? ",issuer" : "")).c_str());
 
         // Basic Constraints: critical, CA:TRUE or CA:FALSE
-        const std::string is_ca = cert_type == CertType::Root ? "TRUE" : "FALSE";
-        ext = X509V3_EXT_conf_nid(nullptr, &ctx, NID_basic_constraints, ("critical,CA:" + is_ca).c_str());
-        X509_add_ext(cert.get(), ext, -1);
-        X509_EXTENSION_free(ext);
+        add_extension(ctx,
+                      NID_basic_constraints,
+                      (std::string("critical,CA:") + (cert_type == CertType::Root ? "TRUE" : "FALSE")).c_str());
 
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
         if (!X509_sign(cert.get(), signing_key.get(), EVP_sha256()))
@@ -231,6 +223,12 @@ public:
     }
 
 private:
+    void add_extension(X509V3_CTX& ctx, int nid, const char* value) {
+        X509_EXTENSION* ext = X509V3_EXT_conf_nid(nullptr, &ctx, nid, value);
+        X509_add_ext(cert.get(), ext, -1);
+        X509_EXTENSION_free(ext);
+    }
+
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
 };
 
