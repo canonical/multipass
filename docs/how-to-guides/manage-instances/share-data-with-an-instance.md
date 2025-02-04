@@ -3,7 +3,7 @@
 
 > See also: [Instance](/explanation/instance), [Mount](/explanation/mount), [ID mapping](/explanation/id-mapping), [`launch`](/reference/command-line-interface/launch), [`mount`](/reference/command-line-interface/mount), [`umount`](/reference/command-line-interface/umount), [`transfer`](/reference/command-line-interface/transfer)
 
-This guide explains how to share data between your host and an instance. There are two ways to accomplish this: 
+This guide explains how to share data between your host and an instance. There are two ways to accomplish this:
 * the `mount` command, that maps a local folder to a new or existing folder in the instance's filesystem
 * the `transfer` command, that copies files to and from an instance
 
@@ -17,7 +17,7 @@ The basic syntax of the `mount` command is:
 multipass mount <local path> <instance name>
 ```
 
-For example, to map your local home directory on a Linux system (identified as $HOME) into the `keen-yak` instance, run this command: 
+For example, to map your local home directory on a Linux system (identified as $HOME) into the `keen-yak` instance, run this command:
 
 ```{code-block} text
 multipass mount $HOME keen-yak
@@ -30,7 +30,7 @@ You can check the result running `multipass info keen-yak`:
 Mounts:         /home/michal => /home/michal
 ```
 
-From this point the local home directory `/home/michal` will be available inside the instance. 
+From this point the local home directory `/home/michal` will be available inside the instance.
 
 If you want to mount a local directory to a different path in your instance, you can specify the target path as follows:
 
@@ -52,9 +52,9 @@ multipass launch --mount /local/path:/instance/path
 
 ### Unmounting shared directories
 
-To unmount previously mounted paths, use the [`multipass umount`](/reference/command-line-interface/umount) command. 
+To unmount previously mounted paths, use the [`multipass umount`](/reference/command-line-interface/umount) command.
 
-You can specify the folder path to unmount: 
+You can specify the folder path to unmount:
 
 ```{code-block} text
 multipass umount keen-yak:/home/michal
@@ -68,9 +68,9 @@ multipass umount keen-yak
 
 ## Using `transfer`
 
-You can also use the [`multipass transfer`](/reference/command-line-interface/transfer) command to copy files from your local filesystem to the instance's filesystem, and vice versa. 
+You can also use the [`multipass transfer`](/reference/command-line-interface/transfer) command to copy files from your local filesystem to the instance's filesystem, and vice versa.
 
-To indicate that a file is inside an instance, prefix its path with `<instance name>:`. 
+To indicate that a file is inside an instance, prefix its path with `<instance name>:`.
 
 For example, to copy the `crontab` and `fstab` files from the `/etc` directory on the `keen-yak` instance to the `/home/michal` folder in the host's filesystem:
 
@@ -110,4 +110,3 @@ See also [ID mapping](/explanation/id-mapping) for more information on how the m
 ---
 
 <small>**Contributors:** @saviq, @nhart, @andreitoterman, @ricab, @gzanchi </small>
-

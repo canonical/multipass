@@ -12,7 +12,7 @@ This document demonstrates how to configure the location where Multipass stores 
 - When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to deleted it manually.
 ```
 
-`````{tab-set} 
+`````{tab-set}
 
 ````{tab-item} Linux
 
@@ -22,7 +22,7 @@ First, stop the Multipass daemon:
 sudo snap stop multipass
 ```
 
-Since Multipass is installed using a strictly confined snap, it is limited on what it can do or access on your host. Depending on where the new storage directory is located, you will need to connect the respective interface to the Multipass snap. Because of [snap confinement](https://snapcraft.io/docs/snap-confinement), this directory needs to be located in either `/home` (connected by default) or one of the removable mounts points (`/mnt` or `/media`). To connect the removable mount points, use the command: 
+Since Multipass is installed using a strictly confined snap, it is limited on what it can do or access on your host. Depending on where the new storage directory is located, you will need to connect the respective interface to the Multipass snap. Because of [snap confinement](https://snapcraft.io/docs/snap-confinement), this directory needs to be located in either `/home` (connected by default) or one of the removable mounts points (`/mnt` or `/media`). To connect the removable mount points, use the command:
 
   ```{code-block} text
   sudo snap connect multipass:removable-media

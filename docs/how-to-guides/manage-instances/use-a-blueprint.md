@@ -1,11 +1,11 @@
 (how-to-guides-manage-instances-use-a-blueprint)=
 # Use a blueprint
 
-> See also: [Blueprint](/explanation/blueprint) 
+> See also: [Blueprint](/explanation/blueprint)
 
-Blueprints provide a shortcut to initialising Multipass instances for a variety of applications. 
+Blueprints provide a shortcut to initialising Multipass instances for a variety of applications.
 
-To see what blueprints are available, run 
+To see what blueprints are available, run
 
 ```{code-block} text
 multipass find --only-blueprints
@@ -34,4 +34,3 @@ Blueprints also provide a way of exchanging files between the host and the insta
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/use-a-blueprint" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

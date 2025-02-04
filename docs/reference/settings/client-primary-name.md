@@ -9,7 +9,7 @@
 
 ## Description
 
-The name of the instance that is launched/recognised as primary. 
+The name of the instance that is launched/recognised as primary.
 
 > See also: {ref}`primary-instance`.
 
@@ -29,4 +29,3 @@ Any valid instance name or the empty string (`""`) to disable primary.
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/primary-name" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

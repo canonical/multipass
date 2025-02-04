@@ -34,7 +34,7 @@ In this tutorial, you will see how to get started with the Docker blueprint by c
 
 *Duration: 3 minutes*
 
-Let's start by installing Multipass on your machine, following the steps in [How to install Multipass](/how-to-guides/install-multipass). 
+Let's start by installing Multipass on your machine, following the steps in [How to install Multipass](/how-to-guides/install-multipass).
 
 ![|720x643](https://assets.ubuntu.com/v1/25ca03d0-mp-docker.png)
 
@@ -60,7 +60,7 @@ multipass exec docker docker`
 
 *Duration: 1 minute*
 
-The Docker blueprint creates automatically two aliases, that is, two commands which can be run from the host to use commands in the instance as if they were in the host. In particular, the host `docker` command executes `docker` in the instance, and the host `docker-compose` command executes `docker-compose` in the instance. 
+The Docker blueprint creates automatically two aliases, that is, two commands which can be run from the host to use commands in the instance as if they were in the host. In particular, the host `docker` command executes `docker` in the instance, and the host `docker-compose` command executes `docker-compose` in the instance.
 
 In order for these to work, you just need to add them to the path so that you can use them directly from your command line. If this was not done before, launching the Docker blueprint will return instructions showing how to add the aliases to your path. Simply copy and paste the command shown. It will likely be of this form:
 
@@ -142,4 +142,3 @@ For next steps, try out Portainer’s other App Templates (Step 5), or check out
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/docker-how-to" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

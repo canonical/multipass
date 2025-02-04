@@ -3,7 +3,7 @@
 
 > See also: {ref}`explanation-driver`, {ref}`reference-settings-local-driver`
 
-This document demonstrates how to choose, set up, and manage the drivers behind Multipass. Multipass already has sensible defaults, so this is an optional step. 
+This document demonstrates how to choose, set up, and manage the drivers behind Multipass. Multipass already has sensible defaults, so this is an optional step.
 
 ## Default driver
 
@@ -11,19 +11,19 @@ This document demonstrates how to choose, set up, and manage the drivers behind 
 
 ````{tab-item} Linux
 
-By default, Multipass on Linux uses the `qemu` or `lxd` driver (depending on the architecture). 
+By default, Multipass on Linux uses the `qemu` or `lxd` driver (depending on the architecture).
 
 ````
 
 ````{tab-item} macOS
 
-By default, Multipass on macOS uses the `qemu` driver. 
+By default, Multipass on macOS uses the `qemu` driver.
 
 ````
 
 ````{tab-item} Windows
 
-By default, Multipass on Windows uses the `hyperv` driver. 
+By default, Multipass on Windows uses the `hyperv` driver.
 
 ````
 
@@ -35,7 +35,7 @@ By default, Multipass on Windows uses the `hyperv` driver.
 
 ````{tab-item} Linux
 
-If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) driver. 
+If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) driver.
 
 To install libvirt, run the following command (or use the equivalent for your Linux distribution):
 
@@ -80,9 +80,9 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 
 ````{tab-item} Windows
 
-If you want to (or have to), you can change the hypervisor that Multipass uses to VirtualBox. 
+If you want to (or have to), you can change the hypervisor that Multipass uses to VirtualBox.
 
-To that end, install VirtualBox, if you haven't yet. You may find that you need to [run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658). 
+To that end, install VirtualBox, if you haven't yet. You may find that you need to [run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658).
 
 To switch the Multipass driver to VirtualBox (also with Administrator privileges), run this command:
 
@@ -107,12 +107,12 @@ You can view instances with libvirt in two ways, using the `virsh` CLI or the [`
 To use the `virsh` CLI, launch an instance and then run the command `virsh list` (see [`man virsh`](https://manpages.ubuntu.com/manpages/xenial/man1/virsh.1.html) for a command reference):
 
 ```{code-block} text
-virsh list                             
+virsh list
 ```
 
 The output will be similar to the following:
 
-```{code-block} text      
+```{code-block} text
  Id   Name                   State
 --------------------------------------
  1    unaffected-gyrfalcon   running
@@ -217,7 +217,7 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 
 `````
  
-## Use VirtualBox to set up network bridging for a Multipass instance 
+## Use VirtualBox to set up network bridging for a Multipass instance
 
 `````{tab-set}
 
@@ -229,7 +229,7 @@ This option only applies to macOS systems.
 
 ````{tab-item} macOS
 
-An often requested Multipass feature is network bridging. You can add a second network interface to the instance and expose it on your physical network. 
+An often requested Multipass feature is network bridging. You can add a second network interface to the instance and expose it on your physical network.
 
 First, stop the instance:
 
@@ -237,7 +237,7 @@ First, stop the instance:
 multipass stop primary
 ```
 
-Now, find the network interface you want to bridge with, running the command: 
+Now, find the network interface you want to bridge with, running the command:
 
 ```{code-block} text
 VBoxManage list bridgedifs | grep ^Name:
@@ -300,7 +300,7 @@ multipass exec primary sudo Netplan apply
 Finally, find the IP of the instance given by your router:
 
 ```{code-block} text
-multipass exec primary ip address show dev enp0s8 up       
+multipass exec primary ip address show dev enp0s8 up
 ```
 
 For example:
@@ -310,7 +310,7 @@ For example:
     link/ether 08:00:27:2a:5f:55 brd ff:ff:ff:ff:ff:ff
     inet <b>10.2.0.39</b>/24 brd 10.2.0.255 scope global dynamic enp0s8
        valid_lft 86119sec preferred_lft 86119sec
-    inet6 fe80::a00:27ff:fe2a:5f55/64 scope link 
+    inet6 fe80::a00:27ff:fe2a:5f55/64 scope link
        valid_lft forever preferred_lft forever
 ```
 
@@ -378,4 +378,3 @@ Instances created with VirtualBox don't get transferred, but you can always come
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/set-up-the-driver" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

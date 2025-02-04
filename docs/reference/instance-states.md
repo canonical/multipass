@@ -1,7 +1,7 @@
 (reference-instance-states)=
 # Instance states
 
-> See also: [Command-Line-Interface](/reference/command-line-interface/index) 
+> See also: [Command-Line-Interface](/reference/command-line-interface/index)
 
 Instances in Multipass can be in a number of different states:
 
@@ -34,4 +34,3 @@ These instance states reflect the various stages an instance can be in while usi
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/instance-states" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

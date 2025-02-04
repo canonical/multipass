@@ -133,8 +133,7 @@ html_context = {
     # NOTE: If set, links for viewing the documentation source files
     #       and creating GitHub issues are added at the bottom of each page.
     "github_url": "https://github.com/canonical/multipass",
-  
-    # NOTE TO GIULIA: This line was suggested by Shane to enable the feedback button, 
+    # NOTE TO GIULIA: This line was suggested by Shane to enable the feedback button,
     # but it doesn't work at the moment.
     # 'github_issues': 'enabled',
 
@@ -276,7 +275,7 @@ rst_epilog = """
 
 # disable_feedback_button = True
 
-# NOTE TO GIULIA: This line was suggested by Shane to enable the feedback button, 
+# NOTE TO GIULIA: This line was suggested by Shane to enable the feedback button,
 # but it doesn't work at the moment.
 # 'github_issues': 'enabled',
 

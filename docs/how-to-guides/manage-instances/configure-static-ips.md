@@ -7,7 +7,7 @@ This guide explains how to create instances with static IPs in a new network, in
 
 ## Step 1: Create a Bridge
 
-The first step is to create a new bridge/switch with a static IP on your host. 
+The first step is to create a new bridge/switch with a static IP on your host.
 
 This is beyond the scope of Multipass but, as an example, here is how this can be achieved with NetworkManager on Linux (e.g. on Ubuntu Desktop):
 
@@ -51,7 +51,7 @@ network:
 EOF'
 ```
 
-The IP address needs to be unique and in the same subnet as the bridge. The MAC address needs to match the extra interface inside the instance: either the one provided in Step 2 above or the one Multipass generated (you can find it with `ip link`). 
+The IP address needs to be unique and in the same subnet as the bridge. The MAC address needs to match the extra interface inside the instance: either the one provided in Step 2 above or the one Multipass generated (you can find it with `ip link`).
 
 If you want to set a different name for the interface, you can add a [`set-name` property](https://netplan.readthedocs.io/en/stable/netplan-yaml/#properties-for-physical-device-types).
 
@@ -91,7 +91,7 @@ If desired, repeat steps 2-5 with different names/MACs/IP terminations (e.g. `10
 
 ```
 multipass exec -n test1 -- ping 10.13.31.14
-``` 
+```
 
 ## Conclusion
 
@@ -100,4 +100,3 @@ You have now created a small internal network, local to your host, with Multipas
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/configure-static-ips" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

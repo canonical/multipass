@@ -1,7 +1,7 @@
 (reference-command-line-interface-restart)=
 # restart
 
-The `multipass restart` command without any argument will restart the {ref}`primary-instance` (and fail, if it doesn't exist). You can also pass one or more instance names or the `--all` option to restart more instances at the same time. 
+The `multipass restart` command without any argument will restart the {ref}`primary-instance` (and fail, if it doesn't exist). You can also pass one or more instance names or the `--all` option to restart more instances at the same time.
 
 ```{note}
 Only instances in `Running` status can be restarted.
@@ -42,4 +42,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/restart-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

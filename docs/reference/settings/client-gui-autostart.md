@@ -2,7 +2,7 @@
 # client.gui.autostart
 
 ```{caution}
-This setting has been removed from the CLI starting from Multipass version 1.14. 
+This setting has been removed from the CLI starting from Multipass version 1.14.
 It is now only available in the [GUI client](/reference/gui-client).
 ```
 

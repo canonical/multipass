@@ -1,7 +1,7 @@
 (how-to-guides-customise-multipass-integrate-with-windows-terminal)=
 # How to integrate with Windows Terminal
 
-If you are on Windows and you want to use [Windows Terminal](https://aka.ms/terminal), Multipass can integrate with it to offer you an automatic `primary` profile. 
+If you are on Windows and you want to use [Windows Terminal](https://aka.ms/terminal), Multipass can integrate with it to offer you an automatic `primary` profile.
 
 ## Multipass profile
 
@@ -11,7 +11,7 @@ Currently, Multipass can add a profile to Windows Terminal for the {ref}`primary
 
 ## Install Windows Terminal
 
-The first step is to [install Windows Terminal](https://github.com/microsoft/terminal#installing-and-running-windows-terminal). Once you have it along Multipass, you can enable the integration. 
+The first step is to [install Windows Terminal](https://github.com/microsoft/terminal#installing-and-running-windows-terminal). Once you have it along Multipass, you can enable the integration.
 
 ## Enable integration
 
@@ -45,4 +45,3 @@ Multipass will then remove the profile if it exists.
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/windows-terminal-integration" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

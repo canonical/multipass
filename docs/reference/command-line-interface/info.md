@@ -1,7 +1,7 @@
 (reference-command-line-interface-info)=
 # info
 
-The `multipass info` command shows properties of instances and snapshots. 
+The `multipass info` command shows properties of instances and snapshots.
 
 For example, `multipass info calm-squirrel`:
 
@@ -39,11 +39,11 @@ Children:       --
 Comment:        Before restoring snapshot2
 ```
 
-To obtain information on all the snapshots of an instance, you can specify the name of the instance and add the `--snapshots` option to the command. 
+To obtain information on all the snapshots of an instance, you can specify the name of the instance and add the `--snapshots` option to the command.
 
 With no positional arguments, `multipass info` displays information on all the instances. If you add the `--snapshots` flag and no positional arguments, the command displays information on all the snapshots of all instances.
 
-The `--format` option allows to choose how the output is formatted. The available options are a human-readable `table`, or machine-readable formats: `json`, `yaml` or `csv`. 
+The `--format` option allows to choose how the output is formatted. The available options are a human-readable `table`, or machine-readable formats: `json`, `yaml` or `csv`.
 
 For example, the command `multipass info --format yaml calm-squirrel` produces the following output:
 
@@ -75,7 +75,7 @@ calm-squirrel:
 
 ## Details available for instances and snapshots
 
-Here you can find a comprehensive list of the details that `multipass info` provides for instances and snapshots, respectively. 
+Here you can find a comprehensive list of the details that `multipass info` provides for instances and snapshots, respectively.
 
 ### Instance details
 
@@ -135,4 +135,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/info-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

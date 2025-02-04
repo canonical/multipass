@@ -3,7 +3,7 @@
 
 The following guides provide step-by-step instructions on how to customise Multipass to address specific needs, from managing Multipass drivers to configuring a graphical user interface.
 
-- [Set up the driver](set-up-the-driver) 
+- [Set up the driver](set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](migrate-from-hyperkit-to-qemu-on-macos)
 - [Authenticate clients with the Multipass service](authenticate-clients-with-the-multipass-service)
 - [Build Multipass images with Packer](build-multipass-images-with-packer)
@@ -29,4 +29,3 @@ The following guides provide step-by-step instructions on how to customise Multi
 :glob:
 
 *
-

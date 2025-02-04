@@ -11,9 +11,9 @@ where `<instance-name>` is the name of a Multipass instance.
 
 ## Description
 
-Whether or not the virtual machine is connected to the preferred bridge that is currently defined by `local.<instance-name>.bridged`. 
+Whether or not the virtual machine is connected to the preferred bridge that is currently defined by `local.<instance-name>.bridged`.
 
-Setting this to `true` will cause the instance to be bridged to that host network interface. 
+Setting this to `true` will cause the instance to be bridged to that host network interface.
 
 Removing a bridged network from an instance is currently not supported.
 
@@ -21,13 +21,13 @@ Removing a bridged network from an instance is currently not supported.
 
 This setting can have a boolean value (`true` or `false`). However, at this time, it can only be manually set to `true`, but not to `false`.
 
-The value of this setting depends on the value of [`local.bridged-network`](/reference/settings/local-bridged-network); that is, it varies dynamically according to the configured preferred network and the networks that have been added to the instance so far. 
+The value of this setting depends on the value of [`local.bridged-network`](/reference/settings/local-bridged-network); that is, it varies dynamically according to the configured preferred network and the networks that have been added to the instance so far.
 
 ## Examples
 
 `multipass set local.ultimate-grosbeak.bridged=true`
 
-If the instance `ultimate-grosbeak` was launched with the command `multipass launch --network eth0`, the result of `multipass get local.ultimate-grosbeak.bridged` will be `true` for as long as the value of `local.bridged-network` is `eth0`. 
+If the instance `ultimate-grosbeak` was launched with the command `multipass launch --network eth0`, the result of `multipass get local.ultimate-grosbeak.bridged` will be `true` for as long as the value of `local.bridged-network` is `eth0`.
 
 If you run the command `multipass set local.bridged-network=eth1`, the result of `multipass get local.ultimate-grosbeak.bridged` will become `false`. At that point, you could run the command `multipass set local.ultimate-grosbeak.bridged=true` to bridge `ultimate-grosbeak` with `eth1`.
 
@@ -44,4 +44,3 @@ For example, if the preferred network is `eth1` and the instance `ultimate-grosb
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/local.<instance-name>.bridged" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

@@ -3,13 +3,13 @@
 
 > See also: [`alias`](/reference/command-line-interface/alias), [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
-The `multipass unalias` command removes a previously defined alias. 
+The `multipass unalias` command removes a previously defined alias.
 
 ```{code-block} text
 multipass unalias name
 ```
 
-This will remove the given alias `name`, returning an error if the alias is not defined. 
+This will remove the given alias `name`, returning an error if the alias is not defined.
 
 ```{note}
 If an instance is deleted and purged, it is not necessary to run `unalias` for the aliases defined on that instance, as they are automatically removed.
@@ -49,4 +49,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/unalias-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

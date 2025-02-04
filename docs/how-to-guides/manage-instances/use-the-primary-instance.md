@@ -21,21 +21,21 @@ In the command line, it is used as the default when no instance name is specifie
 
 When launching the primary instance, whether implicitly or explicitly, Multipass automatically mounts the user's home inside it, in the folder `Home`. As with any other mount, you can unmount it with `multipass umount`. For instance, `multipass umount primary` will unmount all mounts made by Multipass inside `primary`, including the auto-mounted `Home`.
 
-```{note} 
+```{note}
 On Windows mounts are disabled by default for security reasons. See [`multipass set`](/reference/command-line-interface/set) and [local.privileged-mounts](/reference/settings/local-privileged-mounts) for information on how to enable them if needed.
 ```
 (changing-the-primary-instance)=
 ## Changing the primary instance
 
-The primary instance is identified as such by its name. The name that designates an instance as the primary one is determined by a configuration setting with the key `client.primary-name`. In other words, while `primary` is the default name of the primary instance, you can change it with `multipass set client.primary-name=<custom_name>`. 
+The primary instance is identified as such by its name. The name that designates an instance as the primary one is determined by a configuration setting with the key `client.primary-name`. In other words, while `primary` is the default name of the primary instance, you can change it with `multipass set client.primary-name=<custom_name>`.
 
-This setting allows transferring primary status among instances. You can configure the primary name independently of whether instances with the old and new names exist. If they do, they lose and gain primary status accordingly. 
+This setting allows transferring primary status among instances. You can configure the primary name independently of whether instances with the old and new names exist. If they do, they lose and gain primary status accordingly.
 
 This provides a means of (de)selecting an existing instance as primary. For example, after `multipass set client.primary-name=first`, the primary instance would be called `first`. A subsequent `multipass start` would start `first` if it existed, and launch it otherwise.
 
 ## Example
 
-Here is a long-form example of how Multipass handles the primary instance. 
+Here is a long-form example of how Multipass handles the primary instance.
 
 Set the name of the primary instance and start it:
 
@@ -82,4 +82,3 @@ first                   Stopped           --               Ubuntu 18.04 LTS
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/primary-instance" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

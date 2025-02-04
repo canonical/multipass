@@ -1,7 +1,7 @@
 (reference-command-line-interface-start)=
 # start
 
-The `multipass start` command without any argument will start the {ref}`primary-instance` (and also create it, if it doesn't exist). You can also pass one or more instance names or the `--all` option to start more instances at the same time. 
+The `multipass start` command without any argument will start the {ref}`primary-instance` (and also create it, if it doesn't exist). You can also pass one or more instance names or the `--all` option to start more instances at the same time.
 
 For example, the command `multipass start` will produce the following output:
 
@@ -47,4 +47,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/start-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

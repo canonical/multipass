@@ -1,7 +1,7 @@
 (reference-command-line-interface-shell)=
 # shell
 
-The `multipass shell` command will open a shell prompt on an instance. Without any arguments, it will open the shell prompt of the {ref}`primary-instance` (and also create it, if it doesn't exist). You can also pass the name of an existing instance. If the instance is not running, it will be started automatically. 
+The `multipass shell` command will open a shell prompt on an instance. Without any arguments, it will open the shell prompt of the {ref}`primary-instance` (and also create it, if it doesn't exist). You can also pass the name of an existing instance. If the instance is not running, it will be started automatically.
 
 If you run `multipass shell` you'll find yourself in the *primary* instance:
 
@@ -70,4 +70,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/shell-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
