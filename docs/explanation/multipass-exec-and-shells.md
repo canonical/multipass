@@ -11,7 +11,7 @@ For example, when `multipass exec primary -- ls ~` is entered on a Linux shell, 
 
 ### Quoting
 
-Quoting also depends on the calling shell. On most Linux and macOS shells, single quotes delimit a string that the shell passes verbatim to the program. 
+Quoting also depends on the calling shell. On most Linux and macOS shells, single quotes delimit a string that the shell passes verbatim to the program.
 
 The Windows PowerShell doesn't treat single quotes this way. A program called with `'abc def'` there would get two arguments: `'abc` and `def'`. Double quotes can be used instead: `"abc def"`, but the string they delimit is subject to shell expansion. For example:
 
@@ -131,4 +131,3 @@ rtt min/avg/max/mdev = 0.304/0.371/0.439/0.055 ms
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/exec-shells" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

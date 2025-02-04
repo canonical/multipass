@@ -3,7 +3,7 @@
 
 > See also: [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases), [Instance](/explanation/instance).
 
-This guide demonstrates how to create, list, run and remove aliases for commands running inside an instance. 
+This guide demonstrates how to create, list, run and remove aliases for commands running inside an instance.
 
 ## Create an alias
 
@@ -29,7 +29,7 @@ multipass alias crazy-cat:pwd pwdcc --no-map-working-directory
 
 > See also: [`prefer`](/reference/command-line-interface/prefer)
 
-Contexts are sets of aliases. While one can safely work with one context, named `default`, contexts can be useful in some scenarios; for example, to define aliases with the same name in different instances. 
+Contexts are sets of aliases. While one can safely work with one context, named `default`, contexts can be useful in some scenarios; for example, to define aliases with the same name in different instances.
 
 You can switch to using another context with `multipass prefer secondary`. Then, defining an alias in the new context is done in the usual way. The name of the alias can coincide with an already defined one. For example, `multipass alias cozy-canary:ls lscc`.
 
@@ -37,7 +37,7 @@ You can switch to using another context with `multipass prefer secondary`. Then,
 
 > See also:  [`aliases`](/reference/command-line-interface/aliases)
 
-To see the list of aliases defined so far, use the `multipass aliases` command. 
+To see the list of aliases defined so far, use the `multipass aliases` command.
 
 The output will be similar to the following:
 
@@ -66,7 +66,7 @@ The first way of running an alias is invoking it with `multipass <alias>`, for e
 multipass lscc
 ```
 
-This command opens a shell into the instance `cozy-canary`, runs `ls` and returns to the host command line, as if it was an `exec` command. Since we have defined two aliases with the same name, `lscc`, the one in the current context will be run. 
+This command opens a shell into the instance `cozy-canary`, runs `ls` and returns to the host command line, as if it was an `exec` command. Since we have defined two aliases with the same name, `lscc`, the one in the current context will be run.
 
 If you want to run an alias outside the current context, you can use a fully-qualified alias name:
 
@@ -226,4 +226,3 @@ Aliases are also removed when the instance for which they were defined is delete
 ---
 
 <small>**Contributors:** @luisp , @saviq , @tmihoc , @andreitoterman , @itecompro , @ricab , @gzanchi , @sharder996</small>
-

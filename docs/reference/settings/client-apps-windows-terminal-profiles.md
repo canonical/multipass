@@ -9,16 +9,16 @@
 
 ## Description
 
-Which profiles should be enabled in Windows Terminal. 
+Which profiles should be enabled in Windows Terminal.
 <!-- TODO: needs explanation -->
 
 ## Possible values
 
 The following values are supported:
-  
+
   - `primary` to enable a profile for the {ref}`primary-instance`. Note that this value is independent of what primary name is configured.
   - `none` to disable any profiles.
-  
+
 ## Examples
 
 - `multipass set client.apps.windows-terminal.profiles=none`

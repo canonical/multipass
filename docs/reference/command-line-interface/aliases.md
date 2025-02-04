@@ -3,7 +3,7 @@
 
 > See also: [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
-The `aliases` command shows the aliases defined for all the instances. 
+The `aliases` command shows the aliases defined for all the instances.
 
 ```{code-block} text
 multipass aliases
@@ -17,7 +17,7 @@ lsrm   rewarded-merlin  ls       default
 topfp  flying-pig       top      map
 ```
 
-The `Working directory` column tells us the directory of the host where the alias will be run. The value `default` means that the alias will be run  in the instance's default working directory (normally, `/home/ubuntu`). The value `map` means that, if the host directory from which the user calls the alias is mounted on the instance, the alias will be run on the mounted directory on the instance. 
+The `Working directory` column tells us the directory of the host where the alias will be run. The value `default` means that the alias will be run  in the instance's default working directory (normally, `/home/ubuntu`). The value `map` means that, if the host directory from which the user calls the alias is mounted on the instance, the alias will be run on the mounted directory on the instance.
 
 ```{note}
 The value will be `default` only if the alias was created with the `--no-map-working-directory` option.
@@ -48,4 +48,3 @@ Options:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/aliases-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

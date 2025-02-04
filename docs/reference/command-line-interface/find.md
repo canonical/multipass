@@ -33,7 +33,7 @@ The output is separated in two sections: one for the images and one for the blue
 
 Launch aliases, version information and a brief description are shown next to each name in the command output.
 
-Launching an image using its name or its alias gives the same result. For example, `multipass launch 23.10`  and  `multipass launch mantic` will launch the same image. 
+Launching an image using its name or its alias gives the same result. For example, `multipass launch 23.10`  and  `multipass launch mantic` will launch the same image.
 
 The aliases `lts` and `devel` are dynamic, that is, they change the image they alias from time to time, depending on the Ubuntu release.
 

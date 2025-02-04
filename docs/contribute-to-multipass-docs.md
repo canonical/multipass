@@ -23,7 +23,7 @@ To contribute to the documentation, you can leave a comment on the relevant foru
 
 Either way, your name will be added to the Contributors list at the bottom of the page.
 
-### Formatting content 
+### Formatting content
 
 In Discourse, content is formatted using Markdown syntax. You can also use the style toolbar in the Discourse topic editing window to format elements, if you're not familiar with Markdown.
 
@@ -33,7 +33,7 @@ A useful trick to view the Markdown source of a Discourse page is replacing `/t/
 
 * `https://discourse.ubuntu.com/t/multipass-documentation/8294`
 
-try pasting this modified URL in your browser's address bar: 
+try pasting this modified URL in your browser's address bar:
 
 * `https://discourse.ubuntu.com/raw/8294`
 
@@ -41,7 +41,7 @@ try pasting this modified URL in your browser's address bar:
 
 The [Canonical Open Documentation Academy](https://canonical.com/documentation/open-documentation-academy) (CODA) is a community-oriented initiative led by our Technical Authors to provide help, advice and mentorship on documentation practice in a friendly, welcoming environment. A key aim of this initiative is to help lower the barrier to successful open source software contribution by making documentation into the gateway.
 
-> See also: [Documentation practice at Canonical](https://canonical.com/documentation). 
+> See also: [Documentation practice at Canonical](https://canonical.com/documentation).
 
 If you want to contribute to Multipass documentation, you can also check if there are any outstanding tasks on the [Open Documentation Academy GitHub](https://github.com/canonical/open-documentation-academy/issues?q=is%3Aissue+is%3Aopen+multipass+). This could be a great opportunity to improve your documentation practice, receive guidance and mentorship and publicly contribute to an open-source project, if that's something that interests you.
 
@@ -50,7 +50,7 @@ Everyone is invited join the Academy's [weekly office hours](https://discourse.u
 
 ## Feedback and issues
 
-You can leave feedback on our documentation using the [Multipass documentation feedback form](https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform) linked at the top of every page. If you have a request or would like to report a problem with the documentation, you may also [open an issue on GitHub](https://github.com/canonical/multipass/issues/new/choose). 
+You can leave feedback on our documentation using the [Multipass documentation feedback form](https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform) linked at the top of every page. If you have a request or would like to report a problem with the documentation, you may also [open an issue on GitHub](https://github.com/canonical/multipass/issues/new/choose).
 
 You can also find the team in the [Matrix Multipass room](https://app.element.io/#/room/#Multipass:matrix.org).
 

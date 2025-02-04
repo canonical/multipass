@@ -31,8 +31,8 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
     * If the message is present, proceed to check DHCP traffic in the next step.
 
 4. *(Linux/macOS, QEMU driver)* Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command *right after starting/launching* the instance:
-   
-    ```{code-block} text 
+
+    ```{code-block} text
     sudo tcpdump -i <bridge> udp port 67 and port 68
     ```
 
@@ -63,7 +63,7 @@ To find out if something is failing during boot, you'd need to attach to the VM'
         1. Remove `-serial chardev:char0 -nographic`.
         2. Escape any spaces in paths (e.g. `Application Support` should become `Application\ Support`).
     3. Run the edited line in a terminal, with `sudo`. Here is an example:
-    ```
+    ```{code-block} text
     /Library/Application\ Support/com.canonical.multipass/bin/qemu-system-aarch64 -machine virt,gic-version=3 -accel hvf -drive file=/Library/Application\ Support/com.canonical.multipass/bin/../Resources/qemu/edk2-aarch64-code.fd,if=pflash,format=raw,readonly=on -cpu host -nic vmnet-shared,model=virtio-net-pci,mac=52:54:00:e2:30:dd -device virtio-scsi-pci,id=scsi0 -drive file=/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/superior-chihuahua/ubuntu-22.04-server-cloudimg-arm64.img,if=none,format=qcow2,discard=unmap,id=hda -device scsi-hd,drive=hda,bus=scsi0.0 -smp 2 -m 4096M -qmp stdio -cdrom /var/root/Library/Application\ Support/multipassd/qemu/vault/instances/superior-chihuahua/cloud-init-config.iso
     ```
     This will open a QEMU window where you can see the boot output. You may need to select the correct display output (Serial or VGA) from the QEMU menu.
@@ -142,12 +142,12 @@ Here are some options to attempt recovery:
      - The system should now boot normally if `fsck` was able to repair the filesystem.
 
 - *(Linux/macOS)* Alternatively, run `fsck` over a mounted image on the host (see: {ref}`launch-start-issues-reading-data-from-an-image`).
-- Run `qemu-img check -r` on the image. 
+- Run `qemu-img check -r` on the image.
     * `qemu-img`, shipped with Multipass, can also be used to check and repair disk images.
     * See {ref}`launch-start-issues-locate-multipass-binaries` below.
     * See {ref}`launch-start-issues-locate-multipass-images` below.
     * For example:
-    ```
+    ```{code-block} text
     /Library/Application\ Support/com.canonical.multipass/bin/qemu-img check -r /var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>
     ```
 - If none of the above works, you can still try to mount the image manually to recover data (see {ref}`launch-start-issues-reading-data-from-an-image`).
@@ -163,7 +163,7 @@ The macOS firewall is known to cause `vmnet` to malfunction, because it blocks A
 
 You may be able to work around it by disabling the firewall entirely, or executing
 
-```
+{code-block} text
 /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/libexec/bootpd
 /usr/libexec/ApplicationFirewall/socketfilterfw --unblock /usr/libexec/bootpd
 ```
@@ -176,13 +176,13 @@ We are aware that this requires administrative privileges, which managed Macs wo
 
 The DHCP server should be launched automatically when there is a request, but you can also launch it manually if needed. To do so, run:
 
-```
+```{code-block} text
 sudo launchctl start com.apple.bootpd
 ```
 
 If that doesn't work for you, try :
 
-```
+```{code-block} text
 sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist
 ```
 (launch-start-issues-stale-sharing-lease)=
@@ -211,7 +211,7 @@ To gain access to an instance without SSH you can try the following methods.
   4. Restart the VM and use the password `ubuntu`. The instance's password will remain `ubuntu` unless it is changed again
   5. Make necessary changes.
 
-``` 
+```{code-block} text
 #cloud-config
 password: ubuntu
 chpasswd: { expire: false }
@@ -250,13 +250,13 @@ A workaround to resolve this issue is to run the command `multipass find --force
 Alternatively, try deleting the `network-cache` folder and restart the Multipass service:
 
 * *(on Linux)*
-   ```
+   ```{code-block} text
    sudo snap stop multipass
    sudo rm -rf /var/snap/multipass/common/cache/multipassd/network-cache/
    sudo snap start multipass
    ```
 * *(on macOS)*
-   ```
+   ```{code-block} text
    sudo launchctl unload /Library/LaunchDaemons/com.canonical.multipassd.plist
    sudo rm -rf /System/Volumes/Data/private/var/root/Library/Caches/multipassd/network-cache
    sudo launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
@@ -298,3 +298,6 @@ You may need to locate where Multipass is storing instances. The location change
 
 * *(macOS)* `/var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>`
 
+---
+
+*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/troubleshoot-launch-start-issues" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

@@ -1,7 +1,7 @@
 (how-to-guides-manage-instances-index)=
 # Manage-Instances
 
-The following guides provide step-by-step instructions on how to manage Multipass instances. 
+The following guides provide step-by-step instructions on how to manage Multipass instances.
 
 Multipass allows you to create Ubuntu instances with a single command. As your needs grow, you can modify and customise instances as well as use and create blueprints for customised instances: <!--- This line added by @nielsenjared -->
 

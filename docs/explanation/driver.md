@@ -5,7 +5,7 @@
 
 A **driver** is the technology through which Multipass emulates a running machine. It corresponds to a hypervisor or intermediary technology to run virtual machines. The driver is sometimes also referred to as "backend".
 
-Multipass relies on a driver to operate. It supports multiple drivers, but it runs with a single driver at a time. There is a [Multipass setting](/reference/settings/index) to select the driver: [`local.driver`](/reference/settings/local-driver). 
+Multipass relies on a driver to operate. It supports multiple drivers, but it runs with a single driver at a time. There is a [Multipass setting](/reference/settings/index) to select the driver: [`local.driver`](/reference/settings/local-driver).
 
 On some platforms, it is possible to select a driver during installation. Until it is manually set, a platform-appropriate default driver is used.
 
@@ -25,13 +25,13 @@ When Multipass is installed, the following drivers are selected by default:
     + QEMU on AMD64
     + LXD on other platforms.
 - On macOS, QEMU is used.
-- On Windows, the default driver depends on the OS version: 
+- On Windows, the default driver depends on the OS version:
   + Hyper-V on Windows Pro
-  + VirtualBox on Windows Home 
+  + VirtualBox on Windows Home
 
 ## Instance scopes
 
-In general, Multipass instances are tied to a single driver, with the {ref}`explanation-driver-exceptions` listed below. The set of instances that were launched with one driver are available only while that driver is in use. 
+In general, Multipass instances are tied to a single driver, with the {ref}`explanation-driver-exceptions` listed below. The set of instances that were launched with one driver are available only while that driver is in use.
 
 When a new driver is selected, Multipass switches to a separate instance scope. There, the set of existing instances is empty to begin with. Users can launch instances with the same name in different drivers and changes to instances with one driver have no effect on the instances of another.
 
@@ -41,7 +41,7 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 ### Exceptions
 
 There are two exceptions to the above:
-  
+
   - On Linux, QEMU and libvirt share the same driver scope.
   - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see: [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
 
@@ -72,4 +72,3 @@ There are also feature disparities depending on the host platform. See [Platform
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/driver" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

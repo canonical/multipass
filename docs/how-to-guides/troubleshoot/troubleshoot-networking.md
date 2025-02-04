@@ -6,7 +6,7 @@
 - https://discourse.ubuntu.com/t/how-to-troubleshoot-networking-on-windows/13694
 -->
 
-This document demonstrates how to troubleshoot various known Multipass networking issues on macOS and Windows. 
+This document demonstrates how to troubleshoot various known Multipass networking issues on macOS and Windows.
 
 ## Troubleshoot networking on macOS
 
@@ -24,15 +24,15 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
 ### Tools known to interfere with Multipass
 
 * VPN software can be aggressive at managing routes and may route 192.168.64 subnet through the VPN interface, instead of keeping it locally available.
-    * Possible culprits: OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, Jupiter Junos Pulse / Pulse Secure
-    * Tunnelblick doesn’t cause problems
-* Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking instance’s DNS 
+    * Possible culprits: OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, Jupiter Junos Pulse / Pulse Secure.
+    * Tunnelblick doesn’t cause problems.
+* Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking the instance’s DNS.
 <!-- THIS LINK IS BROKEN
 (see: [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
 * dnscrypt-proxy/dnscrypt-wrapper/cloudflared-proxy \
-Default configuration binds to localhost port 53, clashing with Internet Sharing.
-* another dnsmasq process bound to localhost port 53
-* custom DHCP server bound to port 67? ("sudo lsof -iUDP:67 -n -P" should show launchd & bootpd only)
+The default configuration binds to localhost port 53, clashing with Internet Sharing.
+* Another `dnsmasq` process bound to localhost port 53
+* Custom DHCP server bound to port 67? ("sudo lsof -iUDP:67 -n -P" should show launchd & bootpd only)
 * macOS updates can make changes to the firewall and leave instances in unknown state; see {ref}`troubleshoot-networking-issues-caused-by-macos-update` below.
 
 ### Problem class
@@ -55,7 +55,7 @@ Default configuration binds to localhost port 53, clashing with Internet Sharing
 
 ##### Troubleshooting
 
-1. Firewall 
+1. Firewall
     1. Is Firewall enabled?
     1. If so it must not "Block all incoming connections"
        * Blocking all incoming connections prevents a DHCP server from running locally, to give an IP to the instance.
@@ -94,7 +94,7 @@ Does your VPN software provide a "split connection" option, where VPN sysadmin c
 *   Cisco does
 *   Pulse Secure / Jupiter Junos Pulse do
 
-#### Potential workaround for VPN conflicts 
+#### Potential workaround for VPN conflicts
 
 This was reported on GitHub (issue [#495](https://github.com/canonical/multipass/issues/495#issuecomment-448461250)).
 
@@ -104,7 +104,7 @@ After the `nat ...` line (if there is one, otherwise at the end) in `/etc/pf.con
 nat on utun1 from bridge100:network to any -> (utun1)
 ```
 
-and reload PF with the command: 
+and reload PF with the command:
 
 ```{code-block} text
 sudo pfctl -f /etc/pf.conf
@@ -275,7 +275,7 @@ This means that applications that rely on additional IP addresses, such as [meta
 (troubleshoot-networking-issues-caused-by-macos-update)=
 #### Issues caused by macOS update
 
-When upgrading macOS to 12.4 (this might happen however also when upgrading to other versions), macOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the macOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests. 
+When upgrading macOS to 12.4 (this might happen however also when upgrading to other versions), macOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the macOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests.
 
 There are some procedures that can help to overcome this issue (see [issue #2387](https://github.com/canonical/multipass/issues/2387) on the Multipass GitHub repo for a discussion on this and some alternative solutions). First, you can try to:
 
@@ -301,7 +301,7 @@ Unfortunately the default switch is known to be quirky and Windows updates often
 
 The broken state also persists over reboots. The one approach that has helped is removing the network sharing from the default switch:
 
-```{code-block} powershell 
+```{code-block} powershell
 Get-HNSNetwork | ? Name -Like "Default Switch" | Remove-HNSNetwork
 ```
 
@@ -332,4 +332,3 @@ Anti-virus and network security software are not necessarily virtualisation-awar
 ---
 
 <small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @candlerb , @sergiusens , @nhart , @andreitoterman , @tmihoc , @luisp , @ricab , @gzanchi , @naynayu , @QuantumLibet </small>
-

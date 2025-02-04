@@ -36,14 +36,14 @@ To check for new updates run: sudo apt update
 To run a command as administrator (user "root"), use "sudo <command>".
 See "man sudo_root" for details.
 
-ubuntu@loving-duck:~$ 
+ubuntu@loving-duck:~$
 ```
 
-If the instance `loving-duck` is `Stopped` or `Suspended`, it will be started automatically. 
+If the instance `loving-duck` is `Stopped` or `Suspended`, it will be started automatically.
 
 If no argument is given to the `shell` command, Multipass will open a shell prompt on the primary instance (and also create it, if it doesn't exist).
 
-As shown in the example above, an Ubuntu prompt is displayed as a result of the `shell` command, where you can run commands inside the instance. 
+As shown in the example above, an Ubuntu prompt is displayed as a result of the `shell` command, where you can run commands inside the instance.
 
 To end the session, use `logout`, `exit`, or the `Ctrl-D` shortcut.
 
@@ -141,23 +141,22 @@ If no options are specified, the `multipass stop` command stops the primary inst
 
 ### Stop an instance forcefully
 
-If the `multipass stop` command doesn’t work, you can use the `--force` argument to force the instance to shut down immediately. This is particularly useful when the virtual machine is in a non-responsive, unknown or suspended state. 
+If the `multipass stop` command doesn’t work, you can use the `--force` argument to force the instance to shut down immediately. This is particularly useful when the virtual machine is in a non-responsive, unknown or suspended state.
 
 ```{code-block} text
 multipass stop --force
 ```
 
-```{caution} 
-The `stop --force` command is analogous to unplugging the power cord from a physical machine – it immediately halts all computing activities. This may be necessary under certain circumstances but can potentially lead to data loss or corruption. 
+```{caution}
+The `stop --force` command is analogous to unplugging the power cord from a physical machine – it immediately halts all computing activities. This may be necessary under certain circumstances but can potentially lead to data loss or corruption.
 ```
 
-```{note} 
-This command is also available on the Multipass GUI. 
-``` 
+```{note}
+This command is also available on the Multipass GUI.
+```
 
 <!--?TODO: ADD RESTART?-->
 
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/use-an-instance" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

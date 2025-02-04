@@ -1,7 +1,7 @@
 (how-to-guides-index)=
 # How-To-Guides
 
-The following how-to guides provide step-by-step instructions on the installation, use, management and troubleshooting of Multipass. 
+The following how-to guides provide step-by-step instructions on the installation, use, management and troubleshooting of Multipass.
 
 ## Install and deploy Multipass
 
@@ -29,7 +29,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 
 You may also want to customise Multipass to address specific needs, from managing Multipass drivers to configuring a graphical user interface:
 
-- [Set up the driver](customise-multipass/set-up-the-driver) 
+- [Set up the driver](customise-multipass/set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)
 - [Authenticate clients with the Multipass service](customise-multipass/authenticate-clients-with-the-multipass-service)
 - [Build Multipass images with Packer](customise-multipass/build-multipass-images-with-packer)
@@ -37,7 +37,7 @@ You may also want to customise Multipass to address specific needs, from managin
 - [Use a different terminal from the system icon](customise-multipass/use-a-different-terminal-from-the-system-icon)
 - [Integrate with Windows Terminal](customise-multipass/integrate-with-windows-terminal)
 - [Configure where Multipass stores external data](customise-multipass/configure-where-multipass-stores-external-data)
-- [Configure Multipass’s default logging level](customise-multipass/configure-multipasss-default-logging-level) 
+- [Configure Multipass’s default logging level](customise-multipass/configure-multipasss-default-logging-level)
 
 <!-- REMOVED FROM DOCS AND MOVED TO COMMUNITY KNOWLEDGE
 - [Use Multipass remotely](/)

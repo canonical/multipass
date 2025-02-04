@@ -11,7 +11,7 @@ multipass alias instance:command [name]
 
 If `name` is omitted, the alias name defaults to `command`.
 
-After running this command, a new alias is defined as running the `command` on the given instance. 
+After running this command, a new alias is defined as running the `command` on the given instance.
 
 By default, if the host folder where the alias is being executed is mounted on the instance, the instance's working directory is changed to the mounted directory. This behaviour can be avoided by defining the alias with the option `--no-map-working-directory`.
 
@@ -42,4 +42,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/alias-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

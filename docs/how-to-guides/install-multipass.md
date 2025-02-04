@@ -258,4 +258,3 @@ Uninstall Multipass as you would any other program, following the usual procedur
 ---
 
 <small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @shuuji3 , @henryschreineriii , @sven , @nick3499 , @undefynd , @sparkiegeek , @nottrobin , @tmihoc , @nhart , @luisp , @sharder996 , @aaryan-porwal , @andreitoterman , @ricab , @gzanchi , @bagustris </small>
-

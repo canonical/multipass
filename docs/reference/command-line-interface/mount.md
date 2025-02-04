@@ -13,7 +13,7 @@ multipass mount --type=classic /host/path <instance name>:/instance/path
 
 Use the `multipass umount` command to undo the mapping.
 
-See [Mount](/explanation/mount) to learn more on the difference between "classic" and "native" mounts. 
+See [Mount](/explanation/mount) to learn more on the difference between "classic" and "native" mounts.
 
 See [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance) for examples of how you can use the `multipass mount` command to share data between your host and an instance.
 
@@ -54,10 +54,10 @@ Options:
 Arguments:
   source                           Path of the local directory to mount
   target                           Target mount points, in <name>[:<path>]
-                                   format, where <name> is an instance name, 
-                                   and optional <path> is the mount point. 
+                                   format, where <name> is an instance name,
+                                   and optional <path> is the mount point.
                                    If omitted, the mount point will be under
-                                   /home/ubuntu/<source-dir>, where <source-dir> 
+                                   /home/ubuntu/<source-dir>, where <source-dir>
                                    is the name of the <source> directory.
 ```
 ---
@@ -67,4 +67,3 @@ Arguments:
 ---
 
 <small>**Contributors:** @georgeliaojia, @sharder996, @davidekete, @gzanchi </small>
-

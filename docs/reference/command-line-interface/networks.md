@@ -3,7 +3,7 @@
 
 > See also: [Driver (backend)](/explanation/driver), [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver)
 
-The `multipass networks` command lists network interfaces that multipass can connect instances to. The result depends both on the platform and the driver in use. 
+The `multipass networks` command lists network interfaces that multipass can connect instances to. The result depends both on the platform and the driver in use.
 
 At this time, `multipass networks` can only find interfaces in the following scenarios:
 
@@ -21,7 +21,7 @@ InternalSwitch  switch  Virtual Switch with internal networking
 PrivSwitch      switch  Private virtual switch
 ```
 
-Like [`list`](/reference/command-line-interface/list), `networks` supports the `--format` option. 
+Like [`list`](/reference/command-line-interface/list), `networks` supports the `--format` option.
 
 Another example, running the command `multipass networks --format yaml` on macOS with VirtualBox returns:
 
@@ -67,4 +67,3 @@ Options:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/networks-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

@@ -17,7 +17,7 @@ Snapshot taken: maximal-stag.snapshot1
 ```
 The snapshot will record all the information that is required to later restore the instance to the same state. For the time being, the `snapshot` command can only operate on instances in `Stopped` status.
 
-You have the option to specify a snapshot name using the `--name` option, following the same format as the [instance name format](/reference/instance-name-format). 
+You have the option to specify a snapshot name using the `--name` option, following the same format as the [instance name format](/reference/instance-name-format).
 
 If you don't specify a name, the snapshot will be named "snapshotN", where N is the total number of snapshots that were ever taken of that instance. You can also add an optional comment with `--comment`. Both of these properties can be later modified with the [`set`](/reference/command-line-interface/set) command, via the snapshot settings keys documented in [Settings](/reference/settings/index).
  
@@ -51,4 +51,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/snapshot-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

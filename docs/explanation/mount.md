@@ -5,14 +5,14 @@
 
 In Multipass, a **mount** is a directory mapping from the host to an [instance](/explanation/instance), making its contents, and changes therein, available on both ends. Make sure to review the {ref}`security-considerations-mount` below.
 
-In Multipass, there are two types of mounts: classic (default) and native. 
-* {ref}`explanation-mount-classic` use technology built into Multipass and thus allow for higher compatibility, while slightly reduced performance. 
+In Multipass, there are two types of mounts: classic (default) and native.
+* {ref}`explanation-mount-classic` use technology built into Multipass and thus allow for higher compatibility, while slightly reduced performance.
 * {ref}`explanation-mount-native`, on the other hand, use hypervisor or platform-specific mounts to offer better performance, but limited compatibility.
 
 (explanation-mount-classic)=
 ## Classic mounts
 
-Classic mounts use SSHFS (SSH File System) to achieve file/directory sharing. This option is available across all our backends. 
+Classic mounts use SSHFS (SSH File System) to achieve file/directory sharing. This option is available across all our backends.
 
 SSHFS is based on SSH, which pays a performance penalty to achieve secure communication.
 
@@ -47,8 +47,8 @@ Because mounts are performed as privileged users (`SYSTEM` on Windows), they all
 
 For historical reasons, mounts are disabled by default on Windows, even though in the current version of Multipass users need to authenticate with the daemon before it will service their requests. See [`local.privileged-mounts`](/reference/settings/local-privileged-mounts) for information on how to enable them if needed.
 
-<!-- OLD CONTENT 
-as anyone with TCP access to `localhost` (`127.0.0.1`) can use Multipass, and by extension, gets access to the entire filesystem. 
+<!-- OLD CONTENT
+as anyone with TCP access to `localhost` (`127.0.0.1`) can use Multipass, and by extension, gets access to the entire filesystem.
 -->
 
 ````

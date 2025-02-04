@@ -9,7 +9,7 @@ This document demonstrates various ways to create an instance with Multipass. Wh
 
 > See also: [`launch`](/reference/command-line-interface/launch), [`info`](/reference/command-line-interface/info)
 
-To create an instance with Multipass, run the command `multipass launch`. This launches a new instance, which is randomly named; for example: 
+To create an instance with Multipass, run the command `multipass launch`. This launches a new instance, which is randomly named; for example:
 
 ```{code-block} text
 ...
@@ -90,7 +90,7 @@ Launched: helpful-duck
 
 > See also: [`launch --cpus --disk --memory`](/reference/command-line-interface/launch)
 
-You can specify a custom number of CPUs, disk and RAM size using the `--cpus`, `--disk` and `--memory` arguments, respectively. For example: 
+You can specify a custom number of CPUs, disk and RAM size using the `--cpus`, `--disk` and `--memory` arguments, respectively. For example:
 
 ```{code-block} text
 multipass launch --cpus 4 --disk 20G --memory 8G
@@ -189,9 +189,9 @@ In this case, for example:
 
 ### Bridging
 
-On Linux, when trying to connect an instance network to an ethernet device on the host, Multipass will offer to create the required bridge. 
+On Linux, when trying to connect an instance network to an ethernet device on the host, Multipass will offer to create the required bridge.
 
-First, run the `multipass networks` command; for example: 
+First, run the `multipass networks` command; for example:
 
 ```{code-block} text
 Name             Type      Description
@@ -212,7 +212,7 @@ Do you want to continue (yes/no)?
 
 However, Multipass requires `NetworkManager` to achieve this. On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can still create a bridge by other means and pass that to Multipass. For instance, this configuration snippet achieves that with Netplan:
 
-```{code-block} yaml 
+```{code-block} yaml
 network:
   bridges:
     mybridge:
@@ -239,7 +239,7 @@ In some scenarios the default of using the system-provided DNS will not be suffi
 
 To use a custom DNS in your instances, you can use this `cloud-init` snippet:
 
-```{code-block} yaml 
+```{code-block} yaml
 #cloud-config
 bootcmd:
 - printf "[Resolve]\nDNS=8.8.8.8" > /etc/systemd/resolved.conf
@@ -248,7 +248,7 @@ bootcmd:
 
 Replace `8.8.8.8` with whatever your preferred DNS server is. You can then launch the instance using the following command:
 
-```{code-block} text 
+```{code-block} text
 multipass launch --cloud-init systemd-resolved.yaml
 ```
 
@@ -256,7 +256,7 @@ multipass launch --cloud-init systemd-resolved.yaml
 
 After the instance booted, you can modify the `/etc/netplan/50-cloud-init.yaml` file, adding the `nameservers` entry:
 
-```{code-block} yaml 
+```{code-block} yaml
 network:
   ethernets:
     ens3:
@@ -283,4 +283,3 @@ Changes will revert in 120 seconds
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/create-an-instance" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

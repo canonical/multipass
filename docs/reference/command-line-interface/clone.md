@@ -7,7 +7,7 @@ The `multipass clone` command creates a clone of an instance. A cloned instance 
 The `clone` command is available since Multipass version 1.15.0.
 ```
 
-Currently, only instances that are in the `Stopped` state can be cloned. 
+Currently, only instances that are in the `Stopped` state can be cloned.
 
 You can run the `clone` command  on a source instance without any additional options. For example, `multipass clone natty-nilgai` will produce the following output:
 
@@ -50,4 +50,3 @@ Arguments:
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/clone-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-

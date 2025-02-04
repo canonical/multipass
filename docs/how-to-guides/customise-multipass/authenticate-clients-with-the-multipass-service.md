@@ -7,23 +7,23 @@ Multipass requires clients to be authenticated with the service before allowing 
 
 ## Setting the passphrase
 
-The administrator needs to set a passphrase for clients to authenticate with the Multipass service. The client setting the passphrase will need to already be authenticated. 
+The administrator needs to set a passphrase for clients to authenticate with the Multipass service. The client setting the passphrase will need to already be authenticated.
 
 There are two ways to proceed:
 
 * Set the passphrase with an echoless interactive entry, where the passphrase is hidden from view:
-  
+
    ```{code-block} text
    multipass set local.passphrase
    ```
-  
+
    The system will then prompt you to enter a passphrase:
-  
+
    ```{code-block} text
    Please enter passphrase:
    Please re-enter passphrase:
    ```
-  
+
 * Set the passphrase in the command line, where the passphrase is visible:
 
    ```{code-block} text
@@ -32,7 +32,7 @@ There are two ways to proceed:
 
 ## Authenticating the client
 
-A client that is not authorised to connect to the Multipass service will fail when running `multipass` commands. An error will be displayed when this happens. 
+A client that is not authorised to connect to the Multipass service will fail when running `multipass` commands. An error will be displayed when this happens.
 
 For example, if you try running the `multipass list` command:
 
@@ -48,9 +48,9 @@ At this time, the client will need to provide the previously set passphrase. Thi
     ```{code-block} text
     multipass authenticate
     ```
-    
+
     The system will prompt you to enter the passphrase:
-    
+
      ```{code-block} text
     Please enter passphrase:
     ```
@@ -67,12 +67,12 @@ Here you can find solutions and workarounds for common issues that may arise.
 
 ### The client cannot be authorised and the passphrase cannot be set
  
-It is possible that another client that is privileged to connect to the Multipass socket will connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize` the client with the service. 
+It is possible that another client that is privileged to connect to the Multipass socket will connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize` the client with the service.
 
 If this is the case, you will see something like the following when you run:
 
 * `multipass list`
-  
+
   ```{code-block} text
   list failed: The client is not authenticated with the Multipass service.
   Please use 'multipass authenticate' before proceeding.
@@ -81,16 +81,16 @@ If this is the case, you will see something like the following when you run:
 * `multipass authenticate`
 
   ```{code-block} text
-  Please enter passphrase: 
-  authenticate failed: Passphrase is not set. Please `multipass set 
+  Please enter passphrase:
+  authenticate failed: Passphrase is not set. Please `multipass set
   local.passphrase` with a trusted client.
   ```
 
 * `multipass set local.passphrase`
 
   ```{code-block} text
-  Please enter passphrase: 
-  Please re-enter passphrase: 
+  Please enter passphrase:
+  Please re-enter passphrase:
   set failed: The client is not authenticated with the Multipass service.
   Please use 'multipass authenticate' before proceeding.
   ```
@@ -111,4 +111,3 @@ At this point, your client should be authenticated with the Multipass service.
 ---
 
 *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/authenticating-clients" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
