@@ -66,7 +66,7 @@ At this time, the client will need to provide the previously set passphrase. Thi
 Here you can find solutions and workarounds for common issues that may arise.
 
 ### The client cannot be authorised and the passphrase cannot be set
- 
+
 It is possible that another client that is privileged to connect to the Multipass socket will connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize` the client with the service.
 
 If this is the case, you will see something like the following when you run:

@@ -62,9 +62,9 @@
 \newcommand\sphinxbackoftitlepage{\thispagestyle{titlepage}}
 \titleformat{\chapter}[block]{\Huge \color{title} \bfseries\filright}{\thechapter .}{1.5ex}{}
 \titlespacing{\chapter}{0pt}{0pt}{0pt}
-\titleformat{\section}[block]{\huge \bfseries\filright}{\thesection .}{1.5ex}{} 
+\titleformat{\section}[block]{\huge \bfseries\filright}{\thesection .}{1.5ex}{}
 \titlespacing{\section}{0pt}{0pt}{0pt}
-\titleformat{\subsection}[block]{\Large \bfseries\filright}{\thesubsection .}{1.5ex}{} 
+\titleformat{\subsection}[block]{\Large \bfseries\filright}{\thesubsection .}{1.5ex}{}
 \titlespacing{\subsection}{0pt}{0pt}{0pt}
 \setcounter{tocdepth}{1}
 \renewcommand\pagenumbering[1]{}

@@ -20,7 +20,7 @@ The snapshot will record all the information that is required to later restore t
 You have the option to specify a snapshot name using the `--name` option, following the same format as the [instance name format](/reference/instance-name-format).
 
 If you don't specify a name, the snapshot will be named "snapshotN", where N is the total number of snapshots that were ever taken of that instance. You can also add an optional comment with `--comment`. Both of these properties can be later modified with the [`set`](/reference/command-line-interface/set) command, via the snapshot settings keys documented in [Settings](/reference/settings/index).
- 
+
 ---
 
 The full `multipass help snapshot` output explains the available options:

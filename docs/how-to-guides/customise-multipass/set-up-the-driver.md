@@ -216,7 +216,7 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 ````
 
 `````
- 
+
 ## Use VirtualBox to set up network bridging for a Multipass instance
 
 `````{tab-set}
