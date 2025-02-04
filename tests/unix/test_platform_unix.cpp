@@ -229,6 +229,17 @@ TEST_F(TestPlatformUnix, make_and_block_signals_works)
     test_sigset_empty(set);
 }
 
+TEST_F(TestPlatformUnix, make_and_block_signals_throws_on_error)
+{
+    auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
+
+    EXPECT_CALL(*mock_signals, pthread_sigmask(SIG_BLOCK, _, _)).WillOnce(Return(EPERM));
+
+    MP_EXPECT_THROW_THAT(mp::platform::make_and_block_signals({SIGINT}),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Failed to block signals: Operation not permitted")));
+}
+
 TEST_F(TestPlatformUnix, make_quit_watchdog_blocks_signals)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
