@@ -250,15 +250,15 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
     const auto priv_key_path = cert_dir.filePath(prefix + "_key.pem");
     const auto cert_path = cert_dir.filePath(prefix + ".pem");
 
-    if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
-    {
-        return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
-    }
-
     if (!server_name.empty())
     {
-        const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
         const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
+        if (std::filesystem::exists(root_cert_path) && QFile::exists(priv_key_path) && QFile::exists(cert_path))
+        {
+            return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
+        }
+
+        const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
 
         EVPKey root_cert_key;
         X509Cert root_cert{root_cert_key, X509Cert::CertType::Root};
@@ -277,6 +277,11 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
     }
     else
     {
+        if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
+        {
+            return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
+        }
+
         const EVPKey client_cert_key;
         const X509Cert client_cert{client_cert_key, X509Cert::CertType::Client};
         client_cert_key.write(priv_key_path);
