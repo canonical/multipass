@@ -74,7 +74,7 @@ woke-install:
 		else \
 			echo "Installation cancelled."; \
 		fi \
-	}	
+	}
 
 spellcheck-install:
 	@type aspell >/dev/null 2>&1 || \
