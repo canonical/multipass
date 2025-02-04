@@ -47,7 +47,6 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
     {
         auto opts = grpc::SslCredentialsOptions();
         opts.pem_root_certs = mpt::root_cert;
-        opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_AND_VERIFY;
         opts.pem_cert_chain = mpt::cert;
         opts.pem_private_key = mpt::key;
 
