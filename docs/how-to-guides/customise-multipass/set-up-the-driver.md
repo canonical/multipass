@@ -82,7 +82,11 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 
 If you want to (or have to), you can change the hypervisor that Multipass uses to VirtualBox.
 
-To that end, install VirtualBox, if you haven't yet. You may find that you need to [run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658).
+To that end, install VirtualBox, if you haven't yet. You may find that you need to <a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
+
+<!-- Sphinx doesn't like the & character in the above link, the only way to make it work is using basic HTML syntax. The link was:
+[run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658)
+-->
 
 To switch the Multipass driver to VirtualBox (also with Administrator privileges), run this command:
 
