@@ -4,9 +4,9 @@ endif()
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
-    REPO canonical/grpc
-    REF e3acf245a91630fe4d464091ba5446f6a638d82f
-    SHA512 18574197f4a5070de07c39c096ead2175c150a2b790adbb3d9639b0637641015fb91f5cffa916b50863d6ee62203ad2a6964ce87566b6ae7b41716594c445c06
+    REPO grpc/grpc
+    REF v1.52.1
+    SHA512 06c69fb817af75b2610761a3a193178b749755eb7bed58875aa251def7c0c253cdaf02cf834c31c8b2cae7b01a6081e2aece4b131a162f64bd45ff0aff4d7758
     HEAD_REF master
     PATCHES
         00002-static-linking-in-linux.patch
