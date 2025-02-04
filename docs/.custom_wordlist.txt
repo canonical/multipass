@@ -1,11 +1,13 @@
 # Leave a blank line at the end of this file to support concatenation
 AnyConnect
+ApplicationFirewall
 ARP
 autostart
 backend
 backend's
 backends
 BBCcode
+boolean
 bootpd
 BPF
 cal
@@ -70,6 +72,7 @@ Kudu
 lang
 latexmk
 launchd
+libexec
 libvirt
 lifecycle
 liger
@@ -79,6 +82,7 @@ macOS
 macOS's
 MACs
 mDNSResponder
+mentorship
 metallb
 MiB
 microk
@@ -128,6 +132,7 @@ resolv
 SHA
 SMB
 snapshotN
+socketfilterfw
 SonicWall
 SourceForge
 SSHFS
@@ -153,6 +158,7 @@ unmount
 Unmounting
 unmounts
 userspace
+usr
 UTF
 utils
 VcXsrv
