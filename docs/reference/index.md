@@ -2,7 +2,7 @@
 # Reference
 
 This section provides detailed reference material for Multipass, from CLI commands to settings keys.
- 
+
 - [Command-Line Interface](command-line-interface/index)
     - [alias](command-line-interface/alias)
     - [aliases](command-line-interface/aliases)
