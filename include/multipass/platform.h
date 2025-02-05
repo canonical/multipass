@@ -78,6 +78,7 @@ public:
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
+    [[nodiscard]] virtual std::filesystem::path get_root_cert_path() const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);
