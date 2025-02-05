@@ -1,0 +1,52 @@
+<header id="header" class="p-navigation">
+
+  <div class="p-navigation__nav" role="menubar">
+
+    <ul class="p-navigation__links" role="menu">
+
+      <li>
+        <a class="p-logo" href="https://{{ product_page }}" aria-current="page">
+          <img src="{{ pathto(product_tag,1) }}" alt="Logo" class="p-logo-image">
+          <div class="p-logo-text p-heading--4">{{ project }}
+          </div>
+        </a>
+      </li>
+
+      <li class="nav-ubuntu-com">
+        <a href="https://{{ product_page }}" class="p-navigation__link">{{ product_page }}</a>
+      </li>
+
+      <li>
+        <a href="#" class="p-navigation__link nav-more-links">More resources</a>
+        <ul class="more-links-dropdown">
+
+          {% if discourse %}
+          <li>
+            <a href="{{ discourse }}" class="p-navigation__sub-link p-dropdown__link">Discourse</a>
+          </li>
+          {% endif %}
+
+          {% if mattermost %}
+          <li>
+            <a href="{{ mattermost }}" class="p-navigation__sub-link p-dropdown__link">Mattermost</a>
+          </li>
+          {% endif %}
+
+          {% if matrix %}
+          <li>
+            <a href="{{ matrix }}" class="p-navigation__sub-link p-dropdown__link">Matrix</a>
+          </li>
+          {% endif %}
+
+          {% if github_url %}
+          <li>
+            <a href="{{ github_url }}" class="p-navigation__sub-link p-dropdown__link">GitHub</a>
+          </li>
+          {% endif %}
+
+        </ul>
+      </li>
+
+    </ul>
+  </div>
+</header>
