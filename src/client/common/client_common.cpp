@@ -74,7 +74,7 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 {
     auto opts = grpc::SslCredentialsOptions();
 
-    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+    opts.pem_root_certs = MP_UTILS.contents_of(MP_PLATFORM.get_root_cert_path().u8string().c_str());
     opts.pem_cert_chain = cert_provider.PEM_certificate();
     opts.pem_private_key = cert_provider.PEM_signing_key();
 
@@ -137,7 +137,11 @@ void mp::client::register_global_settings_handlers()
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
                                                         const mp::CertProvider& cert_provider)
 {
-    return grpc::CreateChannel(server_address, grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)));
+    grpc::ChannelArguments channel_args;
+    channel_args.SetString(GRPC_ARG_DEFAULT_AUTHORITY, "localhost");
+    return grpc::CreateCustomChannel(server_address,
+                                     grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)),
+                                     channel_args);
 }
 
 std::string mp::client::get_server_address()
