@@ -7,8 +7,8 @@ info on where to find release information about the submodule.
 **This file needs updating when a submodule is updated!**
 
 ### gRPC
-Version: 1.60.0 (+[our patches](https://github.com/canonical/grpc/compare/v1.60.0...canonical:grpc:multipass_on_grpc_1.60.0)) |
-<https://github.com/CanonicalLtd/grpc.git> |
+Version: 1.60.0 |
+<https://github.com/grpc/grpc.git> |
 <https://github.com/grpc/grpc/releases>
 
 ### libssh
