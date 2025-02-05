@@ -43,8 +43,10 @@ class WindowsPlatform extends MpPlatform {
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
             IncreaseTerminalFontIntent(),
+        SingleActivator(LogicalKeyboardKey.add, control: true):
+            IncreaseTerminalFontIntent(),              
         SingleActivator(LogicalKeyboardKey.add, control: true, shift: true):
-            IncreaseTerminalFontIntent(),
+            IncreaseTerminalFontIntent(),         
         SingleActivator(LogicalKeyboardKey.numpadAdd, control: true):
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.minus, control: true):
