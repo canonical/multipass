@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../settings/autostart_notifiers.dart';
 import '../vm_details/terminal.dart';
+import '../vm_details/terminal_tabs.dart';
 import 'platform.dart';
 
 class MacOSPlatform extends MpPlatform {
@@ -32,6 +33,10 @@ class MacOSPlatform extends MpPlatform {
             CopySelectionTextIntent.copy,
         SingleActivator(LogicalKeyboardKey.keyV, meta: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
+        SingleActivator(LogicalKeyboardKey.keyW, meta: true):
+            CloseTerminalIntent(),
+        SingleActivator(LogicalKeyboardKey.keyT, meta: true):
+            AddTerminalIntent(),
         SingleActivator(LogicalKeyboardKey.equal, meta: true):
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.equal, meta: true, shift: true):
