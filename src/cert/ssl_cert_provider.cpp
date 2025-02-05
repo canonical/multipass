@@ -38,11 +38,16 @@ namespace
 class WritableFile
 {
 public:
-    explicit WritableFile(const QString& file_path) : fp{fopen(file_path.toStdString().c_str(), "wb"), fclose}
+    explicit WritableFile(const QString& file_path)
     {
-        if (fp == nullptr)
+        std::filesystem::remove(file_path.toStdString().c_str());
+        const auto raw_fp = fopen(file_path.toStdString().c_str(), "wb");
+
+        if (raw_fp == nullptr)
             throw std::runtime_error(
                 fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
+
+        fp.reset(raw_fp);
     }
 
     FILE* get() const
@@ -51,7 +56,7 @@ public:
     }
 
 private:
-    std::unique_ptr<FILE, std::function<int(FILE*)>> fp;
+    std::unique_ptr<FILE, std::function<int(FILE*)>> fp{nullptr, fclose};
 };
 
 class EVPKey
