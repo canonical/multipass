@@ -18,9 +18,8 @@
 #ifndef MULTIPASS_PLATFORM_UNIX_H
 #define MULTIPASS_PLATFORM_UNIX_H
 
-#include <vector>
-
 #include <csignal>
+#include <vector>
 
 #include "singleton.h"
 
