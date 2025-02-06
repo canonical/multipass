@@ -134,6 +134,8 @@ void set_random_serial_number(X509* cert)
     // OpenSSL recommends a 20-byte (160-bit) serial number
     std::array<uint8_t, 20> serial_bytes;
     RAND_bytes(serial_bytes.data(), serial_bytes.size());
+    // Set the highest bit to 0 (unsigned) to ensure it's positive
+    serial_bytes[0] &= 0x7F;
 
     // Convert bytes to an BIGNUM, an arbitrary-precision integer type
     std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(BN_bin2bn(serial_bytes.data(), serial_bytes.size(), NULL), BN_free);
@@ -142,9 +144,6 @@ void set_random_serial_number(X509* cert)
     {
         throw std::runtime_error("Failed to convert serial bytes to BIGNUM\n");
     }
-
-    // Ensure the serial number is positive
-    BN_set_bit(bn.get(), 159); // Set the highest bit to ensure it's positive
 
     // Convert BIGNUM to ASN1_INTEGER and set it as the certificate serial number
     // ASN1 is a standard binary format for encoding data like serial numbers in X.509 certificates
