@@ -56,7 +56,7 @@ public:
     }
 
 private:
-    std::unique_ptr<FILE, std::function<int(FILE*)>> fp{nullptr, fclose};
+    std::unique_ptr<FILE, int (*)(FILE*)> fp{nullptr, fclose};
 };
 
 class EVPKey
