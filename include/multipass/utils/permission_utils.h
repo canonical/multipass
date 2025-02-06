@@ -20,7 +20,6 @@
 
 #include <multipass/singleton.h>
 
-#include <QFileDevice>
 #include <filesystem>
 
 #define MP_PERMISSIONS multipass::PermissionUtils::instance()
@@ -34,7 +33,10 @@ class PermissionUtils : public Singleton<PermissionUtils>
 public:
     PermissionUtils(const PrivatePass&) noexcept;
 
+    // recursively sets permissions on path
     virtual void set_permissions(const fs::path& path, const fs::perms& permissions) const;
+
+    // recursively takes ownership on path
     virtual void take_ownership(const fs::path& path) const;
 
     // sets owner to root and sets permissions such that only owner has access.
