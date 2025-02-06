@@ -41,6 +41,9 @@ public:
     explicit WritableFile(const QString& file_path)
     {
         std::filesystem::remove(file_path.toStdString().c_str());
+        // The key files are read-only for the owner, meaning that opening them with fopen in wb mode typically fails,
+        // preventing the overwrite functionality. Therefore, fs::remove is called beforehand, as it depeneds on the
+        // parent directory's write permission rather than the file's write permission.
         const auto raw_fp = fopen(file_path.toStdString().c_str(), "wb");
 
         if (raw_fp == nullptr)
