@@ -48,7 +48,6 @@
 
 #include <chrono>
 #include <multipass/file_ops.h>
-#include <multipass/utils/permission_utils.h>
 #include <thread>
 
 namespace mp = multipass;

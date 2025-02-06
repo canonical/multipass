@@ -113,7 +113,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
-        MP_UTILS.make_dir(storage_path, std::filesystem::perms::owner_all);
+        MP_UTILS.make_dir(storage_path);
 
     if (cache_directory.isEmpty())
     {
