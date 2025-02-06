@@ -140,8 +140,7 @@ void set_random_serial_number(X509* cert)
 
     if (!bn)
     {
-        fprintf(stderr, "Failed to convert serial bytes to BIGNUM\n");
-        return;
+        throw std::runtime_error("Failed to convert serial bytes to BIGNUM\n");
     }
 
     // Ensure the serial number is positive
@@ -152,8 +151,7 @@ void set_random_serial_number(X509* cert)
     ASN1_INTEGER* serial = BN_to_ASN1_INTEGER(bn.get(), NULL);
     if (!serial)
     {
-        fprintf(stderr, "Failed to convert BIGNUM to ASN1_INTEGER\n");
-        return;
+        throw std::runtime_error("Failed to convert serial bytes to BIGNUM\n");
     }
 
     // Set the serial number in the certificate
