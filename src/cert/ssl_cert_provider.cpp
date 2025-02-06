@@ -56,6 +56,8 @@ public:
     }
 
 private:
+    // decltype(&fclose) does not preserve these some extra function attributes of fclose, leads to warning and
+    // compilation error
     std::unique_ptr<FILE, int (*)(FILE*)> fp{nullptr, fclose};
 };
 
