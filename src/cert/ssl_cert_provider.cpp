@@ -24,6 +24,7 @@
 
 #include <openssl/core_names.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/x509v3.h>
 
 #include <cerrno>
@@ -128,6 +129,40 @@ std::vector<unsigned char> as_vector(const std::string& v)
     return {v.begin(), v.end()};
 }
 
+void set_random_serial_number(X509* cert)
+{
+    // OpenSSL recommends a 20-byte (160-bit) serial number
+    std::array<uint8_t, 20> serial_bytes;
+    RAND_bytes(serial_bytes.data(), serial_bytes.size());
+
+    // Convert bytes to an BIGNUM, an arbitrary-precision integer type
+    BIGNUM* bn = BN_bin2bn(serial_bytes.data(), serial_bytes.size(), NULL);
+    if (!bn)
+    {
+        fprintf(stderr, "Failed to convert serial bytes to BIGNUM\n");
+        return;
+    }
+
+    // Ensure the serial number is positive
+    BN_set_bit(bn, 159); // Set the highest bit to ensure it's positive
+
+    // Convert BIGNUM to ASN1_INTEGER and set it as the certificate serial number
+    // ASN1 is a standard binary format for encoding data like serial numbers in X.509 certificates
+    ASN1_INTEGER* serial = BN_to_ASN1_INTEGER(bn, NULL);
+    if (!serial)
+    {
+        fprintf(stderr, "Failed to convert BIGNUM to ASN1_INTEGER\n");
+        BN_free(bn);
+        return;
+    }
+
+    // Set the serial number in the certificate
+    X509_set_serialNumber(cert, serial);
+
+    // Cleanup
+    BN_free(bn);
+}
+
 class X509Cert
 {
 public:
@@ -148,14 +183,8 @@ public:
         if (cert == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
 
-        long big_num{0};
-        const auto rand_bytes = MP_UTILS.random_bytes(4);
-        for (unsigned int i = 0; i < 4u; i++)
-            big_num |= rand_bytes[i] << i * 8u;
+        set_random_serial_number(cert.get());
 
-        X509_set_version(cert.get(), 2); // X.509 v3
-
-        ASN1_INTEGER_set(X509_get_serialNumber(cert.get()), big_num);
         X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
         const long valid_duration_sec = cert_type == CertType::Root ? 3650L * 24L * 60L * 60L : 365L * 24L * 60L * 60L;
         // 10 years for root certicicate and 1 year for server and client certificate
