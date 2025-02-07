@@ -150,6 +150,8 @@ html_context = {
     # "sequential_nav": "both",
     # TODO: To enable listing contributors on individual pages, set to True
     "display_contributors": False,
+    # The following line enables the "Give feedback" button.
+    "github_issues": "enabled",
 }
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897

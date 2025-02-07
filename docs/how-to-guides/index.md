@@ -1,5 +1,5 @@
 (how-to-guides-index)=
-# How-To-Guides
+# How-to guides
 
 The following how-to guides provide step-by-step instructions on the installation, use, management and troubleshooting of Multipass.
 
