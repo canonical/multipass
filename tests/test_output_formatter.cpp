@@ -67,6 +67,9 @@ auto construct_single_instance_list_reply()
     list_entry->add_ipv4("200.3.123.30");
     list_entry->add_ipv6("fdde:2681:7a2::4ca");
     list_entry->add_ipv6("fe80::1c3c:b703:d561:a00");
+    const auto zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     return list_reply;
 }
@@ -80,11 +83,17 @@ auto construct_multiple_instances_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
     list_entry->add_ipv4("10.21.124.56");
+    auto zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     return list_reply;
 }
@@ -97,21 +106,33 @@ auto construct_unsorted_list_reply()
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("N/A");
+    auto zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("N/A");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     list_entry->set_current_release("");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1529");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     list_entry->set_current_release("");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     return list_reply;
 }
@@ -196,6 +217,9 @@ auto add_petenv_to_reply(mp::ListReply& reply)
         instance->set_name(petenv_name());
         instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         instance->set_current_release("Not Available");
+        const auto zone = instance->mutable_zone();
+        zone->set_name("zone1");
+        zone->set_available(true);
     }
     else
     {
@@ -262,6 +286,9 @@ auto construct_single_instance_info_reply()
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    const auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(19);
@@ -316,6 +343,9 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -349,6 +379,9 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     return info_reply;
 }
@@ -370,6 +403,9 @@ auto construct_single_snapshot_info_reply()
     info_entry->mutable_snapshot_info()->set_size("128MiB");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
     info_entry->mutable_snapshot_info()->add_children("snapshot4");
+    const auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
     mount_entry->set_source_path("/home/user/source");
@@ -397,6 +433,9 @@ auto construct_multiple_snapshots_info_reply()
     info_entry->set_cpu_count("1");
     info_entry->set_disk_total("1024GiB");
     info_entry->set_memory_total("128GiB");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("black-hole");
     fundamentals->set_comment("Captured by EHT");
 
@@ -411,6 +450,9 @@ auto construct_multiple_snapshots_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -441,6 +483,9 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -460,6 +505,9 @@ auto construct_mixed_instance_and_snapshot_info_reply()
 
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_id(
@@ -479,6 +527,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -512,6 +563,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -536,6 +590,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("snapshot1");
 
     timestamp.set_seconds(63107999);
@@ -544,6 +601,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
 
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_id(
@@ -557,6 +617,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_cpu_count("1");
     info_entry->set_disk_total("1024GiB");
     info_entry->set_memory_total("128GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("black-hole");
     fundamentals->set_comment("Captured by EHT");
 
@@ -573,6 +636,9 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     {
         auto entry = reply.add_details();
         entry->set_name(petenv_name());
+        const auto zone = entry->mutable_zone();
+        zone->set_name("zone1");
+        zone->set_available(true);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
         entry->mutable_instance_info()->set_id(
@@ -583,6 +649,9 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     {
         auto entry = reply.add_details();
         entry->set_name(petenv_name());
+        const auto zone = entry->mutable_zone();
+        zone->set_name("zone1");
+        zone->set_available(true);
         entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
     }
 }
@@ -802,25 +871,25 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "table_list_snapshot_empty"},
     {&table_formatter,
      &single_instance_list_reply,
-     "Name                    State             IPv4             Image\n"
-     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS\n"
+     "Name                    State             IPv4             Image               Zone\n"
+     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS    zone1(a)\n"
      "                                          200.3.123.30\n",
      "table_list_single"},
 
     {&table_formatter,
      &multiple_instances_list_reply,
-     "Name                    State             IPv4             Image\n"
-     "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS\n"
-     "bombastic               Stopped           --               Ubuntu 18.04 LTS\n",
+     "Name                    State             IPv4             Image               Zone\n"
+     "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS    zone1(a)\n"
+     "bombastic               Stopped           --               Ubuntu 18.04 LTS    zone2(u/a)\n",
      "table_list_multiple"},
 
     {&table_formatter,
      &unsorted_list_reply,
-     "Name                    State             IPv4             Image\n"
-     "trusty-190611-1529      Deleted           --               Not Available\n"
-     "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
-     "trusty-190611-1539      Suspended         --               Not Available\n"
-     "trusty-190611-1542      Running           --               Ubuntu N/A\n",
+     "Name                    State             IPv4             Image               Zone\n"
+     "trusty-190611-1529      Deleted           --               Not Available       zone2(u/a)\n"
+     "trusty-190611-1535      Stopped           --               Ubuntu N/A          zone2(u/a)\n"
+     "trusty-190611-1539      Suspended         --               Not Available       zone1(a)\n"
+     "trusty-190611-1542      Running           --               Ubuntu N/A          zone1(a)\n",
      "table_list_unsorted"},
     {&table_formatter,
      &single_snapshot_list_reply,
@@ -847,6 +916,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &single_instance_info_reply,
      "Name:           foo\n"
      "State:          Running\n"
+     "Zone:           zone1(a)\n"
      "Snapshots:      0\n"
      "IPv4:           10.168.32.2\n"
      "                200.3.123.29\n"
@@ -869,6 +939,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &multiple_instances_info_reply,
      "Name:           bogus-instance\n"
      "State:          Running\n"
+     "Zone:           zone1(a)\n"
      "Snapshots:      1\n"
      "IPv4:           10.21.124.56\n"
      "Release:        Ubuntu 16.04.3 LTS\n"
@@ -882,6 +953,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "                    GID map: 1000:501\n\n"
      "Name:           bombastic\n"
      "State:          Stopped\n"
+     "Zone:           zone2(u/a)\n"
      "Snapshots:      3\n"
      "IPv4:           --\n"
      "Release:        --\n"
@@ -939,6 +1011,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &mixed_instance_and_snapshot_info_reply,
      "Name:           bombastic\n"
      "State:          Stopped\n"
+     "Zone:           zone2(u/a)\n"
      "Snapshots:      3\n"
      "IPv4:           --\n"
      "Release:        --\n"
@@ -965,6 +1038,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &multiple_mixed_instances_and_snapshots_info_reply,
      "Name:           bogus-instance\n"
      "State:          Running\n"
+     "Zone:           zone1(a)\n"
      "Snapshots:      2\n"
      "IPv4:           10.21.124.56\n"
      "Release:        Ubuntu 16.04.3 LTS\n"
@@ -978,6 +1052,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "                    GID map: 1000:501\n\n"
      "Name:           bombastic\n"
      "State:          Stopped\n"
+     "Zone:           zone2(u/a)\n"
      "Snapshots:      3\n"
      "IPv4:           --\n"
      "Release:        --\n"
@@ -1021,25 +1096,25 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Comment:        Captured by EHT\n",
      "table_info_multiple_mixed_instances_and_snapshots"},
 
-    {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4\n", "csv_list_empty"},
+    {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n", "csv_list_empty"},
     {&csv_formatter,
      &single_instance_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\"\n",
+     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
+     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",zone1,true\n",
      "csv_list_single"},
     {&csv_formatter,
      &multiple_instances_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "bogus-instance,Running,10.21.124.56,,Ubuntu 16.04 LTS,\"10.21.124.56\"\n"
-     "bombastic,Stopped,,,Ubuntu 18.04 LTS,\"\"\n",
+     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
+     "bogus-instance,Running,10.21.124.56,,Ubuntu 16.04 LTS,\"10.21.124.56\",zone1,true\n"
+     "bombastic,Stopped,,,Ubuntu 18.04 LTS,\"\",zone2,false\n",
      "csv_list_multiple"},
     {&csv_formatter,
      &unsorted_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4\n"
-     "trusty-190611-1529,Deleted,,,Not Available,\"\"\n"
-     "trusty-190611-1535,Stopped,,,Ubuntu N/A,\"\"\n"
-     "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
-     "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
+     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
+     "trusty-190611-1529,Deleted,,,Not Available,\"\",zone2,false\n"
+     "trusty-190611-1535,Stopped,,,Ubuntu N/A,\"\",zone2,false\n"
+     "trusty-190611-1539,Suspended,,,Not Available,\"\",zone1,true\n"
+     "trusty-190611-1542,Running,,,Ubuntu N/A,\"\",zone1,true\n",
      "csv_list_unsorted"},
     {&csv_formatter,
      &empty_list_snapshot_reply,
@@ -1063,10 +1138,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
     {&csv_formatter,
      &single_instance_info_reply,
-     "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
      "usage,Memory "
-     "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,"
-     "Ubuntu "
+     "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,zone1,true,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu "
      "16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
@@ -1094,12 +1168,12 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "csv_info_multiple_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_instances_info_reply,
-     "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory "
-     "total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
+     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+     "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,zone1,true,10.21.124.56,,Ubuntu "
+     "16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
-     "source,10.21.124.56,4,1\nbombastic,Stopped,,,,"
+     "source,10.21.124.56,4,1\nbombastic,Stopped,zone2,false,,,,"
      "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\n",
      "csv_info_multiple_instances"},
 
@@ -1108,6 +1182,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &single_instance_list_reply,
      "foo:\n"
      "  - state: Running\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    ipv4:\n"
      "      - 10.168.32.2\n"
      "      - 200.3.123.30\n"
@@ -1117,11 +1194,17 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &multiple_instances_list_reply,
      "bogus-instance:\n"
      "  - state: Running\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    ipv4:\n"
      "      - 10.21.124.56\n"
      "    release: Ubuntu 16.04 LTS\n"
      "bombastic:\n"
      "  - state: Stopped\n"
+     "    zone:\n"
+     "      name: zone2\n"
+     "      available: false\n"
      "    ipv4:\n"
      "      []\n"
      "    release: Ubuntu 18.04 LTS\n",
@@ -1130,21 +1213,33 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &unsorted_list_reply,
      "trusty-190611-1529:\n"
      "  - state: Deleted\n"
+     "    zone:\n"
+     "      name: zone2\n"
+     "      available: false\n"
      "    ipv4:\n"
      "      []\n"
      "    release: Not Available\n"
      "trusty-190611-1535:\n"
      "  - state: Stopped\n"
+     "    zone:\n"
+     "      name: zone2\n"
+     "      available: false\n"
      "    ipv4:\n"
      "      []\n"
      "    release: Ubuntu N/A\n"
      "trusty-190611-1539:\n"
      "  - state: Suspended\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    ipv4:\n"
      "      []\n"
      "    release: Not Available\n"
      "trusty-190611-1542:\n"
      "  - state: Running\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    ipv4:\n"
      "      []\n"
      "    release: Ubuntu N/A\n",
@@ -1186,6 +1281,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - ~\n"
      "foo:\n"
      "  - state: Running\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    snapshot_count: 0\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
      "    image_release: 16.04 LTS\n"
@@ -1225,6 +1323,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - ~\n"
      "bogus-instance:\n"
      "  - state: Running\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    snapshot_count: 1\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
      "    image_release: 16.04 LTS\n"
@@ -1252,6 +1353,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "        source_path: /home/user/source\n"
      "bombastic:\n"
      "  - state: Stopped\n"
+     "    zone:\n"
+     "      name: zone2\n"
+     "      available: false\n"
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
      "    image_release: 18.04 LTS\n"
@@ -1333,6 +1437,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - ~\n"
      "bombastic:\n"
      "  - state: Stopped\n"
+     "    zone:\n"
+     "      name: zone2\n"
+     "      available: false\n"
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
      "    image_release: 18.04 LTS\n"
@@ -1373,6 +1480,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - ~\n"
      "bogus-instance:\n"
      "  - state: Running\n"
+     "    zone:\n"
+     "      name: zone1\n"
+     "      available: true\n"
      "    snapshot_count: 2\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
      "    image_release: 16.04 LTS\n"
@@ -1428,6 +1538,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "          comment: ~\n"
      "bombastic:\n"
      "  - state: Stopped\n"
+     "    zone:\n"
+     "      name: zone2\n"
+     "      available: false\n"
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
      "    image_release: 18.04 LTS\n"
@@ -1477,7 +1590,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            ],\n"
      "            \"name\": \"foo\",\n"
      "            \"release\": \"Ubuntu 16.04 LTS\",\n"
-     "            \"state\": \"Running\"\n"
+     "            \"state\": \"Running\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": true,\n"
+     "                \"name\": \"zone1\"\n"
+     "            }\n"
      "        }\n"
      "    ]\n"
      "}\n",
@@ -1492,14 +1609,22 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            ],\n"
      "            \"name\": \"bogus-instance\",\n"
      "            \"release\": \"Ubuntu 16.04 LTS\",\n"
-     "            \"state\": \"Running\"\n"
+     "            \"state\": \"Running\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": true,\n"
+     "                \"name\": \"zone1\"\n"
+     "            }\n"
      "        },\n"
      "        {\n"
      "            \"ipv4\": [\n"
      "            ],\n"
      "            \"name\": \"bombastic\",\n"
      "            \"release\": \"Ubuntu 18.04 LTS\",\n"
-     "            \"state\": \"Stopped\"\n"
+     "            \"state\": \"Stopped\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": false,\n"
+     "                \"name\": \"zone2\"\n"
+     "            }\n"
      "        }\n"
      "    ]\n"
      "}\n",
@@ -1615,7 +1740,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
      "            \"snapshot_count\": \"0\",\n"
-     "            \"state\": \"Running\"\n"
+     "            \"state\": \"Running\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": true,\n"
+     "                \"name\": \"zone1\"\n"
+     "            }\n"
      "        }\n"
      "    }\n"
      "}\n",
@@ -1662,7 +1791,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
      "            \"snapshot_count\": \"1\",\n"
-     "            \"state\": \"Running\"\n"
+     "            \"state\": \"Running\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": true,\n"
+     "                \"name\": \"zone1\"\n"
+     "            }\n"
      "        },\n"
      "        \"bombastic\": {\n"
      "            \"cpu_count\": \"\",\n"
@@ -1683,7 +1816,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"release\": \"\",\n"
      "            \"snapshot_count\": \"3\",\n"
-     "            \"state\": \"Stopped\"\n"
+     "            \"state\": \"Stopped\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": false,\n"
+     "                \"name\": \"zone2\"\n"
+     "            }\n"
      "        }\n"
      "    }\n"
      "}\n",
@@ -1823,7 +1960,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"release\": \"\",\n"
      "            \"snapshot_count\": \"3\",\n"
-     "            \"state\": \"Stopped\"\n"
+     "            \"state\": \"Stopped\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": false,\n"
+     "                \"name\": \"zone2\"\n"
+     "            }\n"
      "        }\n"
      "    }\n"
      "}\n",
@@ -1906,7 +2047,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                    \"size\": \"\"\n"
      "                }\n"
      "            },\n"
-     "            \"state\": \"Running\"\n"
+     "            \"state\": \"Running\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": true,\n"
+     "                \"name\": \"zone1\"\n"
+     "            }\n"
      "        },\n"
      "        \"bombastic\": {\n"
      "            \"cpu_count\": \"\",\n"
@@ -1927,7 +2072,11 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"release\": \"\",\n"
      "            \"snapshot_count\": \"3\",\n"
-     "            \"state\": \"Stopped\"\n"
+     "            \"state\": \"Stopped\",\n"
+     "            \"zone\": {\n"
+     "                \"available\": false,\n"
+     "                \"name\": \"zone2\"\n"
+     "            }\n"
      "        },\n"
      "        \"messier-87\": {\n"
      "            \"snapshots\": {\n"
