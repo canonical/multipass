@@ -69,7 +69,7 @@ protected:
         check_return_callables(on_success, on_failure);
 
         using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
-        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        using ReplyType = std::remove_const_t<std::remove_reference_t<Arg0Type>>;
         ReplyType reply;
         auto handle_failure = adapt_failure_handler(on_failure, reply);
 
@@ -127,7 +127,7 @@ protected:
                         FailureCallable&& on_failure)
     {
         using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
-        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        using ReplyType = std::remove_const_t<std::remove_reference_t<Arg0Type>>;
         return dispatch(rpc_func, request, on_success, on_failure,
                         [this](ReplyType& reply, grpc::ClientReaderWriterInterface<Request, ReplyType>* client) {
                             if (!reply.log_line().empty())
@@ -151,8 +151,8 @@ private:
         using SuccessCallableArg0Type = std::remove_reference_t<typename SuccessCallableTraits::template arg<0>::type>;
         using FailureCallableArg0Type = std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
 
-        static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value);
-        static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value);
+        static_assert(std::is_same_v<std::remove_const_t<typename SuccessCallableTraits::return_type>, ReturnCode>);
+        static_assert(std::is_same_v<std::remove_const_t<typename FailureCallableTraits::return_type>, ReturnCode>);
 
         static_assert(SuccessCallableTraits::num_args == 1);
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,
@@ -166,7 +166,7 @@ private:
             static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
                           "`on_success` and `on_failure` should handle the same reply types");
         }
-        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value);
+        static_assert(std::is_same_v<std::remove_const_t<FailureCallableArg0Type>, grpc::Status>);
     }
 
     template <typename FailureCallable, typename Reply>
