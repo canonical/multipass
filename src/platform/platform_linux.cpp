@@ -471,7 +471,6 @@ std::string multipass::platform::host_version()
                                     : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
 
-
 std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
