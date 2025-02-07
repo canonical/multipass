@@ -161,7 +161,7 @@ struct Client : public Test
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
         EXPECT_CALL(mock_settings, register_handler(_)).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
-        EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(multipass::test::root_cert));
+        EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
 
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
