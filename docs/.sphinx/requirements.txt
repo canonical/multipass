@@ -1,0 +1,4 @@
+canonical-sphinx[full] @ git+https://github.com/canonical/canonical-sphinx@main
+sphinx-autobuild
+sphinxcontrib-svg2pdfconverter[CairoSVG]
+sphinx-last-updated-by-git

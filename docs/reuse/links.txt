@@ -1,0 +1,36 @@
+.. _reStructuredText style guide: https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/
+.. _MyST style guide: https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide-myst/
+.. _Read the Docs at Canonical: https://library.canonical.com/documentation/read-the-docs-at-canonical
+.. _How to publish documentation on Read the Docs: https://library.canonical.com/documentation/publish-on-read-the-docs
+.. _Example product documentation: https://canonical-example-product-documentation.readthedocs-hosted.com/
+.. wokeignore:rule=master
+.. _`Sphinx configuration`: https://www.sphinx-doc.org/en/master/usage/configuration.html
+.. wokeignore:rule=master
+.. _`Sphinx extensions`: https://www.sphinx-doc.org/en/master/usage/extensions/index.html
+.. wokeignore:rule=master
+.. _`file-wide metadata`: https://www.sphinx-doc.org/en/master/usage/restructuredtext/field-lists.html
+.. _`Furo documentation`: https://pradyunsg.me/furo/quickstart/
+.. _`Hiding Contents sidebar`: https://pradyunsg.me/furo/customisation/toc/
+.. _`Sphinx`: https://www.sphinx-doc.org/
+.. _woke documentation: https://docs.getwoke.tech/ignore
+.. _Canonical Sphinx: https://github.com/canonical/canonical-sphinx
+.. _change log: https://github.com/canonical/sphinx-docs-starter-pack/wiki/Change-log
+.. _Open Graph: https://ogp.me/
+.. _manual import: https://readthedocs.com/dashboard/import/manual/
+.. _How to manually configure a Git repository integration: https://docs.readthedocs.io/en/stable/guides/setup/git-repo-manual.html
+.. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html
+.. _Markdown: https://commonmark.org/
+.. _MyST: https://myst-parser.readthedocs.io/
+.. _Diátaxis: https://diataxis.fr/
+.. _Pa11y: https://pa11y.org/
+.. _Pa11y readme: https://github.com/pa11y/pa11y#command-line-configuration
+.. _woke: https://github.com/get-woke/woke
+.. _woke User Guide: https://docs.getwoke.tech/usage/#file-globs
+.. _More useful markup: https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/#more-useful-markup
+.. _Vale: https://vale.sh/
+.. _Vale rules: https://github.com/canonical/praecepta
+.. _Web Content Accessibility Guidelines (WCAG) 2.2: https://www.w3.org/TR/WCAG22/
+.. _Level AA conformance: https://www.w3.org/WAI/WCAG2AA-Conformance
+
+.. SHORTCUTS
+.. |RST| replace:: :abbr:`reST (reStructuredText)`
