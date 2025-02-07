@@ -112,7 +112,7 @@ struct Daemon : public mpt::DaemonTestFixture
         ON_CALL(mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
             return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
-        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(multipass::test::root_cert));
+        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
         EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillRepeatedly([] { return QString{}; });
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
         EXPECT_CALL(mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
