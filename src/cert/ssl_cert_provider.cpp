@@ -132,7 +132,7 @@ std::vector<unsigned char> as_vector(const std::string& v)
 void set_random_serial_number(X509* cert)
 {
     // OpenSSL recommends a 20-byte (160-bit) serial number
-    std::array<uint8_t, 20> serial_bytes;
+    std::array<uint8_t, 20> serial_bytes{};
     RAND_bytes(serial_bytes.data(), serial_bytes.size());
     // Set the highest bit to 0 (unsigned) to ensure it's positive
     serial_bytes[0] &= 0x7F;
