@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Tooltip;
 
+import '../copyable_text.dart';
 import '../extensions.dart';
 import '../tooltip.dart';
 
@@ -14,12 +15,7 @@ class IpAddresses extends StatelessWidget {
     final restIps = ips.skip(1).toList();
 
     return Row(children: [
-      Expanded(
-        child: Tooltip(
-          message: firstIp,
-          child: Text(firstIp.nonBreaking, overflow: TextOverflow.ellipsis),
-        ),
-      ),
+      Expanded(child: CopyableText(firstIp)),
       if (restIps.isNotEmpty)
         Badge.count(
           count: restIps.length,

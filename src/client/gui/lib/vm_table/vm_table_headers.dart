@@ -3,6 +3,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../copyable_text.dart';
 import '../extensions.dart';
 import '../providers.dart';
 import '../sidebar.dart';
@@ -72,10 +73,7 @@ final headers = <TableHeader<VmInfo>>[
     minWidth: 70,
     cellBuilder: (info) {
       final image = info.instanceInfo.currentRelease;
-      return Text(
-        image.isNotBlank ? image.nonBreaking : '-',
-        overflow: TextOverflow.ellipsis,
-      );
+      return CopyableText(image.isNotBlank ? image.nonBreaking : '-');
     },
   ),
   TableHeader(

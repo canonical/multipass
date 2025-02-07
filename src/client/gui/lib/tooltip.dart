@@ -17,6 +17,7 @@ class Tooltip extends fl.StatelessWidget {
     return fl.TooltipVisibility(
       visible: visible,
       child: fl.Tooltip(
+        key: fl.Key(message),
         message: message,
         textAlign: fl.TextAlign.center,
         decoration: fl.BoxDecoration(
