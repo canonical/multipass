@@ -142,6 +142,18 @@ struct MockDaemon : public Daemon
                  (grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>*),
                  std::promise<grpc::Status>*),
                 (override));
+    MOCK_METHOD(void,
+                zones,
+                (const ZonesRequest*,
+                 (grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+    MOCK_METHOD(void,
+                zones_state,
+                (const ZonesStateRequest*,
+                 (grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
 
     template <typename Request, typename Reply>
     void set_promise_value(const Request*, grpc::ServerReaderWriterInterface<Reply, Request>*,
