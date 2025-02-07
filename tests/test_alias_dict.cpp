@@ -623,7 +623,7 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
 
     const auto [mock_utils, guard] = mpt::MockUtils::inject<NiceMock>();
-    EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(multipass::test::root_cert));
+    EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
 
     config_builder.vault = std::move(mock_image_vault);
     auto mock_factory = use_a_mock_vm_factory();
