@@ -242,13 +242,3 @@ long long mp::platform::Platform::get_total_ram() const
 {
     return static_cast<long long>(sysconf(_SC_PHYS_PAGES)) * sysconf(_SC_PAGESIZE);
 }
-
-std::filesystem::path mp::platform::Platform::get_root_cert_path() const
-{
-    constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
-
-    return mp::utils::in_multipass_snap()
-               ? std::filesystem::path{mp::utils::snap_common_dir().toStdString()} / "data/multipassd/certificates" /
-                     root_cert_file_name
-               : std::filesystem::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
-}
