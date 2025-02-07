@@ -999,3 +999,8 @@ long long mp::platform::Platform::get_total_ram() const
     GlobalMemoryStatusEx(&status);
     return status.ullTotalPhys;
 }
+
+std::filesystem::path mp::platform::Platform::get_root_cert_path() const
+{
+    return std::filesystem::path{multipass_storage_location().toStdString()} / "certificates" / "multipass_root_cert";
+}
