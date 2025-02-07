@@ -248,7 +248,7 @@ std::filesystem::path mp::platform::Platform::get_root_cert_path() const
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
 
     return mp::utils::in_multipass_snap()
-               ? std::filesystem::path{QString{mp::utils::snap_common_dir()}.toStdString().c_str()} /
+               ? std::filesystem::path{mp::utils::snap_common_dir().toStdString()} /
                      "data/multipassd/certificates" / root_cert_file_name
                : std::filesystem::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
 }
