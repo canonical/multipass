@@ -2164,6 +2164,7 @@ TEST_P(ListIP, listsWithIp)
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
     EXPECT_CALL(*instance_ptr, ensure_vm_is_running())
         .WillRepeatedly(Throw(std::runtime_error("Not running")));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
 
