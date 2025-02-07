@@ -50,7 +50,7 @@ struct DaemonFind : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
-        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(multipass::test::root_cert));
+        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
     }
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
