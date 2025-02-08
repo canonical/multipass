@@ -19,6 +19,7 @@ vcpkg_from_github(
         00017-fix-NAN-on-Win11.patch
         00018-fix-windows-event-engine.patch
         00019-protobuf-generate-with-import-path-correction.patch
+        remove_unneeded_lib_custom.patch
 )
 # Ensure de-vendoring
 file(REMOVE_RECURSE
