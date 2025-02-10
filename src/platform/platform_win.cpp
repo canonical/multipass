@@ -327,13 +327,50 @@ QString systemprofile_app_data_path()
     return ret;
 }
 
-bool set_file_owner(LPSTR path, bool isDir)
+DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
 {
-    auto ps_cmd = QString("takeown /a /f \"%1\"").arg(QString::fromStdString(path).replace("/", "\\"));
-    return mp::PowerShell::exec({ps_cmd}, "chown");
+    LUID id;
+    if (!LookupPrivilegeValue(NULL, privilege, &id))
+    {
+        return GetLastError();
+    }
+
+    TOKEN_PRIVILEGES privileges{};
+    privileges.PrivilegeCount = 1;
+    privileges.Privileges[0].Luid = id;
+    privileges.Privileges[0].Attributes = (enable) ? SE_PRIVILEGE_ENABLED : 0;
+
+    if (!AdjustTokenPrivileges(handle, false, &privileges, sizeof(privileges), NULL, NULL))
+    {
+        return GetLastError();
+    }
+
+    return (GetLastError() == ERROR_NOT_ALL_ASSIGNED) ? ERROR_NOT_ALL_ASSIGNED : ERROR_SUCCESS;
 }
 
-bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
+DWORD set_file_owner(LPSTR path, PSID new_owner)
+{
+    std::unique_ptr<void, decltype(&CloseHandle)> token(nullptr, CloseHandle);
+    if (HANDLE t; !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &t))
+    {
+        return GetLastError();
+    }
+    else
+    {
+        token.reset(t);
+    }
+
+    if (auto err = set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, true); err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    auto r = SetNamedSecurityInfo(path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, new_owner, NULL, NULL, NULL);
+    set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, false);
+    return r;
+}
+
+DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
 {
     PACL pOldDACL = NULL, pDACL = NULL;
     PSECURITY_DESCRIPTOR pSD = NULL;
@@ -364,18 +401,26 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
     LocalFree((HLOCAL)pSD);
     LocalFree((HLOCAL)pDACL);
 
-    return error_code == ERROR_SUCCESS;
+    return error_code;
 }
 
-bool set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask, bool inherit)
+// returns a PSID unique_ptr for a well known pid
+auto get_well_known_sid(WELL_KNOWN_SID_TYPE type)
 {
-    DWORD dwSize = SECURITY_MAX_SID_SIZE;
-    PSID pSid = static_cast<PSID>(LocalAlloc(LPTR, dwSize));
-    CreateWellKnownSid(sid_type, nullptr, pSid, &dwSize);
-    auto success = set_specific_perms(path, pSid, access_mask, inherit);
-    LocalFree(pSid);
+    DWORD len = SECURITY_MAX_SID_SIZE;
+    auto sid = std::unique_ptr<void, decltype(&FreeSid)>(LocalAlloc(LPTR, len), FreeSid);
+    if (!CreateWellKnownSid(type, nullptr, sid.get(), &len))
+    {
+        throw std::system_error(GetLastError(), std::system_category(), "Failed to create well known SID");
+    }
 
-    return success;
+    return sid;
+}
+
+DWORD set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask, bool inherit)
+{
+    auto pSid = get_well_known_sid(sid_type);
+    return set_specific_perms(path, pSid.get(), access_mask, inherit);
 }
 
 DWORD convert_permissions(int unix_perms)
@@ -624,7 +669,7 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
 
 bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                                              std::filesystem::perms perms,
-                                             bool try_inherit) const
+                                             bool inherit) const
 {
     // Windows has both ACLs and very limited POSIX permissions
 
@@ -641,28 +686,27 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
 
     if (int others = int(perms) & 0007; others != 0)
-        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), try_inherit);
+        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) == ERROR_SUCCESS;
     if (int group = int(perms) & 0070; group != 0)
-        success &= set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group >> 3), try_inherit);
+        success &=
+            set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group >> 3), inherit) == ERROR_SUCCESS;
     if (int owner = int(perms) & 0700; owner != 0)
-        success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6), try_inherit);
+        success &=
+            set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6), inherit) == ERROR_SUCCESS;
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= take_ownership(path);
-    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, try_inherit);
+    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, inherit) == ERROR_SUCCESS;
 
     return success;
 }
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    LPSTR lpPath = _strdup(path.u8string().c_str());
+    auto u8path = path.u8string();
+    LPSTR lpPath = u8path.data();
 
-    // assuming the daemon is Admin.
-    auto success = set_file_owner(lpPath, MP_FILEOPS.isDir(QFileInfo{QString::fromStdString(path.u8string())}));
-
-    std::free(lpPath);
-    return success;
+    return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) == ERROR_SUCCESS;
 }
 
 void mp::platform::Platform::setup_permission_inheritance(bool) const
