@@ -457,6 +457,15 @@ BOOL signal_handler(DWORD dwCtrlType)
         return FALSE;
     }
 }
+
+std::filesystem::path multipass_final_storage_location()
+{
+    const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
+    const auto mp_final_storage = user_specified_mp_storage.isEmpty()
+                                      ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
+                                      : user_specified_mp_storage;
+    return std::filesystem::path{mp_final_storage.toStdString()};
+}
 } // namespace
 
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
@@ -1002,5 +1011,5 @@ long long mp::platform::Platform::get_total_ram() const
 
 std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
-    return std::filesystem::path{multipass_storage_location().toStdString()} / "certificates" / "multipass_root_cert";
+    return multipass_final_storage_location() / "certificates" / "multipass_root_cert";
 }
