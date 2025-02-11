@@ -178,8 +178,9 @@ public:
         if (cert == nullptr)
             throw std::runtime_error("Failed to allocate x509 cert structure");
 
-        set_random_serial_number(cert.get());
+        X509_set_version(cert.get(), 2); // 0 index based, 2 amounts to 3
 
+        set_random_serial_number(cert.get());
         X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
         const long valid_duration_sec = cert_type == CertType::Root ? 3650L * 24L * 60L * 60L : 365L * 24L * 60L * 60L;
         // 10 years for root certicicate and 1 year for server and client certificate
