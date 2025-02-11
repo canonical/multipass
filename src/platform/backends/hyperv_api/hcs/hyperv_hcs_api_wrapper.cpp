@@ -161,15 +161,21 @@ static OperationResult perform_hcs_operation(const HCSAPITable& api,
 
     if (nullptr == system)
     {
-        return OperationResult{E_POINTER, L"Failure opening the target host compute system!"};
+        return OperationResult{E_POINTER, L"HcsOpenComputeSystem failed!"};
     }
 
     auto operation = create_operation(api);
+
+    if (nullptr == operation)
+    {
+        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
+    }
+
     const auto result = fn(system.get(), operation.get(), std::forward<Args>(args)...);
 
     if (FAILED(result))
     {
-        return OperationResult{result, L"HCN operation failed."};
+        return OperationResult{result, L"HCS operation failed!"};
     }
 
     logging::log(logging::Level::trace,
@@ -187,10 +193,6 @@ HCSWrapper::HCSWrapper(const HCSAPITable& api_table) : api{api_table}
 {
     logging::log(logging::Level::trace, kLogCategory, fmt::format("HCSWrapper::HCSWrapper(...) > api_table: {}", api));
 }
-
-struct vm_settings
-{
-};
 
 // ---------------------------------------------------------
 
@@ -238,45 +240,45 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     // and use that.
     // https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/refs/heads/main/hyperv-samples/hcs-samples/JSON_files/HCS_Schema%5BWindows_10_SDK_version_1809%5D.json
     constexpr auto vm_settings_template = LR"(
-                {{
-                    "SchemaVersion": {{
-                        "Major": 2,
-                        "Minor": 1
+    {{
+        "SchemaVersion": {{
+            "Major": 2,
+            "Minor": 1
+        }},
+        "Owner": "Multipass",
+        "ShouldTerminateOnLastHandleClosed": false,
+        "VirtualMachine": {{
+            "Chipset": {{
+                "Uefi": {{
+                    "BootThis": {{
+                        "DevicePath": "Primary disk",
+                        "DiskNumber": 0,
+                        "DeviceType": "ScsiDrive"
                     }},
-                    "Owner": "Multipass",
-                    "ShouldTerminateOnLastHandleClosed": false,
-                    "VirtualMachine": {{
-                        "Chipset": {{
-                            "Uefi": {{
-                                "BootThis": {{
-                                    "DevicePath": "Primary disk",
-                                    "DiskNumber": 0,
-                                    "DeviceType": "ScsiDrive"
-                                }},
-                                "Console": "ComPort1"
-                            }}
-                        }},
-                        "ComputeTopology": {{
-                            "Memory": {{
-                                "Backing": "Virtual",
-                                "SizeInMB": {1}
-                            }},
-                            "Processor": {{
-                                "Count": {0}
-                            }}
-                        }},
-                        "Devices": {{
-                            "ComPorts": {{
-                                "0": {{
-                                    "NamedPipe": "\\\\.\\pipe\\{2}"
-                                }}
-                            }},
-                            "Scsi": {{
-                                {3}
-                            }}
-                        }}
+                    "Console": "ComPort1"
+                }}
+            }},
+            "ComputeTopology": {{
+                "Memory": {{
+                    "Backing": "Virtual",
+                    "SizeInMB": {1}
+                }},
+                "Processor": {{
+                    "Count": {0}
+                }}
+            }},
+            "Devices": {{
+                "ComPorts": {{
+                    "0": {{
+                        "NamedPipe": "\\\\.\\pipe\\{2}"
                     }}
-                }})";
+                }},
+                "Scsi": {{
+                    {3}
+                }}
+            }}
+        }}
+    }})";
 
     // Render the template
     const auto vm_settings = fmt::format(vm_settings_template,
@@ -287,6 +289,11 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     HCS_SYSTEM system{nullptr};
 
     auto operation = create_operation(api);
+
+    if (nullptr == operation)
+    {
+        return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
+    }
 
     const auto name_w = string_to_wstring(params.name);
     const auto result = api.CreateComputeSystem(name_w.c_str(), vm_settings.c_str(), operation.get(), nullptr, &system);
@@ -432,9 +439,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
 {
     const auto path_as_wstring = file_path.wstring();
     const auto csname_as_wstring = string_to_wstring(compute_system_name);
-
     const auto result = api.GrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
-
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
 
@@ -445,9 +450,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
 {
     const auto path_as_wstring = file_path.wstring();
     const auto csname_as_wstring = string_to_wstring(compute_system_name);
-
     const auto result = api.RevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
-
     return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }
 
@@ -456,7 +459,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
 OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_system_name)
 {
 
-    auto result = perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, nullptr);
+    const auto result = perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, nullptr);
     if (!result)
     {
         return {result.code, L"Unknown"};
