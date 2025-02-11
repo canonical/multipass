@@ -299,7 +299,7 @@ mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, std::filesy
 
     if (permissions != std::filesystem::perms::none)
     {
-        MP_PERMISSIONS.set_permissions(dir_path.toStdU16String(), permissions);
+        MP_PLATFORM.set_permissions(dir_path.toStdU16String(), permissions);
     }
 
     return dir_path;

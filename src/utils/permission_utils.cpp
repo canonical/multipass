@@ -37,7 +37,7 @@ void set_single_owner(const fs::path& path)
         throw std::runtime_error(fmt::format("Cannot set owner for '{}'", path.string()));
 }
 
-// only exists because MP_FILEOPS doesn't overload the throwing variaions of std::filesystem functions
+// only exists because MP_FILEOPS doesn't overload the throwing variations of std::filesystem functions
 void throw_if_error(const fs::path& path, const std::error_code& ec)
 {
     if (ec)
@@ -59,7 +59,7 @@ void apply_on_files(const fs::path& path, Func&& func)
     // iterate over children of directory
     if (MP_FILEOPS.is_directory(path, ec))
     {
-        auto dir_iterator = MP_FILEOPS.recursive_dir_iterator(path, ec);
+        const auto dir_iterator = MP_FILEOPS.recursive_dir_iterator(path, ec);
         throw_if_error(path, ec);
 
         if (!dir_iterator) [[unlikely]]
@@ -79,18 +79,6 @@ void apply_on_files(const fs::path& path, Func&& func)
 
 mp::PermissionUtils::PermissionUtils(const PrivatePass& pass) noexcept : Singleton{pass}
 {
-}
-
-void mp::PermissionUtils::set_permissions(const fs::path& path, const fs::perms& permissions) const
-{
-    apply_on_files(path, [&](const fs::path& apply_path, bool root_dir) {
-        set_single_permissions(apply_path, permissions, !root_dir);
-    });
-}
-
-void mp::PermissionUtils::take_ownership(const fs::path& path) const
-{
-    apply_on_files(path, [&](const fs::path& apply_path, bool) { set_single_owner(apply_path); });
 }
 
 void mp::PermissionUtils::restrict_permissions(const fs::path& path) const
