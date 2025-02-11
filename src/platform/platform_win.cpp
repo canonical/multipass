@@ -1011,5 +1011,5 @@ long long mp::platform::Platform::get_total_ram() const
 
 std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
-    return multipass_final_storage_location() / "certificates" / "multipass_root_cert";
+    return multipass_final_storage_location() / "data" / "certificates" / "multipass_root_cert.pem";
 }
