@@ -183,9 +183,8 @@ std::string get_alias_script_path(const std::string& alias)
 std::filesystem::path multipass_final_storage_location()
 {
     const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto mp_final_storage = user_specified_mp_storage.isEmpty()
-                                      ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
-                                      : user_specified_mp_storage;
+    const auto mp_final_storage = user_specified_mp_storage.isEmpty() ? mp::utils::snap_common_dir() + "data/multipassd"
+                                                                      : user_specified_mp_storage;
     return std::filesystem::path{mp_final_storage.toStdString()};
 }
 } // namespace
