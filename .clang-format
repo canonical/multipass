@@ -3,7 +3,7 @@
 BasedOnStyle: LLVM
 ---
 Language: Cpp
-Standard: Cpp11
+Standard: Cpp17
 
 AccessModifierOffset: -4
 AllowAllArgumentsOnNextLine: false
