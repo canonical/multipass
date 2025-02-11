@@ -33,13 +33,7 @@ class PermissionUtils : public Singleton<PermissionUtils>
 public:
     PermissionUtils(const PrivatePass&) noexcept;
 
-    // recursively sets permissions on path
-    virtual void set_permissions(const fs::path& path, const fs::perms& permissions) const;
-
-    // recursively takes ownership on path
-    virtual void take_ownership(const fs::path& path) const;
-
-    // sets owner to root and sets permissions such that only owner has access.
+    // sets owner to root and sets permissions recursively such that only owner has access.
     virtual void restrict_permissions(const fs::path& path) const;
 };
 } // namespace multipass
