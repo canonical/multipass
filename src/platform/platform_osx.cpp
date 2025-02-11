@@ -417,5 +417,5 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
-    return std::filesystem::path{"/System/Library/Keychains/multipass_root_cert"};
+    return std::filesystem::path{"/Library/Keychains/multipass_root_cert.pem"};
 }
