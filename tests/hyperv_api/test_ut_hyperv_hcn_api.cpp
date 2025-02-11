@@ -176,9 +176,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
         params.subnet = "172.50.224.0/20";
         params.gateway = "172.50.224.1";
 
-        const auto& [success, error_msg] = uut.create_network(params);
-        ASSERT_TRUE(success);
-        ASSERT_TRUE(error_msg.empty());
+        const auto& [status, status_msg] = uut.create_network(params);
+        ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 }
 
