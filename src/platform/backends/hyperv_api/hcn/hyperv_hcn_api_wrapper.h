@@ -42,6 +42,8 @@ struct HCNWrapper : public HCNWrapperInterface
     HCNWrapper(const HCNAPITable& api_table = {});
     HCNWrapper(const HCNWrapper&) = default;
     HCNWrapper(HCNWrapper&&) = default;
+    HCNWrapper& operator=(const HCNWrapper&) = delete;
+    HCNWrapper& operator=(HCNWrapper&&) = delete;
 
     /**
      * Create a new Host Compute Network
@@ -51,7 +53,7 @@ struct HCNWrapper : public HCNWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult create_network(const CreateNetworkParameters& params) override;
+    [[nodiscard]] OperationResult create_network(const CreateNetworkParameters& params) const override;
 
     /**
      * Delete an existing Host Compute Network
@@ -61,7 +63,7 @@ struct HCNWrapper : public HCNWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult delete_network(const std::string& network_guid) override;
+    [[nodiscard]] OperationResult delete_network(const std::string& network_guid) const override;
 
     /**
      * Create a new Host Compute Network Endpoint
@@ -71,7 +73,7 @@ struct HCNWrapper : public HCNWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult create_endpoint(const CreateEndpointParameters& params) override;
+    [[nodiscard]] OperationResult create_endpoint(const CreateEndpointParameters& params) const override;
 
     /**
      * Delete an existing Host Compute Network Endpoint
@@ -81,7 +83,7 @@ struct HCNWrapper : public HCNWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult delete_endpoint(const std::string& endpoint_guid) override;
+    [[nodiscard]] OperationResult delete_endpoint(const std::string& endpoint_guid) const override;
 
 private:
     const HCNAPITable api;
