@@ -43,6 +43,8 @@ struct HCSWrapper : public HCSWrapperInterface
     HCSWrapper(const HCSAPITable& api_table = {});
     HCSWrapper(const HCSWrapper&) = default;
     HCSWrapper(HCSWrapper&&) = default;
+    HCSWrapper& operator=(const HCSWrapper&) = delete;
+    HCSWrapper& operator=(HCSWrapper&&) = delete;
 
     // ---------------------------------------------------------
 
@@ -54,7 +56,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult create_compute_system(const CreateComputeSystemParameters& params) override;
+    [[nodiscard]] OperationResult create_compute_system(const CreateComputeSystemParameters& params) const override;
 
     // ---------------------------------------------------------
 
@@ -66,7 +68,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult start_compute_system(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult start_compute_system(const std::string& compute_system_name) const override;
 
     // ---------------------------------------------------------
 
@@ -78,7 +80,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult shutdown_compute_system(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult shutdown_compute_system(const std::string& compute_system_name) const override;
 
     // ---------------------------------------------------------
 
@@ -90,7 +92,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult terminate_compute_system(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult terminate_compute_system(const std::string& compute_system_name) const override;
 
     // ---------------------------------------------------------
 
@@ -102,7 +104,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult pause_compute_system(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult pause_compute_system(const std::string& compute_system_name) const override;
 
     // ---------------------------------------------------------
 
@@ -114,19 +116,19 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult resume_compute_system(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult resume_compute_system(const std::string& compute_system_name) const override;
 
     // ---------------------------------------------------------
 
     /**
-     *
+     * Retrieve a Host Compute System's properties
      *
      * @param [in] compute_system_name Target compute system's name
      *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult get_compute_system_properties(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult get_compute_system_properties(const std::string& compute_system_name) const override;
 
     // ---------------------------------------------------------
 
@@ -139,8 +141,8 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult grant_vm_access(const std::string& compute_system_name,
-                                    const std::filesystem::path& file_path) override;
+    [[nodiscard]] OperationResult grant_vm_access(const std::string& compute_system_name,
+                                                  const std::filesystem::path& file_path) const override;
 
     // ---------------------------------------------------------
 
@@ -153,8 +155,8 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult revoke_vm_access(const std::string& compute_system_name,
-                                     const std::filesystem::path& file_path) override;
+    [[nodiscard]] OperationResult revoke_vm_access(const std::string& compute_system_name,
+                                                   const std::filesystem::path& file_path) const override;
 
     // ---------------------------------------------------------
 
@@ -170,7 +172,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult add_endpoint(const AddEndpointParameters& params) override;
+    [[nodiscard]] OperationResult add_endpoint(const AddEndpointParameters& params) const override;
 
     // ---------------------------------------------------------
 
@@ -183,7 +185,8 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult remove_endpoint(const std::string& compute_system_name, const std::string& endpoint_guid) override;
+    [[nodiscard]] OperationResult remove_endpoint(const std::string& compute_system_name,
+                                                  const std::string& endpoint_guid) const override;
 
     // ---------------------------------------------------------
 
@@ -192,11 +195,12 @@ struct HCSWrapper : public HCSWrapperInterface
      *
      * @param compute_system_name Target compute system name
      * @param new_size_mib New memory size, in megabytes
-     * 
+     *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult resize_memory(const std::string& compute_system_name, std::uint32_t new_size_mib) override;
+    [[nodiscard]] OperationResult resize_memory(const std::string& compute_system_name,
+                                                std::uint32_t new_size_mib) const override;
 
     // ---------------------------------------------------------
 
@@ -208,7 +212,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    OperationResult get_compute_system_state(const std::string& compute_system_name) override;
+    [[nodiscard]] OperationResult get_compute_system_state(const std::string& compute_system_name) const override;
 
 private:
     const HCSAPITable api;
