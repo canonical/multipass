@@ -48,7 +48,7 @@ public:
         // parent directory's write permission rather than the file's write permission.
         std::filesystem::create_directories(file_path_std.parent_path());
         // make sure the parent directory exist
-        const auto raw_fp = fopen(file_path_std.c_str(), "wb");
+        const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
 
         if (raw_fp == nullptr)
             throw std::runtime_error(
