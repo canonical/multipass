@@ -42,6 +42,12 @@ enum class ComputeSystemState : std::uint8_t
     unknown
 };
 
+/**
+ * Translate host compute system state string to enum
+ * 
+ * @param str 
+ * @return ComputeSystemState 
+ */
 inline ComputeSystemState compute_system_state_from_string(std::string str)
 {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });

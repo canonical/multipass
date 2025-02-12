@@ -15,13 +15,10 @@
  *
  */
 
-#include "hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h"
 #include "tests/common.h"
 #include "tests/mock_logger.h"
 
 #include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
-
-namespace mpt = multipass::test;
 
 namespace multipass::test
 {
@@ -79,12 +76,13 @@ TEST_F(HyperVHCSAPI, enumerate_properties)
     params.vhdx_path = "";
 
     const auto c_result = uut.create_compute_system(params);
-    uut.start_compute_system(params.name);
-
-
-
+    
     ASSERT_TRUE(c_result);
     ASSERT_TRUE(c_result.status_msg.empty());
+
+    const auto s_result = uut.start_compute_system(params.name);
+    ASSERT_TRUE(s_result);
+    ASSERT_TRUE(s_result.status_msg.empty());
 
     const auto p_result = uut.get_compute_system_properties(params.name);
     EXPECT_TRUE(p_result);

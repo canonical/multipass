@@ -32,7 +32,7 @@ namespace multipass::hyperv::hcn
 {
 
 /**
- * API function table for host compute network
+ * API function table for the Host Compute Network API
  */
 struct HCNAPITable
 {

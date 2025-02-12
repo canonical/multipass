@@ -31,10 +31,10 @@ namespace multipass::hyperv::hcn
  */
 struct HCNWrapperInterface
 {
-    virtual OperationResult create_network(const struct CreateNetworkParameters& params) = 0;
-    virtual OperationResult delete_network(const std::string& network_guid) = 0;
-    virtual OperationResult create_endpoint(const struct CreateEndpointParameters& params) = 0;
-    virtual OperationResult delete_endpoint(const std::string& endpoint_guid) = 0;
+    [[nodiscard]] virtual OperationResult create_network(const struct CreateNetworkParameters& params) const = 0;
+    [[nodiscard]] virtual OperationResult delete_network(const std::string& network_guid) const = 0;
+    [[nodiscard]] virtual OperationResult create_endpoint(const struct CreateEndpointParameters& params) const = 0;
+    [[nodiscard]] virtual OperationResult delete_endpoint(const std::string& endpoint_guid) const = 0;
     virtual ~HCNWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcn

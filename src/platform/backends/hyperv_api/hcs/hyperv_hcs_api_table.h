@@ -19,9 +19,9 @@
 #define MULTIPASS_HYPERV_API_HCS_API_TABLE
 
 // clang-format off
- // (xmkg): clang-format is messing with the include order.
- #include <windows.h>
- #include <computecore.h>
+// (xmkg): clang-format is messing with the include order.
+#include <windows.h>
+#include <computecore.h>
 // clang-format on
 
 #include <functional>
@@ -72,7 +72,7 @@ struct HCSAPITable
 
     /**
      * @brief LocalAlloc/LocalFree is used by the HCS API to manage memory for the status/error
-     * messages. It's caller's responsibility to free the messages allocated by the API, that's 
+     * messages. It's caller's responsibility to free the messages allocated by the API, that's
      * why the LocalFree is part of the API table.
      *
      * @ref https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree
