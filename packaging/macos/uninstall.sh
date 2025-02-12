@@ -42,6 +42,7 @@ if [ $DELETE_VMS -eq 1 ]; then
     rm -rfv "/var/root/Library/Application Support/multipassd"
     rm -rfv "/var/root/Library/Application Support/multipass-client-certificate"
     rm -rfv "/var/root/Library/Preferences/multipassd"
+    rm -fv "/Library/Keychains/multipass_root_cert.pem"
 fi
 
 echo .
