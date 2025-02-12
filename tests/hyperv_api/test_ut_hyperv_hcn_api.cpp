@@ -275,8 +275,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "HCNWrapper::create_network(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_operation(...)");
         logger_scope.mock_logger->expect_log(
-            mpl::Level::warning,
-            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003.");
+            mpl::Level::error,
+            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003!");
     }
 
     /******************************************************
@@ -542,6 +542,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
             "Creator ID: (df8dff56-0ab7-4cbb-869b-b8e2220d4b3e)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
+        logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                             "open_network() > HcnOpenNetwork failed with 0x80004003!");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_operation(...) > fn: 0x0, result: false");
     }
 
