@@ -42,12 +42,15 @@ public:
     explicit WritableFile(const QString& file_path)
     {
         const std::filesystem::path file_path_std{file_path.toStdString()};
-        std::filesystem::remove(file_path_std);
-        // The key files are read-only for the owner, meaning that opening them with fopen in wb mode typically fails,
-        // preventing the overwrite functionality. Therefore, fs::remove is called beforehand, as it depeneds on the
-        // parent directory's write permission rather than the file's write permission.
         std::filesystem::create_directories(file_path_std.parent_path());
         // make sure the parent directory exist
+        if (std::filesystem::exists(file_path_std))
+        {
+            // enable fopen with wb mode
+            MP_PLATFORM.set_permissions(file_path_std,
+                                        std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+        }
+
         const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
 
         if (raw_fp == nullptr)
