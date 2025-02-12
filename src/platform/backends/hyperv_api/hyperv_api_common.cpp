@@ -20,7 +20,8 @@
 #include <fmt/xchar.h>
 
 #include <cassert>
-#include <locale.h>
+#include <codecvt>
+#include <locale>
 #include <stdexcept>
 
 /**
@@ -121,58 +122,7 @@ auto guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
 
 auto string_to_wstring(const std::string& str) -> std::wstring
 {
-    // We could've gotten away with `return std::wstring{str.begin(), str.end()}`
-    // and it'd work for 99 pct of the scenarios we'd see, but... let's do the correct thing.
-
-    // Avoid recreating the locale.
-    static std::unique_ptr<std::remove_pointer_t<_locale_t>, decltype(&_free_locale)> locale{
-        _create_locale(LC_ALL, "C"),
-        _free_locale};
-
-    // Call the function with nullptr to learn how much space we need to
-    // store the result.
-    std::size_t required_size{0};
-    if (!(0 == _mbstowcs_s_l(&required_size, nullptr, 0, str.c_str(), str.length(), locale.get())))
-    {
-        throw std::invalid_argument{"Failed to convert multi-byte string to wide-character string."};
-    }
-
-    // String to store the converted output.
-    std::wstring result{};
-
-    // The required_size will account for the NUL terminator.
-    // Hence, the actual amount of storage needed for resize is 1
-    // characters less.
-    result.resize(required_size - 1, L'\0');
-
-    // Perform the conversion.
-    std::size_t converted_char_cnt{0};
-    if (!(0 == _mbstowcs_s_l(&converted_char_cnt,
-                             // data() returns a non-const pointer since C++17, and it is guaranteed
-                             // to be contiguous memory.
-                             result.data(),
-                             // We're doing a size + 1 here because _mbstowcs_s_l will put a NUL terminator
-                             // at the end. The string's internal buffer already account for it, and overwriting
-                             // it with another NUL terminator is well-defined:
-
-                             // Quoting cppreference (https://en.cppreference.com/w/cpp/string/basic_string/data)
-                             //  ...
-                             //  2) Modifying the past-the-end null terminator stored at data() + size() to any value
-                             //  other than CharT() has undefined behavior.
-                             //
-                             //  CharT() == '\0'.
-                             result.size() + 1,
-                             // The multi-byte string.
-                             str.c_str(),
-                             // Convert at most the count of multi-byte string characters.
-                             str.length(),
-                             locale.get())))
-    {
-        throw std::invalid_argument{"Failed to convert multi-byte string to wide-character string."};
-    }
-    assert(converted_char_cnt == str.length() + 1);
-    assert(converted_char_cnt == required_size);
-    return result;
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(str);
 }
 
 // ---------------------------------------------------------
