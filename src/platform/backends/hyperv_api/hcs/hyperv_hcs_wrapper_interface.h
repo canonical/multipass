@@ -30,26 +30,28 @@ namespace multipass::hyperv::hcs
 {
 
 /**
- * Abstract interface for Hyper-V Host Compute System wrapper.
+ * 
+ * 
  */
 struct HCSWrapperInterface
 {
-    virtual OperationResult create_compute_system(const CreateComputeSystemParameters& params) = 0;
-    virtual OperationResult start_compute_system(const std::string& compute_system_name) = 0;
-    virtual OperationResult shutdown_compute_system(const std::string& compute_system_name) = 0;
-    virtual OperationResult pause_compute_system(const std::string& compute_system_name) = 0;
-    virtual OperationResult resume_compute_system(const std::string& compute_system_name) = 0;
-    virtual OperationResult terminate_compute_system(const std::string& compute_system_name) = 0;
-    virtual OperationResult get_compute_system_properties(const std::string& compute_system_name) = 0;
+    virtual OperationResult create_compute_system(const CreateComputeSystemParameters& params) const = 0;
+    virtual OperationResult start_compute_system(const std::string& compute_system_name) const = 0;
+    virtual OperationResult shutdown_compute_system(const std::string& compute_system_name) const = 0;
+    virtual OperationResult pause_compute_system(const std::string& compute_system_name) const = 0;
+    virtual OperationResult resume_compute_system(const std::string& compute_system_name) const = 0;
+    virtual OperationResult terminate_compute_system(const std::string& compute_system_name) const = 0;
+    virtual OperationResult get_compute_system_properties(const std::string& compute_system_name) const = 0;
     virtual OperationResult grant_vm_access(const std::string& compute_system_name,
-                                            const std::filesystem::path& file_path) = 0;
+                                            const std::filesystem::path& file_path) const = 0;
     virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
-                                             const std::filesystem::path& file_path) = 0;
-    virtual OperationResult add_endpoint(const AddEndpointParameters& params) = 0;
+                                             const std::filesystem::path& file_path) const = 0;
+    virtual OperationResult add_endpoint(const AddEndpointParameters& params) const = 0;
     virtual OperationResult remove_endpoint(const std::string& compute_system_name,
-                                            const std::string& endpoint_guid) = 0;
-    virtual OperationResult resize_memory(const std::string& compute_system_name, const std::uint32_t new_size_mib) = 0;
-    virtual OperationResult get_compute_system_state(const std::string& compute_system_name) = 0;
+                                            const std::string& endpoint_guid) const = 0;
+    virtual OperationResult resize_memory(const std::string& compute_system_name,
+                                          const std::uint32_t new_size_mib) const = 0;
+    virtual OperationResult get_compute_system_state(const std::string& compute_system_name) const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs

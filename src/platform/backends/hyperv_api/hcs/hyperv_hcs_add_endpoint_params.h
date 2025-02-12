@@ -37,8 +37,6 @@ struct AddEndpointParameters
 
     /**
      * GUID of the endpoint to add.
-     *
-     * Must be already existing.
      */
     std::string endpoint_guid;
 
@@ -65,7 +63,7 @@ struct fmt::formatter<multipass::hyperv::hcs::AddEndpointParameters, Char>
     auto format(const multipass::hyperv::hcs::AddEndpointParameters& params, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "Host Compute System Name: ({}) | Endpoint GUID: ({}) | NIC MAC Address: ({}) ",
+                         "Host Compute System Name: ({}) | Endpoint GUID: ({}) | NIC MAC Address: ({})",
                          params.target_compute_system_name,
                          params.endpoint_guid,
                          params.nic_mac_address);
