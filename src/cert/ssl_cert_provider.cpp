@@ -44,12 +44,6 @@ public:
         const std::filesystem::path file_path_std{file_path.toStdString()};
         std::filesystem::create_directories(file_path_std.parent_path());
         // make sure the parent directory exist
-        if (std::filesystem::exists(file_path_std))
-        {
-            // enable fopen with wb mode
-            MP_PLATFORM.set_permissions(file_path_std,
-                                        std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
-        }
 
         const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
 
@@ -114,6 +108,14 @@ public:
 
     void write(const QString& key_path) const
     {
+        const std::filesystem::path key_path_std = key_path.toStdU16String();
+        if (std::filesystem::exists(key_path_std))
+        {
+            // enable fopen in WritableFile with wb mode
+            MP_PLATFORM.set_permissions(key_path_std,
+                                        std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+        }
+
         WritableFile file{key_path};
         if (!PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr))
             throw std::runtime_error(fmt::format("Failed writing certificate private key to file '{}'", key_path));
