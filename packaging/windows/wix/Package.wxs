@@ -61,7 +61,7 @@
         <Property Id="RemoveDataText" Value="!(loc.RemoveMPData)" />
 
         <SetProperty Id="RemoveMPDataAction" Before="RemoveMPDataAction" Sequence="execute"
-            Value="&quot;[%ComSpec]&quot; /c rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot;" />
+            Value="&quot;[%ComSpec]&quot; /c rmdir /S /Q &quot;[CommonAppDataFolder]Multipass&quot; &quot;[LocalAppDataFolder]multipass&quot; &quot;[LocalAppDataFolder]multipass-client-certificate&quot; &quot;[SystemFolder]config\systemprofile\AppData\Local\multipassd&quot; &quot;[SystemFolder]config\systemprofile\AppData\Roaming\multipassd&quot; &quot;[CommonFilesFolder]multipass&quot;" />
 
         <CustomAction Id="AskRemoveDataMsgBox" BinaryRef="CABinary" DllEntry="AskRemoveData"
             Return="ignore" />
