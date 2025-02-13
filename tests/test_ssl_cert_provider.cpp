@@ -30,12 +30,8 @@ using namespace testing;
 
 struct SSLCertProviderFixture : public testing::Test
 {
-    SSLCertProviderFixture()
-    {
-        cert_dir = MP_UTILS.make_dir(temp_dir.path(), "test-cert");
-    }
     mpt::TempDir temp_dir;
-    mp::Path cert_dir;
+    mp::Path cert_dir{temp_dir.path() + "/test-cert"};
 };
 
 TEST_F(SSLCertProviderFixture, creates_cert_and_key)
