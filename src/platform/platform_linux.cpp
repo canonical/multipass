@@ -183,9 +183,8 @@ std::string get_alias_script_path(const std::string& alias)
 std::filesystem::path multipass_final_storage_location()
 {
     const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto mp_final_storage = user_specified_mp_storage.isEmpty()
-                                      ? mp::utils::snap_common_dir() + "/data/multipassd"
-                                      : user_specified_mp_storage;
+    const auto mp_final_storage =
+        user_specified_mp_storage.isEmpty() ? mp::utils::snap_common_dir() : user_specified_mp_storage;
     return std::filesystem::path{mp_final_storage.toStdString()};
 }
 } // namespace
@@ -484,6 +483,6 @@ std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
     return mp::utils::in_multipass_snap()
-               ? multipass_final_storage_location() / "certificates" / root_cert_file_name
+               ? multipass_final_storage_location() / "data" / "multipassd" / "certificates" / root_cert_file_name
                : std::filesystem::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
 }
