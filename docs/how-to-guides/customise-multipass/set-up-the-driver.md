@@ -162,7 +162,7 @@ Multipass runs as the _System_ account, so to see the instances in VirtualBox, o
 & $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s -i $env:VBOX_MSI_INSTALL_PATH\VirtualBox.exe
 ```
 
-![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager)
+![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager.png)
 
 To list the instances on the command line:
 
