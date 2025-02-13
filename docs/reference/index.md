@@ -64,5 +64,8 @@ This section provides detailed reference material for Multipass, from CLI comman
 :glob:
 
 command-line-interface/index
+gui-client
+instance-name-format
+instance-states
+logging-levels
 settings/index
-*

@@ -37,7 +37,7 @@ You may also want to customise Multipass to address specific needs, from managin
 - [Use a different terminal from the system icon](customise-multipass/use-a-different-terminal-from-the-system-icon)
 - [Integrate with Windows Terminal](customise-multipass/integrate-with-windows-terminal)
 - [Configure where Multipass stores external data](customise-multipass/configure-where-multipass-stores-external-data)
-- [Configure Multipass’s default logging level](customise-multipass/configure-multipasss-default-logging-level)
+- [Configure Multipass’s default logging level](customise-multipass/configure-multipass-default-logging-level)
 
 <!-- REMOVED FROM DOCS AND MOVED TO COMMUNITY KNOWLEDGE
 - [Use Multipass remotely](/)
@@ -63,7 +63,7 @@ Use the following how-to guides to troubleshoot issues with your Multipass insta
 :maxdepth: 2
 :glob:
 
-customise-multipass/index
+install-multipass
 manage-instances/index
+customise-multipass/index
 troubleshoot/index
-*

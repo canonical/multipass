@@ -1,4 +1,4 @@
-(how-to-guides-customise-multipass-configure-multipasss-default-logging-level)=
+(how-to-guides-customise-multipass-configure-multipass-default-logging-level)=
 # Configure Multipass’s default logging level
 
 > See also: [Logging levels](/reference/logging-levels)
