@@ -707,4 +707,12 @@ TEST_F(PlatformLinux, remove_alias_script_throws_if_cannot_remove_script)
     MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
                          mpt::match_what(StrEq("No such file or directory")));
 }
+
+TEST_F(PlatformLinux, test_snap_multipass_storage_location)
+{
+    mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
+    mpt::SetEnvScope env2("SNAP_COMMON", "common");
+
+    EXPECT_EQ(MP_PLATFORM.get_root_cert_path(), "/data/multipassd/certificates/multipass_root_cert.pem");
+}
 } // namespace
