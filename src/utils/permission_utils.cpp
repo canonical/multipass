@@ -62,7 +62,7 @@ void apply_on_files(const fs::path& path, Func&& func)
         const auto dir_iterator = MP_FILEOPS.recursive_dir_iterator(path, ec);
         throw_if_error(path, ec);
 
-        if (!dir_iterator) [[unlikely]]
+        if (!dir_iterator)
             throw std::runtime_error(fmt::format("Cannot iterate over directory '{}'", path.string()));
 
         while (dir_iterator->hasNext())

@@ -27,7 +27,6 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
-#include <multipass/utils/permission_utils.h>
 
 #include <QDir>
 #include <QFileInfo>
