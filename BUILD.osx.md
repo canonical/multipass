@@ -30,7 +30,7 @@ Install Qt6:
 ### Cmake/OpenSSL
 Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also necessary at build time. The most convenient means to obtain these dependencies is with Homebrew <https://brew.sh/>.
 
-    brew install cmake openssl@1.1
+    brew install cmake openssl@3
 
 Building
 ---------------------------------------
@@ -45,7 +45,7 @@ Alternatively if using Qt6 from Homebrew, do
 
     cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6
 
-or, if on Apple silicon, brew will store the Qt binaries in a different location. Additionally, OpenSSL will be in a similar location; `/opt/homebrew/Cellar/openssl@1.1/1.1.1t`, which can be set in the project level `CMakeLists.txt` file.
+or, if on Apple silicon, brew will store the Qt binaries in a different location. Additionally, OpenSSL will be in a similar location; `/opt/homebrew/Cellar/openssl@3`, which can be set in the project level `CMakeLists.txt` file.
 
     cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6
 
