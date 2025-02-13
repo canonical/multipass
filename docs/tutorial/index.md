@@ -693,7 +693,7 @@ Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/mult
 
 <small>**Contributors:** @nhart, @saviq, @townsend, @andreitoterman, @tmihoc, @luisp, @ricab, @sharder996, @georgeliaojia, @mscho7969, @itecompro, @mr-cal, @sally-makin, @gzanchi, @bagustris , @pitifulpete </small>
 
-<!-- Hiding for now, this will be useful to have when we have more than one tutorial. 
+<!-- Hiding for now, this will be useful to have when we have more than one tutorial.
 When that's the case, the title of the page also needs to change to "Tutorials".
 
 ```{toctree}
