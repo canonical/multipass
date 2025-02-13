@@ -95,8 +95,16 @@ BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_di
         return zone_names;
     };
 
+    // Get zone names first and set default automatic zone early
     const auto zone_names = get_zone_names();
+    automatic_zone = *zone_names.begin();
 
+    // BUGFIX: Previously, zone objects were created before handling the manager file,
+    // and an early return in the file_type::not_found case prevented zone creation.
+    // Now we handle all file operations first, then create zone objects at the end
+    // to ensure they are always created regardless of file operations.
+
+    // Check manager file first before creating zones
     const auto file_type = MP_FILEOPS.status(file_path, err).type();
     if (err && file_type != fs::file_type::not_found)
     {
@@ -112,51 +120,50 @@ BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_di
         mpl::log(mpl::Level::info,
                  category,
                  fmt::format("AZ manager file {:?} not found, using defaults", file_path.string()));
-        automatic_zone = *zone_names.begin();
         serialize();
-        return;
     }
-
-    if (file_type != fs::file_type::regular)
+    else if (file_type != fs::file_type::regular)
     {
         throw AvailabilityZoneManagerDeserializationError{
             "AZ manager file {:?} is not a regular file.",
             file_path.string(),
         };
     }
-
-    mpl::log(mpl::Level::info, category, fmt::format("reading AZ manager from file {:?}", file_path.string()));
-    const auto file = MP_FILEOPS.open_read(file_path);
-    if (file->fail())
-    {
-        throw AvailabilityZoneManagerDeserializationError{
-            "failed to open AZ manager file {:?} for reading: {}",
-            file_path.string(),
-            std::strerror(errno),
-        };
-    }
-
-    const std::string data{std::istreambuf_iterator{*file}, {}};
-    const auto qdata = QString::fromStdString(data).toUtf8();
-    const auto json = QJsonDocument::fromJson(qdata).object();
-
-    if (const auto json_automatic_zone = json[automatic_zone_key].toString().toStdString();
-        zone_names.find(json_automatic_zone) == zone_names.end())
-    {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("automatic zone {:?} not known, using default", json_automatic_zone));
-        automatic_zone = *zone_names.begin();
-    }
     else
     {
-        automatic_zone = json_automatic_zone;
+        mpl::log(mpl::Level::info, category, fmt::format("reading AZ manager from file {:?}", file_path.string()));
+        const auto file = MP_FILEOPS.open_read(file_path);
+        if (file->fail())
+        {
+            throw AvailabilityZoneManagerDeserializationError{
+                "failed to open AZ manager file {:?} for reading: {}",
+                file_path.string(),
+                std::strerror(errno),
+            };
+        }
+
+        const std::string data{std::istreambuf_iterator{*file}, {}};
+        const auto qdata = QString::fromStdString(data).toUtf8();
+        const auto json = QJsonDocument::fromJson(qdata).object();
+
+        if (const auto json_automatic_zone = json[automatic_zone_key].toString().toStdString();
+            zone_names.find(json_automatic_zone) == zone_names.end())
+        {
+            mpl::log(mpl::Level::warning,
+                     category,
+                     fmt::format("automatic zone {:?} not known, using default", json_automatic_zone));
+        }
+        else
+        {
+            automatic_zone = json_automatic_zone;
+        }
     }
 
-    serialize();
-
-    for (const auto& name : zone_names)
+    // Create zone objects after all file operations are complete
+    // This ensures zones are always created regardless of file operations
+    for (const auto& name : zone_names) {
         zones[name] = std::make_unique<BaseAvailabilityZone>(name, zones_directory);
+    }
 }
 
 AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name)
