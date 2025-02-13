@@ -1,5 +1,5 @@
 (how-to-guides-manage-instances-index)=
-# Manage-Instances
+# Manage instances
 
 The following guides provide step-by-step instructions on how to manage Multipass instances.
 

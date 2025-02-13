@@ -1,5 +1,5 @@
 (how-to-guides-customise-multipass-index)=
-# Customise-Multipass
+# Customise Multipass
 
 The following guides provide step-by-step instructions on how to customise Multipass to address specific needs, from managing Multipass drivers to configuring a graphical user interface.
 
