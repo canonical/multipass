@@ -194,9 +194,11 @@ public:
 
         set_random_serial_number(cert.get());
         X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
-        const long valid_duration_sec = cert_type == CertType::Root ? 3650L * 24L * 60L * 60L : 365L * 24L * 60L * 60L;
-        // 10 years for root certicicate and 1 year for server and client certificate
-        X509_gmtime_adj(X509_get_notAfter(cert.get()), valid_duration_sec);
+
+        constexpr std::chrono::seconds one_year = std::chrono::hours{24} * 365;
+        constexpr std::chrono::seconds ten_years = one_year * 10;
+        const auto valid_duration = cert_type == CertType::Root ? ten_years : one_year;
+        X509_gmtime_adj(X509_get_notAfter(cert.get()), valid_duration.count());
 
         constexpr int APPEND_ENTRY{-1};
         constexpr int ADD_RDN{0};
