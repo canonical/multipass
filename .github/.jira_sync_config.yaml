@@ -6,3 +6,4 @@ settings:
   status_mapping:
     opened: Untriaged
     closed: Done
+    not_planned: rejected
