@@ -30,8 +30,8 @@ namespace multipass::hyperv::hcs
 {
 
 /**
- * 
- * 
+ *
+ *
  */
 struct HCSWrapperInterface
 {
@@ -51,6 +51,8 @@ struct HCSWrapperInterface
                                             const std::string& endpoint_guid) const = 0;
     virtual OperationResult resize_memory(const std::string& compute_system_name,
                                           const std::uint32_t new_size_mib) const = 0;
+    virtual OperationResult update_cpu_count(const std::string& compute_system_name,
+                                             const std::uint32_t new_core_count) const = 0;
     virtual OperationResult get_compute_system_state(const std::string& compute_system_name) const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
