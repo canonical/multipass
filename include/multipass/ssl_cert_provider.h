@@ -35,6 +35,8 @@ public:
     };
 
     explicit SSLCertProvider(const Path& data_dir, const std::string& server_name = "");
+    // leave server_name empty for clients; choose a (non-empty) name for servers.
+
     std::string PEM_certificate() const override;
     std::string PEM_signing_key() const override;
 
