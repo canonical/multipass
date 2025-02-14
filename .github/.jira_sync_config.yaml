@@ -3,6 +3,8 @@ settings:
   jira_project_key: MULTI
   labels:
     - jira
+  label_mapping:
+    enhancement: Story
   status_mapping:
     opened: Untriaged
     closed: Done
