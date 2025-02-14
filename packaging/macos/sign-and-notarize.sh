@@ -101,8 +101,10 @@ function check_already_signed
 {
     PKG="$1"
     spctl --assess --type install "$PKG" &> /dev/null
-    status=$?
-    return ${status}
+    status1=$?
+    codesign --verify --deep "$PKG" &> /dev/null
+    status2=$?
+    [ $status1 -eq 0 ] && [ $status2 -eq 0 ]
 }
 
 if check_already_signed "${PKGFILE}"; then
