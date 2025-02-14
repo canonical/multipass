@@ -45,12 +45,37 @@ FILE* open_file(const QString& file_path)
     const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
 
     if (raw_fp == nullptr)
-        throw std::runtime_error(
-            fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
+        throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
 
     return raw_fp;
 }
 
+EVP_PKEY* create_raw_key_pointer()
+{
+    std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
+                                                                    EVP_PKEY_CTX_free);
+
+    if (!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0)
+    {
+        throw std::runtime_error("Failed to initialize key generation");
+    }
+
+    // Set EC curve (P-256)
+    const std::array<OSSL_PARAM, 2> params = {
+        // the 3rd argument is length of the buffer, which is 0 in the case of static buffer like "P-256"
+        OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
+        OSSL_PARAM_construct_end()};
+    EVP_PKEY_CTX_set_params(ctx.get(), params.data());
+
+    // Generate the key
+    EVP_PKEY* raw_key = nullptr;
+    if (EVP_PKEY_generate(ctx.get(), &raw_key) <= 0)
+    {
+        throw std::runtime_error("Failed to generate EC key");
+    }
+
+    return raw_key;
+}
 
 class WritableFile
 {
@@ -73,33 +98,8 @@ private:
 class EVPKey
 {
 public:
-    EVPKey()
+    EVPKey() : key{create_raw_key_pointer(), EVP_PKEY_free}
     {
-        std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
-            EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
-            EVP_PKEY_CTX_free);
-
-        if (!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0)
-        {
-            throw std::runtime_error("Failed to initialize key generation");
-        }
-
-        // Set EC curve (P-256)
-        const std::array<OSSL_PARAM, 2> params = {
-            // the 3rd argument is length of the buffer, which is 0 in the case of static buffer like "P-256"
-            OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
-            OSSL_PARAM_construct_end()};
-        EVP_PKEY_CTX_set_params(ctx.get(), params.data());
-
-        // Generate the key
-        EVP_PKEY* raw_key = nullptr;
-        if (EVP_PKEY_generate(ctx.get(), &raw_key) <= 0)
-        {
-            throw std::runtime_error("Failed to generate EC key");
-        }
-
-        // Assign generated key to unique_ptr for RAII management
-        key.reset(raw_key);
     }
 
     std::string as_pem() const
@@ -134,7 +134,7 @@ public:
     }
 
 private:
-    std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> key{nullptr, EVP_PKEY_free};
+    std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> key;
 };
 
 std::vector<unsigned char> as_vector(const std::string& v)
