@@ -152,11 +152,11 @@ void set_random_serial_number(X509* cert)
 
     // Convert bytes to an BIGNUM, an arbitrary-precision integer type
     std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(BN_bin2bn(serial_bytes.data(), serial_bytes.size(), NULL), BN_free);
-
     if (!bn)
     {
         throw std::runtime_error("Failed to convert serial bytes to BIGNUM\n");
     }
+    assert(!BN_is_negative(bn.get()));
 
     // Convert BIGNUM to ASN1_INTEGER and set it as the certificate serial number
     // ASN1 is a standard binary format for encoding data like serial numbers in X.509 certificates
