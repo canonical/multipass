@@ -57,6 +57,7 @@ public:
     MOCK_METHOD(bool, is_image_url_supported, (), (const, override));
     MOCK_METHOD(QString, get_username, (), (const, override));
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));
+    MOCK_METHOD(std::filesystem::path, get_root_cert_path, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };

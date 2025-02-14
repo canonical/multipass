@@ -167,8 +167,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
     if (cert_provider == nullptr)
-        cert_provider = std::make_unique<mp::SSLCertProvider>(MP_UTILS.make_dir(data_directory, "certificates"),
-                                                              server_name_from(server_address));
+        cert_provider =
+            std::make_unique<mp::SSLCertProvider>(data_directory + "/certificates", server_name_from(server_address));
     if (client_cert_store == nullptr)
         client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
     if (ssh_username.empty())
