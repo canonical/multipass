@@ -395,14 +395,14 @@ OperationResult HCSWrapper::add_endpoint(const AddEndpointParameters& params) co
             }}
         }})";
 
-    const auto add_endpoint_settings = fmt::format(add_endpoint_settings_template,
-                                                   string_to_wstring(params.endpoint_guid),
-                                                   string_to_wstring(params.nic_mac_address));
+    const auto settings = fmt::format(add_endpoint_settings_template,
+                                      string_to_wstring(params.endpoint_guid),
+                                      string_to_wstring(params.nic_mac_address));
 
     return perform_hcs_operation(api,
                                  api.ModifyComputeSystem,
                                  params.target_compute_system_name,
-                                 add_endpoint_settings.c_str(),
+                                 settings.c_str(),
                                  nullptr);
 }
 
@@ -421,23 +421,20 @@ OperationResult HCSWrapper::remove_endpoint(const std::string& compute_system_na
             "RequestType": "Remove"
         }})";
 
-    const auto remove_endpoint_settings =
-        fmt::format(remove_endpoint_settings_template, string_to_wstring(endpoint_guid));
+    const auto settings = fmt::format(remove_endpoint_settings_template, string_to_wstring(endpoint_guid));
 
-    return perform_hcs_operation(api,
-                                 api.ModifyComputeSystem,
-                                 compute_system_name,
-                                 remove_endpoint_settings.c_str(),
-                                 nullptr);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
 
 // ---------------------------------------------------------
 
 OperationResult HCSWrapper::resize_memory(const std::string& compute_system_name, std::uint32_t new_size_mib) const
 {
+    // Machine must be booted up.
     mpl::log(lvl::trace,
              kLogCategory,
              fmt::format("resize_memory(...) > name: ({}), new_size_mb: ({})", compute_system_name, new_size_mib));
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsmodifycomputesystem#remarks
     constexpr auto resize_memory_settings_template = LR"(
         {{
             "ResourcePath": "VirtualMachine/ComputeTopology/Memory/SizeInMB",
@@ -445,13 +442,16 @@ OperationResult HCSWrapper::resize_memory(const std::string& compute_system_name
             "Settings": {0}
         }})";
 
-    const auto resize_memory_settings = fmt::format(resize_memory_settings_template, new_size_mib);
+    const auto settings = fmt::format(resize_memory_settings_template, new_size_mib);
 
-    return perform_hcs_operation(api,
-                                 api.ModifyComputeSystem,
-                                 compute_system_name,
-                                 resize_memory_settings.c_str(),
-                                 nullptr);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::update_cpu_count(const std::string& compute_system_name, std::uint32_t new_vcpu_count) const
+{
+    return OperationResult{E_NOTIMPL, L"Not implemented yet!"};
 }
 
 // ---------------------------------------------------------
