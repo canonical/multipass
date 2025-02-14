@@ -23,12 +23,9 @@
 #include "virtdisk_disk_info.h"
 
 #include <filesystem>
-#include <optional>
 
 namespace multipass::hyperv::virtdisk
 {
-
-
 
 /**
  *
