@@ -17,9 +17,9 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 
 ## Create and use a basic instance
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 Start Multipass from the application launcher. In Ubuntu, press the super key and type "Multipass", or find Multipass in the Applications panel on the lower left of the desktop.
 
@@ -99,7 +99,7 @@ This folder could be a great place to keep files that need to be accessed by bot
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 Start Multipass from the application launcher. In macOS, open the application launcher, type "Multipass", and launch the application.
 
@@ -165,7 +165,7 @@ ubuntu@primary:~/Home/Multipass_Files$
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
 
@@ -282,9 +282,9 @@ minikube                                      latest           minikube is local
 
 Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipass launch kinetic` command.
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
 
@@ -318,7 +318,7 @@ You can now launch the type of instance you need by running this command:
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "breezy-liger".
 
@@ -352,7 +352,7 @@ You can now launch the type of instance you need by running this command:
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "decorous-skate".
 
@@ -392,9 +392,9 @@ You can now launch the type of instance you need by running this command:
 
 You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 ```{code-block} text
 $ multipass info ltsInstance
@@ -431,7 +431,7 @@ ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 ```{code-block} text
 $ multipass info ltsInstance
@@ -468,7 +468,7 @@ ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass info ltsInstance
@@ -533,17 +533,17 @@ sudo apt install apache2
 
 Open a browser and type in the IP address of your instance into the address bar. You should now see the default Apache homepage.
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-linux-4.png)
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-macos-5.png)
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-windows-12.png)
 ````
 
@@ -562,9 +562,9 @@ You can launch an instance using the Docker Blueprint by running `multipass laun
 
 Once that's done, run `multipass info docker-dev` to note down the IP of the new instance.
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 ```{code-block} text
 $ multipass launch docker --name docker-dev
@@ -601,7 +601,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 ```{code-block} text
 $ multipass launch docker --name docker-dev
@@ -638,7 +638,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass launch docker --name docker-dev
@@ -693,9 +693,12 @@ Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/mult
 
 <small>**Contributors:** @nhart, @saviq, @townsend, @andreitoterman, @tmihoc, @luisp, @ricab, @sharder996, @georgeliaojia, @mscho7969, @itecompro, @mr-cal, @sally-makin, @gzanchi, @bagustris , @pitifulpete </small>
 
+<!-- Hiding for now, this will be useful to have when we have more than one tutorial.
+When that's the case, the title of the page also needs to change to "Tutorials".
 
 ```{toctree}
 :hidden:
 :titlesonly:
 :maxdepth: 2
 :glob:
+-->

@@ -1,7 +1,7 @@
 (reference-logging-levels)=
 # Logging levels
 
-> See also: [Configure Multipass’s default logging level](/how-to-guides/customise-multipass/configure-multipasss-default-logging-level)
+> See also: [Configure Multipass’s default logging level](/how-to-guides/customise-multipass/configure-multipass-default-logging-level)
 
 In Multipass, a hierarchy of logging levels is used is used to convey severity and improve visibility of important events. Multipass uses the following levels ranked from most severe to least severe for its background daemon and child processes.
 

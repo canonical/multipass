@@ -1,5 +1,5 @@
 (reference-command-line-interface-index)=
-# Command-Line-Interface
+# Command-line interface
 
 > See also: [Instance](/explanation/instance), [Service](/explanation/service)
 

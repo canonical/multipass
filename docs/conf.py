@@ -133,10 +133,6 @@ html_context = {
     # NOTE: If set, links for viewing the documentation source files
     #       and creating GitHub issues are added at the bottom of each page.
     "github_url": "https://github.com/canonical/multipass",
-    # NOTE TO GIULIA: This line was suggested by Shane to enable the feedback button,
-    # but it doesn't work at the moment.
-    # 'github_issues': 'enabled',
-
     # Docs branch in the repo; used in links for viewing the source files
     #
     # TODO: To customise the branch, uncomment and update as needed.
@@ -150,6 +146,8 @@ html_context = {
     # "sequential_nav": "both",
     # TODO: To enable listing contributors on individual pages, set to True
     "display_contributors": False,
+    # The following line enables the "Give feedback" button.
+    "github_issues": "enabled",
 }
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
@@ -268,6 +266,7 @@ html_css_files = [
 rst_epilog = """
 .. include:: /reuse/links.txt
 """
+
 
 # Feedback button at the top; enabled by default
 #

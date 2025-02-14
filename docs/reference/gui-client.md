@@ -44,7 +44,7 @@ Here you can see an overview of all your instances and perform bulk actions such
 
 You can perform actions on an individual instance, such as starting, stopping, suspending or deleting it. You can also open shells within a running instance, where you can do all of your work that is specific to that instance.
 
-![Instance shell page](https://assets.ubuntu.com/v1/740d7ab4-multipass-gui-instance)
+![Instance shell page](https://assets.ubuntu.com/v1/740d7ab4-multipass-gui-instance.png)
 
 ```{caution}
 Please note that when you delete an instance using the GUI client, Multipass removes it permanently and they cannot be recovered. This behaviour is equivalent to running the [`multipass delete --purge`](/reference/command-line-interface/delete) command.

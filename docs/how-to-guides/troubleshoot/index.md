@@ -19,4 +19,7 @@ The following guides provide step-by-step instructions on how to troubleshoot is
 :maxdepth: 2
 :glob:
 
-*
+access-logs
+mount-an-encrypted-home-folder
+troubleshoot-launch-start-issues
+troubleshoot-networking
