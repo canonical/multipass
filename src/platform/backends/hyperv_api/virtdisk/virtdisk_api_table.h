@@ -37,11 +37,15 @@ namespace multipass::hyperv::virtdisk
  */
 struct VirtDiskAPITable
 {
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreateoperation
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-compactvirtualdisk
     std::function<decltype(::CreateVirtualDisk)> CreateVirtualDisk = &::CreateVirtualDisk;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-openvirtualdisk
     std::function<decltype(::OpenVirtualDisk)> OpenVirtualDisk = &::OpenVirtualDisk;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-resizevirtualdisk
     std::function<decltype(::ResizeVirtualDisk)> ResizeVirtualDisk = &::ResizeVirtualDisk;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-getvirtualdiskinformation
     std::function<decltype(::GetVirtualDiskInformation)> GetVirtualDiskInformation = &::GetVirtualDiskInformation;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
     std::function<decltype(::CloseHandle)> CloseHandle = &::CloseHandle;
 };
 
