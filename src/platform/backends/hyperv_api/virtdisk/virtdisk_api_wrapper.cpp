@@ -45,7 +45,7 @@ constexpr auto kLogCategory = "HyperV-VirtDisk-Wrapper";
 
 UniqueHandle open_virtual_disk(const VirtDiskAPITable& api, const std::filesystem::path& vhdx_path)
 {
-
+    mpl::log(lvl::trace, kLogCategory, fmt::format("open_virtual_disk(...) > vhdx_path: {}", vhdx_path.string()));
     //
     // Specify UNKNOWN for both device and vendor so the system will use the
     // file extension to determine the correct VHD format.
@@ -95,6 +95,7 @@ VirtDiskWrapper::VirtDiskWrapper(const VirtDiskAPITable& api_table) : api{api_ta
 
 OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskParameters& params) const
 {
+    mpl::log(lvl::trace, kLogCategory, fmt::format("create_virtual_disk(...) > params: {}", params));
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/CreateVirtualDisk.cpp
     //
@@ -162,7 +163,11 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
 OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path& vhdx_path,
                                                      std::uint64_t new_size_bytes) const
 {
-
+    mpl::log(lvl::trace,
+             kLogCategory,
+             fmt::format("resize_virtual_disk(...) > vhdx_path: {}, new_size_bytes: {}",
+                         vhdx_path.string(),
+                         new_size_bytes));
     const auto disk_handle = open_virtual_disk(api, vhdx_path);
 
     if (nullptr == disk_handle)
@@ -198,6 +203,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                        VirtualDiskInfo& vdinfo) const
 {
+    mpl::log(lvl::trace, kLogCategory, fmt::format("get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path.string()));
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp
     //
