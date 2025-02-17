@@ -101,17 +101,10 @@ constexpr auto endpoint_settings_template = LR"(
     }},
     "HostComputeNetwork": "{0}",
     "Policies": [
-        {{
-            "Type": "Firewall",
-            "Settings": {{
-                "VmCreatorId": "{1}",
-                "PolicyFlags": 0
-            }}
-        }}
     ],
     "IpConfigurations": [
         {{
-            "IpAddress": "{2}"
+            "IpAddress": "{1}"
         }}
     ]
 }})";
@@ -254,7 +247,6 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
     // Render the template
     const auto endpoint_settings = fmt::format(endpoint_settings_template,
                                                string_to_wstring(params.network_guid),
-                                               string_to_wstring(params.vm_creator_id),
                                                string_to_wstring(params.endpoint_ipvx_addr));
     HCN_ENDPOINT endpoint{nullptr};
     const auto result = perform_hcn_operation(api,
