@@ -44,13 +44,6 @@ struct CreateEndpointParameters
     std::string endpoint_guid;
 
     /**
-     * An unique identifier that distinguishes the creator of
-     * this endpoint. This allows tracing the created endpoints
-     * back to the its' creator for diagnostics.
-     */
-    std::string vm_creator_id;
-
-    /**
      * The IPv[4-6] address to assign to the endpoint.
      */
     std::string endpoint_ipvx_addr;
@@ -73,11 +66,10 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
     auto format(const multipass::hyperv::hcn::CreateEndpointParameters& params, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "Endpoint GUID: ({}) | Network GUID: ({}) | Endpoint IPvX Addr.: ({}) | VM Creator ID: ({})",
+                         "Endpoint GUID: ({}) | Network GUID: ({}) | Endpoint IPvX Addr.: ({})",
                          params.endpoint_guid,
                          params.network_guid,
-                         params.endpoint_ipvx_addr,
-                         params.vm_creator_id);
+                         params.endpoint_ipvx_addr);
     }
 };
 
