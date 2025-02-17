@@ -102,9 +102,6 @@ constexpr auto endpoint_settings_template = LR"(
     "HostComputeNetwork": "{0}",
     "Policies": [
         {{
-            "Type": "PortName"
-        }},
-        {{
             "Type": "Firewall",
             "Settings": {{
                 "VmCreatorId": "{1}",
