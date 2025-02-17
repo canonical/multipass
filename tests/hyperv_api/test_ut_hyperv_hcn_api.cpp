@@ -16,6 +16,7 @@
  */
 
 #include "hyperv_api/hcn/hyperv_hcn_api_table.h"
+#include "hyperv_test_utils.h"
 #include "tests/mock_logger.h"
 
 #include "gmock/gmock.h"
@@ -33,8 +34,6 @@ namespace mpl = multipass::logging;
 
 using testing::DoAll;
 using testing::Return;
-
-#define EXPECT_NO_CALL(mock) EXPECT_CALL(mock, Call).Times(0)
 
 namespace multipass::test
 {
