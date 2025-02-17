@@ -434,9 +434,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
     "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
     "Policies": [
         {
-            "Type": "PortName"
-        },
-        {
             "Type": "Firewall",
             "Settings": {
                 "VmCreatorId": "df8dff56-0ab7-4cbb-869b-b8e2220d4b3e",
@@ -602,9 +599,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
     },
     "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
     "Policies": [
-        {
-            "Type": "PortName"
-        },
         {
             "Type": "Firewall",
             "Settings": {
