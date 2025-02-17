@@ -18,6 +18,7 @@
 #include "hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h"
 #include "hyperv_api/hcs/hyperv_hcs_api_wrapper.h"
 #include "hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h"
+#include "hyperv_test_utils.h"
 #include "tests/mock_logger.h"
 #include "gmock/gmock.h"
 
@@ -32,15 +33,6 @@ namespace mpl = multipass::logging;
 
 using testing::DoAll;
 using testing::Return;
-
-#define EXPECT_NO_CALL(mock) EXPECT_CALL(mock, Call).Times(0)
-
-static auto trim_whitespace(const wchar_t* input)
-{
-    std::wstring str{input};
-    str.erase(std::remove_if(str.begin(), str.end(), ::iswspace), str.end());
-    return str;
-}
 
 namespace multipass::test
 {
