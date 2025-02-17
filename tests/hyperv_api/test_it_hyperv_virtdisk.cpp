@@ -16,7 +16,6 @@
  */
 
 #include "tests/common.h"
-#include "tests/mock_logger.h"
 
 #include <fmt/xchar.h>
 
@@ -30,7 +29,7 @@ namespace multipass::test
 
 using uut_t = hyperv::virtdisk::VirtDiskWrapper;
 
-struct HyperVVirtDisk_Integration : public ::testing::Test
+struct HyperVVirtDisk_IntegrationTests : public ::testing::Test
 {
 };
 
@@ -65,7 +64,7 @@ auto_remove_path make_tempfile_path(std::string extension)
     return {std::filesystem::temp_directory_path() / f};
 }
 
-TEST_F(HyperVVirtDisk_Integration, create_virtual_disk_vhdx)
+TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhdx)
 {
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
@@ -80,7 +79,7 @@ TEST_F(HyperVVirtDisk_Integration, create_virtual_disk_vhdx)
     ASSERT_TRUE(result.status_msg.empty());
 }
 
-TEST_F(HyperVVirtDisk_Integration, create_virtual_disk_vhd)
+TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhd)
 {
     auto temp_path = make_tempfile_path(".vhd");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
@@ -95,7 +94,7 @@ TEST_F(HyperVVirtDisk_Integration, create_virtual_disk_vhd)
     ASSERT_TRUE(result.status_msg.empty());
 }
 
-TEST_F(HyperVVirtDisk_Integration, get_virtual_disk_properties)
+TEST_F(HyperVVirtDisk_IntegrationTests, get_virtual_disk_properties)
 {
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
@@ -123,7 +122,7 @@ TEST_F(HyperVVirtDisk_Integration, get_virtual_disk_properties)
     fmt::print("{}", info);
 }
 
-TEST_F(HyperVVirtDisk_Integration, resize_grow)
+TEST_F(HyperVVirtDisk_IntegrationTests, resize_grow)
 {
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
@@ -170,7 +169,7 @@ TEST_F(HyperVVirtDisk_Integration, resize_grow)
     fmt::print("{}", info);
 }
 
-TEST_F(HyperVVirtDisk_Integration, DISABLED_resize_shrink)
+TEST_F(HyperVVirtDisk_IntegrationTests, DISABLED_resize_shrink)
 {
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
