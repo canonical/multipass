@@ -151,7 +151,8 @@ void set_random_serial_number(X509* cert)
     serial_bytes[0] &= 0x7F;
 
     // Convert bytes to an BIGNUM, an arbitrary-precision integer type
-    std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(BN_bin2bn(serial_bytes.data(), serial_bytes.size(), nullptr), BN_free);
+    std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(BN_bin2bn(serial_bytes.data(), serial_bytes.size(), nullptr),
+                                                   BN_free);
     if (!bn)
     {
         throw std::runtime_error("Failed to convert serial bytes to BIGNUM\n");
