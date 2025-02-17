@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_WRAPPER
-#define MULTIPASS_HYPERV_API_HCS_WRAPPER
+#ifndef MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
+#define MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
 
 #include "virtdisk_api_table.h"
 #include "virtdisk_disk_info.h"
