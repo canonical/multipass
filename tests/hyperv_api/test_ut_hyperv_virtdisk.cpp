@@ -138,6 +138,11 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
 
         EXPECT_CALL(mock_close_handle, Call)
             .WillOnce(DoAll([](HANDLE hObject) { ASSERT_EQ(hObject, mock_handle_object); }, Return(true)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "create_virtual_disk(...) > params: Size (in bytes): (2097152) | Path: (test.vhdx)");
     }
 
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
@@ -206,6 +211,11 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
 
         EXPECT_CALL(mock_close_handle, Call)
             .WillOnce(DoAll([](HANDLE hObject) { ASSERT_EQ(hObject, mock_handle_object); }, Return(true)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "create_virtual_disk(...) > params: Size (in bytes): (2097152) | Path: (test.vhd)");
     }
 
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
@@ -249,6 +259,13 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
 
                             ) {},
                             Return(ERROR_PATH_NOT_FOUND)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "create_virtual_disk(...) > params: Size (in bytes): (2097152) | Path: (test.vhd)");
+        logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                             "create_virtual_disk(...) > CreateVirtualDisk failed with 3!");
     }
 
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
@@ -324,6 +341,12 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
 
         EXPECT_CALL(mock_close_handle, Call)
             .WillOnce(DoAll([](HANDLE hObject) { ASSERT_EQ(hObject, mock_handle_object); }, Return(true)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "open_virtual_disk(...) > vhdx_path: test.vhdx");
     }
 
     {
@@ -361,6 +384,14 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_open_failed)
 
                 },
                 Return(ERROR_PATH_NOT_FOUND)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                             "open_virtual_disk(...) > OpenVirtualDisk failed with: 3");
     }
 
     {
@@ -410,6 +441,14 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
 
         EXPECT_CALL(mock_close_handle, Call)
             .WillOnce(DoAll([](HANDLE hObject) { ASSERT_EQ(hObject, mock_handle_object); }, Return(true)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                             "resize_virtual_disk(...) > ResizeVirtualDisk failed with 87!");
     }
 
     {
@@ -529,6 +568,10 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
 
         EXPECT_CALL(mock_close_handle, Call)
             .WillOnce(DoAll([](HANDLE hObject) { ASSERT_EQ(hObject, mock_handle_object); }, Return(true)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "open_virtual_disk(...) > vhdx_path: test.vhdx");
     }
 
     {
@@ -635,6 +678,12 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
 
         EXPECT_CALL(mock_close_handle, Call)
             .WillOnce(DoAll([](HANDLE hObject) { ASSERT_EQ(hObject, mock_handle_object); }, Return(true)));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::warning, "get_virtual_disk_info(...) > failed to get 6");
+        logger_scope.mock_logger->expect_log(mpl::Level::warning, "get_virtual_disk_info(...) > failed to get 7");
     }
 
     {
