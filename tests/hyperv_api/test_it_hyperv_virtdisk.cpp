@@ -15,6 +15,7 @@
  *
  */
 
+#include "hyperv_test_utils.h"
 #include "tests/common.h"
 
 #include <fmt/xchar.h>
@@ -32,37 +33,6 @@ using uut_t = hyperv::virtdisk::VirtDiskWrapper;
 struct HyperVVirtDisk_IntegrationTests : public ::testing::Test
 {
 };
-
-struct auto_remove_path
-{
-
-    auto_remove_path(std::filesystem::path p) : path(p)
-    {
-    }
-
-    ~auto_remove_path()
-    {
-        std::error_code ec{};
-        std::filesystem::remove(path, ec);
-    }
-
-    operator std::filesystem::path() const noexcept
-    {
-        return path;
-    }
-
-private:
-    const std::filesystem::path path;
-};
-
-auto_remove_path make_tempfile_path(std::string extension)
-{
-    char pattern[] = "temp-XXXXXX";
-    _mktemp_s(pattern);
-    std::string f = pattern;
-    f.append(extension);
-    return {std::filesystem::temp_directory_path() / f};
-}
 
 TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhdx)
 {
