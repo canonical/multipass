@@ -19,8 +19,9 @@
 #define MULTIPASS_HYPERV_API_HCS_WRAPPER
 
 #include "virtdisk_api_table.h"
-#include "virtdisk_wrapper_interface.h"
 #include "virtdisk_disk_info.h"
+#include "virtdisk_wrapper_interface.h"
+
 
 namespace multipass::hyperv::virtdisk
 {
