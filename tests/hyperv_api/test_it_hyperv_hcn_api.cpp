@@ -27,7 +27,8 @@ namespace multipass::test
 using uut_t = hyperv::hcn::HCNWrapper;
 
 struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
-{};
+{
+};
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
 {

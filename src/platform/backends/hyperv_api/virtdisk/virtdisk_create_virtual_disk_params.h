@@ -21,7 +21,6 @@
 #include <filesystem>
 #include <fmt/format.h>
 
-
 namespace multipass::hyperv::virtdisk
 {
 
