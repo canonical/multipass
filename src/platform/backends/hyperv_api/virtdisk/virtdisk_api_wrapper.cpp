@@ -155,6 +155,9 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
         return OperationResult{NOERROR, L""};
     }
 
+    mpl::log(lvl::error,
+             kLogCategory,
+             fmt::format("create_virtual_disk(...) > CreateVirtualDisk failed with {}!", result));
     return OperationResult{E_FAIL, fmt::format(L"CreateVirtualDisk failed with {}!", result)};
 }
 
@@ -194,6 +197,10 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
     {
         return OperationResult{NOERROR, L""};
     }
+
+    mpl::log(lvl::error,
+             kLogCategory,
+             fmt::format("resize_virtual_disk(...) > ResizeVirtualDisk failed with {}!", resize_result));
 
     return OperationResult{E_FAIL, fmt::format(L"ResizeVirtualDisk failed with {}!", resize_result)};
 }
