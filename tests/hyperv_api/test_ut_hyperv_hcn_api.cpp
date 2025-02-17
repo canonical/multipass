@@ -433,13 +433,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
     },
     "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
     "Policies": [
-        {
-            "Type": "Firewall",
-            "Settings": {
-                "VmCreatorId": "df8dff56-0ab7-4cbb-869b-b8e2220d4b3e",
-                "PolicyFlags": 0
-            }
-        }
     ],
     "IpConfigurations": [
         {
@@ -484,8 +477,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         logger_scope.mock_logger->expect_log(
             mpl::Level::trace,
             "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27) | VM "
-            "Creator ID: (df8dff56-0ab7-4cbb-869b-b8e2220d4b3e)");
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
@@ -502,7 +494,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
         params.endpoint_ipvx_addr = "172.50.224.27";
-        params.vm_creator_id = "df8dff56-0ab7-4cbb-869b-b8e2220d4b3e";
 
         const auto& [success, error_msg] = uut.create_endpoint(params);
         ASSERT_TRUE(success);
@@ -535,8 +526,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
         logger_scope.mock_logger->expect_log(
             mpl::Level::trace,
             "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27) | VM "
-            "Creator ID: (df8dff56-0ab7-4cbb-869b-b8e2220d4b3e)");
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::error,
@@ -553,7 +543,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
         params.endpoint_ipvx_addr = "172.50.224.27";
-        params.vm_creator_id = "df8dff56-0ab7-4cbb-869b-b8e2220d4b3e";
 
         const auto& [status, error_msg] = uut.create_endpoint(params);
         ASSERT_FALSE(status);
@@ -599,13 +588,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
     },
     "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
     "Policies": [
-        {
-            "Type": "Firewall",
-            "Settings": {
-                "VmCreatorId": "df8dff56-0ab7-4cbb-869b-b8e2220d4b3e",
-                "PolicyFlags": 0
-            }
-        }
     ],
     "IpConfigurations": [
         {
@@ -647,8 +629,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         logger_scope.mock_logger->expect_log(
             mpl::Level::trace,
             "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27) | VM "
-            "Creator ID: (df8dff56-0ab7-4cbb-869b-b8e2220d4b3e)");
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_operation(...) > fn: 0x0, result: true");
@@ -664,7 +645,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
         params.endpoint_ipvx_addr = "172.50.224.27";
-        params.vm_creator_id = "df8dff56-0ab7-4cbb-869b-b8e2220d4b3e";
 
         const auto& [success, error_msg] = uut.create_endpoint(params);
         ASSERT_FALSE(success);

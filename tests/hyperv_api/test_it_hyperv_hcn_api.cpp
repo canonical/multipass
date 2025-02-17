@@ -67,7 +67,6 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 
     endpoint_params.network_guid = network_params.guid;
     endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
-    endpoint_params.vm_creator_id = R"(456fe1ac-1e46-49ec-bb9f-5e44cc2de23b)";
     endpoint_params.endpoint_ipvx_addr = "172.50.224.2";
 
     (void)uut.delete_network(network_params.guid);
