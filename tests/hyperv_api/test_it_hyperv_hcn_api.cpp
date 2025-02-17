@@ -16,36 +16,20 @@
  */
 
 #include "tests/common.h"
-#include "tests/mock_logger.h"
 
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
-
-
-namespace mpt = multipass::test;
 
 namespace multipass::test
 {
 
 using uut_t = hyperv::hcn::HCNWrapper;
 
-struct HyperVHCNAPI : public ::testing::Test
-{
+struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
+{};
 
-    // mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-
-    void SetUp() override
-    {
-        //   logger_scope.mock_logger.
-    }
-
-    void TearDown() override
-    {
-    }
-};
-
-TEST_F(HyperVHCNAPI, create_delete_network)
+TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
 {
     uut_t uut;
     hyperv::hcn::CreateNetworkParameters params{};
@@ -54,7 +38,7 @@ TEST_F(HyperVHCNAPI, create_delete_network)
     params.subnet = "172.50.224.0/20";
     params.gateway = "172.50.224.1";
 
-    uut.delete_network(params.guid);
+    (void)uut.delete_network(params.guid);
 
     {
         const auto& [success, error_msg] = uut.create_network(params);
@@ -69,7 +53,7 @@ TEST_F(HyperVHCNAPI, create_delete_network)
     }
 }
 
-TEST_F(HyperVHCNAPI, create_delete_endpoint)
+TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 {
     uut_t uut;
     hyperv::hcn::CreateNetworkParameters network_params{};
@@ -85,7 +69,7 @@ TEST_F(HyperVHCNAPI, create_delete_endpoint)
     endpoint_params.vm_creator_id = R"(456fe1ac-1e46-49ec-bb9f-5e44cc2de23b)";
     endpoint_params.endpoint_ipvx_addr = "172.50.224.2";
 
-    uut.delete_network(network_params.guid);
+    (void)uut.delete_network(network_params.guid);
 
     {
         const auto& [success, error_msg] = uut.create_network(network_params);
