@@ -37,7 +37,7 @@ namespace multipass::hyperv::virtdisk
  */
 struct VirtDiskAPITable
 {
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-compactvirtualdisk
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-createvirtualdisk
     std::function<decltype(::CreateVirtualDisk)> CreateVirtualDisk = &::CreateVirtualDisk;
     // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-openvirtualdisk
     std::function<decltype(::OpenVirtualDisk)> OpenVirtualDisk = &::OpenVirtualDisk;
