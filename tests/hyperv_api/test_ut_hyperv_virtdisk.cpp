@@ -15,17 +15,15 @@
  *
  */
 
+#include "hyperv_test_utils.h"
 #include "tests/common.h"
 #include "tests/mock_logger.h"
 
 #include <fmt/xchar.h>
 
-#include <filesystem>
-
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_disk_info.h>
 
-#define EXPECT_NO_CALL(mock) EXPECT_CALL(mock, Call).Times(0)
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
