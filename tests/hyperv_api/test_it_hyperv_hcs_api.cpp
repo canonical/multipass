@@ -16,7 +16,6 @@
  */
 
 #include "tests/common.h"
-#include "tests/mock_logger.h"
 
 #include <fmt/xchar.h>
 
@@ -27,22 +26,11 @@ namespace multipass::test
 
 using uut_t = hyperv::hcs::HCSWrapper;
 
-struct HyperVHCSAPI : public ::testing::Test
+struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
 {
-
-    // mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-
-    void SetUp() override
-    {
-        //   logger_scope.mock_logger.
-    }
-
-    void TearDown() override
-    {
-    }
 };
 
-TEST_F(HyperVHCSAPI, create_delete_compute_system)
+TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
 {
 
     uut_t uut{};
@@ -65,7 +53,7 @@ TEST_F(HyperVHCSAPI, create_delete_compute_system)
     ASSERT_FALSE(d_result.status_msg.empty());
 }
 
-TEST_F(HyperVHCSAPI, enumerate_properties)
+TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
 {
 
     uut_t uut{};
@@ -100,7 +88,7 @@ TEST_F(HyperVHCSAPI, enumerate_properties)
     ASSERT_FALSE(d_result.status_msg.empty());
 }
 
-TEST_F(HyperVHCSAPI, DISABLED_update_cpu_count)
+TEST_F(HyperVHCSAPI_IntegrationTests, DISABLED_update_cpu_count)
 {
 
     uut_t uut{};
