@@ -225,19 +225,11 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
             "Minor": 16
         }},
         "HostComputeNetwork": "{0}",
-        "Policies": [
-        ],
-        "IpConfigurations": [
-            {{
-                "IpAddress": "{1}"
-            }}
-        ]
+        "Policies": []
     }})";
 
     // Render the template
-    const auto endpoint_settings = fmt::format(endpoint_settings_template,
-                                               string_to_wstring(params.network_guid),
-                                               string_to_wstring(params.endpoint_ipvx_addr));
+    const auto endpoint_settings = fmt::format(endpoint_settings_template, string_to_wstring(params.network_guid));
     HCN_ENDPOINT endpoint{nullptr};
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
