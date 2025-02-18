@@ -122,11 +122,18 @@ if(cmake_build_type_lower MATCHES "coverage")
   endif()
 endif()
 
-# OpenSSL config
+# OpenSSL config; Debug messages confirms which OpenSSL installation is being used
 find_package(OpenSSL REQUIRED)
+message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+message(STATUS "OpenSSL libraries ${OPENSSL_LIBRARIES}")
 
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)
+
+# Ensure custom libraries are built first
+add_subdirectory(3rd-party/libssh)
+add_subdirectory(3rd-party/grpc)
+add_subdirectory(3rd-party/poco)
 
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
