@@ -139,7 +139,14 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 
 Note that macOS's firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
 
+```{figure} /images/multipass-security-privacy.jpg
+   :width: 690px
+   :alt: Security & Privacy
+```
+
+<!-- Original image on the Asset Manager
 ![Security & Privacy|690x605](https://assets.ubuntu.com/v1/a4c00e5f-multipass-security-privacy.jpg)
+-->
 
 If you try again, it should work:
 

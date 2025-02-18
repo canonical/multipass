@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="859.17999966" height="839.9997900000001" font-family="Consolas, Menlo, 'Bitstream Vera Sans Mono', monospace, 'Powerline Symbols'" font-size="14px">
+  <style>
+    .br { font-weight: bold }
+    .fa { fill-opacity: 0.5 }
+    .it { font-style: italic }
+    .un { text-decoration: underline }
+  </style>
+
+  <rect width="100%" height="100%" style="fill: #121314" rx="4" ry="4"></rect>
+
+  <svg x="8.42333333" y="9.333331000000001" class="default-text-fill">
+    <g style="shape-rendering: optimizeSpeed">
+
+        <rect x="0.0" y="0.0" width="210.58333325" height="18.666662000000002" style="fill: #4ebf22"></rect>
+
+        <rect x="0.0" y="205.33328200000003" width="210.58333325" height="18.666662000000002" style="fill: #4ebf22"></rect>
+
+        <rect x="0.0" y="223.99994400000003" width="210.58333325" height="18.666662000000002" style="fill: #4ebf22"></rect>
+
+        <rect x="0.0" y="410.66656400000005" width="210.58333325" height="18.666662000000002" style="fill: #4ebf22"></rect><rect x="336.9333332" y="410.66656400000005" width="8.42333333" height="18.666662000000002" style="fill: #d9d9d9"></rect>
+
+
+    </g>
+
+    <text style="fill: #cccccc">
+      <tspan y="0.0">
+        <tspan dy="1em" x="0.0" class="br" style="fill: #4d4d4d">
+          ricardoabreu@Ricardos-MBP
+        </tspan><tspan x="210.58333325">
+          :
+        </tspan><tspan x="219.00666658" class="br" style="fill: #26b0d7">
+          ~ $ 
+        </tspan><tspan x="252.6999999">
+          multipass ls
+        </tspan>
+      </tspan><tspan y="18.666662000000002">
+        <tspan dy="1em" x="0.0">
+          Warning! The hyperkit driver is deprecated and will be removed in an upcoming release. When you are 
+        </tspan>
+      </tspan><tspan y="37.333324000000005">
+        <tspan dy="1em" x="0.0">
+          ready to have your instances migrated, please stop them (multipass stop --all) and switch to the qem
+        </tspan>
+      </tspan><tspan y="55.99998600000001">
+        <tspan dy="1em" x="0.0">
+          u driver (multipass set local.driver=qemu).
+        </tspan>
+      </tspan><tspan y="93.33331000000001">
+        <tspan dy="1em" x="0.0">
+          Name
+        </tspan><tspan x="202.15999992000002">
+          State
+        </tspan><tspan x="353.77999986000003">
+          IPv4
+        </tspan><tspan x="496.97666647">
+          Image
+        </tspan>
+      </tspan><tspan y="111.99997200000001">
+        <tspan dy="1em" x="0.0">
+          docker
+        </tspan><tspan x="202.15999992000002">
+          Running
+        </tspan><tspan x="353.77999986000003">
+          192.168.64.4
+        </tspan><tspan x="496.97666647">
+          Ubuntu 22.04 LTS
+        </tspan>
+      </tspan><tspan y="130.66663400000002">
+        <tspan dy="1em" x="353.77999986000003">
+          172.17.0.1
+        </tspan>
+      </tspan><tspan y="149.33329600000002">
+        <tspan dy="1em" x="0.0">
+          intrigued-remora
+        </tspan><tspan x="202.15999992000002">
+          Running
+        </tspan><tspan x="353.77999986000003">
+          192.168.64.2
+        </tspan><tspan x="496.97666647">
+          Ubuntu Snapcraft builder for Core 22
+        </tspan>
+      </tspan><tspan y="167.99995800000002">
+        <tspan dy="1em" x="0.0">
+          passionate-panda
+        </tspan><tspan x="202.15999992000002">
+          Running
+        </tspan><tspan x="353.77999986000003">
+          192.168.64.3
+        </tspan><tspan x="496.97666647">
+          Ubuntu 18.04 LTS
+        </tspan>
+      </tspan><tspan y="186.66662000000002">
+        <tspan dy="1em" x="0.0">
+          thrilled-gazelle
+        </tspan><tspan x="202.15999992000002">
+          Running
+        </tspan><tspan x="353.77999986000003">
+          192.168.64.5
+        </tspan><tspan x="496.97666647">
+          Ubuntu 22.04 LTS
+        </tspan>
+      </tspan><tspan y="205.33328200000003">
+        <tspan dy="1em" x="0.0" class="br" style="fill: #4d4d4d">
+          ricardoabreu@Ricardos-MBP
+        </tspan><tspan x="210.58333325">
+          :
+        </tspan><tspan x="219.00666658" class="br" style="fill: #26b0d7">
+          ~ $ 
+        </tspan><tspan x="252.6999999">
+          multipass stop --all
+        </tspan>
+      </tspan><tspan y="223.99994400000003">
+        <tspan dy="1em" x="0.0" class="br" style="fill: #4d4d4d">
+          ricardoabreu@Ricardos-MBP
+        </tspan><tspan x="210.58333325">
+          :
+        </tspan><tspan x="219.00666658" class="br" style="fill: #26b0d7">
+          ~ $ 
+        </tspan><tspan x="252.6999999">
+          multipass set local.driver=qemu
+        </tspan>
+      </tspan><tspan y="242.66660600000003">
+        <tspan dy="1em" x="0.0">
+          Cannot migrate thrilled-gazelle: name already taken by a qemu instance
+        </tspan>
+      </tspan><tspan y="261.33326800000003">
+        <tspan dy="1em" x="0.0">
+          The following instances were successfully migrated:
+        </tspan>
+      </tspan><tspan y="279.99993">
+        <tspan dy="1em" x="16.84666666">
+          docker
+        </tspan>
+      </tspan><tspan y="298.66659200000004">
+        <tspan dy="1em" x="16.84666666">
+          intrigued-remora
+        </tspan>
+      </tspan><tspan y="317.333254">
+        <tspan dy="1em" x="16.84666666">
+          passionate-panda
+        </tspan>
+      </tspan><tspan y="354.666578">
+        <tspan dy="1em" x="0.0">
+          Multipass retained the original hyperkit instances, but they take space on disk. You can delete them
+        </tspan>
+      </tspan><tspan y="373.33324000000005">
+        <tspan dy="1em" x="8.42333333">
+          (multipass delete --purge &lt;instance-name&gt;) when you are confident that their migrated counterparts 
+        </tspan>
+      </tspan><tspan y="391.999902">
+        <tspan dy="1em" x="0.0">
+          are intact, by temporarily
+        </tspan><tspan x="235.85333324">
+          moving back to hyperkit.
+        </tspan>
+      </tspan><tspan y="410.66656400000005">
+        <tspan dy="1em" x="0.0" class="br" style="fill: #4d4d4d">
+          ricardoabreu@Ricardos-MBP
+        </tspan><tspan x="210.58333325">
+          :
+        </tspan><tspan x="219.00666658" class="br" style="fill: #26b0d7">
+          ~ $ 
+        </tspan><tspan x="252.6999999">
+          multipass 
+        </tspan>
+      </tspan>
+    </text>
+  </svg>
+
+  <g transform="translate(-40 -40)">
+    <svg x="50%" y="50%" width="80" height="80">
+      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000.0 1000.0" style="filter: drop-shadow(0px 0px 5px rgba(0, 0, 0, 0.4))">
+  <defs>
+    <mask id="small-triangle-mask">
+      <rect width="100%" height="100%" fill="white"></rect>
+      <polygon points="700.0 500.0, 400.00000000000006 326.7949192431122, 399.9999999999999 673.2050807568877" fill="black">
+      </polygon>
+    </mask>
+  </defs>
+  <polygon points="1000.0 500.0, 250.0000000000001 66.98729810778059, 249.99999999999977 933.0127018922192" mask="url(#small-triangle-mask)" fill="white">
+  </polygon>
+  <polyline points="673.2050807568878 400.0, 326.7949192431123 600.0" stroke="white" stroke-width="90">
+  </polyline>
+</svg>
+    </svg>
+  </g>
+</svg>

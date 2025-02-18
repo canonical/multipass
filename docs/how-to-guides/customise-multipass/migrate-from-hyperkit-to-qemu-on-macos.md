@@ -32,7 +32,14 @@ You can choose a convenient time to do any of this and you can set the driver to
 
 Here is a video demonstration of the migration:
 
+```{figure} /images/556203.svg
+   :width: 100%
+   :alt: Hyperkit Migration in Multipass
+```
+
+<!-- Original image on the Asset Manager
 [![Hyperkit Migration in Multipass](https://asciinema.org/a/556203.svg)](https://asciinema.org/a/556203)
+-->
 
 ---
 

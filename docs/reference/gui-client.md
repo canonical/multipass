@@ -25,7 +25,14 @@ as well as a {ref}`gui-client-tray-icon` menu.
 
 Here you can browse the available Ubuntu images. The output is equivalent to the one given by `multipass find --only-images`. Blueprints are not yet available.
 
+```{figure} /images/gui-client/multipass-gui-catalogue-tab.png
+   :width: 720px
+   :alt: GUI client - Catalogue tab
+```
+
+<!-- Original image on the Asset Manager
 ![Catalogue page](https://assets.ubuntu.com/v1/1edb2dfb-multipass-gui-catalogue-tab.png)
+-->
 
 You can configure an instance's launch options, specifying parameters such as its name, allocated resources and mounts.
 

@@ -132,7 +132,14 @@ Download the latest installer from [our download page](https://canonical.com/mul
 
 Run the downloaded installer and follow the guided procedure.
 
+```{figure} /images/multipass-installer-macos.png
+   :width: 658px
+   :alt: Multipass installer on macOS
+```
+
+<!-- Original image on the Asset Manager
 ![Multipass installer on macOS|658x475](https://assets.ubuntu.com/v1/ac6f638d-multipass-installer-macos.png)
+-->
 
 ````
 

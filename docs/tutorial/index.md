@@ -23,15 +23,36 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 
 Start Multipass from the application launcher. In Ubuntu, press the super key and type "Multipass", or find Multipass in the Applications panel on the lower left of the desktop.
 
+```{figure} /images/tutorial/mp-linux-1.png
+   :width: 800px
+   :alt: Find Multipass in the Applications panel
+```
+
+<!-- Original image on the Asset Manager
 ![|800x450](https://assets.ubuntu.com/v1/949aa05e-mp-linux-1.png)
+-->
 
 After launching the application, you should see the Multipass tray icon on the upper right section of the screen.
 
+```{figure} /images/tutorial/mp-linux-2.png
+   :width: 688px
+   :alt: Multipass tray icon
+```
+
+<!--
 ![|688x52](https://assets.ubuntu.com/v1/5ec546da-mp-linux-2.png)
+-->
 
 Click on the Multipass icon and select **Open Shell**.
 
+```{figure} /images/tutorial/mp-linux-2a.png
+   :width: 286px
+   :alt: Multipass tray icon - Select "Open shell"
+```
+
+<!--
 ![|286x274](https://assets.ubuntu.com/v1/3ecc5e7d-mp-linux-2a.png)
+-->
 
 Clicking this button does many things in the background:
 * It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
@@ -80,7 +101,14 @@ ubuntu@primary:~$
 
 Let's test it. As you've just learnt, the previous step automatically mounted your `$HOME` directory in the instance. Use this to share data with your instance. More concretely, create a new folder called `Multipass_Files` in your `$HOME` directory:
 
+```{figure} /images/tutorial/mp-linux-3.png
+   :width: 720px
+   :alt: Create new "Multipass_Files" folder
+```
+
+<!--
 ![|720x405](https://assets.ubuntu.com/v1/fbfc8304-mp-linux-3.png)
+-->
 
 As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
 
@@ -103,15 +131,36 @@ This folder could be a great place to keep files that need to be accessed by bot
 
 Start Multipass from the application launcher. In macOS, open the application launcher, type "Multipass", and launch the application.
 
-**![|720x451](https://assets.ubuntu.com/v1/a4ff7fad-mp-macos-1.png)**
+```{figure} /images/tutorial/mp-macos-1.png
+   :width: 720px
+   :alt: Launch the Multipass application
+```
+
+<!--
+![|720x451](https://assets.ubuntu.com/v1/a4ff7fad-mp-macos-1.png)
+-->
 
 After launching the application, you should see the Multipass tray icon in the upper right section of the screen.
 
-**![|684x48](https://assets.ubuntu.com/v1/42bb4ccb-mp-macos-2.png)**
+```{figure} /images/tutorial/mp-macos-2.png
+   :width: 684px
+   :alt: Multipass tray icon
+```
+
+<!--
+![|684x48](https://assets.ubuntu.com/v1/42bb4ccb-mp-macos-2.png)
+-->
 
 Click on the Multipass icon and select **Open Shell**.
 
-**![|304x352](https://assets.ubuntu.com/v1/eb92083a-mp-macos-3.png)**
+```{figure} /images/tutorial/mp-macos-3.png
+   :width: 304px
+   :alt: Multipass tray icon - Select "Open shell"
+```
+
+<!--
+![|304x352](https://assets.ubuntu.com/v1/eb92083a-mp-macos-3.png)
+-->
 
 Clicking this button does many things in the background:
 
@@ -149,7 +198,14 @@ ubuntu@primary:~$
 
 Let’s test it out. As you've just learnt, the previous step automatically mounted your `$HOME` directory in the instance. Use this to share data with your instance. More concretely, create a new folder called `Multipass_Files` in your `$HOME` directory.
 
-**![|720x329](https://assets.ubuntu.com/v1/5867fb49-mp-macos-4.png)**
+```{figure} /images/tutorial/mp-macos-4.png
+   :width: 720px
+   :alt: Create new "Multipass_Files" folder
+```
+
+<!--
+![|720x329](https://assets.ubuntu.com/v1/5867fb49-mp-macos-4.png)
+-->
 
 As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
 
@@ -169,15 +225,36 @@ ubuntu@primary:~/Home/Multipass_Files$
 
 Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
 
-**![|720x625](https://assets.ubuntu.com/v1/50b86111-mp-windows-1.png)**
+```{figure} /images/tutorial/mp-windows-1.png
+   :width: 720px
+   :alt: Launch the Multipass application
+```
+
+<!--
+![|720x625](https://assets.ubuntu.com/v1/50b86111-mp-windows-1.png)
+-->
 
 After launching the application, you should see the Multipass tray icon in the lower right section of the screen (you may need to click on the small arrow located there).
 
-**![|429x221](https://assets.ubuntu.com/v1/8c28e82a-mp-windows-2.png)**
+```{figure} /images/tutorial/mp-windows-2.png
+   :width: 429px
+   :alt: Multipass tray icon
+```
+
+<!--
+![|429x221](https://assets.ubuntu.com/v1/8c28e82a-mp-windows-2.png)
+-->
 
 Click on the Multipass icon and select **Open Shell**.
 
-**![|423x241](https://assets.ubuntu.com/v1/33a6bf4d-mp-windows-3.png)**
+```{figure} /images/tutorial/mp-windows-3.png
+   :width: 423px
+   :alt: Multipass tray icon - Select "Open shell"
+```
+
+<!--
+![|423x241](https://assets.ubuntu.com/v1/33a6bf4d-mp-windows-3.png)
+-->
 
 Clicking this button does many things in the background. First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU. Second, it installs the most recent Ubuntu LTS release on that instance. Third, it mounts your `$HOME` directory in the instance. Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
@@ -536,15 +613,42 @@ Open a browser and type in the IP address of your instance into the address bar.
 `````{tabs}
 
 ````{group-tab} Linux
+
+```{figure} /images/tutorial/mp-linux-4.png
+   :width: 720px
+   :alt: Default Apache homepage
+```
+
+<!-- Original image on the Asset Manager
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-linux-4.png)
+-->
+
 ````
 
 ````{group-tab} macOS
+
+```{figure} /images/tutorial/mp-macos-5.png
+   :width: 720px
+   :alt: Default Apache homepage
+```
+
+<!-- Original image on the Asset Manager
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-macos-5.png)
+-->
+
 ````
 
 ````{group-tab} Windows
+
+```{figure} /images/tutorial/mp-windows-12.png
+   :width: 720px
+   :alt: Default Apache homepage
+```
+
+<!-- Original image on the Asset Manager
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-windows-12.png)
+-->
+
 ````
 
 `````
@@ -585,19 +689,47 @@ Mounts:         --
 
 Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
 
+```{figure} /images/tutorial/mp-linux-5.png
+   :width: 720px
+   :alt: Portainer login page
+```
+
+<!-- Original image on the Asset Manager
 ![|720x543](https://assets.ubuntu.com/v1/75a164a1-mp-linux-5.png)
+-->
 
 From there, select **Local** to manage a local Docker environment.
 
+```{figure} /images/tutorial/mp-linux-6.png
+   :width: 720px
+   :alt: Portainer - Select "Local"
+```
+
+<!-- Original image on the Asset Manager
 ![|720x601](https://assets.ubuntu.com/v1/ee3ff308-mp-linux-6.png)
+-->
 
-Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **app templates**, then select **NGINX**.
+Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **App Templates**, then select **NGINX**.
 
+```{figure} /images/tutorial/mp-linux-7.png
+   :width: 720px
+   :alt: Portainer - Select "App templates"
+```
+
+<!-- Original image on the Asset Manager
 ![|720x460](https://assets.ubuntu.com/v1/86be3eae-mp-linux-7.png)
+-->
 
 From the Portainer dashboard, you can see the ports available on nginx. To verify that you have nginx running in a Docker container inside Multipass, open a new web page and paste the IP address of your instance followed by one of the port numbers.
 
+```{figure} /images/tutorial/mp-linux-8.png
+   :width: 720px
+   :alt: Welcome to nginx! 
+```
+
+<!-- Original image on the Asset Manager
 ![|720x465](https://assets.ubuntu.com/v1/25585a03-mp-linux-8.png)
+-->
 
 ````
 
@@ -622,19 +754,47 @@ Mounts:         --
 
 Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
 
+```{figure} /images/tutorial/mp-macos-6.png
+   :width: 720px
+   :alt: Portainer login page
+```
+
+<!-- Original image on the Asset Manager
 ![|720x543](https://assets.ubuntu.com/v1/75a164a1-mp-macos-6.png)
+-->
 
 From there, select **Local** to manage a local Docker environment.
 
+```{figure} /images/tutorial/mp-macos-7.png
+   :width: 720px
+   :alt: Portainer - Select "Local"
+```
+
+<!-- Original image on the Asset Manager
 ![|720x601](https://assets.ubuntu.com/v1/ee3ff308-mp-macos-7.png)
+-->
 
-Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **app templates**, then select **NGINX**.
+Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **App Templates**, then select **NGINX**.
 
+```{figure} /images/tutorial/mp-macos-8.png
+   :width: 720px
+   :alt: Portainer - Select "App Templates"
+```
+
+<!-- Original image on the Asset Manager
 ![|720x460](https://assets.ubuntu.com/v1/86be3eae-mp-macos-8.png)
+-->
 
 From the Portainer dashboard, you can see the ports available on nginx. To verify that you have nginx running in a Docker container inside Multipass, open a new web page and paste the IP address of your instance followed by one of the port numbers.
 
+```{figure} /images/tutorial/mp-macos-9.png
+   :width: 720px
+   :alt: Welcome to nginx! 
+```
+
+<!-- Original image on the Asset Manager
 ![|720x465](https://assets.ubuntu.com/v1/25585a03-mp-macos-9.png)
+-->
 
 ````
 
@@ -659,19 +819,47 @@ Mounts:         --
 
 Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
 
+```{figure} /images/tutorial/mp-windows-14.png
+   :width: 720px
+   :alt: Portainer login page
+```
+
+<!-- Original image on the Asset Manager
 ![|720x601](https://assets.ubuntu.com/v1/75a164a1-mp-windows-14.png)
+-->
 
 From there, select **Local** to manage a local Docker environment.
 
+```{figure} /images/tutorial/mp-windows-15.png
+   :width: 720px
+   :alt: Portainer - Select "Local"
+```
+
+<!-- Original image on the Asset Manager
 ![|720x460](https://assets.ubuntu.com/v1/ee3ff308-mp-windows-15.png)
+-->
 
-Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **app templates**, then select **NGINX**.
+Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **App Templates**, then select **NGINX**.
 
+```{figure} /images/tutorial/mp-windows-16.png
+   :width: 720px
+   :alt: Portainer - Select "App templates"
+```
+
+<!-- Original image on the Asset Manager
 ![](https://assets.ubuntu.com/v1/86be3eae-mp-windows-16.png)
+-->
 
 From the Portainer dashboard, you can see the ports available on nginx. To verify that you have nginx running in a Docker container inside Multipass, open a new web page and paste the IP address of your instance followed by one of the port numbers.
 
+```{figure} /images/tutorial/mp-windows-17.png
+   :width: 720px
+   :alt: Welcome to nginx! 
+```
+
+<!-- Original image on the Asset Manager
 ![|720x465](https://assets.ubuntu.com/v1/f0b28200-mp-windows-17.png)
+-->
 
 ````
 
