@@ -75,12 +75,12 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
         return format_to(ctx.out(),
                          "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | CreateEndpoint: ({}) | "
                          "OpenEndpoint: ({}) | DeleteEndpoint: ({})",
-                         fmt::ptr(api.CreateNetwork.target<void*>()),
-                         fmt::ptr(api.OpenNetwork.target<void*>()),
-                         fmt::ptr(api.DeleteNetwork.target<void*>()),
-                         fmt::ptr(api.CreateEndpoint.target<void*>()),
-                         fmt::ptr(api.OpenEndpoint.target<void*>()),
-                         fmt::ptr(api.DeleteEndpoint.target<void*>()));
+                         static_cast<bool>(api.CreateNetwork),
+                         static_cast<bool>(api.OpenNetwork),
+                         static_cast<bool>(api.DeleteNetwork),
+                         static_cast<bool>(api.CreateEndpoint),
+                         static_cast<bool>(api.OpenEndpoint),
+                         static_cast<bool>(api.DeleteEndpoint));
     }
 };
 
