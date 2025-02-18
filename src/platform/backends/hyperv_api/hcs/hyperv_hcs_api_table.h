@@ -98,25 +98,23 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
     {
         return format_to(ctx.out(),
                          "CreateOperation: ({}) | WaitForOperationResult: ({}) | CreateComputeSystem: ({}) | "
-                         "OpenComputeSystem: ({}) | "
-                         "StartComputeSystem: ({}) | ShutDownComputeSystem: ({}) | PauseComputeSystem: ({}) | "
-                         "ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | GetComputeSystemProperties: ({}) | "
-                         "GrantVmAccess: ({}) | RevokeVmAccess: ({}) | EnumerateComputeSystems: ({})",
-                         fmt::ptr(api.CreateOperation.target<void*>()),
-                         fmt::ptr(api.WaitForOperationResult.target<void>()),
-                         fmt::ptr(api.CreateComputeSystem.target<void>()),
-                         fmt::ptr(api.OpenComputeSystem.target<void>()),
-                         fmt::ptr(api.StartComputeSystem.target<void>()),
-                         fmt::ptr(api.ShutDownComputeSystem.target<void>()),
-                         fmt::ptr(api.PauseComputeSystem.target<void>()),
-                         fmt::ptr(api.ResumeComputeSystem.target<void>()),
-                         fmt::ptr(api.ModifyComputeSystem.target<void>()),
-                         fmt::ptr(api.GetComputeSystemProperties.target<void>()),
-                         fmt::ptr(api.GrantVmAccess.target<void>()),
-                         fmt::ptr(api.RevokeVmAccess.target<void>()),
-                         fmt::ptr(api.EnumerateComputeSystems.target<void>())
-
-        );
+                         "OpenComputeSystem: ({}) | StartComputeSystem: ({}) | ShutDownComputeSystem: ({}) | "
+                         "PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
+                         "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
+                         "EnumerateComputeSystems: ({})",
+                         static_cast<bool>(api.CreateOperation),
+                         static_cast<bool>(api.WaitForOperationResult),
+                         static_cast<bool>(api.CreateComputeSystem),
+                         static_cast<bool>(api.OpenComputeSystem),
+                         static_cast<bool>(api.StartComputeSystem),
+                         static_cast<bool>(api.ShutDownComputeSystem),
+                         static_cast<bool>(api.PauseComputeSystem),
+                         static_cast<bool>(api.ResumeComputeSystem),
+                         static_cast<bool>(api.ModifyComputeSystem),
+                         static_cast<bool>(api.GetComputeSystemProperties),
+                         static_cast<bool>(api.GrantVmAccess),
+                         static_cast<bool>(api.RevokeVmAccess),
+                         static_cast<bool>(api.EnumerateComputeSystems));
     }
 };
 
