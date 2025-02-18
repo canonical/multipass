@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 function(add_target TARGET_NAME)
   if(LINUX)
     add_library(${TARGET_NAME} STATIC
