@@ -42,11 +42,6 @@ struct CreateEndpointParameters
      * Must be unique.
      */
     std::string endpoint_guid{};
-
-    /**
-     * The IPv[4-6] address to assign to the endpoint.
-     */
-    std::string endpoint_ipvx_addr{};
 };
 
 } // namespace multipass::hyperv::hcn
@@ -66,10 +61,9 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
     auto format(const multipass::hyperv::hcn::CreateEndpointParameters& params, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "Endpoint GUID: ({}) | Network GUID: ({}) | Endpoint IPvX Addr.: ({})",
+                         "Endpoint GUID: ({}) | Network GUID: ({})",
                          params.endpoint_guid,
-                         params.network_guid,
-                         params.endpoint_ipvx_addr);
+                         params.network_guid);
     }
 };
 
