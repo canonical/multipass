@@ -28,8 +28,7 @@ namespace multipass::hyperv::virtdisk
 {
 
 /**
- *
- *
+ * Abstract interface for the virtdisk wrapper.
  */
 struct VirtDiskWrapperInterface
 {
