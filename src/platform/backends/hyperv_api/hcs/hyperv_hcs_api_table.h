@@ -101,7 +101,7 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
                          "OpenComputeSystem: ({}) | StartComputeSystem: ({}) | ShutDownComputeSystem: ({}) | "
                          "PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
                          "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
-                         "EnumerateComputeSystems: ({})",
+                         "EnumerateComputeSystems: ({}) | LocalFree: ({})",
                          static_cast<bool>(api.CreateOperation),
                          static_cast<bool>(api.WaitForOperationResult),
                          static_cast<bool>(api.CreateComputeSystem),
@@ -114,7 +114,8 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
                          static_cast<bool>(api.GetComputeSystemProperties),
                          static_cast<bool>(api.GrantVmAccess),
                          static_cast<bool>(api.RevokeVmAccess),
-                         static_cast<bool>(api.EnumerateComputeSystems));
+                         static_cast<bool>(api.EnumerateComputeSystems),
+                         static_cast<bool>(api.LocalFree));
     }
 };
 
