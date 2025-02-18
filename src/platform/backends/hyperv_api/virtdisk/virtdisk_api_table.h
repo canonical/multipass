@@ -68,11 +68,11 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
         return format_to(ctx.out(),
                          "CreateVirtualDisk: ({}) | OpenVirtualDisk ({}) | ResizeVirtualDisk: ({}) | "
                          "GetVirtualDiskInformation: ({}) | CloseHandle: ({})",
-                         fmt::ptr(api.CreateVirtualDisk.target<void>()),
-                         fmt::ptr(api.OpenVirtualDisk.target<void>()),
-                         fmt::ptr(api.ResizeVirtualDisk.target<void>()),
-                         fmt::ptr(api.GetVirtualDiskInformation.target<void>()),
-                         fmt::ptr(api.CloseHandle.target<void>()));
+                         static_cast<bool>(api.CreateVirtualDisk),
+                         static_cast<bool>(api.OpenVirtualDisk),
+                         static_cast<bool>(api.ResizeVirtualDisk),
+                         static_cast<bool>(api.GetVirtualDiskInformation),
+                         static_cast<bool>(api.CloseHandle));
     }
 };
 
