@@ -131,29 +131,31 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
-{
-    "Name": "multipass-hyperv-api-hcn-create-test",
-    "Type": "ICS",
-    "Subnets" : [
-        {
-            "GatewayAddress": "172.50.224.1",
-            "AddressPrefix" : "172.50.224.0/20",
-            "IpSubnets" : [
-                {
-                    "IpAddressPrefix": "172.50.224.0/20"
-                }
-            ]
-        }
-    ],
-    "IsolateSwitch": true,
-    "Flags" : 265
-}
-)""";
+                    {
+                        "Name": "multipass-hyperv-api-hcn-create-test",
+                        "Type": "ICS",
+                        "Subnets" : [
+                            {
+                                "GatewayAddress": "172.50.224.1",
+                                "AddressPrefix" : "172.50.224.0/20",
+                                "IpSubnets" : [
+                                    {
+                                        "IpAddressPrefix": "172.50.224.0/20"
+                                    }
+                                ]
+                            }
+                        ],
+                        "IsolateSwitch": true,
+                        "Flags" : 265
+                    }
+                    )""";
                     ASSERT_NE(nullptr, network);
                     ASSERT_EQ(nullptr, *network);
                     ASSERT_NE(nullptr, error_record);
                     ASSERT_EQ(nullptr, *error_record);
-                    ASSERT_STREQ(settings, expected_network_settings);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
                     const auto guid_str = hyperv::guid_to_string(id);
                     ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", guid_str);
                     *network = mock_network_object;
@@ -425,20 +427,20 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
             .WillOnce(DoAll(
                 [&](HCN_NETWORK network, REFGUID id, PCWSTR settings, PHCN_ENDPOINT endpoint, PWSTR* error_record) {
                     constexpr auto expected_endpoint_settings = LR"""(
-{
-    "SchemaVersion": {
-        "Major": 2,
-        "Minor": 16
-    },
-    "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
-    "Policies": [
-    ],
-    "IpConfigurations": [
-        {
-            "IpAddress": "172.50.224.27"
-        }
-    ]
-})""";
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 16
+                        },
+                        "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
+                        "Policies": [
+                        ],
+                        "IpConfigurations": [
+                            {
+                                "IpAddress": "172.50.224.27"
+                            }
+                        ]
+                    })""";
 
                     ASSERT_NE(nullptr, network);
                     ASSERT_EQ(mock_network_object, network);
@@ -446,7 +448,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                     ASSERT_EQ(nullptr, *error_record);
                     ASSERT_NE(nullptr, endpoint);
                     ASSERT_EQ(nullptr, *endpoint);
-                    ASSERT_STREQ(settings, expected_endpoint_settings);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_endpoint_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
                     const auto endpoint_guid_str = hyperv::guid_to_string(id);
                     ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", endpoint_guid_str);
                     *endpoint = mock_endpoint_object;
@@ -580,24 +584,26 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
             .WillOnce(DoAll(
                 [&](HCN_NETWORK network, REFGUID id, PCWSTR settings, PHCN_ENDPOINT endpoint, PWSTR* error_record) {
                     constexpr auto expected_endpoint_settings = LR"""(
-{
-    "SchemaVersion": {
-        "Major": 2,
-        "Minor": 16
-    },
-    "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
-    "Policies": [
-    ],
-    "IpConfigurations": [
-        {
-            "IpAddress": "172.50.224.27"
-        }
-    ]
-})""";
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 16
+                        },
+                        "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
+                        "Policies": [
+                        ],
+                        "IpConfigurations": [
+                            {
+                                "IpAddress": "172.50.224.27"
+                            }
+                        ]
+                    })""";
 
                     ASSERT_EQ(mock_network_object, network);
                     ASSERT_NE(nullptr, error_record);
-                    ASSERT_STREQ(settings, expected_endpoint_settings);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_endpoint_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
                     const auto expected_endpoint_guid_str = hyperv::guid_to_string(id);
                     ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", expected_endpoint_guid_str);
                     *endpoint = mock_endpoint_object;
