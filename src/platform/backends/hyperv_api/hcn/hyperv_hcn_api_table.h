@@ -74,13 +74,14 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
     {
         return format_to(ctx.out(),
                          "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | CreateEndpoint: ({}) | "
-                         "OpenEndpoint: ({}) | DeleteEndpoint: ({})",
+                         "OpenEndpoint: ({}) | DeleteEndpoint: ({}) | CoTaskMemFree: ({})",
                          static_cast<bool>(api.CreateNetwork),
                          static_cast<bool>(api.OpenNetwork),
                          static_cast<bool>(api.DeleteNetwork),
                          static_cast<bool>(api.CreateEndpoint),
                          static_cast<bool>(api.OpenEndpoint),
-                         static_cast<bool>(api.DeleteEndpoint));
+                         static_cast<bool>(api.DeleteEndpoint),
+                         static_cast<bool>(api.CoTaskMemFree));
     }
 };
 

@@ -21,7 +21,6 @@
 #include "../hyperv_api_operation_result.h"
 
 #include <string>
-#include <strsafe.h>
 
 namespace multipass::hyperv::hcn
 {
