@@ -255,6 +255,29 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         return result;
     }();
 
+    const auto network_adapters = [&]() {
+        std::wstring result = {};
+
+        constexpr auto network_adapter_template = LR"(
+                "{0}": {{
+                    "EndpointId" : "{0}",
+                    "MacAddress": "{1}"
+                }},)";
+
+        for (const auto& endpoint : params.endpoints)
+        {
+            result += fmt::format(network_adapter_template,
+                                  string_to_wstring(endpoint.endpoint_guid),
+                                  string_to_wstring(endpoint.nic_mac_address));
+        }
+
+        // Remove the last comma.
+        if (!result.empty())
+            result.pop_back();
+
+        return result;
+    }();
+
     // Ideally, we should codegen from the schema
     // and use that.
     // https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/refs/heads/main/hyperv-samples/hcs-samples/JSON_files/HCS_Schema%5BWindows_10_SDK_version_1809%5D.json
