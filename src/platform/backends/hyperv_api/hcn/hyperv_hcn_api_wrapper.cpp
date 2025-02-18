@@ -26,7 +26,6 @@
 #include <multipass/utils.h>
 
 // clang-format off
-#include <type_traits>
 #include <windows.h>
 #include <computecore.h>
 #include <computedefs.h>
@@ -42,6 +41,7 @@
 
 #include <cassert>
 #include <string>
+#include <type_traits>
 
 namespace multipass::hyperv::hcn
 {
@@ -62,52 +62,6 @@ using lvl = mpl::Level;
  * Category for the log messages.
  */
 constexpr auto kLogCategory = "HyperV-HCN-Wrapper";
-
-// ---------------------------------------------------------
-
-/**
- * HcnCreateNetwork settings JSON template
- */
-constexpr auto network_settings_template = LR"""(
-{{
-    "Name": "{0}",
-    "Type": "ICS",
-    "Subnets" : [
-        {{
-            "GatewayAddress": "{2}",
-            "AddressPrefix" : "{1}",
-            "IpSubnets" : [
-                {{
-                    "IpAddressPrefix": "{1}"
-                }}
-            ]
-        }}
-    ],
-    "IsolateSwitch": true,
-    "Flags" : 265
-}}
-)""";
-
-// ---------------------------------------------------------
-
-/**
- * HcnCreateEndpoint settings JSON template
- */
-constexpr auto endpoint_settings_template = LR"(
-{{
-    "SchemaVersion": {{
-        "Major": 2,
-        "Minor": 16
-    }},
-    "HostComputeNetwork": "{0}",
-    "Policies": [
-    ],
-    "IpConfigurations": [
-        {{
-            "IpAddress": "{1}"
-        }}
-    ]
-}})";
 
 // ---------------------------------------------------------
 
@@ -198,6 +152,29 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 {
     mpl::log(lvl::trace, kLogCategory, fmt::format("HCNWrapper::create_network(...) > params: {} ", params));
 
+    /**
+     * HcnCreateNetwork settings JSON template
+     */
+    constexpr auto network_settings_template = LR"""(
+    {{
+        "Name": "{0}",
+        "Type": "ICS",
+        "Subnets" : [
+            {{
+                "GatewayAddress": "{2}",
+                "AddressPrefix" : "{1}",
+                "IpSubnets" : [
+                    {{
+                        "IpAddressPrefix": "{1}"
+                    }}
+                ]
+            }}
+        ],
+        "IsolateSwitch": true,
+        "Flags" : 265
+    }}
+    )""";
+
     // Render the template
     const auto network_settings = fmt::format(network_settings_template,
                                               string_to_wstring(params.name),
@@ -243,6 +220,25 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
     {
         return {E_POINTER, L"Could not open the network!"};
     }
+
+    /**
+     * HcnCreateEndpoint settings JSON template
+     */
+    constexpr auto endpoint_settings_template = LR"(
+    {{
+        "SchemaVersion": {{
+            "Major": 2,
+            "Minor": 16
+        }},
+        "HostComputeNetwork": "{0}",
+        "Policies": [
+        ],
+        "IpConfigurations": [
+            {{
+                "IpAddress": "{1}"
+            }}
+        ]
+    }})";
 
     // Render the template
     const auto endpoint_settings = fmt::format(endpoint_settings_template,
