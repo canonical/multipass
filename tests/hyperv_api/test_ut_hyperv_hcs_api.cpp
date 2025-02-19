@@ -2597,21 +2597,22 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_wait_for_operation_
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_happy_path)
 {
     static wchar_t result_doc[21] = L"{\"State\": \"Running\"}";
-    static wchar_t expected_state[8] = L"Running";
 
     generic_operation_happy_path<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...) > name: (test_vm)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::running); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
             ASSERT_EQ(propertyQuery, nullptr);
         },
-        result_doc,
-        expected_state);
+        result_doc);
 }
 
 // ---------------------------------------------------------
@@ -2619,33 +2620,41 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_happy_path)
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_no_state)
 {
     static wchar_t result_doc[21] = L"{\"Frodo\": \"Baggins\"}";
-    static wchar_t expected_state[8] = L"Unknown";
 
     generic_operation_happy_path<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::stopped); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
             ASSERT_EQ(propertyQuery, nullptr);
         },
-        result_doc,
-        expected_state);
+        result_doc);
 }
 
 // ---------------------------------------------------------
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_hcs_open_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
+    static wchar_t expected_status_msg[] = L"HcsOpenComputeSystem failed!";
     generic_operation_hcs_open_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state, result]() {
+                ASSERT_EQ(state, decltype(state)::unknown);
+                ASSERT_EQ(static_cast<HRESULT>(result.code), E_INVALIDARG);
+            }();
+
+            return result;
         },
         expected_status_msg);
 }
@@ -2654,12 +2663,15 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_create_operation_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
+    static wchar_t expected_status_msg[] = L"HcsCreateOperation failed!";
     generic_operation_create_operation_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
+            return result;
         },
         expected_status_msg);
 }
@@ -2668,13 +2680,16 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_create_operation_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
+    static wchar_t expected_status_msg[] = L"HCS operation failed!";
 
     generic_operation_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2688,13 +2703,14 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_wait_for_operation_result_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
-
     generic_operation_wait_for_operation_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2702,7 +2718,7 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_wait_for_operation_resul
             ASSERT_EQ(nullptr, propertyQuery);
         },
         nullptr,
-        expected_status_msg);
+        nullptr);
 }
 
 } // namespace multipass::test
