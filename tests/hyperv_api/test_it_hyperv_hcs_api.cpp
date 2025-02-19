@@ -28,9 +28,41 @@ using uut_t = hyperv::hcs::HCSWrapper;
 
 struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
 {
+    void SetUp() override
+    {
+        uut_t uut{};
+        (void)uut.terminate_compute_system("test");
+    }
 };
 
 TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
+{
+
+    uut_t uut{};
+
+    hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+
+    hyperv::hcs::CreateComputeSystemParameters params{};
+    params.name = "test";
+    params.memory_size_mb = 1024;
+    params.processor_count = 1;
+    params.cloudinit_iso_path = "";
+    params.vhdx_path = "";
+
+    const auto c_result = uut.create_compute_system(params);
+    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_EQ(state, decltype(state)::stopped);
+
+    ASSERT_TRUE(c_result);
+    ASSERT_TRUE(c_result.status_msg.empty());
+
+    const auto d_result = uut.terminate_compute_system(params.name);
+    ASSERT_TRUE(d_result);
+    std::wprintf(L"%s\n", d_result.status_msg.c_str());
+    ASSERT_FALSE(d_result.status_msg.empty());
+}
+
+TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
 {
 
     uut_t uut{};
@@ -42,15 +74,25 @@ TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
     params.cloudinit_iso_path = "";
     params.vhdx_path = "";
 
-    const auto c_result = uut.create_compute_system(params);
-
-    ASSERT_TRUE(c_result);
-    ASSERT_TRUE(c_result.status_msg.empty());
-
+    hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+    ASSERT_TRUE(uut.create_compute_system(params));
+    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_EQ(state, decltype(state)::stopped);
+    ASSERT_TRUE(uut.start_compute_system(params.name));
+    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_EQ(state, decltype(state)::running);
+    ASSERT_TRUE(uut.pause_compute_system(params.name));
+    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_EQ(state, decltype(state)::paused);
+    ASSERT_TRUE(uut.resume_compute_system(params.name));
+    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_EQ(state, decltype(state)::running);
     const auto d_result = uut.terminate_compute_system(params.name);
     ASSERT_TRUE(d_result);
-    std::wprintf(L"%s\n", d_result.status_msg.c_str());
+    std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
     ASSERT_FALSE(d_result.status_msg.empty());
+
+    ASSERT_FALSE(uut.get_compute_system_state(params.name, state));
 }
 
 TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
