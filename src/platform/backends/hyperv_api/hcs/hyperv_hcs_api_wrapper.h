@@ -222,11 +222,13 @@ struct HCSWrapper : public HCSWrapperInterface
      * Retrieve the current state of the compute system.
      *
      * @param [in] compute_system_name Target compute system's name
+     * @param [out] state_out Variable to write the compute system's state
      *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult get_compute_system_state(const std::string& compute_system_name) const override;
+    [[nodiscard]] OperationResult get_compute_system_state(const std::string& compute_system_name,
+                                                           ComputeSystemState& state_out) const override;
 
 private:
     const HCSAPITable api{};
