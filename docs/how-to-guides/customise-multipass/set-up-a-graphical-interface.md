@@ -80,9 +80,9 @@ In this example, we will use the IP address `10.49.93.209` to connect to the RDP
 If the IP address of the instance is not displayed in the output of `multipass list`, you can obtain it directly from the instance, with the command `ip addr`.
 ```
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 On Linux, there are applications such as Remmina to visualise the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
 
@@ -98,13 +98,13 @@ The system will ask for a username (`ubuntu`) and the password set above, and th
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 To connect on macOS, we can use the “Microsoft Remote Desktop” application, from the Mac App Store.
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 On Windows, we can connect to the RDP server with the “Remote Desktop Connection” application. There, we enter the virtual machine’s IP address, set the session to XOrg and enter the username and password we created on the previous step.
 
@@ -118,9 +118,9 @@ And we are done... a graphical desktop!
 
 It might be the case that we only want Multipass to launch one application and to see only that window, without having the need for a complete desktop. It turns out that this setup is simpler than the RDP approach, because we do not need the Multipass instance to deploy a full desktop. Instead, we can use X11 to connect the applications in the instance with the graphical capabilities of the host.
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 Linux runs X by default, so no extra software in the host is needed.
 
@@ -155,7 +155,7 @@ A small window containing the X logo will show up. Done!
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 The first step in Mac is to make sure a X server is running. The easiest way is to install [XQuartz](https://www.xquartz.org).
 
@@ -167,7 +167,7 @@ Note to Apple Silicon users: some applications requiring OpenGL will not work th
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 Windows knows nothing about X, therefore we need to install an X server. Here we will use [VcXsrv](https://sourceforge.net/projects/vcxsrv/). Other options would be [Xming](http://www.straightrunning.com/XmingNotes/) (the newest versions are paid, but older versions can still be downloaded for free from their [SourceForge site](https://sourceforge.net/projects/xming/)) or installing an X server in [Cygwin](https://cygwin.com/).
 

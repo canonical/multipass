@@ -7,21 +7,21 @@ This document demonstrates how to choose, set up, and manage the drivers behind 
 
 ## Default driver
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 By default, Multipass on Linux uses the `qemu` or `lxd` driver (depending on the architecture).
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 By default, Multipass on macOS uses the `qemu` driver.
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 By default, Multipass on Windows uses the `hyperv` driver.
 
@@ -31,9 +31,9 @@ By default, Multipass on Windows uses the `hyperv` driver.
 
 ## Install an alternative driver
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) driver.
 
@@ -64,7 +64,7 @@ You can still use the `multipass` client and the tray icon, and any changes you 
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 An alternative option is to use VirtualBox.
 
@@ -78,7 +78,7 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 If you want to (or have to), you can change the hypervisor that Multipass uses to VirtualBox.
 
@@ -102,9 +102,9 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 ## Use the driver to view Multipass instances
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
 
@@ -127,7 +127,7 @@ Alternatively, to use the `virt-manager` GUI, ...
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
 
@@ -154,7 +154,7 @@ You can still use the `multipass` client and the system menu icon, and any chang
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 Multipass runs as the _System_ account, so to see the instances in VirtualBox, or through the `VBoxManage` command, you have to run those as that user via [`PsExec -s`](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec). Download and unpack [PSTools.zip](https://download.sysinternals.com/files/PSTools.zip) in your *Downloads* folder, and in an administrative PowerShell, run:
 
@@ -162,7 +162,7 @@ Multipass runs as the _System_ account, so to see the instances in VirtualBox, o
 & $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s -i $env:VBOX_MSI_INSTALL_PATH\VirtualBox.exe
 ```
 
-![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager)
+![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager.png)
 
 To list the instances on the command line:
 
@@ -187,15 +187,15 @@ You can still use the `multipass` client and the system menu icon, and any chang
 
 ## Use VirtualBox to set up port forwarding for a Multipass instance
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 This option only applies to macOS and Windows systems.
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 To expose a service running inside the instance on your host, you can use [VirtualBox's port forwarding feature](https://www.virtualbox.org/manual/ch06.html#natforward), for example:
 
@@ -207,7 +207,7 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 To expose a service running inside the instance on your host, you can use [VirtualBox's port forwarding feature](https://www.virtualbox.org/manual/ch06.html#natforward), for example:
 
@@ -223,15 +223,15 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 
 ## Use VirtualBox to set up network bridging for a Multipass instance
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 This option only applies to macOS systems.
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 An often requested Multipass feature is network bridging. You can add a second network interface to the instance and expose it on your physical network.
 
@@ -322,7 +322,7 @@ All the services running inside the instance should now be available on your phy
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 This option only applies to macOS systems.
 
@@ -334,9 +334,9 @@ This option only applies to macOS systems.
 
 > See also: {ref}`reference-command-line-interface-stop`, {ref}`reference-settings-local-driver`
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 To switch back to the default `qemu` driver, first you need to stop all instances again:
 
@@ -353,7 +353,7 @@ This will make you lose any customisations you made to the instance in `libvirt`
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 If you want to switch back to the default driver, run:
 
@@ -365,7 +365,7 @@ Instances created with VirtualBox don't get transferred, but you can always come
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 If you want to switch back to the default driver:
 
