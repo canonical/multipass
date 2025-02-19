@@ -175,7 +175,7 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
         mpl::error(kLogCategory,
                    "perform_hcs_operation(...) > HcsOpenComputeSystem failed! {}",
                    target_hcs_system_name);
-        return OperationResult{E_POINTER, L"HcsOpenComputeSystem failed!"};
+        return OperationResult{E_INVALIDARG, L"HcsOpenComputeSystem failed!"};
     }
 
     auto operation = create_operation(api);
@@ -523,27 +523,30 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_system_name) const
+OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_system_name,
+                                                     ComputeSystemState& state_out) const
 {
     mpl::debug(kLogCategory, "get_compute_system_state(...) > name: ({})", compute_system_name);
 
     const auto result = perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, nullptr);
+
     if (!result)
-    {
-        return {result.code, L"Unknown"};
-    }
+        return result;
 
-    const QString qstr{QString::fromStdWString(result.status_msg)};
-    const auto doc = QJsonDocument::fromJson(qstr.toUtf8());
-    const auto obj = doc.object();
-    if (obj.contains("State"))
-    {
-        const auto state = obj["State"];
-        const auto state_str = state.toString();
-        return {result.code, state_str.toStdWString()};
-    }
+    state_out = [json = result.status_msg]() {
+        QString qstr{QString::fromStdWString(json)};
+        const auto doc = QJsonDocument::fromJson(qstr.toUtf8());
+        const auto obj = doc.object();
+        if (obj.contains("State"))
+        {
+            const auto state = obj["State"];
+            const auto state_str = state.toString();
+            return compute_system_state_from_string(state_str.toStdString());
+        }
+        return ComputeSystemState::stopped;
+    }();
 
-    return {result.code, L"Unknown"};
+    return {result.code, L""};
 }
 
 } // namespace multipass::hyperv::hcs
