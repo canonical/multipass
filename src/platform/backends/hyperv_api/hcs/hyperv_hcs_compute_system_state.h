@@ -51,7 +51,7 @@ enum class ComputeSystemState : std::uint8_t
 inline std::optional<ComputeSystemState> compute_system_state_from_string(std::string str)
 {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
-    // std::unordered_map
+
     static const std::unordered_map<std::string, ComputeSystemState> translation_map{
         {"created", ComputeSystemState::created},
         {"running", ComputeSystemState::running},
