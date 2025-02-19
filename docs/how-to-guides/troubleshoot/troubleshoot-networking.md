@@ -332,10 +332,6 @@ Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\h
 
 Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
 
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/troubleshoot-networking" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
-
+<!-- Discourse contributors
 <small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @candlerb , @sergiusens , @nhart , @andreitoterman , @tmihoc , @luisp , @ricab , @gzanchi , @naynayu , @QuantumLibet </small>
+-->

@@ -873,13 +873,9 @@ There's more to learn about Multipass and its capabilities. Check out our [How-t
 
 Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/project/multipass/21/) and let us know what you are doing with your instances!
 
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/tutorial" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
-
+<!-- Discourse contributors
 <small>**Contributors:** @nhart, @saviq, @townsend, @andreitoterman, @tmihoc, @luisp, @ricab, @sharder996, @georgeliaojia, @mscho7969, @itecompro, @mr-cal, @sally-makin, @gzanchi, @bagustris , @pitifulpete </small>
+-->
 
 <!-- Hiding for now, this will be useful to have when we have more than one tutorial.
 When that's the case, the title of the page also needs to change to "Tutorials".

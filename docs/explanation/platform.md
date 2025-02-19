@@ -27,7 +27,3 @@ While we strive to offer a uniform interface across the board, not all features 
 - Different *drivers* are available on different platforms. This affects the [`local.driver`](/reference/settings/local-driver) setting. See [driver](/explanation/driver) for further behaviour differences depending on what driver is selected.
 - *Bridging Wi-Fi networks* is only supported at the moment on macOS. Thus, Wi-Fi networks are not shown in the output of the [`networks`](/reference/command-line-interface/networks) command on Linux and Windows.
 -->
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/platform" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

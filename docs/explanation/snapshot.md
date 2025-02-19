@@ -22,7 +22,3 @@ An instance's disk contents are recorded by snapshots in layers: each new snapsh
 - Long chains of snapshots have a detrimental effect on performance. Since they rely on layers of disk diffs, the more snapshots there are in a sequence, the more hops are necessary to read data that is recorded by the most ancient layers.
 - While snapshots are useful to save and recover instance states, their utility as safe backups is limited. Since they are stored in the same medium as the original images, they are as likely to be affected by disk failures.
 ```
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/snapshot" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
