@@ -38,7 +38,7 @@ You can configure an instance's launch options, specifying parameters such as it
 
 ```{figure} /images/gui-client/multipass-gui-configure-instance.png
    :width: 720px
-   :alt: GUI client - Configure instance 
+   :alt: GUI client - Configure instance
 ```
 
 <!-- Original image on the Asset Manager

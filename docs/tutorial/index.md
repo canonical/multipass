@@ -724,7 +724,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ```{figure} /images/tutorial/mp-linux-8.png
    :width: 720px
-   :alt: Welcome to nginx! 
+   :alt: Welcome to nginx!
 ```
 
 <!-- Original image on the Asset Manager
@@ -789,7 +789,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ```{figure} /images/tutorial/mp-macos-9.png
    :width: 720px
-   :alt: Welcome to nginx! 
+   :alt: Welcome to nginx!
 ```
 
 <!-- Original image on the Asset Manager
@@ -854,7 +854,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ```{figure} /images/tutorial/mp-windows-17.png
    :width: 720px
-   :alt: Welcome to nginx! 
+   :alt: Welcome to nginx!
 ```
 
 <!-- Original image on the Asset Manager
