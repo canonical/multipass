@@ -70,7 +70,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = "https://canonical.com/multipass/docs"
+ogp_site_url = "https://documentation.ubuntu.com/multipass"
 
 
 # Preview name of the documentation website
@@ -106,7 +106,7 @@ html_context = {
     # TODO: If there's no such website,
     #       remove the {{ product_page }} link from the page header template
     #       (usually .sphinx/_templates/header.html; also, see README.rst).
-    "product_page": "documentation.ubuntu.com",
+    "product_page": "canonical.com/multipass",
     # Product tag image; the orange part of your logo, shown in the page header
     #
     # TODO: To add a tag image, uncomment and update as needed.
@@ -117,15 +117,15 @@ html_context = {
     #
     # NOTE: If set, adding ':discourse: 123' to an .rst file
     #       will add a link to Discourse topic 123 at the bottom of the page.
-    "discourse": "https://discourse.ubuntu.com",
+    "discourse": "https://discourse.ubuntu.com/c/project/multipass/21",
     # Your Mattermost channel URL
     #
     # TODO: Change to your Mattermost channel URL or leave empty.
-    "mattermost": "https://chat.canonical.com/canonical/channels/documentation",
+    "mattermost": "https://chat.canonical.com/canonical/channels/multipass",
     # Your Matrix channel URL
     #
     # TODO: Change to your Matrix channel URL or leave empty.
-    "matrix": "https://matrix.to/#/#documentation:ubuntu.com",
+    "matrix": "https://app.element.io/#/room/#Multipass:matrix.org",
     # Your documentation GitHub repository URL
     #
     # TODO: Change to your documentation GitHub repository URL or leave empty.
@@ -145,9 +145,15 @@ html_context = {
     # Valid options: none, prev, next, both
     # "sequential_nav": "both",
     # TODO: To enable listing contributors on individual pages, set to True
-    "display_contributors": False,
+    "display_contributors": True,
     # The following line enables the "Give feedback" button.
     "github_issues": "enabled",
+}
+
+html_theme_options = {
+    "source_repository": "https://github.com/canonical/multipass",
+    "source_branch": "main",
+    "source_directory": "docs/", 
 }
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
@@ -155,7 +161,7 @@ html_context = {
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-# slug = ''
+slug = 'multipass'
 
 
 # Template and asset locations
@@ -273,10 +279,6 @@ rst_epilog = """
 # TODO: To disable the button, uncomment this.
 
 # disable_feedback_button = True
-
-# NOTE TO GIULIA: This line was suggested by Shane to enable the feedback button,
-# but it doesn't work at the moment.
-# 'github_issues': 'enabled',
 
 # Your manpage URL
 #
