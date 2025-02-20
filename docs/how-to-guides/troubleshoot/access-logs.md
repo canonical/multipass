@@ -5,6 +5,8 @@ Logs are our first go-to when something goes wrong. Multipass is comprised of a 
 
 The `multipass` command accepts the `--verbose` option (`-v` for short), which can be repeated to go from the default (*error*) level through *warning*, *info*, *debug* up to *trace*.
 
+> See also: [Logging levels](/reference/logging-levels), [Configure Multipass’s default logging level](/how-to-guides/customise-multipass/configure-multipass-default-logging-level), 
+
 We use the underlying platform's logging facilities to ensure you get the familiar behaviour wherever you are.
 
 `````{tabs}

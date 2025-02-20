@@ -13,9 +13,9 @@ The name of the interface to connect the instance to when the shortcut `launch -
 
 ## Possible values
 
-Any name from [`multipass networks`](/reference/command-line-interface/networks).
+Any name from the output of [`multipass networks`](/reference/command-line-interface/networks).
 
-Validation is deferred to [`multipass launch`](/reference/command-line-interface/launch).
+Validation is deferred to the [`launch`](/reference/command-line-interface/launch) command.
 
 ## Examples
 

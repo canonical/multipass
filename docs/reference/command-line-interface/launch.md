@@ -3,7 +3,7 @@
 
 The `multipass launch` command without any argument will create and start a new instance based on the default image, using a random generated name; for example:
 
-```
+```{code-block} text
 ...
 Launched: relishing-lionfish
 ```

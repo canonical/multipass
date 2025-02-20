@@ -9,7 +9,7 @@ To achieve this, a snapshot records all mutable properties of an instance, that 
 
 You can take a snapshot of an instance with the [`snapshot`](/reference/command-line-interface/snapshot) command, and restore it with the [`restore`](/reference/command-line-interface/restore) command. Taking and restoring a snapshot requires the instance to be stopped.
 
-You can view a list of the available snapshots with `multipass list --snapshots` and the details of a particular snapshot with `multipass info <instance>.<snapshot>`. To delete a snapshot, use the [`multipass delete`](/reference/command-line-interface/delete) command.
+You can view a list of the available snapshots with `multipass list --snapshots` and the details of a particular snapshot with `multipass info <instance>.<snapshot>`. To delete a snapshot, use the [`delete`](/reference/command-line-interface/delete) command.
 
 > See also: [`list`](/reference/command-line-interface/list), [`info`](/reference/command-line-interface/info)
 

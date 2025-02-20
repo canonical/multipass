@@ -9,7 +9,7 @@ This guide demonstrates how to create, list, run and remove aliases for commands
 
 > See also: [`alias`](/reference/command-line-interface/alias)
 
-To create an alias that runs a command on a given instance, use the command [`multipass alias`](/reference/command-line-interface/alias). The code below uses this command to create an alias `lscc` that will run the command `ls` inside an instance `crazy-cat`:
+To create an alias that runs a command on a given instance, use the [`alias`](/reference/command-line-interface/alias) command. The code below uses this command to create an alias `lscc` that will run the command `ls` inside an instance `crazy-cat`:
 
 ```{code-block} text
 multipass alias crazy-cat:ls lscc

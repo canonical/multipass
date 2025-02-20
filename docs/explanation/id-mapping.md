@@ -9,7 +9,7 @@ Since ID mappings take effect from host to instance, as well as in the opposite 
 
 For example, the user ID `501` can be mapped to the user ID `1000` in the "foo" instance:
 
-```
+```{code-block} text
 multipass mount ~/Documents foo:Documents -u 501:1000
 ```
 
@@ -19,7 +19,7 @@ On the other hand, it is not possible to map this same user to a second user ID 
 
 Instead, a valid mount that maps two different user IDs could be defined as follows:
 
-```
+```{code-block} text
 multipass mount ~/Documents foo:Documents -u 501:1000 -u 502:1001
 ```
 

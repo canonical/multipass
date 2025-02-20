@@ -29,4 +29,4 @@ Instances in Multipass can be in a number of different states:
 - `Unknown`: The state of the instance cannot be determined or retrieved. This might occur due to unexpected errors or issues with Multipass.
 -->
 
-These instance states reflect the various stages an instance can be in while using Multipass. Instances in different states can accept different commands. See [Command-Line-Interface](/reference/command-line-interface/index) for more information on which commands can be used and when.
+These instance states reflect the various stages an instance can be in while using Multipass. Instances in different states can accept different commands. See [Command-line interface](/reference/command-line-interface/index) for more information on which commands can be used and when.

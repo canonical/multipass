@@ -11,14 +11,14 @@ The first step is to create a new bridge/switch with a static IP on your host.
 
 This is beyond the scope of Multipass but, as an example, here is how this can be achieved with NetworkManager on Linux (e.g. on Ubuntu Desktop):
 
-```
+```{code-block} text
 nmcli connection add type bridge con-name localbr ifname localbr \
     ipv4.method manual ipv4.addresses 10.13.31.1/24
 ```
 
 This will create a bridge named `localbr` with IP `10.13.31.1/24`. You can see the new device and address with `ip -c -br addr show dev localbr`. This should show:
 
-```
+```{code-block} text
 localbr           DOWN           10.13.31.1/24
 ```
 
@@ -28,7 +28,7 @@ You can also run `multipass networks` to confirm the bridge is available for Mul
 
 Next we launch an instance with an extra network in manual mode, connecting it to this bridge:
 
-```
+```{code-block} text
 multipass launch --name test1 --network name=localbr,mode=manual,mac="52:54:00:4b:ab:cd"
 ```
 
@@ -38,7 +38,7 @@ You can also leave the MAC address unspecified (just `--network name=localbr,mod
 
 We now need to configure the manual network interface inside the instance. We can achieve that using Netplan. The following command plants the required Netplan configuration file in the instance:
 
-```
+```{code-block} text
 multipass exec -n test1 -- sudo bash -c 'cat << EOF > /etc/netplan/10-custom.yaml
 network:
     version: 2
@@ -59,7 +59,7 @@ If you want to set a different name for the interface, you can add a [`set-name`
 
 We now tell Netplan to apply the new configuration inside the instance:
 
-```
+```{code-block} text
 multipass exec -n test1 -- sudo netplan apply
 ```
 
@@ -69,19 +69,19 @@ You may also use `netplan try`, to have the outcome reverted if something goes w
 
 You can confirm that the new IP is present in the instance with Multipass:
 
-```
+```{code-block} text
 multipass info test1
 ```
 
 The command above should show two IPs, the second of which is the one we just configured (`10.13.31.13`). You can use `ping` to confirm that it can be reached from the host:
 
-```
+```{code-block} text
 ping 10.13.31.13
 ```
 
 Conversely, you can also ping from the instance to the host:
 
-```
+```{code-block} text
 multipass exec -n test1 -- ping 10.13.31.1
 ```
 
@@ -89,7 +89,7 @@ multipass exec -n test1 -- ping 10.13.31.1
 
 If desired, repeat steps 2-5 with different names/MACs/IP terminations (e.g. `10.13.31.14`) to launch other instances with static IPs in the same network. You can ping from one instance to another to confirm that they are connected. For example:
 
-```
+```{code-block} text
 multipass exec -n test1 -- ping 10.13.31.14
 ```
 

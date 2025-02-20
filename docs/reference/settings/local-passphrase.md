@@ -9,7 +9,7 @@
 
 ## Description
 
-Passphrase used by clients requesting access to the Multipass service via the [`multipass authenticate`](/reference/command-line-interface/authenticate) command.
+Passphrase used by clients requesting access to the Multipass service via the [`authenticate`](/reference/command-line-interface/authenticate) command.
 
 The passphrase can be given directly in the command line; if omitted, the user will be prompted to enter it.
 

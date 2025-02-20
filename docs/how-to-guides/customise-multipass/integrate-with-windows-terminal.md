@@ -24,7 +24,7 @@ The first step is to [install Windows Terminal](https://github.com/microsoft/ter
 
 Open a terminal (Windows Terminal or any other) and enable the integration with the following command:
 
-```
+```{code-block} text
 multipass set client.apps.windows-terminal.profiles=primary
 ```
 
@@ -50,7 +50,7 @@ That's it!
 
 If you want to disable the profile again, you can do so with:
 
-```
+```{code-block} text
 multipass set client.apps.windows-terminal.profiles=none
 ```
 

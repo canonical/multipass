@@ -265,7 +265,7 @@ Any other command appearing in that output means a process is conflicting with *
 
 1. Configure DNS inside the instance to use an external working DNS server. Can do so by appending this line to /etc/resolv.conf manually:
 
-    ```
+    ```{code-block} text
     nameserver 1.1.1.1
     ```
 

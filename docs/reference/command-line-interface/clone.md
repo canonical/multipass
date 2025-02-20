@@ -20,7 +20,7 @@ By default, the `multipass clone` command automatically generates a name for the
 
 Alternatively, you can specify a custom name for the cloned instance using `--name` option, following the [standard instance name format](/reference/instance-name-format). For example:
 
-```
+```{code-block} text
 multipass clone natty-nilgai --name custom-clone
 ```
 

@@ -11,7 +11,7 @@ To see what blueprints are available, run
 multipass find --only-blueprints
 ```
 
-> See more: [`multipass find`](/reference/command-line-interface/find)
+> See also: [`find`](/reference/command-line-interface/find)
 
 To use a blueprint run:
 

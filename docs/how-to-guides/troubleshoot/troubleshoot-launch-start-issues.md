@@ -163,7 +163,7 @@ The macOS firewall is known to cause `vmnet` to malfunction, because it blocks A
 
 You may be able to work around it by disabling the firewall entirely, or executing
 
-{code-block} text
+```{code-block} text
 /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/libexec/bootpd
 /usr/libexec/ApplicationFirewall/socketfilterfw --unblock /usr/libexec/bootpd
 ```
