@@ -683,7 +683,7 @@ Congratulations! You can now use Multipass proficiently.
 
 There's more to learn about Multipass and its capabilities. Check out our [How-to guides](/how-to-guides/index) for ideas and help with your project. In our [Explanation](/explanation/index) and [Reference](/reference/index) pages you can find definitions of key concepts, a complete CLI command reference, settings options and more.
 
-Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/multipass/) and let us know what you are doing with your instances!
+Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/project/multipass/21/) and let us know what you are doing with your instances!
 
 ---
 
