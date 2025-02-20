@@ -58,7 +58,7 @@ Anything you do here will be reflected in the resulting image. You can install p
 
 Go to [Packer's documentation](https://developer.hashicorp.com/packer/docs) to learn about the QEMU builder, other provisioners and their configurations as well as everything else that might come in handy. Alternatively, you could extend `user-data` with other `cloud-init` [modules](https://cloudinit.readthedocs.io/en/latest/reference/modules.html) to provision your image.
 
-Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/multipass/) and let us know about your images!
+Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/project/multipass/21/) and let us know about your images!
 
 ---
 
