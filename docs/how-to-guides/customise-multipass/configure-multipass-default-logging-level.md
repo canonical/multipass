@@ -1,4 +1,4 @@
-(how-to-guides-customise-multipass-configure-multipasss-default-logging-level)=
+(how-to-guides-customise-multipass-configure-multipass-default-logging-level)=
 # Configure Multipass’s default logging level
 
 > See also: [Logging levels](/reference/logging-levels)
@@ -7,9 +7,9 @@ This document demonstrates how to configure the default logging level of the Mul
 
 ## Changing the default logging level
 
-`````{tab-set}
+`````{tabs}
 
-````{tab-item} Linux
+````{group-tab} Linux
 
 First, stop the Multipass daemon:
 
@@ -37,7 +37,7 @@ sudo snap start multipass
 
 ````
 
-````{tab-item} macOS
+````{group-tab} macOS
 
 First, become `root`:
 
@@ -61,7 +61,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{tab-item} Windows
+````{group-tab} Windows
 
 First, open an administrator privileged PowerShell prompt.
 

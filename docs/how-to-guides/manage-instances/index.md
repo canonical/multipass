@@ -1,5 +1,5 @@
 (how-to-guides-manage-instances-index)=
-# Manage-Instances
+# Manage instances
 
 The following guides provide step-by-step instructions on how to manage Multipass instances.
 
@@ -29,4 +29,15 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 :maxdepth: 2
 :glob:
 
-*
+create-an-instance
+modify-an-instance
+use-an-instance
+use-the-primary-instance
+use-instance-command-aliases
+share-data-with-an-instance
+remove-an-instance
+add-a-network-to-an-existing-instance
+configure-static-ips
+use-a-blueprint
+use-the-docker-blueprint
+run-a-docker-container-in-multipass
