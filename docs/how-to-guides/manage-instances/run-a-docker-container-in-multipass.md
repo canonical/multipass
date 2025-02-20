@@ -53,7 +53,7 @@ multipass launch docker
 This command will create a virtual machine running the latest version of Ubuntu, with Docker and Portainer installed. You can now use Docker already! Try the command below to see for yourself!
 
 ```{code-block} text
-multipass exec docker docker`
+multipass exec docker docker
 ```
 
 ```{figure} /images/run-a-docker-container-in-multipass/mp-docker-2.png
