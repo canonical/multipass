@@ -35,7 +35,7 @@ We value your input and contributions! Here are some ways you can join our commu
 
 * Read our [Code of Conduct](https://ubuntu.com/community/code-of-conduct)
 * Read our quick guide: [Contribute to Multipass docs](./contribute-to-multipass-docs)
-* Join the [Discourse forum](https://discourse.ubuntu.com/c/project/multipass/)
+* Join the [Discourse forum](https://discourse.ubuntu.com/c/project/multipass/21/)
 * Report an issue or contribute to the code on [GitHub](https://github.com/canonical/multipass/issues)
 
 
