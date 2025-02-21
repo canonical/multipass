@@ -27,7 +27,3 @@ Any case variations of `on`|`off`, `yes`|`no`, `1`|`0` or `true`|`false`.
 ## Default value
 
 `true` (on Linux and macOS it only takes effect after the client (CLI or GUI) is run for the first time)
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/gui-autostart" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

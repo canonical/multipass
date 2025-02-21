@@ -30,7 +30,3 @@ This command will create an instance based on the Docker blueprint, with 4 CPU c
 Blueprints also provide a way of exchanging files between the host and the instance. For this, a folder named `multipass/<instance name>` is created in the user's home directory on the host and mounted in `<instance name>` in the user's home directory on the instance.
 
 > See more: [`multipass launch`](/reference/command-line-interface/launch)
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/use-a-blueprint" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

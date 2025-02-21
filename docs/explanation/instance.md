@@ -25,7 +25,3 @@ In all other respects, the primary instance is the same as any other instance. I
 ### Selecting the primary instance
 
 The name of the instance that the Multipass CLI treats as primary can be modified with the setting [`client.primary-name`](/reference/settings/client-primary-name). This setting determines the name of the instance that Multipass creates and operates as primary, providing a mechanism to turn any existing instance into the primary instance, as well as disabling the primary feature.
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/instance" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
