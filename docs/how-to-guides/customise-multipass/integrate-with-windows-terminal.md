@@ -7,7 +7,14 @@ If you are on Windows and you want to use [Windows Terminal](https://aka.ms/term
 
 Currently, Multipass can add a profile to Windows Terminal for the {ref}`primary-instance`. When you open a Windows Terminal tab with this profile, you'll automatically find yourself in a primary instance shell. Multipass automatically starts or launches the primary instance if needed.
 
+```{figure} /images/multipass-windows-terminal-1.png
+   :width: 680px
+   :alt: Screenshot: primary shell
+```
+
+<!-- Original image on the Asset Manager
 ![Screenshot: primary shell|800x490, 85%](https://assets.ubuntu.com/v1/f875c1d3-multipass-windows-terminal-1.png)
+-->
 
 ## Install Windows Terminal
 
@@ -27,7 +34,14 @@ For more information on this setting, see: [`client.apps.windows-terminal.profil
 
 You can now open a "Multipass" tab to get a shell in the primary instance. That can be achieved by clicking the new-tab drop-down and selecting the Multipass profile:
 
+```{figure} /images/multipass-windows-terminal-2.jpeg
+   :width: 680px
+   :alt: Screenshot: drop-down menu
+```
+
+<!-- Original image on the Asset Manager
 ![Screenshot: drop-down menu|800x490, 85%](https://assets.ubuntu.com/v1/d14d32d6-multipass-windows-terminal-2.jpeg)
+-->
 
 That's it!
 

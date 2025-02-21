@@ -123,7 +123,14 @@ The output will be similar to the following:
 ```
 Alternatively, to use the `virt-manager` GUI, ...
 
+```{figure} /images/multipass-virt-manager-gui.png
+   :width: 584px
+   :alt: Virtual Machine Manager GUI
+```
+
+<!-- Original image on the Asset Manager
 ![Virtual Machine Manager GUI|584x344](https://assets.ubuntu.com/v1/51cf2c57-multipass-virt-manager-gui.png)
+-->
 
 ````
 
@@ -135,7 +142,14 @@ Multipass runs as the `root` user, so to see the instances in  VirtualBox, or th
 sudo VirtualBox
 ```
 
+```{figure} /images/multipass-macos-virtualbox-manager.png
+   :width: 720px
+   :alt: Multipass instances in VirtualBox
+```
+
+<!-- Original image on the Asset Manager
 ![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/9c959eed-multipass-macos-virtualbox-manager.png)
+-->
 
 And, to list the instances on the command line, run:
 
@@ -162,7 +176,14 @@ Multipass runs as the _System_ account, so to see the instances in VirtualBox, o
 & $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s -i $env:VBOX_MSI_INSTALL_PATH\VirtualBox.exe
 ```
 
+```{figure} /images/multipass-windows-virtualbox-manager.png
+   :width: 720px
+   :alt: Multipass instances in VirtualBox
+```
+
+<!-- Original image on the Asset Manager
 ![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager.png)
+-->
 
 To list the instances on the command line:
 
