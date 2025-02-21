@@ -33,7 +33,3 @@ You can choose a convenient time to do any of this and you can set the driver to
 Here is a video demonstration of the migration:
 
 [![Hyperkit Migration in Multipass](https://asciinema.org/a/556203.svg)](https://asciinema.org/a/556203)
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/hyperkit-migration" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

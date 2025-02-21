@@ -24,7 +24,3 @@ A positive integer number. Multipass does not impose an upper limit on the possi
 ## Default value
 
 The number of CPUs that the instance was launched with.
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/local.<instance-name>.cpus" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

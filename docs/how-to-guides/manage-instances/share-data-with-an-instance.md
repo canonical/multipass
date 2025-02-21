@@ -103,10 +103,6 @@ In this case, the output of the `ls -l /home/michal` command on the instance wil
 
 See also [ID mapping](/explanation/id-mapping) for more information on how the mount command maps user and group IDs between the host and the instance.
 
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/share-data-with-an-instance" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
-
+<!-- Discourse contributors
 <small>**Contributors:** @saviq, @nhart, @andreitoterman, @ricab, @gzanchi </small>
+-->
