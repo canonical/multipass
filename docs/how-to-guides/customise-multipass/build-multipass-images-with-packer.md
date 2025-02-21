@@ -59,7 +59,3 @@ Anything you do here will be reflected in the resulting image. You can install p
 Go to [Packer's documentation](https://developer.hashicorp.com/packer/docs) to learn about the QEMU builder, other provisioners and their configurations as well as everything else that might come in handy. Alternatively, you could extend `user-data` with other `cloud-init` [modules](https://cloudinit.readthedocs.io/en/latest/reference/modules.html) to provision your image.
 
 Join the discussion on the [Multipass forum](https://discourse.ubuntu.com/c/project/multipass/21/) and let us know about your images!
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/building-multipass-images-with-packer" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

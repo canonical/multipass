@@ -51,11 +51,6 @@ Starting from Multipass version 1.14, the following settings have been removed f
 
 <!-- keeping the documentation pages for now, since not everyone will update their Multipass package immediately -->
 
----
-
- *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/settings-explanation" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
-
 ```{toctree}
 :hidden:
 :titlesonly:

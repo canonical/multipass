@@ -22,7 +22,3 @@ Running `which docker` from your host command line should confirm that you are r
 To access Portainer, run `multipass ls` and copy the IP address of the multipass instance (the first in the list), then enter it into your browser followed by a colon and Portainer’s port number, 9000 (something like this: 10.21.145.191:9000). This gives you Portainer's web interface for visually managing your containers.
 
 You can mount files into this instance as with any Multipass instance, but the default shared workspace is an easy way to edit your `dockerfiles` and `docker-compose.yaml` files from your host. With working directory mapping, you can run the `docker-compose` command from your host inside the shared directory, and have it run within that same directory in your Multipass instance.
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/use-docker-blueprint" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
