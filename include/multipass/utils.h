@@ -203,14 +203,14 @@ public:
     Utils(const Singleton<Utils>::PrivatePass&) noexcept;
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
-    virtual void exit(int code);
+    virtual void exit(int code) const;
     virtual std::string contents_of(const multipass::Path& file_path) const;
     virtual void make_file_with_content(const std::string& file_name, const std::string& content,
                                         const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir,
                           const QString& name,
-                          std::filesystem::perms permissions = std::filesystem::perms::none);
-    virtual Path make_dir(const QDir& dir, std::filesystem::perms permissions = std::filesystem::perms::none);
+                          std::filesystem::perms permissions = std::filesystem::perms::none) const;
+    virtual Path make_dir(const QDir& dir, std::filesystem::perms permissions = std::filesystem::perms::none) const;
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,

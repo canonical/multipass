@@ -179,6 +179,14 @@ std::string get_alias_script_path(const std::string& alias)
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
 }
+
+std::filesystem::path multipass_final_storage_location()
+{
+    const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
+    const auto mp_final_storage =
+        user_specified_mp_storage.isEmpty() ? mp::utils::snap_common_dir() : user_specified_mp_storage;
+    return std::filesystem::path{mp_final_storage.toStdString()};
+}
 } // namespace
 
 std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
@@ -469,4 +477,47 @@ std::string multipass::platform::host_version()
 {
     return mpu::in_multipass_snap() ? multipass::platform::detail::read_os_release()
                                     : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+}
+
+std::filesystem::path mp::platform::Platform::get_root_cert_path() const
+{
+    const auto paths = MP_STDPATHS.standardLocations(StandardPaths::AppDataLocation);
+
+    for (const auto& path : paths)
+    {
+        mpl::log(mpl::Level::info, "general", fmt::format("path AppDataLocation value is : {}", path.toStdString()));
+    }
+
+    mpl::log(mpl::Level::warning, "general", "\n");
+
+    const auto paths2 = MP_STDPATHS.standardLocations(StandardPaths::GenericDataLocation);
+    for (const auto& path : paths2)
+    {
+        mpl::log(mpl::Level::info,
+                 "general",
+                 fmt::format("path GenericDataLocation value is : {}", path.toStdString()));
+    }
+    mpl::log(mpl::Level::info, "general", "\n");
+
+    mpl::log(
+        mpl::Level::info,
+        "general",
+        fmt::format(
+            "located path in GenericDataLocation value is : {}",
+            MP_STDPATHS.locate(mp::StandardPaths::GenericDataLocation, "certificates/localhost.pem").toStdString()));
+
+    mpl::log(mpl::Level::info,
+             "general",
+             fmt::format("final AppDataLocation value is : {}",
+                         MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation).toStdString()));
+
+    mpl::log(mpl::Level::info,
+             "general",
+             fmt::format("final GenericDataLocation value is : {}",
+                         MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation).toStdString()));
+
+    constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
+    return mp::utils::in_multipass_snap()
+               ? multipass_final_storage_location() / "data" / "multipassd" / "certificates" / root_cert_file_name
+               : std::filesystem::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
 }
