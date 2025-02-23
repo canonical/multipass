@@ -10,7 +10,7 @@ An **instance** is a virtual machine created and managed by Multipass.
 (primary-instance)=
 ## Primary instance
 
-The Multipass [Command-Line Interface](/reference/command-line-interface/index) (CLI) provides a few shortcuts using a special instance, called *primary* instance. By default, this is the instance named `primary`.
+The Multipass [Command-line interface](/reference/command-line-interface/index) (CLI) provides a few shortcuts using a special instance, called *primary* instance. By default, this is the instance named `primary`.
 
 When invoked without positional arguments, state transition commands — [`start`](/reference/command-line-interface/start), [`restart`](/reference/command-line-interface/restart), [`stop`](/reference/command-line-interface/stop), and [`suspend`](/reference/command-line-interface/suspend) — operate on this special instance. So does the [`shell`](/reference/command-line-interface/shell) command. Furthermore, `start` and `shell` create the primary instance if it does not yet exist.
 

@@ -1,7 +1,7 @@
 (reference-instance-states)=
 # Instance states
 
-> See also: [Command-Line-Interface](/reference/command-line-interface/index)
+> See also: [Command-line interface](/reference/command-line-interface/index)
 
 Instances in Multipass can be in a number of different states:
 

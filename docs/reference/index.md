@@ -7,7 +7,7 @@ This section provides detailed reference material for Multipass, such as all ava
 
 Multipass offers a powerful command-line interface for creating and managing virtual machines effortlessly.
 
-For a complete list of Multipass CLI commands and their usage is available, see: [Command-Line Interface](command-line-interface/index).
+For a complete list of Multipass CLI commands and their usage is available, see: [Command-line interface](command-line-interface/index).
 
 ## GUI client
 
