@@ -1,9 +1,9 @@
 (reference-index)=
 # Reference
 
-This section provides detailed reference material for Multipass, such as all available commands, configuration settings keys, and more. 
+This section provides detailed reference material for Multipass, such as all available commands, configuration settings keys, and more.
 
-## Command line reference
+## Command-line reference
 
 Multipass offers a powerful command-line interface for creating and managing virtual machines effortlessly.
 
@@ -15,7 +15,7 @@ Multipass also comes with a user-friendly desktop application to create and mana
 
 ## Instances
 
-To find out more about the naming convention for Multipass VMs (also called instances) and the possible states they can assume, see: 
+To find out more about the naming convention for Multipass VMs (also called instances) and the possible states they can assume, see:
 
 - [Instance name format](instance-name-format)
 - [Instance states](instance-states)
@@ -26,7 +26,7 @@ For more information on the different logging levels that can be configured in M
 
 ## Settings
 
-Multipass can be fine-tuned to suit your needs with various configuration settings that can be read and written via CLI commands. Some settings can also be configured using the GUI client. 
+Multipass can be fine-tuned to suit your needs with various configuration settings that can be read and written via CLI commands. Some settings can also be configured using the GUI client.
 
 For a comprehensive list of all available settings, see: [Settings](settings/index).
 
