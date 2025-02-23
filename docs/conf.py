@@ -150,6 +150,7 @@ html_context = {
     "github_issues": "enabled",
 }
 
+# The following instructions are to display a clickable pencil "Edit" button on every page, in the top-right.
 html_theme_options = {
     "source_repository": "https://github.com/canonical/multipass",
     "source_branch": "main",
