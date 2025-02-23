@@ -5,6 +5,8 @@
 
 Multipass can be configured with a number of **settings** that are read and written by the [`get`](/reference/command-line-interface/get) and [`set`](/reference/command-line-interface/set) CLI commands, respectively. Some settings are also available in the [GUI client](/reference/gui-client).
 
+<!-- Moved explanation of settings keys and values to a separate page, and added link to "See also" above -->
+
 ## Available settings
 
 At any given time, the available settings depend on the state of the system. Some settings are only available on some platforms, while daemon settings can only be accessed when the Multipass daemon itself can be reached.
