@@ -154,7 +154,7 @@ html_context = {
 html_theme_options = {
     "source_repository": "https://github.com/canonical/multipass",
     "source_branch": "main",
-    "source_directory": "docs/", 
+    "source_directory": "docs/",
 }
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897

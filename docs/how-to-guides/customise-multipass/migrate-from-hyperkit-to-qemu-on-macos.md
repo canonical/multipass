@@ -5,7 +5,7 @@
 
 As of Multipass 1.12, the Hyperkit driver is being deprecated. New installs will start with the QEMU driver set by default, but existing installs will retain the previous driver setting. Multipass will warn Hyperkit users of the deprecation and ask them to move to QEMU. To facilitate that, Multipass 1.12 will migrate Hyperkit instances to QEMU.
 
-To migrate from Hyperkit to QEMU and bring your instances along, simply stop them and set the driver to QEMU: 
+To migrate from Hyperkit to QEMU and bring your instances along, simply stop them and set the driver to QEMU:
 
 ```{code-block} text
 multipass stop --all
