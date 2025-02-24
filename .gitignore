@@ -32,3 +32,4 @@ CMakeUserPresets.json
 
 # clangd cache path
 .cache/
+**/network-cache
