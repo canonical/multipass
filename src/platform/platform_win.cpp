@@ -27,6 +27,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#include "backends/hyperv_api/hyperv_api_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
@@ -34,6 +35,7 @@
 #include "shared/windows/process_factory.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
+
 
 #include <QCoreApplication>
 #include <QDir>
@@ -552,7 +554,7 @@ mp::platform::Platform::get_network_interfaces_info() const
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return backend == "hyperv" || backend == "virtualbox";
+    return backend == "hyperv" || backend == "virtualbox" || backend == "hyperv_api";
 }
 
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& /* server_address */,
@@ -610,7 +612,7 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::Platform::default_driver() const
 {
-    return QStringLiteral("hyperv");
+    return QStringLiteral("hyperv_api");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -656,6 +658,10 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         */
 
         return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+    }
+    else if (driver == "hyperv_api")
+    {
+        return std::make_unique<hyperv::HyperVAPIVirtualMachineFactory>(data_dir);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
