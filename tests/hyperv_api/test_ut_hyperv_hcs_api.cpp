@@ -236,8 +236,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                                 "ReadOnly": false
                             }
                         }
-                    },
-                }
+                    }
+                },
+                "NetworkAdapters": {}
             }
         }
     })";
@@ -393,8 +394,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                                 "ReadOnly": false
                             }
                         }
-                    },
-                }
+                    }
+                },
+                "NetworkAdapters": {}
             }
         }
     })";
@@ -550,8 +552,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                                 "ReadOnly": true
                             }
                         }
-                    },
-                }
+                    }
+                },
+                "NetworkAdapters": {}
             }
         }
     })";
@@ -909,8 +912,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                                  "ReadOnly": false
                              }
                          }
-                     },
-                 }
+                     }
+                 },
+                 "NetworkAdapters": {}
              }
          }
      })";
@@ -1052,8 +1056,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                                  "ReadOnly": false
                              }
                          }
-                     },
-                 }
+                     }
+                 },
+                 "NetworkAdapters": {}
              }
          }
      })";
