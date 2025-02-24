@@ -36,3 +36,4 @@ packaging/windows/custom-actions/x64/*
 
 # clangd cache path
 .cache/
+**/network-cache
