@@ -13,6 +13,6 @@ Conceptually, branches of the tree can be singled out with wildcards, to refer t
 
 ## Settings values
 
-A **settings value** is a string whose syntax (possible values/representations) and semantics (their interpretation) is determined by the setting in question.
+A **settings value** is a string whose syntax (possible values or their representations) and semantics (their interpretation) is determined by the setting in question.
 
 Values often express common concepts (such as `true`, `false`, `42`, etc.) and are interpreted internally using the corresponding data types (such as boolean, integer, etc.). They can also be more complex (such as a key combination), but they are always specified and displayed through a string representation (for example: `Ctrl+Alt+U`).

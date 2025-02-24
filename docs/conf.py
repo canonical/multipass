@@ -121,7 +121,7 @@ html_context = {
     # Your Mattermost channel URL
     #
     # TODO: Change to your Mattermost channel URL or leave empty.
-    "mattermost": "https://chat.canonical.com/canonical/channels/multipass",
+    # "mattermost": "https://chat.canonical.com/canonical/channels/multipass",
     # Your Matrix channel URL
     #
     # TODO: Change to your Matrix channel URL or leave empty.

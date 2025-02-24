@@ -22,12 +22,12 @@ The possible reasons that can lead the `launch` or `start` commands to fail are:
 
 Follow these steps to diagnose your issue and identify the most likely scenario:
 
-1. If the `multipass launch` command fails with the message "Downloaded image hash does not match", see: {ref}`launch-start-issues-stale-network-cache`.
+1. If the `multipass launch` command fails with the message "Downloaded image hash does not match", see {ref}`launch-start-issues-stale-network-cache`.
 
-2. *(Windows, Hyper-V driver)* Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that's the case, see: {ref}`launch-start-issues-stale-sharing-lease`.
+2. *(Windows, Hyper-V driver)* Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that's the case, see {ref}`launch-start-issues-stale-sharing-lease`.
 
 3. *(Linux/macOS, QEMU driver)* Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
-    * If you don't find it, it means that the VM didn't manage to bring up the interface; see: {ref}`launch-start-issues-vm-boot-failure`.
+    * If you don't find it, it means that the VM didn't manage to bring up the interface; see {ref}`launch-start-issues-vm-boot-failure`.
     * If the message is present, proceed to check DHCP traffic in the next step.
 
 4. *(Linux/macOS, QEMU driver)* Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command *right after starting/launching* the instance:
@@ -43,7 +43,7 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
     ```
 
     * If you see `NIC_RX_FILTER_CHANGED`, you should also see DHCP requests. If you don't, see {ref}`launch-start-issues-vm-boot-failure` and please [let us know](https://github.com/canonical/multipass/issues/new/choose).
-    * If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see: {ref}`launch-start-issues-no-ip-assigned`.
+    * If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see {ref}`launch-start-issues-no-ip-assigned`.
     * If you see DHCP requests and replies, continue to the next step.
 
 5. Look for messages regarding SSH in Multipass's logs. The instance may have obtained an IP and/or be properly connected, but still refuse Multipass when it tries to SSH into it.
@@ -141,7 +141,7 @@ Here are some options to attempt recovery:
      - In the recovery menu, select **`resume`** to continue with the normal boot process.
      - The system should now boot normally if `fsck` was able to repair the filesystem.
 
-- *(Linux/macOS)* Alternatively, run `fsck` over a mounted image on the host (see: {ref}`launch-start-issues-reading-data-from-an-image`).
+- *(Linux/macOS)* Alternatively, run `fsck` over a mounted image on the host (see {ref}`launch-start-issues-reading-data-from-an-image`).
 - Run `qemu-img check -r` on the image.
     * `qemu-img`, shipped with Multipass, can also be used to check and repair disk images.
     * See {ref}`launch-start-issues-locate-multipass-binaries` below.
@@ -202,7 +202,7 @@ If SSH doesn't function properly in the VM, or Multipass is blocked from accessi
 
 To gain access to an instance without SSH you can try the following methods.
 
-* Mount the instance's image file on your host (see: {ref}`launch-start-issues-reading-data-from-an-image`) and make necessary changes through the filesystem.
+* Mount the instance's image file on your host (see {ref}`launch-start-issues-reading-data-from-an-image`) and make necessary changes through the filesystem.
 
 * Run the instance VM directly. This will require a username and password to log in. The username is the default user, `ubuntu`, and the password is what was set in cloud-init if you used a custom cloud-init config. If you do not have a password you can modify the instance's `cloud-init-config.iso` file to change it. One way to do so is as follows.
   1. Back up your existing `cloud-init-config.iso`.

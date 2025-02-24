@@ -28,7 +28,7 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
     * Tunnelblick doesn’t cause problems.
 * Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking the instance’s DNS.
 <!-- THIS LINK IS BROKEN
-(see: [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
+(see [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
 * dnscrypt-proxy/dnscrypt-wrapper/cloudflared-proxy \
 The default configuration binds to localhost port 53, clashing with Internet Sharing.
 * Another `dnsmasq` process bound to localhost port 53
