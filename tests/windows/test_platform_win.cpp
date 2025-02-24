@@ -146,7 +146,7 @@ TEST(PlatformWin, noExtraDaemonSettings)
 
 TEST(PlatformWin, testDefaultDriver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "virtualbox"));
+    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "hyperv_api", "virtualbox"));
 }
 
 TEST(PlatformWin, testDefaultPrivilegedMounts)
