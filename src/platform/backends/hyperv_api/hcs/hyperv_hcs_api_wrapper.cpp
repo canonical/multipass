@@ -224,58 +224,56 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     // available drives.
     const auto scsi_devices = [&params]() {
         constexpr auto scsi_device_template = LR"(
-            "{0}": {{
-                "Attachments": {{
-                    "0": {{
-                        "Type": "{1}",
-                        "Path": "{2}",
-                        "ReadOnly": {3}
-                    }}
+        "{0}": {{
+            "Attachments": {{
+                "0": {{
+                    "Type": "{1}",
+                    "Path": "{2}",
+                    "ReadOnly": {3}
                 }}
-            }},
-        )";
-        std::wstring result = {};
+            }}
+        }})";
+        std::vector<std::wstring> scsi_nodes{};
+
         if (!params.cloudinit_iso_path.empty())
         {
-            result += fmt::format(scsi_device_template,
-                                  L"cloud-init iso file",
-                                  L"Iso",
-                                  string_to_wstring(params.cloudinit_iso_path),
-                                  true);
+            scsi_nodes.push_back(fmt::format(scsi_device_template,
+                                             L"cloud-init iso file",
+                                             L"Iso",
+                                             string_to_wstring(params.cloudinit_iso_path),
+                                             true));
         }
 
         if (!params.vhdx_path.empty())
         {
-            result += fmt::format(scsi_device_template,
-                                  L"Primary disk",
-                                  L"VirtualDisk",
-                                  string_to_wstring(params.vhdx_path),
-                                  false);
+            scsi_nodes.push_back(fmt::format(scsi_device_template,
+                                             L"Primary disk",
+                                             L"VirtualDisk",
+                                             string_to_wstring(params.vhdx_path),
+                                             false));
         }
-        return result;
+
+        return fmt::format(L"{}", fmt::join(scsi_nodes, L", "));
     }();
 
     const auto network_adapters = [&]() {
-        std::wstring result = {};
+        std::vector<std::wstring> network_adapters = {};
 
         constexpr auto network_adapter_template = LR"(
                 "{0}": {{
                     "EndpointId" : "{0}",
                     "MacAddress": "{1}"
-                }},)";
+                }})";
 
         for (const auto& endpoint : params.endpoints)
         {
-            result += fmt::format(network_adapter_template,
-                                  string_to_wstring(endpoint.endpoint_guid),
-                                  string_to_wstring(endpoint.nic_mac_address));
+            network_adapters.push_back(fmt::format(network_adapter_template,
+                                                   string_to_wstring(endpoint.endpoint_guid),
+                                                   string_to_wstring(endpoint.nic_mac_address)));
         }
 
-        // Remove the last comma.
-        if (!result.empty())
-            result.pop_back();
-
-        return result;
+        return fmt::format(L"{}", fmt::join(network_adapters, L", "));
+        ;
     }();
 
     // Ideally, we should codegen from the schema
