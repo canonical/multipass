@@ -309,13 +309,15 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
     // Resize-VHD can't operate on the sparse images that `qemu-img` produces. The `fsutil` cmd allocates them fully.
     // Images copied from the cache aren't sparse, but they remain unaffected.
     QStringList unsparse_cmd = {"fsutil", "sparse", "setFlag", instance_image.image_path, "0"};
-    if (!PowerShell::exec(unsparse_cmd, desc.vm_name, nullptr, &output_err))
-        throw std::runtime_error{error_msg_helper("Failed to unsparse instance image", output_err)};
-
-    output_err.clear();
     QStringList resize_cmd = {"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size};
-    if (!PowerShell::exec(resize_cmd, desc.vm_name, nullptr, &output_err))
-        throw std::runtime_error{error_msg_helper("Failed to resize instance image", output_err)};
+
+    for (const auto& [cmd, op] : {std::pair(&unsparse_cmd, "unsparse"), std::pair(&resize_cmd, "resize")})
+    {
+        if (!PowerShell::exec(*cmd, desc.vm_name, nullptr, &output_err))
+            throw std::runtime_error{error_msg_helper(fmt::format("Failed to {} instance image", op), output_err)};
+
+        output_err.clear();
+    }
 }
 
 void mp::HyperVVirtualMachineFactory::hypervisor_health_check()
