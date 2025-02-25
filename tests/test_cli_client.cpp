@@ -1671,7 +1671,9 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
         cmds_string += " " + cmds[i];
 
     REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
-                EXPECT_EQ(raw_cmd, "sudo sh -c cd\\ " + dir + "\\ \\&\\&\\ " + mpu::escape_for_shell(cmds_string));
+                // We now use sh -c to run the command, with sudo -E to preserve environment variables
+                std::string expected_cmd = "sh -c cd\\ " + dir + "\\ \\&\\&\\ sudo\\ -E\\ pwd";
+                EXPECT_EQ(raw_cmd, expected_cmd);
 
                 return SSH_OK;
             }));

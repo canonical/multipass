@@ -171,8 +171,10 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
                 // If we are running through 'sudo' and need to change directory, it might happen that the default user
                 // does not have access to the folder and thus the cd command will fail. Additionally, `cd` cannot be
                 // ran with sudo, what forces us to run everything through `sh`.
-                auto sh_args = fmt::format("cd {} && {}", *dir, fmt::join(args, " "));
-                all_args = {{"sudo", "sh", "-c", sh_args}};
+                // We need to ensure sudo preserves environment variables with -E flag
+                auto cmd = fmt::format("{}", fmt::join(args.begin() + 1, args.end(), " "));
+                auto sh_args = fmt::format("cd {} && sudo -E {}", *dir, cmd);
+                all_args = {{"sh", "-c", sh_args}};
             }
             else
                 all_args = {{"cd", *dir}, {args}};
