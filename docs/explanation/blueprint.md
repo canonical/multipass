@@ -9,7 +9,7 @@ Blueprints consist of a base image, cloud-init initialisation, and a set of para
 
 Blueprints are defined from a YAML file with the following schema:
 
-```
+```{code-block} text
 # v1/<name>.yaml
 
 description: <string>      # * a short description of the blueprint ("tagline")
@@ -36,6 +36,6 @@ health-check: |            # a health-check shell script ran by integration test
 
 ```
 
-Blueprints currently integrated into Multipass can be found with the [`multipass find`](/reference/command-line-interface/find) command.
+Blueprints currently integrated into Multipass can be found with the [`find`](/reference/command-line-interface/find) command.
 
 For more information on creating a blueprint for inclusion into Multipass, please refer to the [GitHub project](https://github.com/canonical/multipass-blueprints).

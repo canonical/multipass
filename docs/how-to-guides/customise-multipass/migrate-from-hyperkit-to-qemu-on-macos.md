@@ -7,7 +7,7 @@ As of Multipass 1.12, the Hyperkit driver is being deprecated. New installs will
 
 To migrate from Hyperkit to QEMU and bring your instances along, simply stop them and set the driver to QEMU:
 
-```
+```{code-block} text
 multipass stop --all
 multipass set local.driver=qemu
 ```
@@ -18,7 +18,7 @@ If you already had QEMU instances, they are not affected by the migration. Insta
 
 The original Hyperkit instances are retained until explicitly deleted. You can achieve that by temporarily moving back to Hyperkit and using the delete command:
 
-```
+```{code-block} text
 multipass set local.driver=hyperkit
 multipass delete [-p] <instance> [...]
 multipass set local.driver=qemu

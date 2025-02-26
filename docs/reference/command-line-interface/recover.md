@@ -1,7 +1,7 @@
 (reference-command-line-interface-recover)=
 # recover
 
-> See also: [`multipass delete`](/reference/command-line-interface/delete), [`multipass purge`](/reference/command-line-interface/purge)
+> See also: [`delete`](/reference/command-line-interface/delete), [`purge`](/reference/command-line-interface/purge)
 
 The `multipass recover` command will revive an instance that was previously removed with `multipass delete`. For this to be possible, the instance cannot have been purged with `multipass purge` nor with `multipass delete --purge`.
 

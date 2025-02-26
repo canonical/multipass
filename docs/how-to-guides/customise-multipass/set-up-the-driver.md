@@ -278,7 +278,7 @@ Name:            en3: Thunderbolt 2
 ...
 ```
 
-Finally, tell VirtualBox to use it as the "parent" for the second interface (see more info on bridging in [VirtualBox documentation](https://www.virtualbox.org/manual/ch06.html#network_bridged) on this topic):
+Finally, tell VirtualBox to use it as the "parent" for the second interface (for more information on this topic, see [VirtualBox documentation](https://www.virtualbox.org/manual/ch06.html#network_bridged)):
 
 ```{code-block} text
 sudo VBoxManage modifyvm primary --nic2 bridged --bridgeadapter2 en0

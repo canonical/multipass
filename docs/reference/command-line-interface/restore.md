@@ -24,7 +24,7 @@ Snapshot taken: relative-lion.snapshot3
 Snapshot restored: relative-lion.snapshot2
 ```
 
-As shown in the example, with no further options, the command will offer to take another snapshot. This automatic snapshot saves the instance's current state before it is thrown away. It will be named following the [`multipass snapshot`](/reference/command-line-interface/snapshot) default naming convention, and it will have an automatic comment to indicate its purpose.
+As shown in the example, with no further options, the command will offer to take another snapshot. This automatic snapshot saves the instance's current state before it is thrown away. It will be named following the [`snapshot`](/reference/command-line-interface/snapshot) command's default naming convention, and it will have an automatic comment to indicate its purpose.
 
 In our example, if you run:
 

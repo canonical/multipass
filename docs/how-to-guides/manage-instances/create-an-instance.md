@@ -106,7 +106,7 @@ An instance can obtain the primary status at creation time if its name is `prima
 multipass launch kinetic --name primary
 ```
 
-For more information, see: [How to use the primary instance](/how-to-guides/manage-instances/use-the-primary-instance).
+For more information, see [How to use the primary instance](/how-to-guides/manage-instances/use-the-primary-instance).
 
 (create-an-instance-with-multiple-network-interfaces)=
 ## Create an instance with multiple network interfaces

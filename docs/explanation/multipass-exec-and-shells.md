@@ -1,7 +1,7 @@
 (explanation-multipass-exec-and-shells)=
 # Multipass `exec` and shells
 
-> See also: [`exec` command](/reference/command-line-interface/exec)
+> See also: [`exec`](/reference/command-line-interface/exec)
 
 ## How `exec` parses commands
 

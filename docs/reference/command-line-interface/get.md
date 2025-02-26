@@ -26,7 +26,7 @@ local.passphrase
 local.privileged-mounts
 ```
 
-To set the value of a particular setting, see [`set` command](/reference/command-line-interface/set).
+To set the value of a particular setting, see [`set`](/reference/command-line-interface/set).
 
 You can read more about the available settings in the [Settings](/reference/settings/index) reference page.
 

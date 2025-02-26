@@ -11,7 +11,7 @@ Custom images are only supported on Linux.
 
 The easiest way is to start from an existing [Ubuntu Cloud Image](https://cloud-images.ubuntu.com/), and the base project setup follows (you can click on the filenames to see their contents, `meta-data` is empty on purpose):
 
-```
+```{code-block} text
 ├── cloud-data
 │   ├── meta-data
 │   └── <a href="https://paste.ubuntu.com/p/6vbtNXttqZ/">user-data</a>

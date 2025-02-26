@@ -9,7 +9,7 @@
 
 ## Description
 
-Controls whether [`multipass mount`](/reference/command-line-interface/mount) is allowed.
+Controls whether the [`mount`](/reference/command-line-interface/mount) command is allowed.
 
 ## Possible values
 

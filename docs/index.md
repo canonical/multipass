@@ -50,3 +50,4 @@ how-to-guides/index
 reference/index
 explanation/index
 contribute-to-multipass-docs
+```

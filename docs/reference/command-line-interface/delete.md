@@ -13,7 +13,7 @@ multipass delete --purge legal-takin calm-squirrel.snapshot2
 
 Deleted instances are marked as such and removed from use, but you can still recover them using the `multipass recover` command, unless you used the `-p`/`--purge` option to delete them permanently.
 
-To completely destroy instances and release the disk space they take up, use the `--purge` option or the [`multipass purge`](/reference/command-line-interface/purge) command.
+To completely destroy instances and release the disk space they take up, use the `--purge` option or the [`purge`](/reference/command-line-interface/purge) command.
 
 ```{caution}
 When you delete a [snapshot](/explanation/snapshot), or when you delete an instance using the [GUI client](/reference/gui-client), Multipass removes them permanently (even if you didn't use the `--purge` option) and they cannot be recovered.

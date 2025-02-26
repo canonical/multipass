@@ -24,11 +24,11 @@ The first step is to [install Windows Terminal](https://github.com/microsoft/ter
 
 Open a terminal (Windows Terminal or any other) and enable the integration with the following command:
 
-```
+```{code-block} text
 multipass set client.apps.windows-terminal.profiles=primary
 ```
 
-For more information on this setting, see: [`client.apps.windows-terminal.profiles`](/reference/settings/client-apps-windows-terminal-profiles). Until you modify it, Multipass will try to add the profile if it finds it missing. To remove the profile see {ref}`integrate-with-windows-terminal-revert` below.
+For more information on this setting, see [`client.apps.windows-terminal.profiles`](/reference/settings/client-apps-windows-terminal-profiles). Until you modify it, Multipass will try to add the profile if it finds it missing. To remove the profile see {ref}`integrate-with-windows-terminal-revert` below.
 
 ## Open a Multipass tab
 
@@ -50,7 +50,7 @@ That's it!
 
 If you want to disable the profile again, you can do so with:
 
-```
+```{code-block} text
 multipass set client.apps.windows-terminal.profiles=none
 ```
 

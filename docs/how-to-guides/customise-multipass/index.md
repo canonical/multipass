@@ -32,3 +32,4 @@ use-a-different-terminal-from-the-system-icon
 integrate-with-windows-terminal
 configure-where-multipass-stores-external-data
 configure-multipass-default-logging-level
+```

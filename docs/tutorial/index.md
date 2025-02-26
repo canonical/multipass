@@ -64,7 +64,7 @@ Clicking this button does many things in the background:
 <!-- note added for https://github.com/canonical/multipass/issues/3537 -->
 
 ```{caution}
-If your local home folder is encrypted using `fscrypt` and you are having trouble accessing its contents when it is automatically mounted inside your primary instance, see: [Mount an encrypted home folder](/how-to-guides/troubleshoot/mount-an-encrypted-home-folder).
+If your local home folder is encrypted using `fscrypt` and you are having trouble accessing its contents when it is automatically mounted inside your primary instance, see [Mount an encrypted home folder](/how-to-guides/troubleshoot/mount-an-encrypted-home-folder).
 ```
 
 You can see elements of this in the printout below:
@@ -885,4 +885,5 @@ When that's the case, the title of the page also needs to change to "Tutorials".
 :titlesonly:
 :maxdepth: 2
 :glob:
+```
 -->
