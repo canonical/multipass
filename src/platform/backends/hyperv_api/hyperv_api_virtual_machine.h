@@ -26,11 +26,16 @@
 
 #include <memory>
 
+namespace multipass
+{
+class VMStatusMonitor;
+}
+
 namespace multipass::hyperv
 {
 
 /**
- *
+ * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
  */
 struct HyperVAPIVirtualMachine final : public BaseVirtualMachine
 {
@@ -38,16 +43,17 @@ struct HyperVAPIVirtualMachine final : public BaseVirtualMachine
     using unique_hcs_wrapper_t = std::unique_ptr<hcs::HCSWrapperInterface>;
     using unique_virtdisk_wrapper_t = std::unique_ptr<virtdisk::VirtDiskWrapperInterface>;
 
-    HyperVAPIVirtualMachine(unique_hcn_wrapper_t hcn_w,
-                            unique_hcs_wrapper_t hcs_w,
+    HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
+                            unique_hcn_wrapper_t hcn_w,
                             unique_virtdisk_wrapper_t virtdisk_w,
+                            const std::string& network_guid,
                             const VirtualMachineDescription& desc,
-                            class VMStatusMonitor& monitor,
+                            VMStatusMonitor& monitor,
                             const SSHKeyProvider& key_provider,
                             const Path& instance_dir);
 
-    HyperVAPIVirtualMachine(unique_hcn_wrapper_t hcn_w,
-                            unique_hcs_wrapper_t hcs_w,
+    HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
+                            unique_hcn_wrapper_t hcn_w,
                             unique_virtdisk_wrapper_t virtdisk_w,
                             const std::string& source_vm_name,
                             const multipass::VMSpecs& src_vm_specs,
@@ -75,11 +81,18 @@ struct HyperVAPIVirtualMachine final : public BaseVirtualMachine
                                const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
+protected:
+    void require_snapshots_support() const override{}
+
 private:
     const VirtualMachineDescription description;
-    unique_hcn_wrapper_t hcn{nullptr};
     unique_hcs_wrapper_t hcs{nullptr};
+    unique_hcn_wrapper_t hcn{nullptr};
     unique_virtdisk_wrapper_t virtdisk{nullptr};
+
+    VMStatusMonitor& monitor;
+
+    void set_state(hcs::ComputeSystemState state);
 };
 } // namespace multipass::hyperv
 
