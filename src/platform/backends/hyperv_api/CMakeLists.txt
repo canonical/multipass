@@ -45,6 +45,8 @@ if(WIN32)
     hcn/hyperv_hcn_api_wrapper.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
     virtdisk/virtdisk_api_wrapper.cpp
+    hyperv_api_virtual_machine.cpp
+    hyperv_api_virtual_machine_factory.cpp
   )
 
   target_link_libraries(hyperv_api_backend PRIVATE
