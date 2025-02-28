@@ -167,7 +167,7 @@ jobs:
       run: ccache --show-stats --zero-stats
 
     - name: Set /proc/sys/kernel/core_pattern
-      if: ${{ matrix.build-type == 'Debug' }} || ${{ matrix.build-type == 'Coverage' }}
+      if: ${{ matrix.build-type == 'Debug' || matrix.build-type == 'Coverage' }}
       run : |
 
         # The LXC container share the same "/proc/sys/kernel/core_pattern"
