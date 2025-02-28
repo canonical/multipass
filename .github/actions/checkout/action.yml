@@ -28,12 +28,27 @@ runs:
   - name: Fetch the vcpkg builtin-baseline
     shell: bash
     run: |
-      BASELINE=${{ fromJSON(steps.read-vcpkg-json.outputs.content)['builtin-baseline'] }}
-      echo "Found builtin-baseline: $BASELINE"
+
       cd 3rd-party/vcpkg
-      # Fetch the baseline commit 
+      # Read the builtin-baseline from the vcpkg.json
+      BASELINE=${{ fromJSON(steps.read-vcpkg-json.outputs.content)['builtin-baseline'] }}
+      # Let's check if the head is already at the baseline.
+      if [ "$(git rev-parse HEAD)" = "$BASELINE" ]; then
+        echo "HEAD is at BASELINE, there is no work to be done."
+        exit 0
+      fi
+      echo "Found builtin-baseline: $BASELINE"
+      #
+      # Fetch the baseline commit. We only need its timestamp, so fetch it solely.
       git fetch origin $BASELINE --depth=1
+      #
       # Use baseline commit's timestamp to do a shallow-since pull to only fetch
-      # the commits we're actually going to need.
+      # the commits we're actually going to need. So the final branch will contain
+      # <submodule-commit>~<baseline-commit>, inclusive. GitHub does not seem to like
+      # `--shallow-exclude` and just rejects it, so we're using shallow-since as an
+      # alternate solution. `git fetch --unshallow` also works but it fetches everything.
+      #
+      # With `git fetch --unshallow` the checkout job takes 1m 40s whereas the shallow-since
+      # approach reduces that to takes 39 seconds.
+      #
       git pull --shallow-since=$(git show -s --format=%at "$BASELINE") origin master
-      # git fetch --unshallow also works but it fetches everything.
