@@ -34,29 +34,27 @@ namespace logging
  * Log with formatting support
  *
  * The old (legacy) log function and this overload are distinguished
- * via presence of a format argument. When a format argument is absent
- * both the old function and the new one are valid candidates for a
- * `log(Level::debug, "test", "test")` call. The ambiguity is resolved
- * by the fact that a non-templated overload is a better fit.
+ * via presence of a format argument. This is the reason why the 0th
+ * argument is taken explicitly. The overload resolution rules of C++
+ * makes it complicated to make it work reliably in the codebase, so
+ * the code relies on explicity here.
  *
  * @ref https://en.cppreference.com/w/cpp/language/overload_resolution#Best_viable_function
  *
- * @tparam Args Type of the format arguments
+ * @tparam Arg0 Type of the first format argument
+ * @tparam Args Type of the rest of the format arguments
  * @param level Log level
  * @param category Log category
  * @param fmt Format string
- * @param args Format arguments
+ * @param arg0 The first format argument
+ * @param args Rest of the format arguments
  */
-template <typename... Args>
-constexpr void log(Level level, const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+template <typename Arg0, typename... Args>
+constexpr void
+log(Level level, const std::string& category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
 {
-    const auto formatted_log_msg = fmt::format(fmt, std::forward<Args>(args)...);
-    // CString{} is necessary here. Without it, this function would infinitely recurse.
-    // The reason "why" is: the non-templated log() overload requires an implicit
-    // const std::string& -> CString conversion for the category argument, which
-    // makes it a "worse" overload than this templated function. We do the conversion
-    // here in order to prevent that.
-    log(level, CString{category}, formatted_log_msg);
+    const auto formatted_log_msg = fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
+    log(level, category, formatted_log_msg);
 }
 
 void log(Level level, CString category, CString message);
