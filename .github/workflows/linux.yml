@@ -175,18 +175,6 @@ jobs:
         # we need to override it at the runner level.
         sudo bash -c 'echo "/coredump/%e.%p.%t" > /proc/sys/kernel/core_pattern'
 
-    - name : Mock failure
-      id: mock-fail
-      if: ${{ matrix.build-type == 'Debug' }} || ${{ matrix.build-type == 'Coverage' }}
-      run: |
-
-        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
-        /snap/bin/lxc --project snapcraft start $instance_name
-        # Create the directory for the coredumps
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "echo 'int main() { *(int *)0 = 0; }' | gcc -xc -o /root/parts/multipass/build/bin/multipass_tests - && ulimit -c unlimited && /root/parts/multipass/build/bin/multipass_tests"
-
     - name: Test
       id: test
       if: ${{ matrix.build-type == 'Debug' }}
