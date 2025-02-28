@@ -1,7 +1,15 @@
 {
+  "$comment-about-baseline": "The baseline is intentionally kept at 2024.02.14 because gRPC does not like the changes in the latest baseline.",
   "builtin-baseline": "fba75d09065fcc76a25dcf386b1d00d33f5175af",
   "dependencies": [
     "poco",
-    "grpc"
+    "grpc",
+    "fmt"
+  ],
+  "overrides": [
+    {
+      "name": "fmt",
+      "version": "11.0.2"
+    }
   ]
 }
