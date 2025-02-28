@@ -166,16 +166,34 @@ jobs:
     - name: Clear CCache stats
       run: ccache --show-stats --zero-stats
 
+    - name: Set /proc/sys/kernel/core_pattern
+      if: ${{ matrix.build-type == 'Debug' || matrix.build-type == 'Coverage' }}
+      run : |
+
+        # The LXC container share the same "/proc/sys/kernel/core_pattern"
+        # with the host and it can't be overridden inside the container. Hence
+        # we need to override it at the runner level.
+        sudo bash -c 'echo "/coredump/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+
     - name: Test
+      id: test
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
       run: |
+
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
-        /snap/bin/lxc --project snapcraft exec $instance_name -- \
+        # Let's print the core pattern so we can check if it's successfully propagated to the container.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
+        # Create the directory for the coredumps
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+           ulimit -c unlimited &&        \
            env CTEST_OUTPUT_ON_FAILURE=1 \
-               LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-               /root/parts/multipass/build/bin/multipass_tests
+           LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+           /root/parts/multipass/build/bin/multipass_tests"
 
     - name: Measure coverage
       id: measure-coverage
@@ -184,6 +202,8 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       timeout-minutes: 5
       run: |
+
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
 
@@ -203,10 +223,51 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- \
            sh -c "sudo sed -i \"s/use JSON::PP/use JSON::XS/\" \`which geninfo\`"
 
-        /snap/bin/lxc --project snapcraft exec $instance_name -- \
+        # Create the directory for the coredumps
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          ulimit -c unlimited && \
           env CTEST_OUTPUT_ON_FAILURE=1 \
-            cmake --build /root/parts/multipass/build --target covreport
+            cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+
+    - name: Pull coredump and executable from LXC container
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139'}}
+      run: |
+
+        set -o xtrace
+        # Check whether the test executable is crashed or not.
+        # If so, we'll need to pull the core dump and the executable from the container to the
+        # runner, so we can upload them as artifacts later on.
+        echo "Test executable crashed."
+        # Make a directory in tmp to pull the coredump(s) and the test executable.
+        # We'll need both to debug the crash.
+        mkdir -p /tmp/coredump
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        # Pull the crashed executable from the container
+        /snap/bin/lxc --project snapcraft file pull "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/multipass_tests
+        echo "Pulled the executable."
+        # List the coredump files into a variable
+        files=`/snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "ls /coredump 2>/dev/null"`
+        echo "$files"
+        # If there's `any`, we need to pull them.
+        if [ ! -z "$files" ]
+        then
+          ARRAY=($files)
+          COREDUMP_FILES=(`printf "$instance_name/coredump/%s " "${ARRAY[@]}"`)
+          /snap/bin/lxc --project snapcraft file pull "${COREDUMP_FILES[@]}" /tmp/coredump
+          echo "Pulled ${#COREDUMP_FILES[@]} coredump(s) from the snap build container"
+        else
+          echo "Executable crashed, but no coredump file found!"
+        fi
+        set +o xtrace
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v4
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139' }}
+      with:
+        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
+        path: /tmp/coredump/**
 
     - name: Continue on Error comment
       uses: mainmatter/continue-on-error-comment@v1
