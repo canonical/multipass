@@ -2,6 +2,13 @@
   "builtin-baseline": "6f29f12e82a8293156836ad81cc9bf5af41fe836",
   "dependencies": [
     "poco",
-    "grpc"
+    "grpc",
+    "fmt"
+  ],
+  "overrides": [
+    {
+      "name": "fmt",
+      "version": "11.0.2"
+    }
   ]
 }
