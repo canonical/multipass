@@ -19,7 +19,7 @@ add_library(client_common STATIC
 
 target_link_libraries(client_common
   cert
-  fmt
+  fmt::fmt-header-only
   platform
   rpc
   settings

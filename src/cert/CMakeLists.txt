@@ -28,7 +28,7 @@ target_compile_options(cert PRIVATE
 )
 
 target_link_libraries(cert
-  fmt
+  fmt::fmt-header-only
   utils
   OpenSSL::SSL
   OpenSSL::Crypto

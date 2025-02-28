@@ -89,12 +89,6 @@ target_link_libraries(yaml INTERFACE
 # libssh config
 add_subdirectory(libssh)
 
-# fmt header only library
-add_library(fmt INTERFACE)
-target_compile_definitions(fmt INTERFACE FMT_HEADER_ONLY=1)
-target_include_directories(fmt INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/fmt/include)
-
 # premock header only library to mock c-functions
 add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE
