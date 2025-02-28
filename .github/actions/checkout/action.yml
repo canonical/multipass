@@ -16,3 +16,24 @@ runs:
     shell: bash
     run: |
       git fetch --recurse-submodules origin +refs/tags/*:refs/tags/*
+
+  - name: Read vcpkg.json file into a variable
+    shell: bash
+    id: read-vcpkg-json
+    run: |
+      echo "content<<EOF" >> $GITHUB_OUTPUT
+      cat ./vcpkg.json >> $GITHUB_OUTPUT
+      echo "EOF" >> $GITHUB_OUTPUT
+
+  - name: Fetch the vcpkg builtin-baseline
+    shell: bash
+    run: |
+      BASELINE=${{ fromJSON(steps.read-vcpkg-json.outputs.content)['builtin-baseline'] }}
+      echo "Found builtin-baseline: $BASELINE"
+      cd 3rd-party/vcpkg
+      # Fetch the baseline commit 
+      git fetch origin $BASELINE --depth=1
+      # Use baseline commit's timestamp to do a shallow-since pull to only fetch
+      # the commits we're actually going to need.
+      git pull --shallow-since=$(git show -s --format=%at "$BASELINE") origin master
+      # git fetch --unshallow also works but it fetches everything.
