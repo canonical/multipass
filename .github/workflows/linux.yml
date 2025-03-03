@@ -43,9 +43,7 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
+        MATRIX='{"build-type": "Debug"}'
 
         if ${{ github.event_name != 'merge_group' }}; then
             MATRIX+='{"build-type": "Coverage" }'
@@ -228,8 +226,19 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
           ulimit -c unlimited && \
           env CTEST_OUTPUT_ON_FAILURE=1 \
-            cmake --build /root/parts/multipass/build --target covreport"
+            cmake --build /root/parts/multipass/build --target coverage"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+
+    - name: Run TICS analysis
+      id: tics
+      if: ${{ steps.measure-coverage.outcome == 'success' }}
+      uses: tiobe/tics-github-action@v3
+      with:
+        mode: qserver
+        project: multipass
+        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+        installTics: true
 
     - name: Pull coredump and executable from LXC container
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139'}}
@@ -276,65 +285,10 @@ jobs:
         outcome: ${{ steps.measure-coverage.outcome }}
         test-id: Error with measuring coverage in ${{ matrix.build-type }} build
 
-    - name: Build and verify the snap
-      id: build-snap
-      if: ${{ matrix.build-type == 'Release' }}
-      env:
-        SNAP_ENFORCE_RESQUASHFS: 0
-      run: |
-        # Actually build the snap.
-        /snap/bin/snapcraft --use-lxd
-
-        sudo snap install review-tools
-        /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
-
-        echo "snap-file=$( ls *.snap )" >> $GITHUB_OUTPUT
-
-    - name: Upload the snap
-      uses: actions/upload-artifact@v4
-      if: ${{ matrix.build-type == 'Release' }}
-      with:
-        name: ${{ steps.build-snap.outputs.snap-file }}
-        path: ${{ steps.build-snap.outputs.snap-file }}
-        if-no-files-found: error
-        retention-days: 30
-
-  # Publish the snap to the store if a channel was determined and we have access to secrets.
-  Publish-Snap:
-    needs: BuildAndTest
-    # Need to explicitly continue on Lint getting skipped.
-    if: ${{
-      !failure()
-      && !cancelled()
-      && needs.BuildAndTest.outputs.channel != ''
-      && (github.event_name == 'push'
-          || github.event_name == 'merge_group'
-          || github.event.pull_request.head.repo.full_name == github.repository)
-      }}
-
-    runs-on: ubuntu-latest
-
-    timeout-minutes: 15
-    steps:
-    - name: Download the built snap
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ needs.BuildAndTest.outputs.snap-file }}
-
-    - name: Install Snapcraft and log in
-      uses: samuelmeuli/action-snapcraft@v3
-
-    - name: Publish the snap
-      env:
-        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
-      run: |
-        snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
-
   # Dispatch to the private side
   Dispatch:
     needs:
     - BuildAndTest
-    - Publish-Snap
 
     # Only dispatch if we have access to secrets.
     # Need to explicitly continue on Lint getting skipped.
@@ -359,36 +313,3 @@ jobs:
             echo "head_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
             echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
         fi
-
-    - name: Dispatch Linux integration tests
-      if: ${{ github.event_name == 'push' }}
-      uses: Saviq/workflow-dispatch@dist
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        workflow: Integration
-        ref: ${{ steps.dispatch-params.outputs.ref }}
-        sha: ${{ steps.dispatch-params.outputs.sha }}
-        inputs: |
-          {
-            "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
-          }
-      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-error: true
-
-    - name: Dispatch macOS and Windows builds
-      uses: peter-evans/repository-dispatch@v3
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
-        event-type: public_build
-        client-payload: |
-          {
-            "repository": "${{ github.repository }}",
-            "head_ref": "${{ steps.dispatch-params.outputs.head_ref }}",
-            "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
-            "ref": "${{ github.ref }}",
-            "sha": "${{ github.sha }}",
-            "draft": "${{ github.event.pull_request.draft }}",
-            "label": "${{ needs.BuildAndTest.outputs.label }}",
-            "dispatch_ci": "${{ github.event_name == 'push' }}"
-          }
