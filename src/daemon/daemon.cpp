@@ -2867,7 +2867,10 @@ void mp::Daemon::persist_instances()
     }
     QDir data_dir{
         mp::utils::backend_directory_path(config->data_directory, config->factory->get_backend_directory_name())};
-    MP_JSONUTILS.write_json(instance_records_json, data_dir.filePath(instance_db_name));
+
+    const QString instance_db_path = data_dir.filePath(instance_db_name);
+    MP_JSONUTILS.write_json(instance_records_json, instance_db_path);
+    MP_PLATFORM.set_permissions(fs::path{instance_db_path.toStdString()}, fs::perms::owner_all);
 }
 
 void mp::Daemon::release_resources(const std::string& instance)
