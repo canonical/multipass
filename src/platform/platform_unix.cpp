@@ -61,8 +61,11 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
 }
 
 bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
-                                             std::filesystem::perms permissions) const
+                                             std::filesystem::perms permissions,
+                                             bool) const
 {
+    // try_inherit is ignored on unix since it only pertains to ACLs
+
     std::error_code ec{};
     std::filesystem::permissions(path, permissions, ec);
 
@@ -74,6 +77,25 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     }
 
     return !ec;
+}
+
+bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
+{
+    return this->chown(path.u8string().c_str(), 0, 0) == 0;
+}
+
+void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
+{
+    if (restricted)
+    {
+        // only user can read/write/execute
+        ::umask(~(S_IRUSR | S_IWUSR | S_IXUSR));
+    }
+    else
+    {
+        // typical default umask permissions
+        ::umask(S_IWGRP | S_IWOTH);
+    }
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
