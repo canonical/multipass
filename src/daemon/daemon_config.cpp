@@ -109,7 +109,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    MP_PLATFORM.setup_permission_inheritance();
+    MP_PLATFORM.setup_permission_inheritance(false);
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
@@ -192,16 +192,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
-    // restrict permissions for all existing files and folders
-    if (!storage_path.isEmpty())
-    {
-        MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
-    }
-    else
-    {
-        MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
-        MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
-    }
+    // restrict permissions for all existing files and folders in cache directory, the data directory will have a more
+    // granular permissions setting
+    MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),

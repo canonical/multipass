@@ -2519,7 +2519,6 @@ TEST_F(Daemon, sets_permissions_on_provided_storage_path)
     const std::filesystem::path std_path{path.toStdU16String()};
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(path));
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_path));
 
     config_builder.build();
 }
@@ -2533,7 +2532,6 @@ TEST_F(Daemon, sets_permissions_on_storage_dirs)
     config_builder.cache_directory = "Pirate's secret cache";
     const std::filesystem::path std_cache_path{config_builder.cache_directory.toStdU16String()};
 
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_data_path));
     EXPECT_CALL(mock_permission_utils, restrict_permissions(std_cache_path));
 
     config_builder.build();
@@ -2541,7 +2539,7 @@ TEST_F(Daemon, sets_permissions_on_storage_dirs)
 
 TEST_F(Daemon, sets_up_permission_inheritance)
 {
-    EXPECT_CALL(mock_platform, setup_permission_inheritance(true));
+    EXPECT_CALL(mock_platform, setup_permission_inheritance(false));
 
     config_builder.build();
 }
