@@ -33,17 +33,17 @@ struct AddEndpointParameters
     /**
      * Name of the target host compute system
      */
-    std::string target_compute_system_name;
+    std::string target_compute_system_name{};
 
     /**
      * GUID of the endpoint to add.
      */
-    std::string endpoint_guid;
+    std::string endpoint_guid{};
 
     /**
      * MAC address to assign to the NIC
      */
-    std::string nic_mac_address;
+    std::string nic_mac_address{};
 };
 
 } // namespace multipass::hyperv::hcs
@@ -70,4 +70,4 @@ struct fmt::formatter<multipass::hyperv::hcs::AddEndpointParameters, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCS_ADD_ENDPOINT_PARAMETERS_H

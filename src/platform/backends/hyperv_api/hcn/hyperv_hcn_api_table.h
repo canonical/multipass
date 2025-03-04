@@ -85,4 +85,4 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCN_API_TABLE

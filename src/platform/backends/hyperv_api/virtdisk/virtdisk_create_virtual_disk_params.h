@@ -19,6 +19,7 @@
 #define MULTIPASS_HYPERV_API_VIRTDISK_CREATE_VIRTUAL_DISK_PARAMETERS_H
 
 #include <filesystem>
+
 #include <fmt/format.h>
 
 namespace multipass::hyperv::virtdisk
@@ -53,4 +54,4 @@ struct fmt::formatter<multipass::hyperv::virtdisk::CreateVirtualDiskParameters, 
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_VIRTDISK_CREATE_VIRTUAL_DISK_PARAMETERS_H

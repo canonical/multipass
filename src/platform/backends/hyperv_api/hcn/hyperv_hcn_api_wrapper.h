@@ -18,8 +18,8 @@
 #ifndef MULTIPASS_HYPERV_API_HCN_WRAPPER
 #define MULTIPASS_HYPERV_API_HCN_WRAPPER
 
-#include "hyperv_hcn_api_table.h"
-#include "hyperv_hcn_wrapper_interface.h"
+#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
+#include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
 
 namespace multipass::hyperv::hcn
 {
@@ -86,9 +86,9 @@ struct HCNWrapper : public HCNWrapperInterface
     [[nodiscard]] OperationResult delete_endpoint(const std::string& endpoint_guid) const override;
 
 private:
-    const HCNAPITable api;
+    const HCNAPITable api{};
 };
 
 } // namespace multipass::hyperv::hcn
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCN_WRAPPER
