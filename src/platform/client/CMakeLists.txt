@@ -26,4 +26,4 @@ endif()
 target_link_libraries(client_platform
   Qt6::Core
   console
-  fmt)
+  fmt::fmt-header-only)

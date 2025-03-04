@@ -22,7 +22,7 @@ add_library(virtualbox_backend STATIC
 
 target_link_libraries(virtualbox_backend
   Qt6::Core
-  fmt
+  fmt::fmt-header-only
   ip_address
   logger
   process

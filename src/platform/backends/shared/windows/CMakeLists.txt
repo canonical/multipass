@@ -24,7 +24,7 @@ include_directories(shared_win
 
 target_link_libraries(shared_win
   Qt6::Core
-  fmt
+  fmt::fmt-header-only
   logger
   OpenSSL::Crypto
   sftp_client
