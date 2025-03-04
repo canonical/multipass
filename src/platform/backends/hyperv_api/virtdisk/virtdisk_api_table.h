@@ -76,4 +76,4 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_VIRTDISK_API_TABLE
