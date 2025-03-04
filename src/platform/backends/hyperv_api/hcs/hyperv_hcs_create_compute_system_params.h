@@ -32,27 +32,27 @@ struct CreateComputeSystemParameters
     /**
      * Unique name for the compute system
      */
-    std::string name;
+    std::string name{};
 
     /**
      * Memory size, in megabytes
      */
-    std::uint32_t memory_size_mb;
+    std::uint32_t memory_size_mb{};
 
     /**
      * vCPU count
      */
-    std::uint32_t processor_count;
+    std::uint32_t processor_count{};
 
     /**
      * Path to the cloud-init ISO file
      */
-    std::string cloudinit_iso_path;
+    std::string cloudinit_iso_path{};
 
     /**
      * Path to the Primary (boot) VHDX file
      */
-    std::string vhdx_path;
+    std::string vhdx_path{};
 };
 
 } // namespace multipass::hyperv::hcs
@@ -82,4 +82,4 @@ struct fmt::formatter<multipass::hyperv::hcs::CreateComputeSystemParameters, Cha
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H

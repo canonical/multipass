@@ -15,12 +15,12 @@
  *
  */
 
-#include "hyperv_hcn_api_wrapper.h"
-#include "../hyperv_api_common.h"
-#include "hyperv_hcn_api_table.h"
-#include "hyperv_hcn_create_endpoint_params.h"
-#include "hyperv_hcn_create_network_params.h"
-#include "hyperv_hcn_wrapper_interface.h"
+#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
+#include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
+#include <hyperv_api/hyperv_api_common.h>
 
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>

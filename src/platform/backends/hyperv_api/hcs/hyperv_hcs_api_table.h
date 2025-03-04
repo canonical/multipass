@@ -119,4 +119,4 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCS_API_TABLE

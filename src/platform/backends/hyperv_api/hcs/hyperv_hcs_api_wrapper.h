@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_WRAPPER
 #define MULTIPASS_HYPERV_API_HCS_WRAPPER
 
-#include "hyperv_hcs_api_table.h"
-#include "hyperv_hcs_create_compute_system_params.h"
-#include "hyperv_hcs_wrapper_interface.h"
+#include <hyperv_api/hcs/hyperv_hcs_api_table.h>
+#include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
 
 namespace multipass::hyperv::hcs
 {
@@ -229,9 +229,9 @@ struct HCSWrapper : public HCSWrapperInterface
     [[nodiscard]] OperationResult get_compute_system_state(const std::string& compute_system_name) const override;
 
 private:
-    const HCSAPITable api;
+    const HCSAPITable api{};
 };
 
 } // namespace multipass::hyperv::hcs
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCS_WRAPPER

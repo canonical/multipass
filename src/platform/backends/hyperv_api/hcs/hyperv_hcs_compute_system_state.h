@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <stdexcept>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -39,7 +39,7 @@ enum class ComputeSystemState : std::uint8_t
     paused,
     stopped,
     saved_as_template,
-    unknown
+    unknown,
 };
 
 /**
@@ -48,7 +48,7 @@ enum class ComputeSystemState : std::uint8_t
  * @param str
  * @return ComputeSystemState
  */
-inline ComputeSystemState compute_system_state_from_string(std::string str)
+inline std::optional<ComputeSystemState> compute_system_state_from_string(std::string str)
 {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
     // std::unordered_map
@@ -58,15 +58,13 @@ inline ComputeSystemState compute_system_state_from_string(std::string str)
         {"paused", ComputeSystemState::paused},
         {"stopped", ComputeSystemState::stopped},
         {"savedastemplate", ComputeSystemState::saved_as_template},
-        {"unknown", ComputeSystemState::unknown}};
+        {"unknown", ComputeSystemState::unknown},
+    };
 
-    const auto itr = translation_map.find(str);
-    if (translation_map.end() == itr)
-    {
-        throw std::domain_error{""};
-    }
+    if (const auto itr = translation_map.find(str); translation_map.end() != itr)
+        return itr->second;
 
-    return itr->second;
+    return std::nullopt;
 }
 
 } // namespace multipass::hyperv::hcs
