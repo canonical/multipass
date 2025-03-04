@@ -36,21 +36,6 @@ namespace mp = multipass;
 
 namespace
 {
-std::unique_ptr<FILE, int (*)(FILE*)> open_file(const QString& file_path)
-{
-    const std::filesystem::path file_path_std{file_path.toStdString()};
-    std::filesystem::create_directories(file_path_std.parent_path());
-    // make sure the parent directory exist
-
-    const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
-
-    if (raw_fp == nullptr)
-        throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
-
-    // return raw_fp;
-    return std::unique_ptr<FILE, int (*)(FILE*)>{raw_fp, fclose};
-}
-
 class WritableFile
 {
 public:
@@ -64,9 +49,25 @@ public:
     }
 
 private:
+    using FilePtr = std::unique_ptr<FILE, int (*)(FILE*)>;
+    static FilePtr open_file(const QString& file_path)
+    {
+        const std::filesystem::path file_path_std{file_path.toStdString()};
+        std::filesystem::create_directories(file_path_std.parent_path());
+        // make sure the parent directory exist
+
+        const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
+
+        if (raw_fp == nullptr)
+            throw std::runtime_error(
+                fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
+
+        return FilePtr{raw_fp, fclose};
+    }
+
     // decltype(&fclose) does not preserve these some extra function attributes of fclose, leads to warning and
     // compilation error
-    std::unique_ptr<FILE, int (*)(FILE*)> fp;
+    FilePtr fp;
 };
 
 class EVPKey
