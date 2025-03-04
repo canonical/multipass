@@ -20,9 +20,11 @@ if(WIN32)
     hyperv_api_common.cpp
     hcn/hyperv_hcn_api_wrapper.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
-    virtdisk/virtdisk_api_wrapper.cpp)
+    virtdisk/virtdisk_api_wrapper.cpp
+  )
 
   target_link_libraries(hyperv_api_backend PRIVATE
     fmt
-    utils)
+    utils
+  )
 endif()

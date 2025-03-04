@@ -15,12 +15,12 @@
  *
  */
 
-#include "hyperv_hcs_api_wrapper.h"
-#include "../hyperv_api_common.h"
-#include "hyperv_api/hyperv_api_operation_result.h"
-#include "hyperv_hcs_add_endpoint_params.h"
-#include "hyperv_hcs_api_table.h"
-#include "hyperv_hcs_create_compute_system_params.h"
+#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_api_table.h>
+#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+#include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
+#include <hyperv_api/hyperv_api_common.h>
+#include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <multipass/logging/log.h>
 
@@ -28,10 +28,11 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <fmt/xchar.h>
 
 #include <chrono>
 #include <memory>
+
+#include <fmt/xchar.h>
 
 namespace multipass::hyperv::hcs
 {
