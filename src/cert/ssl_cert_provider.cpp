@@ -50,7 +50,7 @@ FILE* open_file(const QString& file_path)
     return raw_fp;
 }
 
-EVP_PKEY* create_raw_key_pointer()
+std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> create_key()
 {
     std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
                                                                     EVP_PKEY_CTX_free);
@@ -77,7 +77,8 @@ EVP_PKEY* create_raw_key_pointer()
         throw std::runtime_error("Failed to generate EC key");
     }
 
-    return raw_key;
+    return std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(raw_key, EVP_PKEY_free);
+
 }
 
 class WritableFile
@@ -101,7 +102,7 @@ private:
 class EVPKey
 {
 public:
-    EVPKey() : key{create_raw_key_pointer(), EVP_PKEY_free}
+    EVPKey() : key{create_key()}
     {
     }
 
