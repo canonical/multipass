@@ -15,7 +15,7 @@
  *
  */
 
-#include "hyperv_api_common.h"
+#include <hyperv_api/hyperv_api_common.h>
 
 #include <fmt/xchar.h>
 

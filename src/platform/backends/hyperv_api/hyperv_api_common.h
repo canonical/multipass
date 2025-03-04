@@ -18,8 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_COMMON_H
 #define MULTIPASS_HYPERV_API_COMMON_H
 
-#include <string>
 #include <windows.h>
+
+#include <string>
 
 namespace multipass::hyperv
 {
@@ -78,4 +79,4 @@ namespace multipass::hyperv
 
 } // namespace multipass::hyperv
 
-#endif
+#endif // MULTIPASS_HYPERV_API_COMMON_H

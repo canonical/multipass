@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
 #define MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
 
-#include "virtdisk_api_table.h"
-#include "virtdisk_disk_info.h"
-#include "virtdisk_wrapper_interface.h"
+#include <hyperv_api/virtdisk/virtdisk_api_table.h>
+#include <hyperv_api/virtdisk/virtdisk_disk_info.h>
+#include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
 namespace multipass::hyperv::virtdisk
 {
@@ -87,9 +87,9 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
                                                   VirtualDiskInfo& vdinfo) const override;
 
 private:
-    const VirtDiskAPITable api;
+    const VirtDiskAPITable api{};
 };
 
 } // namespace multipass::hyperv::virtdisk
 
-#endif
+#endif // MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
