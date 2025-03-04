@@ -50,36 +50,7 @@ FILE* open_file(const QString& file_path)
     return raw_fp;
 }
 
-std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> create_key()
-{
-    std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
-                                                                    EVP_PKEY_CTX_free);
 
-    if (!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0)
-    {
-        throw std::runtime_error("Failed to initialize key generation");
-    }
-
-    // Set EC curve (P-256)
-    const std::array<OSSL_PARAM, 2> params = {
-        // the 3rd argument is length of the buffer, which is 0 in the case of static buffer like "P-256"
-        OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
-        OSSL_PARAM_construct_end()};
-    if (EVP_PKEY_CTX_set_params(ctx.get(), params.data()) != 1)
-    {
-        throw std::runtime_error("EVP_PKEY_CTX_set_params() failed");
-    }
-
-    // Generate the key
-    EVP_PKEY* raw_key = nullptr;
-    if (EVP_PKEY_generate(ctx.get(), &raw_key) <= 0)
-    {
-        throw std::runtime_error("Failed to generate EC key");
-    }
-
-    return std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>(raw_key, EVP_PKEY_free);
-
-}
 
 class WritableFile
 {
@@ -138,7 +109,40 @@ public:
     }
 
 private:
-    std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> key;
+    using EVPKeyPtr = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+
+    static EVPKeyPtr create_key()
+    {
+        std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
+            EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
+            EVP_PKEY_CTX_free);
+
+        if (!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0)
+        {
+            throw std::runtime_error("Failed to initialize key generation");
+        }
+
+        // Set EC curve (P-256)
+        const std::array<OSSL_PARAM, 2> params = {
+            // the 3rd argument is length of the buffer, which is 0 in the case of static buffer like "P-256"
+            OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
+            OSSL_PARAM_construct_end()};
+        if (EVP_PKEY_CTX_set_params(ctx.get(), params.data()) != 1)
+        {
+            throw std::runtime_error("EVP_PKEY_CTX_set_params() failed");
+        }
+
+        // Generate the key
+        EVP_PKEY* raw_key = nullptr;
+        if (EVP_PKEY_generate(ctx.get(), &raw_key) <= 0)
+        {
+            throw std::runtime_error("Failed to generate EC key");
+        }
+
+        return EVPKeyPtr(raw_key, EVP_PKEY_free);
+    }
+
+    EVPKeyPtr key;
 };
 
 std::vector<unsigned char> as_vector(const std::string& v)
