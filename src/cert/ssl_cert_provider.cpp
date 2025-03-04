@@ -50,7 +50,7 @@ public:
 
 private:
     using FilePtr = std::unique_ptr<FILE, int (*)(FILE*)>;
-    static FilePtr open_file(const QString& file_path)
+    [[nodiscard]] static FilePtr open_file(const QString& file_path)
     {
         const std::filesystem::path file_path_std{file_path.toStdString()};
         std::filesystem::create_directories(file_path_std.parent_path());
@@ -111,7 +111,7 @@ public:
 private:
     using EVPKeyPtr = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
 
-    static EVPKeyPtr create_key()
+    [[nodiscard]] static EVPKeyPtr create_key()
     {
         std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
             EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
