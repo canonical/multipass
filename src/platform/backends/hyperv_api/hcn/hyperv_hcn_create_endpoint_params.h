@@ -34,19 +34,19 @@ struct CreateEndpointParameters
      *
      * The network must already exist.
      */
-    std::string network_guid;
+    std::string network_guid{};
 
     /**
      * GUID for the new endpoint.
      *
      * Must be unique.
      */
-    std::string endpoint_guid;
+    std::string endpoint_guid{};
 
     /**
      * The IPv[4-6] address to assign to the endpoint.
      */
-    std::string endpoint_ipvx_addr;
+    std::string endpoint_ipvx_addr{};
 };
 
 } // namespace multipass::hyperv::hcn
@@ -73,4 +73,4 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCN_CREATE_ENDPOINT_PARAMETERS_H
