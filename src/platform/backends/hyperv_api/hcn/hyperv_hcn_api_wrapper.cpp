@@ -101,9 +101,9 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
 
     mpl::log(lvl::trace,
              kLogCategory,
-             fmt::format("perform_operation(...) > fn: {}, result: {}",
-                         fmt::ptr(fn.template target<void*>()),
-                         static_cast<bool>(result)));
+             "perform_operation(...) > fn: {}, result: {}",
+             fmt::ptr(fn.template target<void*>()),
+             static_cast<bool>(result));
 
     // Error message is only valid when the operation resulted in an error.
     // Passing a nullptr is well-defined in "< C++23", but it's going to be
@@ -126,13 +126,13 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
  */
 UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network_guid)
 {
-    mpl::log(lvl::trace, kLogCategory, fmt::format("open_network(...) > network_guid: {} ", network_guid));
+    mpl::log(lvl::trace, kLogCategory, "open_network(...) > network_guid: {} ", network_guid);
     HCN_NETWORK network{nullptr};
 
     const auto result = perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), &network);
     if (!result)
     {
-        mpl::log(lvl::error, kLogCategory, fmt::format("open_network() > HcnOpenNetwork failed with {}!", result.code));
+        mpl::log(lvl::error, kLogCategory, "open_network() > HcnOpenNetwork failed with {}!", result.code);
     }
     return UniqueHcnNetwork{network, api.CloseNetwork};
 }
@@ -143,14 +143,14 @@ UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network
 
 HCNWrapper::HCNWrapper(const HCNAPITable& api_table) : api{api_table}
 {
-    mpl::log(lvl::trace, kLogCategory, fmt::format("HCNWrapper::HCNWrapper(...): api_table: {}", api));
+    mpl::log(lvl::trace, kLogCategory, "HCNWrapper::HCNWrapper(...): api_table: {}", api);
 }
 
 // ---------------------------------------------------------
 
 OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params) const
 {
-    mpl::log(lvl::trace, kLogCategory, fmt::format("HCNWrapper::create_network(...) > params: {} ", params));
+    mpl::log(lvl::trace, kLogCategory, "HCNWrapper::create_network(...) > params: {} ", params);
 
     /**
      * HcnCreateNetwork settings JSON template
@@ -193,7 +193,8 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
         // FIXME: Also include the result error message, if any.
         mpl::log(lvl::error,
                  kLogCategory,
-                 fmt::format("HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}!", result.code));
+                 "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}!",
+                 result.code);
     }
 
     [[maybe_unused]] UniqueHcnNetwork _{network, api.CloseNetwork};
@@ -204,7 +205,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 
 OperationResult HCNWrapper::delete_network(const std::string& network_guid) const
 {
-    mpl::log(lvl::trace, kLogCategory, fmt::format("HCNWrapper::delete_network(...) > network_guid: {}", network_guid));
+    mpl::log(lvl::trace, kLogCategory, "HCNWrapper::delete_network(...) > network_guid: {}", network_guid);
     return perform_hcn_operation(api, api.DeleteNetwork, guid_from_string(network_guid));
 }
 
@@ -212,7 +213,7 @@ OperationResult HCNWrapper::delete_network(const std::string& network_guid) cons
 
 OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& params) const
 {
-    mpl::log(lvl::trace, kLogCategory, fmt::format("HCNWrapper::create_endpoint(...) > params: {} ", params));
+    mpl::log(lvl::trace, kLogCategory, "HCNWrapper::create_endpoint(...) > params: {} ", params);
 
     const auto network = open_network(api, params.network_guid);
 
@@ -259,9 +260,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
 
 OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) const
 {
-    mpl::log(lvl::trace,
-             kLogCategory,
-             fmt::format("HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ", endpoint_guid));
+    mpl::log(lvl::trace, kLogCategory, "HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ", endpoint_guid);
     return perform_hcn_operation(api, api.DeleteEndpoint, guid_from_string(endpoint_guid));
 }
 
