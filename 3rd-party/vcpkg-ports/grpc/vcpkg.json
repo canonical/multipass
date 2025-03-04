@@ -17,7 +17,6 @@
         "codegen"
       ]
     },
-    "openssl",
     "protobuf",
     {
       "name": "protobuf",
