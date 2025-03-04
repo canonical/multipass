@@ -36,7 +36,7 @@ namespace mp = multipass;
 
 namespace
 {
-FILE* open_file(const QString& file_path)
+std::unique_ptr<FILE, int (*)(FILE*)> open_file(const QString& file_path)
 {
     const std::filesystem::path file_path_std{file_path.toStdString()};
     std::filesystem::create_directories(file_path_std.parent_path());
@@ -47,15 +47,14 @@ FILE* open_file(const QString& file_path)
     if (raw_fp == nullptr)
         throw std::runtime_error(fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
 
-    return raw_fp;
+    // return raw_fp;
+    return std::unique_ptr<FILE, int (*)(FILE*)>{raw_fp, fclose};
 }
-
-
 
 class WritableFile
 {
 public:
-    explicit WritableFile(const QString& file_path) : fp{open_file(file_path), fclose}
+    explicit WritableFile(const QString& file_path) : fp{open_file(file_path)}
     {
     }
 
