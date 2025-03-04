@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_HYPERV_API_HCN_WRAPPER_INTERFACE_H
 #define MULTIPASS_HYPERV_API_HCN_WRAPPER_INTERFACE_H
 
-#include "../hyperv_api_operation_result.h"
+#include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <string>
 
@@ -26,7 +26,7 @@ namespace multipass::hyperv::hcn
 {
 
 /**
- * Abstract interface for Hyper-V Host Compute Networking wrapper.
+ * Abstract interface for Host Compute Network API wrapper.
  */
 struct HCNWrapperInterface
 {
@@ -38,4 +38,4 @@ struct HCNWrapperInterface
 };
 } // namespace multipass::hyperv::hcn
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCN_WRAPPER_INTERFACE_H
