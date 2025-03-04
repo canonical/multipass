@@ -32,23 +32,23 @@ struct CreateNetworkParameters
     /**
      * Name for the network
      */
-    std::string name;
+    std::string name{};
 
     /**
      * RFC4122 unique identifier for the network.
      */
-    std::string guid;
+    std::string guid{};
 
     /**
      * Subnet CIDR that defines the address space of
      * the network.
      */
-    std::string subnet;
+    std::string subnet{};
 
     /**
      * The default gateway address for the network.
      */
-    std::string gateway;
+    std::string gateway{};
 };
 
 } // namespace multipass::hyperv::hcn
@@ -76,4 +76,4 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateNetworkParameters, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCN_CREATE_NETWORK_PARAMETERS_H
