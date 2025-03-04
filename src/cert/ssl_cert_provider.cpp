@@ -229,7 +229,7 @@ public:
 
         const auto& issuer_cert = cert_type == CertType::Server ? root_certificate.value().cert : cert;
         // Add X509v3 extensions
-        X509V3_CTX ctx;
+        X509V3_CTX ctx{};
         X509V3_set_ctx(&ctx, issuer_cert.get(), cert.get(), nullptr, nullptr, 0);
 
         // Subject Alternative Name
@@ -310,12 +310,12 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
         const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
 
-        EVPKey root_cert_key;
+        EVPKey root_cert_key{};
         X509Cert root_cert{root_cert_key, X509Cert::CertType::Root};
         root_cert_key.write(priv_root_key_path);
         root_cert.write(root_cert_path.u8string().c_str());
 
-        const EVPKey server_cert_key;
+        const EVPKey server_cert_key{};
         const X509Cert signed_server_cert{server_cert_key,
                                           X509Cert::CertType::Server,
                                           server_name,
@@ -332,7 +332,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
             return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
         }
 
-        const EVPKey client_cert_key;
+        const EVPKey client_cert_key{};
         const X509Cert client_cert{client_cert_key, X509Cert::CertType::Client};
         client_cert_key.write(priv_key_path);
         client_cert.write(cert_path);
