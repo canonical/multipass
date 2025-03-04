@@ -18,8 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_OPERATION_RESULT_H
 #define MULTIPASS_HYPERV_API_OPERATION_RESULT_H
 
-#include <string>
 #include <winerror.h>
+
+#include <string>
 
 #include <fmt/format.h>
 
@@ -125,4 +126,4 @@ struct fmt::formatter<multipass::hyperv::OperationResult, Char>
     }
 };
 
-#endif
+#endif // MULTIPASS_HYPERV_API_OPERATION_RESULT_H

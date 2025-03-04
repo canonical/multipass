@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_INTERFACE_H
 #define MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_INTERFACE_H
 
-#include "../hyperv_api_operation_result.h"
-#include "virtdisk_create_virtual_disk_params.h"
-#include "virtdisk_disk_info.h"
+#include <hyperv_api/hyperv_api_operation_result.h>
+#include <hyperv_api/virtdisk/virtdisk_create_virtual_disk_params.h>
+#include <hyperv_api/virtdisk/virtdisk_disk_info.h>
 
 #include <filesystem>
 
@@ -28,7 +28,7 @@ namespace multipass::hyperv::virtdisk
 {
 
 /**
- * Abstract interface for the virtdisk wrapper.
+ * Abstract interface for the virtdisk API wrapper.
  */
 struct VirtDiskWrapperInterface
 {

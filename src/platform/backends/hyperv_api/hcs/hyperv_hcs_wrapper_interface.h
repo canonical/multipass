@@ -18,10 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
 #define MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
 
-#include "../hyperv_api_operation_result.h"
-
-#include "hyperv_hcs_add_endpoint_params.h"
-#include "hyperv_hcs_create_compute_system_params.h"
+#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
+#include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <filesystem>
 #include <string>
@@ -30,8 +29,7 @@ namespace multipass::hyperv::hcs
 {
 
 /**
- *
- *
+ * Abstract interface for the Host Compute System API wrapper.
  */
 struct HCSWrapperInterface
 {
@@ -58,4 +56,4 @@ struct HCSWrapperInterface
 };
 } // namespace multipass::hyperv::hcs
 
-#endif
+#endif // MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
