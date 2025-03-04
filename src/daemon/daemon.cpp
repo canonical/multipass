@@ -2870,7 +2870,7 @@ void mp::Daemon::persist_instances()
 
     const QString instance_db_path = data_dir.filePath(instance_db_name);
     MP_JSONUTILS.write_json(instance_records_json, instance_db_path);
-    MP_PLATFORM.set_permissions(fs::path{instance_db_path.toStdString()}, fs::perms::owner_all);
+    MP_PLATFORM.set_permissions(fs::path{instance_db_path.toStdU16String()}, fs::perms::owner_all);
 }
 
 void mp::Daemon::release_resources(const std::string& instance)
