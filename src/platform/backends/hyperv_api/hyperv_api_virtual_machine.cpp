@@ -58,23 +58,33 @@ inline auto replace_colon_with_dash(std::string& addr)
 auto resolve_ip_addresses(const std::string& hostname)
 {
     static auto wsa_context = [] {
-        WSADATA wsaData{};
-        if (const auto r = WSAStartup(MAKEWORD(2, 2), &wsaData); r != 0)
+        struct wsa_init_wrapper
         {
-            // LOG HERE
-            mpl::log(lvl::error,
-                     kLogCategory,
-                     fmt::format("resolve_and_memoize_ip_addresses() > WSAStartup failed with {}!", r));
-        }
-
-        struct auto_destroy
-        {
-            ~auto_destroy()
+            wsa_init_wrapper() : wsa_data{}, wsa_init_success(WSAStartup(MAKEWORD(2, 2), &wsa_data))
             {
-                WSACleanup();
+                if (!wsa_init_success)
+                {
+                    mpl::log(lvl::error, kLogCategory, "resolve_and_memoize_ip_addresses() > WSAStartup failed!");
+                }
             }
-        } a;
-        return a;
+            ~wsa_init_wrapper()
+            {
+                /**
+                 * https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsacleanup
+                 * There must be a call to WSACleanup for each successful call to WSAStartup.
+                 * Only the final WSACleanup function call performs the actual cleanup.
+                 * The preceding calls simply decrement an internal reference count in the WS2_32.DLL.
+                 */
+                if (wsa_init_success)
+                {
+                    WSACleanup();
+                }
+            }
+            WSADATA wsa_data{};
+            const bool wsa_init_success{false};
+        };
+
+        return wsa_init_wrapper{};
     }();
 
     // Wrap the raw addrinfo pointer so it's always destroyed properly.
@@ -271,8 +281,8 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
             }
         }
     }
-
     // Reflect compute system's state
+    set_state(fetch_state_from_api());
     update_state();
 }
 
@@ -321,21 +331,24 @@ void HyperVAPIVirtualMachine::set_state(hcs::ComputeSystemState compute_system_s
 
 void HyperVAPIVirtualMachine::start()
 {
-    // Fetch the latest state value.
+    state = VirtualMachine::State::starting;
     update_state();
-
     // Resume and start are the same thing in Multipass terms
     // Try to determine whether we need to resume or start here.
     const auto& [status, status_msg] = [&] {
-        if (state == VirtualMachine::State::suspended)
+        // Fetch the latest state value.
+        if (fetch_state_from_api() == hcs::ComputeSystemState::paused)
         {
             return hcs->resume_compute_system(vm_name);
         }
         return hcs->start_compute_system(vm_name);
     }();
 
-    state = VirtualMachine::State::starting;
-    monitor.persist_state_for(vm_name, state);
+    // TODO: Check status message here
+
+    // Maybe wait until SSH is up with timeout
+    std::this_thread::sleep_for(std::chrono::seconds{60});
+    set_state(fetch_state_from_api());
     update_state();
 }
 void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -346,23 +359,28 @@ void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     case ShutdownPolicy::Powerdown:
         // We have to rely on SSH for now since we don't have the means to
         // run a guest action from host natively.
-        // FIXME: Find a way to trigger ACPI shutdown, host-to-guest syscall
-        // or other more "direct" means to trigger the shutdown.
+        // FIXME: Find a way to trigger ACPI shutdown, host-to-guest syscall,
+        // some way to signal "vmwp.exe" for a graceful shutdown, sysrq via console
+        // or other "direct" means to trigger the shutdown.
         ssh_exec("sudo shutdown -h now");
+        drop_ssh_session();
         break;
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
+        drop_ssh_session();
         // These are non-graceful variants. Just terminate the system immediately.
         hcs->terminate_compute_system(vm_name);
         break;
     }
-    drop_ssh_session();
+
     state = State::off;
+    update_state();
 }
 
 void HyperVAPIVirtualMachine::suspend()
 {
     const auto& [status, status_msg] = hcs->pause_compute_system(vm_name);
+    set_state(fetch_state_from_api());
     update_state();
 }
 
@@ -375,11 +393,9 @@ int HyperVAPIVirtualMachine::ssh_port()
     constexpr auto kDefaultSSHPort = 22;
     return kDefaultSSHPort;
 }
-std::string HyperVAPIVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
+std::string HyperVAPIVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
 {
-    (void)timeout;
-    constexpr auto hostname_pattern = "{}.mshome.net";
-    return fmt::format(hostname_pattern, vm_name);
+    return fmt::format("{}.mshome.net", vm_name);
 }
 std::string HyperVAPIVirtualMachine::ssh_username()
 {
@@ -391,6 +407,7 @@ std::string HyperVAPIVirtualMachine::management_ipv4()
     const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv4.empty())
     {
+        // TODO: Log
         return {};
     }
 
@@ -405,6 +422,7 @@ std::string HyperVAPIVirtualMachine::ipv6()
     const auto& [_, ipv6] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv6.empty())
     {
+        // TODO: Log
         return {};
     }
     // Prefer the first one
@@ -417,11 +435,16 @@ void HyperVAPIVirtualMachine::ensure_vm_is_running()
 }
 void HyperVAPIVirtualMachine::update_state()
 {
-    hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
-    const auto result = hcs->get_compute_system_state(vm_name, compute_system_state);
-    set_state(compute_system_state);
     monitor.persist_state_for(vm_name, state);
 }
+
+hcs::ComputeSystemState HyperVAPIVirtualMachine::fetch_state_from_api()
+{
+    hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
+    const auto result = hcs->get_compute_system_state(vm_name, compute_system_state);
+    return compute_system_state;
+}
+
 void HyperVAPIVirtualMachine::update_cpus(int num_cores)
 {
     throw std::runtime_error{"Not yet implemented"};
@@ -438,7 +461,6 @@ void HyperVAPIVirtualMachine::add_network_interface(int index,
                                                     const std::string& default_mac_addr,
                                                     const NetworkInterface& extra_interface)
 {
-
     throw std::runtime_error{"Not yet implemented"};
 }
 std::unique_ptr<MountHandler> HyperVAPIVirtualMachine::make_native_mount_handler(const std::string& target,

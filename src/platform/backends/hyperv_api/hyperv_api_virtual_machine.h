@@ -92,6 +92,7 @@ private:
 
     VMStatusMonitor& monitor;
 
+    hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);
 };
 } // namespace multipass::hyperv
