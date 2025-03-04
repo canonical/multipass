@@ -65,7 +65,10 @@ EVP_PKEY* create_raw_key_pointer()
         // the 3rd argument is length of the buffer, which is 0 in the case of static buffer like "P-256"
         OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
         OSSL_PARAM_construct_end()};
-    EVP_PKEY_CTX_set_params(ctx.get(), params.data());
+    if (EVP_PKEY_CTX_set_params(ctx.get(), params.data()) != 1)
+    {
+        throw std::runtime_error("EVP_PKEY_CTX_set_params() failed");
+    }
 
     // Generate the key
     EVP_PKEY* raw_key = nullptr;
@@ -146,7 +149,10 @@ void set_random_serial_number(X509* cert)
 {
     // OpenSSL recommends a 20-byte (160-bit) serial number
     std::array<uint8_t, 20> serial_bytes{};
-    RAND_bytes(serial_bytes.data(), serial_bytes.size());
+    if (RAND_bytes(serial_bytes.data(), serial_bytes.size()) != 1)
+    {
+        throw std::runtime_error("Failed to set random bytes\n");
+    }
     // Set the highest bit to 0 (unsigned) to ensure it's positive
     serial_bytes[0] &= 0x7F;
 
@@ -168,7 +174,10 @@ void set_random_serial_number(X509* cert)
     }
 
     // Set the serial number in the certificate
-    X509_set_serialNumber(cert, serial);
+    if (X509_set_serialNumber(cert, serial) != 1)
+    {
+        throw std::runtime_error("Failed to set serial number!\n");
+    }
 }
 
 class X509Cert
