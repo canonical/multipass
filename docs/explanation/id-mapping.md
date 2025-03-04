@@ -9,7 +9,7 @@ Since ID mappings take effect from host to instance, as well as in the opposite 
 
 For example, the user ID `501` can be mapped to the user ID `1000` in the "foo" instance:
 
-```
+```{code-block} text
 multipass mount ~/Documents foo:Documents -u 501:1000
 ```
 
@@ -19,16 +19,12 @@ On the other hand, it is not possible to map this same user to a second user ID 
 
 Instead, a valid mount that maps two different user IDs could be defined as follows:
 
-```
+```{code-block} text
 multipass mount ~/Documents foo:Documents -u 501:1000 -u 502:1001
 ```
 
 The same logic also applies when trying to map a single user or group ID in an instance to two different IDs on the host.
 
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/id-mapping" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
-
+<!-- Discourse contributors
 <small>**Contributors:** @sharder996 , @gzanchi </small>
+-->

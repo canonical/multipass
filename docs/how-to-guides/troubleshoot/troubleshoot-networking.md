@@ -28,7 +28,7 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
     * Tunnelblick doesn’t cause problems.
 * Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking the instance’s DNS.
 <!-- THIS LINK IS BROKEN
-(see: [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
+(see [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
 * dnscrypt-proxy/dnscrypt-wrapper/cloudflared-proxy \
 The default configuration binds to localhost port 53, clashing with Internet Sharing.
 * Another `dnsmasq` process bound to localhost port 53
@@ -51,7 +51,7 @@ The default configuration binds to localhost port 53, clashing with Internet Sha
 
 `Unable to determine IP address` usually implies some networking configuration is incompatible, or there is interference from a Firewall or VPN.
 
-<!-- add link to https://discourse.ubuntu.com/t/draft-troubleshoot-launch-start-issues/48104 when published -->
+> See also: [How to troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues).
 
 ##### Troubleshooting
 
@@ -64,9 +64,6 @@ The default configuration binds to localhost port 53, clashing with Internet Sha
 1. Little Snitch - defaults are good, it should permit mDNSResponder and bootpd access to BPF
 If you're having trouble downloading images and/or see `Unknown error`s when trying to `multipass launch -vvv`, Little Snitch may be interfering with `multipassd`'s network access (ref. [#1169](https://github.com/canonical/multipass/issues/1169))
 1. Internet Sharing - doesn’t usually clash
-1. <!-- to be removed once https://discourse.ubuntu.com/t/draft-troubleshoot-launch-start-issues/48104 has been published, as it was moved there --> Is the bootpd DHCP server alive? (`sudo lsof -iUDP:67 -n -P` should mention `bootpd`)
-    - It should be launched automatically when there is a request, but you can also launch it manually if needed.
-    - Start it by running `sudo launchctl start com.apple.bootpd`. If that doesn't work for you, try `sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist`.
 
 (troubleshoot-networking-routing-problems)=
 #### Network routing problems
@@ -139,7 +136,14 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 
 Note that macOS's firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
 
+```{figure} /images/multipass-security-privacy.jpg
+   :width: 690px
+   :alt: Security & Privacy
+```
+
+<!-- Original image on the Asset Manager
 ![Security & Privacy|690x605](https://assets.ubuntu.com/v1/a4c00e5f-multipass-security-privacy.jpg)
+-->
 
 If you try again, it should work:
 
@@ -258,7 +262,7 @@ Any other command appearing in that output means a process is conflicting with *
 
 1. Configure DNS inside the instance to use an external working DNS server. Can do so by appending this line to /etc/resolv.conf manually:
 
-    ```
+    ```{code-block} text
     nameserver 1.1.1.1
     ```
 
@@ -325,10 +329,6 @@ Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\h
 
 Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
 
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/troubleshoot-networking" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
-
+<!-- Discourse contributors
 <small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @candlerb , @sergiusens , @nhart , @andreitoterman , @tmihoc , @luisp , @ricab , @gzanchi , @naynayu , @QuantumLibet </small>
+-->

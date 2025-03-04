@@ -13,7 +13,7 @@ multipass delete --purge legal-takin calm-squirrel.snapshot2
 
 Deleted instances are marked as such and removed from use, but you can still recover them using the `multipass recover` command, unless you used the `-p`/`--purge` option to delete them permanently.
 
-To completely destroy instances and release the disk space they take up, use the `--purge` option or the [`multipass purge`](/reference/command-line-interface/purge) command.
+To completely destroy instances and release the disk space they take up, use the `--purge` option or the [`purge`](/reference/command-line-interface/purge) command.
 
 ```{caution}
 When you delete a [snapshot](/explanation/snapshot), or when you delete an instance using the [GUI client](/reference/gui-client), Multipass removes them permanently (even if you didn't use the `--purge` option) and they cannot be recovered.
@@ -44,7 +44,3 @@ Options:
 Arguments:
   name           Names of instances and snapshots to delete
 ```
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/delete-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

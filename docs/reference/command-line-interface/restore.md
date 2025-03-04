@@ -24,7 +24,7 @@ Snapshot taken: relative-lion.snapshot3
 Snapshot restored: relative-lion.snapshot2
 ```
 
-As shown in the example, with no further options, the command will offer to take another snapshot. This automatic snapshot saves the instance's current state before it is thrown away. It will be named following the [`multipass snapshot`](/reference/command-line-interface/snapshot) default naming convention, and it will have an automatic comment to indicate its purpose.
+As shown in the example, with no further options, the command will offer to take another snapshot. This automatic snapshot saves the instance's current state before it is thrown away. It will be named following the [`snapshot`](/reference/command-line-interface/snapshot) command's default naming convention, and it will have an automatic comment to indicate its purpose.
 
 In our example, if you run:
 
@@ -60,7 +60,3 @@ Arguments:
                      <instance>.<snapshot> format, where <instance> is the name
                      of an instance, and <snapshot> is the name of a snapshot
 ```
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/restore-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

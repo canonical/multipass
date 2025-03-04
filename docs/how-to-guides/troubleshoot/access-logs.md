@@ -5,6 +5,8 @@ Logs are our first go-to when something goes wrong. Multipass is comprised of a 
 
 The `multipass` command accepts the `--verbose` option (`-v` for short), which can be repeated to go from the default (*error*) level through *warning*, *info*, *debug* up to *trace*.
 
+> See also: [Logging levels](/reference/logging-levels), [Configure Multipass’s default logging level](/how-to-guides/customise-multipass/configure-multipass-default-logging-level)
+
 We use the underlying platform's logging facilities to ensure you get the familiar behaviour wherever you are.
 
 `````{tabs}
@@ -42,7 +44,3 @@ The Multipass GUI produces its own logs, that can be found under `%APPDATA%\com.
 ````
 
 `````
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/accessing-logs" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

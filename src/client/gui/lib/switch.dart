@@ -6,6 +6,7 @@ class Switch extends StatelessWidget {
   final String label;
   final bool trailingSwitch;
   final double size;
+  final bool enabled;
 
   const Switch({
     super.key,
@@ -14,6 +15,7 @@ class Switch extends StatelessWidget {
     this.label = '',
     this.trailingSwitch = false,
     this.size = 25,
+    this.enabled = true,
   });
 
   @override
@@ -22,10 +24,10 @@ class Switch extends StatelessWidget {
       height: size,
       child: FittedBox(
         child: CupertinoSwitch(
-          activeColor: CupertinoColors.activeBlue,
-          trackColor: const Color(0xffd9d9d9),
+          activeTrackColor: CupertinoColors.activeBlue,
+          inactiveTrackColor: const Color(0xffd9d9d9),
           value: value,
-          onChanged: onChanged,
+          onChanged: enabled ? onChanged : null,
         ),
       ),
     );

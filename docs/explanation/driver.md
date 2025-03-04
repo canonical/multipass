@@ -43,7 +43,7 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 There are two exceptions to the above:
 
   - On Linux, QEMU and libvirt share the same driver scope.
-  - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see: [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
+  - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
 
 (driver-feature-disparities)=
 ## Feature disparities
@@ -68,7 +68,3 @@ While we strive to offer a uniform interface across the board, not all features 
 ```{note}
 There are also feature disparities depending on the host platform. See [Platform](/explanation/platform) for more details.
 ```
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/driver" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

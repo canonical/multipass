@@ -22,10 +22,41 @@
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
 
+#include <fmt/std.h>   // standard library formatters
+#include <fmt/xchar.h> // char-type agnostic formatting
+
 namespace multipass
 {
 namespace logging
 {
+
+/**
+ * Log with formatting support
+ *
+ * The old (legacy) log function and this overload are distinguished
+ * via presence of a format argument. This is the reason why the 0th
+ * argument is taken explicitly. The overload resolution rules of C++
+ * makes it complicated to make it work reliably in the codebase, so
+ * the code relies on explicity here.
+ *
+ * @ref https://en.cppreference.com/w/cpp/language/overload_resolution#Best_viable_function
+ *
+ * @tparam Arg0 Type of the first format argument
+ * @tparam Args Type of the rest of the format arguments
+ * @param level Log level
+ * @param category Log category
+ * @param fmt Format string
+ * @param arg0 The first format argument
+ * @param args Rest of the format arguments
+ */
+template <typename Arg0, typename... Args>
+constexpr void
+log(Level level, const std::string& category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
+{
+    const auto formatted_log_msg = fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
+    log(level, category, formatted_log_msg);
+}
+
 void log(Level level, CString category, CString message);
 void set_logger(std::shared_ptr<Logger> logger);
 Level get_logging_level();

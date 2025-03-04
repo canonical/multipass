@@ -54,7 +54,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         final message = networks.isEmpty
             ? 'No networks found.'
             : validBridgedNetwork
-                ? "Once connection is established, you won't be able to unset it."
+                ? "Once established, you won't be able to unset the connection."
                 : 'No valid bridged network is set.';
 
         return CheckboxListTile(

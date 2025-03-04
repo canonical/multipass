@@ -17,7 +17,14 @@ At Canonical, we have embarked on a comprehensive, long-term project to transfor
 
 Multipass documentation is maintained on our Discourse forum. Every documentation page has an equivalent topic on the forum, that can be accessed by clicking the "Help improve this document in the forum" link at the bottom of the page.
 
+```{figure} /images/contribute-to-discourse-docs.png
+   :width: 540px
+   :alt: Contribute to Discourse
+```
+
+<!-- Original image on the Asset Manager
 ![Contribute to Discourse|540x103](https://assets.ubuntu.com/v1/e099e5dc-contribute-to-discourse-docs.png)
+-->
 
 To contribute to the documentation, you can leave a comment on the relevant forum topic, or edit content directly if your *Trust level* allows it. However, if your intervention is bigger than fixing a typo, it’s a good idea to comment on the page to discuss first.
 
@@ -45,7 +52,7 @@ The [Canonical Open Documentation Academy](https://canonical.com/documentation/o
 
 If you want to contribute to Multipass documentation, you can also check if there are any outstanding tasks on the [Open Documentation Academy GitHub](https://github.com/canonical/open-documentation-academy/issues?q=is%3Aissue+is%3Aopen+multipass+). This could be a great opportunity to improve your documentation practice, receive guidance and mentorship and publicly contribute to an open-source project, if that's something that interests you.
 
-Everyone is invited join the Academy's [weekly office hours](https://discourse.ubuntu.com/t/documentation-office-hours/42771), listen in to presentations and participate in discussions. Live sessions are also recorded and made available on the[ Ubuntu on Air YouTube channel](https://www.youtube.com/@UbuntuOnAir), in the[ Documentation Academy playlist](https://www.youtube.com/watch?v=GT03aSdabJE&list=PL-qBHd6_LXWYefHij0dJ7c9X-Q9QfFFFa&pp=iAQB).
+Everyone is invited join the Academy's [weekly office hours](https://discourse.ubuntu.com/t/documentation-office-hours/42771), listen in to presentations and participate in discussions. Live sessions are also recorded and made available on the [Ubuntu on Air YouTube channel](https://www.youtube.com/@UbuntuOnAir), in the [Documentation Academy playlist](https://www.youtube.com/watch?v=GT03aSdabJE&list=PL-qBHd6_LXWYefHij0dJ7c9X-Q9QfFFFa&pp=iAQB).
 
 
 ## Feedback and issues

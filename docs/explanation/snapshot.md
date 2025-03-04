@@ -9,7 +9,7 @@ To achieve this, a snapshot records all mutable properties of an instance, that 
 
 You can take a snapshot of an instance with the [`snapshot`](/reference/command-line-interface/snapshot) command, and restore it with the [`restore`](/reference/command-line-interface/restore) command. Taking and restoring a snapshot requires the instance to be stopped.
 
-You can view a list of the available snapshots with `multipass list --snapshots` and the details of a particular snapshot with `multipass info <instance>.<snapshot>`. To delete a snapshot, use the [`multipass delete`](/reference/command-line-interface/delete) command.
+You can view a list of the available snapshots with `multipass list --snapshots` and the details of a particular snapshot with `multipass info <instance>.<snapshot>`. To delete a snapshot, use the [`delete`](/reference/command-line-interface/delete) command.
 
 > See also: [`list`](/reference/command-line-interface/list), [`info`](/reference/command-line-interface/info)
 
@@ -22,7 +22,3 @@ An instance's disk contents are recorded by snapshots in layers: each new snapsh
 - Long chains of snapshots have a detrimental effect on performance. Since they rely on layers of disk diffs, the more snapshots there are in a sequence, the more hops are necessary to read data that is recorded by the most ancient layers.
 - While snapshots are useful to save and recover instance states, their utility as safe backups is limited. Since they are stored in the same medium as the original images, they are as likely to be affected by disk failures.
 ```
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/snapshot" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

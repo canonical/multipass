@@ -22,13 +22,13 @@ mpbr0     bridge     Network bridge for Multipass
 virbr0    bridge     Network bridge
 ```
 
-Set the preferred network (for example, `eth0`) using the [`multipass set`](/reference/command-line-interface/set) command:
+Set the preferred network (for example, `eth0`) using the [`set`](/reference/command-line-interface/set) command:
 
 ```{code-block} text
 multipass set local.bridged-network=eth0
 ```
 
-Before bridging the network, you need to stop the instance (called `ultimate-grosbeak` in our example) using the [`multipass stop`](/reference/command-line-interface/stop) command:
+Before bridging the network, you need to stop the instance (called `ultimate-grosbeak` in our example) using the [`stop`](/reference/command-line-interface/stop) command:
 
 ```{code-block} text
 multipass stop ultimate-grosbeak
@@ -47,14 +47,10 @@ multipass set local.bridged-network=eth1
 multipass set local.ultimate-grosbeak.bridged=true
 ```
 
-Use the [`multipass get`](/reference/command-line-interface/get) command to check whether an instance is bridged with the currently configured preferred network:
+Use the [`get`](/reference/command-line-interface/get) command to check whether an instance is bridged with the currently configured preferred network:
 
 ```{code-block} text
 multipass get local.ultimate-grosbeak.bridged
 ```
 
 After following the recipe above, the result should be `true`.
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/id-mapping" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

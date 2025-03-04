@@ -13,9 +13,9 @@ The name of the interface to connect the instance to when the shortcut `launch -
 
 ## Possible values
 
-Any name from [`multipass networks`](/reference/command-line-interface/networks).
+Any name from the output of [`multipass networks`](/reference/command-line-interface/networks).
 
-Validation is deferred to [`multipass launch`](/reference/command-line-interface/launch).
+Validation is deferred to the [`launch`](/reference/command-line-interface/launch) command.
 
 ## Examples
 
@@ -24,7 +24,3 @@ Validation is deferred to [`multipass launch`](/reference/command-line-interface
 ## Default value
 
 `<empty>` (`""`).
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/bridged-network" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

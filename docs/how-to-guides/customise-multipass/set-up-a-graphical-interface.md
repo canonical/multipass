@@ -94,7 +94,14 @@ remmina -c rdp://10.49.93.209
 
 The system will ask for a username (`ubuntu`) and the password set above, and then the Ubuntu desktop on the instance will be displayed.
 
+```{figure} /images/multipass-remmina.png
+   :width: 690px
+   :alt: Logging in to the RDP server with Remmina
+```
+
+<!-- Original image on the Asset Manager
 ![Logging in to the RDP server with Remmina|690x567](https://assets.ubuntu.com/v1/83c7e6d7-multipass-remmina.png)
+-->
 
 ````
 
@@ -149,7 +156,14 @@ sudo apt -y install x11-apps
 xlogo &
 ```
 
+```{figure} /images/multipass-xlogo.png
+   :width: 420px
+   :alt: Xlogo on Linux
+```
+
+<!-- Original image on the Asset Manager
 ![Xlogo on Linux|420x455](https://assets.ubuntu.com/v1/657475f0-multipass-xlogo.png)
+-->
 
 A small window containing the X logo will show up. Done!
 
@@ -190,15 +204,19 @@ sudo snap install firefox
 firefox &
 ```
 
+```{figure} /images/multipass-windows-desktop-firefox.jpeg
+   :width: 690px
+   :alt: Firefox running on a Multipass instance
+```
+
+<!-- Original image on the Asset Manager
 ![Firefox running on a Multipass instance|690x388](https://assets.ubuntu.com/v1/82019ef0-multipass-windows-desktop-firefox.jpeg)
+-->
 
 ````
 
 `````
 
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/set-up-a-graphical-interface" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
----
+<!-- Discourse contributors
 <small>**Contributors:** @andreitoterman , @luisp , @ricab , @gzanchi @dan-roscigno </small>
+-->

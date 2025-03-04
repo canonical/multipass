@@ -1,23 +1,11 @@
 (reference-settings-index)=
 # Settings
 
-> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [GUI client](/reference/gui-client)
+> See also: [Settings keys and values](/explanation/settings-keys-values), [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [GUI client](/reference/gui-client)
 
 Multipass can be configured with a number of **settings** that are read and written by the [`get`](/reference/command-line-interface/get) and [`set`](/reference/command-line-interface/set) CLI commands, respectively. Some settings are also available in the [GUI client](/reference/gui-client).
 
-Settings are organised in a tree structure, where each individual setting is identified by a unique **key** and takes on a single **value** at any given time.
-
-## Settings keys
-
-A **settings key** is a string in the form of a dot-separated path through the settings tree (such as `client.primary-name`). It specifies a path along the settings tree, from the root to a leaf. Thus, individual settings correspond to the leaves of the settings tree.
-
-Conceptually, branches of the tree can be singled out with wildcards, to refer to multiple settings at once. For instance, `local.<instance-name>.*` designates the settings that affect a specific instance. Wildcards can also be used to select separate branches. For example `local.*.cpus` refers to the number of CPUs of Multipass instances.
-
-## Settings values
-
-A **settings value** is a string whose syntax (possible values/representations) and semantics (their interpretation) is determined by the setting in question.
-
-Values often express common concepts (such as `true`, `false`, `42`, etc.) and are interpreted internally using the corresponding data types (such as boolean, integer, etc.). They can also be more complex (such as a key combination), but they are always specified and displayed through a string representation (for example: `Ctrl+Alt+U`).
+<!-- Moved explanation of settings keys and values to a separate page, and added link to "See also" above -->
 
 ## Available settings
 
@@ -30,18 +18,18 @@ The command `multipass get --keys` shows what settings are available at any give
 
 As of now, this is the total set of settings available:
 
-- [`client.apps.windows-terminal.profiles`](client-apps-windows-terminal-profiles)
-- [`client.primary-name`](client-primary-name)
-- [`local.<instance-name>.bridged`](local-instance-name-bridged)
-- [`local.<instance-name>.cpus`](local-instance-name-cpus)
-- [`local.<instance-name>.disk`](local-instance-name-disk)
-- [`local.<instance-name>.memory`](local-instance-name-memory)
-- [`local.<instance-name>.<snapshot-name>.name`](local-instance-name-snapshot-name-name)
-- [`local.<instance-name>.<snapshot-name>.comment`](local-instance-name-snapshot-name-comment)
-- [`local.bridged-network`](local-bridged-network)
-- [`local.driver`](local-driver)
-- [`local.passphrase`](local-passphrase)
-- [`local.privileged-mounts`](local-privileged-mounts)
+- [client.apps.windows-terminal.profiles](client-apps-windows-terminal-profiles)
+- [client.primary-name](client-primary-name)
+- [local.bridged-network](local-bridged-network)
+- [local.driver](local-driver)
+- [local.\<instance-name>.bridged](local-instance-name-bridged)
+- [local.\<instance-name>.cpus](local-instance-name-cpus)
+- [local.\<instance-name>.disk](local-instance-name-disk)
+- [local.\<instance-name>.memory](local-instance-name-memory)
+- [local.\<instance-name>.\<snapshot-name>.comment](local-instance-name-snapshot-name-comment)
+- [local.\<instance-name>.\<snapshot-name>.name](local-instance-name-snapshot-name-name)
+- [local.passphrase](local-passphrase)
+- [local.privileged-mounts](local-privileged-mounts)
 
 ```{caution}
 Starting from Multipass version 1.14, the following settings have been removed from the CLI and are only available in the [GUI client](/reference/gui-client):
@@ -51,11 +39,6 @@ Starting from Multipass version 1.14, the following settings have been removed f
 
 <!-- keeping the documentation pages for now, since not everyone will update their Multipass package immediately -->
 
----
-
- *Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/settings-explanation" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
-
-
 ```{toctree}
 :hidden:
 :titlesonly:
@@ -63,3 +46,4 @@ Starting from Multipass version 1.14, the following settings have been removed f
 :glob:
 
 *
+```

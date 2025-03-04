@@ -37,7 +37,3 @@ Decimal bytes (e.g. 1.1B) are refused, unless specified with larger units (>= Ki
 ## Default value
 
 The size of the disk that the instance was launched with.
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/local.<instance-name>.disk" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

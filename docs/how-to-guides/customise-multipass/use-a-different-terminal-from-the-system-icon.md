@@ -32,10 +32,13 @@ duti -s com.googlecode.iTerm2 com.apple.terminal.shell-script shell
 
 Create an empty file with a `.command` extension and find it in Finder. Select the file and press `⌘I`. You should be presented with an information pane like this:
 
+```{figure} /images/multipass-file-command-info.png
+   :width: 289px
+   :alt: file.command info
+```
+
+<!-- Original image on the Asset Manager
 ![file.command info|289x366](https://assets.ubuntu.com/v1/1ce425a9-multipass-file-command-info.png)
+-->
 
 Expand the "Open with:" section, select your preferred terminal application and click on "Change All...".
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/changing-terminal" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*

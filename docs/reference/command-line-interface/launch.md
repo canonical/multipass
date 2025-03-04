@@ -3,7 +3,7 @@
 
 The `multipass launch` command without any argument will create and start a new instance based on the default image, using a random generated name; for example:
 
-```
+```{code-block} text
 ...
 Launched: relishing-lionfish
 ```
@@ -109,7 +109,3 @@ Arguments:
                                         <url> is a custom image URL that is in
                                         https://, https://, or file:// format.
 ```
-
----
-
-*Errors or typos? Topics missing? Hard to read? <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0XZDU9sbOCiljceh3rO_rkp6vazy2ZsIWgx4gsvl_Sec4Ig/viewform?usp=pp_url&entry.317501128=https://canonical.com/multipass/docs/launch-command" target="_blank">Let us know</a> or <a href="https://github.com/canonical/multipass/issues/new/choose" target="_blank">open an issue on GitHub</a>.*
