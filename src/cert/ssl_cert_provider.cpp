@@ -124,17 +124,12 @@ private:
             // the 3rd argument is length of the buffer, which is 0 in the case of static buffer like "P-256"
             OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
             OSSL_PARAM_construct_end()};
-        if (EVP_PKEY_CTX_set_params(ctx.get(), params.data()) != 1)
-        {
-            throw std::runtime_error("EVP_PKEY_CTX_set_params() failed");
-        }
+
+        mp::utils::check(EVP_PKEY_CTX_set_params(ctx.get(), params.data()), "EVP_PKEY_CTX_set_params() failed");
 
         // Generate the key
         EVP_PKEY* raw_key = nullptr;
-        if (EVP_PKEY_generate(ctx.get(), &raw_key) <= 0)
-        {
-            throw std::runtime_error("Failed to generate EC key");
-        }
+        mp::utils::check(EVP_PKEY_generate(ctx.get(), &raw_key), "Failed to generate EC key");
 
         return EVPKeyPtr(raw_key, EVP_PKEY_free);
     }
