@@ -182,8 +182,7 @@ public:
                       const std::optional<X509Cert>& root_certificate = std::nullopt)
     // generate root, client or signed server certificate, the third one requires the last three arguments populated
     {
-        if (cert == nullptr)
-            throw std::runtime_error("Failed to allocate x509 cert structure");
+        mp::utils::check(cert.get(), "Failed to allocate x509 cert structure");
 
         X509_set_version(cert.get(), 2); // 0 index based, 2 amounts to 3
 
@@ -218,8 +217,7 @@ public:
             cert_type == CertType::Server ? X509_get_subject_name(root_certificate.value().cert.get()) : subject_name;
         X509_set_issuer_name(cert.get(), issuer_name);
 
-        if (!X509_set_pubkey(cert.get(), key.get()))
-            throw std::runtime_error("Failed to set certificate public key");
+        mp::utils::check(X509_set_pubkey(cert.get(), key.get()), "Failed to set certificate public key");
 
         const auto& issuer_cert = cert_type == CertType::Server ? root_certificate.value().cert : cert;
         // Add X509v3 extensions
@@ -246,8 +244,8 @@ public:
                       (std::string("critical,CA:") + (cert_type == CertType::Root ? "TRUE" : "FALSE")).c_str());
 
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
-        if (!X509_sign(cert.get(), signing_key.get(), EVP_sha256()))
-            throw std::runtime_error("Failed to sign certificate");
+
+        mp::utils::check(X509_sign(cert.get(), signing_key.get(), EVP_sha256()), "Failed to sign certificate");
     }
 
     std::string as_pem() const
