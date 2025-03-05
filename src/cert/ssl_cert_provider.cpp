@@ -49,6 +49,8 @@ public:
     }
 
 private:
+    // decltype(&fclose) does not preserve these some extra function attributes of fclose, leads to warning and
+    // compilation error
     using FilePtr = std::unique_ptr<FILE, int (*)(FILE*)>;
     [[nodiscard]] static FilePtr open_file(const QString& file_path)
     {
@@ -57,16 +59,11 @@ private:
         // make sure the parent directory exist
 
         const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
-
-        if (raw_fp == nullptr)
-            throw std::runtime_error(
-                fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
+        mp::utils::check(raw_fp, fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
 
         return FilePtr{raw_fp, fclose};
     }
 
-    // decltype(&fclose) does not preserve these some extra function attributes of fclose, leads to warning and
-    // compilation error
     FilePtr fp;
 };
 
