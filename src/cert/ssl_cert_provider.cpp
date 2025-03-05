@@ -36,6 +36,28 @@ namespace mp = multipass;
 
 namespace
 {
+// utility function for checking return code or raw pointer from openssl C-apis
+// TODO: constrain T to int or raw pointer once C++20 concepts is available
+template <typename T>
+void openssl_check(T result, const std::string& errorMessage)
+{
+    // TODO: expand std::is_pointer_v<T> check to cover all smart pointers as well
+    if constexpr (std::is_pointer_v<T>)
+    {
+        if (result == nullptr)
+        {
+            throw std::runtime_error(errorMessage);
+        }
+    }
+    else
+    {
+        if (result <= 0)
+        {
+            throw std::runtime_error(fmt::format("{}, with the error code {}", errorMessage, result));
+        }
+    }
+}
+
 class WritableFile
 {
 public:
@@ -59,7 +81,7 @@ private:
         // make sure the parent directory exist
 
         const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
-        mp::utils::check(raw_fp, fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
+        openssl_check(raw_fp, fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
 
         return FilePtr{raw_fp, fclose};
     }
@@ -77,8 +99,8 @@ public:
     std::string as_pem() const
     {
         mp::BIOMem mem;
-        mp::utils::check(PEM_write_bio_PrivateKey(mem.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
-                         "Failed to export certificate in PEM format");
+        openssl_check(PEM_write_bio_PrivateKey(mem.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
+                      "Failed to export certificate in PEM format");
         return mem.as_string();
     }
 
@@ -93,8 +115,8 @@ public:
         }
 
         WritableFile file{key_path};
-        mp::utils::check(PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
-                         fmt::format("Failed writing certificate private key to file '{}'", key_path));
+        openssl_check(PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
+                      fmt::format("Failed writing certificate private key to file '{}'", key_path));
 
         QFile::setPermissions(key_path, QFile::ReadOwner);
     }
@@ -113,8 +135,8 @@ private:
             EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
             EVP_PKEY_CTX_free);
 
-        mp::utils::check(ctx.get(), "Failed to create EVP_PKEY_CTX");
-        mp::utils::check(EVP_PKEY_keygen_init(ctx.get()), "Failed to initialize key generation");
+        openssl_check(ctx.get(), "Failed to create EVP_PKEY_CTX");
+        openssl_check(EVP_PKEY_keygen_init(ctx.get()), "Failed to initialize key generation");
 
         // Set EC curve (P-256)
         const std::array<OSSL_PARAM, 2> params = {
@@ -122,11 +144,11 @@ private:
             OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, const_cast<char*>("P-256"), 0),
             OSSL_PARAM_construct_end()};
 
-        mp::utils::check(EVP_PKEY_CTX_set_params(ctx.get(), params.data()), "EVP_PKEY_CTX_set_params() failed");
+        openssl_check(EVP_PKEY_CTX_set_params(ctx.get(), params.data()), "EVP_PKEY_CTX_set_params() failed");
 
         // Generate the key
         EVP_PKEY* raw_key = nullptr;
-        mp::utils::check(EVP_PKEY_generate(ctx.get(), &raw_key), "Failed to generate EC key");
+        openssl_check(EVP_PKEY_generate(ctx.get(), &raw_key), "Failed to generate EC key");
 
         return EVPKeyPtr(raw_key, EVP_PKEY_free);
     }
@@ -143,23 +165,23 @@ void set_random_serial_number(X509* cert)
 {
     // OpenSSL recommends a 20-byte (160-bit) serial number
     std::array<uint8_t, 20> serial_bytes{};
-    mp::utils::check(RAND_bytes(serial_bytes.data(), serial_bytes.size()), "Failed to set random bytes\n");
+    openssl_check(RAND_bytes(serial_bytes.data(), serial_bytes.size()), "Failed to set random bytes\n");
     // Set the highest bit to 0 (unsigned) to ensure it's positive
     serial_bytes[0] &= 0x7F;
 
     // Convert bytes to an BIGNUM, an arbitrary-precision integer type
     std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(BN_bin2bn(serial_bytes.data(), serial_bytes.size(), nullptr),
                                                    BN_free);
-    mp::utils::check(bn.get(), "Failed to convert serial bytes to BIGNUM\n");
+    openssl_check(bn.get(), "Failed to convert serial bytes to BIGNUM\n");
     assert(!BN_is_negative(bn.get()));
 
     // Convert BIGNUM to ASN1_INTEGER and set it as the certificate serial number
     // ASN1 is a standard binary format for encoding data like serial numbers in X.509 certificates
     ASN1_INTEGER* serial = BN_to_ASN1_INTEGER(bn.get(), nullptr);
-    mp::utils::check(serial, "Failed to convert serial bytes to BIGNUM\n");
+    openssl_check(serial, "Failed to convert serial bytes to BIGNUM\n");
 
     // Set the serial number in the certificate
-    mp::utils::check(X509_set_serialNumber(cert, serial), "Failed to set serial number!\n");
+    openssl_check(X509_set_serialNumber(cert, serial), "Failed to set serial number!\n");
 }
 
 class X509Cert
@@ -179,7 +201,7 @@ public:
                       const std::optional<X509Cert>& root_certificate = std::nullopt)
     // generate root, client or signed server certificate, the third one requires the last three arguments populated
     {
-        mp::utils::check(cert.get(), "Failed to allocate x509 cert structure");
+        openssl_check(cert.get(), "Failed to allocate x509 cert structure");
 
         X509_set_version(cert.get(), 2); // 0 index based, 2 amounts to 3
 
@@ -214,7 +236,7 @@ public:
             cert_type == CertType::Server ? X509_get_subject_name(root_certificate.value().cert.get()) : subject_name;
         X509_set_issuer_name(cert.get(), issuer_name);
 
-        mp::utils::check(X509_set_pubkey(cert.get(), key.get()), "Failed to set certificate public key");
+        openssl_check(X509_set_pubkey(cert.get(), key.get()), "Failed to set certificate public key");
 
         const auto& issuer_cert = cert_type == CertType::Server ? root_certificate.value().cert : cert;
         // Add X509v3 extensions
@@ -242,13 +264,13 @@ public:
 
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
 
-        mp::utils::check(X509_sign(cert.get(), signing_key.get(), EVP_sha256()), "Failed to sign certificate");
+        openssl_check(X509_sign(cert.get(), signing_key.get(), EVP_sha256()), "Failed to sign certificate");
     }
 
     std::string as_pem() const
     {
         mp::BIOMem mem;
-        mp::utils::check(PEM_write_bio_X509(mem.get(), cert.get()), "Failed to write certificate in PEM format");
+        openssl_check(PEM_write_bio_X509(mem.get(), cert.get()), "Failed to write certificate in PEM format");
         return mem.as_string();
     }
 
@@ -256,8 +278,8 @@ public:
     {
         WritableFile file{cert_path};
 
-        mp::utils::check(PEM_write_X509(file.get(), cert.get()),
-                         fmt::format("Failed writing certificate to file '{}'", cert_path));
+        openssl_check(PEM_write_X509(file.get(), cert.get()),
+                      fmt::format("Failed writing certificate to file '{}'", cert_path));
     }
 
 private:
@@ -267,8 +289,8 @@ private:
             X509V3_EXT_conf_nid(nullptr, &ctx, nid, value),
             X509_EXTENSION_free);
 
-        mp::utils::check(ext.get(), "Failed to create X509 extension");
-        mp::utils::check(X509_add_ext(cert.get(), ext.get(), -1), "Failed to add X509 extension");
+        openssl_check(ext.get(), "Failed to create X509 extension");
+        openssl_check(X509_add_ext(cert.get(), ext.get(), -1), "Failed to add X509 extension");
     }
 
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
