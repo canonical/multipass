@@ -196,7 +196,7 @@ void parallel_for_each(Container& input_container, UnaryOperation&& unary_op)
     }
 }
 
-// utility function for checking return code or pointer from C-apis
+// utility function for checking return code or raw pointer from C-apis
 // TODO: constrain T to int or raw pointer once C++20 concepts is available
 template <typename T>
 void check(T result, const std::string& errorMessage)
@@ -210,7 +210,7 @@ void check(T result, const std::string& errorMessage)
     }
     else
     {
-        if (result != 1)
+        if (result <= 0)
         {
             throw std::runtime_error(errorMessage);
         }
