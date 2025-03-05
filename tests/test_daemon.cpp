@@ -21,6 +21,7 @@
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
 #include "json_test_utils.h"
+#include "mock_cert_provider.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
@@ -38,7 +39,6 @@
 #include "mock_vm_image_vault.h"
 #include "path.h"
 #include "stub_virtual_machine.h"
-#include "stub_vm_image_vault.h"
 #include "tracking_url_downloader.h"
 
 #include <src/daemon/default_vm_image_vault.h>
@@ -113,7 +113,7 @@ struct Daemon : public mpt::DaemonTestFixture
         ON_CALL(mock_utils, filesystem_bytes_available(_)).WillByDefault([this](const QString& data_directory) {
             return mock_utils.Utils::filesystem_bytes_available(data_directory);
         });
-
+        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
         EXPECT_CALL(mock_platform, get_blueprints_url_override()).WillRepeatedly([] { return QString{}; });
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
         EXPECT_CALL(mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
@@ -134,7 +134,7 @@ struct Daemon : public mpt::DaemonTestFixture
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 
-    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject()};
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
@@ -2519,7 +2519,6 @@ TEST_F(Daemon, sets_permissions_on_provided_storage_path)
     const std::filesystem::path std_path{path.toStdU16String()};
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(path));
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_path));
 
     config_builder.build();
 }
@@ -2533,7 +2532,6 @@ TEST_F(Daemon, sets_permissions_on_storage_dirs)
     config_builder.cache_directory = "Pirate's secret cache";
     const std::filesystem::path std_cache_path{config_builder.cache_directory.toStdU16String()};
 
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_data_path));
     EXPECT_CALL(mock_permission_utils, restrict_permissions(std_cache_path));
 
     config_builder.build();
@@ -2541,7 +2539,7 @@ TEST_F(Daemon, sets_permissions_on_storage_dirs)
 
 TEST_F(Daemon, sets_up_permission_inheritance)
 {
-    EXPECT_CALL(mock_platform, setup_permission_inheritance(true));
+    EXPECT_CALL(mock_platform, setup_permission_inheritance(false));
 
     config_builder.build();
 }

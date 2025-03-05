@@ -109,7 +109,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    MP_PLATFORM.setup_permission_inheritance();
+    MP_PLATFORM.setup_permission_inheritance(false);
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
@@ -170,8 +170,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
     if (cert_provider == nullptr)
-        cert_provider = std::make_unique<mp::SSLCertProvider>(MP_UTILS.make_dir(data_directory, "certificates"),
-                                                              server_name_from(server_address));
+        cert_provider =
+            std::make_unique<mp::SSLCertProvider>(data_directory + "/certificates", server_name_from(server_address));
     if (client_cert_store == nullptr)
         client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
     if (ssh_username.empty())
@@ -192,14 +192,15 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
-    // restrict permissions for all existing files and folders
+    // restrict permissions for all existing files and folders in cache directory, the data directory opens execute
+    // permission for other users, the sub-directories of it will have a granular permissions setting
     if (!storage_path.isEmpty())
     {
-        MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
+        MP_PLATFORM.set_permissions(storage_path.toStdU16String(), fs::perms::owner_all | fs::perms::others_exec);
     }
     else
     {
-        MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
+        MP_PLATFORM.set_permissions(data_directory.toStdU16String(), fs::perms::owner_all | fs::perms::others_exec);
         MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
     }
 
