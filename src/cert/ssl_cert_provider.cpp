@@ -77,9 +77,8 @@ public:
     std::string as_pem() const
     {
         mp::BIOMem mem;
-        auto bytes = PEM_write_bio_PrivateKey(mem.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr);
-        if (bytes == 0)
-            throw std::runtime_error("Failed to export certificate in PEM format");
+        mp::utils::check(PEM_write_bio_PrivateKey(mem.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
+                         "Failed to export certificate in PEM format");
         return mem.as_string();
     }
 
@@ -94,8 +93,8 @@ public:
         }
 
         WritableFile file{key_path};
-        if (!PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr))
-            throw std::runtime_error(fmt::format("Failed writing certificate private key to file '{}'", key_path));
+        mp::utils::check(PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
+                         fmt::format("Failed writing certificate private key to file '{}'", key_path));
 
         QFile::setPermissions(key_path, QFile::ReadOwner);
     }
@@ -249,17 +248,16 @@ public:
     std::string as_pem() const
     {
         mp::BIOMem mem;
-        auto bytes = PEM_write_bio_X509(mem.get(), cert.get());
-        if (bytes == 0)
-            throw std::runtime_error("Failed to write certificate in PEM format");
+        mp::utils::check(PEM_write_bio_X509(mem.get(), cert.get()), "Failed to write certificate in PEM format");
         return mem.as_string();
     }
 
     void write(const QString& cert_path) const
     {
         WritableFile file{cert_path};
-        if (!PEM_write_X509(file.get(), cert.get()))
-            throw std::runtime_error(fmt::format("Failed writing certificate to file '{}'", cert_path));
+
+        mp::utils::check(PEM_write_X509(file.get(), cert.get()),
+                         fmt::format("Failed writing certificate to file '{}'", cert_path));
     }
 
 private:
