@@ -114,10 +114,8 @@ private:
             EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
             EVP_PKEY_CTX_free);
 
-        if (!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0)
-        {
-            throw std::runtime_error("Failed to initialize key generation");
-        }
+        mp::utils::check(ctx.get(), "Failed to create EVP_PKEY_CTX");
+        mp::utils::check(EVP_PKEY_keygen_init(ctx.get()), "Failed to initialize key generation");
 
         // Set EC curve (P-256)
         const std::array<OSSL_PARAM, 2> params = {
@@ -271,15 +269,8 @@ private:
             X509V3_EXT_conf_nid(nullptr, &ctx, nid, value),
             X509_EXTENSION_free);
 
-        if (!ext)
-        {
-            throw std::runtime_error("Failed to create X509 extension");
-        }
-
-        if (!X509_add_ext(cert.get(), ext.get(), -1))
-        {
-            throw std::runtime_error("Failed to add X509 extension");
-        }
+        mp::utils::check(ext.get(), "Failed to create X509 extension");
+        mp::utils::check(X509_add_ext(cert.get(), ext.get(), -1), "Failed to add X509 extension");
     }
 
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
