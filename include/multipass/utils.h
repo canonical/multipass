@@ -195,6 +195,27 @@ void parallel_for_each(Container& input_container, UnaryOperation&& unary_op)
         empty_future.get();
     }
 }
+
+// utility function for checking return code or pointer from C-apis
+// TODO: constrain T to int or raw pointer once C++20 concepts is available
+template <typename T>
+void check(T result, const std::string& errorMessage)
+{
+    if constexpr (std::is_pointer_v<T>)
+    {
+        if (result == nullptr)
+        {
+            throw std::runtime_error(errorMessage);
+        }
+    }
+    else
+    {
+        if (result != 1)
+        {
+            throw std::runtime_error(errorMessage);
+        }
+    }
+}
 } // namespace utils
 
 class Utils : public Singleton<Utils>
