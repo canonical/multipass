@@ -48,11 +48,11 @@ Logger* get_logger(); // for tests, don't rely on it lasting
  *
  * @tparam Arg0 Type of the first format argument
  * @tparam Args Type of the rest of the format arguments
- * @param level Log level
- * @param category Log category
- * @param fmt Format string
- * @param arg0 The first format argument
- * @param args Rest of the format arguments
+ * @param [in] level Log level
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] arg0 The first format argument
+ * @param [in] args Rest of the format arguments
  */
 template <typename Arg0, typename... Args>
 constexpr void
@@ -72,9 +72,9 @@ log(Level level, const std::string& category, fmt::format_string<Arg0, Args...> 
  *
  * @tparam level Log level
  * @tparam Args Format argument types
- * @param category Log category
- * @param fmt Format string
- * @param args Format arguments, if any
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] args Format arguments, if any
  */
 template <Level level, typename... Args>
 constexpr void log(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
@@ -92,9 +92,9 @@ constexpr void log(const std::string& category, fmt::format_string<Args...> fmt,
  * Log an error message.
  *
  * @tparam Args Format argument types
- * @param category Log category
- * @param fmt Format string
- * @param args Format arguments
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] args Format arguments
  */
 template <typename... Args>
 constexpr void error(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
@@ -105,10 +105,10 @@ constexpr void error(const std::string& category, fmt::format_string<Args...> fm
 /**
  * Log a warning message.
  *
- * @tparam Args List of types for format arguments
- * @param category Log category
- * @param fmt Format string
- * @param args Format arguments
+ * @tparam Args Format argument types
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] args Format arguments
  */
 template <typename... Args>
 constexpr void warn(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
@@ -119,10 +119,10 @@ constexpr void warn(const std::string& category, fmt::format_string<Args...> fmt
 /**
  * Log a info message.
  *
- * @tparam Args List of types for format arguments
- * @param category Log category
- * @param fmt Format string
- * @param args Format arguments
+ * @tparam Args Format argument types
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] args Format arguments
  */
 template <typename... Args>
 constexpr void info(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
@@ -133,10 +133,10 @@ constexpr void info(const std::string& category, fmt::format_string<Args...> fmt
 /**
  * Log a debug message.
  *
- * @tparam Args List of types for format arguments
- * @param category Log category
- * @param fmt Format string
- * @param args Format arguments
+ * @tparam Args Format argument types
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] args Format arguments
  */
 template <typename... Args>
 constexpr void debug(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
@@ -147,10 +147,10 @@ constexpr void debug(const std::string& category, fmt::format_string<Args...> fm
 /**
  * Log a trace message.
  *
- * @tparam Args List of types for format arguments
- * @param category Log category
- * @param fmt Format string
- * @param args Format arguments
+ * @tparam Args Format argument types
+ * @param [in] category Log category
+ * @param [in] fmt Format string
+ * @param [in] args Format arguments
  */
 template <typename... Args>
 constexpr void trace(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
