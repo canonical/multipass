@@ -63,9 +63,14 @@ struct journald_logger_test : ::testing::Test
     }
 };
 
+using testing::DoAll;
+using testing::HasSubstr;
+using testing::Return;
+
 TEST_F(journald_logger_test, call_log)
 {
-    EXPECT_CALL(*mock_journal, journal_send(testing::_)).Times(1).WillOnce(testing::Return(0));
+    EXPECT_CALL(*mock_journal, journal_send(testing::_))
+        .WillOnce(DoAll([](const char* format) { ASSERT_THAT(format, HasSubstr("MESSAGE=%.*s")); }, Return(0)));
     mpl::JournaldLogger uut{mpl::Level::debug};
     // This should log
     uut.log(mpl::Level::debug, "category", "message");
