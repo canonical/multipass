@@ -19,7 +19,6 @@
 #define MULTIPASS_LOGGER_H
 
 #include <multipass/disabled_copy_move.h>
-#include <multipass/logging/cstring.h>
 #include <multipass/logging/level.h>
 
 #include <QDateTime>
@@ -37,7 +36,7 @@ class Logger : private DisabledCopyMove
 public:
     using UPtr = std::unique_ptr<Logger>;
     virtual ~Logger() = default;
-    virtual void log(Level level, CString category, CString message) const = 0;
+    virtual void log(Level level, std::string_view category, std::string_view message) const = 0;
     Level get_logging_level()
     {
         return logging_level;

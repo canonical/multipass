@@ -153,8 +153,10 @@ auto make_connection_settings(const QString& parent_name, const QString& child_n
     return std::make_pair(arg1, arg2);
 }
 
-auto make_bridge_rollback_guard(const mpl::CString& log_category, const mpdbus::DBusConnection& system_bus,
-                                const QDBusObjectPath& parent_path, const QDBusObjectPath& child_path)
+auto make_bridge_rollback_guard(std::string_view log_category,
+                                const mpdbus::DBusConnection& system_bus,
+                                const QDBusObjectPath& parent_path,
+                                const QDBusObjectPath& child_path)
 {
     auto rollback = [&system_bus, &parent_path, &child_path] {
         for (const auto* obj_path : {&child_path, &parent_path})

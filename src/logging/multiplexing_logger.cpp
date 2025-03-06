@@ -26,7 +26,7 @@ multipass::logging::MultiplexingLogger::MultiplexingLogger(UPtr system_logger)
 {
 }
 
-void mpl::MultiplexingLogger::log(mpl::Level level, CString category, CString message) const
+void mpl::MultiplexingLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
 {
     std::shared_lock<decltype(mutex)> lock{mutex};
     system_logger->log(level, category, message);

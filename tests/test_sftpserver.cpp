@@ -470,9 +470,8 @@ TEST_F(SftpServer, opendir_not_readable_fails)
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("Cannot read directory"), HasSubstr(mpt::test_data_path().toStdString())))));
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("Cannot read directory"), HasSubstr(mpt::test_data_path().toStdString()))));
 
     sftp.run();
 
@@ -502,8 +501,7 @@ TEST_F(SftpServer, opendir_no_handle_allocated_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Cannot allocate handle for opendir()"))));
+                log(Eq(mpl::Level::trace), StrEq("sftp server"), StrEq("Cannot allocate handle for opendir()")));
 
     sftp.run();
 
@@ -584,9 +582,9 @@ TEST_F(SftpServer, mkdir_on_existing_dir_fails)
     REPLACE(sftp_reply_status, reply_status);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("mkdir failed for"), HasSubstr(new_dir)))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::trace), StrEq("sftp server"), AllOf(HasSubstr("mkdir failed for"), HasSubstr(new_dir))));
 
     sftp.run();
 
@@ -617,10 +615,10 @@ TEST_F(SftpServer, mkdir_set_permissions_fails)
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-            mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("set permissions failed for"), HasSubstr(new_dir)))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("set permissions failed for"), HasSubstr(new_dir))));
 
     sftp.run();
 
@@ -652,9 +650,9 @@ TEST_F(SftpServer, mkdir_chown_failure_fails)
     REPLACE(sftp_reply_status, reply_status);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("failed to chown"), HasSubstr(new_dir)))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::trace), StrEq("sftp server"), AllOf(HasSubstr("failed to chown"), HasSubstr(new_dir))));
 
     sftp.run();
 
@@ -726,9 +724,9 @@ TEST_F(SftpServer, rmdir_non_existing_fails)
     REPLACE(sftp_reply_status, reply_status);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("rmdir failed for"), HasSubstr(new_dir)))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::trace), StrEq("sftp server"), AllOf(HasSubstr("rmdir failed for"), HasSubstr(new_dir))));
 
     sftp.run();
 
@@ -756,9 +754,9 @@ TEST_F(SftpServer, rmdir_unable_to_remove_fails)
     REPLACE(sftp_reply_status, reply_status);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("rmdir failed for"), HasSubstr(new_dir)))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::trace), StrEq("sftp server"), AllOf(HasSubstr("rmdir failed for"), HasSubstr(new_dir))));
 
     sftp.run();
 
@@ -971,10 +969,11 @@ TEST_F(SftpServer, symlink_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("failure creating symlink from"),
-                                                                HasSubstr(file_name.toStdString()),
-                                                                HasSubstr(link_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("failure creating symlink from"),
+                          HasSubstr(file_name.toStdString()),
+                          HasSubstr(link_name.toStdString()))));
 
     sftp.run();
 
@@ -1075,10 +1074,9 @@ TEST_F(SftpServer, rename_cannot_remove_target_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(
-                        HasSubstr("cannot remove"), HasSubstr(new_name.toStdString()), HasSubstr("for renaming")))));
-
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("cannot remove"), HasSubstr(new_name.toStdString()), HasSubstr("for renaming"))));
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1117,9 +1115,9 @@ TEST_F(SftpServer, rename_failure_fails)
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
         *logger_scope.mock_logger,
-        log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-            mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("failed renaming"), HasSubstr(old_name.toStdString()),
-                                                        HasSubstr(new_name.toStdString())))));
+        log(Eq(mpl::Level::trace),
+            StrEq("sftp server"),
+            AllOf(HasSubstr("failed renaming"), HasSubstr(old_name.toStdString()), HasSubstr(new_name.toStdString()))));
 
     sftp.run();
 
@@ -1173,9 +1171,7 @@ TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(HasSubstr(old_name.toStdString()))));
+                log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(old_name.toStdString())));
 
     sftp.run();
 
@@ -1216,9 +1212,7 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(HasSubstr(new_name.toStdString()))));
+                log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(new_name.toStdString())));
 
     sftp.run();
 
@@ -1271,9 +1265,9 @@ TEST_F(SftpServer, remove_non_existing_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("cannot remove"), HasSubstr(file_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("cannot remove"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -1404,9 +1398,8 @@ TEST_F(SftpServer, open_unable_to_open_fails)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("Cannot open"), HasSubstr(file_name.toStdString())))));
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("Cannot open"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -1444,9 +1437,8 @@ TEST_F(SftpServer, open_unable_to_get_status_fails)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("Cannot get status"), HasSubstr(file_name.toStdString())))));
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("Cannot get status"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -1479,9 +1471,9 @@ TEST_F(SftpServer, open_chown_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("failed to chown"), HasSubstr(file_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("failed to chown"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -1516,8 +1508,7 @@ TEST_F(SftpServer, open_no_handle_allocated_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Cannot allocate handle for open()"))));
+                log(Eq(mpl::Level::trace), StrEq("sftp server"), StrEq("Cannot allocate handle for open()")));
 
     sftp.run();
 
@@ -1912,9 +1903,9 @@ TEST_F(SftpServer, setstat_resize_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("cannot resize"), HasSubstr(file_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("cannot resize"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -1955,9 +1946,9 @@ TEST_F(SftpServer, setstat_set_permissions_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("set permissions failed for"), HasSubstr(file_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("set permissions failed for"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -1999,9 +1990,9 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("cannot set ownership for"), HasSubstr(file_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("cannot set ownership for"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -2039,9 +2030,9 @@ TEST_F(SftpServer, setstat_utime_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr("cannot set modification date for"), HasSubstr(file_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("cannot set modification date for"), HasSubstr(file_name.toStdString()))));
 
     sftp.run();
 
@@ -2281,9 +2272,8 @@ TEST_F(SftpServer, read_cannot_seek_fails)
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(mpl::Level::trace,
-            mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-            mpt::MockLogger::make_cstring_matcher(
-                AllOf(HasSubstr(fmt::format("cannot seek to position {} in", seek_pos)), HasSubstr(path.string())))));
+            StrEq("sftp server"),
+            AllOf(HasSubstr(fmt::format("cannot seek to position {} in", seek_pos)), HasSubstr(path.string()))));
 
     sftp.run();
 
@@ -2314,11 +2304,10 @@ TEST_F(SftpServer, read_returns_failure_fails)
     REPLACE(sftp_reply_status, make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(Eq(mpl::Level::trace),
-            mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-            mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("read failed for"), HasSubstr(path.string())))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("read failed for"), HasSubstr(path.string()))));
 
     sftp.run();
 
@@ -2437,10 +2426,11 @@ TEST_F(SftpServer, extended_link_failure_fails)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("sftp server")),
-                    mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("failed creating link from"),
-                                                                HasSubstr(file_name.toStdString()),
-                                                                HasSubstr(link_name.toStdString())))));
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("failed creating link from"),
+                          HasSubstr(file_name.toStdString()),
+                          HasSubstr(link_name.toStdString()))));
 
     sftp.run();
 

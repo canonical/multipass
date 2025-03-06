@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_LOG_H
 #define MULTIPASS_LOG_H
 
-#include <multipass/logging/cstring.h>
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
 
@@ -51,13 +50,22 @@ namespace logging
  */
 template <typename Arg0, typename... Args>
 constexpr void
-log(Level level, const std::string& category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
+log(Level level, std::string_view category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
 {
     const auto formatted_log_msg = fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
     log(level, category, formatted_log_msg);
 }
 
-void log(Level level, CString category, CString message);
+/**
+ * Log a message.
+ *
+ * It's safe to use this function with non-NUL terminated strings.
+ *
+ * @param [in] level Log level
+ * @param [in] category Log category
+ * @param [in] message The message
+ */
+void log(Level level, std::string_view category, std::string_view message);
 void set_logger(std::shared_ptr<Logger> logger);
 Level get_logging_level();
 Logger* get_logger(); // for tests, don't rely on it lasting

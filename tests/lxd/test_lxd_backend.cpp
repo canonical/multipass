@@ -728,8 +728,7 @@ TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
         });
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("LXD object not found"))));
+                log(Eq(mpl::Level::debug), StrEq("pied-piper-valley"), StrEq("LXD object not found")));
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
 
     // create in its own scope so the dtor is called
@@ -1008,13 +1007,11 @@ TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
 
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        StrEq(fmt::format("No further resources to remove for \"{}\"", name)))));
+                    StrEq("lxd factory"),
+                    StrEq(fmt::format("No further resources to remove for \"{}\"", name))));
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::trace), mpt::MockLogger::make_cstring_matcher(StrEq("lxd factory")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("No driver preparation for instance image"))));
+                log(Eq(mpl::Level::trace), StrEq("lxd factory"), StrEq("No driver preparation for instance image")));
 
     mp::VMImage image;
     YAML::Node node;
@@ -1281,9 +1278,7 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
     const std::string error_string{
         fmt::format("Timeout getting response for {} operation on {}", op, base_url.toString().toStdString())};
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), StrEq("lxd request"), HasSubstr(error_string)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url, std::nullopt, 3),
                          std::runtime_error, mpt::match_what(HasSubstr(error_string)));
@@ -1304,9 +1299,7 @@ TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
     const std::string error_string{
         fmt::format("Empty reply received for {} operation on {}", op, base_url.toString().toStdString())};
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(HasSubstr(error_string))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), StrEq("lxd request"), HasSubstr(error_string)));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), op, base_url), std::runtime_error,
                          mpt::match_what(HasSubstr(error_string)));
@@ -1325,9 +1318,9 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
     base_url.setHost("test");
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value")))));
+                log(Eq(mpl::Level::debug),
+                    StrEq("lxd request"),
+                    AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr("illegal value"))));
 
     MP_EXPECT_THROW_THAT(
         mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
@@ -1349,9 +1342,9 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
     base_url.setHost("test");
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr(invalid_json.toStdString())))));
+                log(Eq(mpl::Level::debug),
+                    StrEq("lxd request"),
+                    AllOf(HasSubstr(base_url.toString().toStdString()), HasSubstr(invalid_json.toStdString()))));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr(base_url.toString().toStdString()))));
@@ -1375,10 +1368,7 @@ TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
     auto error_matcher = AllOf(HasSubstr("Network error for"), HasSubstr(base_url.toString().toStdString()),
                                HasSubstr(": Error - Failure"));
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(_,
-                    mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(_, StrEq("lxd request"), error_matcher));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url), std::runtime_error,
                          mpt::match_what(error_matcher));
@@ -1403,9 +1393,7 @@ TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
                                HasSubstr(": Error - Failure"));
     QHttpMultiPart stub_multipart;
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), StrEq("lxd request"), error_matcher));
 
     MP_EXPECT_THROW_THAT(mp::lxd_request(mock_network_access_manager.get(), "GET", base_url, stub_multipart),
                          std::runtime_error, mpt::match_what(error_matcher));
@@ -1459,9 +1447,7 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
 
     auto error_matcher = StrEq("Error waiting on operation: (400) Failure");
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), StrEq("lxd request"), error_matcher));
 
     MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
                          std::runtime_error, mpt::match_what(error_matcher));
@@ -1515,9 +1501,7 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
 
     auto error_matcher = StrEq("Failure waiting on operation: (400) Bad status");
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), StrEq("lxd request"), error_matcher));
 
     MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
                          std::runtime_error, mpt::match_what(error_matcher));
@@ -1571,9 +1555,7 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
 
     auto error_matcher = StrEq("Operation completed with error: (400) Failed to stop instance");
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::error), mpt::MockLogger::make_cstring_matcher(StrEq("lxd request")),
-                    mpt::MockLogger::make_cstring_matcher(error_matcher)));
+    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), StrEq("lxd request"), error_matcher));
 
     MP_EXPECT_THROW_THAT(mp::lxd_wait(mock_network_access_manager.get(), base_url, json_reply.object(), 1000),
                          std::runtime_error, mpt::match_what(error_matcher));
@@ -1653,8 +1635,7 @@ TEST_F(LXDBackend, start_while_frozen_unfreezes)
                                   instance_dir.path()};
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Resuming from a suspended state"))));
+                log(Eq(mpl::Level::info), StrEq("pied-piper-valley"), StrEq("Resuming from a suspended state")));
 
     machine.start();
 
@@ -1689,11 +1670,10 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
     ASSERT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(Eq(mpl::Level::info),
-            mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-            mpt::MockLogger::make_cstring_matcher(StrEq("Ignoring shutdown since instance is already stopped."))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::info),
+                    StrEq("pied-piper-valley"),
+                    StrEq("Ignoring shutdown since instance is already stopped.")));
 
     machine.shutdown();
 
@@ -1990,8 +1970,7 @@ TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_
                                   instance_dir.path()};
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("pied-piper-valley")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq(exception_message))))
+                log(Eq(mpl::Level::warning), StrEq("pied-piper-valley"), StrEq(exception_message)))
         .Times(2);
 
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::unknown);
@@ -2085,8 +2064,7 @@ struct LXDNetworksBadJson : LXDBackend, WithParamInterface<QByteArray>
 
 TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
 {
-    auto log_matcher =
-        mpt::MockLogger::make_cstring_matcher(AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply")));
+    auto log_matcher = AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply"));
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::debug), _, log_matcher));
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))

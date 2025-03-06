@@ -31,7 +31,7 @@ public:
     explicit LinuxLogger(Level level);
 
 protected:
-    static constexpr auto to_syslog_priority(const Level& level) noexcept
+    static constexpr auto to_syslog_priority(Level level) noexcept
     {
         switch (level)
         {
