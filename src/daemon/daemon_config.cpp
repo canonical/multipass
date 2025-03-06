@@ -109,7 +109,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    MP_PLATFORM.setup_permission_inheritance(false);
+    MP_PLATFORM.setup_permission_inheritance(true);
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
@@ -170,8 +170,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
     if (cert_provider == nullptr)
-        cert_provider =
-            std::make_unique<mp::SSLCertProvider>(data_directory + "/certificates", server_name_from(server_address));
+        cert_provider = std::make_unique<mp::SSLCertProvider>(
+            MP_UTILS.make_dir(data_directory, "certificates", fs::perms::owner_all | fs::perms::others_exec),
+            server_name_from(server_address));
     if (client_cert_store == nullptr)
         client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
     if (ssh_username.empty())
