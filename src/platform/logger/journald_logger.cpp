@@ -26,11 +26,18 @@ mpl::JournaldLogger::JournaldLogger(mpl::Level level) : LinuxLogger{level}
 {
 }
 
-void mpl::JournaldLogger::log(mpl::Level level, CString category, CString message) const
+void mpl::JournaldLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
 {
     if (level <= logging_level)
     {
-        sd_journal_send("MESSAGE=%s", message.c_str(), "PRIORITY=%i", to_syslog_priority(level), "CATEGORY=%s",
-                        category.c_str(), nullptr);
+        sd_journal_send("MESSAGE=%.*s",
+                        static_cast<int>(message.size()),
+                        message.data(),
+                        "PRIORITY=%i",
+                        to_syslog_priority(level),
+                        "CATEGORY=%.*s",
+                        static_cast<int>(category.size()),
+                        category.data(),
+                        nullptr);
     }
 }

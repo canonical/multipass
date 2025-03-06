@@ -18,7 +18,7 @@
 #ifndef MULTIPASS_LEVEL_H
 #define MULTIPASS_LEVEL_H
 
-#include <multipass/logging/cstring.h>
+#include <string_view>
 
 namespace multipass
 {
@@ -41,7 +41,7 @@ enum class Level : int
                       if enabled by default */
 };
 
-constexpr CString as_string(const Level& l) noexcept
+constexpr std::string_view as_string(Level l) noexcept
 {
     switch (l)
     {

@@ -906,10 +906,11 @@ TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
     EXPECT_CALL(host, info_for(_)).WillOnce(Throw(mp::UnsupportedImageException(default_query.release)));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::warning, mpt::MockLogger::make_cstring_matcher(StrEq("image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq(fmt::format(
-                        "Skipping update: The {} release is no longer supported.", default_query.release)))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(mpl::Level::warning,
+            StrEq("image vault"),
+            StrEq(fmt::format("Skipping update: The {} release is no longer supported.", default_query.release))));
 
     EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
 }
@@ -930,10 +931,11 @@ TEST_F(ImageVault, updateImagesLogsWarningOnEmptyVault)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::warning, mpt::MockLogger::make_cstring_matcher(StrEq("image vault")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        StrEq(fmt::format("Skipping update: Unable to find an image matching \"{}\" in remote \"{}\".",
-                                          default_query.release, default_query.remote_name)))));
+                log(mpl::Level::warning,
+                    StrEq("image vault"),
+                    StrEq(fmt::format("Skipping update: Unable to find an image matching \"{}\" in remote \"{}\".",
+                                      default_query.release,
+                                      default_query.remote_name))));
 
     EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
 }

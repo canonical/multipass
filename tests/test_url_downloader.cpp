@@ -116,8 +116,7 @@ TEST_F(URLDownloader, simpleDownloadNetworkTimeoutTriesCache)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
 
     // Add expectations for the new debug log and the warning log
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::debug, _, Property(&multipass::logging::CString::c_str, StartsWith("Qt error"))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error")));
 
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
@@ -261,8 +260,7 @@ TEST_F(URLDownloader, fileDownloadErrorTriesCache)
         mpl::Level::warning,
         fmt::format("Failed to get {}: Operation canceled - trying cache.", fake_url.toString()));
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::debug, _, Property(&multipass::logging::CString::c_str, StartsWith("Qt error"))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error")));
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
@@ -430,24 +428,19 @@ TEST_F(URLDownloader, fileDownloadTimeoutDoesNotWriteFile)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
 
     // Expect warning log for the first failed attempt
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::warning,
-                    _,
-                    Property(&multipass::logging::CString::c_str,
-                             HasSubstr(fmt::format("Failed to get {}: Operation canceled - trying cache.",
-                                                   fake_url.toString())))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(mpl::Level::warning,
+            _,
+            HasSubstr(fmt::format("Failed to get {}: Operation canceled - trying cache.", fake_url.toString()))));
 
     // Expect error log for the second failed attempt
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::error,
-                    _,
-                    Property(&multipass::logging::CString::c_str,
-                             HasSubstr(fmt::format("Failed to get {}: Operation canceled", fake_url.toString())))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(mpl::Level::error, _, HasSubstr(fmt::format("Failed to get {}: Operation canceled", fake_url.toString()))));
 
     // Expect two debug logs for each failure
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::debug, _, Property(&multipass::logging::CString::c_str, StartsWith("Qt error"))))
-        .Times(2);
+    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error"))).Times(2);
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
@@ -533,8 +526,7 @@ TEST_F(URLDownloader, lastModifiedHeaderTimeoutThrows)
         fmt::format("Cannot retrieve headers for {}: Operation canceled", fake_url.toString()));
 
     // Expectation for debug log
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::debug, _, Property(&multipass::logging::CString::c_str, StartsWith("Qt error"))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error")));
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     EXPECT_THROW(downloader.last_modified(fake_url), mp::DownloadException);
@@ -559,8 +551,7 @@ TEST_F(URLDownloader, lastModifiedHeaderErrorThrows)
         fmt::format("Cannot retrieve headers for {}: {}", fake_url.toString(), error_msg));
 
     // Expectation for debug log
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::debug, _, Property(&multipass::logging::CString::c_str, StartsWith("Qt error"))));
+    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error")));
 
     mp::URLDownloader downloader(cache_dir.path(), 1s);
 
