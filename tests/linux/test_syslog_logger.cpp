@@ -62,9 +62,19 @@ struct syslog_logger_test : ::testing::Test
     }
 };
 
+using testing::DoAll;
+using testing::HasSubstr;
+using testing::Return;
+
 TEST_F(syslog_logger_test, call_log)
 {
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_)).Times(1);
+    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_))
+        .WillOnce(DoAll(
+            [](int pri, const char* format) {
+                ASSERT_EQ(LOG_DEBUG, pri);
+                ASSERT_THAT(format, HasSubstr("[%.*s] %.*s"));
+            },
+            Return(true)));
     mpl::SyslogLogger uut{mpl::Level::debug};
     // This should log
     uut.log(mpl::Level::debug, "category", "message");
@@ -77,3 +87,46 @@ TEST_F(syslog_logger_test, call_log_filtered)
     // This should not log
     uut.log(mpl::Level::trace, "category", "message");
 }
+
+struct syslog_logger_priority_test : public testing::TestWithParam<std::tuple<int, mpl::Level>>
+{
+
+    void SetUp()
+    {
+        ASSERT_FALSE(nullptr == mock_syslog);
+    }
+
+    static void SetUpTestCase()
+    {
+        mock_syslog = std::make_unique<MockSyslog>();
+    }
+
+    static void TearDownTestCase()
+    {
+        mock_syslog.reset();
+    }
+};
+
+TEST_P(syslog_logger_priority_test, validate_level_to_priority)
+{
+    const auto& [syslog_level, mpl_level] = GetParam();
+
+    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_))
+        .WillOnce(DoAll(
+            [v = syslog_level](int pri, const char* format) {
+                ASSERT_EQ(v, pri);
+                ASSERT_THAT(format, HasSubstr("[%.*s] %.*s"));
+            },
+            Return(0)));
+    mpl::SyslogLogger uut{mpl_level};
+    // This should log
+    uut.log(mpl_level, "category", "message");
+}
+
+INSTANTIATE_TEST_SUITE_P(SyslogLevels,
+                         syslog_logger_priority_test,
+                         ::testing::Values(std::make_tuple(LOG_DEBUG, mpl::Level::trace),
+                                           std::make_tuple(LOG_DEBUG, mpl::Level::debug),
+                                           std::make_tuple(LOG_ERR, mpl::Level::error),
+                                           std::make_tuple(LOG_INFO, mpl::Level::info),
+                                           std::make_tuple(LOG_WARNING, mpl::Level::warning)));

@@ -27,8 +27,11 @@ namespace logging
 class StandardLogger : public Logger
 {
 public:
-    StandardLogger(Level level);
+    StandardLogger(Level level, FILE* target_fp = stderr);
     void log(Level level, std::string_view category, std::string_view message) const override;
+
+private:
+    FILE* target{stderr};
 };
 } // namespace logging
 } // namespace multipass
