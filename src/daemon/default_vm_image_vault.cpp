@@ -249,7 +249,6 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
       instance_image_records{load_db(data_dir.filePath(instance_db_name))}
 {
-    MP_UTILS.make_dir(data_dir, std::filesystem::perms::owner_all);
 }
 
 mp::DefaultVMImageVault::~DefaultVMImageVault()
