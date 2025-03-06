@@ -245,21 +245,11 @@ jobs:
         mkdir -p /tmp/coredump
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         # Pull the crashed executable from the container
-        /snap/bin/lxc --project snapcraft file pull "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/multipass_tests
+        /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
         echo "Pulled the executable."
-        # List the coredump files into a variable
-        files=`/snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "ls /coredump 2>/dev/null"`
-        echo "$files"
-        # If there's `any`, we need to pull them.
-        if [ ! -z "$files" ]
-        then
-          ARRAY=($files)
-          COREDUMP_FILES=(`printf "$instance_name/coredump/%s " "${ARRAY[@]}"`)
-          /snap/bin/lxc --project snapcraft file pull "${COREDUMP_FILES[@]}" /tmp/coredump
-          echo "Pulled ${#COREDUMP_FILES[@]} coredump(s) from the snap build container"
-        else
-          echo "Executable crashed, but no coredump file found!"
-        fi
+        # Pull the coredump folder
+        /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/coredump" /tmp/coredump
+        echo "Pulled the coredumps folder."
         set +o xtrace
 
     - name: Upload test coredump
