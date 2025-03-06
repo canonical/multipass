@@ -192,8 +192,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
-    // restrict permissions for all existing files and folders in cache directory, the data directory opens execute
-    // permission for other users, the sub-directories of it will have a granular permissions setting
+    // tighten permissions for cache and data
     if (!storage_path.isEmpty())
     {
         MP_PLATFORM.set_permissions(storage_path.toStdU16String(), fs::perms::owner_all | fs::perms::others_exec);
