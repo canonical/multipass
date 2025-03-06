@@ -118,7 +118,7 @@ public:
         openssl_check(PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
                       fmt::format("Failed writing certificate private key to file '{}'", key_path));
 
-        QFile::setPermissions(key_path, QFile::ReadOwner);
+        MP_PLATFORM.set_permissions(key_path_std, std::filesystem::perms::owner_read);
     }
 
     EVP_PKEY* get() const
@@ -280,6 +280,9 @@ public:
 
         openssl_check(PEM_write_X509(file.get(), cert.get()),
                       fmt::format("Failed writing certificate to file '{}'", cert_path));
+        const std::filesystem::path cert_path_std = cert_path.toStdU16String();
+        MP_PLATFORM.set_permissions(cert_path_std,
+                                    std::filesystem::perms::owner_all | std::filesystem::perms::others_read);
     }
 
 private:
