@@ -126,6 +126,7 @@ add_executable(multipass_tests
   test_file_ops.cpp
   test_recursive_dir_iter.cpp
   test_log.cpp
+  test_permission_utils.cpp
 )
 
 target_include_directories(multipass_tests

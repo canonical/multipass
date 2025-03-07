@@ -76,8 +76,6 @@ void mp::ClientCertStore::add_cert(const std::string& pem_cert)
     if (!MP_FILEOPS.open(file, QIODevice::WriteOnly))
         throw std::runtime_error("failed to create file to store certificate");
 
-    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
-
     // QIODevice::Append is not supported in QSaveFile, so must write out all of the
     // existing clients certs each time.
     for (const auto& saved_cert : authenticated_client_certs)
