@@ -193,18 +193,22 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (!storage_path.isEmpty())
     {
         MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
-        MP_PLATFORM.set_permissions(storage_path.toStdU16String(), fs::perms::owner_all | fs::perms::others_exec);
+        MP_PLATFORM.set_permissions(storage_path.toStdU16String(),
+                                    fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
     }
     else
     {
         MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
-        MP_PLATFORM.set_permissions(data_directory.toStdU16String(), fs::perms::owner_all | fs::perms::others_exec);
+        MP_PLATFORM.set_permissions(data_directory.toStdU16String(),
+                                    fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
         MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
     }
 
     if (cert_provider == nullptr)
         cert_provider = std::make_unique<mp::SSLCertProvider>(
-            MP_UTILS.make_dir(data_directory, "certificates", fs::perms::owner_all | fs::perms::others_exec),
+            MP_UTILS.make_dir(data_directory,
+                              "certificates",
+                              fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec),
             server_name_from(server_address));
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{

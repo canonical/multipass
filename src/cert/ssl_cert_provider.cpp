@@ -282,7 +282,8 @@ public:
                       fmt::format("Failed writing certificate to file '{}'", cert_path));
         const std::filesystem::path cert_path_std = cert_path.toStdU16String();
         MP_PLATFORM.set_permissions(cert_path_std,
-                                    std::filesystem::perms::owner_all | std::filesystem::perms::others_read);
+                                    std::filesystem::perms::owner_all | std::filesystem::perms::group_read |
+                                        std::filesystem::perms::others_read);
     }
 
 private:
