@@ -539,7 +539,12 @@ OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_
         {
             const auto state = obj["State"];
             const auto state_str = state.toString();
-            return compute_system_state_from_string(state_str.toStdString());
+            const auto ccs = compute_system_state_from_string(state_str.toStdString());
+            if (ccs)
+            {
+                return ccs.value();
+            }
+            return ComputeSystemState::unknown;
         }
         return ComputeSystemState::stopped;
     }();
