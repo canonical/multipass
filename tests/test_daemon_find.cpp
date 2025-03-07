@@ -17,10 +17,12 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "mock_cert_provider.h"
 #include "mock_image_host.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
+#include "mock_utils.h"
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
 
@@ -49,6 +51,7 @@ struct DaemonFind : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
     }
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
@@ -60,6 +63,9 @@ struct DaemonFind : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+
+    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 };
 
 TEST_F(DaemonFind, blankQueryReturnsAllData)
