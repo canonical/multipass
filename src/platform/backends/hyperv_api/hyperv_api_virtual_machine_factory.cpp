@@ -30,7 +30,8 @@ namespace multipass::hyperv
 /**
  * Category for the log messages.
  */
-constexpr auto kLogCategory = "HyperV-Virtual-Machine-Factory";
+static constexpr auto kLogCategory = "HyperV-Virtual-Machine-Factory";
+static constexpr auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
 
 struct ExceptionFormatter : std::runtime_error
 {
@@ -67,8 +68,6 @@ VirtualMachine::UPtr HyperVAPIVirtualMachineFactory::create_virtual_machine(cons
     auto hcs = std::make_unique<hcs::HCSWrapper>();
     auto hcn = std::make_unique<hcn::HCNWrapper>();
     auto virtdisk = std::make_unique<virtdisk::VirtDiskWrapper>();
-
-    static constexpr auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
 
     return std::make_unique<HyperVAPIVirtualMachine>(std::move(hcs),
                                                      std::move(hcn),
