@@ -8,6 +8,18 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/mock_aa_syscalls.cpp
 )
 
+if (MULTIPASS_ENABLE_SYSLOG)
+  target_sources(multipass_tests
+    PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/test_syslog_logger.cpp
+  )
+else()
+  target_sources(multipass_tests
+    PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/test_journald_logger.cpp
+  )
+endif()
+
 target_compile_definitions(shared_linux_test PRIVATE
   -Daa_is_enabled=ut_aa_is_enabled)
 

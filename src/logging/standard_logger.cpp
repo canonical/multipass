@@ -19,18 +19,16 @@
 
 #include <multipass/format.h>
 
-namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mpl::StandardLogger::StandardLogger(mpl::Level level) : Logger{level}
+mpl::StandardLogger::StandardLogger(mpl::Level level, FILE* target_fp) : Logger{level}, target(target_fp)
 {
 }
 
-void mpl::StandardLogger::log(mpl::Level level, CString category, CString message) const
+void mpl::StandardLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
 {
     if (level <= logging_level)
     {
-        fmt::print(stderr, "[{}] [{}] [{}] {}\n", timestamp(), as_string(level).c_str(), category.c_str(),
-                   message.c_str());
+        fmt::print(target, "[{}] [{}] [{}] {}\n", timestamp(), as_string(level), category, message);
     }
 }

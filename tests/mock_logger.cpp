@@ -50,7 +50,7 @@ mpt::MockLogger::Scope::~Scope()
 
 void mpt::MockLogger::expect_log(mpl::Level lvl, const std::string& substr, const Cardinality& times)
 {
-    EXPECT_CALL(*this, log(lvl, _, make_cstring_matcher(HasSubstr(substr)))).Times(times);
+    EXPECT_CALL(*this, log(lvl, _, HasSubstr(substr))).Times(times);
 }
 
 void mpt::MockLogger::screen_logs(mpl::Level lvl)
