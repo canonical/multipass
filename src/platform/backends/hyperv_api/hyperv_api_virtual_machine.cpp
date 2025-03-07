@@ -322,15 +322,16 @@ void HyperVAPIVirtualMachine::set_state(hcs::ComputeSystemState compute_system_s
     {
         mpl::log(lvl::info,
                  kLogCategory,
-                 fmt::format("set_state() > VM {} state changed from {} to {}",
-                             vm_name,
-                             fmt::underlying(prev_state),
-                             fmt::underlying(state)));
+                 "set_state() > VM {} state changed from {} to {}",
+                 vm_name,
+                 prev_state,
+                 state);
     }
 }
 
 void HyperVAPIVirtualMachine::start()
 {
+    mpl::log(lvl::debug, kLogCategory, "start() -> Starting VM `{}`, state {}", vm_name, state);
     state = VirtualMachine::State::starting;
     update_state();
     // Resume and start are the same thing in Multipass terms
@@ -339,17 +340,17 @@ void HyperVAPIVirtualMachine::start()
         // Fetch the latest state value.
         if (fetch_state_from_api() == hcs::ComputeSystemState::paused)
         {
+            mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in paused state, resuming", vm_name);
             return hcs->resume_compute_system(vm_name);
         }
+        mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in {} state, starting", vm_name, state);
         return hcs->start_compute_system(vm_name);
     }();
 
-    // TODO: Check status message here
-
-    // Maybe wait until SSH is up with timeout
-    std::this_thread::sleep_for(std::chrono::seconds{60});
-    set_state(fetch_state_from_api());
-    update_state();
+    // // Maybe wait until SSH is up with timeout
+    // wait_until_ssh_up(std::chrono::seconds{240});
+    // set_state(fetch_state_from_api());
+    // update_state();
 }
 void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
@@ -413,7 +414,7 @@ std::string HyperVAPIVirtualMachine::management_ipv4()
 
     const auto result = *ipv4.begin();
 
-    mpl::log(lvl::info, kLogCategory, fmt::format("management_ipv4() > IP address is `{}`", result));
+    mpl::log(lvl::info, kLogCategory, "management_ipv4() > IP address is `{}`", result);
     // Prefer the first one
     return result;
 }
