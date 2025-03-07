@@ -27,7 +27,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto as_eventlog_type(const mpl::Level& level) noexcept
+constexpr auto as_eventlog_type(mpl::Level level) noexcept
 {
     switch (level)
     {
@@ -46,7 +46,7 @@ constexpr auto as_eventlog_type(const mpl::Level& level) noexcept
 class EventSource
 {
 public:
-    EventSource(mpl::CString name) : event_source{RegisterEventSource(nullptr, name.c_str())}
+    EventSource(const std::string& name) : event_source{RegisterEventSource(nullptr, name.c_str())}
     {
     }
 
@@ -69,22 +69,34 @@ mpl::EventLogger::EventLogger(mpl::Level level) : logging_level{level}
 {
 }
 
-void mpl::EventLogger::log(mpl::Level level, CString category, CString message) const
+void mpl::EventLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
 {
+    const static std::string event_source_name{"Multipass"};
     if (level <= logging_level)
     {
-        EventSource ev_source("Multipass");
-        const WORD category_id{0};
-        const WORD event_id{1};
-        const PSID security_id{nullptr};
-        const DWORD binary_size{0};
-        const LPVOID raw_data{nullptr};
+        /**
+         * FIXME: It's not ideal that the code Register/Deregister the event source
+         * in every single log call. We should refactor this.
+         */
+        EventSource ev_source(event_source_name);
+        constexpr static WORD category_id{0};
+        constexpr static WORD event_id{1};
+        constexpr static PSID security_id{nullptr};
+        constexpr static DWORD binary_size{0};
+        constexpr static LPVOID raw_data{nullptr};
 
-        const auto log_msg = fmt::format("[{}] {}\n", category.c_str(), message.c_str());
+        const auto log_msg = fmt::format("[{}] {}\n", category, message);
         std::array<const char*, 1> messages = {log_msg.c_str()};
         const WORD num_strings{static_cast<WORD>(messages.size())};
 
-        ReportEvent(ev_source.get(), as_eventlog_type(level), category_id, event_id, security_id, num_strings,
-                    binary_size, messages.data(), raw_data);
+        ReportEvent(ev_source.get(),
+                    as_eventlog_type(level),
+                    category_id,
+                    event_id,
+                    security_id,
+                    num_strings,
+                    binary_size,
+                    messages.data(),
+                    raw_data);
     }
 }
