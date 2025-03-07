@@ -24,6 +24,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <fmt/format.h>
+
 namespace multipass::hyperv::hcs
 {
 
