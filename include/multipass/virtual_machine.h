@@ -30,6 +30,8 @@
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
+
 namespace multipass
 {
 struct IPAddress;
@@ -75,7 +77,7 @@ public:
     virtual std::string ssh_hostname()
     {
         return ssh_hostname(std::chrono::minutes(2));
-    };
+    }
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
     virtual std::optional<IPAddress> management_ipv4() = 0;
@@ -131,3 +133,53 @@ protected:
     }
 };
 } // namespace multipass
+
+/**
+ * Formatter type specialization for CreateComputeSystemParameters
+ */
+template <typename Char>
+struct fmt::formatter<multipass::VirtualMachine::State, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(multipass::VirtualMachine::State state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::VirtualMachine::State::off:
+            v = "off";
+            break;
+        case multipass::VirtualMachine::State::stopped:
+            v = "stopped";
+            break;
+        case multipass::VirtualMachine::State::starting:
+            v = "starting";
+            break;
+        case multipass::VirtualMachine::State::restarting:
+            v = "restarting";
+            break;
+        case multipass::VirtualMachine::State::running:
+            v = "running";
+            break;
+        case multipass::VirtualMachine::State::delayed_shutdown:
+            v = "delayed_shutdown";
+            break;
+        case multipass::VirtualMachine::State::suspending:
+            v = "suspending";
+            break;
+        case multipass::VirtualMachine::State::suspended:
+            v = "suspended";
+            break;
+        case multipass::VirtualMachine::State::unknown:
+            v = "unknown";
+            break;
+        }
+
+        return format_to(ctx.out(), "{}", v);
+    }
+};
