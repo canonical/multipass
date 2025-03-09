@@ -12,7 +12,7 @@ class RamSlider extends ConsumerWidget {
   final int min;
   final FormFieldSetter<int> onSaved;
 
-  const RamSlider({
+  RamSlider({
     super.key,
     int? min,
     this.initialValue,

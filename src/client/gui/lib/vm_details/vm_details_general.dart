@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../copyable_text.dart';
 import '../extensions.dart';
 import '../providers.dart';
-import '../tooltip.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
 import 'vm_action_buttons.dart';
