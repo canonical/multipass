@@ -239,7 +239,7 @@ final theme = ThemeData(
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
-      disabledForegroundColor: Colors.black.withOpacity(0.5),
+      disabledForegroundColor: Colors.black.withAlpha(128),
       foregroundColor: Colors.black,
       padding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(
@@ -253,7 +253,7 @@ final theme = ThemeData(
   textButtonTheme: TextButtonThemeData(
     style: TextButton.styleFrom(
       backgroundColor: const Color(0xff0E8620),
-      disabledForegroundColor: Colors.white.withOpacity(0.5),
+      disabledForegroundColor: Colors.white.withAlpha(128),
       foregroundColor: Colors.white,
       padding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(

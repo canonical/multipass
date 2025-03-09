@@ -234,11 +234,11 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final buttonStyle = ButtonStyle(
     foregroundColor: WidgetStateColor.resolveWith((states) {
       final disabled = states.contains(WidgetState.disabled);
-      return Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      return Colors.white.withAlpha(disabled ? 128 : 255);
     }),
     side: WidgetStateBorderSide.resolveWith((states) {
       final disabled = states.contains(WidgetState.disabled);
-      var color = Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      var color = Colors.white.withAlpha(disabled ? 128 : 255);
       return BorderSide(color: color);
     }),
   );

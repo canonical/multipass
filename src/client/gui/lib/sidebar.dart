@@ -187,7 +187,7 @@ class SideBar extends ConsumerWidget {
             catalogue,
             instances,
             Expanded(child: ListView(children: vmEntries.toList())),
-            Divider(color: Colors.white.withOpacity(0.3)),
+            Divider(color: Colors.white.withAlpha(77)),
             help,
             settings,
           ],
