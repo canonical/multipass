@@ -62,12 +62,12 @@ class VmDetailsHeader extends ConsumerWidget {
 
     OutlinedButton locationButton(VmDetailsLocation location) {
       final style = buttonStyle?.copyWith(
-        shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
+        shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
         backgroundColor: location == currentLocation
-            ? const MaterialStatePropertyAll(Color(0xff333333))
+            ? const WidgetStatePropertyAll(Color(0xff333333))
             : null,
         foregroundColor: location == currentLocation
-            ? const MaterialStatePropertyAll(Colors.white)
+            ? const WidgetStatePropertyAll(Colors.white)
             : null,
       );
       return OutlinedButton(
