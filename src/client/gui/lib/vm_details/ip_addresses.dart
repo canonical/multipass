@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart' hide Tooltip;
 
 import '../copyable_text.dart';
-import '../extensions.dart';
-import '../tooltip.dart';
 
 class IpAddresses extends StatelessWidget {
   final Iterable<String> ips;
