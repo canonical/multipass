@@ -127,9 +127,9 @@ class MpPrettyPrinter extends LogPrinter {
     final match = _webStackTraceRegex.matchAsPrefix(line);
     if (match == null) return false;
     final segment = match.group(1)!;
-    if (segment.startsWith('packages/logger') ||
-        segment.startsWith('dart-sdk/lib')) return true;
-    return _isInExcludePaths(segment);
+    return segment.startsWith('packages/logger') ||
+        segment.startsWith('dart-sdk/lib') ||
+        _isInExcludePaths(segment);
   }
 
   bool _discardBrowserStacktraceLine(String line) {

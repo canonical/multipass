@@ -13,7 +13,7 @@ class DiskSlider extends ConsumerWidget {
   final int min;
   final FormFieldSetter<int> onSaved;
 
-  const DiskSlider({
+  DiskSlider({
     super.key,
     int? min,
     this.initialValue,
