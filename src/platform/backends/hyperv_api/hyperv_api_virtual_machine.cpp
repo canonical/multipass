@@ -35,6 +35,7 @@ namespace
  * Category for the log messages.
  */
 constexpr auto kLogCategory = "HyperV-Virtual-Machine";
+constexpr auto kDefaultSSHPort = 22;
 
 namespace mpl = multipass::logging;
 using lvl = mpl::Level;
@@ -55,16 +56,28 @@ inline auto replace_colon_with_dash(std::string& addr)
     std::replace(addr.begin(), addr.end(), ':', '-');
 }
 
+/**
+ * Perform a DNS resolve of @p hostname to obtain IPv4/IPv6
+ * address(es) associated with it.
+ *
+ * @param [in] hostname Hostname to resolve
+ * @return Vector of IPv4/IPv6 addresses
+ */
 auto resolve_ip_addresses(const std::string& hostname)
 {
+    mpl::log(lvl::debug, kLogCategory, "resolve_ip_addresses() -> resolve being called for hostname `{}`");
     static auto wsa_context = [] {
         struct wsa_init_wrapper
         {
-            wsa_init_wrapper() : wsa_data{}, wsa_init_success(WSAStartup(MAKEWORD(2, 2), &wsa_data))
+            wsa_init_wrapper() : wsa_data{}, wsa_init_success(WSAStartup(MAKEWORD(2, 2) == 0, &wsa_data))
             {
+                mpl::log(lvl::debug,
+                         kLogCategory,
+                         "resolve_ip_addresses() -> initialized WSA, status `{}`",
+                         wsa_init_success);
                 if (!wsa_init_success)
                 {
-                    mpl::log(lvl::error, kLogCategory, "resolve_and_memoize_ip_addresses() > WSAStartup failed!");
+                    mpl::log(lvl::error, kLogCategory, "resolve_ip_addresses() > WSAStartup failed!");
                 }
             }
             ~wsa_init_wrapper()
@@ -96,6 +109,7 @@ auto resolve_ip_addresses(const std::string& hostname)
     }();
 
     std::vector<std::string> ipv4{}, ipv6{};
+
     if (result == 0)
     {
         assert(addr_info.get());
@@ -105,18 +119,41 @@ auto resolve_ip_addresses(const std::string& hostname)
             {
             case AF_INET:
             {
-                const auto sockaddr_ipv4 = reinterpret_cast<struct sockaddr_in*>(ptr->ai_addr);
-                char addr[INET_ADDRSTRLEN] = {};
-                inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), addr, sizeof(addr));
-                ipv4.push_back(addr);
+                constexpr auto kSockaddrInSize = sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
+                if (ptr->ai_addrlen >= kSockaddrInSize)
+                {
+                    const auto sockaddr_ipv4 = reinterpret_cast<LPSOCKADDR_IN>(ptr->ai_addr);
+                    char addr[INET_ADDRSTRLEN] = {};
+                    inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), addr, sizeof(addr));
+                    ipv4.push_back(addr);
+                    break;
+                }
+
+                mpl::log(
+                    lvl::error,
+                    kLogCategory,
+                    "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address data while expecting {}!",
+                    ptr->ai_addrlen,
+                    kSockaddrInSize);
             }
             break;
             case AF_INET6:
             {
-                const auto sockaddr_ipv6 = reinterpret_cast<LPSOCKADDR>(ptr->ai_addr);
-                char addr[INET6_ADDRSTRLEN] = {};
-                inet_ntop(AF_INET6, &(sockaddr_ipv6->sa_data), addr, sizeof(addr));
-                ipv6.push_back(addr);
+                constexpr auto kSockaddrIn6Size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
+                if (ptr->ai_addrlen >= kSockaddrIn6Size)
+                {
+                    const auto sockaddr_ipv6 = reinterpret_cast<LPSOCKADDR_IN6>(ptr->ai_addr);
+                    char addr[INET6_ADDRSTRLEN] = {};
+                    inet_ntop(AF_INET6, &(sockaddr_ipv6->sin6_addr), addr, sizeof(addr));
+                    ipv6.push_back(addr);
+                    break;
+                }
+                mpl::log(
+                    lvl::error,
+                    kLogCategory,
+                    "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address data while expecting {}!",
+                    ptr->ai_addrlen,
+                    kSockaddrIn6Size);
             }
             break;
             default:
@@ -124,6 +161,13 @@ auto resolve_ip_addresses(const std::string& hostname)
             }
         }
     }
+
+    mpl::log(lvl::debug,
+             kLogCategory,
+             "resolve_ip_addresses() -> hostname: {} resolved to : (v4: {}, v6: {})",
+             fmt::join(ipv4, ","),
+             fmt::join(ipv6, ","));
+
     return std::make_pair(ipv4, ipv6);
 }
 } // namespace
@@ -263,7 +307,8 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
 
             if (const auto create_result = hcs->create_compute_system(ccs_params); !create_result)
             {
-                fmt::print(L"{}", create_result.status_msg);
+
+                fmt::print(L"Create compute system failed: {}", create_result.status_msg);
                 throw CreateComputeSystemException{};
             }
 
@@ -331,29 +376,34 @@ void HyperVAPIVirtualMachine::set_state(hcs::ComputeSystemState compute_system_s
 
 void HyperVAPIVirtualMachine::start()
 {
-    mpl::log(lvl::debug, kLogCategory, "start() -> Starting VM `{}`, state {}", vm_name, state);
+    mpl::log(lvl::debug, kLogCategory, "start() -> Starting VM `{}`, current state {}", vm_name, state);
     state = VirtualMachine::State::starting;
     update_state();
     // Resume and start are the same thing in Multipass terms
     // Try to determine whether we need to resume or start here.
     const auto& [status, status_msg] = [&] {
         // Fetch the latest state value.
-        if (fetch_state_from_api() == hcs::ComputeSystemState::paused)
+        const auto hcs_state = fetch_state_from_api();
+        switch (hcs_state)
+        {
+        case hcs::ComputeSystemState::paused:
         {
             mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in paused state, resuming", vm_name);
             return hcs->resume_compute_system(vm_name);
         }
-        mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in {} state, starting", vm_name, state);
-        return hcs->start_compute_system(vm_name);
+        case hcs::ComputeSystemState::created:
+            [[fallthrough]];
+        default:
+        {
+            mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in {} state, starting", vm_name, state);
+            return hcs->start_compute_system(vm_name);
+        }
+        }
     }();
-
-    // // Maybe wait until SSH is up with timeout
-    // wait_until_ssh_up(std::chrono::seconds{240});
-    // set_state(fetch_state_from_api());
-    // update_state();
 }
 void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
+    mpl::log(lvl::debug, kLogCategory, "shutdown() -> Shutting down VM `{}`, current state {}", vm_name, state);
 
     switch (shutdown_policy)
     {
@@ -363,11 +413,18 @@ void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         // FIXME: Find a way to trigger ACPI shutdown, host-to-guest syscall,
         // some way to signal "vmwp.exe" for a graceful shutdown, sysrq via console
         // or other "direct" means to trigger the shutdown.
+        mpl::log(lvl::debug,
+                 kLogCategory,
+                 "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`",
+                 vm_name);
         ssh_exec("sudo shutdown -h now");
-        drop_ssh_session();
         break;
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
+        mpl::log(lvl::debug,
+                 kLogCategory,
+                 "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
+                 vm_name);
         drop_ssh_session();
         // These are non-graceful variants. Just terminate the system immediately.
         hcs->terminate_compute_system(vm_name);
@@ -380,6 +437,7 @@ void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void HyperVAPIVirtualMachine::suspend()
 {
+    mpl::log(lvl::debug, kLogCategory, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
     const auto& [status, status_msg] = hcs->pause_compute_system(vm_name);
     set_state(fetch_state_from_api());
     update_state();
@@ -391,7 +449,6 @@ HyperVAPIVirtualMachine::State HyperVAPIVirtualMachine::current_state()
 }
 int HyperVAPIVirtualMachine::ssh_port()
 {
-    constexpr auto kDefaultSSHPort = 22;
     return kDefaultSSHPort;
 }
 std::string HyperVAPIVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
@@ -408,13 +465,13 @@ std::string HyperVAPIVirtualMachine::management_ipv4()
     const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv4.empty())
     {
-        // TODO: Log
-        return {};
+        mpl::log(lvl::error, kLogCategory, "management_ipv4() > failed to resolve `{}`", ssh_hostname({}));
+        return "UNKNOWN";
     }
 
     const auto result = *ipv4.begin();
 
-    mpl::log(lvl::info, kLogCategory, "management_ipv4() > IP address is `{}`", result);
+    mpl::log(lvl::trace, kLogCategory, "management_ipv4() > IP address is `{}`", result);
     // Prefer the first one
     return result;
 }
@@ -448,25 +505,50 @@ hcs::ComputeSystemState HyperVAPIVirtualMachine::fetch_state_from_api()
 
 void HyperVAPIVirtualMachine::update_cpus(int num_cores)
 {
+    mpl::log(lvl::debug, kLogCategory, "update_cpus() -> called for VM `{}`, num_cores `{}`", vm_name, num_cores);
+
     throw std::runtime_error{"Not yet implemented"};
 }
 void HyperVAPIVirtualMachine::resize_memory(const MemorySize& new_size)
 {
+    mpl::log(lvl::debug,
+             kLogCategory,
+             "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
+             vm_name,
+             new_size.in_megabytes());
+
     const auto& [status, status_msg] = hcs->resize_memory(vm_name, new_size.in_megabytes());
 }
 void HyperVAPIVirtualMachine::resize_disk(const MemorySize& new_size)
 {
+    mpl::log(lvl::debug,
+             kLogCategory,
+             "resize_disk() -> called for VM `{}`, new_size `{}` MiB",
+             vm_name,
+             new_size.in_megabytes());
     throw std::runtime_error{"Not yet implemented"};
 }
 void HyperVAPIVirtualMachine::add_network_interface(int index,
                                                     const std::string& default_mac_addr,
                                                     const NetworkInterface& extra_interface)
 {
+    mpl::log(lvl::debug,
+             kLogCategory,
+             "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, extra_interface: (mac: {}, "
+             "auto_mode: {}, id: {})"
+             "auto_mode: {}, ",
+             vm_name,
+             index,
+             default_mac_addr,
+             extra_interface.mac_address,
+             extra_interface.auto_mode,
+             extra_interface.id);
     throw std::runtime_error{"Not yet implemented"};
 }
 std::unique_ptr<MountHandler> HyperVAPIVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                                  const VMMount& mount)
 {
+    mpl::log(lvl::debug, kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name);
     throw std::runtime_error{"Not yet implemented"};
 }
 
