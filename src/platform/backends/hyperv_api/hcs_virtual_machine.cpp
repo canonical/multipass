@@ -15,7 +15,7 @@
  *
  */
 
-#include "hyperv_api_virtual_machine.h"
+#include "hcs_virtual_machine.h"
 #include "hcn/hyperv_hcn_create_endpoint_params.h"
 #include "hcs/hyperv_hcs_compute_system_state.h"
 #include <multipass/exceptions/formatted_exception_base.h>
@@ -201,7 +201,7 @@ struct GrantVMAccessException : FormattedExceptionBase<>
     using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
+HCSVirtualMachine::HCSVirtualMachine(unique_hcs_wrapper_t hcs_w,
                                                  unique_hcn_wrapper_t hcn_w,
                                                  unique_virtdisk_wrapper_t virtdisk_w,
                                                  const std::string& network_guid,
@@ -321,7 +321,7 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
     update_state();
 }
 
-// HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(const std::string& source_vm_name,
+// HCSVirtualMachine::HCSVirtualMachine(const std::string& source_vm_name,
 //                                                  const multipass::VMSpecs& src_vm_specs,
 //                                                  const VirtualMachineDescription& desc,
 //                                                  VMStatusMonitor& monitor,
@@ -330,7 +330,7 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
 // {
 // }
 
-void HyperVAPIVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
+void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 {
     const auto prev_state = state;
     switch (compute_system_state)
@@ -364,7 +364,7 @@ void HyperVAPIVirtualMachine::set_state(hcs::ComputeSystemState compute_system_s
     }
 }
 
-void HyperVAPIVirtualMachine::start()
+void HCSVirtualMachine::start()
 {
     mpl::log(lvl::debug, kLogCategory, "start() -> Starting VM `{}`, current state {}", vm_name, state);
     state = VirtualMachine::State::starting;
@@ -391,7 +391,7 @@ void HyperVAPIVirtualMachine::start()
         }
     }();
 }
-void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
+void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     mpl::log(lvl::debug, kLogCategory, "shutdown() -> Shutting down VM `{}`, current state {}", vm_name, state);
 
@@ -425,7 +425,7 @@ void HyperVAPIVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     update_state();
 }
 
-void HyperVAPIVirtualMachine::suspend()
+void HCSVirtualMachine::suspend()
 {
     mpl::log(lvl::debug, kLogCategory, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
     const auto& [status, status_msg] = hcs->pause_compute_system(vm_name);
@@ -433,24 +433,24 @@ void HyperVAPIVirtualMachine::suspend()
     update_state();
 }
 
-HyperVAPIVirtualMachine::State HyperVAPIVirtualMachine::current_state()
+HCSVirtualMachine::State HCSVirtualMachine::current_state()
 {
     return state;
 }
-int HyperVAPIVirtualMachine::ssh_port()
+int HCSVirtualMachine::ssh_port()
 {
     return kDefaultSSHPort;
 }
-std::string HyperVAPIVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string HCSVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
 {
     return fmt::format("{}.mshome.net", vm_name);
 }
-std::string HyperVAPIVirtualMachine::ssh_username()
+std::string HCSVirtualMachine::ssh_username()
 {
     return description.ssh_username;
 }
 
-std::string HyperVAPIVirtualMachine::management_ipv4()
+std::string HCSVirtualMachine::management_ipv4()
 {
     const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv4.empty())
@@ -465,7 +465,7 @@ std::string HyperVAPIVirtualMachine::management_ipv4()
     // Prefer the first one
     return result;
 }
-std::string HyperVAPIVirtualMachine::ipv6()
+std::string HCSVirtualMachine::ipv6()
 {
     const auto& [_, ipv6] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv6.empty())
@@ -476,30 +476,30 @@ std::string HyperVAPIVirtualMachine::ipv6()
     // Prefer the first one
     return *ipv6.begin();
 }
-void HyperVAPIVirtualMachine::ensure_vm_is_running()
+void HCSVirtualMachine::ensure_vm_is_running()
 {
     auto is_vm_running = [this] { return state != State::off; };
     multipass::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
 }
-void HyperVAPIVirtualMachine::update_state()
+void HCSVirtualMachine::update_state()
 {
     monitor.persist_state_for(vm_name, state);
 }
 
-hcs::ComputeSystemState HyperVAPIVirtualMachine::fetch_state_from_api()
+hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
     const auto result = hcs->get_compute_system_state(vm_name, compute_system_state);
     return compute_system_state;
 }
 
-void HyperVAPIVirtualMachine::update_cpus(int num_cores)
+void HCSVirtualMachine::update_cpus(int num_cores)
 {
     mpl::log(lvl::debug, kLogCategory, "update_cpus() -> called for VM `{}`, num_cores `{}`", vm_name, num_cores);
 
     throw std::runtime_error{"Not yet implemented"};
 }
-void HyperVAPIVirtualMachine::resize_memory(const MemorySize& new_size)
+void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
 {
     mpl::log(lvl::debug,
              kLogCategory,
@@ -509,7 +509,7 @@ void HyperVAPIVirtualMachine::resize_memory(const MemorySize& new_size)
 
     const auto& [status, status_msg] = hcs->resize_memory(vm_name, new_size.in_megabytes());
 }
-void HyperVAPIVirtualMachine::resize_disk(const MemorySize& new_size)
+void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     mpl::log(lvl::debug,
              kLogCategory,
@@ -518,7 +518,7 @@ void HyperVAPIVirtualMachine::resize_disk(const MemorySize& new_size)
              new_size.in_megabytes());
     throw std::runtime_error{"Not yet implemented"};
 }
-void HyperVAPIVirtualMachine::add_network_interface(int index,
+void HCSVirtualMachine::add_network_interface(int index,
                                                     const std::string& default_mac_addr,
                                                     const NetworkInterface& extra_interface)
 {
@@ -535,7 +535,7 @@ void HyperVAPIVirtualMachine::add_network_interface(int index,
              extra_interface.id);
     throw std::runtime_error{"Not yet implemented"};
 }
-std::unique_ptr<MountHandler> HyperVAPIVirtualMachine::make_native_mount_handler(const std::string& target,
+std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                                  const VMMount& mount)
 {
     mpl::log(lvl::debug, kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name);
