@@ -18,7 +18,9 @@
 #include "hcs_virtual_machine_factory.h"
 #include "hcs_virtual_machine.h"
 #include <multipass/constants.h>
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/utils.h>
+
 
 #include <computenetwork.h>
 
@@ -33,27 +35,14 @@ namespace multipass::hyperv
 static constexpr auto kLogCategory = "HyperV-Virtual-Machine-Factory";
 static constexpr auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
 
-struct ExceptionFormatter : std::runtime_error
+struct ImageConversionException : public FormattedExceptionBase<>
 {
-    template <typename... Args>
-    ExceptionFormatter(fmt::format_string<Args...> fmt, Args&&... args)
-        : std::runtime_error{fmt::format(fmt, std::forward<Args>(args)...)}
-    {
-    }
-
-    ExceptionFormatter() : std::runtime_error("")
-    {
-    }
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-struct ImageConversionException : public ExceptionFormatter
+struct ImageResizeException : public FormattedExceptionBase<>
 {
-    using ExceptionFormatter::ExceptionFormatter;
-};
-
-struct ImageResizeException : public ExceptionFormatter
-{
-    using ExceptionFormatter::ExceptionFormatter;
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
