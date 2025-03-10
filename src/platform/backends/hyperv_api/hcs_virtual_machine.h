@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_HYPERV_VIRTUAL_MACHINE_H
 #define MULTIPASS_HYPERV_API_HYPERV_VIRTUAL_MACHINE_H
 
-#include "hcn/hyperv_hcn_api_wrapper.h"
-#include "hcs/hyperv_hcs_api_wrapper.h"
-#include "virtdisk/virtdisk_api_wrapper.h"
+#include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
+#include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
+
 #include <multipass/virtual_machine_description.h>
 #include <shared/base_virtual_machine.h>
 
@@ -39,28 +39,24 @@ namespace multipass::hyperv
  */
 struct HCSVirtualMachine final : public BaseVirtualMachine
 {
-    using unique_hcn_wrapper_t = std::unique_ptr<hcn::HCNWrapperInterface>;
-    using unique_hcs_wrapper_t = std::unique_ptr<hcs::HCSWrapperInterface>;
-    using unique_virtdisk_wrapper_t = std::unique_ptr<virtdisk::VirtDiskWrapperInterface>;
+    HCSVirtualMachine(hcs_sptr_t hcs_w,
+                      hcn_sptr_t hcn_w,
+                      virtdisk_sptr_t virtdisk_w,
+                      const std::string& network_guid,
+                      const VirtualMachineDescription& desc,
+                      VMStatusMonitor& monitor,
+                      const SSHKeyProvider& key_provider,
+                      const Path& instance_dir);
 
-    HCSVirtualMachine(unique_hcs_wrapper_t hcs_w,
-                            unique_hcn_wrapper_t hcn_w,
-                            unique_virtdisk_wrapper_t virtdisk_w,
-                            const std::string& network_guid,
-                            const VirtualMachineDescription& desc,
-                            VMStatusMonitor& monitor,
-                            const SSHKeyProvider& key_provider,
-                            const Path& instance_dir);
-
-    HCSVirtualMachine(unique_hcs_wrapper_t hcs_w,
-                            unique_hcn_wrapper_t hcn_w,
-                            unique_virtdisk_wrapper_t virtdisk_w,
-                            const std::string& source_vm_name,
-                            const multipass::VMSpecs& src_vm_specs,
-                            const VirtualMachineDescription& desc,
-                            VMStatusMonitor& monitor,
-                            const SSHKeyProvider& key_provider,
-                            const Path& dest_instance_dir);
+    HCSVirtualMachine(hcs_sptr_t hcs_w,
+                      hcn_sptr_t hcn_w,
+                      virtdisk_sptr_t virtdisk_w,
+                      const std::string& source_vm_name,
+                      const multipass::VMSpecs& src_vm_specs,
+                      const VirtualMachineDescription& desc,
+                      VMStatusMonitor& monitor,
+                      const SSHKeyProvider& key_provider,
+                      const Path& dest_instance_dir);
 
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
@@ -82,18 +78,22 @@ struct HCSVirtualMachine final : public BaseVirtualMachine
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 protected:
-    void require_snapshots_support() const override{}
+    void require_snapshots_support() const override
+    {
+    }
 
 private:
-    const VirtualMachineDescription description;
-    unique_hcs_wrapper_t hcs{nullptr};
-    unique_hcn_wrapper_t hcn{nullptr};
-    unique_virtdisk_wrapper_t virtdisk{nullptr};
+    const VirtualMachineDescription description{};
+    const std::string primary_network_guid{};
+    hcs_sptr_t hcs{nullptr};
+    hcn_sptr_t hcn{nullptr};
+    virtdisk_sptr_t virtdisk{nullptr};
 
     VMStatusMonitor& monitor;
 
     hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);
+    void maybe_create_compute_system();
 };
 } // namespace multipass::hyperv
 
