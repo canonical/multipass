@@ -18,6 +18,7 @@
 #include "hyperv_api_virtual_machine.h"
 #include "hcn/hyperv_hcn_create_endpoint_params.h"
 #include "hcs/hyperv_hcs_compute_system_state.h"
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/shared_backend_utils.h>
@@ -175,41 +176,29 @@ auto resolve_ip_addresses(const std::string& hostname)
 namespace multipass::hyperv
 {
 
-struct ExceptionFormatter : std::runtime_error
+struct InvalidAPIPointerException : FormattedExceptionBase<>
 {
-    template <typename... Args>
-    ExceptionFormatter(fmt::format_string<Args...> fmt, Args&&... args)
-        : std::runtime_error{fmt::format(fmt, std::forward<Args>(args)...)}
-    {
-    }
-    ExceptionFormatter() : std::runtime_error("")
-    {
-    }
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-struct InvalidAPIPointerException : ExceptionFormatter
+struct CreateComputeSystemException : FormattedExceptionBase<>
 {
-    using ExceptionFormatter::ExceptionFormatter;
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-struct CreateComputeSystemException : ExceptionFormatter
+struct ComputeSystemStateException : FormattedExceptionBase<>
 {
-    using ExceptionFormatter::ExceptionFormatter;
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-struct ComputeSystemStateException : ExceptionFormatter
+struct CreateEndpointException : FormattedExceptionBase<>
 {
-    using ExceptionFormatter::ExceptionFormatter;
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-struct CreateEndpointException : ExceptionFormatter
+struct GrantVMAccessException : FormattedExceptionBase<>
 {
-    using ExceptionFormatter::ExceptionFormatter;
-};
-
-struct GrantVMAccessException : ExceptionFormatter
-{
-    using ExceptionFormatter::ExceptionFormatter;
+    using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
 HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
@@ -229,10 +218,11 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
 {
     // Verify that the given API wrappers are not null
     {
-        const void* api_ptrs[] = {hcs.get(), hcn.get(), virtdisk.get()};
+        const std::array<void*, 3> api_ptrs = {hcs.get(), hcn.get(), virtdisk.get()};
         if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) { return nullptr == ptr; }))
         {
-            throw InvalidAPIPointerException{};
+            throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.",
+                                             fmt::join(api_ptrs, ",")};
         }
     }
 
@@ -268,7 +258,7 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
                 }
                 if (const auto& [status, msg] = hcn->create_endpoint(endpoint); !status)
                 {
-                    throw CreateEndpointException{};
+                    throw CreateEndpointException{"create_endpoint failed with {}", status};
                 }
             }
 
@@ -309,7 +299,7 @@ HyperVAPIVirtualMachine::HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
             {
 
                 fmt::print(L"Create compute system failed: {}", create_result.status_msg);
-                throw CreateComputeSystemException{};
+                throw CreateComputeSystemException{"create_compute_system failed with {}", create_result};
             }
 
             // Grant access to the VHDX and the cloud-init ISO files.
