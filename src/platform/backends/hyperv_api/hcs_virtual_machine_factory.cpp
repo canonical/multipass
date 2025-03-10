@@ -15,12 +15,16 @@
  *
  */
 
-#include "hcs_virtual_machine_factory.h"
-#include "hcs_virtual_machine.h"
-#include <multipass/constants.h>
-#include <multipass/exceptions/formatted_exception_base.h>
-#include <multipass/utils.h>
+#include <hyperv_api/hcs_virtual_machine_factory.h>
 
+#include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
+#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+#include <hyperv_api/hcs_virtual_machine.h>
+#include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
+
+#include <multipass/constants.h>
+#include <multipass/utils.h>
 
 #include <computenetwork.h>
 
@@ -35,32 +39,44 @@ namespace multipass::hyperv
 static constexpr auto kLogCategory = "HyperV-Virtual-Machine-Factory";
 static constexpr auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
 
-struct ImageConversionException : public FormattedExceptionBase<>
-{
-    using FormattedExceptionBase<>::FormattedExceptionBase;
-};
-
-struct ImageResizeException : public FormattedExceptionBase<>
-{
-    using FormattedExceptionBase<>::FormattedExceptionBase;
-};
-
+// Delegating constructor
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
-    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+    : HCSVirtualMachineFactory(data_dir,
+                               std::make_shared<hcs::HCSWrapper>(),
+                               std::make_shared<hcn::HCNWrapper>(),
+                               std::make_shared<virtdisk::VirtDiskWrapper>())
+
 {
+}
+
+HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
+                                                   hcs_sptr_t hcs,
+                                                   hcn_sptr_t hcn,
+                                                   virtdisk_sptr_t virtdisk)
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
+      hcs_sptr(hcs),
+      hcn_sptr(hcn),
+      virtdisk_sptr(virtdisk)
+{
+    const std::array<void*, 3> api_ptrs = {hcs.get(), hcn.get(), virtdisk.get()};
+    if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) { return nullptr == ptr; }))
+    {
+        throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.", fmt::join(api_ptrs, ",")};
+    }
 }
 
 VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                       const SSHKeyProvider& key_provider,
                                                                       VMStatusMonitor& monitor)
 {
-    auto hcs = std::make_unique<hcs::HCSWrapper>();
-    auto hcn = std::make_unique<hcn::HCNWrapper>();
-    auto virtdisk = std::make_unique<virtdisk::VirtDiskWrapper>();
+    assert(hcs_sptr);
+    assert(hcn_sptr);
+    assert(virtdisk_sptr);
 
-    return std::make_unique<HCSVirtualMachine>(std::move(hcs),
-                                               std::move(hcn),
-                                               std::move(virtdisk),
+    return std::make_unique<HCSVirtualMachine>(hcs_sptr,
+                                               hcn_sptr,
+                                               virtdisk_sptr,
                                                kDefaultHyperVSwitchGUID,
                                                desc,
                                                monitor,
@@ -126,12 +142,10 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
 void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                       const VirtualMachineDescription& desc)
 {
-    // FIXME:
-    virtdisk::VirtDiskWrapper wrap{};
-
     // Resize the instance image to the desired size
+    assert(virtdisk_sptr);
     const auto& [status, status_msg] =
-        wrap.resize_virtual_disk(instance_image.image_path.toStdString(), desc.disk_space.in_bytes());
+        virtdisk_sptr->resize_virtual_disk(instance_image.image_path.toStdString(), desc.disk_space.in_bytes());
     if (!status)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",

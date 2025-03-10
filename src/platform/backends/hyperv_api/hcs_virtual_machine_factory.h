@@ -18,6 +18,8 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_FACTORY_H
 
+#include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
+
 #include <shared/base_virtual_machine_factory.h>
 
 namespace multipass::hyperv
@@ -28,7 +30,9 @@ namespace multipass::hyperv
  */
 struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
+
     explicit HCSVirtualMachineFactory(const Path& data_dir);
+    explicit HCSVirtualMachineFactory(const Path& data_dir, hcs_sptr_t hcs, hcn_sptr_t hcn, virtdisk_sptr_t virtdisk);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
@@ -60,6 +64,10 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
     void remove_resources_for_impl(const std::string& name) override;
+
+    hcs_sptr_t hcs_sptr{nullptr};
+    hcn_sptr_t hcn_sptr{nullptr};
+    virtdisk_sptr_t virtdisk_sptr{nullptr};
 };
 } // namespace multipass::hyperv
 

@@ -71,4 +71,45 @@ inline std::optional<ComputeSystemState> compute_system_state_from_string(std::s
 
 } // namespace multipass::hyperv::hcs
 
+/**
+ * Formatter type specialization for CreateComputeSystemParameters
+ */
+template <typename Char>
+struct fmt::formatter<multipass::hyperv::hcs::ComputeSystemState, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(multipass::hyperv::hcs::ComputeSystemState state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::hyperv::hcs::ComputeSystemState::created:
+            v = "created";
+            break;
+        case multipass::hyperv::hcs::ComputeSystemState::paused:
+            v = "paused";
+            break;
+        case multipass::hyperv::hcs::ComputeSystemState::running:
+            v = "running";
+            break;
+        case multipass::hyperv::hcs::ComputeSystemState::saved_as_template:
+            v = "saved_as_template";
+            break;
+        case multipass::hyperv::hcs::ComputeSystemState::stopped:
+            v = "stopped";
+            break;
+        case multipass::hyperv::hcs::ComputeSystemState::unknown:
+            v = "unknown";
+            break;
+        }
+
+        return format_to(ctx.out(), "{}", v);
+    }
+};
+
 #endif
