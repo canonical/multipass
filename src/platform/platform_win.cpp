@@ -27,7 +27,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#include "backends/hyperv_api/hyperv_api_virtual_machine_factory.h"
+#include "backends/hyperv_api/hcs_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
@@ -661,7 +661,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     }
     else if (driver == "hyperv_api")
     {
-        return std::make_unique<hyperv::HyperVAPIVirtualMachineFactory>(data_dir);
+        return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
