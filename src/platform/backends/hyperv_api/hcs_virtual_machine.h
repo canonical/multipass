@@ -37,13 +37,13 @@ namespace multipass::hyperv
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
  */
-struct HyperVAPIVirtualMachine final : public BaseVirtualMachine
+struct HCSVirtualMachine final : public BaseVirtualMachine
 {
     using unique_hcn_wrapper_t = std::unique_ptr<hcn::HCNWrapperInterface>;
     using unique_hcs_wrapper_t = std::unique_ptr<hcs::HCSWrapperInterface>;
     using unique_virtdisk_wrapper_t = std::unique_ptr<virtdisk::VirtDiskWrapperInterface>;
 
-    HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
+    HCSVirtualMachine(unique_hcs_wrapper_t hcs_w,
                             unique_hcn_wrapper_t hcn_w,
                             unique_virtdisk_wrapper_t virtdisk_w,
                             const std::string& network_guid,
@@ -52,7 +52,7 @@ struct HyperVAPIVirtualMachine final : public BaseVirtualMachine
                             const SSHKeyProvider& key_provider,
                             const Path& instance_dir);
 
-    HyperVAPIVirtualMachine(unique_hcs_wrapper_t hcs_w,
+    HCSVirtualMachine(unique_hcs_wrapper_t hcs_w,
                             unique_hcn_wrapper_t hcn_w,
                             unique_virtdisk_wrapper_t virtdisk_w,
                             const std::string& source_vm_name,

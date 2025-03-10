@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HYPERV_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_HYPERV_API_HYPERV_VIRTUAL_MACHINE_FACTORY_H
+#ifndef MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_FACTORY_H
+#define MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_FACTORY_H
 
 #include <shared/base_virtual_machine_factory.h>
 
@@ -26,9 +26,9 @@ namespace multipass::hyperv
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
  */
-struct HyperVAPIVirtualMachineFactory final : public BaseVirtualMachineFactory
+struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
-    explicit HyperVAPIVirtualMachineFactory(const Path& data_dir);
+    explicit HCSVirtualMachineFactory(const Path& data_dir);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
