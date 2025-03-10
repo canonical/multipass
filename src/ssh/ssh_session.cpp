@@ -48,7 +48,7 @@ mp::SSHSession::SSHSession(const std::string& host,
      * in order to prevent that from happening. The established timeout
      * is used afterward to prevent timing out in connected state.
      */
-    constexpr long kConnectTimeoutSecs = 10; // < how long to wait for ssh_connect
+    constexpr long kConnectTimeoutSecs = 5; // < how long to wait for ssh_connect
     constexpr long kEstablishedTimeoutSecs = std::numeric_limits<long>::max();
 
     const int nodelay{1};
