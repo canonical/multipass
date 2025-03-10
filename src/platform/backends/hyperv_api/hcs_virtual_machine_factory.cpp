@@ -15,8 +15,8 @@
  *
  */
 
-#include "hyperv_api_virtual_machine_factory.h"
-#include "hyperv_api_virtual_machine.h"
+#include "hcs_virtual_machine_factory.h"
+#include "hcs_virtual_machine.h"
 #include <multipass/constants.h>
 #include <multipass/utils.h>
 
@@ -56,35 +56,35 @@ struct ImageResizeException : public ExceptionFormatter
     using ExceptionFormatter::ExceptionFormatter;
 };
 
-HyperVAPIVirtualMachineFactory::HyperVAPIVirtualMachineFactory(const Path& data_dir)
+HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
     : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
 {
 }
 
-VirtualMachine::UPtr HyperVAPIVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                                            const SSHKeyProvider& key_provider,
-                                                                            VMStatusMonitor& monitor)
+VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
+                                                                      const SSHKeyProvider& key_provider,
+                                                                      VMStatusMonitor& monitor)
 {
     auto hcs = std::make_unique<hcs::HCSWrapper>();
     auto hcn = std::make_unique<hcn::HCNWrapper>();
     auto virtdisk = std::make_unique<virtdisk::VirtDiskWrapper>();
 
-    return std::make_unique<HyperVAPIVirtualMachine>(std::move(hcs),
-                                                     std::move(hcn),
-                                                     std::move(virtdisk),
-                                                     kDefaultHyperVSwitchGUID,
-                                                     desc,
-                                                     monitor,
-                                                     key_provider,
-                                                     get_instance_directory(desc.vm_name));
+    return std::make_unique<HCSVirtualMachine>(std::move(hcs),
+                                               std::move(hcn),
+                                               std::move(virtdisk),
+                                               kDefaultHyperVSwitchGUID,
+                                               desc,
+                                               monitor,
+                                               key_provider,
+                                               get_instance_directory(desc.vm_name));
 }
 
-void HyperVAPIVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
+void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     throw std::runtime_error{"Not implemented yet."};
 }
 
-VMImage HyperVAPIVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
+VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
     const std::filesystem::path source_file{source_image.image_path.toStdString()};
 
@@ -134,8 +134,8 @@ VMImage HyperVAPIVirtualMachineFactory::prepare_source_image(const VMImage& sour
     return result;
 }
 
-void HyperVAPIVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
-                                                            const VirtualMachineDescription& desc)
+void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
+                                                      const VirtualMachineDescription& desc)
 {
     // FIXME:
     virtdisk::VirtDiskWrapper wrap{};
@@ -151,7 +151,7 @@ void HyperVAPIVirtualMachineFactory::prepare_instance_image(const VMImage& insta
     }
 }
 
-std::string HyperVAPIVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
+std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
 {
     (void)intf;
     // No-op. The implementation uses the default Hyper-V switch.
