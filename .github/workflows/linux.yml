@@ -226,8 +226,13 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
           ulimit -c unlimited && \
           env CTEST_OUTPUT_ON_FAILURE=1 \
-            cmake --build /root/parts/multipass/build --target coverage"
+            cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
 
     - name: Run TICS analysis
       id: tics
