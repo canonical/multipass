@@ -72,19 +72,16 @@ inline auto replace_colon_with_dash(std::string& addr)
  */
 auto resolve_ip_addresses(const std::string& hostname)
 {
-    mpl::log(lvl::trace, kLogCategory, "resolve_ip_addresses() -> resolve being called for hostname `{}`", hostname);
+    mpl::trace(kLogCategory, "resolve_ip_addresses() -> resolve being called for hostname `{}`", hostname);
     static auto wsa_context = [] {
         struct wsa_init_wrapper
         {
             wsa_init_wrapper() : wsa_data{}, wsa_init_success(WSAStartup(MAKEWORD(2, 2) == 0, &wsa_data))
             {
-                mpl::log(lvl::debug,
-                         kLogCategory,
-                         "resolve_ip_addresses() -> initialized WSA, status `{}`",
-                         wsa_init_success);
+                mpl::debug(kLogCategory, "resolve_ip_addresses() -> initialized WSA, status `{}`", wsa_init_success);
                 if (!wsa_init_success)
                 {
-                    mpl::log(lvl::error, kLogCategory, "resolve_ip_addresses() > WSAStartup failed!");
+                    mpl::error(kLogCategory, "resolve_ip_addresses() > WSAStartup failed!");
                 }
             }
             ~wsa_init_wrapper()
@@ -136,8 +133,7 @@ auto resolve_ip_addresses(const std::string& hostname)
                     break;
                 }
 
-                mpl::log(
-                    lvl::error,
+                mpl::error(
                     kLogCategory,
                     "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address data while expecting {}!",
                     ptr->ai_addrlen,
@@ -155,8 +151,7 @@ auto resolve_ip_addresses(const std::string& hostname)
                     ipv6.push_back(addr);
                     break;
                 }
-                mpl::log(
-                    lvl::error,
+                mpl::error(
                     kLogCategory,
                     "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address data while expecting {}!",
                     ptr->ai_addrlen,
@@ -169,12 +164,11 @@ auto resolve_ip_addresses(const std::string& hostname)
         }
     }
 
-    mpl::log(lvl::trace,
-             kLogCategory,
-             "resolve_ip_addresses() -> hostname: {} resolved to : (v4: {}, v6: {})",
-             hostname,
-             fmt::join(ipv4, ","),
-             fmt::join(ipv6, ","));
+    mpl::trace(kLogCategory,
+               "resolve_ip_addresses() -> hostname: {} resolved to : (v4: {}, v6: {})",
+               hostname,
+               fmt::join(ipv4, ","),
+               fmt::join(ipv6, ","));
 
     return std::make_pair(ipv4, ipv6);
 }
@@ -311,7 +305,7 @@ void HCSVirtualMachine::maybe_create_compute_system()
 
 void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 {
-    mpl::log(lvl::debug, kLogCategory, "set_state() -> VM `{}` HCS state `{}`", vm_name, compute_system_state);
+    mpl::debug(kLogCategory, "set_state() -> VM `{}` HCS state `{}`", vm_name, compute_system_state);
 
     const auto prev_state = state;
     switch (compute_system_state)
@@ -336,18 +330,13 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 
     if (state != prev_state)
     {
-        mpl::log(lvl::info,
-                 kLogCategory,
-                 "set_state() > VM {} state changed from {} to {}",
-                 vm_name,
-                 prev_state,
-                 state);
+        mpl::info(kLogCategory, "set_state() > VM {} state changed from {} to {}", vm_name, prev_state, state);
     }
 }
 
 void HCSVirtualMachine::start()
 {
-    mpl::log(lvl::debug, kLogCategory, "start() -> Starting VM `{}`, current state {}", vm_name, state);
+    mpl::debug(kLogCategory, "start() -> Starting VM `{}`, current state {}", vm_name, state);
 
     // Create the compute system, if not created yet.
     maybe_create_compute_system();
@@ -359,29 +348,29 @@ void HCSVirtualMachine::start()
     const auto& [status, status_msg] = [&] {
         // Fetch the latest state value.
         const auto hcs_state = fetch_state_from_api();
-        mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` HCS state is `{}`", vm_name, hcs_state);
+        mpl::debug(kLogCategory, "start() -> VM `{}` HCS state is `{}`", vm_name, hcs_state);
         switch (hcs_state)
         {
         case hcs::ComputeSystemState::paused:
         {
-            mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in paused state, resuming", vm_name);
+            mpl::debug(kLogCategory, "start() -> VM `{}` is in paused state, resuming", vm_name);
             return hcs->resume_compute_system(vm_name);
         }
         case hcs::ComputeSystemState::created:
             [[fallthrough]];
         default:
         {
-            mpl::log(lvl::debug, kLogCategory, "start() -> VM `{}` is in {} state, starting", vm_name, state);
+            mpl::debug(kLogCategory, "start() -> VM `{}` is in {} state, starting", vm_name, state);
             return hcs->start_compute_system(vm_name);
         }
         }
     }();
 
-    mpl::log(lvl::debug, kLogCategory, "start() -> Start/resume VM `{}`, result `{}`", vm_name, status);
+    mpl::debug(kLogCategory, "start() -> Start/resume VM `{}`, result `{}`", vm_name, status);
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
-    mpl::log(lvl::debug, kLogCategory, "shutdown() -> Shutting down VM `{}`, current state {}", vm_name, state);
+    mpl::debug(kLogCategory, "shutdown() -> Shutting down VM `{}`, current state {}", vm_name, state);
 
     switch (shutdown_policy)
     {
@@ -391,18 +380,14 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         // FIXME: Find a way to trigger ACPI shutdown, host-to-guest syscall,
         // some way to signal "vmwp.exe" for a graceful shutdown, sysrq via console
         // or other "direct" means to trigger the shutdown.
-        mpl::log(lvl::debug,
-                 kLogCategory,
-                 "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`",
-                 vm_name);
+        mpl::debug(kLogCategory, "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`", vm_name);
         ssh_exec("sudo shutdown -h now");
         break;
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
-        mpl::log(lvl::debug,
-                 kLogCategory,
-                 "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
-                 vm_name);
+        mpl::debug(kLogCategory,
+                   "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
+                   vm_name);
         drop_ssh_session();
         // These are non-graceful variants. Just terminate the system immediately.
         hcs->terminate_compute_system(vm_name);
@@ -415,7 +400,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void HCSVirtualMachine::suspend()
 {
-    mpl::log(lvl::debug, kLogCategory, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
+    mpl::debug(kLogCategory, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
     const auto& [status, status_msg] = hcs->pause_compute_system(vm_name);
     set_state(fetch_state_from_api());
     update_state();
@@ -443,13 +428,13 @@ std::string HCSVirtualMachine::management_ipv4()
     const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv4.empty())
     {
-        mpl::log(lvl::error, kLogCategory, "management_ipv4() > failed to resolve `{}`", ssh_hostname({}));
+        mpl::error(kLogCategory, "management_ipv4() > failed to resolve `{}`", ssh_hostname({}));
         return "UNKNOWN";
     }
 
     const auto result = *ipv4.begin();
 
-    mpl::log(lvl::trace, kLogCategory, "management_ipv4() > IP address is `{}`", result);
+    mpl::trace(kLogCategory, "management_ipv4() > IP address is `{}`", result);
     // Prefer the first one
     return result;
 }
@@ -483,50 +468,46 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
 
 void HCSVirtualMachine::update_cpus(int num_cores)
 {
-    mpl::log(lvl::debug, kLogCategory, "update_cpus() -> called for VM `{}`, num_cores `{}`", vm_name, num_cores);
+    mpl::debug(kLogCategory, "update_cpus() -> called for VM `{}`, num_cores `{}`", vm_name, num_cores);
 
     throw std::runtime_error{"Not yet implemented"};
 }
 void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    mpl::log(lvl::debug,
-             kLogCategory,
-             "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
-             vm_name,
-             new_size.in_megabytes());
+    mpl::debug(kLogCategory,
+               "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
+               vm_name,
+               new_size.in_megabytes());
 
     const auto& [status, status_msg] = hcs->resize_memory(vm_name, new_size.in_megabytes());
 }
 void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    mpl::log(lvl::debug,
-             kLogCategory,
-             "resize_disk() -> called for VM `{}`, new_size `{}` MiB",
-             vm_name,
-             new_size.in_megabytes());
+    mpl::debug(kLogCategory,
+               "resize_disk() -> called for VM `{}`, new_size `{}` MiB",
+               vm_name,
+               new_size.in_megabytes());
     throw std::runtime_error{"Not yet implemented"};
 }
 void HCSVirtualMachine::add_network_interface(int index,
                                               const std::string& default_mac_addr,
                                               const NetworkInterface& extra_interface)
 {
-    mpl::log(lvl::debug,
-             kLogCategory,
-             "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, extra_interface: (mac: {}, "
-             "auto_mode: {}, id: {})"
-             "auto_mode: {}, ",
-             vm_name,
-             index,
-             default_mac_addr,
-             extra_interface.mac_address,
-             extra_interface.auto_mode,
-             extra_interface.id);
+    mpl::debug(kLogCategory,
+               "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, extra_interface: (mac: {}, "
+               "mac_address: {}, id: {})",
+               vm_name,
+               index,
+               default_mac_addr,
+               extra_interface.mac_address,
+               extra_interface.auto_mode,
+               extra_interface.id);
     throw std::runtime_error{"Not yet implemented"};
 }
 std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                            const VMMount& mount)
 {
-    mpl::log(lvl::debug, kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name);
+    mpl::debug(kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name);
     throw std::runtime_error{"Not yet implemented"};
 }
 
