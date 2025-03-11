@@ -25,7 +25,7 @@ add_library(ip_address STATIC
             ip_address.cpp)
 
 target_link_libraries(network
-  fmt
+  fmt::fmt-header-only
   logger
   utils
   Qt6::Core
