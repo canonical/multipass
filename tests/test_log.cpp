@@ -70,3 +70,67 @@ TEST_F(log_tests, test_format_overload_multiple_args_missing)
     // time error with the C++20
     EXPECT_THROW({ mpl::log(mpl::Level::error, "test_category", "with formatting {} {}", 1); }, fmt::format_error);
 }
+
+// ------------------------------------------------------------------------------
+
+TEST_F(log_tests, test_log_error_function)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "with formatting 1");
+    mpl::error("test_category", "with formatting {}", 1);
+}
+
+TEST_F(log_tests, test_log_warn_function)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "with formatting 1");
+    mpl::warn("test_category", "with formatting {}", 1);
+}
+
+TEST_F(log_tests, test_log_info_function)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "with formatting 1");
+    mpl::info("test_category", "with formatting {}", 1);
+}
+
+TEST_F(log_tests, test_log_debug_function)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "with formatting 1");
+    mpl::debug("test_category", "with formatting {}", 1);
+}
+
+TEST_F(log_tests, test_log_trace_function)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "with formatting 1");
+    mpl::trace("test_category", "with formatting {}", 1);
+}
+
+// ------------------------------------------------------------------------------
+
+TEST_F(log_tests, test_log_error_function_noargs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "without formatting {}");
+    mpl::error("test_category", "without formatting {}");
+}
+
+TEST_F(log_tests, test_log_warn_function_noargs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "without formatting {}");
+    mpl::warn("test_category", "without formatting {}");
+}
+
+TEST_F(log_tests, test_log_info_function_noargs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "without formatting {}");
+    mpl::info("test_category", "without formatting {}");
+}
+
+TEST_F(log_tests, test_log_debug_function_noargs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "without formatting {}");
+    mpl::debug("test_category", "without formatting {}");
+}
+
+TEST_F(log_tests, test_log_trace_function_noargs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "without formatting {}");
+    mpl::trace("test_category", "without formatting {}");
+}
