@@ -79,7 +79,10 @@ struct SshfsMount : public mp::test::SftpServerTest
                                      bool& invoked, std::optional<std::string>& fail_cmd,
                                      std::optional<bool>& fail_invoked)
     {
-        *fail_invoked = false;
+        if (fail_invoked)
+        {
+            *fail_invoked = false;
+        }
 
         auto request_exec = [this, &commands, &remaining, &next_expected_cmd, &output, &invoked, &fail_cmd,
                              &fail_invoked](ssh_channel, const char* raw_cmd) {
