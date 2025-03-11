@@ -45,7 +45,7 @@ constexpr auto kLogCategory = "HyperV-VirtDisk-Wrapper";
 
 UniqueHandle open_virtual_disk(const VirtDiskAPITable& api, const std::filesystem::path& vhdx_path)
 {
-    mpl::log(lvl::debug, kLogCategory, "open_virtual_disk(...) > vhdx_path: {}", vhdx_path.string());
+    mpl::debug(kLogCategory, "open_virtual_disk(...) > vhdx_path: {}", vhdx_path.string());
     //
     // Specify UNKNOWN for both device and vendor so the system will use the
     // file extension to determine the correct VHD format.
@@ -73,7 +73,7 @@ UniqueHandle open_virtual_disk(const VirtDiskAPITable& api, const std::filesyste
 
     if (!(result == ERROR_SUCCESS))
     {
-        mpl::log(lvl::error, kLogCategory, "open_virtual_disk(...) > OpenVirtualDisk failed with: {}", result);
+        mpl::error(kLogCategory, "open_virtual_disk(...) > OpenVirtualDisk failed with: {}", result);
         return UniqueHandle{nullptr, api.CloseHandle};
     }
 
@@ -86,14 +86,14 @@ UniqueHandle open_virtual_disk(const VirtDiskAPITable& api, const std::filesyste
 
 VirtDiskWrapper::VirtDiskWrapper(const VirtDiskAPITable& api_table) : api{api_table}
 {
-    mpl::log(lvl::debug, kLogCategory, "VirtDiskWrapper::VirtDiskWrapper(...) > api_table: {}", api);
+    mpl::debug(kLogCategory, "VirtDiskWrapper::VirtDiskWrapper(...) > api_table: {}", api);
 }
 
 // ---------------------------------------------------------
 
 OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskParameters& params) const
 {
-    mpl::log(lvl::debug, kLogCategory, "create_virtual_disk(...) > params: {}", params);
+    mpl::debug(kLogCategory, "create_virtual_disk(...) > params: {}", params);
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/CreateVirtualDisk.cpp
     //
@@ -153,7 +153,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
         return OperationResult{NOERROR, L""};
     }
 
-    mpl::log(lvl::error, kLogCategory, "create_virtual_disk(...) > CreateVirtualDisk failed with {}!", result);
+    mpl::error(kLogCategory, "create_virtual_disk(...) > CreateVirtualDisk failed with {}!", result);
     return OperationResult{E_FAIL, fmt::format(L"CreateVirtualDisk failed with {}!", result)};
 }
 
@@ -162,11 +162,10 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
 OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path& vhdx_path,
                                                      std::uint64_t new_size_bytes) const
 {
-    mpl::log(lvl::debug,
-             kLogCategory,
-             "resize_virtual_disk(...) > vhdx_path: {}, new_size_bytes: {}",
-             vhdx_path.string(),
-             new_size_bytes);
+    mpl::debug(kLogCategory,
+               "resize_virtual_disk(...) > vhdx_path: {}, new_size_bytes: {}",
+               vhdx_path.string(),
+               new_size_bytes);
     const auto disk_handle = open_virtual_disk(api, vhdx_path);
 
     if (nullptr == disk_handle)
@@ -194,7 +193,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
         return OperationResult{NOERROR, L""};
     }
 
-    mpl::log(lvl::error, kLogCategory, "resize_virtual_disk(...) > ResizeVirtualDisk failed with {}!", resize_result);
+    mpl::error(kLogCategory, "resize_virtual_disk(...) > ResizeVirtualDisk failed with {}!", resize_result);
 
     return OperationResult{E_FAIL, fmt::format(L"ResizeVirtualDisk failed with {}!", resize_result)};
 }
@@ -204,7 +203,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                        VirtualDiskInfo& vdinfo) const
 {
-    mpl::log(lvl::debug, kLogCategory, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path.string());
+    mpl::debug(kLogCategory, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path.string());
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp
     //
@@ -300,10 +299,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
         }
         else
         {
-            mpl::log(lvl::warning,
-                     kLogCategory,
-                     "get_virtual_disk_info(...) > failed to get {}",
-                     fmt::underlying(version));
+            mpl::warn(kLogCategory, "get_virtual_disk_info(...) > failed to get {}", fmt::underlying(version));
         }
     }
 
