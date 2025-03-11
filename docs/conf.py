@@ -203,7 +203,8 @@ linkcheck_ignore = [
     "https://localhost:8081",
     "https://github.com/canonical/*",
     "https://sourceforge.net/projects/vcxsrv/",
-    "https://sourceforge.net/projects/xming/"
+    "https://sourceforge.net/projects/xming/",
+    "http://www.straightrunning.com/XmingNotes/",
     ]
 
 linkcheck_retries = 3
