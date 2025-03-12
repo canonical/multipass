@@ -56,7 +56,7 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     // Check if snap support is installed in the instance
     if (session.exec("which snap").exit_code() != 0)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("Snap support is not installed in '{}'", name));
+        mpl::warn(category, "Snap support is not installed in '{}'", name);
         throw std::runtime_error(
             fmt::format("Snap support needs to be installed in '{}' in order to support mounts.\n"
                         "Please see https://docs.snapcraft.io/installing-snapd for information on\n"
@@ -70,15 +70,14 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     // Check if multipass-sshfs is already installed
     if (session.exec("sudo snap list multipass-sshfs").exit_code(std::chrono::seconds(15)) == 0)
     {
-        mpl::log(mpl::Level::debug, category,
-                 fmt::format("The multipass-sshfs snap is already installed on '{}'", name));
+        mpl::debug(category, "The multipass-sshfs snap is already installed on '{}'", name);
         return true;
     }
 
     // Check if /snap exists for "classic" snap support
     if (session.exec("[ -e /snap ]").exit_code() != 0)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("Classic snap support symlink is needed in '{}'", name));
+        mpl::warn(category, "Classic snap support symlink is needed in '{}'", name);
         throw std::runtime_error(
             fmt::format("Classic snap support is not enabled for '{}'!\n\n"
                         "Please see https://docs.snapcraft.io/installing-snapd for information on\n"
@@ -92,22 +91,18 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
 void install_sshfs_for(const std::string& name, mp::SSHSession& session, const std::chrono::milliseconds& timeout)
 try
 {
-    mpl::log(mpl::Level::info, category, fmt::format("Installing the multipass-sshfs snap in '{}'", name));
+    mpl::info(category, "Installing the multipass-sshfs snap in '{}'", name);
     auto proc = session.exec("sudo snap install multipass-sshfs");
     if (proc.exit_code(timeout) != 0)
     {
         auto error_msg = proc.read_std_error();
-        mpl::log(mpl::Level::error,
-                 category,
-                 fmt::format("Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg)));
+        mpl::error(category, "Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg));
         throw mp::SSHFSMissingError();
     }
 }
 catch (const mp::ExitlessSSHProcessException& e)
 {
-    mpl::log(mpl::Level::error,
-             category,
-             fmt::format("Could not install 'multipass-sshfs' in '{}': {}", name, e.what()));
+    mpl::error(category, "Could not install 'multipass-sshfs' in '{}': {}", name, e.what());
     throw mp::SSHFSMissingError();
 }
 } // namespace
@@ -130,10 +125,7 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
              this->mount_spec.get_gid_mappings(),
              this->mount_spec.get_uid_mappings()}
 {
-    mpl::log(
-        mpl::Level::info,
-        category,
-        fmt::format("initializing mount {} => {} in '{}'", this->mount_spec.get_source_path(), target, vm->vm_name));
+    mpl::info(category, "initializing mount {} => {} in '{}'", this->mount_spec.get_source_path(), target, vm->vm_name);
 }
 
 bool SSHFSMountHandler::is_active()
@@ -151,8 +143,7 @@ try
 }
 catch (const std::exception& e)
 {
-    mpl::log(mpl::Level::warning, category,
-             fmt::format("Failed checking SSHFS mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
+    mpl::warn(category, "Failed checking SSHFS mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what());
     return false;
 }
 
@@ -184,25 +175,29 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
     QObject::connect(process.get(), &Process::finished, [this](const ProcessState& exit_state) {
         if (exit_state.completed_successfully())
         {
-            mpl::log(mpl::Level::info, category,
-                     fmt::format("Mount \"{}\" in instance '{}' has stopped", target, vm->vm_name));
+            mpl::info(category, "Mount \"{}\" in instance '{}' has stopped", target, vm->vm_name);
         }
         else
         {
             // not error as it failing can indicate we need to install sshfs in the VM
-            mpl::log(mpl::Level::warning, category,
-                     fmt::format("Mount \"{}\" in instance '{}' has stopped unsuccessfully: {}", target, vm->vm_name,
-                                 exit_state.failure_message()));
+            mpl::warn(category,
+                      "Mount \"{}\" in instance '{}' has stopped unsuccessfully: {}",
+                      target,
+                      vm->vm_name,
+                      exit_state.failure_message());
         }
     });
     QObject::connect(process.get(), &Process::error_occurred, [this](auto error, auto error_string) {
-        mpl::log(mpl::Level::error, category,
-                 fmt::format("There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
-                             vm->vm_name, target, mpu::qenum_to_string(error), error_string));
+        mpl::error(category,
+                   "There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
+                   vm->vm_name,
+                   target,
+                   mpu::qenum_to_string(error),
+                   error_string);
     });
 
-    mpl::log(mpl::Level::info, category, fmt::format("process program '{}'", process->program()));
-    mpl::log(mpl::Level::info, category, fmt::format("process arguments '{}'", process->arguments().join(", ")));
+    mpl::info(category, "process program '{}'", process->program());
+    mpl::info(category, "process arguments '{}'", process->arguments().join(", "));
 
     start_and_block_until_connected(process.get());
     // after the process is started, it must be moved to the main thread
@@ -223,17 +218,31 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
 
 void SSHFSMountHandler::deactivate_impl(bool force)
 {
-    mpl::log(mpl::Level::info, category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
+    mpl::info(category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
-    if (process->terminate(); !process->wait_for_finished(5000))
+
+    try
     {
-        auto err = fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error());
-        if (force)
-            mpl::log(
-                mpl::Level::warning, category,
-                fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, err));
-        else
-            throw std::runtime_error{err};
+        if (process->terminate(); !process->wait_for_finished(5000))
+        {
+            auto err = fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error());
+            if (force)
+                mpl::warn(category,
+                          "Failed to gracefully stop mount \"{}\" in instance '{}': {}",
+                          target,
+                          vm->vm_name,
+                          err);
+            else
+                throw std::runtime_error{err};
+        }
+    }
+    catch (...)
+    {
+        // The finished signal should've triggered by now. We can disconnect it.
+        // Doing it this way to ensure that it gets disconnected even when the body
+        // throws.
+        QObject::disconnect(process.get(), &Process::finished, nullptr, nullptr);
+        throw;
     }
     process.reset();
 }
@@ -241,5 +250,36 @@ void SSHFSMountHandler::deactivate_impl(bool force)
 SSHFSMountHandler::~SSHFSMountHandler()
 {
     deactivate(/*force=*/true);
+
+    /**
+     * Ensure that the signals are disconnected.
+     *
+     * The `is_active` function has some interesting logic going on, which in turn
+     * prevents `deactivate_impl` to be run. That means the disconnect for `error_occured`
+     * does not happen, and it can possibly be triggered while the mount handler & process
+     * objects are not alive. Sounds fun? I don't think so either.
+     *
+     * We're disconnecting the signals here because it should be done as a part
+     * of the destructor regardless of other stuff.
+     *
+     * FIXME: Find a way to associate slot lifetime with the process itself.
+     */
+    if (process)
+    {
+        // The disconnect() is a no-op when nothing is connected.
+        if (QObject::disconnect(process.get(), &Process::finished, nullptr, nullptr))
+        {
+            mpl::warn(category,
+                      "SSHFSMountHandler is going to be destroyed, but Process still has `finished` signal connected. "
+                      "Disconnected it to prevent errors.");
+        }
+        if (QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr))
+        {
+            mpl::warn(
+                category,
+                "SSHFSMountHandler is going to be destroyed, but Process still has `error_occured` signal connected. "
+                "Disconnected it to prevent errors.");
+        }
+    }
 }
 } // namespace multipass
