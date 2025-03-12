@@ -15,18 +15,16 @@
  *
  */
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include "common.h"
+
 #include <memory>
 #include <multipass/logging/level.h>
 #include <multipass/logging/standard_logger.h>
+#include <stdexcept>
+
 namespace mpl = multipass::logging;
 
 using uut_t = mpl::StandardLogger;
-
-struct standard_logger_tests : ::testing::Test
-{
-};
 
 auto make_mock_file()
 {
@@ -45,11 +43,11 @@ auto read_mock_file(FILE* file)
     // Flush and rewind the temporary file.
     fflush(file);
     rewind(file);
-    fread(&content[0], sizeof(char), sz, file);
+    fread(content.data(), sizeof(char), sz, file);
     return content;
 }
 
-TEST_F(standard_logger_tests, call_log)
+TEST(standard_logger_tests, call_log)
 {
     const auto& mock_stderr = make_mock_file();
     uut_t logger{mpl::Level::debug, mock_stderr.get()};
@@ -58,7 +56,7 @@ TEST_F(standard_logger_tests, call_log)
     ASSERT_THAT(content, testing::HasSubstr("[debug] [cat] msg"));
 }
 
-TEST_F(standard_logger_tests, call_log_filtered)
+TEST(standard_logger_tests, call_log_filtered)
 {
     const auto& mock_stderr = make_mock_file();
     uut_t logger{mpl::Level::debug, mock_stderr.get()};
@@ -66,3 +64,12 @@ TEST_F(standard_logger_tests, call_log_filtered)
     const auto content = read_mock_file(mock_stderr.get());
     ASSERT_TRUE(content.empty());
 }
+
+TEST(standard_logger_tests, check_constructor_throws_if_target_null)
+{
+    FILE* v = nullptr;
+    ASSERT_THROW((uut_t{mpl::Level::debug, v}), std::invalid_argument);
+}
+
+static_assert(!std::is_constructible_v<uut_t, mpl::Level, std::nullptr_t>,
+              "The standard logger should not accept nullptr literal as FILE* argument!");

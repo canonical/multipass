@@ -46,9 +46,8 @@ namespace
 {
 struct CapturingLogger : public mp::logging::Logger
 {
-    void log(mpl::Level level, std::string_view category, std::string_view message) const override
+    void log(mpl::Level level, std::string_view /*category*/, std::string_view message) const override
     {
-        (void)category;
         logged_lines.emplace_back(message);
     }
 

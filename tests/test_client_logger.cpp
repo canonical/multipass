@@ -15,10 +15,10 @@
  *
  */
 
+#include "common.h"
 #include "mock_server_reader_writer.h"
 #include "stub_logger.h"
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/level.h>
 #include <multipass/logging/multiplexing_logger.h>
@@ -28,7 +28,6 @@ namespace mpt = multipass::test;
 
 struct StubReply
 {
-    template <typename... Args>
     void set_log_line(const std::string& msg)
     {
         stored_msg = msg;
@@ -38,7 +37,6 @@ struct StubReply
 };
 
 using uut_t = mpl::ClientLogger<StubReply, StubReply>;
-using testing::DoAll;
 using testing::HasSubstr;
 using testing::Return;
 
@@ -50,10 +48,8 @@ struct client_logger_tests : ::testing::Test
 
 TEST_F(client_logger_tests, call_log)
 {
-    EXPECT_CALL(mock_srw, Write(testing::_, testing::_))
-        .WillOnce(DoAll(
-            [](const StubReply& sr, grpc::WriteOptions) { ASSERT_THAT(sr.stored_msg, HasSubstr("[debug] [cat] msg")); },
-            Return(true)));
+    EXPECT_CALL(mock_srw, Write(Field(&StubReply::stored_msg, HasSubstr("[debug] [cat] msg")), testing::_))
+        .WillOnce(Return(true));
     uut_t logger{mpl::Level::debug, stub_multiplexing_logger, &mock_srw};
     logger.log(mpl::Level::debug, "cat", "msg");
 }

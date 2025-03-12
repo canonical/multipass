@@ -15,40 +15,42 @@
  *
  */
 
+#include "../common.h"
+
+#include <src/platform/logger/syslog_logger.h>
+
 #include <cstdarg>
 #include <cstdio>
-
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-#include <src/platform/logger/syslog_logger.h>
 
 namespace mpl = multipass::logging;
 
 class MockSyslog
 {
 public:
-    MOCK_METHOD(int, syslog_send, (int pri, const char* format), ());
+    MOCK_METHOD(int, syslog_send, (int pri, const char* format, va_list args), ());
 };
 
 std::unique_ptr<MockSyslog> mock_syslog{nullptr};
 
 /**
- * weak syslog to intercept syslog calls.
+ * syslog function definition to intercept syslog calls.
  *
  * This is a cheap way of mocking the thing without having to change anything.
  */
-extern "C" __attribute__((weak)) void syslog(int pri, const char* format, ...)
+extern "C" void syslog(int pri, const char* format, ...)
 {
-    [] { ASSERT_FALSE(nullptr == mock_syslog); }();
-    mock_syslog->syslog_send(pri, format);
+    ASSERT_NE(nullptr, mock_syslog);
+    va_list args;
+    va_start(args, format);
+    mock_syslog->syslog_send(pri, format, args);
+    va_end(args);
 }
 
 struct syslog_logger_test : ::testing::Test
 {
-
     void SetUp()
     {
-        ASSERT_FALSE(nullptr == mock_syslog);
+        ASSERT_NE(nullptr, mock_syslog);
     }
 
     static void SetUpTestCase()
@@ -62,27 +64,43 @@ struct syslog_logger_test : ::testing::Test
     }
 };
 
-using testing::DoAll;
-using testing::HasSubstr;
-using testing::Return;
-
 TEST_F(syslog_logger_test, call_log)
 {
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_))
-        .WillOnce(DoAll(
-            [](int pri, const char* format) {
-                ASSERT_EQ(LOG_DEBUG, pri);
-                ASSERT_THAT(format, HasSubstr("[%.*s] %.*s"));
-            },
-            Return(true)));
+    constexpr static std::string_view expected_category = {"category"};
+    constexpr static std::string_view expected_message = {"message"};
+    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_, testing::_))
+        .WillOnce([](int pri, const char* format, va_list args) {
+            EXPECT_EQ(LOG_DEBUG, pri);
+            EXPECT_STREQ(format, "[%.*s] %.*s");
+
+            va_list args_copy;
+            va_copy(args_copy, args); // Make a copy to safely extract values
+
+            // Category string view
+            const int category_strv_len = va_arg(args_copy, int);
+            EXPECT_EQ(category_strv_len, expected_category.size());
+            const char* category = va_arg(args_copy, const char*);
+            std::string_view category_strv{category, static_cast<std::size_t>(category_strv_len)};
+            EXPECT_EQ(category_strv, expected_category);
+
+            // Message string view
+            const int message_strv_len = va_arg(args_copy, int);
+            EXPECT_EQ(message_strv_len, expected_message.size());
+            const char* message = va_arg(args_copy, const char*);
+            std::string_view message_strv{message, static_cast<std::size_t>(message_strv_len)};
+            EXPECT_EQ(message_strv, expected_message);
+
+            va_end(args_copy); // Cleanup copied va_list
+            return true;
+        });
     mpl::SyslogLogger uut{mpl::Level::debug};
     // This should log
-    uut.log(mpl::Level::debug, "category", "message");
+    uut.log(mpl::Level::debug, expected_category, expected_message);
 }
 
 TEST_F(syslog_logger_test, call_log_filtered)
 {
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_)).Times(0);
+    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_, testing::_)).Times(0);
     mpl::SyslogLogger uut{mpl::Level::debug};
     // This should not log
     uut.log(mpl::Level::trace, "category", "message");
@@ -93,7 +111,7 @@ struct syslog_logger_priority_test : public testing::TestWithParam<std::tuple<in
 
     void SetUp()
     {
-        ASSERT_FALSE(nullptr == mock_syslog);
+        ASSERT_NE(nullptr, mock_syslog);
     }
 
     static void SetUpTestCase()
@@ -111,16 +129,36 @@ TEST_P(syslog_logger_priority_test, validate_level_to_priority)
 {
     const auto& [syslog_level, mpl_level] = GetParam();
 
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_))
-        .WillOnce(DoAll(
-            [v = syslog_level](int pri, const char* format) {
-                ASSERT_EQ(v, pri);
-                ASSERT_THAT(format, HasSubstr("[%.*s] %.*s"));
-            },
-            Return(0)));
+    constexpr static std::string_view expected_category = {"category"};
+    constexpr static std::string_view expected_message = {"message"};
+    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_, testing::_))
+        .WillOnce([v = syslog_level](int pri, const char* format, va_list args) {
+            EXPECT_EQ(v, pri);
+            EXPECT_STREQ(format, "[%.*s] %.*s");
+
+            va_list args_copy;
+            va_copy(args_copy, args); // Make a copy to safely extract values
+
+            // Category string view
+            const int category_strv_len = va_arg(args_copy, int);
+            EXPECT_EQ(category_strv_len, expected_category.size());
+            const char* category = va_arg(args_copy, const char*);
+            std::string_view category_strv{category, static_cast<std::size_t>(category_strv_len)};
+            EXPECT_EQ(category_strv, expected_category);
+
+            // Message string view
+            const int message_strv_len = va_arg(args_copy, int);
+            EXPECT_EQ(message_strv_len, expected_message.size());
+            const char* message = va_arg(args_copy, const char*);
+            std::string_view message_strv{message, static_cast<std::size_t>(message_strv_len)};
+            EXPECT_EQ(message_strv, expected_message);
+
+            va_end(args_copy); // Cleanup copied va_list
+            return 0;
+        });
     mpl::SyslogLogger uut{mpl_level};
     // This should log
-    uut.log(mpl_level, "category", "message");
+    uut.log(mpl_level, expected_category, expected_message);
 }
 
 INSTANTIATE_TEST_SUITE_P(SyslogLevels,

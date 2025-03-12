@@ -28,6 +28,7 @@ class StandardLogger : public Logger
 {
 public:
     StandardLogger(Level level, FILE* target_fp = stderr);
+    StandardLogger(Level level, std::nullptr_t) = delete;
     void log(Level level, std::string_view category, std::string_view message) const override;
 
 private:

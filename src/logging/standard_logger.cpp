@@ -19,10 +19,16 @@
 
 #include <multipass/format.h>
 
+#include <stdexcept>
+
 namespace mpl = multipass::logging;
 
 mpl::StandardLogger::StandardLogger(mpl::Level level, FILE* target_fp) : Logger{level}, target(target_fp)
 {
+    if (nullptr == target)
+    {
+        throw std::invalid_argument{"target_fp cannot be nullptr!"};
+    }
 }
 
 void mpl::StandardLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
