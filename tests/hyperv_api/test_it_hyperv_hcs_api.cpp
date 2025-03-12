@@ -171,4 +171,48 @@ TEST_F(HyperVHCSAPI_IntegrationTests, DISABLED_update_cpu_count)
     ASSERT_FALSE(d_result.status_msg.empty());
 }
 
+TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
+{
+
+    uut_t uut{};
+
+    hyperv::hcs::CreateComputeSystemParameters params{};
+    params.name = "test";
+    params.memory_size_mb = 1024;
+    params.processor_count = 1;
+    params.cloudinit_iso_path = "";
+    params.vhdx_path = "";
+
+    const auto c_result = uut.create_compute_system(params);
+
+    ASSERT_TRUE(c_result);
+    ASSERT_TRUE(c_result.status_msg.empty());
+
+    const auto s_result = uut.start_compute_system(params.name);
+    ASSERT_TRUE(s_result);
+    ASSERT_TRUE(s_result.status_msg.empty());
+
+    const auto p_result = uut.get_compute_system_properties(params.name);
+    EXPECT_TRUE(p_result);
+    std::wprintf(L"%s\n", p_result.status_msg.c_str());
+
+    hyperv::hcs::Plan9ShareParameters share{};
+    share.access_name = "test";
+    share.name = "test";
+    share.host_path = "C://";
+
+    const auto sh_a_result = uut.add_plan9_share(params.name, share);
+    EXPECT_TRUE(sh_a_result);
+    std::wprintf(L"%s\n", sh_a_result.status_msg.c_str());
+
+    const auto sh_r_result = uut.remove_plan9_share(params.name, share);
+    EXPECT_TRUE(sh_r_result);
+    std::wprintf(L"%s\n", sh_r_result.status_msg.c_str());
+
+    const auto d_result = uut.terminate_compute_system(params.name);
+    ASSERT_TRUE(d_result);
+    std::wprintf(L"%s\n", d_result.status_msg.c_str());
+    ASSERT_FALSE(d_result.status_msg.empty());
+}
+
 } // namespace multipass::test
