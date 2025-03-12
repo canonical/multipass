@@ -246,7 +246,7 @@ jobs:
         installTics: true
         filelist: .
         recalc: ALL
-        tmpdir: /tmp/ticstmp
+        tmpdir: /tmp/ticstmp2
 
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
