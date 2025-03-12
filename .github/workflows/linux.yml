@@ -229,8 +229,10 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
-        # Pull out coverage report to be consumed by TICS
-        # /snap/bin/lxc --project snapcraft file pull --recursive $instance_name/root/parts/multipass/build/coverage .
+        # Pull out coverage and build data to be consumed by TICS
+        /snap/bin/lxc --project snapcraft file pull --recursive $instance_name/root/parts/multipass/build/coverage .
+        /snap/bin/lxc --project snapcraft file pull --recursive $instance_name/root/parts/multipass/build .
+
 
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
