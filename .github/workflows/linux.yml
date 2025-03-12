@@ -238,11 +238,14 @@ jobs:
       if: ${{ steps.measure-coverage.outcome == 'success' }}
       uses: tiobe/tics-github-action@v3
       with:
-        mode: qserver
+        mode: diagnostic
         project: multipass
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+        branchdir: ${{ github.workspace }}
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
+        filelist: .
+        recalc: ALL
 
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
