@@ -38,9 +38,9 @@ namespace virtdisk
 class VirtDiskWrapperInterface;
 }
 
-using hcs_sptr_t = std::shared_ptr<hcs::HCSWrapperInterface>;
-using hcn_sptr_t = std::shared_ptr<hcn::HCNWrapperInterface>;
-using virtdisk_sptr_t = std::shared_ptr<virtdisk::VirtDiskWrapperInterface>;
+using hcs_sptr_t = std::shared_ptr<multipass::hyperv::hcs::HCSWrapperInterface>;
+using hcn_sptr_t = std::shared_ptr<multipass::hyperv::hcn::HCNWrapperInterface>;
+using virtdisk_sptr_t = std::shared_ptr<multipass::hyperv::virtdisk::VirtDiskWrapperInterface>;
 } // namespace multipass::hyperv
 
 #endif
