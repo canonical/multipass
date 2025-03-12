@@ -18,6 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 #define MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 
+#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
+
 #include <fmt/format.h>
 #include <string>
 
@@ -53,6 +56,18 @@ struct CreateComputeSystemParameters
      * Path to the Primary (boot) VHDX file
      */
     std::string vhdx_path{};
+
+    /**
+     * List of endpoints that'll be added to the compute system
+     * by default at creation time.
+     */
+    std::vector<AddEndpointParameters> endpoints{};
+
+    /**
+     * List of Plan9 shares that'll be added to the compute system
+     * by default at creation time.
+     */
+    std::vector<Plan9ShareParameters> shares{};
 };
 
 } // namespace multipass::hyperv::hcs
