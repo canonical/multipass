@@ -233,6 +233,11 @@ jobs:
         /snap/bin/lxc --project snapcraft file pull --recursive $instance_name/root/parts/multipass/build/coverage .
         /snap/bin/lxc --project snapcraft file pull --recursive $instance_name/root/parts/multipass/build .
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+    
     - name: Run TICS analysis
       id: tics
       if: ${{ steps.measure-coverage.outcome == 'success' }}
@@ -246,13 +251,8 @@ jobs:
         installTics: true
         filelist: .
         recalc: ALL
-        tmpdir: /tmp/ticstmp2
+        tmpdir: /tmp/ticstmp
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
-  
     - uses: actions/upload-artifact@v4
       if: ${{ always() }}
       with:
