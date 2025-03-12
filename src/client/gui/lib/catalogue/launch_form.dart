@@ -83,6 +83,65 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       width: 360,
     );
 
+    final zonesAsync = ref.watch(zonesProvider);
+    final zoneDropdown = FormField<String>(
+      initialValue: 'auto',
+      onSaved: (value) => launchRequest.zone = value == 'auto' ? '' : value ?? '',
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Pseudo zone'),
+            const SizedBox(height: 8),
+            zonesAsync.when(
+              loading: () => const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(),
+              ),
+              error: (_, __) => const Text('Error loading zones'),
+              data: (zones) {
+                final availableZones = zones.where((z) => z.available).toList();
+                final hasAvailableZones = availableZones.isNotEmpty;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButton<String>(
+                      value: hasAvailableZones ? field.value : null,
+                      hint: const Text('Select a zone'),
+                      onChanged: hasAvailableZones ? field.didChange : null,
+                      items: hasAvailableZones
+                        ? [
+                            const DropdownMenuItem(
+                              value: 'auto',
+                              child: Text('Auto (assign automatically)'),
+                            ),
+                            for (final zone in availableZones)
+                              DropdownMenuItem(
+                                value: zone.name,
+                                child: Text('Zone ${zone.name}'),
+                              ),
+                          ]
+                        : null,
+                    ),
+                    if (!hasAvailableZones)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Cannot launch new instances - all zones are unavailable',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+
     final chosenImageName = Text(
       imageName(imageInfo),
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
@@ -214,6 +273,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const SizedBox(height: 16),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           nameInput,
+          const SizedBox(width: 32),
+          zoneDropdown,
           const Spacer(),
         ]),
         const Divider(height: 60),
@@ -245,8 +306,11 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ],
     );
 
+    final availableZones = zonesAsync.value?.where((z) => z.available).toList() ?? [];
+    final hasAvailableZones = availableZones.isNotEmpty;
+
     final launchButton = TextButton(
-      onPressed: () => launch(imageInfo),
+      onPressed: hasAvailableZones ? () => launch(imageInfo) : null,
       child: const Text('Launch'),
     );
 
@@ -285,6 +349,13 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
             Row(children: [
               launchButton,
               const SizedBox(width: 16),
+              TextButton(
+                onPressed: hasAvailableZones
+                  ? () => launch(imageInfo, configureNext: true)
+                  : null,
+                child: const Text('Launch & Configure Next'),
+              ),
+              const SizedBox(width: 16),
               cancelButton,
             ]),
           ]),
@@ -293,7 +364,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     ]);
   }
 
-  void launch(ImageInfo imageInfo) {
+  void launch(ImageInfo imageInfo, {bool configureNext = false}) {
     launchRequest.clear();
 
     final formState = formKey.currentState;
@@ -317,7 +388,20 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     }
 
     initiateLaunchFlow(ref, launchRequest, mountRequests);
-    Scaffold.of(context).closeEndDrawer();
+
+    if (configureNext) {
+      // Reset the form
+      formState.reset();
+      mountFormState?.reset();
+      setState(() {
+        mountRequests.clear();
+        addingMount = false;
+      });
+    }
+
+    if (!configureNext) {
+      Scaffold.of(context).closeEndDrawer();
+    }
   }
 }
 
