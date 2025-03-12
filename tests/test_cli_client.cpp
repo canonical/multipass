@@ -1670,8 +1670,14 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
     for (size_t i = 1; i < cmds.size(); ++i)
         cmds_string += " " + cmds[i];
 
-    REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
-                EXPECT_EQ(raw_cmd, "sudo sh -c cd\\ " + dir + "\\ \\&\\&\\ " + mpu::escape_for_shell(cmds_string));
+    // Extract the command without the sudo prefix for the new format
+    std::string cmd_without_sudo = cmds.size() > 1 ? cmds[1] : "";
+    for (size_t i = 2; i < cmds.size(); ++i)
+        cmd_without_sudo += " " + cmds[i];
+
+    REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string, &cmd_without_sudo](ssh_channel, const char* raw_cmd) {
+                EXPECT_EQ(raw_cmd,
+                          "sudo sh -c cd\\ " + dir + "\\ \\&\\&\\ sudo\\ -u\\ user\\ sudo\\ " + cmd_without_sudo);
 
                 return SSH_OK;
             }));
