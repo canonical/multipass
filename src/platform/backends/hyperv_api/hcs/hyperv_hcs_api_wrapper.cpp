@@ -92,18 +92,20 @@ OperationResult wait_for_operation_result(const HCSAPITable& api,
                timeout.count());
 
     wchar_t* result_msg_out{nullptr};
-    const auto result = api.WaitForOperationResult(op.get(), timeout.count(), &result_msg_out);
+    const auto hresult_code = ResultCode{api.WaitForOperationResult(op.get(), timeout.count(), &result_msg_out)};
     UniqueHlocalString result_msg{result_msg_out, api.LocalFree};
+    mpl::debug(kLogCategory,
+               "wait_for_operation_result(...) > finished ({}), result_code: {}",
+               fmt::ptr(op.get()),
+               hresult_code);
 
-    if (result_msg)
-    {
-        // TODO: Convert from wstring to ascii and log this
-        // mpl::debug(kLogCategory,
-        //     "wait_for_operation_result(...): ({}), result: {}, result_msg: {}", fmt::ptr(op.get()),
-        //     result, result_msg);
-        return OperationResult{result, result_msg.get()};
-    }
-    return OperationResult{result, L""};
+    const auto result = OperationResult{hresult_code, result_msg ? result_msg.get() : L""};
+    // FIXME: Replace with unicode logging
+    fmt::print(L"{}{}{}",
+               result.status_msg.empty() ? L"" : L"Result document: ",
+               result.status_msg,
+               result.status_msg.empty() ? L"" : L"\n");
+    return result;
 }
 
 // ---------------------------------------------------------
@@ -276,6 +278,31 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         ;
     }();
 
+    const auto plan9_shares = [&]() {
+        std::vector<std::wstring> plan9_shares = {};
+
+        constexpr auto plan9_share_template = LR"(
+            {{
+                "Name": "{0}",
+                "Path": "{1}",
+                "Port": {2},
+                "AccessName": "{3}"
+            }}
+        )";
+
+        for (const auto& share : params.shares)
+        {
+            plan9_shares.push_back(fmt::format(plan9_share_template,
+                                               string_to_wstring(share.name),
+                                               share.host_path.wstring(),
+                                               share.port,
+                                               string_to_wstring(share.access_name),
+                                               fmt::underlying(share.flags)));
+        }
+
+        return fmt::format(L"{}", fmt::join(plan9_shares, L", "));
+    }();
+
     // Ideally, we should codegen from the schema
     // and use that.
     // https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/refs/heads/main/hyperv-samples/hcs-samples/JSON_files/HCS_Schema%5BWindows_10_SDK_version_1809%5D.json
@@ -315,17 +342,35 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                 }},
                 "Scsi": {{
                     {3}
+                }},
+                "NetworkAdapters": {{
+                    {4}
+                }},
+                "Plan9": {{
+                    "Shares": [
+                        {5}
+                    ]
                 }}
+            }},
+            "Services": {{
+                "Shutdown": {{}},
+                "Heartbeat": {{}}
             }}
         }}
     }})";
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#HvSocketSystemConfig
 
     // Render the template
     const auto vm_settings = fmt::format(vm_settings_template,
                                          params.processor_count,
                                          params.memory_size_mb,
                                          string_to_wstring(params.name),
-                                         scsi_devices);
+                                         scsi_devices,
+                                         network_adapters,
+                                         plan9_shares);
+
+    // FIXME: Replace this with wide-string logging API when it's available.
+    fmt::print(L"Rendered VM settings document: \n{}\n", vm_settings);
     HCS_SYSTEM system{nullptr};
 
     auto operation = create_operation(api);
@@ -363,7 +408,14 @@ OperationResult HCSWrapper::start_compute_system(const std::string& compute_syst
 OperationResult HCSWrapper::shutdown_compute_system(const std::string& compute_system_name) const
 {
     mpl::debug(kLogCategory, "shutdown_compute_system(...) > name: ({})", compute_system_name);
-    return perform_hcs_operation(api, api.ShutDownComputeSystem, compute_system_name, nullptr);
+
+    static constexpr wchar_t c_shutdownOption[] = LR"(
+        {
+            "Mechanism": "IntegrationService",
+            "Type": "Shutdown"
+        })";
+
+    return perform_hcs_operation(api, api.ShutDownComputeSystem, compute_system_name, c_shutdownOption);
 }
 
 // ---------------------------------------------------------
@@ -550,6 +602,89 @@ OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_
     }();
 
     return {result.code, L""};
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::add_plan9_share(const std::string& compute_system_name,
+                                            const Plan9ShareParameters& params) const
+{
+
+    mpl::debug(kLogCategory, "add_plan9_share(...) > name: ({}), params({})", compute_system_name, params);
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/plan9.go#L13
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#System_PropertyType
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/hcs/schema2/plan9_share.go#L12
+
+    // Settings: hcsschema.Plan9Share{
+    //     Name:         name,
+    //     AccessName:   name,
+    //     Path:         path,
+    //     Port:         port,
+    //     Flags:        flags,
+    //     AllowedFiles: allowed, // < this one is not supported in the base API
+    // },
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/builder.go#L53
+    constexpr auto add_plan9_share_template = LR"(
+    {{
+        "ResourcePath": "VirtualMachine/Devices/Plan9/Shares",
+        "RequestType": "Add",
+        "Settings": {{
+            "Name": "{0}",
+            "Path": "{1}",
+            "Port": {2},
+            "AccessName": "{3}",
+            "Flags": 33
+        }}
+    }})";
+
+    auto preferred{params.host_path};
+    preferred.make_preferred();
+
+    (void)grant_vm_access(compute_system_name, params.host_path);
+
+    const auto settings = fmt::format(add_plan9_share_template,
+                                      string_to_wstring(params.name),
+                                      // generic_* always uses / as separator, use it
+                                      // to normalize the path. HCS API does not like
+                                      // `\` for example.
+                                      preferred.generic_wstring(),
+                                      params.port,
+                                      string_to_wstring(params.access_name),
+                                      fmt::underlying(params.flags));
+    fmt::print(L"{}", settings);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::remove_plan9_share(const std::string& compute_system_name,
+                                               const Plan9ShareParameters& params) const
+{
+    mpl::debug(kLogCategory, "remove_plan9_share(...) > name: ({}), params({})", compute_system_name, params);
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/plan9.go#L29
+
+    // Settings: hcsschema.Plan9Share{
+    //     Name:       name,
+    //     AccessName: name,
+    //     Port:       port,
+    // },
+
+    constexpr auto remove_plan9_share_template = LR"(
+        {{
+            "ResourcePath": "VirtualMachine/Devices/Plan9/Shares",
+            "RequestType": "Remove",
+            "Settings": {{
+                "Name": "{0}",
+                "AccessName": "{1}",
+                "Port": {2}
+            }}
+        }})";
+
+    const auto settings = fmt::format(remove_plan9_share_template,
+                                      string_to_wstring(params.name),
+                                      string_to_wstring(params.access_name),
+                                      params.port);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
 
 } // namespace multipass::hyperv::hcs
