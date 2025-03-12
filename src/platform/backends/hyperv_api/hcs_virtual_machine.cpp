@@ -21,6 +21,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
+#include <hyperv_api/hcs_plan9_mount_handler.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
@@ -278,6 +279,14 @@ void HCSVirtualMachine::maybe_create_compute_system()
             //     endpoint_params.target_compute_system_name = ccs_params.name;
             //     ccs_params.endpoints.push_back(endpoint_params);
             // }
+
+            {
+                hcs::Plan9ShareParameters share{};
+                share.access_name = "test";
+                share.name = "test";
+                share.host_path = "C:/";
+                ccs_params.shares.push_back(share);
+            }
             return ccs_params;
         }();
 
@@ -328,10 +337,10 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
         break;
     }
 
-    if (state != prev_state)
-    {
-        mpl::info(kLogCategory, "set_state() > VM {} state changed from {} to {}", vm_name, prev_state, state);
-    }
+    if (state == prev_state)
+        return;
+
+    mpl::info(kLogCategory, "set_state() > VM {} state changed from {} to {}", vm_name, prev_state, state);
 }
 
 void HCSVirtualMachine::start()
@@ -375,13 +384,13 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     switch (shutdown_policy)
     {
     case ShutdownPolicy::Powerdown:
-        // We have to rely on SSH for now since we don't have the means to
-        // run a guest action from host natively.
-        // FIXME: Find a way to trigger ACPI shutdown, host-to-guest syscall,
-        // some way to signal "vmwp.exe" for a graceful shutdown, sysrq via console
-        // or other "direct" means to trigger the shutdown.
         mpl::debug(kLogCategory, "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`", vm_name);
-        ssh_exec("sudo shutdown -h now");
+        
+        // If the guest has integration modules enabled, we can use graceful shutdown.
+        if(!hcs->shutdown_compute_system(vm_name)){
+            // Fall back to SSH shutdown.
+            ssh_exec("sudo shutdown -h now");
+        }
         break;
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
@@ -507,8 +516,10 @@ void HCSVirtualMachine::add_network_interface(int index,
 std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                            const VMMount& mount)
 {
-    mpl::debug(kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name);
-    throw std::runtime_error{"Not yet implemented"};
+    mpl::debug(kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name, target);
+    
+    throw NotImplementedOnThisBackendException{"Plan9 mounts require an agent running on guest, which is not implemented yet."};
+    // return std::make_unique<hcs::Plan9MountHandler>(this, &key_provider, mount, target, hcs);
 }
 
 } // namespace multipass::hyperv
