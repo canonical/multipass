@@ -229,6 +229,9 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
+        # Pull out coverage report to be consumed by TICS
+        # /snap/bin/lxc --project snapcraft file pull --recursive $instance_name/root/parts/multipass/build/coverage .
+
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       with:
@@ -244,6 +247,14 @@ jobs:
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: ticstmp
+        path: /tmp/ticstmp
+        retention-days: 5
+        overwrite: true
 
     - name: Pull coredump and executable from LXC container
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139'}}
