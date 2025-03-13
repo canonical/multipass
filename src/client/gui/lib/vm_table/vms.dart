@@ -15,6 +15,33 @@ import 'search_box.dart';
 import 'table.dart';
 import 'vm_table_headers.dart';
 
+class ZoneToggleButton extends ConsumerWidget {
+  final String zoneName;
+
+  const ZoneToggleButton(this.zoneName, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final available = ref.watch(zoneStatusProvider(zoneName));
+    final client = ref.watch(grpcClientProvider);
+
+    return OutlinedButton(
+      onPressed: () {
+        client.zonesState([zoneName], !available);
+      },
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+          (Set<MaterialState> states) {
+            if (available) return Colors.green.withOpacity(0.2);
+            return Colors.grey.withOpacity(0.1);
+          },
+        ),
+      ),
+      child: Text('Zone $zoneName'),
+    );
+  }
+}
+
 final runningOnlyProvider = StateProvider((_) => false);
 final selectedVmsProvider = StateProvider<BuiltSet<String>>((ref) {
   // if any filter is applied (either name or show running only), the provider
@@ -63,6 +90,29 @@ class Vms extends ConsumerWidget {
         label: 'Show running instances only',
         value: runningOnly,
         onChanged: (v) => ref.read(runningOnlyProvider.notifier).state = v,
+      ),
+      const SizedBox(width: 16),
+      Consumer(
+        builder: (context, ref, _) {
+          final zonesAsync = ref.watch(zonesProvider);
+          return zonesAsync.when(
+            loading: () => const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(),
+            ),
+            error: (_, __) => const Text('Error loading zones'),
+            data: (zones) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final zone in zones) ...[
+                  ZoneToggleButton(zone.name),
+                  const SizedBox(width: 8),
+                ],
+              ],
+            ),
+          );
+        },
       ),
       const Spacer(),
       const SearchBox(),
