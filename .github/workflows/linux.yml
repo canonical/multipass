@@ -249,7 +249,7 @@ jobs:
         branchdir: ${{ github.workspace }}
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
-        filelist: src include
+        filelist: ./filelist.txt
         recalc: ALL
         tmpdir: /tmp/ticstmp
 
