@@ -30,12 +30,16 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
   Widget build(BuildContext context) {
     final networks = ref.watch(networksProvider);
     final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
-    final bridged = ref.watch(bridgedProvider.select((value) {
-      return value.valueOrNull?.toBoolOption.toNullable();
-    }));
-    final stopped = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status == Status.STOPPED;
-    }));
+    final bridged = ref.watch(
+      bridgedProvider.select((value) {
+        return value.valueOrNull?.toBoolOption.toNullable();
+      }),
+    );
+    final stopped = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.STOPPED;
+      }),
+    );
 
     if (!stopped) editing = false;
 
@@ -44,16 +48,20 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
-          ref.read(bridgedProvider.notifier).set(value.toString()).onError(
+          ref
+              .read(bridgedProvider.notifier)
+              .set(value.toString())
+              .onError(
                 ref.notifyError((e) => 'Failed to set bridged network: $e'),
               );
         }
       },
       builder: (field) {
         final validBridgedNetwork = networks.contains(bridgedNetworkSetting);
-        final message = networks.isEmpty
-            ? 'No networks found.'
-            : validBridgedNetwork
+        final message =
+            networks.isEmpty
+                ? 'No networks found.'
+                : validBridgedNetwork
                 ? "Once established, you won't be able to unset the connection."
                 : 'No valid bridged network is set.';
 
@@ -108,28 +116,27 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const SizedBox(
-              height: 50,
-              child: Text('Bridged network', style: TextStyle(fontSize: 24)),
-            ),
-            const Spacer(),
-            if (editing)
-              cancelButton
-            else if (!(bridged ?? false))
-              configureButton,
-          ]),
+          Row(
+            children: [
+              const SizedBox(
+                height: 50,
+                child: Text('Bridged network', style: TextStyle(fontSize: 24)),
+              ),
+              const Spacer(),
+              if (editing)
+                cancelButton
+              else if (!(bridged ?? false))
+                configureButton,
+            ],
+          ),
           editing
               ? SizedBox(width: 300, child: bridgedCheckbox)
               : Text(
-                  'Status: ${bridged ?? false ? '' : 'not'} connected',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                'Status: ${bridged ?? false ? '' : 'not'} connected',
+                style: const TextStyle(fontSize: 16),
+              ),
           if (editing)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: saveButton,
-            ),
+            Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
         ],
       ),
     );

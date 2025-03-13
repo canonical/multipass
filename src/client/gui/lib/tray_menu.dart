@@ -62,9 +62,11 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
     await TrayMenu.instance.addLabel(
       'toggle-window',
       label: 'Toggle window',
-      callback: (_, __) async => await windowManager.isVisible()
-          ? windowManager.hide()
-          : windowManager.showAndRestore(),
+      callback:
+          (_, __) async =>
+              await windowManager.isVisible()
+                  ? windowManager.hide()
+                  : windowManager.showAndRestore(),
     );
   }
 
@@ -101,22 +103,22 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
   await TrayMenu.instance.show(await _iconFilePath());
 
   final lock = Lock();
-  providerContainer.listen(
-    trayMenuDataProvider,
-    (previousVmData, nextVmData) async {
-      lock.synchronized(() async {
-        if (nextVmData == null) {
-          await _setTrayMenuError();
-        } else {
-          await _updateTrayMenu(
-            providerContainer,
-            previousVmData?.toMap() ?? {},
-            nextVmData.toMap(),
-          );
-        }
-      });
-    },
-  );
+  providerContainer.listen(trayMenuDataProvider, (
+    previousVmData,
+    nextVmData,
+  ) async {
+    lock.synchronized(() async {
+      if (nextVmData == null) {
+        await _setTrayMenuError();
+      } else {
+        await _updateTrayMenu(
+          providerContainer,
+          previousVmData?.toMap() ?? {},
+          nextVmData.toMap(),
+        );
+      }
+    });
+  });
 }
 
 Future<void> _setTrayMenuError() async {
@@ -204,12 +206,10 @@ Future<void> _updateTrayMenu(
               .read(vmScreenLocationProvider(name).notifier)
               .state = VmDetailsLocation.shells;
           providerContainer.read(sidebarKeyProvider.notifier).set(key);
-          final (:ids, :currentIndex) =
-              providerContainer.read(shellIdsProvider(name));
-          final terminalIdentifier = (
-            vmName: name,
-            shellId: ids[currentIndex],
+          final (:ids, :currentIndex) = providerContainer.read(
+            shellIdsProvider(name),
           );
+          final terminalIdentifier = (vmName: name, shellId: ids[currentIndex]);
           final provider = terminalProvider(terminalIdentifier);
           if (providerContainer.exists(provider)) {
             providerContainer.read(provider.notifier).start();

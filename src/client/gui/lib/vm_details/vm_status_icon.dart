@@ -13,8 +13,11 @@ const icons = {
   Status.STARTING: Icon(Icons.more_horiz, color: Color(0xff757575), size: 15),
   Status.SUSPENDING: Icon(Icons.more_horiz, color: Color(0xff757575), size: 15),
   Status.DELETED: Icon(Icons.close, color: Colors.redAccent, size: 15),
-  Status.DELAYED_SHUTDOWN:
-      Icon(Icons.circle, color: Color(0xff0C8420), size: 10),
+  Status.DELAYED_SHUTDOWN: Icon(
+    Icons.circle,
+    color: Color(0xff0C8420),
+    size: 10,
+  ),
 };
 
 class VmStatusIcon extends StatelessWidget {
@@ -25,30 +28,37 @@ class VmStatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusName = !isLaunching
-        ? status.name.toLowerCase().replaceAll('_', ' ')
-        : 'launching';
+    final statusName =
+        !isLaunching
+            ? status.name.toLowerCase().replaceAll('_', ' ')
+            : 'launching';
 
-    final icon = !isLaunching
-        ? icons[status] ?? unknownIcon
-        : SizedBox(
-            width: 10,
-            height: 10,
-            child: FittedBox(
-              fit: BoxFit.fill,
-              child: CircularProgressIndicator(),
+    final icon =
+        !isLaunching
+            ? icons[status] ?? unknownIcon
+            : SizedBox(
+              width: 10,
+              height: 10,
+              child: FittedBox(
+                fit: BoxFit.fill,
+                child: CircularProgressIndicator(),
+              ),
+            );
+
+    return Row(
+      children: [
+        icon,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Tooltip(
+            message: statusName,
+            child: Text(
+              statusName.nonBreaking,
+              overflow: TextOverflow.ellipsis,
             ),
-          );
-
-    return Row(children: [
-      icon,
-      const SizedBox(width: 8),
-      Expanded(
-        child: Tooltip(
-          message: statusName,
-          child: Text(statusName.nonBreaking, overflow: TextOverflow.ellipsis),
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 }

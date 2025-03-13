@@ -26,9 +26,10 @@ class Dropdown<T> extends StatelessWidget {
       underline: const SizedBox.shrink(),
       value: value,
       onChanged: onChanged,
-      items: items.entries
-          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-          .toList(),
+      items:
+          items.entries
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+              .toList(),
     );
 
     final styledDropdown = SizedBox(
@@ -51,11 +52,13 @@ class Dropdown<T> extends StatelessWidget {
       ),
     );
 
-    return Row(children: [
-      if (label != null) ...[
-        Expanded(child: Text(label!, style: const TextStyle(fontSize: 16))),
+    return Row(
+      children: [
+        if (label != null) ...[
+          Expanded(child: Text(label!, style: const TextStyle(fontSize: 16))),
+        ],
+        styledDropdown,
       ],
-      styledDropdown,
-    ]);
+    );
   }
 }

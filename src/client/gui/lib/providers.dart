@@ -27,14 +27,18 @@ final grpcClientProvider = Provider((_) {
     certificateKey: certPair.key,
   );
 
-  return GrpcClient(RpcClient(ClientChannel(
-    address.scheme == InternetAddressType.unix.name.toLowerCase()
-        ? InternetAddress(address.path, type: InternetAddressType.unix)
-        : address.host,
-    port: address.port,
-    options: ChannelOptions(credentials: channelCredentials),
-    channelShutdownHandler: () => logger.w('gRPC channel shut down'),
-  )));
+  return GrpcClient(
+    RpcClient(
+      ClientChannel(
+        address.scheme == InternetAddressType.unix.name.toLowerCase()
+            ? InternetAddress(address.path, type: InternetAddressType.unix)
+            : address.host,
+        port: address.port,
+        options: ChannelOptions(credentials: channelCredentials),
+        channelShutdownHandler: () => logger.w('gRPC channel shut down'),
+      ),
+    ),
+  );
 });
 
 final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
@@ -89,13 +93,15 @@ class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
 
 final allVmInfosProvider =
     NotifierProvider<AllVmInfosNotifier, List<DetailedInfoItem>>(
-        AllVmInfosNotifier.new);
+      AllVmInfosNotifier.new,
+    );
 
 final vmInfosProvider = Provider((ref) {
-  final existingVms = ref
-      .watch(allVmInfosProvider)
-      .where((info) => info.instanceStatus.status != Status.DELETED)
-      .toBuiltList();
+  final existingVms =
+      ref
+          .watch(allVmInfosProvider)
+          .where((info) => info.instanceStatus.status != Status.DELETED)
+          .toBuiltList();
   final existingVmNames = existingVms.map((i) => i.name).toSet();
   final launchingVms = ref.watch(launchingVmsProvider).where((info) {
     return !existingVmNames.contains(info.name);
@@ -149,15 +155,15 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   void add(LaunchRequest request) {
     final vms = state;
     state = vms.rebuild((builder) {
-      builder.add(DetailedInfoItem(
-        name: request.instanceName,
-        cpuCount: request.numCores.toString(),
-        diskTotal: request.diskSpace,
-        memoryTotal: request.memSize,
-        instanceInfo: InstanceDetails(
-          currentRelease: request.image,
+      builder.add(
+        DetailedInfoItem(
+          name: request.instanceName,
+          cpuCount: request.numCores.toString(),
+          diskTotal: request.diskSpace,
+          memoryTotal: request.memSize,
+          instanceInfo: InstanceDetails(currentRelease: request.image),
         ),
-      ));
+      );
     });
   }
 
@@ -179,25 +185,31 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
 
 final launchingVmsProvider =
     NotifierProvider<LaunchingVmsNotifier, BuiltList<DetailedInfoItem>>(
-        LaunchingVmsNotifier.new);
+      LaunchingVmsNotifier.new,
+    );
 
-final isLaunchingProvider = Provider.autoDispose.family<bool, String>(
-  (ref, name) {
-    final launchingVms = ref.watch(launchingVmsProvider);
-    return launchingVms.any((info) => info.name == name);
-  },
-);
+final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
+  ref,
+  name,
+) {
+  final launchingVms = ref.watch(launchingVmsProvider);
+  return launchingVms.any((info) => info.name == name);
+});
 
 class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
   final file = File(settingsFile());
 
   @override
   String build(String arg) {
-    file.parent.create(recursive: true).then((dir) => dir
-        .watch()
-        .where((event) => event.path == file.path)
-        .first
-        .whenComplete(() => Timer(250.milliseconds, ref.invalidateSelf)));
+    file.parent
+        .create(recursive: true)
+        .then(
+          (dir) => dir
+              .watch()
+              .where((event) => event.path == file.path)
+              .first
+              .whenComplete(() => Timer(250.milliseconds, ref.invalidateSelf)),
+        );
     return getSetting(arg);
   }
 
@@ -255,9 +267,11 @@ class VmResourceNotifier
   @override
   Future<String> build(VmResourceKey arg) async {
     final (:name, :resource) = arg;
-    final launchingVm = ref.watch(launchingVmsProvider.select((infos) {
-      return infos.firstWhereOrNull((info) => info.name == name);
-    }));
+    final launchingVm = ref.watch(
+      launchingVmsProvider.select((infos) {
+        return infos.firstWhereOrNull((info) => info.name == name);
+      }),
+    );
 
     if (launchingVm != null) {
       return switch (resource) {
@@ -307,8 +321,8 @@ const askTerminalCloseKey = 'askTerminalClose';
 // this provider is set with a value obtained asynchronously in main.dart
 final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(() {
-  throw UnimplementedError();
-});
+      throw UnimplementedError();
+    });
 
 final networksProvider = Provider.autoDispose((ref) {
   final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;

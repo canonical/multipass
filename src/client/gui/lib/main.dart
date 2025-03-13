@@ -47,11 +47,13 @@ void main() async {
 
   await hotKeyManager.unregisterAll();
 
-  providerContainer = ProviderContainer(overrides: [
-    guiSettingProvider.overrideWith(() {
-      return GuiSettingNotifier(sharedPreferences);
-    }),
-  ]);
+  providerContainer = ProviderContainer(
+    overrides: [
+      guiSettingProvider.overrideWith(() {
+        return GuiSettingNotifier(sharedPreferences);
+      }),
+    ],
+  );
   setupTrayMenu(providerContainer);
   runApp(
     UncontrolledProviderScope(
@@ -86,51 +88,55 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
     final content = Stack(
       fit: StackFit.expand,
-      children: widgets.entries.map((e) {
-        final MapEntry(:key, value: widget) = e;
-        final isCurrent = key == currentKey;
-        var maintainState = key != SettingsScreen.sidebarKey;
-        if (key.startsWith('vm-')) {
-          maintainState = ref.read(vmVisitedProvider(key));
-        }
-        return Visibility(
-          key: Key(key),
-          maintainState: maintainState,
-          visible: isCurrent,
-          child: FocusScope(
-            autofocus: isCurrent,
-            canRequestFocus: isCurrent,
-            skipTraversal: !isCurrent,
-            child: widget,
-          ),
-        );
-      }).toList(),
+      children:
+          widgets.entries.map((e) {
+            final MapEntry(:key, value: widget) = e;
+            final isCurrent = key == currentKey;
+            var maintainState = key != SettingsScreen.sidebarKey;
+            if (key.startsWith('vm-')) {
+              maintainState = ref.read(vmVisitedProvider(key));
+            }
+            return Visibility(
+              key: Key(key),
+              maintainState: maintainState,
+              visible: isCurrent,
+              child: FocusScope(
+                autofocus: isCurrent,
+                canRequestFocus: isCurrent,
+                skipTraversal: !isCurrent,
+                child: widget,
+              ),
+            );
+          }).toList(),
     );
 
     final hotkey = ref.watch(hotkeyProvider);
 
-    return Stack(children: [
-      AnimatedPositioned(
-        duration: SideBar.animationDuration,
-        bottom: 0,
-        right: 0,
-        top: 0,
-        left: sidebarPushContent && sidebarExpanded
-            ? SideBar.expandedWidth
-            : SideBar.collapsedWidth,
-        child: content,
-      ),
-      CallbackGlobalShortcuts(
-        key: hotkey != null ? GlobalObjectKey(hotkey) : null,
-        bindings: {if (hotkey != null) hotkey: goToPrimary},
-        child: const SideBar(),
-      ),
-      const Align(
-        alignment: Alignment.bottomRight,
-        child: SizedBox(width: 400, child: NotificationList()),
-      ),
-      const DaemonUnavailable(),
-    ]);
+    return Stack(
+      children: [
+        AnimatedPositioned(
+          duration: SideBar.animationDuration,
+          bottom: 0,
+          right: 0,
+          top: 0,
+          left:
+              sidebarPushContent && sidebarExpanded
+                  ? SideBar.expandedWidth
+                  : SideBar.collapsedWidth,
+          child: content,
+        ),
+        CallbackGlobalShortcuts(
+          key: hotkey != null ? GlobalObjectKey(hotkey) : null,
+          bindings: {if (hotkey != null) hotkey: goToPrimary},
+          child: const SideBar(),
+        ),
+        const Align(
+          alignment: Alignment.bottomRight,
+          child: SizedBox(width: 400, child: NotificationList()),
+        ),
+        const DaemonUnavailable(),
+      ],
+    );
   }
 
   void goToPrimary() {
@@ -164,8 +170,10 @@ class _AppState extends ConsumerState<App> with WindowListener {
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
     final daemonAvailable = ref.read(daemonAvailableProvider);
-    final vmsRunning =
-        ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
+    final vmsRunning = ref
+        .read(vmStatusesProvider)
+        .values
+        .contains(Status.RUNNING);
     if (!daemonAvailable || !vmsRunning) windowManager.destroy();
 
     stopAllInstances() {
@@ -190,21 +198,22 @@ class _AppState extends ConsumerState<App> with WindowListener {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => BeforeQuitDialog(
-            onStop: (remember) {
-              ref
-                  .read(guiSettingProvider(onAppCloseKey).notifier)
-                  .set(remember ? 'stop' : 'ask');
-              stopAllInstances();
-              Navigator.pop(context);
-            },
-            onKeep: (remember) {
-              ref
-                  .read(guiSettingProvider(onAppCloseKey).notifier)
-                  .set(remember ? 'nothing' : 'ask');
-              windowManager.destroy();
-            },
-          ),
+          builder:
+              (context) => BeforeQuitDialog(
+                onStop: (remember) {
+                  ref
+                      .read(guiSettingProvider(onAppCloseKey).notifier)
+                      .set(remember ? 'stop' : 'ask');
+                  stopAllInstances();
+                  Navigator.pop(context);
+                },
+                onKeep: (remember) {
+                  ref
+                      .read(guiSettingProvider(onAppCloseKey).notifier)
+                      .set(remember ? 'nothing' : 'ask');
+                  windowManager.destroy();
+                },
+              ),
         );
     }
   }
@@ -234,9 +243,7 @@ final theme = ThemeData(
       disabledForegroundColor: Colors.black.withAlpha(128),
       foregroundColor: Colors.black,
       padding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(2),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
       side: const BorderSide(color: Color(0xff333333)),
       textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
@@ -248,9 +255,7 @@ final theme = ThemeData(
       disabledForegroundColor: Colors.white.withAlpha(128),
       foregroundColor: Colors.white,
       padding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(2),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
       textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
   ),
@@ -265,10 +270,7 @@ final theme = ThemeData(
     ),
     indicatorSize: TabBarIndicatorSize.tab,
     labelColor: Colors.black,
-    labelStyle: TextStyle(
-      fontFamily: 'Ubuntu',
-      fontWeight: FontWeight.bold,
-    ),
+    labelStyle: TextStyle(fontFamily: 'Ubuntu', fontWeight: FontWeight.bold),
     unselectedLabelColor: Colors.black,
     unselectedLabelStyle: TextStyle(
       fontFamily: 'Ubuntu',

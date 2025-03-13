@@ -10,11 +10,7 @@ class CpusSlider extends ConsumerStatefulWidget {
   final int? initialValue;
   final FormFieldSetter<int> onSaved;
 
-  const CpusSlider({
-    super.key,
-    this.initialValue,
-    required this.onSaved,
-  });
+  const CpusSlider({super.key, this.initialValue, required this.onSaved});
 
   @override
   ConsumerState<CpusSlider> createState() => _CpusSliderState();
@@ -79,43 +75,51 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
       initialValue: widget.initialValue,
       onSaved: widget.onSaved,
       builder: (field) {
-        return Column(children: [
-          Slider(
-            min: min.toDouble(),
-            max: max.toDouble(),
-            divisions: divisions,
-            value: (field.value ?? min).toDouble(),
-            onChanged: (value) {
-              final intValue = value.toInt();
-              field.didChange(intValue);
-              controller.text = intValue.toString();
-            },
-          ),
-          const SizedBox(height: 5),
-          Row(children: [Text('$min'), Spacer(), Text('$max')]),
-          if ((field.value ?? min) > cores) ...[
-            const SizedBox(height: 25),
-            const Row(children: [
-              Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
-              SizedBox(width: 5),
-              Text(
-                'Over-provisioning of cores',
-                style: TextStyle(fontSize: 16),
+        return Column(
+          children: [
+            Slider(
+              min: min.toDouble(),
+              max: max.toDouble(),
+              divisions: divisions,
+              value: (field.value ?? min).toDouble(),
+              onChanged: (value) {
+                final intValue = value.toInt();
+                field.didChange(intValue);
+                controller.text = intValue.toString();
+              },
+            ),
+            const SizedBox(height: 5),
+            Row(children: [Text('$min'), Spacer(), Text('$max')]),
+            if ((field.value ?? min) > cores) ...[
+              const SizedBox(height: 25),
+              const Row(
+                children: [
+                  Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+                  SizedBox(width: 5),
+                  Text(
+                    'Over-provisioning of cores',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
               ),
-            ]),
+            ],
           ],
-        ]);
+        );
       },
     );
 
-    return Column(children: [
-      Row(children: [
-        Text('CPUs', style: TextStyle(fontSize: 16)),
-        const Spacer(),
-        SizedBox(width: 65, child: textField),
-      ]),
-      const SizedBox(height: 25),
-      sliderFormField,
-    ]);
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text('CPUs', style: TextStyle(fontSize: 16)),
+            const Spacer(),
+            SizedBox(width: 65, child: textField),
+          ],
+        ),
+        const SizedBox(height: 25),
+        sliderFormField,
+      ],
+    );
   }
 }

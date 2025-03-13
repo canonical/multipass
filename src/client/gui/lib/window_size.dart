@@ -48,9 +48,10 @@ Future<Size> deriveWindowSize(SharedPreferences sharedPreferences) async {
   final prefix = resolutionString(screenSize);
   final lastWidth = sharedPreferences.getDouble('$prefix$windowWidthKey');
   final lastHeight = sharedPreferences.getDouble('$prefix$windowHeightKey');
-  final size = lastWidth != null && lastHeight != null
-      ? Size(lastWidth, lastHeight)
-      : null;
+  final size =
+      lastWidth != null && lastHeight != null
+          ? Size(lastWidth, lastHeight)
+          : null;
   logger.d('Got last window size: ${size?.s()}');
   return size ?? computeDefaultWindowSize(screenSize);
 }
@@ -69,9 +70,10 @@ Size computeDefaultWindowSize(Size? screenSize) {
   final defaultHeight = switch (screenHeight) {
     null || <= 576 => 450.0,
     >= 900 => 822.0,
-    _ => aspectRatioFactor != null
-        ? defaultWidth * aspectRatioFactor
-        : screenHeight * windowSizeFactor,
+    _ =>
+      aspectRatioFactor != null
+          ? defaultWidth * aspectRatioFactor
+          : screenHeight * windowSizeFactor,
   };
 
   final size = Size(defaultWidth, defaultHeight);

@@ -10,11 +10,12 @@ import '../close_terminal_dialog.dart';
 import '../providers.dart';
 import 'terminal.dart';
 
-typedef ShellIds = ({
-  BuiltList<ShellId> ids,
-// this is the index of the currently selected shell id
-  int currentIndex,
-});
+typedef ShellIds =
+    ({
+      BuiltList<ShellId> ids,
+      // this is the index of the currently selected shell id
+      int currentIndex,
+    });
 
 class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
   @override
@@ -106,11 +107,12 @@ class Tab extends StatelessWidget {
 
     final decoration = BoxDecoration(
       color: Color(selected ? 0xff2B2B2B : 0xff222222),
-      border: selected
-          ? const Border(
-              bottom: BorderSide(color: Color(0xffE95420), width: 2.5),
-            )
-          : null,
+      border:
+          selected
+              ? const Border(
+                bottom: BorderSide(color: Color(0xffE95420), width: 2.5),
+              )
+              : null,
     );
 
     return GestureDetector(
@@ -118,11 +120,9 @@ class Tab extends StatelessWidget {
       child: Container(
         width: 190,
         decoration: decoration,
-        child: Row(children: [
-          ubuntuIcon,
-          Expanded(child: tabTitle),
-          closeButton,
-        ]),
+        child: Row(
+          children: [ubuntuIcon, Expanded(child: tabTitle), closeButton],
+        ),
       ),
     );
   }
@@ -140,52 +140,56 @@ class TerminalTabs extends ConsumerWidget {
     final (:ids, :currentIndex) = ref.watch(provider);
     final askTerminalCloseProvider = guiSettingProvider(askTerminalCloseKey);
 
-    final tabsAndShells = ids.mapIndexed((index, shellId) {
-      final tab = ReorderableDragStartListener(
-        key: ValueKey(shellId.id),
-        index: index,
-        child: Tab(
-          title: 'Shell ${shellId.id}',
-          selected: index == currentIndex,
-          onTap: () => ref.read(notifier).setCurrent(index),
-          onClose: () {
-            final ask = ref.read(askTerminalCloseProvider.select((ask) {
-              return ask?.toBoolOption.toNullable() ?? true;
-            }));
-            final terminalKey = (vmName: name, shellId: shellId);
-            if (!ask || ref.read(terminalProvider(terminalKey)) == null) {
-              ref.read(notifier).remove(index);
-              return;
-            }
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) {
-                return CloseTerminalDialog(
-                  onYes: () {
-                    Navigator.pop(context);
-                    ref.read(notifier).remove(index);
+    final tabsAndShells =
+        ids.mapIndexed((index, shellId) {
+          final tab = ReorderableDragStartListener(
+            key: ValueKey(shellId.id),
+            index: index,
+            child: Tab(
+              title: 'Shell ${shellId.id}',
+              selected: index == currentIndex,
+              onTap: () => ref.read(notifier).setCurrent(index),
+              onClose: () {
+                final ask = ref.read(
+                  askTerminalCloseProvider.select((ask) {
+                    return ask?.toBoolOption.toNullable() ?? true;
+                  }),
+                );
+                final terminalKey = (vmName: name, shellId: shellId);
+                if (!ask || ref.read(terminalProvider(terminalKey)) == null) {
+                  ref.read(notifier).remove(index);
+                  return;
+                }
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) {
+                    return CloseTerminalDialog(
+                      onYes: () {
+                        Navigator.pop(context);
+                        ref.read(notifier).remove(index);
+                      },
+                      onNo: () => Navigator.pop(context),
+                      onDoNotAsk:
+                          (doNotAsk) => ref
+                              .read(askTerminalCloseProvider.notifier)
+                              .set('${!doNotAsk}'),
+                    );
                   },
-                  onNo: () => Navigator.pop(context),
-                  onDoNotAsk: (doNotAsk) => ref
-                      .read(askTerminalCloseProvider.notifier)
-                      .set('${!doNotAsk}'),
                 );
               },
-            );
-          },
-        ),
-      );
+            ),
+          );
 
-      final shell = VmTerminal(
-        key: GlobalObjectKey(shellId),
-        name,
-        shellId,
-        isCurrent: index == currentIndex,
-      );
+          final shell = VmTerminal(
+            key: GlobalObjectKey(shellId),
+            name,
+            shellId,
+            isCurrent: index == currentIndex,
+          );
 
-      return (tab: tab, shell: shell);
-    }).toList();
+          return (tab: tab, shell: shell);
+        }).toList();
 
     final addShellButton = Material(
       color: Colors.transparent,
@@ -216,13 +220,11 @@ class TerminalTabs extends ConsumerWidget {
       ),
     );
 
-    return Column(children: [
-      Container(
-        color: const Color(0xff222222),
-        height: 35,
-        child: tabList,
-      ),
-      Expanded(child: shellStack),
-    ]);
+    return Column(
+      children: [
+        Container(color: const Color(0xff222222), height: 35, child: tabList),
+        Expanded(child: shellStack),
+      ],
+    );
   }
 }

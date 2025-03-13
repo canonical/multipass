@@ -22,10 +22,11 @@ class CpuSparkline extends ConsumerWidget {
       color: const Color(0xff666666),
       dotData: const FlDotData(show: false),
       preventCurveOverShooting: true,
-      spots: values.indexed.map((e) {
-        final (index, value) = e;
-        return FlSpot(index.toDouble(), value);
-      }).toList(),
+      spots:
+          values.indexed.map((e) {
+            final (index, value) = e;
+            return FlSpot(index.toDouble(), value);
+          }).toList(),
     );
 
     return LineChart(
@@ -54,15 +55,16 @@ class CpuUsagesNotifier
   @override
   Queue<double> build(String arg) {
     final usages = stateOrNull ?? Queue.of(Iterable.generate(50, (_) => 0.0));
-    final cpuTimes = ref
-        .watch(vmInfoProvider(arg))
-        .instanceInfo
-        .cpuTimes
-        .split(' ')
-        .skip(2)
-        .take(8)
-        .map(int.parse)
-        .toList();
+    final cpuTimes =
+        ref
+            .watch(vmInfoProvider(arg))
+            .instanceInfo
+            .cpuTimes
+            .split(' ')
+            .skip(2)
+            .take(8)
+            .map(int.parse)
+            .toList();
 
     if (cpuTimes.isEmpty) {
       return usages

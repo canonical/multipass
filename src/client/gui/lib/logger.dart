@@ -18,12 +18,7 @@ Future<void> setupLogger() async {
 
   logger = Logger(
     filter: NoFilter(),
-    printer: MpPrettyPrinter(
-      excludePaths: [
-        'dart:',
-        'package:flutter',
-      ],
-    ),
+    printer: MpPrettyPrinter(excludePaths: ['dart:', 'package:flutter']),
     output: MultiOutput([
       ConsoleOutput(),
       FileOutput(file: File('${logFilePath.path}/multipass_gui.log')),
@@ -38,11 +33,7 @@ Future<void> setupLogger() async {
     );
   };
   PlatformDispatcher.instance.onError = (error, stackTrace) {
-    logger.e(
-      'Dart error',
-      error: error,
-      stackTrace: stackTrace,
-    );
+    logger.e('Dart error', error: error, stackTrace: stackTrace);
     return true;
   };
 }
@@ -50,8 +41,9 @@ Future<void> setupLogger() async {
 class MpPrettyPrinter extends LogPrinter {
   static final _deviceStackTraceRegex = RegExp(r'#[0-9]+\s+(.+) \((\S+)\)');
   static final _webStackTraceRegex = RegExp(r'^((packages|dart-sdk)/\S+/)');
-  static final _browserStackTraceRegex =
-      RegExp(r'^(?:package:)?(dart:\S+|\S+)');
+  static final _browserStackTraceRegex = RegExp(
+    r'^(?:package:)?(dart:\S+|\S+)',
+  );
   final int stackTraceBeginIndex;
   final int? methodCount;
   final int? errorMethodCount;
@@ -91,12 +83,13 @@ class MpPrettyPrinter extends LogPrinter {
   }
 
   String? formatStackTrace(StackTrace? stackTrace, int? methodCount) {
-    final lines = stackTrace.toString().split('\n').where((line) {
-      return !_discardDeviceStacktraceLine(line) &&
-          !_discardWebStacktraceLine(line) &&
-          !_discardBrowserStacktraceLine(line) &&
-          line.isNotEmpty;
-    }).toList();
+    final lines =
+        stackTrace.toString().split('\n').where((line) {
+          return !_discardDeviceStacktraceLine(line) &&
+              !_discardWebStacktraceLine(line) &&
+              !_discardBrowserStacktraceLine(line) &&
+              line.isNotEmpty;
+        }).toList();
 
     final formatted = <String>[];
     final stackTraceLength =

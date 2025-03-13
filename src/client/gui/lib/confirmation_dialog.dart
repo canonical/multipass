@@ -27,14 +27,16 @@ class ConfirmationDialog extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       titlePadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
       buttonPadding: const EdgeInsets.symmetric(horizontal: 16),
-      title: Row(children: [
-        Expanded(child: Text(title)),
-        IconButton(
-          onPressed: () => Navigator.pop(context),
-          splashRadius: 15,
-          icon: const Icon(Icons.close),
-        ),
-      ]),
+      title: Row(
+        children: [
+          Expanded(child: Text(title)),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            splashRadius: 15,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,15 +55,10 @@ class ConfirmationDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: onAction,
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xffC7162B),
-          ),
+          style: TextButton.styleFrom(backgroundColor: const Color(0xffC7162B)),
           child: Text(actionText),
         ),
-        OutlinedButton(
-          onPressed: onInaction,
-          child: Text(inactionText),
-        ),
+        OutlinedButton(onPressed: onInaction, child: Text(inactionText)),
       ],
     );
   }

@@ -15,8 +15,9 @@ class HotkeyNotifier extends Notifier<SingleActivator?> {
     final hotkeyString = ref.read(hotkeySettingProvider);
     if (hotkeyString == null) return null;
     final components = hotkeyString.toLowerCase().split('+');
-    final keyId =
-        components.map(int.tryParse).firstWhereOrNull((e) => e != null);
+    final keyId = components
+        .map(int.tryParse)
+        .firstWhereOrNull((e) => e != null);
     if (keyId == null) return null;
     final key = LogicalKeyboardKey.findKeyByKeyId(keyId);
     if (key == null) return null;
@@ -50,8 +51,9 @@ class HotkeyNotifier extends Notifier<SingleActivator?> {
   }
 }
 
-final hotkeyProvider =
-    NotifierProvider<HotkeyNotifier, SingleActivator?>(HotkeyNotifier.new);
+final hotkeyProvider = NotifierProvider<HotkeyNotifier, SingleActivator?>(
+  HotkeyNotifier.new,
+);
 
 class HotkeyRecorder extends StatefulWidget {
   final SingleActivator? value;
@@ -144,16 +146,17 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
       } else if (shouldSave) {
         shouldSave = false;
         final trigger = key;
-        final activator = trigger != null
-            ? SingleActivator(
-                trigger,
-                alt: alt,
-                control: control,
-                meta: meta,
-                shift: shift,
-                includeRepeats: false,
-              )
-            : null;
+        final activator =
+            trigger != null
+                ? SingleActivator(
+                  trigger,
+                  alt: alt,
+                  control: control,
+                  meta: meta,
+                  shift: shift,
+                  includeRepeats: false,
+                )
+                : null;
         widget.onSave?.call(activator);
       } else {
         set(widget.value);
@@ -170,9 +173,10 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
       if (shift) 'Shift',
       if (meta) mpPlatform.metaKey,
     ].join('+');
-    final keyCombination = modifiers.isNotEmpty
-        ? '$modifiers+$keyLabel'
-        : hasFocus
+    final keyCombination =
+        modifiers.isNotEmpty
+            ? '$modifiers+$keyLabel'
+            : hasFocus
             ? 'Input...'
             : '';
 

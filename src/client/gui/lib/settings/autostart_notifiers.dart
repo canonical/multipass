@@ -6,7 +6,8 @@ import '../platform/platform.dart';
 
 final autostartProvider =
     AsyncNotifierProvider.autoDispose<AutostartNotifier, bool>(
-        mpPlatform.autostartNotifier);
+      mpPlatform.autostartNotifier,
+    );
 
 abstract class AutostartNotifier extends AutoDisposeAsyncNotifier<bool> {
   Future<void> set(bool value) async {
