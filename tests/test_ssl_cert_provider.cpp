@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_platform.h"
 #include "temp_dir.h"
 
 #include <multipass/ssl_cert_provider.h>
@@ -27,17 +28,13 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
-struct SSLCertProvider : public testing::Test
+struct SSLCertProviderFixture : public testing::Test
 {
-    SSLCertProvider()
-    {
-        cert_dir = MP_UTILS.make_dir(temp_dir.path(), "test-cert");
-    }
     mpt::TempDir temp_dir;
-    mp::Path cert_dir;
+    mp::Path cert_dir{temp_dir.path() + "/test-cert"};
 };
 
-TEST_F(SSLCertProvider, creates_cert_and_key)
+TEST_F(SSLCertProviderFixture, creates_cert_and_key)
 {
     mp::SSLCertProvider cert_provider{cert_dir};
 
@@ -47,7 +44,7 @@ TEST_F(SSLCertProvider, creates_cert_and_key)
     EXPECT_THAT(pem_key, StrNe(""));
 }
 
-TEST_F(SSLCertProvider, imports_existing_cert_and_key)
+TEST_F(SSLCertProviderFixture, imports_existing_cert_and_key)
 {
     constexpr auto key_data = "-----BEGIN PRIVATE KEY-----\n"
                               "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgsSAz5ggzrLjai0I/\n"
@@ -79,7 +76,7 @@ TEST_F(SSLCertProvider, imports_existing_cert_and_key)
     EXPECT_THAT(cert_provider.PEM_certificate(), StrEq(cert_data));
 }
 
-TEST_F(SSLCertProvider, persists_cert_and_key)
+TEST_F(SSLCertProviderFixture, persists_cert_and_key)
 {
     QDir dir{cert_dir};
     auto key_file = dir.filePath("multipass_cert_key.pem");
@@ -94,8 +91,13 @@ TEST_F(SSLCertProvider, persists_cert_and_key)
     EXPECT_TRUE(QFile::exists(cert_file));
 }
 
-TEST_F(SSLCertProvider, creates_different_certs_per_server_name)
+TEST_F(SSLCertProviderFixture, creates_different_certs_per_server_name)
 {
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_path())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+
     mp::SSLCertProvider cert_provider1{cert_dir, "test_server1"};
     mp::SSLCertProvider cert_provider2{cert_dir, "test_server2"};
 
