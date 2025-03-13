@@ -13,10 +13,10 @@ class LinuxPlatform extends MpPlatform {
 
   @override
   Map<String, String> get drivers => const {
-        'qemu': 'QEMU',
-        'lxd': 'LXD',
-        'libvirt': 'libvirt',
-      };
+    'qemu': 'QEMU',
+    'lxd': 'LXD',
+    'libvirt': 'libvirt',
+  };
 
   @override
   String get ffiLibraryName => 'libdart_ffi.so';
@@ -29,31 +29,35 @@ class LinuxPlatform extends MpPlatform {
 
   @override
   Map<SingleActivator, Intent> get terminalShortcuts => const {
-        SingleActivator(LogicalKeyboardKey.keyC, control: true, shift: true):
-            CopySelectionTextIntent.copy,
-        SingleActivator(LogicalKeyboardKey.insert, control: true):
-            CopySelectionTextIntent.copy,
-        SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
-            PasteTextIntent(SelectionChangedCause.keyboard),
-        SingleActivator(LogicalKeyboardKey.insert, shift: true):
-            PasteTextIntent(SelectionChangedCause.keyboard),
-        SingleActivator(LogicalKeyboardKey.equal, control: true):
-            IncreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
-            IncreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.add, control: true):
-            IncreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.add, control: true, shift: true):
-            IncreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.numpadAdd, control: true):
-            IncreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.minus, control: true):
-            DecreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.numpadSubtract, control: true):
-            DecreaseTerminalFontIntent(),
-        SingleActivator(LogicalKeyboardKey.digit0, control: true):
-            ResetTerminalFontIntent(),
-      };
+    SingleActivator(LogicalKeyboardKey.keyC, control: true, shift: true):
+        CopySelectionTextIntent.copy,
+    SingleActivator(LogicalKeyboardKey.insert, control: true):
+        CopySelectionTextIntent.copy,
+    SingleActivator(
+      LogicalKeyboardKey.keyV,
+      control: true,
+      shift: true,
+    ): PasteTextIntent(SelectionChangedCause.keyboard),
+    SingleActivator(LogicalKeyboardKey.insert, shift: true): PasteTextIntent(
+      SelectionChangedCause.keyboard,
+    ),
+    SingleActivator(LogicalKeyboardKey.equal, control: true):
+        IncreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
+        IncreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.add, control: true):
+        IncreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.add, control: true, shift: true):
+        IncreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.numpadAdd, control: true):
+        IncreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.minus, control: true):
+        DecreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.numpadSubtract, control: true):
+        DecreaseTerminalFontIntent(),
+    SingleActivator(LogicalKeyboardKey.digit0, control: true):
+        ResetTerminalFontIntent(),
+  };
 
   @override
   String get trayIconFile => 'icon.png';
@@ -62,9 +66,10 @@ class LinuxPlatform extends MpPlatform {
   String get metaKey => 'Super';
 
   @override
-  String? get homeDirectory => Platform.environment['SNAP'] == null
-      ? Platform.environment['HOME']
-      : Platform.environment['SNAP_REAL_HOME'];
+  String? get homeDirectory =>
+      Platform.environment['SNAP'] == null
+          ? Platform.environment['HOME']
+          : Platform.environment['SNAP_REAL_HOME'];
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {

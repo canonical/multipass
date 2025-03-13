@@ -16,20 +16,22 @@ class BulkActionsBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final client = ref.watch(grpcClientProvider);
     final selectedVms = ref.watch(selectedVmsProvider);
-    final statuses = ref
-        .watch(vmStatusesProvider)
-        .asMap()
-        .whereKey(selectedVms.contains)
-        .values
-        .toSet();
+    final statuses =
+        ref
+            .watch(vmStatusesProvider)
+            .asMap()
+            .whereKey(selectedVms.contains)
+            .values
+            .toSet();
 
     Function(VmAction) wrapInNotification(
       Future<void> Function(Iterable<String>) function,
     ) {
       return (action) {
-        final object = selectedVms.length == 1
-            ? selectedVms.first
-            : '${selectedVms.length} instances';
+        final object =
+            selectedVms.length == 1
+                ? selectedVms.first
+                : '${selectedVms.length} instances';
 
         final notificationsNotifier = ref.read(notificationsProvider.notifier);
         notificationsNotifier.addOperation(
@@ -51,10 +53,11 @@ class BulkActionsBar extends ConsumerWidget {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (_) => DeleteInstanceDialog(
-            multiple: selectedVms.length > 1,
-            onDelete: () => wrapInNotification(client.purge)(action),
-          ),
+          builder:
+              (_) => DeleteInstanceDialog(
+                multiple: selectedVms.length > 1,
+                onDelete: () => wrapInNotification(client.purge)(action),
+              ),
         );
       },
     };

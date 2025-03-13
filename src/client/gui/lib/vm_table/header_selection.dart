@@ -22,9 +22,12 @@ class HeaderSelectionTile extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       title: Text(name, style: const TextStyle(color: Colors.black)),
       value: enabledHeaders[name],
-      onChanged: (isSelected) => ref
-          .read(enabledHeadersProvider.notifier)
-          .update((state) => state.rebuild((set) => set[name] = isSelected!)),
+      onChanged:
+          (isSelected) => ref
+              .read(enabledHeadersProvider.notifier)
+              .update(
+                (state) => state.rebuild((set) => set[name] = isSelected!),
+              ),
     );
   }
 }
@@ -36,30 +39,36 @@ class HeaderSelection extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton(
       position: PopupMenuPosition.under,
-      itemBuilder: (_) => headers.skip(2).map((h) {
-        return PopupMenuItem<void>(
-          padding: EdgeInsets.zero,
-          enabled: false,
-          child: HeaderSelectionTile(h.name),
-        );
-      }).toList(),
+      itemBuilder:
+          (_) =>
+              headers.skip(2).map((h) {
+                return PopupMenuItem<void>(
+                  padding: EdgeInsets.zero,
+                  enabled: false,
+                  child: HeaderSelectionTile(h.name),
+                );
+              }).toList(),
       child: Container(
         width: 120,
         height: 42,
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey),
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          SvgPicture.asset(
-            'assets/settings.svg',
-            colorFilter: const ColorFilter.mode(
-              Color(0xff333333),
-              BlendMode.srcIn,
+        decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            SvgPicture.asset(
+              'assets/settings.svg',
+              colorFilter: const ColorFilter.mode(
+                Color(0xff333333),
+                BlendMode.srcIn,
+              ),
             ),
-          ),
-          const Text('Columns', style: TextStyle(fontWeight: FontWeight.bold)),
-        ]),
+            const Text(
+              'Columns',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
