@@ -16,28 +16,30 @@
  */
 
 #include "journald_logger.h"
+#include "journald_wrapper.h"
 
-#define SD_JOURNAL_SUPPRESS_LOCATION
-#include <systemd/sd-journal.h>
+namespace multipass::logging
+{
 
-namespace mpl = multipass::logging;
-
-mpl::JournaldLogger::JournaldLogger(mpl::Level level) : LinuxLogger{level}
+JournaldLogger::JournaldLogger(Level level) : LinuxLogger{level}
 {
 }
 
-void mpl::JournaldLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
+void JournaldLogger::log(Level level, std::string_view category, std::string_view message) const
 {
     if (level <= logging_level)
     {
-        sd_journal_send("MESSAGE=%.*s",
-                        static_cast<int>(message.size()),
-                        message.data(),
-                        "PRIORITY=%i",
-                        to_syslog_priority(level),
-                        "CATEGORY=%.*s",
-                        static_cast<int>(category.size()),
-                        category.data(),
-                        nullptr);
+        constexpr std::string_view kMessageFmtStr = "MESSAGE=%.*s";
+        constexpr std::string_view kPriorityFmtStr = "PRIORITY=%i";
+        constexpr std::string_view kCategoryFmtStr = "CATEGORY=%.*s";
+
+        JournaldWrapper::instance().write_journal(kMessageFmtStr,
+                                                  message,
+                                                  kPriorityFmtStr,
+                                                  to_syslog_priority(level),
+                                                  kCategoryFmtStr,
+                                                  category);
     }
 }
+
+} // namespace multipass::logging

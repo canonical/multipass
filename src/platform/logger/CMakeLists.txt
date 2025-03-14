@@ -19,7 +19,7 @@ if (NOT MULTIPASS_ENABLE_SYSLOG)
 
   if (JOURNALD_FOUND)
     set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
-    add_library(logger_linux STATIC linux_logger.cpp journald_logger.cpp)
+    add_library(logger_linux STATIC linux_logger.cpp journald_wrapper.cpp journald_logger.cpp)
     target_include_directories(logger_linux PRIVATE
             ${JOURNALD_INCLUDE_DIRS})
     target_link_libraries(logger_linux fmt Qt6::Core ${JOURNALD_LIBRARIES})
