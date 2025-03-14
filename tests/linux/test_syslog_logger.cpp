@@ -16,81 +16,42 @@
  */
 
 #include "../common.h"
+#include "../mock_singleton_helpers.h"
 
 #include <src/platform/logger/syslog_logger.h>
+#include <src/platform/logger/syslog_wrapper.h>
 
 #include <cstdarg>
 #include <cstdio>
 
 namespace mpl = multipass::logging;
 
-class MockSyslog
+struct MockSyslogWrapper : public mpl::SyslogWrapper
 {
-public:
-    MOCK_METHOD(int, syslog_send, (int pri, const char* format, va_list args), ());
+    using SyslogWrapper::SyslogWrapper;
+
+    MOCK_METHOD(void, write_syslog, (int, std::string_view, std::string_view, std::string_view), (const, override));
+    MP_MOCK_SINGLETON_BOILERPLATE(MockSyslogWrapper, mpl::SyslogWrapper);
 };
-
-std::unique_ptr<MockSyslog> mock_syslog{nullptr};
-
-/**
- * syslog function definition to intercept syslog calls.
- *
- * This is a cheap way of mocking the thing without having to change anything.
- */
-extern "C" void syslog(int pri, const char* format, ...)
-{
-    ASSERT_NE(nullptr, mock_syslog);
-    va_list args;
-    va_start(args, format);
-    mock_syslog->syslog_send(pri, format, args);
-    va_end(args);
-}
 
 struct syslog_logger_test : ::testing::Test
 {
-    void SetUp()
-    {
-        ASSERT_NE(nullptr, mock_syslog);
-    }
-
-    static void SetUpTestCase()
-    {
-        mock_syslog = std::make_unique<MockSyslog>();
-    }
-
-    static void TearDownTestCase()
-    {
-        mock_syslog.reset();
-    }
+    MockSyslogWrapper::GuardedMock mock_syslog_guardedmock{MockSyslogWrapper::inject()};
+    MockSyslogWrapper& mock_syslog = *mock_syslog_guardedmock.first;
 };
 
 TEST_F(syslog_logger_test, call_log)
 {
-    constexpr static std::string_view expected_category = {"category"};
-    constexpr static std::string_view expected_message = {"message"};
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_, testing::_))
-        .WillOnce([](int pri, const char* format, va_list args) {
-            EXPECT_EQ(LOG_DEBUG, pri);
-            EXPECT_STREQ(format, "[%.*s] %.*s");
-
-            va_list args_copy;
-            va_copy(args_copy, args); // Make a copy to safely extract values
-
-            // Category string view
-            const int category_strv_len = va_arg(args_copy, int);
-            EXPECT_EQ(category_strv_len, expected_category.size());
-            const char* category = va_arg(args_copy, const char*);
-            std::string_view category_strv{category, static_cast<std::size_t>(category_strv_len)};
-            EXPECT_EQ(category_strv, expected_category);
-
-            // Message string view
-            const int message_strv_len = va_arg(args_copy, int);
-            EXPECT_EQ(message_strv_len, expected_message.size());
-            const char* message = va_arg(args_copy, const char*);
-            std::string_view message_strv{message, static_cast<std::size_t>(message_strv_len)};
-            EXPECT_EQ(message_strv, expected_message);
-
-            va_end(args_copy); // Cleanup copied va_list
+    constexpr static std::string_view expected_category = "category";
+    constexpr static std::string_view expected_message = "message";
+    constexpr static std::string_view expected_fmtstr = "[%.*s] %.*s";
+    constexpr static int expected_level = LOG_DEBUG;
+    EXPECT_CALL(mock_syslog, write_syslog(testing::_, testing::_, testing::_, testing::_))
+        .WillOnce([](int level, std::string_view format_string, std::string_view category, std::string_view message) {
+            EXPECT_EQ(level, expected_level);
+            EXPECT_EQ(format_string, expected_fmtstr);
+            EXPECT_EQ(category, expected_category);
+            EXPECT_EQ(message, expected_message);
             return true;
         });
     mpl::SyslogLogger uut{mpl::Level::debug};
@@ -100,7 +61,7 @@ TEST_F(syslog_logger_test, call_log)
 
 TEST_F(syslog_logger_test, call_log_filtered)
 {
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_, testing::_)).Times(0);
+    EXPECT_CALL(mock_syslog, write_syslog).Times(0);
     mpl::SyslogLogger uut{mpl::Level::debug};
     // This should not log
     uut.log(mpl::Level::trace, "category", "message");
@@ -109,52 +70,26 @@ TEST_F(syslog_logger_test, call_log_filtered)
 struct syslog_logger_priority_test : public testing::TestWithParam<std::tuple<int, mpl::Level>>
 {
 
-    void SetUp()
-    {
-        ASSERT_NE(nullptr, mock_syslog);
-    }
-
-    static void SetUpTestCase()
-    {
-        mock_syslog = std::make_unique<MockSyslog>();
-    }
-
-    static void TearDownTestCase()
-    {
-        mock_syslog.reset();
-    }
+    MockSyslogWrapper::GuardedMock mock_syslog_guardedmock{MockSyslogWrapper::inject()};
+    MockSyslogWrapper& mock_syslog = *mock_syslog_guardedmock.first;
 };
 
 TEST_P(syslog_logger_priority_test, validate_level_to_priority)
 {
     const auto& [syslog_level, mpl_level] = GetParam();
-
-    constexpr static std::string_view expected_category = {"category"};
-    constexpr static std::string_view expected_message = {"message"};
-    EXPECT_CALL(*mock_syslog, syslog_send(testing::_, testing::_, testing::_))
-        .WillOnce([v = syslog_level](int pri, const char* format, va_list args) {
-            EXPECT_EQ(v, pri);
-            EXPECT_STREQ(format, "[%.*s] %.*s");
-
-            va_list args_copy;
-            va_copy(args_copy, args); // Make a copy to safely extract values
-
-            // Category string view
-            const int category_strv_len = va_arg(args_copy, int);
-            EXPECT_EQ(category_strv_len, expected_category.size());
-            const char* category = va_arg(args_copy, const char*);
-            std::string_view category_strv{category, static_cast<std::size_t>(category_strv_len)};
-            EXPECT_EQ(category_strv, expected_category);
-
-            // Message string view
-            const int message_strv_len = va_arg(args_copy, int);
-            EXPECT_EQ(message_strv_len, expected_message.size());
-            const char* message = va_arg(args_copy, const char*);
-            std::string_view message_strv{message, static_cast<std::size_t>(message_strv_len)};
-            EXPECT_EQ(message_strv, expected_message);
-
-            va_end(args_copy); // Cleanup copied va_list
-            return 0;
+    constexpr static std::string_view expected_category = "category";
+    constexpr static std::string_view expected_message = "message";
+    constexpr static std::string_view expected_fmtstr = "[%.*s] %.*s";
+    EXPECT_CALL(mock_syslog, write_syslog(testing::_, testing::_, testing::_, testing::_))
+        .WillOnce([expected_level = syslog_level](int level,
+                                                  std::string_view format_string,
+                                                  std::string_view category,
+                                                  std::string_view message) {
+            EXPECT_EQ(level, expected_level);
+            EXPECT_EQ(format_string, expected_fmtstr);
+            EXPECT_EQ(category, expected_category);
+            EXPECT_EQ(message, expected_message);
+            return true;
         });
     mpl::SyslogLogger uut{mpl_level};
     // This should log

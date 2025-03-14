@@ -16,24 +16,19 @@
  */
 
 #include "syslog_logger.h"
-#include <syslog.h>
+#include "syslog_wrapper.h"
 
 namespace mpl = multipass::logging;
 
 mpl::SyslogLogger::SyslogLogger(mpl::Level level) : LinuxLogger{level}
 {
-    openlog("multipass", LOG_CONS | LOG_PID, LOG_USER);
 }
 
 void mpl::SyslogLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
 {
     if (level <= logging_level)
     {
-        syslog(to_syslog_priority(level),
-               "[%.*s] %.*s",
-               static_cast<int>(category.size()),
-               category.data(),
-               static_cast<int>(message.size()),
-               message.data());
+        constexpr static std::string_view kFormatString = "[%.*s] %.*s";
+        mpl::SyslogWrapper::instance().write_syslog(to_syslog_priority(level), kFormatString, category, message);
     }
 }
