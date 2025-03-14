@@ -15,27 +15,30 @@
  *
  */
 
-#include <multipass/format.h>
-#include <multipass/logging/standard_logger.h>
+#include "syslog_wrapper.h"
 
-#include <iostream>
+#include <syslog.h>
 
 namespace multipass::logging
 {
 
-StandardLogger::StandardLogger(Level level) : StandardLogger::StandardLogger(level, std::cerr)
+SyslogWrapper::SyslogWrapper(const Singleton<SyslogWrapper>::PrivatePass& pass) noexcept
+    : Singleton<SyslogWrapper>::Singleton{pass}
 {
+    openlog("multipass", LOG_CONS | LOG_PID, LOG_USER);
 }
 
-StandardLogger::StandardLogger(Level level, std::ostream& target_ostream) : Logger{level}, target(target_ostream)
+void SyslogWrapper::write_syslog(int level,
+                                 std::string_view format_string,
+                                 std::string_view category,
+                                 std::string_view message) const
 {
+    syslog(level,
+           format_string.data(),
+           static_cast<int>(category.size()),
+           category.data(),
+           static_cast<int>(message.size()),
+           message.data());
 }
 
-void StandardLogger::log(Level level, std::string_view category, std::string_view message) const
-{
-    if (level <= logging_level)
-    {
-        fmt::print(target, "[{}] [{}] [{}] {}\n", timestamp(), as_string(level), category, message);
-    }
-}
 } // namespace multipass::logging

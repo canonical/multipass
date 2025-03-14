@@ -580,9 +580,9 @@ TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)
 
     const std::string name{"foo"};
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        StrEq(fmt::format("Instance \'{}\' does not exist: not removing", name)))))
+                log(Eq(mpl::Level::warning),
+                    StrEq("lxd image vault"),
+                    StrEq(fmt::format("Instance \'{}\' does not exist: not removing", name))))
         .Times(1);
     EXPECT_NO_THROW(image_vault.remove(name));
 }
@@ -625,9 +625,9 @@ TEST_F(LXDImageVault, has_record_for_error_logs_message_and_returns_true)
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq(
-                        fmt::format("{} - Unable to determine if \'{}\' exists", exception_message, instance_name)))));
+                log(Eq(mpl::Level::warning),
+                    StrEq("lxd image vault"),
+                    StrEq(fmt::format("{} - Unable to determine if \'{}\' exists", exception_message, instance_name))));
 
     EXPECT_TRUE(image_vault.has_record_for(instance_name));
 }
@@ -664,11 +664,9 @@ TEST_F(LXDImageVault, update_image_downloads_new_and_deletes_old_and_logs_expect
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Checking for images to update…"))));
+                log(Eq(mpl::Level::debug), StrEq("lxd image vault"), StrEq("Checking for images to update…")));
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Updating bionic source image to latest"))));
+                log(Eq(mpl::Level::info), StrEq("lxd image vault"), StrEq("Updating bionic source image to latest")));
 
     image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
 
@@ -747,9 +745,9 @@ TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::info), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Source image \'bionic\' is expired. Removing it…"))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(Eq(mpl::Level::info), StrEq("lxd image vault"), StrEq("Source image \'bionic\' is expired. Removing it…")));
 
     image_vault.prune_expired_images();
 
@@ -846,8 +844,7 @@ TEST_F(LXDImageVault, prune_expired_error_logs_warning_does_not_throw)
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq(exception_message))));
+                log(Eq(mpl::Level::warning), StrEq("lxd image vault"), StrEq(exception_message)));
 
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 }
@@ -989,9 +986,9 @@ TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("lxd image vault")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        StrEq(fmt::format("{} - returning blank image info", exception_message)))));
+                log(Eq(mpl::Level::warning),
+                    StrEq("lxd image vault"),
+                    StrEq(fmt::format("{} - returning blank image info", exception_message))));
 
     auto image = image_vault.fetch_image(mp::FetchType::ImageOnly,
                                          default_query,

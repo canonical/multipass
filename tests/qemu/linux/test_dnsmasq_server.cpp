@@ -46,9 +46,9 @@ namespace
 {
 struct CapturingLogger : public mp::logging::Logger
 {
-    void log(mpl::Level level, mpl::CString category, mpl::CString message) const override
+    void log(mpl::Level level, std::string_view /*category*/, std::string_view message) const override
     {
-        logged_lines.push_back(message.c_str());
+        logged_lines.emplace_back(message);
     }
 
     mutable std::vector<std::string> logged_lines;
@@ -70,7 +70,8 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     {
         mpt::make_file_with_content(
             QDir{data_dir.path()}.filePath("dnsmasq.leases"),
-            fmt::format("0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12", expected_hw_addr,
+            fmt::format("0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12",
+                        expected_hw_addr,
                         expected_ip));
     }
 
@@ -289,7 +290,8 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
         EXPECT_CALL(*process, kill());
     });
 
-    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(), std::runtime_error,
+    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr("failed to start")));
 }
 
@@ -307,7 +309,8 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
         EXPECT_CALL(*process, process_state()).WillOnce(Return(state));
     });
 
-    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(), std::runtime_error,
+    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(),
+                         std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
 }
 

@@ -28,7 +28,7 @@ class JournaldLogger : public LinuxLogger
 {
 public:
     explicit JournaldLogger(Level level);
-    void log(Level level, CString category, CString message) const override;
+    void log(Level level, std::string_view category, std::string_view message) const override;
 };
 } // namespace logging
 } // namespace multipass
