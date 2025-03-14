@@ -15,26 +15,27 @@
  *
  */
 
+#include <multipass/format.h>
 #include <multipass/logging/standard_logger.h>
 
-#include <multipass/format.h>
+#include <iostream>
 
-#include <stdexcept>
-
-namespace mpl = multipass::logging;
-
-mpl::StandardLogger::StandardLogger(mpl::Level level, FILE* target_fp) : Logger{level}, target(target_fp)
+namespace multipass::logging
 {
-    if (nullptr == target)
-    {
-        throw std::invalid_argument{"target_fp cannot be nullptr!"};
-    }
+
+StandardLogger::StandardLogger(Level level) : StandardLogger::StandardLogger(level, std::cerr)
+{
 }
 
-void mpl::StandardLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
+StandardLogger::StandardLogger(Level level, std::ostream& target_ostream) : Logger{level}, target(target_ostream)
+{
+}
+
+void StandardLogger::log(Level level, std::string_view category, std::string_view message) const
 {
     if (level <= logging_level)
     {
         fmt::print(target, "[{}] [{}] [{}] {}\n", timestamp(), as_string(level), category, message);
     }
 }
+} // namespace multipass::logging

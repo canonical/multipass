@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_STANDARD_LOGGER_H
 #define MULTIPASS_STANDARD_LOGGER_H
 
+#include <iosfwd>
 #include <multipass/logging/logger.h>
 
 namespace multipass
@@ -27,12 +28,34 @@ namespace logging
 class StandardLogger : public Logger
 {
 public:
-    StandardLogger(Level level, FILE* target_fp = stderr);
-    StandardLogger(Level level, std::nullptr_t) = delete;
+    /**
+     * Default StandardLogger constructor
+     *
+     * @param [in] level Level of the logger.
+     * The log calls with level below this will be filtered out.
+     */
+    StandardLogger(Level level);
+
+    /**
+     * Construct a new Standard Logger object
+     *
+     * @param [in] level Level of the logger. The log calls
+     * with level below this will be filtered out.
+     * @param [in] target ostream to write the output to
+     */
+    StandardLogger(Level level, std::ostream& target);
+
+    /**
+     * Log a message to the StandardLogger's target ostream.
+     *
+     * @param [in] level Log level
+     * @param [in] category Log category
+     * @param [in] message Log message
+     */
     void log(Level level, std::string_view category, std::string_view message) const override;
 
 private:
-    FILE* target{stderr};
+    std::ostream& target; // < Target ostream to write the log messages.
 };
 } // namespace logging
 } // namespace multipass

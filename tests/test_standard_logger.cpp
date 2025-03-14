@@ -17,59 +17,26 @@
 
 #include "common.h"
 
-#include <memory>
 #include <multipass/logging/level.h>
 #include <multipass/logging/standard_logger.h>
-#include <stdexcept>
+#include <sstream>
 
 namespace mpl = multipass::logging;
 
 using uut_t = mpl::StandardLogger;
 
-auto make_mock_file()
-{
-    // Ideally, tmpfile() should be replaced with something in-memory
-    // like open_memstream(), or a pipe but that'd mean per-platform
-    // implementation.
-    return std::unique_ptr<FILE, int (*)(FILE*)>{tmpfile(), &fclose};
-}
-
-auto read_mock_file(FILE* file)
-{
-
-    fseek(file, 0, SEEK_END);
-    const auto sz = ftell(file);
-    std::string content(sz, '\0');
-    // Flush and rewind the temporary file.
-    fflush(file);
-    rewind(file);
-    fread(content.data(), sizeof(char), sz, file);
-    return content;
-}
-
 TEST(standard_logger_tests, call_log)
 {
-    const auto& mock_stderr = make_mock_file();
-    uut_t logger{mpl::Level::debug, mock_stderr.get()};
+    std::ostringstream mock_stderr;
+    uut_t logger{mpl::Level::debug, mock_stderr};
     logger.log(mpl::Level::debug, "cat", "msg");
-    const auto content = read_mock_file(mock_stderr.get());
-    ASSERT_THAT(content, testing::HasSubstr("[debug] [cat] msg"));
+    ASSERT_THAT(mock_stderr.str(), testing::HasSubstr("[debug] [cat] msg"));
 }
 
 TEST(standard_logger_tests, call_log_filtered)
 {
-    const auto& mock_stderr = make_mock_file();
-    uut_t logger{mpl::Level::debug, mock_stderr.get()};
+    std::ostringstream mock_stderr;
+    uut_t logger{mpl::Level::debug, mock_stderr};
     logger.log(mpl::Level::trace, "cat", "msg");
-    const auto content = read_mock_file(mock_stderr.get());
-    ASSERT_TRUE(content.empty());
+    ASSERT_TRUE(mock_stderr.str().empty());
 }
-
-TEST(standard_logger_tests, check_constructor_throws_if_target_null)
-{
-    FILE* v = nullptr;
-    ASSERT_THROW((uut_t{mpl::Level::debug, v}), std::invalid_argument);
-}
-
-static_assert(!std::is_constructible_v<uut_t, mpl::Level, std::nullptr_t>,
-              "The standard logger should not accept nullptr literal as FILE* argument!");
