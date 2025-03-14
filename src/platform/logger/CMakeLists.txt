@@ -13,22 +13,44 @@
 #along with this program.If not, see < http: // www.gnu.org/licenses/>.
 #
 
-if (NOT MULTIPASS_ENABLE_SYSLOG)
-  find_package(PkgConfig)
-  pkg_check_modules(JOURNALD libsystemd)
+add_library(logger_linux_common STATIC linux_logger.cpp)
+target_link_libraries(logger_linux_common Qt6::Core)
 
-  if (JOURNALD_FOUND)
-    set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
-    add_library(logger_linux STATIC linux_logger.cpp journald_wrapper.cpp journald_logger.cpp)
-    target_include_directories(logger_linux PRIVATE
-            ${JOURNALD_INCLUDE_DIRS})
-    target_link_libraries(logger_linux fmt Qt6::Core ${JOURNALD_LIBRARIES})
-  endif()
+# Determine whether journald is available.
+find_package(PkgConfig)
+pkg_check_modules(JOURNALD libsystemd)
+
+# Declare the journald target if found.
+if(JOURNALD_FOUND)
+  set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
+  add_library(logger_linux_journald STATIC journald_wrapper.cpp journald_logger.cpp)
+  target_include_directories(logger_linux_journald PRIVATE ${JOURNALD_INCLUDE_DIRS})
+  target_link_libraries(logger_linux_journald logger_linux_common fmt ${JOURNALD_LIBRARIES})
 endif()
 
-if (MULTIPASS_ENABLE_SYSLOG OR NOT JOURNALD_FOUND)
-  check_include_files(syslog.h HAVE_SYSLOG_H)
-  check_function_exists(syslog HAVE_SYSLOG)
-  add_library(logger_linux STATIC linux_logger.cpp syslog_wrapper.cpp syslog_logger.cpp)
-  target_link_libraries(logger_linux fmt Qt6::Core)
+
+# Determine if syslog is available.
+check_include_files(syslog.h HAVE_SYSLOG_H)
+check_function_exists(syslog HAVE_SYSLOG)
+
+set(SYSLOG_FOUND false)
+if(HAVE_SYSLOG_H AND HAVE_SYSLOG)
+    set(SYSLOG_FOUND true)
+endif()
+
+# Declare the syslog target if found.
+if(SYSLOG_FOUND)
+  add_library(logger_linux_syslog STATIC syslog_wrapper.cpp syslog_logger.cpp)
+  target_link_libraries(logger_linux_syslog logger_linux_common fmt)
+endif()
+
+# Settle on which logging backend to use
+if(MULTIPASS_ENABLE_SYSLOG)
+  add_library(logger_linux ALIAS logger_linux_syslog)
+  message(STATUS "[logging] will use the syslog backend")
+elseif(JOURNALD_FOUND)
+  add_library(logger_linux ALIAS logger_linux_journald)
+  message(STATUS "[logging] will use the journald backend")
+else()
+  message(FATAL_ERROR "No viable logging backend found in the environment!")
 endif()
