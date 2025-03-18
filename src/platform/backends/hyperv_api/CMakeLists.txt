@@ -14,9 +14,33 @@
 #
 
 if(WIN32)
-  add_library(hyperv_api_backend STATIC)
 
-  target_sources(hyperv_api_backend PRIVATE
+  include(CheckCXXSourceRuns)
+
+  macro(check_pragma_lib LIB_NAME HEADER_NAME OUT_VAR)
+    check_cxx_source_runs("
+      #pragma comment(lib, \"${LIB_NAME}\")
+      #define WIN32_LEAN_AND_MEAN
+      #include <windows.h>
+      #include <${HEADER_NAME}>
+      int main(void){ return 0; }
+    " ${OUT_VAR})
+  endmacro()
+
+  check_pragma_lib("computecore.lib"  "computecore.h" HAS_COMPUTECORE)
+  check_pragma_lib("computenetwork.lib" "computenetwork.h" HAS_COMPUTENETWORK)
+  check_pragma_lib("virtdisk.lib" "virtdisk.h" HAS_VIRTDISK)
+
+  if(NOT (HAS_COMPUTECORE AND HAS_COMPUTENETWORK AND HAS_VIRTDISK))
+    message(FATAL_ERROR
+      "[hyperv_api] One or more required libraries are missing:\n"
+      "  HAS_COMPUTECORE_LIB=${HAS_COMPUTECORE_LIB}\n"
+      "  HAS_COMPUTENETWORK_LIB=${HAS_COMPUTENETWORK_LIB}\n"
+      "  HAS_VIRTDISK_LIB=${HAS_VIRTDISK_LIB}\n"
+    )
+  endif()
+
+  add_library(hyperv_api_backend STATIC
     hyperv_api_common.cpp
     hcn/hyperv_hcn_api_wrapper.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
@@ -26,5 +50,8 @@ if(WIN32)
   target_link_libraries(hyperv_api_backend PRIVATE
     fmt
     utils
+    computecore.lib
+    computenetwork.lib
+    virtdisk.lib
   )
 endif()
