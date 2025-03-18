@@ -17,13 +17,14 @@
 
 #include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 
+// clang-format off
+#include <windows.h>
 #include <initguid.h>
 #include <virtdisk.h>
-#include <windows.h>
+// clang-format on
 
-
-#include <multipass/logging/log.h>
 #include <fmt/xchar.h>
+#include <multipass/logging/log.h>
 
 namespace multipass::hyperv::virtdisk
 {
