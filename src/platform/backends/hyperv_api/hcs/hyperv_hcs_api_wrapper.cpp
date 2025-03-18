@@ -222,7 +222,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 
     // Fill the SCSI devices template depending on
     // available drives.
-    const auto scsi_devices = [&]() {
+    const auto scsi_devices = [&params]() {
         constexpr auto scsi_device_template = LR"(
             "{0}": {{
                 "Attachments": {{
@@ -319,8 +319,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         ResultCode{api.CreateComputeSystem(name_w.c_str(), vm_settings.c_str(), operation.get(), nullptr, &system)};
 
     // Auto-release the system handle
-    UniqueHcsSystem system_u{system, api.CloseComputeSystem};
-    (void)system_u;
+    [[maybe_unused]] UniqueHcsSystem _{system, api.CloseComputeSystem};
 
     if (!result)
     {
@@ -511,13 +510,13 @@ OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_
         return {result.code, L"Unknown"};
     }
 
-    QString qstr{QString::fromStdWString(result.status_msg)};
-    auto doc = QJsonDocument::fromJson(qstr.toUtf8());
-    auto obj = doc.object();
+    const QString qstr{QString::fromStdWString(result.status_msg)};
+    const auto doc = QJsonDocument::fromJson(qstr.toUtf8());
+    const auto obj = doc.object();
     if (obj.contains("State"))
     {
-        auto state = obj["State"];
-        auto state_str = state.toString();
+        const auto state = obj["State"];
+        const auto state_str = state.toString();
         return {result.code, state_str.toStdWString()};
     }
 

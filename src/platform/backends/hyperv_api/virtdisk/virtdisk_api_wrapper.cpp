@@ -146,8 +146,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
 
     if (result == ERROR_SUCCESS)
     {
-        UniqueHandle _{result_handle, api.CloseHandle};
-        (void)_;
+        [[maybe_unused]] UniqueHandle _{result_handle, api.CloseHandle};
         return OperationResult{NOERROR, L""};
     }
 
