@@ -16,13 +16,14 @@
  */
 
 #include <hyperv_api/hyperv_api_common.h>
+#include <multipass/exceptions/formatted_exception_base.h>
 
 #include <fmt/xchar.h>
 
-#include <cassert>
+#include <objbase.h> // for CLSIDFromString
+
 #include <codecvt>
 #include <locale>
-#include <stdexcept>
 
 /**
  * Formatter for GUID type
@@ -65,57 +66,44 @@ struct fmt::formatter<::GUID, Char>
 namespace multipass::hyperv
 {
 
+struct GuidParseError : FormattedExceptionBase<>
+{
+    using FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
 auto guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
 {
-
-    // Since we're using the windows.h in LEAN_AND_MEAN mode, COM-provided
-    // GUID parsing functions such as CLSIDFromString are not available.
-
-    auto iterator = guid_wstr.begin();
-    ::GUID result = {};
-
     constexpr auto kGUIDLength = 36;
     constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
-    constexpr auto kGUIDFormatString = L"%8x-%4hx-%4hx-%2hhx%2hhx-%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx";
-    constexpr auto kGUIDFieldCount = 11;
 
-    if (guid_wstr.length() == kGUIDLengthWithBraces)
-    {
-
-        if (guid_wstr[0] != L'{' || guid_wstr[guid_wstr.length() - 1] != L'}')
+    const auto input = [&guid_wstr]() {
+        switch (guid_wstr.length())
         {
-            throw std::invalid_argument{"GUID string with brances either does not start or end with a brace."};
+        case kGUIDLength:
+            // CLSIDFromString requires GUIDs to be wrapped with braces.
+            return fmt::format(L"{{{}}}", guid_wstr);
+        case kGUIDLengthWithBraces:
+        {
+            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
+            {
+                throw GuidParseError{"GUID string either does not start or end with a brace."};
+            }
+            return guid_wstr;
         }
+        }
+        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
+    }();
 
-        // Skip the initial brace character
-        std::advance(iterator, 1);
-    }
-    else if (guid_wstr.length() != kGUIDLength)
+    ::GUID guid = {};
+
+    const auto result = CLSIDFromString(input.c_str(), &guid);
+
+    if (FAILED(result))
     {
-        throw std::domain_error(fmt::format("Invalid GUID string {}.", guid_wstr.length()));
+        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
     }
 
-    const auto match_count = swscanf_s(&(*iterator),
-                                       kGUIDFormatString,
-                                       &result.Data1,
-                                       &result.Data2,
-                                       &result.Data3,
-                                       &result.Data4[0],
-                                       &result.Data4[1],
-                                       &result.Data4[2],
-                                       &result.Data4[3],
-                                       &result.Data4[4],
-                                       &result.Data4[5],
-                                       &result.Data4[6],
-                                       &result.Data4[7]);
-
-    // Ensure that the swscanf parsed the exact amount of fields
-    if (!(match_count == kGUIDFieldCount))
-    {
-        throw std::runtime_error("Failed to parse GUID string");
-    }
-
-    return result;
+    return guid;
 }
 
 // ---------------------------------------------------------
