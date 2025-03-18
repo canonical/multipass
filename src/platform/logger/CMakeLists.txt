@@ -25,7 +25,7 @@ if(JOURNALD_FOUND)
   set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
   add_library(logger_linux_journald STATIC journald_wrapper.cpp journald_logger.cpp)
   target_include_directories(logger_linux_journald PRIVATE ${JOURNALD_INCLUDE_DIRS})
-  target_link_libraries(logger_linux_journald logger_linux_common fmt ${JOURNALD_LIBRARIES})
+  target_link_libraries(logger_linux_journald logger_linux_common ${JOURNALD_LIBRARIES})
 endif()
 
 
@@ -41,7 +41,7 @@ endif()
 # Declare the syslog target if found.
 if(SYSLOG_FOUND)
   add_library(logger_linux_syslog STATIC syslog_wrapper.cpp syslog_logger.cpp)
-  target_link_libraries(logger_linux_syslog logger_linux_common fmt)
+  target_link_libraries(logger_linux_syslog logger_linux_common)
 endif()
 
 # Settle on which logging backend to use
