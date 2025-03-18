@@ -43,9 +43,10 @@ inline auto make_tempfile_path(std::string extension)
         {
         }
 
-        ~auto_remove_path()
+        ~auto_remove_path() noexcept
         {
             std::error_code ec{};
+            // Use the noexcept overload
             std::filesystem::remove(path, ec);
         }
 
@@ -60,10 +61,12 @@ inline auto make_tempfile_path(std::string extension)
         const std::filesystem::path path;
     };
     char pattern[] = "temp-XXXXXX";
-    _mktemp_s(pattern);
-    std::string f = pattern;
-    f.append(extension);
-    return auto_remove_path{std::filesystem::temp_directory_path() / f};
+    if (_mktemp_s(pattern) != 0)
+    {
+        throw std::runtime_error{"Incorrect format for _mktemp_s."};
+    }
+    const auto filename = pattern + extension;
+    return auto_remove_path{std::filesystem::temp_directory_path() / filename};
 }
 
 } // namespace multipass::test

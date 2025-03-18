@@ -33,6 +33,7 @@ namespace multipass::hyperv
  */
 struct ResultCode
 {
+    using unsigned_hresult_t = std::make_unsigned_t<HRESULT>;
 
     ResultCode(HRESULT r) noexcept : result(r)
     {
@@ -53,9 +54,9 @@ struct ResultCode
         return result;
     }
 
-    [[nodiscard]] explicit operator std::make_unsigned_t<HRESULT>() const noexcept
+    [[nodiscard]] explicit operator unsigned_hresult_t() const noexcept
     {
-        return static_cast<HRESULT>(result);
+        return static_cast<unsigned_hresult_t>(result);
     }
 
 private:
@@ -104,7 +105,7 @@ struct fmt::formatter<multipass::hyperv::ResultCode, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::ResultCode& rc, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{0:#x}", static_cast<std::make_unsigned_t<HRESULT>>(rc));
+        return format_to(ctx.out(), "{:#x}", static_cast<std::make_unsigned_t<HRESULT>>(rc));
     }
 };
 
@@ -122,7 +123,7 @@ struct fmt::formatter<multipass::hyperv::OperationResult, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::OperationResult& opr, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{0:#x}", opr.code);
+        return format_to(ctx.out(), "{:#x}", opr.code);
     }
 };
 
