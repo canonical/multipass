@@ -21,10 +21,8 @@
 #include <virtdisk.h>
 #include <windows.h>
 
-#pragma comment(lib, "virtdisk.lib")
 
 #include <multipass/logging/log.h>
-
 #include <fmt/xchar.h>
 
 namespace multipass::hyperv::virtdisk
