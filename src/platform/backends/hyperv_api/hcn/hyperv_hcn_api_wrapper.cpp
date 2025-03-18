@@ -32,9 +32,6 @@
 #include <computestorage.h>
 #include <computenetwork.h>
 #include <objbase.h> // HCN API uses CoTaskMem* functions to allocate memory.
-
-#pragma comment(lib, "computecore.lib")
-#pragma comment(lib, "computenetwork.lib")
 // clang-format on
 
 #include <fmt/xchar.h>
