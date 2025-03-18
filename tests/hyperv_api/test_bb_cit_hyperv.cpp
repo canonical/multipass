@@ -62,10 +62,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         return endpoint_parameters;
     }();
 
-    // Remove remnants from previous tests, if any.
-    (void)hcn.delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)hcn.delete_network(network_parameters.guid);
-
     const auto temp_path = make_tempfile_path(".vhdx");
 
     const auto create_disk_parameters = [&temp_path]() {
@@ -83,7 +79,22 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         return vm_parameters;
     }();
 
-    (void)hcs.terminate_compute_system(create_vm_parameters.name);
+    // Remove remnants from previous tests, if any.
+    {
+        if (hcn.delete_endpoint(endpoint_parameters.endpoint_guid))
+        {
+            GTEST_LOG_(WARNING) << "The test endpoint was already present, deleted it.";
+        }
+        if (hcn.delete_network(network_parameters.guid))
+        {
+            GTEST_LOG_(WARNING) << "The test network was already present, deleted it.";
+        }
+
+        if (hcs.terminate_compute_system(create_vm_parameters.name))
+        {
+            GTEST_LOG_(WARNING) << "The test system was already present, terminated it.";
+        }
+    }
 
     const auto add_endpoint_parameters = [&create_vm_parameters, &endpoint_parameters]() {
         hyperv::hcs::AddEndpointParameters add_endpoint_parameters{};
@@ -97,42 +108,47 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
     {
         const auto& [status, status_msg] = hcn.create_network(network_parameters);
         ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 
     // Create the test endpoint
     {
         const auto& [status, status_msg] = hcn.create_endpoint(endpoint_parameters);
         ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 
     // Create the test VHDX (empty)
     {
         const auto& [status, status_msg] = virtdisk.create_virtual_disk(create_disk_parameters);
         ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 
     // Create test VM
     {
         const auto& [status, status_msg] = hcs.create_compute_system(create_vm_parameters);
         ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 
     // Start test VM
     {
         const auto& [status, status_msg] = hcs.start_compute_system(create_vm_parameters.name);
         ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 
     // Add endpoint
     {
         const auto& [status, status_msg] = hcs.add_endpoint(add_endpoint_parameters);
-        fmt::print(L"{}", status_msg.c_str());
         ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
     }
 
-    (void)hcs.terminate_compute_system(create_vm_parameters.name);
-    (void)hcn.delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)hcn.delete_network(network_parameters.guid);
+    EXPECT_TRUE(hcs.terminate_compute_system(create_vm_parameters.name)) << "Terminate system failed!";
+    EXPECT_TRUE(hcn.delete_endpoint(endpoint_parameters.endpoint_guid)) << "Delete endpoint failed!";
+    EXPECT_TRUE(hcn.delete_network(network_parameters.guid)) << "Delete network failed!";
 }
 
 } // namespace multipass::test
