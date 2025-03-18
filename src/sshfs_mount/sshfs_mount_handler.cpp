@@ -238,9 +238,7 @@ void SSHFSMountHandler::deactivate_impl(bool force)
     }
     catch (...)
     {
-        // The finished signal should've triggered by now. We can disconnect it.
-        // Doing it this way to ensure that it gets disconnected even when the body
-        // throws.
+        // Give up waiting for the `finished` signal before the process is destroyed.
         QObject::disconnect(process.get(), &Process::finished, nullptr, nullptr);
         throw;
     }
@@ -251,7 +249,7 @@ SSHFSMountHandler::~SSHFSMountHandler()
 {
     deactivate(/*force=*/true);
 
-    /**
+    /*
      * Ensure that the signals are disconnected.
      *
      * The `is_active` function has some interesting logic going on, which in turn
@@ -266,19 +264,16 @@ SSHFSMountHandler::~SSHFSMountHandler()
      */
     if (process)
     {
+        constexpr std::string_view warn_msg_fmtstr =
+            "Stopped listening to sshfs_server process only upon SSHFSMountHandler destruction";
         // The disconnect() is a no-op when nothing is connected.
         if (QObject::disconnect(process.get(), &Process::finished, nullptr, nullptr))
         {
-            mpl::warn(category,
-                      "SSHFSMountHandler is going to be destroyed, but Process still has `finished` signal connected. "
-                      "Disconnected it to prevent errors.");
+            mpl::warn(category, warn_msg_fmtstr);
         }
         if (QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr))
         {
-            mpl::warn(
-                category,
-                "SSHFSMountHandler is going to be destroyed, but Process still has `error_occured` signal connected. "
-                "Disconnected it to prevent errors.");
+            mpl::warn(category, warn_msg_fmtstr);
         }
     }
 }
