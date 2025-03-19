@@ -39,21 +39,32 @@ mp::SSHSession::SSHSession(const std::string& host,
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
 
-    const long timeout_secs = std::numeric_limits<long>::max();
+    /**
+     * Sometimes ssh_connect blocks while a VM is booting up where
+     * it won't return to the caller at all. Since the timeout is
+     * set to ~infinity the ssh_connect would block forever.
+     *
+     * The attempt timeout is set as timeout before the ssh_connect
+     * in order to prevent that from happening. The established timeout
+     * is used afterward to prevent timing out in connected state.
+     */
+    constexpr long kConnectTimeoutSecs = 5; // < how long to wait for ssh_connect
+    constexpr long kEstablishedTimeoutSecs = std::numeric_limits<long>::max();
+
     const int nodelay{1};
     auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation)).filePath("ssh").toStdString();
 
     set_option(SSH_OPTIONS_HOST, host.c_str());
     set_option(SSH_OPTIONS_PORT, &port);
     set_option(SSH_OPTIONS_USER, username.c_str());
-    set_option(SSH_OPTIONS_TIMEOUT, &timeout_secs);
+    set_option(SSH_OPTIONS_TIMEOUT, &kConnectTimeoutSecs);
     set_option(SSH_OPTIONS_NODELAY, &nodelay);
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
     SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
-
+    set_option(SSH_OPTIONS_TIMEOUT, &kEstablishedTimeoutSecs);
     SSH::throw_on_error(session,
                         "ssh failed to authenticate",
                         ssh_userauth_publickey,
@@ -166,8 +177,10 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
     const auto ret = ssh_options_set(session.get(), type, data);
     if (ret != SSH_OK)
     {
-        throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'", name_for(type),
-                                           as_string(type, data), ssh_get_error(session.get())));
+        throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'",
+                                           name_for(type),
+                                           as_string(type, data),
+                                           ssh_get_error(session.get())));
     }
 }
 
