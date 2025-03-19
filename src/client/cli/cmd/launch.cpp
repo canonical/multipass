@@ -569,7 +569,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
         if (reply.is_blueprint())
         {
-            cout << "Warning: blueprint is deprecated" << "\n";
+            cout << "Warning: blueprint is deprecated"
+                 << "\n";
         }
 
         if (!reply.log_line().empty())
