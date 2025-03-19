@@ -441,7 +441,8 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
                 fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
 
             if (!reply.blueprints_info().empty())
-                fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));
+                fmt::format_to(std::back_inserter(buf),
+                               format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
         }
     }
     else if (reply.show_images() && !reply.show_blueprints())
@@ -456,7 +457,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         if (reply.blueprints_info().empty())
             fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
         else
-            fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));
+            fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
     }
 
     return fmt::to_string(buf);
