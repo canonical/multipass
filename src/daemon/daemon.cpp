@@ -3035,17 +3035,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             delete prepare_future_watcher;
         });
 
-    auto make_vm_description =
-        [this, server, request, name, checked_args, log_level, &blueprint_name]() mutable -> VMFullDescription {
+    auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable -> VMFullDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
         {
             CreateReply reply;
-            reply.set_is_blueprint(!blueprint_name.empty());
             reply.set_create_message("Creating " + name);
             server->Write(reply);
-            reply.clear_is_blueprint();
 
             Query query;
             VirtualMachineDescription vm_desc{
