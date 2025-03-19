@@ -567,12 +567,6 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "},
             {LaunchProgress_ProgressTypes_WAITING, "Preparing image: "}};
 
-        if (reply.is_blueprint())
-        {
-            cout << "Warning: blueprint is deprecated"
-                 << "\n";
-        }
-
         if (!reply.log_line().empty())
         {
             spinner->print(cerr, reply.log_line());
