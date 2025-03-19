@@ -2916,6 +2916,18 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
     const std::string blueprint_name = config->blueprint_provider->name_from_blueprint(request->image());
+    // if the launch target is a blueprint instead of an image, issues a deprecation warning
+    if (!blueprint_name.empty())
+    {
+        constexpr auto deprecation_warning =
+            "*** Warning! The blueprint launch is deprecated and will be removed in an upcoming release. ***\n\n"
+            "The alternative is launching image with a custom cloud-init file, see link (will be filled in later) "
+            ".\n\n";
+        CreateReply reply;
+        reply.set_log_line(deprecation_warning);
+        server->Write(reply);
+    }
+
     auto name = name_from(checked_args.instance_name, blueprint_name, *config->name_generator, operative_instances);
 
     auto [instance_trail, status] =
