@@ -2074,7 +2074,7 @@ const auto find_one_reply_no_os = construct_find_one_reply_no_os();
 const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
 
 const auto json_empty_find_reply = "{\n"
-                                   "    \"blueprints\": {\n"
+                                   "    \"blueprints (deprecated)\": {\n"
                                    "    },\n"
                                    "    \"errors\": [\n"
                                    "    ],\n"
@@ -2084,7 +2084,7 @@ const auto json_empty_find_reply = "{\n"
 const auto csv_empty_find_reply = "Image,Remote,Aliases,OS,Release,Version,Type\n";
 const auto yaml_empty_find_reply = "errors:\n"
                                    "  []\n"
-                                   "blueprints:\n"
+                                   "blueprints (deprecated):\n"
                                    "  {}\n"
                                    "images:\n"
                                    "  {}\n";
@@ -2099,7 +2099,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "\n",
      "table_find_one_image"},
     {&table_formatter, &find_one_blueprint_reply,
-     "Blueprint                   Aliases           Version          Description\n"
+     "Blueprint (deprecated)      Aliases           Version          Description\n"
      "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n"
      "\n",
      "table_find_one_blueprint"},
@@ -2108,7 +2108,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "lts                                           20190516         Ubuntu 18.04 LTS\n"
      "daily:19.10                 eoan,devel        20190516         Ubuntu 19.10\n"
      "\n"
-     "Blueprint                   Aliases           Version          Description\n"
+     "Blueprint (deprecated)      Aliases           Version          Description\n"
      "anbox-cloud-appliance                         latest           Anbox Cloud Appliance\n"
      "\n",
      "table_find_multiple"},
@@ -2128,7 +2128,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&json_formatter, &empty_find_reply_only_blueprints, json_empty_find_reply, "json_find_empty_only_blueprints"},
     {&json_formatter, &find_one_reply,
      "{\n"
-     "    \"blueprints\": {\n"
+     "    \"blueprints (deprecated)\": {\n"
      "    },\n"
      "    \"errors\": [\n"
      "    ],\n"
@@ -2146,7 +2146,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "json_find_one"},
     {&json_formatter, &find_one_blueprint_reply,
      "{\n"
-     "    \"blueprints\": {\n"
+     "    \"blueprints (deprecated)\": {\n"
      "        \"anbox-cloud-appliance\": {\n"
      "            \"aliases\": [\n"
      "            ],\n"
@@ -2164,7 +2164,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "json_find_one_blueprint"},
     {&json_formatter, &find_multiple_reply,
      "{\n"
-     "    \"blueprints\": {\n"
+     "    \"blueprints (deprecated)\": {\n"
      "        \"anbox-cloud-appliance\": {\n"
      "            \"aliases\": [\n"
      "            ],\n"
@@ -2200,7 +2200,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "json_find_multiple"},
     {&json_formatter, &find_multiple_reply_duplicate_image,
      "{\n"
-     "    \"blueprints\": {\n"
+     "    \"blueprints (deprecated)\": {\n"
      "    },\n"
      "    \"errors\": [\n"
      "    ],\n"
@@ -2233,13 +2233,13 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "csv_find_one"},
     {&csv_formatter, &find_one_blueprint_reply,
      "Image,Remote,Aliases,OS,Release,Version,Type\n"
-     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint\n",
+     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint (deprecated)\n",
      "csv_find_one_blueprint"},
     {&csv_formatter, &find_multiple_reply,
      "Image,Remote,Aliases,OS,Release,Version,Type\n"
      "lts,,,Ubuntu,18.04 LTS,20190516,Cloud Image\n"
      "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image\n"
-     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint\n",
+     "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint (deprecated)\n",
      "csv_find_multiple"},
     {&csv_formatter, &find_multiple_reply_duplicate_image,
      "Image,Remote,Aliases,OS,Release,Version,Type\n"
@@ -2252,7 +2252,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &find_one_reply,
      "errors:\n"
      "  []\n"
-     "blueprints:\n"
+     "blueprints (deprecated):\n"
      "  {}\n"
      "images:\n"
      "  ubuntu:\n"
@@ -2266,7 +2266,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &find_one_blueprint_reply,
      "errors:\n"
      "  []\n"
-     "blueprints:\n"
+     "blueprints (deprecated):\n"
      "  anbox-cloud-appliance:\n"
      "    aliases:\n"
      "      []\n"
@@ -2280,7 +2280,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &find_multiple_reply,
      "errors:\n"
      "  []\n"
-     "blueprints:\n"
+     "blueprints (deprecated):\n"
      "  anbox-cloud-appliance:\n"
      "    aliases:\n"
      "      []\n"
@@ -2308,7 +2308,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&yaml_formatter, &find_multiple_reply_duplicate_image,
      "errors:\n"
      "  []\n"
-     "blueprints:\n"
+     "blueprints (deprecated):\n"
      "  {}\n"
      "images:\n"
      "  core18:\n"
