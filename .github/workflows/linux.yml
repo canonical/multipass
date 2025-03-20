@@ -236,7 +236,6 @@ jobs:
     
     - name: Run TICS analysis
       id: tics
-      if: ${{ steps.measure-coverage.outcome == 'success' }}
       uses: tiobe/tics-github-action@v3
       with:
         mode: qserver
