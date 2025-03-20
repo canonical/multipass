@@ -278,9 +278,10 @@ jobs:
     #     fi
     #     set +o xtrace
 
+
     - name: Upload test coredump
       uses: actions/upload-artifact@v4
-      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139' }}
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
       with:
         name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
         path: /tmp/coredump/**
