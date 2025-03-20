@@ -234,20 +234,20 @@ jobs:
       with:
         limit-access-to-actor: true
     
-    # - name: Run TICS analysis
-    #   id: tics
-    #   if: ${{ steps.measure-coverage.outcome == 'success' }}
-    #   uses: tiobe/tics-github-action@v3
-    #   with:
-    #     mode: qserver
-    #     project: multipass
-    #     viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
-    #     branchdir: ${{ github.workspace }}
-    #     ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
-    #     installTics: true
-    #     filelist: ./filelist.txt
-    #     recalc: ALL
-    #     tmpdir: /tmp/ticstmp
+    - name: Run TICS analysis
+      id: tics
+      if: ${{ steps.measure-coverage.outcome == 'success' }}
+      uses: tiobe/tics-github-action@v3
+      with:
+        mode: qserver
+        project: multipass
+        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+        branchdir: ${{ github.workspace }}
+        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+        installTics: true
+        filelist: ./filelist.txt
+        recalc: ALL
+        tmpdir: /tmp/ticstmp
 
     - uses: actions/upload-artifact@v4
       if: ${{ always() }}
