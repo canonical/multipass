@@ -279,19 +279,19 @@ jobs:
     #     set +o xtrace
 
 
-    - name: Upload test coredump
-      uses: actions/upload-artifact@v4
-      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
-      with:
-        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
-        path: /tmp/coredump/**
+    # - name: Upload test coredump
+    #   uses: actions/upload-artifact@v4
+    #   if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
+    #   with:
+    #     name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
+    #     path: /tmp/coredump/**
 
-    - name: Continue on Error comment
-      uses: mainmatter/continue-on-error-comment@v1
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        outcome: ${{ steps.measure-coverage.outcome }}
-        test-id: Error with measuring coverage in ${{ matrix.build-type }} build
+    # - name: Continue on Error comment
+    #   uses: mainmatter/continue-on-error-comment@v1
+    #   with:
+    #     repo-token: ${{ secrets.GITHUB_TOKEN }}
+    #     outcome: ${{ steps.measure-coverage.outcome }}
+    #     test-id: Error with measuring coverage in ${{ matrix.build-type }} build
 
   # Dispatch to the private side
   Dispatch:
