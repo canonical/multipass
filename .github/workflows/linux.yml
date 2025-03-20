@@ -246,8 +246,6 @@ jobs:
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
         filelist: ./filelist.txt
-        recalc: ALL
-        tmpdir: /tmp/ticstmp
 
     - uses: actions/upload-artifact@v4
       if: ${{ always() }}
