@@ -26,6 +26,8 @@
 
 namespace mpl = multipass::logging;
 
+using namespace testing;
+
 struct MockJournaldWrapper : public mpl::JournaldWrapper
 {
     using JournaldWrapper::JournaldWrapper;
@@ -39,6 +41,7 @@ struct MockJournaldWrapper : public mpl::JournaldWrapper
 
 struct journald_logger_test : ::testing::Test
 {
+    using uut_t = mpl::JournaldLogger;
     MockJournaldWrapper::GuardedMock mock_journald_guardedmock{MockJournaldWrapper::inject()};
     MockJournaldWrapper& mock_journald = *mock_journald_guardedmock.first;
 };
@@ -53,22 +56,14 @@ TEST_F(journald_logger_test, call_log)
     constexpr static std::string_view expected_message = {"message"};
     constexpr static auto expected_priority = LOG_DEBUG;
 
-    EXPECT_CALL(mock_journald, write_journal)
-        .WillOnce([](std::string_view message_fmtstr,
-                     std::string_view message,
-                     std::string_view priority_fmtstr,
-                     int priority,
-                     std::string_view category_fmtstr,
-                     std::string_view category) {
-            EXPECT_EQ(message_fmtstr, expected_message_fmtstr);
-            EXPECT_EQ(message, expected_message);
-            EXPECT_EQ(priority_fmtstr, expected_priority_fmtstr);
-            EXPECT_EQ(priority, expected_priority);
-            EXPECT_EQ(category_fmtstr, expected_category_fmtstr);
-            EXPECT_EQ(category, expected_category);
-            return 0;
-        });
-    mpl::JournaldLogger uut{mpl::Level::debug};
+    EXPECT_CALL(mock_journald,
+                write_journal(Eq(expected_message_fmtstr),
+                              Eq(expected_message),
+                              Eq(expected_priority_fmtstr),
+                              Eq(expected_priority),
+                              Eq(expected_category_fmtstr),
+                              Eq(expected_category)));
+    uut_t uut{mpl::Level::debug};
     // This should log
     uut.log(mpl::Level::debug, expected_category, expected_message);
 }
@@ -76,7 +71,7 @@ TEST_F(journald_logger_test, call_log)
 TEST_F(journald_logger_test, call_log_filtered)
 {
     EXPECT_CALL(mock_journald, write_journal).Times(0);
-    mpl::JournaldLogger uut{mpl::Level::debug};
+    uut_t uut{mpl::Level::debug};
     // This should not log
     uut.log(mpl::Level::trace, "category", "message");
 }

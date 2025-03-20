@@ -29,9 +29,9 @@ void JournaldLogger::log(Level level, std::string_view category, std::string_vie
 {
     if (level <= logging_level)
     {
-        constexpr std::string_view kMessageFmtStr = "MESSAGE=%.*s";
-        constexpr std::string_view kPriorityFmtStr = "PRIORITY=%i";
-        constexpr std::string_view kCategoryFmtStr = "CATEGORY=%.*s";
+        constexpr static std::string_view kMessageFmtStr = "MESSAGE=%.*s";
+        constexpr static std::string_view kPriorityFmtStr = "PRIORITY=%i";
+        constexpr static std::string_view kCategoryFmtStr = "CATEGORY=%.*s";
 
         JournaldWrapper::instance().write_journal(kMessageFmtStr,
                                                   message,
