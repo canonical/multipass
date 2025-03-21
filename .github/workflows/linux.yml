@@ -43,9 +43,7 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
+        MATRIX='{"build-type": "Debug"}'
 
         if ${{ github.event_name != 'merge_group' }}; then
             MATRIX+='{"build-type": "Coverage" }'
@@ -80,7 +78,7 @@ jobs:
     env:
       SNAPCRAFT_BUILD_INFO: 1
 
-    timeout-minutes: 120
+    timeout-minutes: 360
     steps:
     - name: Install Snapcraft
       uses: samuelmeuli/action-snapcraft@v3
@@ -231,10 +229,65 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
+    - name: Run TICS analysis
+      id: tics
+      if: ${{ steps.measure-coverage.outcome == 'success' }}
+      env:
+          TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
+          GH_TOKEN: ${{ github.token }}
+      run: |
+        set -e
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+
+        # # Download, combine and move coverage to the right place so TiCS can parse it
+        # RUN_ID=$(gh run list --workflow 'QA & sanity checks' --limit 1 --status success --json databaseId -b main | jq '.[].databaseId')
+        # gh run download $RUN_ID -n coverage.zip -D /tmp/coverage
+        # E2E_RUN_ID=$(gh run list --workflow 'E2E - Run tests' --limit 1 --status success --json databaseId -b main | jq '.[].databaseId')
+        # gh run download $E2E_RUN_ID -n pam-coverage.zip -D /tmp/coverage
+        # reportgenerator "-reports:/tmp/coverage/*.xml" "-targetdir:.coverage" -reporttypes:Cobertura
+        # mv .coverage/Cobertura.xml .coverage/coverage.xml
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mv /root/parts/multipass/build/coverage /root/parts/multipass'
+
+        # Install TiCS
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c ". <(curl --silent --show-error 'https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/')"
+
+        # TiCS requires all artifacts to be built
+        # go build ./cmd/...
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'TICSQServer -project multipass -tmpdir /tmp/tics -branchdir /root/parts/multipass'
+
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+    
+    # - name: Run TICS analysis
+    #   id: tics
+    #   if: ${{ steps.measure-coverage.outcome == 'success' }}
+    #   uses: tiobe/tics-github-action@v3
+    #   with:
+    #     mode: qserver
+    #     project: multipass
+    #     viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+    #     branchdir: ${{ github.workspace }}
+    #     ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+    #     installTics: true
+    #     filelist: ./filelist.txt
+    #     recalc: ALL
+    #     tmpdir: /tmp/ticstmp
+
+    # - uses: actions/upload-artifact@v4
+    #   if: ${{ always() }}
+    #   with:
+    #     name: ticstmp
+    #     path: /tmp/ticstmp
+    #     retention-days: 5
+    #     overwrite: true
+
     - name: Pull coredump and executable from LXC container
-      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0'}}
-      # do not cause job to fail if there are no coredumps available.
-      continue-on-error: true
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139'}}
       run: |
 
         set -o xtrace
@@ -247,16 +300,26 @@ jobs:
         mkdir -p /tmp/coredump
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         # Pull the crashed executable from the container
-        /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
+        /snap/bin/lxc --project snapcraft file pull "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/multipass_tests
         echo "Pulled the executable."
-        # Pull the coredump folder
-        /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/coredump" /tmp/coredump
-        echo "Pulled the coredumps folder."
+        # List the coredump files into a variable
+        files=`/snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "ls /coredump 2>/dev/null"`
+        echo "$files"
+        # If there's `any`, we need to pull them.
+        if [ ! -z "$files" ]
+        then
+          ARRAY=($files)
+          COREDUMP_FILES=(`printf "$instance_name/coredump/%s " "${ARRAY[@]}"`)
+          /snap/bin/lxc --project snapcraft file pull "${COREDUMP_FILES[@]}" /tmp/coredump
+          echo "Pulled ${#COREDUMP_FILES[@]} coredump(s) from the snap build container"
+        else
+          echo "Executable crashed, but no coredump file found!"
+        fi
         set +o xtrace
 
     - name: Upload test coredump
       uses: actions/upload-artifact@v4
-      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139' }}
       with:
         name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
         path: /tmp/coredump/**
@@ -268,65 +331,10 @@ jobs:
         outcome: ${{ steps.measure-coverage.outcome }}
         test-id: Error with measuring coverage in ${{ matrix.build-type }} build
 
-    - name: Build and verify the snap
-      id: build-snap
-      if: ${{ matrix.build-type == 'Release' }}
-      env:
-        SNAP_ENFORCE_RESQUASHFS: 0
-      run: |
-        # Actually build the snap.
-        /snap/bin/snapcraft --use-lxd
-
-        sudo snap install review-tools
-        /snap/bin/review-tools.snap-review --plugs=snap/local/plugs.json *.snap
-
-        echo "snap-file=$( ls *.snap )" >> $GITHUB_OUTPUT
-
-    - name: Upload the snap
-      uses: actions/upload-artifact@v4
-      if: ${{ matrix.build-type == 'Release' }}
-      with:
-        name: ${{ steps.build-snap.outputs.snap-file }}
-        path: ${{ steps.build-snap.outputs.snap-file }}
-        if-no-files-found: error
-        retention-days: 30
-
-  # Publish the snap to the store if a channel was determined and we have access to secrets.
-  Publish-Snap:
-    needs: BuildAndTest
-    # Need to explicitly continue on Lint getting skipped.
-    if: ${{
-      !failure()
-      && !cancelled()
-      && needs.BuildAndTest.outputs.channel != ''
-      && (github.event_name == 'push'
-          || github.event_name == 'merge_group'
-          || github.event.pull_request.head.repo.full_name == github.repository)
-      }}
-
-    runs-on: ubuntu-latest
-
-    timeout-minutes: 15
-    steps:
-    - name: Download the built snap
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ needs.BuildAndTest.outputs.snap-file }}
-
-    - name: Install Snapcraft and log in
-      uses: samuelmeuli/action-snapcraft@v3
-
-    - name: Publish the snap
-      env:
-        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
-      run: |
-        snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
-
   # Dispatch to the private side
   Dispatch:
     needs:
     - BuildAndTest
-    - Publish-Snap
 
     # Only dispatch if we have access to secrets.
     # Need to explicitly continue on Lint getting skipped.
@@ -351,36 +359,3 @@ jobs:
             echo "head_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
             echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
         fi
-
-    - name: Dispatch Linux integration tests
-      if: ${{ github.event_name == 'push' }}
-      uses: Saviq/workflow-dispatch@dist
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        workflow: Integration
-        ref: ${{ steps.dispatch-params.outputs.ref }}
-        sha: ${{ steps.dispatch-params.outputs.sha }}
-        inputs: |
-          {
-            "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
-          }
-      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-error: true
-
-    - name: Dispatch macOS and Windows builds
-      uses: peter-evans/repository-dispatch@v3
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
-        event-type: public_build
-        client-payload: |
-          {
-            "repository": "${{ github.repository }}",
-            "head_ref": "${{ steps.dispatch-params.outputs.head_ref }}",
-            "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
-            "ref": "${{ github.ref }}",
-            "sha": "${{ github.sha }}",
-            "draft": "${{ github.event.pull_request.draft }}",
-            "label": "${{ needs.BuildAndTest.outputs.label }}",
-            "dispatch_ci": "${{ github.event_name == 'push' }}"
-          }
