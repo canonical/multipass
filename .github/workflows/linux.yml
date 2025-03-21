@@ -132,165 +132,175 @@ jobs:
           ccache-${{ runner.os }}-${{ matrix.build-type }}-
         path: ~/.ccache
 
-    # - name: Set up coverage
-    #   id: coverage-setup
-    #   if: ${{ matrix.build-type == 'Coverage' }}
-    #   run: |
-    #     MULTIPASS_PART=${HOME}/multipass_part
-    #     mkdir --parents ${MULTIPASS_PART}
-    #     /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
-    #     echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
+    - name: Set up coverage
+      id: coverage-setup
+      if: ${{ matrix.build-type == 'Coverage' }}
+      run: |
+        MULTIPASS_PART=${HOME}/multipass_part
+        mkdir --parents ${MULTIPASS_PART}
+        /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
+        echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
-    # - name: Build
-    #   run: |
-    #     # Inject the build label.
-    #     sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
+    - name: Build
+      run: |
+        # Inject the build label.
+        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
 
-    #     # Inject vcpkg GH Actions cache env vars if they exist
-    #     if [ -n "$ACTIONS_CACHE_URL" ]; then
-    #       sed -i "/build-environment:/a \    - ACTIONS_CACHE_URL: ${ACTIONS_CACHE_URL}" snap/snapcraft.yaml
-    #     fi
-    #     if [ -n "ACTIONS_RUNTIME_TOKEN" ]; then
-    #       sed -i "/build-environment:/a \    - ACTIONS_RUNTIME_TOKEN: ${ACTIONS_RUNTIME_TOKEN}" snap/snapcraft.yaml
-    #     fi
+        # Inject vcpkg GH Actions cache env vars if they exist
+        if [ -n "$ACTIONS_CACHE_URL" ]; then
+          sed -i "/build-environment:/a \    - ACTIONS_CACHE_URL: ${ACTIONS_CACHE_URL}" snap/snapcraft.yaml
+        fi
+        if [ -n "ACTIONS_RUNTIME_TOKEN" ]; then
+          sed -i "/build-environment:/a \    - ACTIONS_RUNTIME_TOKEN: ${ACTIONS_RUNTIME_TOKEN}" snap/snapcraft.yaml
+        fi
 
-    #     if [ -n "VCPKG_BINARY_SOURCES" ]; then
-    #       sed -i "/build-environment:/a \    - VCPKG_BINARY_SOURCES: ${VCPKG_BINARY_SOURCES}" snap/snapcraft.yaml
-    #     fi
+        if [ -n "VCPKG_BINARY_SOURCES" ]; then
+          sed -i "/build-environment:/a \    - VCPKG_BINARY_SOURCES: ${VCPKG_BINARY_SOURCES}" snap/snapcraft.yaml
+        fi
 
-    #     # Build the `multipass` part.
-    #     /snap/bin/snapcraft build --use-lxd multipass
+        # Build the `multipass` part.
+        /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
       run: ccache --show-stats --zero-stats
 
-    # - name: Set /proc/sys/kernel/core_pattern
-    #   if: ${{ matrix.build-type == 'Debug' || matrix.build-type == 'Coverage' }}
-    #   run : |
+    - name: Set /proc/sys/kernel/core_pattern
+      if: ${{ matrix.build-type == 'Debug' || matrix.build-type == 'Coverage' }}
+      run : |
 
-    #     # The LXC container share the same "/proc/sys/kernel/core_pattern"
-    #     # with the host and it can't be overridden inside the container. Hence
-    #     # we need to override it at the runner level.
-    #     sudo bash -c 'echo "/coredump/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+        # The LXC container share the same "/proc/sys/kernel/core_pattern"
+        # with the host and it can't be overridden inside the container. Hence
+        # we need to override it at the runner level.
+        sudo bash -c 'echo "/coredump/%e.%p.%t" > /proc/sys/kernel/core_pattern'
 
-    # - name: Test
-    #   id: test
-    #   if: ${{ matrix.build-type == 'Debug' }}
-    #   timeout-minutes: 2
-    #   run: |
+    - name: Test
+      id: test
+      if: ${{ matrix.build-type == 'Debug' }}
+      timeout-minutes: 2
+      run: |
 
-    #     trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
-    #     instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
-    #     /snap/bin/lxc --project snapcraft start $instance_name
-    #     # Let's print the core pattern so we can check if it's successfully propagated to the container.
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
-    #     # Create the directory for the coredumps
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
-    #     # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
-    #        ulimit -c unlimited &&        \
-    #        env CTEST_OUTPUT_ON_FAILURE=1 \
-    #        LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-    #        /root/parts/multipass/build/bin/multipass_tests"
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        /snap/bin/lxc --project snapcraft start $instance_name
+        # Let's print the core pattern so we can check if it's successfully propagated to the container.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
+        # Create the directory for the coredumps
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+           ulimit -c unlimited &&        \
+           env CTEST_OUTPUT_ON_FAILURE=1 \
+           LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+           /root/parts/multipass/build/bin/multipass_tests"
 
-    # - name: Measure coverage
-    #   id: measure-coverage
-    #   if: ${{ matrix.build-type == 'Coverage' }}
-    #   env:
-    #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    #   timeout-minutes: 5
-    #   run: |
+    - name: Measure coverage
+      id: measure-coverage
+      if: ${{ matrix.build-type == 'Coverage' }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      timeout-minutes: 5
+      run: |
 
-    #     trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
-    #     instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
-    #     /snap/bin/lxc --project snapcraft start $instance_name
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        /snap/bin/lxc --project snapcraft start $instance_name
 
-    #     # Wait for snapd to actually finish- in particular, that snaps are mounted
-    #     timeout 10 sh -c \
-    #       'while [ "$( /snap/bin/lxc --project snapcraft exec '$instance_name' -- \
-    #          systemctl show --property=ActiveState snapd )" != "ActiveState=active" ]; do sleep 1; done'
+        # Wait for snapd to actually finish- in particular, that snaps are mounted
+        timeout 10 sh -c \
+          'while [ "$( /snap/bin/lxc --project snapcraft exec '$instance_name' -- \
+             systemctl show --property=ActiveState snapd )" != "ActiveState=active" ]; do sleep 1; done'
 
-    #     # Wait for LXD container network to be ready like Snapcraft does
-    #     timeout 40 sh -c \
-    #       'while /snap/bin/lxc --project snapcraft exec '$instance_name' -- getent hosts canonical.com ; \
-    #          [ $? -ne 0 ] ; do sleep 1; done'
+        # Wait for LXD container network to be ready like Snapcraft does
+        timeout 40 sh -c \
+          'while /snap/bin/lxc --project snapcraft exec '$instance_name' -- getent hosts canonical.com ; \
+             [ $? -ne 0 ] ; do sleep 1; done'
 
-    #     # The following 2 commands workaround the issue in 20.04 where the default parsing of the coverage
-    #     # JSON file is extremely slow. This makes is use fast parsing.
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- apt-get -y install libjson-xs-perl sudo
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- \
-    #        sh -c "sudo sed -i \"s/use JSON::PP/use JSON::XS/\" \`which geninfo\`"
+        # The following 2 commands workaround the issue in 20.04 where the default parsing of the coverage
+        # JSON file is extremely slow. This makes is use fast parsing.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- apt-get -y install libjson-xs-perl sudo
+        /snap/bin/lxc --project snapcraft exec $instance_name -- \
+           sh -c "sudo sed -i \"s/use JSON::PP/use JSON::XS/\" \`which geninfo\`"
 
-    #     # Create the directory for the coredumps
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
-    #     /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
-    #       ulimit -c unlimited && \
-    #       env CTEST_OUTPUT_ON_FAILURE=1 \
-    #         cmake --build /root/parts/multipass/build --target covreport"
-    #     bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+        # Create the directory for the coredumps
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          ulimit -c unlimited && \
+          env CTEST_OUTPUT_ON_FAILURE=1 \
+            cmake --build /root/parts/multipass/build --target covreport"
+        bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
     
-    - name: Run TICS analysis
-      id: tics
-      uses: tiobe/tics-github-action@v3
+    # - name: Run TICS analysis
+    #   id: tics
+    #   if: ${{ steps.measure-coverage.outcome == 'success' }}
+    #   uses: tiobe/tics-github-action@v3
+    #   with:
+    #     mode: qserver
+    #     project: multipass
+    #     viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+    #     branchdir: ${{ github.workspace }}
+    #     ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+    #     installTics: true
+    #     filelist: ./filelist.txt
+    #     recalc: ALL
+    #     tmpdir: /tmp/ticstmp
+
+    # - uses: actions/upload-artifact@v4
+    #   if: ${{ always() }}
+    #   with:
+    #     name: ticstmp
+    #     path: /tmp/ticstmp
+    #     retention-days: 5
+    #     overwrite: true
+
+    - name: Pull coredump and executable from LXC container
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139'}}
+      run: |
+
+        set -o xtrace
+        # Check whether the test executable is crashed or not.
+        # If so, we'll need to pull the core dump and the executable from the container to the
+        # runner, so we can upload them as artifacts later on.
+        echo "Test executable crashed."
+        # Make a directory in tmp to pull the coredump(s) and the test executable.
+        # We'll need both to debug the crash.
+        mkdir -p /tmp/coredump
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        # Pull the crashed executable from the container
+        /snap/bin/lxc --project snapcraft file pull "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/multipass_tests
+        echo "Pulled the executable."
+        # List the coredump files into a variable
+        files=`/snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "ls /coredump 2>/dev/null"`
+        echo "$files"
+        # If there's `any`, we need to pull them.
+        if [ ! -z "$files" ]
+        then
+          ARRAY=($files)
+          COREDUMP_FILES=(`printf "$instance_name/coredump/%s " "${ARRAY[@]}"`)
+          /snap/bin/lxc --project snapcraft file pull "${COREDUMP_FILES[@]}" /tmp/coredump
+          echo "Pulled ${#COREDUMP_FILES[@]} coredump(s) from the snap build container"
+        else
+          echo "Executable crashed, but no coredump file found!"
+        fi
+        set +o xtrace
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v4
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139' }}
       with:
-        mode: qserver
-        project: multipass
-        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
-        branchdir: ${{ github.workspace }}
-        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
-        installTics: true
-        filelist: ./filelist.txt
+        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
+        path: /tmp/coredump/**
 
-    # - name: Pull coredump and executable from LXC container
-    #   if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE == '139'}}
-    #   run: |
-
-    #     set -o xtrace
-    #     # Check whether the test executable is crashed or not.
-    #     # If so, we'll need to pull the core dump and the executable from the container to the
-    #     # runner, so we can upload them as artifacts later on.
-    #     echo "Test executable crashed."
-    #     # Make a directory in tmp to pull the coredump(s) and the test executable.
-    #     # We'll need both to debug the crash.
-    #     mkdir -p /tmp/coredump
-    #     instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
-    #     # Pull the crashed executable from the container
-    #     /snap/bin/lxc --project snapcraft file pull "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/multipass_tests
-    #     echo "Pulled the executable."
-    #     # List the coredump files into a variable
-    #     files=`/snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "ls /coredump 2>/dev/null"`
-    #     echo "$files"
-    #     # If there's `any`, we need to pull them.
-    #     if [ ! -z "$files" ]
-    #     then
-    #       ARRAY=($files)
-    #       COREDUMP_FILES=(`printf "$instance_name/coredump/%s " "${ARRAY[@]}"`)
-    #       /snap/bin/lxc --project snapcraft file pull "${COREDUMP_FILES[@]}" /tmp/coredump
-    #       echo "Pulled ${#COREDUMP_FILES[@]} coredump(s) from the snap build container"
-    #     else
-    #       echo "Executable crashed, but no coredump file found!"
-    #     fi
-    #     set +o xtrace
-
-
-    # - name: Upload test coredump
-    #   uses: actions/upload-artifact@v4
-    #   if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
-    #   with:
-    #     name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
-    #     path: /tmp/coredump/**
-
-    # - name: Continue on Error comment
-    #   uses: mainmatter/continue-on-error-comment@v1
-    #   with:
-    #     repo-token: ${{ secrets.GITHUB_TOKEN }}
-    #     outcome: ${{ steps.measure-coverage.outcome }}
-    #     test-id: Error with measuring coverage in ${{ matrix.build-type }} build
+    - name: Continue on Error comment
+      uses: mainmatter/continue-on-error-comment@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        outcome: ${{ steps.measure-coverage.outcome }}
+        test-id: Error with measuring coverage in ${{ matrix.build-type }} build
 
   # Dispatch to the private side
   Dispatch:
