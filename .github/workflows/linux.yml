@@ -247,6 +247,7 @@ jobs:
         # reportgenerator "-reports:/tmp/coverage/*.xml" "-targetdir:.coverage" -reporttypes:Cobertura
         # mv .coverage/Cobertura.xml .coverage/coverage.xml
 
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir /root/parts/multipass/.coverage'
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cp /root/parts/multipass/build/coverage/index.html .coverage/coverage.html'
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cp /root/parts/multipass/build/coverage/index.html /root/parts/multipass/build/coverage/coverage.html'
 
