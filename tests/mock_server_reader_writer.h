@@ -18,6 +18,7 @@
 #ifndef MULTIPASS_MOCK_SERVER_WRITER_H
 #define MULTIPASS_MOCK_SERVER_WRITER_H
 
+#include <gmock/gmock.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 namespace multipass

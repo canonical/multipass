@@ -44,13 +44,12 @@ public:
         mpx_logger.remove_logger(this);
     }
 
-    void log(Level level, CString category, CString message) const override
+    void log(Level level, std::string_view category, std::string_view message) const override
     {
         if (level <= logging_level && server != nullptr)
         {
             T reply;
-            reply.set_log_line(fmt::format("[{}] [{}] [{}] {}\n", timestamp(), as_string(level).c_str(),
-                                           category.c_str(), message.c_str()));
+            reply.set_log_line(fmt::format("[{}] [{}] [{}] {}\n", timestamp(), as_string(level), category, message));
             server->Write(reply);
         }
     }

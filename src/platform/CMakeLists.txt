@@ -58,7 +58,11 @@ function(add_target TARGET_NAME)
     update)
 endfunction()
 
-set(MULTIPASS_ENABLE_SYSLOG FALSE CACHE BOOL "Use syslog for logging instead of journald")
+option(MULTIPASS_ENABLE_SYSLOG "Use syslog for logging instead of journald" OFF)
+
+if(NOT MULTIPASS_ENABLE_SYSLOG)
+  add_compile_definitions(-DMULTIPASS_JOURNALD_ENABLED)
+endif()
 
 add_target(platform)
 if(MULTIPASS_ENABLE_TESTS)
@@ -70,7 +74,3 @@ add_subdirectory(client)
 add_subdirectory(console)
 add_subdirectory(logger)
 add_subdirectory(update)
-
-if (JOURNALD_FOUND AND NOT MULTIPASS_ENABLE_SYSLOG)
-  add_definitions(-DMULTIPASS_JOURNALD_ENABLED)
-endif()

@@ -28,7 +28,7 @@ namespace test
 {
 class StubLogger : public logging::Logger
 {
-    void log(logging::Level, logging::CString, logging::CString) const
+    void log(logging::Level, std::string_view, std::string_view) const
     {
     }
 };
