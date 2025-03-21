@@ -28,7 +28,7 @@ class EventLogger : public Logger
 {
 public:
     explicit EventLogger(Level level);
-    void log(Level level, CString category, CString message) const override;
+    void log(Level level, std::string_view category, std::string_view message) const override;
 
 private:
     Level logging_level;

@@ -88,7 +88,7 @@ TEST_F(PowerShellTest, handles_failure_to_finish_on_exit)
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::error);
 
-    auto msg_matcher = mpt::MockLogger::make_cstring_matcher(AllOf(HasSubstr("Failed to exit"), HasSubstr(err)));
+    auto msg_matcher = AllOf(HasSubstr("Failed to exit"), HasSubstr(err));
     EXPECT_CALL(logger, log(mpl::Level::warning, _, msg_matcher));
 
     ps_helper.setup(
@@ -110,7 +110,7 @@ TEST_F(PowerShellTest, uses_name_in_logs)
     static constexpr auto name = "Shevek";
 
     logger.screen_logs();
-    EXPECT_CALL(logger, log(_, mpt::MockLogger::make_cstring_matcher(StrEq(name)), _)).Times(AtLeast(1));
+    EXPECT_CALL(logger, log(_, StrEq(name), _)).Times(AtLeast(1));
     ps_helper.setup();
 
     mp::PowerShell ps{name};
@@ -281,7 +281,7 @@ TEST_F(PowerShellTest, exec_runs_given_cmd)
     const auto args = QString{cmdlet}.split(' ');
 
     auto& logger = *logger_scope.mock_logger;
-    const auto log_matcher = mpt::MockLogger::make_cstring_matcher(ContainsRegex(args.join(".*").toStdString()));
+    const auto log_matcher = ContainsRegex(args.join(".*").toStdString());
     logger.screen_logs(mpl::Level::warning);
     EXPECT_CALL(logger, log(_, _, log_matcher));
 

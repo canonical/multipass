@@ -32,7 +32,7 @@ class MultiplexingLogger : public Logger
 {
 public:
     explicit MultiplexingLogger(UPtr system_logger);
-    void log(Level level, CString category, CString message) const override;
+    void log(Level level, std::string_view category, std::string_view message) const override;
     void add_logger(const Logger* logger);
     void remove_logger(const Logger* logger);
 

@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_LOG_H
 #define MULTIPASS_LOG_H
 
-#include <multipass/logging/cstring.h>
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
 
@@ -30,7 +29,16 @@ namespace multipass
 namespace logging
 {
 
-void log(Level level, CString category, CString message);
+/**
+ * Log a message.
+ *
+ * It's safe to use this function with non-NUL terminated strings.
+ *
+ * @param [in] level Log level
+ * @param [in] category Log category
+ * @param [in] message The message
+ */
+void log(Level level, std::string_view category, std::string_view message);
 void set_logger(std::shared_ptr<Logger> logger);
 Level get_logging_level();
 Logger* get_logger(); // for tests, don't rely on it lasting
@@ -56,7 +64,7 @@ Logger* get_logger(); // for tests, don't rely on it lasting
  */
 template <typename Arg0, typename... Args>
 constexpr void
-log(Level level, const std::string& category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
+log(Level level, std::string_view category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
 {
     const auto formatted_log_msg = fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
     logging::log(level, category, formatted_log_msg);
@@ -77,7 +85,7 @@ log(Level level, const std::string& category, fmt::format_string<Arg0, Args...> 
  * @param [in] args Format arguments, if any
  */
 template <Level level, typename... Args>
-constexpr void log(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+constexpr void log(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
     if constexpr (sizeof...(Args) > 0)
     {
@@ -85,7 +93,7 @@ constexpr void log(const std::string& category, fmt::format_string<Args...> fmt,
         logging::log(level, category, fmt, std::forward<Args>(args)...);
         return;
     }
-    logging::log(level, category, CString{fmt.get().data()});
+    logging::log(level, category, std::string_view{fmt.get().data(), fmt.get().size()});
 }
 
 /**
@@ -97,7 +105,7 @@ constexpr void log(const std::string& category, fmt::format_string<Args...> fmt,
  * @param [in] args Format arguments
  */
 template <typename... Args>
-constexpr void error(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+constexpr void error(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
     logging::log<Level::error>(category, fmt, std::forward<Args>(args)...);
 }
@@ -111,7 +119,7 @@ constexpr void error(const std::string& category, fmt::format_string<Args...> fm
  * @param [in] args Format arguments
  */
 template <typename... Args>
-constexpr void warn(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+constexpr void warn(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
     logging::log<Level::warning>(category, fmt, std::forward<Args>(args)...);
 }
@@ -125,7 +133,7 @@ constexpr void warn(const std::string& category, fmt::format_string<Args...> fmt
  * @param [in] args Format arguments
  */
 template <typename... Args>
-constexpr void info(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+constexpr void info(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
     logging::log<Level::info>(category, fmt, std::forward<Args>(args)...);
 }
@@ -139,7 +147,7 @@ constexpr void info(const std::string& category, fmt::format_string<Args...> fmt
  * @param [in] args Format arguments
  */
 template <typename... Args>
-constexpr void debug(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+constexpr void debug(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
     logging::log<Level::debug>(category, fmt, std::forward<Args>(args)...);
 }
@@ -153,7 +161,7 @@ constexpr void debug(const std::string& category, fmt::format_string<Args...> fm
  * @param [in] args Format arguments
  */
 template <typename... Args>
-constexpr void trace(const std::string& category, fmt::format_string<Args...> fmt, Args&&... args)
+constexpr void trace(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
     logging::log<Level::trace>(category, fmt, std::forward<Args>(args)...);
 }
