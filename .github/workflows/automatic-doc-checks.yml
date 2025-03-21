@@ -5,9 +5,12 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    paths:
+    paths: &relevant-paths
       - "docs/**"
       - ".github/workflows/automatic-doc-checks.yml"
+  merge_group:
+    types: [checks_requested]
+    paths: *relevant-paths
   workflow_dispatch:
     # Manual trigger
 
