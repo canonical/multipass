@@ -30,7 +30,8 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "")
 FetchContent_MakeAvailable(googletest)
 
-add_executable(multipass_tests
+# Common test sources shared between test executables
+set(COMMON_TEST_SOURCES
   blueprint_test_lambdas.cpp
   common.cpp
   daemon_test_fixture.cpp
@@ -52,20 +53,11 @@ add_executable(multipass_tests
   stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
-  test_alias_dict.cpp
-  test_argparser.cpp
-  test_base_snapshot.cpp
-  test_base_virtual_machine.cpp
-  test_base_virtual_machine_factory.cpp
-  test_basic_process.cpp
-  test_cli_client.cpp
-  test_cli_prompters.cpp
-  test_client_cert_store.cpp
-  test_client_common.cpp
-  test_cloud_init_iso.cpp
-  test_common_callbacks.cpp
-  test_constants.cpp
-  test_custom_image_host.cpp
+)
+
+# Daemon test executable 
+add_executable(multipass_daemon_tests
+  ${COMMON_TEST_SOURCES}
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_clone.cpp
@@ -76,6 +68,26 @@ add_executable(multipass_tests
   test_daemon_start.cpp
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
+  test_alias_dict.cpp
+  test_client_common.cpp
+  unix/test_daemon_rpc.cpp
+)
+
+# Main tests executable
+add_executable(multipass_tests
+  ${COMMON_TEST_SOURCES}
+  test_argparser.cpp
+  test_base_snapshot.cpp
+  test_base_virtual_machine.cpp
+  test_base_virtual_machine_factory.cpp
+  test_basic_process.cpp
+  test_cli_client.cpp
+  test_cli_prompters.cpp
+  test_client_cert_store.cpp
+  test_cloud_init_iso.cpp
+  test_common_callbacks.cpp
+  test_constants.cpp
+  test_custom_image_host.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_format_utils.cpp
@@ -131,11 +143,15 @@ add_executable(multipass_tests
   test_standard_logger.cpp
 )
 
-target_include_directories(multipass_tests
-  PRIVATE ${CMAKE_SOURCE_DIR}
-  PRIVATE ${CMAKE_SOURCE_DIR}/src
-  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
+# Common include directories
+set(COMMON_INCLUDE_DIRS
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
+
+target_include_directories(multipass_daemon_tests PRIVATE ${COMMON_INCLUDE_DIRS})
+target_include_directories(multipass_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 
 add_definitions(-DWITH_SERVER)
 target_compile_definitions(ssh_test PRIVATE
@@ -150,7 +166,8 @@ target_compile_definitions(ssh_client_test PRIVATE
 target_compile_definitions(utils_test PRIVATE
   -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
 
-target_link_libraries(multipass_tests
+# Common libraries
+set(COMMON_LIBRARIES
   cert
   client
   daemon
@@ -175,18 +192,22 @@ target_link_libraries(multipass_tests
   yaml
 )
 
+target_link_libraries(multipass_daemon_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
+
 # need https://github.com/google/googletest/commit/a09ea700d32bab83325aff9ff34d0582e50e3997 before this can be removed
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(multipass_tests PRIVATE -Wno-inconsistent-missing-override)
+  target_compile_options(multipass_daemon_tests PRIVATE -Wno-inconsistent-missing-override)
 endif()
 
-add_test(NAME multipass_tests
-  COMMAND multipass_tests
-)
+add_test(NAME multipass_daemon_tests COMMAND multipass_daemon_tests)
+add_test(NAME multipass_tests COMMAND multipass_tests)
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   string(TOUPPER ${BACKEND}_ENABLED DEF)
   target_compile_definitions(multipass_tests PRIVATE ${DEF})
+  target_compile_definitions(multipass_daemon_tests PRIVATE ${DEF})
 endforeach()
 
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
@@ -195,6 +216,7 @@ if (${MANIFEST_ARCH} STREQUAL "x86_64")
 endif()
 
 target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+target_compile_definitions(multipass_daemon_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 
 file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
 
@@ -219,10 +241,14 @@ set_target_properties(mock_process
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
 add_dependencies(multipass_tests mock_process)
+add_dependencies(multipass_daemon_tests mock_process)
 
-target_include_directories(multipass_tests
-  BEFORE
-    PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+# Add platform include directory
+target_include_directories(multipass_tests BEFORE
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
+target_include_directories(multipass_daemon_tests BEFORE
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 
 add_subdirectory(${MULTIPASS_PLATFORM})
