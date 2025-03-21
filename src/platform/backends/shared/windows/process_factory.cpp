@@ -52,46 +52,6 @@ std::string GetLastErrorAsString()
     return message;
 }
 
-// Inspired by http://stackoverflow.com/a/15281070/1529139
-// and http://stackoverflow.com/q/40059902/1529139
-// FIXME - this succeeds once, but any other calls fail. I suspect it due to how it fails
-// to re-connect to the original Console (possibly due to multipassd being the only process
-// connected to it).
-bool signalCtrl(DWORD dwProcessId, DWORD dwCtrlEvent)
-{
-    bool success = false;
-    DWORD thisConsoleId = GetCurrentProcessId();
-    mpl::log(mpl::Level::info, ::category, fmt::format("PIDS: {} {}", (uint)dwProcessId, (uint)thisConsoleId));
-
-    // Leave current console if it exists
-    // (otherwise AttachConsole will return ERROR_ACCESS_DENIED)
-    bool consoleDetached = (FreeConsole() != FALSE);
-
-    if (AttachConsole(dwProcessId) != FALSE)
-    {
-        // Add a fake Ctrl-C handler for avoid instant kill is this console
-        // WARNING: do not revert it or current program will be also killed
-        SetConsoleCtrlHandler(nullptr, true);
-        success = (GenerateConsoleCtrlEvent(dwCtrlEvent, 0) != FALSE);
-        FreeConsole();
-    }
-    else
-    {
-        mpl::log(mpl::Level::warning, ::category,
-                 fmt::format("Failed to attach to Console: {}", ::GetLastErrorAsString()));
-    }
-
-    if (consoleDetached)
-    {
-        // Create a new console if previous was deleted by OS
-        if (AttachConsole(thisConsoleId) == FALSE)
-        {
-            mpl::log(mpl::Level::warning, ::category,
-                     fmt::format("Could not reconnect to original Console: {}", ::GetLastErrorAsString()));
-        }
-    }
-    return success;
-}
 } // namespace
 
 namespace
@@ -118,11 +78,14 @@ public:
 
     void terminate() override
     {
-        if (/*!signalCtrl(processInfo->dwProcessId, CTRL_C_EVENT)*/ true)
+        // Let's send the child a signal first to let it gracefully terminate.
+        // the process_id() is also the console group id.
+        if (GenerateConsoleCtrlEvent(/*dwCtrlEvent*/ CTRL_BREAK_EVENT, /*dwProcessGroupId*/ process_id()) == 0)
         {
             // failed to Ctrl+C, resort to killing
-            mpl::log(mpl::Level::warning, ::category,
-                     fmt::format("Failed to Ctrl+C, fall back to killing. Error was: {}", GetLastErrorAsString()));
+            mpl::warn(::category,
+                      "Failed to Ctrl+Break, falling back to kill(). Error was: {}",
+                      GetLastErrorAsString());
             kill();
         }
     }
