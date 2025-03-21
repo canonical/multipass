@@ -168,13 +168,10 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
         {
             if (args[0] == "sudo")
             {
-                // Extract the command without the sudo prefix
-                std::vector<std::string> cmd_args(args.begin() + 1, args.end());
-
                 // Use sudo to access the directory, but run the command as the ubuntu user,
-                // then use sudo again to execute the original command
                 // This preserves the correct SUDO_ environment variables
-                auto sh_args = fmt::format("cd {} && sudo -u {} sudo {}", *dir, username, fmt::join(cmd_args, " "));
+                const auto sh_args = fmt::format("cd {} && sudo -u {} {}", *dir, username, fmt::join(args, " "));
+
                 all_args = {{"sudo", "sh", "-c", sh_args}};
             }
             else
