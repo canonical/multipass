@@ -229,6 +229,39 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
+    - name: Run TICS analysis
+      id: tics
+      if: ${{ steps.measure-coverage.outcome == 'success' }}
+      env:
+          TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
+          GH_TOKEN: ${{ github.token }}
+      run: |
+        set -e
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+
+        # # Download, combine and move coverage to the right place so TiCS can parse it
+        # RUN_ID=$(gh run list --workflow 'QA & sanity checks' --limit 1 --status success --json databaseId -b main | jq '.[].databaseId')
+        # gh run download $RUN_ID -n coverage.zip -D /tmp/coverage
+        # E2E_RUN_ID=$(gh run list --workflow 'E2E - Run tests' --limit 1 --status success --json databaseId -b main | jq '.[].databaseId')
+        # gh run download $E2E_RUN_ID -n pam-coverage.zip -D /tmp/coverage
+        # reportgenerator "-reports:/tmp/coverage/*.xml" "-targetdir:.coverage" -reporttypes:Cobertura
+        # mv .coverage/Cobertura.xml .coverage/coverage.xml
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cp /root/parts/multipass/build/coverage/index.html .coverage/coverage.html'
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cp /root/parts/multipass/build/coverage/index.html /root/parts/multipass/build/coverage/coverage.html'
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mv /root/parts/multipass/build/coverage /root/parts/multipass'
+
+
+        # Install TiCS
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c ". <(curl --silent --show-error 'https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/')"
+
+        # TiCS requires all artifacts to be built
+        # go build ./cmd/...
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'TICSQServer -project multipass -tmpdir /tmp/tics -branchdir /root/parts/multipass'
+
+
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       with:
