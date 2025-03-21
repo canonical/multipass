@@ -128,25 +128,6 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
     mpl::info(category, "initializing mount {} => {} in '{}'", this->mount_spec.get_source_path(), target, vm->vm_name);
 }
 
-bool SSHFSMountHandler::is_active()
-try
-{
-    if (!active || !process || !process->running())
-        return false;
-
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-
-    const auto resolved_target = mp::utils::get_resolved_target(session, target);
-
-    return !session.exec(fmt::format("findmnt --type fuse.sshfs | grep -E '^{} +:{}'", resolved_target, source))
-                .exit_code();
-}
-catch (const std::exception& e)
-{
-    mpl::warn(category, "Failed checking SSHFS mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what());
-    return false;
-}
-
 void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
@@ -168,8 +149,6 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
     config.host = vm->ssh_hostname();
     config.port = vm->ssh_port();
 
-    if (process)
-        process.reset();
     process.reset(platform::make_sshfs_server_process(config).release());
 
     QObject::connect(process.get(), &Process::finished, [this](const ProcessState& exit_state) {
@@ -206,9 +185,10 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
     // when stopping the mount from the main thread again, qt will try to send an event from the main thread to the one
     // in which the process lives this will result in an error since qt can't send events from one thread to another
     process->moveToThread(QCoreApplication::instance()->thread());
+    // So, for any future travelers, this^ is the main reason why we use qt_delete_later_unique_ptr thingy.
 
     // Check in case sshfs_server stopped, usually due to an error
-    auto process_state = process->process_state();
+    const auto process_state = process->process_state();
     if (process_state.exit_code == 9) // Magic number returned by sshfs_server
         throw SSHFSMissingError();
     else if (process_state.exit_code || process_state.error)
@@ -221,60 +201,47 @@ void SSHFSMountHandler::deactivate_impl(bool force)
     mpl::info(category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
 
-    try
+    constexpr auto kProcessWaitTimeout = std::chrono::milliseconds{5000};
+    if (process->terminate(); !process->wait_for_finished(kProcessWaitTimeout.count()))
     {
-        if (process->terminate(); !process->wait_for_finished(5000))
+        auto fetch_stderr = [](Process& process) {
+            return fmt::format("Failed to terminate SSHFS mount process gracefully: {}",
+                               process.read_all_standard_error());
+        };
+
+        const auto err = fetch_stderr(*process.get());
+
+        if (force)
         {
-            auto err = fmt::format("Failed to terminate SSHFS mount process: {}", process->read_all_standard_error());
-            if (force)
-                mpl::warn(category,
-                          "Failed to gracefully stop mount \"{}\" in instance '{}': {}",
-                          target,
-                          vm->vm_name,
-                          err);
-            else
-                throw std::runtime_error{err};
+            mpl::warn(category,
+                      "Failed to gracefully stop mount \"{}\" in instance '{}': {}, trying to stop it forcefully.",
+                      target,
+                      vm->vm_name,
+                      err);
+            /**
+             * Let's try brute force this time.
+             */
+            process->kill();
+            const auto result = process->wait_for_finished(kProcessWaitTimeout.count());
+
+            mpl::warn(category,
+                      "{} to forcefully stop mount \"{}\" in instance '{}': {}",
+                      result ? "Succeeded" : "Failed",
+                      target,
+                      vm->vm_name,
+                      result ? "" : fetch_stderr(*process.get()));
         }
+        else
+            throw std::runtime_error{err};
     }
-    catch (...)
-    {
-        // Give up waiting for the `finished` signal before the process is destroyed.
-        QObject::disconnect(process.get(), &Process::finished, nullptr, nullptr);
-        throw;
-    }
+
+    // Finally, call reset() to disconnect all the signals and defer the deletion
+    // to the owning thread, in this case it's the QT main.
     process.reset();
 }
 
 SSHFSMountHandler::~SSHFSMountHandler()
 {
     deactivate(/*force=*/true);
-
-    /*
-     * Ensure that the signals are disconnected.
-     *
-     * The `is_active` function has some interesting logic going on, which in turn
-     * prevents `deactivate_impl` to be run. That means the disconnect for `error_occured`
-     * does not happen, and it can possibly be triggered while the mount handler & process
-     * objects are not alive. Sounds fun? I don't think so either.
-     *
-     * We're disconnecting the signals here because it should be done as a part
-     * of the destructor regardless of other stuff.
-     *
-     * FIXME: Find a way to associate slot lifetime with the process itself.
-     */
-    if (process)
-    {
-        constexpr std::string_view warn_msg_fmtstr =
-            "Stopped listening to sshfs_server process only upon SSHFSMountHandler destruction";
-        // The disconnect() is a no-op when nothing is connected.
-        if (QObject::disconnect(process.get(), &Process::finished, nullptr, nullptr))
-        {
-            mpl::warn(category, warn_msg_fmtstr);
-        }
-        if (QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr))
-        {
-            mpl::warn(category, warn_msg_fmtstr);
-        }
-    }
 }
 } // namespace multipass
