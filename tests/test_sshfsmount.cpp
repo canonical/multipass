@@ -411,12 +411,11 @@ TEST_F(SshfsMount, blank_fuse_version_logs_error)
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::warning), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
-                    mpt::MockLogger::make_cstring_matcher(StrEq("Unable to parse the FUSE library version"))));
+                log(Eq(mpl::Level::warning), StrEq("sshfs mount"), StrEq("Unable to parse the FUSE library version")));
     EXPECT_CALL(*logger_scope.mock_logger,
-                log(Eq(mpl::Level::debug), mpt::MockLogger::make_cstring_matcher(StrEq("sshfs mount")),
-                    mpt::MockLogger::make_cstring_matcher(
-                        StrEq("Unable to parse the FUSE library version: FUSE library version:"))));
+                log(Eq(mpl::Level::debug),
+                    StrEq("sshfs mount"),
+                    StrEq("Unable to parse the FUSE library version: FUSE library version:")));
 
     test_command_execution(commands);
 }

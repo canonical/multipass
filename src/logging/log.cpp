@@ -56,13 +56,13 @@ void qt_message_handler(QtMsgType type, const QMessageLogContext&, const QString
 }
 } // namespace
 
-void mpl::log(Level level, CString category, CString message)
+void mpl::log(Level level, std::string_view category, std::string_view message)
 {
     std::shared_lock<decltype(mutex)> lock{mutex};
     if (global_logger)
         global_logger->log(level, category, message);
     else
-        fmt::print(stderr, "[{}] [{}] {}\n", as_string(level).c_str(), category.c_str(), message.c_str());
+        fmt::print(stderr, "[{}] [{}] {}\n", as_string(level), category, message);
 }
 
 mpl::Level mpl::get_logging_level()

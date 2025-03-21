@@ -33,9 +33,9 @@ class MockLogger : public multipass::logging::Logger, public PrivatePassProvider
 public:
     MockLogger(const PrivatePass&, const multipass::logging::Level logging_level);
 
-    MOCK_METHOD(void, log,
-                (multipass::logging::Level level, multipass::logging::CString category,
-                 multipass::logging::CString message),
+    MOCK_METHOD(void,
+                log,
+                (multipass::logging::Level level, std::string_view category, std::string_view message),
                 (const, override));
 
     class Scope
@@ -52,10 +52,8 @@ public:
     // only one at a time, please
     [[nodiscard]] static Scope inject(const multipass::logging::Level logging_level = multipass::logging::Level::error);
 
-    template <typename Matcher>
-    static auto make_cstring_matcher(const Matcher& matcher);
-
-    void expect_log(multipass::logging::Level lvl, const std::string& substr,
+    void expect_log(multipass::logging::Level lvl,
+                    const std::string& substr,
                     const testing::Cardinality& times = testing::Exactly(1));
 
     // Reject logs with severity `lvl` or higher (lower integer), accept the rest
@@ -64,11 +62,5 @@ public:
 };
 } // namespace test
 } // namespace multipass
-
-template <typename Matcher>
-auto multipass::test::MockLogger::make_cstring_matcher(const Matcher& matcher)
-{
-    return testing::Property(&multipass::logging::CString::c_str, matcher);
-}
 
 #endif // MULTIPASS_MOCK_LOGGER_H

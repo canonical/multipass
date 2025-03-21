@@ -30,13 +30,13 @@ struct log_tests : ::testing::Test
 
 TEST_F(log_tests, test_levels_as_string)
 {
-    ASSERT_STREQ(mpl::as_string(mpl::Level::debug).c_str(), "debug");
-    ASSERT_STREQ(mpl::as_string(mpl::Level::error).c_str(), "error");
-    ASSERT_STREQ(mpl::as_string(mpl::Level::info).c_str(), "info");
-    ASSERT_STREQ(mpl::as_string(mpl::Level::warning).c_str(), "warning");
-    ASSERT_STREQ(mpl::as_string(mpl::Level::trace).c_str(), "trace");
-    ASSERT_STREQ(mpl::as_string(static_cast<mpl::Level>(-1)).c_str(), "unknown");
-    ASSERT_STREQ(mpl::as_string(static_cast<mpl::Level>(5)).c_str(), "unknown");
+    ASSERT_EQ(mpl::as_string(mpl::Level::debug), "debug");
+    ASSERT_EQ(mpl::as_string(mpl::Level::error), "error");
+    ASSERT_EQ(mpl::as_string(mpl::Level::info), "info");
+    ASSERT_EQ(mpl::as_string(mpl::Level::warning), "warning");
+    ASSERT_EQ(mpl::as_string(mpl::Level::trace), "trace");
+    ASSERT_EQ(mpl::as_string(static_cast<mpl::Level>(-1)), "unknown");
+    ASSERT_EQ(mpl::as_string(static_cast<mpl::Level>(5)), "unknown");
 }
 
 TEST_F(log_tests, test_non_format_overload)
