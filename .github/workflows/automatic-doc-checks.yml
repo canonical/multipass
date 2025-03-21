@@ -5,10 +5,11 @@ on:
   push:
     branches: [ main ]
   pull_request:
-
+    paths:
+      - "docs/**"
+      - ".github/workflows/automatic-doc-checks.yml"
   workflow_dispatch:
     # Manual trigger
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
