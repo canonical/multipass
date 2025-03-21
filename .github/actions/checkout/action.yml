@@ -1,5 +1,5 @@
 name: Checkout
-description: Check out Multipass code along with tags and submodules
+description: Get tags and submodules for the Multipass repository
 
 runs:
   using: composite
