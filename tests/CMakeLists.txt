@@ -76,6 +76,12 @@ set(MEMORY_TEST_SOURCES
   test_memory_size.cpp
 )
 
+# Formatter test sources
+set(FORMATTER_TEST_SOURCES
+  test_format_utils.cpp
+  test_output_formatter.cpp
+)
+
 # Client test sources
 set(CLIENT_TEST_SOURCES
   test_cli_client.cpp
@@ -115,6 +121,12 @@ add_executable(multipass_memory_tests
   ${MEMORY_TEST_SOURCES}
 )
 
+# Formatter test executable
+add_executable(multipass_formatter_tests
+  ${COMMON_TEST_SOURCES}
+  ${FORMATTER_TEST_SOURCES}
+)
+
 # Main tests executable
 add_executable(multipass_tests
   ${COMMON_TEST_SOURCES}
@@ -129,7 +141,6 @@ add_executable(multipass_tests
   test_custom_image_host.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
-  test_format_utils.cpp
   test_global_settings_handlers.cpp
   test_id_mappings.cpp
   test_image_vault.cpp
@@ -140,7 +151,6 @@ add_executable(multipass_tests
   test_mock_standard_paths.cpp
   test_mount_handler.cpp
   test_new_release_monitor.cpp
-  test_output_formatter.cpp
   test_persistent_settings_handler.cpp
   test_petname.cpp
   test_private_pass_provider.cpp
@@ -178,6 +188,7 @@ set(COMMON_INCLUDE_DIRS
 target_include_directories(multipass_daemon_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 target_include_directories(multipass_client_ssh_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 target_include_directories(multipass_memory_tests PRIVATE ${COMMON_INCLUDE_DIRS})
+target_include_directories(multipass_formatter_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 target_include_directories(multipass_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 
 add_definitions(-DWITH_SERVER)
@@ -222,6 +233,7 @@ set(COMMON_LIBRARIES
 target_link_libraries(multipass_daemon_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_client_ssh_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_memory_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_formatter_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
 
 # need https://github.com/google/googletest/commit/a09ea700d32bab83325aff9ff34d0582e50e3997 before this can be removed
@@ -230,11 +242,13 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(multipass_daemon_tests PRIVATE -Wno-inconsistent-missing-override)
   target_compile_options(multipass_client_ssh_tests PRIVATE -Wno-inconsistent-missing-override)
   target_compile_options(multipass_memory_tests PRIVATE -Wno-inconsistent-missing-override)
+  target_compile_options(multipass_formatter_tests PRIVATE -Wno-inconsistent-missing-override)
 endif()
 
 add_test(NAME multipass_daemon_tests COMMAND multipass_daemon_tests)
 add_test(NAME multipass_client_ssh_tests COMMAND multipass_client_ssh_tests)
 add_test(NAME multipass_memory_tests COMMAND multipass_memory_tests)
+add_test(NAME multipass_formatter_tests COMMAND multipass_formatter_tests)
 add_test(NAME multipass_tests COMMAND multipass_tests)
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
@@ -243,6 +257,7 @@ foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   target_compile_definitions(multipass_daemon_tests PRIVATE ${DEF})
   target_compile_definitions(multipass_client_ssh_tests PRIVATE ${DEF})
   target_compile_definitions(multipass_memory_tests PRIVATE ${DEF})
+  target_compile_definitions(multipass_formatter_tests PRIVATE ${DEF})
 endforeach()
 
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
@@ -254,6 +269,7 @@ target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_A
 target_compile_definitions(multipass_daemon_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 target_compile_definitions(multipass_client_ssh_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 target_compile_definitions(multipass_memory_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+target_compile_definitions(multipass_formatter_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 
 file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
 
@@ -281,6 +297,7 @@ add_dependencies(multipass_tests mock_process)
 add_dependencies(multipass_daemon_tests mock_process)
 add_dependencies(multipass_client_ssh_tests mock_process)
 add_dependencies(multipass_memory_tests mock_process)
+add_dependencies(multipass_formatter_tests mock_process)
 
 # Add platform include directory
 target_include_directories(multipass_tests BEFORE
@@ -293,6 +310,9 @@ target_include_directories(multipass_client_ssh_tests BEFORE
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 target_include_directories(multipass_memory_tests BEFORE
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
+target_include_directories(multipass_formatter_tests BEFORE
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 
