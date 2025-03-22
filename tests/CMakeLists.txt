@@ -82,6 +82,15 @@ set(FORMATTER_TEST_SOURCES
   test_output_formatter.cpp
 )
 
+# Network test sources
+set(NETWORK_TEST_SOURCES
+  test_url_downloader.cpp
+  test_ip_address.cpp
+  test_ubuntu_image_host.cpp
+  test_custom_image_host.cpp
+  test_new_release_monitor.cpp
+)
+
 # Client test sources
 set(CLIENT_TEST_SOURCES
   test_cli_client.cpp
@@ -90,6 +99,20 @@ set(CLIENT_TEST_SOURCES
   test_client_common.cpp
   test_client_logger.cpp
   test_alias_dict.cpp
+)
+
+# QEMU test sources
+set(QEMU_TEST_SOURCES
+  qemu/test_qemu_backend.cpp
+  qemu/test_qemu_img_utils.cpp
+  qemu/test_qemu_mount_handler.cpp
+  qemu/test_qemu_snapshot.cpp
+  qemu/test_qemu_vm_process_spec.cpp
+  qemu/test_qemu_vmstate_process_spec.cpp
+  qemu/linux/test_dnsmasq_process_spec.cpp
+  qemu/linux/test_dnsmasq_server.cpp
+  qemu/linux/test_firewall_config.cpp
+  qemu/linux/test_qemu_platform_detail.cpp
 )
 
 # Daemon test executable
@@ -127,6 +150,20 @@ add_executable(multipass_formatter_tests
   ${FORMATTER_TEST_SOURCES}
 )
 
+# Network test executable
+add_executable(multipass_network_tests
+  ${COMMON_TEST_SOURCES}
+  ${NETWORK_TEST_SOURCES}
+  mischievous_url_downloader.cpp
+)
+
+# QEMU test executable
+add_executable(multipass_qemu_tests
+  ${COMMON_TEST_SOURCES}
+  ${QEMU_TEST_SOURCES}
+  test_with_mocked_bin_path.cpp
+)
+
 # Main tests executable
 add_executable(multipass_tests
   ${COMMON_TEST_SOURCES}
@@ -138,7 +175,6 @@ add_executable(multipass_tests
   test_cloud_init_iso.cpp
   test_common_callbacks.cpp
   test_constants.cpp
-  test_custom_image_host.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_global_settings_handlers.cpp
@@ -146,11 +182,9 @@ add_executable(multipass_tests
   test_image_vault.cpp
   test_image_vault_utils.cpp
   test_instance_settings_handler.cpp
-  test_ip_address.cpp
   test_json_utils.cpp
   test_mock_standard_paths.cpp
   test_mount_handler.cpp
-  test_new_release_monitor.cpp
   test_persistent_settings_handler.cpp
   test_petname.cpp
   test_private_pass_provider.cpp
@@ -164,8 +198,6 @@ add_executable(multipass_tests
   test_ssl_cert_provider.cpp
   test_timer.cpp
   test_top_catch_all.cpp
-  test_ubuntu_image_host.cpp
-  test_url_downloader.cpp
   test_utils.cpp
   test_yaml_node_utils.cpp
   test_vm_mount.cpp
@@ -189,6 +221,11 @@ target_include_directories(multipass_daemon_tests PRIVATE ${COMMON_INCLUDE_DIRS}
 target_include_directories(multipass_client_ssh_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 target_include_directories(multipass_memory_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 target_include_directories(multipass_formatter_tests PRIVATE ${COMMON_INCLUDE_DIRS})
+target_include_directories(multipass_network_tests PRIVATE ${COMMON_INCLUDE_DIRS})
+target_include_directories(multipass_qemu_tests PRIVATE ${COMMON_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu
+  ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu/linux
+)
 target_include_directories(multipass_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 
 add_definitions(-DWITH_SERVER)
@@ -234,6 +271,8 @@ target_link_libraries(multipass_daemon_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_client_ssh_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_memory_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_formatter_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_network_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_qemu_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
 
 # need https://github.com/google/googletest/commit/a09ea700d32bab83325aff9ff34d0582e50e3997 before this can be removed
@@ -243,12 +282,16 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(multipass_client_ssh_tests PRIVATE -Wno-inconsistent-missing-override)
   target_compile_options(multipass_memory_tests PRIVATE -Wno-inconsistent-missing-override)
   target_compile_options(multipass_formatter_tests PRIVATE -Wno-inconsistent-missing-override)
+  target_compile_options(multipass_network_tests PRIVATE -Wno-inconsistent-missing-override)
+  target_compile_options(multipass_qemu_tests PRIVATE -Wno-inconsistent-missing-override)
 endif()
 
 add_test(NAME multipass_daemon_tests COMMAND multipass_daemon_tests)
 add_test(NAME multipass_client_ssh_tests COMMAND multipass_client_ssh_tests)
 add_test(NAME multipass_memory_tests COMMAND multipass_memory_tests)
 add_test(NAME multipass_formatter_tests COMMAND multipass_formatter_tests)
+add_test(NAME multipass_network_tests COMMAND multipass_network_tests)
+add_test(NAME multipass_qemu_tests COMMAND multipass_qemu_tests)
 add_test(NAME multipass_tests COMMAND multipass_tests)
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
@@ -258,6 +301,8 @@ foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   target_compile_definitions(multipass_client_ssh_tests PRIVATE ${DEF})
   target_compile_definitions(multipass_memory_tests PRIVATE ${DEF})
   target_compile_definitions(multipass_formatter_tests PRIVATE ${DEF})
+  target_compile_definitions(multipass_network_tests PRIVATE ${DEF})
+  target_compile_definitions(multipass_qemu_tests PRIVATE ${DEF})
 endforeach()
 
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
@@ -270,6 +315,8 @@ target_compile_definitions(multipass_daemon_tests PRIVATE -DMANIFEST_ARCH="${MAN
 target_compile_definitions(multipass_client_ssh_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 target_compile_definitions(multipass_memory_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 target_compile_definitions(multipass_formatter_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+target_compile_definitions(multipass_network_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+target_compile_definitions(multipass_qemu_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 
 file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
 
@@ -283,21 +330,26 @@ endforeach()
 
 file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} PATTERN "*\.in" EXCLUDE)
 
-# Mock binaries for testing BasicProcess (cross-platform compatible)
+# Mock binaries for testing
 add_executable(mock_process
   mock_process.cpp)
 
-set_target_properties(mock_process
+add_executable(mock_qemuimg
+  qemu/mock_qemuimg.cpp)
+
+set_target_properties(mock_process mock_qemuimg
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_tests mock_process)
-add_dependencies(multipass_daemon_tests mock_process)
-add_dependencies(multipass_client_ssh_tests mock_process)
-add_dependencies(multipass_memory_tests mock_process)
-add_dependencies(multipass_formatter_tests mock_process)
+add_dependencies(multipass_tests mock_process mock_qemuimg)
+add_dependencies(multipass_daemon_tests mock_process mock_qemuimg)
+add_dependencies(multipass_client_ssh_tests mock_process mock_qemuimg)
+add_dependencies(multipass_memory_tests mock_process mock_qemuimg)
+add_dependencies(multipass_formatter_tests mock_process mock_qemuimg)
+add_dependencies(multipass_network_tests mock_process mock_qemuimg)
+add_dependencies(multipass_qemu_tests mock_process mock_qemuimg)
 
 # Add platform include directory
 target_include_directories(multipass_tests BEFORE
@@ -313,6 +365,12 @@ target_include_directories(multipass_memory_tests BEFORE
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 target_include_directories(multipass_formatter_tests BEFORE
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
+target_include_directories(multipass_network_tests BEFORE
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
+target_include_directories(multipass_qemu_tests BEFORE
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 
