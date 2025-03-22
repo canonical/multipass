@@ -73,6 +73,23 @@ add_executable(multipass_daemon_tests
   unix/test_daemon_rpc.cpp
 )
 
+# SSH test executable
+add_executable(multipass_ssh_tests
+  ${COMMON_TEST_SOURCES}
+  test_sftp_client.cpp
+  test_sftpserver.cpp
+  test_ssh_client.cpp
+  test_ssh_exec_failure.cpp
+  test_ssh_key_provider.cpp
+  test_ssh_process.cpp
+  test_ssh_session.cpp
+  test_sshfs_server_process_spec.cpp
+  test_sshfsmount.cpp
+  test_sshfs_mount_handler.cpp
+  test_sftp_dir_iterator.cpp
+  test_sftp_utils.cpp
+)
+
 # Main tests executable
 add_executable(multipass_tests
   ${COMMON_TEST_SOURCES}
@@ -110,19 +127,9 @@ add_executable(multipass_tests
   test_remote_settings_handler.cpp
   test_setting_specs.cpp
   test_settings.cpp
-  test_sftp_client.cpp
-  test_sftpserver.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
   test_singleton.cpp
-  test_ssh_client.cpp
-  test_ssh_exec_failure.cpp
-  test_ssh_key_provider.cpp
-  test_ssh_process.cpp
-  test_ssh_session.cpp
-  test_sshfs_server_process_spec.cpp
-  test_sshfsmount.cpp
-  test_sshfs_mount_handler.cpp
   test_ssl_cert_provider.cpp
   test_timer.cpp
   test_top_catch_all.cpp
@@ -133,8 +140,6 @@ add_executable(multipass_tests
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
   test_blueprint_provider.cpp
-  test_sftp_dir_iterator.cpp
-  test_sftp_utils.cpp
   test_file_ops.cpp
   test_recursive_dir_iter.cpp
   test_log.cpp
@@ -151,6 +156,7 @@ set(COMMON_INCLUDE_DIRS
 )
 
 target_include_directories(multipass_daemon_tests PRIVATE ${COMMON_INCLUDE_DIRS})
+target_include_directories(multipass_ssh_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 target_include_directories(multipass_tests PRIVATE ${COMMON_INCLUDE_DIRS})
 
 add_definitions(-DWITH_SERVER)
@@ -193,21 +199,25 @@ set(COMMON_LIBRARIES
 )
 
 target_link_libraries(multipass_daemon_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_ssh_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
 
 # need https://github.com/google/googletest/commit/a09ea700d32bab83325aff9ff34d0582e50e3997 before this can be removed
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(multipass_tests PRIVATE -Wno-inconsistent-missing-override)
   target_compile_options(multipass_daemon_tests PRIVATE -Wno-inconsistent-missing-override)
+  target_compile_options(multipass_ssh_tests PRIVATE -Wno-inconsistent-missing-override)
 endif()
 
 add_test(NAME multipass_daemon_tests COMMAND multipass_daemon_tests)
+add_test(NAME multipass_ssh_tests COMMAND multipass_ssh_tests)
 add_test(NAME multipass_tests COMMAND multipass_tests)
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   string(TOUPPER ${BACKEND}_ENABLED DEF)
   target_compile_definitions(multipass_tests PRIVATE ${DEF})
   target_compile_definitions(multipass_daemon_tests PRIVATE ${DEF})
+  target_compile_definitions(multipass_ssh_tests PRIVATE ${DEF})
 endforeach()
 
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
@@ -217,6 +227,7 @@ endif()
 
 target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 target_compile_definitions(multipass_daemon_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
+target_compile_definitions(multipass_ssh_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 
 file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
 
@@ -242,12 +253,16 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_tests mock_process)
 add_dependencies(multipass_daemon_tests mock_process)
+add_dependencies(multipass_ssh_tests mock_process)
 
 # Add platform include directory
 target_include_directories(multipass_tests BEFORE
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 target_include_directories(multipass_daemon_tests BEFORE
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
+)
+target_include_directories(multipass_ssh_tests BEFORE
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 
