@@ -1521,9 +1521,9 @@ void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(ApiFnT& target_api_
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...) > name: (test_vm)");
         logger_scope.mock_logger->expect_log(
-            mpl::Level::error,
+            mpl::Level::debug,
             "open_host_compute_system(...) > failed to open (test_vm), result code: (0x80004003)");
-        logger_scope.mock_logger->expect_log(mpl::Level::error,
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "perform_hcs_operation(...) > HcsOpenComputeSystem failed!");
     }
 
