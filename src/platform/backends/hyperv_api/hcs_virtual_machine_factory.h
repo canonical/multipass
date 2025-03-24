@@ -65,6 +65,13 @@ protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
     void remove_resources_for_impl(const std::string& name) override;
 
+private:
+    VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
+                                       const multipass::VMSpecs& src_vm_specs,
+                                       const VirtualMachineDescription& desc,
+                                       VMStatusMonitor& monitor,
+                                       const SSHKeyProvider& key_provider) override;
+
     hcs_sptr_t hcs_sptr{nullptr};
     hcn_sptr_t hcn_sptr{nullptr};
     virtdisk_sptr_t virtdisk_sptr{nullptr};
