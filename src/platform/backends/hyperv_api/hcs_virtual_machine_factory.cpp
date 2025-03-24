@@ -86,7 +86,14 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(const Virt
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
-    throw std::runtime_error{"Not implemented yet."};
+    mpl::debug(kLogCategory, "remove_resources_for_impl() -> VM: {}", name);
+    // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
+    // the VM is stopped. The base class will take care of the nuking the VM folder.
+    const auto& [status, status_msg] = hcs_sptr->terminate_compute_system(name);
+    if (status)
+    {
+        mpl::warn(kLogCategory, "remove_resources_for_impl() -> Host compute system {} was still alive.", name);
+    }
 }
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
