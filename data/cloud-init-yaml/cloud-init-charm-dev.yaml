@@ -1,0 +1,141 @@
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
+packages:
+- python3-pip
+- jq
+- sysstat
+- zsh
+- fzf
+- bat
+- ripgrep
+- gnome-keyring
+- kitty-terminfo
+- just
+
+snap:
+  commands:
+  # Juju 3.6 is an LTS.
+  # https://juju.is/docs/juju/roadmap
+  - snap install juju --channel=3.6/stable
+  - snap install microk8s --channel=1.31-strict/stable
+  - snap alias microk8s.kubectl kubectl
+  - snap alias microk8s.kubectl k
+  - snap install --classic charmcraft
+  - snap install --classic rockcraft
+  - snap install jhack --channel=latest/stable
+  - snap install yq
+  - snap install astral-uv --classic
+  - snap refresh
+
+write_files:
+- path: "/etc/update-motd.d/99-use-beta-channels"
+  permissions: "0755"
+  content: |
+    #!/bin/sh
+
+    echo "======================================================================"
+    echo " If you're feeling adventurous, you could help the charming community"
+    echo " by switching to the beta channels and reporting any issues you "
+    echo " encounter in you journey!"
+    echo
+    echo "   sudo snap refresh juju --channel=3/beta"
+    echo "   sudo snap refresh charmcraft --classic --channel=3.x/beta"
+    echo "======================================================================"
+
+runcmd:
+- DEBIAN_FRONTEND=noninteractive apt remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
+- DEBIAN_FRONTEND=noninteractive apt -y upgrade
+
+- |
+  # Install tox from pypi (v4) instead of apt (v3)
+  sudo -u ubuntu pip install tox
+
+- |
+  # disable swap
+  sysctl -w vm.swappiness=0
+  echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+  swapoff -a
+
+- |
+  # disable unnecessary services
+  systemctl disable man-db.timer man-db.service --now
+  systemctl disable apport.service apport-autoreport.service  --now
+  systemctl disable apt-daily.service apt-daily.timer --now
+  systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+  systemctl disable unattended-upgrades.service --now
+  systemctl disable motd-news.service motd-news.timer --now
+  systemctl disable bluetooth.target --now
+  systemctl disable ua-messaging.service ua-messaging.timer --now
+  systemctl disable ua-timer.timer ua-timer.service --now
+  systemctl disable systemd-tmpfiles-clean.timer --now
+
+  # Disable IPv6
+  echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
+  echo "net.ipv6.conf.default.disable_ipv6=1" | tee -a /etc/sysctl.conf
+  echo "net.ipv6.conf.lo.disable_ipv6=1" | tee -a /etc/sysctl.conf
+  sysctl -p
+
+- |
+  # oh-my-zsh + juju plugin
+  sudo -u ubuntu sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  sudo -u ubuntu git clone https://github.com/zsh-users/zsh-autosuggestions.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+  sudo -u ubuntu git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+  sudo -u ubuntu sed -i 's/plugins=(git)/plugins=(fzf git zsh-autosuggestions zsh-syntax-highlighting virtualenv colored-man-pages juju colorize)/g' ~ubuntu/.zshrc
+
+- |
+  # setup charmcraft
+  lxd init --auto
+  adduser ubuntu lxd
+
+- |
+  # Make sure juju directory is there
+  # https://bugs.launchpad.net/juju/+bug/1995697
+  sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
+
+- |
+  # setup microk8s and bootstrap
+  usermod -a -G snap_microk8s ubuntu
+  usermod -a -G microk8s ubuntu
+  microk8s status --wait-ready
+
+  microk8s.enable metrics-server
+  microk8s.kubectl rollout status deployments/metrics-server -n kube-system -w --timeout=600s
+
+  # The dns addon will restart the api server so you may see a blip in the availability
+  # Separating addons to avoid errors such as
+  # dial tcp 127.0.0.1:16443: connect: connection refused
+  microk8s.enable dns
+  microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
+
+  microk8s.enable rbac
+
+  # wait for storage become available
+  microk8s.enable hostpath-storage
+  microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
+
+  # MetalLB
+  IPADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
+  microk8s enable metallb:$IPADDR-$IPADDR
+  microk8s.kubectl rollout status daemonset.apps/speaker -n metallb-system -w --timeout=600s
+
+  # Microk8s built-in registry
+  microk8s enable registry
+  microk8s.kubectl rollout status deployment.apps/registry -n container-registry -w --timeout=600s
+
+  # bootstrap controllers
+  sudo -u ubuntu juju bootstrap localhost lxd
+  sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-lxd
+  sudo -u ubuntu juju bootstrap microk8s microk8s
+  sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-k8s
+
+  # dump config (this is needed for utils such as k9s or kdash)
+  sudo -u ubuntu mkdir -p /home/ubuntu/.kube
+  microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
+
+  # We need to connect the dot-local-share-juju interface with jhack
+  sudo snap connect jhack:dot-local-share-juju snapd
+  sudo snap connect jhack:ssh-read snapd
+
+final_message: "The system is finally up, after $UPTIME seconds"

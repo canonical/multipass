@@ -1,0 +1,24 @@
+package_update: true
+package_upgrade: true
+
+packages:
+- apt-transport-https
+
+runcmd:
+- sudo apt install curl gnupg
+- sudo add-apt-repository universe
+- sudo mkdir /etc/apt/keyrings
+- curl -fsSL https://repo.jellyfin.org/$( awk -F'=' '/^ID=/{ print $NF }' /etc/os-release )/jellyfin_team.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/jellyfin.gpg
+- |
+  cat <<EOF | sudo tee /etc/apt/sources.list.d/jellyfin.sources
+  Types: deb
+  URIs: https://repo.jellyfin.org/$( awk -F'=' '/^ID=/{ print $NF }' /etc/os-release )
+  Suites: $( awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release )
+  Components: main
+  Architectures: $( dpkg --print-architecture )
+  Signed-By: /etc/apt/keyrings/jellyfin.gpg
+  EOF
+- sudo apt update -y
+- sudo apt install jellyfin -y
+
+final_message: "The system is finally up, after $UPTIME seconds"

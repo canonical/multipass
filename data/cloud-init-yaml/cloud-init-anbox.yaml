@@ -1,0 +1,19 @@
+#cloud-config
+snap:
+  commands:
+  - snap install anbox-cloud-appliance
+
+runcmd:
+- |
+  # We're done if binder is available
+  modprobe binder_linux && exit 0
+
+  # else
+  apt-get update
+  env DEBIAN_FRONTEND=noninteractive apt purge -y linux-image-* linux-headers-* linux-modules-*
+  apt-get install -y linux-image-generic linux-headers-generic
+  apt-get autoremove -y
+
+power_state:
+  mode: reboot
+  condition: "! ( modprobe binder_linux )"
