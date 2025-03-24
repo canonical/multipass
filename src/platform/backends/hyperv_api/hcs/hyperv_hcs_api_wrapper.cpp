@@ -242,7 +242,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
             scsi_nodes.push_back(fmt::format(scsi_device_template,
                                              L"cloud-init iso file",
                                              L"Iso",
-                                             string_to_wstring(params.cloudinit_iso_path),
+                                             params.cloudinit_iso_path.generic_wstring(),
                                              true));
         }
 
@@ -251,7 +251,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
             scsi_nodes.push_back(fmt::format(scsi_device_template,
                                              L"Primary disk",
                                              L"VirtualDisk",
-                                             string_to_wstring(params.vhdx_path),
+                                             params.vhdx_path.generic_wstring(),
                                              false));
         }
 
