@@ -2920,8 +2920,11 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     if (!blueprint_name.empty())
     {
         constexpr auto deprecation_warning =
-            "*** Warning! The blueprint launch is deprecated and will be removed in an upcoming release. ***\n\n"
-            "See https://canonical.com/multipass/docs for launching instances with cloud-init. \n\n";
+            "* Warning! Blueprints are deprecated and will be removed in a future release. *\n\n
+            "You can achieve similar effects with cloud-init and other launch options.\n"
+            "Run `multipass help launch` for help, or find out more at:\n"
+            "- https://canonical.com/multipass/docs\n"
+            "- https://cloudinit.readthedocs.io/en/latest/index.html\n\n";
         CreateReply reply;
         reply.set_log_line(deprecation_warning);
         server->Write(reply);
