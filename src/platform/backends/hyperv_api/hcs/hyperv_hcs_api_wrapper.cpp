@@ -131,7 +131,7 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
 
     if (!result)
     {
-        mpl::error(kLogCategory,
+        mpl::debug(kLogCategory,
                    "open_host_compute_system(...) > failed to open ({}), result code: ({})",
                    name,
                    result);
@@ -174,7 +174,7 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
 
     if (nullptr == system)
     {
-        mpl::error(kLogCategory,
+        mpl::debug(kLogCategory,
                    "perform_hcs_operation(...) > HcsOpenComputeSystem failed! {}",
                    target_hcs_system_name);
         return OperationResult{E_INVALIDARG, L"HcsOpenComputeSystem failed!"};
