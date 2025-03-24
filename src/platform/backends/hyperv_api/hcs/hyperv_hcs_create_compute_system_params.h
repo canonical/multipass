@@ -22,6 +22,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 
 #include <fmt/format.h>
+#include <fmt/std.h>
 #include <string>
 
 namespace multipass::hyperv::hcs
@@ -50,12 +51,12 @@ struct CreateComputeSystemParameters
     /**
      * Path to the cloud-init ISO file
      */
-    std::string cloudinit_iso_path{};
+    std::filesystem::path cloudinit_iso_path{};
 
     /**
      * Path to the Primary (boot) VHDX file
      */
-    std::string vhdx_path{};
+     std::filesystem::path vhdx_path{};
 
     /**
      * List of endpoints that'll be added to the compute system

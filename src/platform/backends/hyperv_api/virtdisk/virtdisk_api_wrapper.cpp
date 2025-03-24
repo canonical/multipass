@@ -32,6 +32,12 @@ namespace multipass::hyperv::virtdisk
 namespace
 {
 
+auto normalize_path(std::filesystem::path p)
+{
+    p.make_preferred();
+    return p;
+}
+
 using UniqueHandle = std::unique_ptr<std::remove_pointer_t<HANDLE>, decltype(VirtDiskAPITable::CloseHandle)>;
 
 namespace mpl = logging;
@@ -93,6 +99,8 @@ VirtDiskWrapper::VirtDiskWrapper(const VirtDiskAPITable& api_table) : api{api_ta
 OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskParameters& params) const
 {
     mpl::debug(kLogCategory, "create_virtual_disk(...) > params: {}", params);
+
+    const auto target_path_normalized = normalize_path(params.path).wstring();
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/CreateVirtualDisk.cpp
     //
@@ -110,6 +118,43 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
     parameters.Version2 = {};
     parameters.Version2.MaximumSize = params.size_in_bytes;
 
+    // Tell virtdisk to copy the data from source when it's specified.
+    std::wstring source_path_normalized{};
+    if (params.source.has_value())
+    {
+        source_path_normalized = normalize_path(params.source.value()).wstring();
+        parameters.Version2.SourcePath = source_path_normalized.c_str();
+
+        VirtualDiskInfo src_disk_info{};
+        const auto result = get_virtual_disk_info(source_path_normalized, src_disk_info);
+        mpl::debug(kLogCategory, "create_virtual_disk(...) > source disk info fetch result `{}`", result);
+
+        if (src_disk_info.virtual_storage_type)
+        {
+            if (src_disk_info.virtual_storage_type == "vhd")
+            {
+                parameters.Version2.SourceVirtualStorageType.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHD;
+            }
+            else if (src_disk_info.virtual_storage_type == "vhdx")
+            {
+                parameters.Version2.SourceVirtualStorageType.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
+            }
+            else if (src_disk_info.virtual_storage_type == "unknown")
+            {
+                throw std::runtime_error{"Unable to determine the source disk type."};
+            }
+            else
+            {
+                throw std::runtime_error{"Unsupported source disk type for clone operation"};
+            }
+        }
+
+        mpl::debug(kLogCategory,
+                   "create_virtual_disk(...) > cloning `{}` to `{}`",
+                   std::filesystem::path{source_path_normalized},
+                   std::filesystem::path{target_path_normalized});
+    }
+
     //
     // Internal size of the virtual disk object blocks, in bytes.
     // For VHDX this must be a multiple of 1 MB between 1 and 256 MB.
@@ -123,13 +168,11 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
         parameters.Version2.BlockSizeInBytes = 524288; // 512 KiB
     }
 
-    const auto path_w = params.path.wstring();
-
     HANDLE result_handle{nullptr};
 
     const auto result = api.CreateVirtualDisk(&type,
                                               // [in] PCWSTR Path
-                                              path_w.c_str(),
+                                              target_path_normalized.c_str(),
                                               // [in] VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
                                               VIRTUAL_DISK_ACCESS_NONE,
                                               // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -279,7 +322,6 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
                     break;
                 case ProviderSubtype::dynamic:
                     vdinfo.provider_subtype = "dynamic";
-
                     break;
                 case ProviderSubtype::differencing:
                     vdinfo.provider_subtype = "differencing";
