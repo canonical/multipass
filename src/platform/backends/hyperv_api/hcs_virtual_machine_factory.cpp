@@ -25,6 +25,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/utils.h>
+#include <multipass/vm_specs.h>
 
 #include <computenetwork.h>
 
@@ -164,8 +165,56 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
 std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
 {
     (void)intf;
+
     // No-op. The implementation uses the default Hyper-V switch.
     return {};
+}
+
+VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& source_vm_name,
+                                                             const multipass::VMSpecs& src_vm_specs,
+                                                             const VirtualMachineDescription& desc,
+                                                             VMStatusMonitor& monitor,
+                                                             const SSHKeyProvider& key_provider)
+{
+
+    const fs::path src_vm_instance_dir{get_instance_directory(source_vm_name).toStdWString()};
+
+    if (!fs::exists(src_vm_instance_dir))
+    {
+        throw std::runtime_error{"Source VM instance directory is missing!"};
+    }
+
+    std::optional<fs::path> src_vm_vhdx{std::nullopt};
+
+    for (const auto& entry : fs::directory_iterator(src_vm_instance_dir))
+    {
+        const auto& extension = entry.path().extension();
+        if (extension == ".vhdx")
+        {
+            src_vm_vhdx = entry.path();
+            break;
+        }
+    }
+
+    if (!src_vm_vhdx.has_value())
+    {
+        throw std::runtime_error{"Could not locate source VM's vhdx file!"};
+    }
+
+    // Copy the VHDX file.
+    virtdisk::CreateVirtualDiskParameters clone_vhdx_params{};
+    clone_vhdx_params.source = src_vm_vhdx.value();
+    clone_vhdx_params.path = desc.image.image_path.toStdString();
+    clone_vhdx_params.size_in_bytes = 0; // use source
+
+    const auto& [status, msg] = virtdisk_sptr->create_virtual_disk(clone_vhdx_params);
+
+    if (!status)
+    {
+        throw std::runtime_error{"VHDX clone failed."};
+    }
+
+    return create_virtual_machine(desc, key_provider, monitor);
 }
 
 } // namespace multipass::hyperv
