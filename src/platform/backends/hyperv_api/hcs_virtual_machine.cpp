@@ -280,21 +280,13 @@ void HCSVirtualMachine::maybe_create_compute_system()
             //     ccs_params.endpoints.push_back(endpoint_params);
             // }
 
-            {
-                hcs::Plan9ShareParameters share{};
-                share.access_name = "test";
-                share.name = "test";
-                share.host_path = "C:/";
-                ccs_params.shares.push_back(share);
-            }
             return ccs_params;
         }();
 
         if (const auto create_result = hcs->create_compute_system(ccs_params); !create_result)
         {
-
             fmt::print(L"Create compute system failed: {}", create_result.status_msg);
-            throw CreateComputeSystemException{"create_compute_system failed with {}", create_result};
+            throw CreateComputeSystemException{"create_compute_system failed with {}", create_result.code};
         }
 
         // Grant access to the VHDX and the cloud-init ISO files.
