@@ -123,7 +123,7 @@ struct fmt::formatter<multipass::hyperv::OperationResult, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::OperationResult& opr, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{:#x}", opr.code);
+        return format_to(ctx.out(), "{}", opr.code);
     }
 };
 
