@@ -50,6 +50,7 @@
 #include <json/json.h>
 
 #include <aclapi.h>
+#include <sddl.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -667,6 +668,86 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return -1;
 }
 
+// new_ACL returns a new ACL unique ptr that retains all existing Hyper-V ACEs or NULL if no entries exist.
+auto new_ACL(LPSTR path)
+{
+    auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
+    auto newACL = std::unique_ptr<ACL, decltype(deleter)>{NULL, deleter};
+
+    PSECURITY_DESCRIPTOR pSD;
+    auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
+
+    PACL pOldDACL = NULL;
+    if (GetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &pOldDACL, NULL, &pSD) !=
+        ERROR_SUCCESS)
+    {
+        return newACL;
+    }
+
+    DWORD size = sizeof(ACL);
+    std::vector<ACCESS_ALLOWED_ACE*> aces{};
+
+    // iterate over ACEs in old ACL.
+    for (DWORD i = 0; i < pOldDACL->AceCount; ++i)
+    {
+        ACCESS_ALLOWED_ACE* pACE = NULL;
+        if (!GetAce(pOldDACL, i, (LPVOID*)(&pACE)))
+        {
+            continue;
+        }
+
+        PSID sid = (PSID)(&pACE->SidStart);
+
+        // convert SID to string so we can examine it.
+        LPSTR sidStr = NULL;
+        if (ConvertSidToStringSid(sid, &sidStr))
+        {
+            // Magic string given to us by
+            // https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers#well-known-sids
+            // All Hyper-V SIDs begin with this magic string.
+            static constexpr char VM_SID_ID[] = "S-1-5-83-";
+            auto cmp = strncmp(sidStr, VM_SID_ID, sizeof(VM_SID_ID) - 1);
+            LocalFree((HLOCAL)sidStr);
+
+            if (cmp == 0)
+            {
+                aces.emplace_back(pACE);
+                size += GetLengthSid(sid);
+            }
+        }
+    }
+
+    if (aces.size() > 0)
+    {
+        size += sizeof(ACCESS_ALLOWED_ACE) * aces.size();
+
+        // Align size to a DWORD. (taken from
+        // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-initializeacl)
+        size = (size + (sizeof(DWORD) - 1)) & 0xfffffffc;
+
+        if (newACL.reset((PACL)LocalAlloc(LPTR, size)); newACL)
+        {
+            if (!InitializeAcl(newACL.get(), size, ACL_REVISION))
+            {
+                throw std::system_error(GetLastError(), std::system_category(), "Failed to initialize new ACL");
+            }
+
+            // try to add all Hyper-V ACEs
+            for (const auto& ace : aces)
+            {
+                if (!AddAce(newACL.get(), ACL_REVISION, MAXDWORD, ace, ace->Header.AceSize))
+                {
+                    throw std::system_error(GetLastError(),
+                                            std::system_category(),
+                                            "Failed to add Hyper-V ACE to new ACL");
+                }
+            }
+        }
+    }
+
+    return newACL;
+}
+
 bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                                              std::filesystem::perms perms,
                                              bool inherit) const
@@ -682,8 +763,10 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     LPSTR lpPath = u8path.data();
     auto success = true;
 
+    auto newACL = new_ACL(lpPath);
+
     // Wipe out current ACLs
-    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
+    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, newACL.get(), nullptr);
 
     if (int others = int(perms) & 0007; others != 0)
         success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) == ERROR_SUCCESS;
