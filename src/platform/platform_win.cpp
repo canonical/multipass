@@ -395,9 +395,10 @@ BOOL signal_handler(DWORD dwCtrlType)
     switch (dwCtrlType)
     {
     case CTRL_C_EVENT:
-    // In Windows, ctrl-break is always delivered to all
-    // registered handlers no matter what the previous
-    // handlers return.
+        // In Windows, ctrl-break is always delivered to all
+        // registered handlers no matter what the previous
+        // handlers return.
+        [[fallthrough]];
     case CTRL_BREAK_EVENT:
     {
         SetEvent(signal_event);

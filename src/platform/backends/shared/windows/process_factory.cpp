@@ -74,6 +74,16 @@ public:
                 }
             });
         }
+
+        process.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args) {
+            // The CREATE_NEW_PROCESS_GROUP flag allows process to have its own signal
+            // group separate from the parent. This way, the parent can send signals
+            // e.g. (Ctrl-C) to the child for a graceful shutdown without having to
+            // disrupt other children, or the parent process itself if it has a signal
+            // handler. The constant is to avoid including windows.h & winbase.h.
+            constexpr static unsigned long kCreateNewProcessGroup = 0x00000200;
+            args->flags |= kCreateNewProcessGroup;
+        });
     }
 
     void terminate() override
