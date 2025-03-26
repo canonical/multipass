@@ -25,6 +25,7 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
+#include <multipass/exceptions/formatted_exception_base.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "backends/hyperv_api/hcs_virtual_machine_factory.h"
@@ -35,7 +36,6 @@
 #include "shared/windows/process_factory.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
-
 
 #include <QCoreApplication>
 #include <QDir>
@@ -52,7 +52,9 @@
 #include <aclapi.h>
 #include <sddl.h>
 #include <shlobj_core.h>
+#include <iphlpapi.h>
 #include <windows.h>
+
 
 #include <algorithm>
 #include <cerrno>
@@ -509,47 +511,124 @@ BOOL signal_handler(DWORD dwCtrlType)
 }
 } // namespace
 
-std::map<std::string, mp::NetworkInterfaceInfo>
-mp::platform::Platform::get_network_interfaces_info() const
+// std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+// {
+//     static const auto ps_cmd_base = QStringLiteral(
+//         "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
+//     static const auto ps_args = QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) +
+//     PowerShell::Snippets::to_bare_csv;
+
+//     QString ps_output;
+//     QString ps_output_err;
+//     if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", &ps_output, &ps_output_err))
+//     {
+//         std::map<std::string, mp::NetworkInterfaceInfo> ret{};
+//         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
+//         {
+//             auto terms = line.split(',', Qt::KeepEmptyParts);
+//             if (terms.size() != 4)
+//             {
+//                 throw std::runtime_error{
+//                     fmt::format("Could not determine available networks - unexpected powershell output: {}",
+//                                 ps_output)};
+//             }
+
+//             auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(),
+//                                                   interpret_net_type(terms[1], terms[2]),
+//                                                   terms[3].toStdString()};
+//             ret.emplace(iface.id, iface);
+//         }
+
+//         return ret;
+//     }
+
+//     auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
+//     auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+//     throw std::runtime_error{err};
+// }
+
+
+struct GetNetworkInterfacesInfoException : public multipass::FormattedExceptionBase<>
 {
-    static const auto ps_cmd_base =
-        QStringLiteral("Get-NetAdapter -physical | Select-Object -Property "
-                       "Name,MediaType,PhysicalMediaType,InterfaceDescription");
-    static const auto ps_args =
-        QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
+};
 
-    QString ps_output;
-    QString ps_output_err;
-    if (PowerShell::exec(ps_args,
-                         "Network Listing on Windows Platform",
-                         &ps_output,
-                         &ps_output_err))
-    {
-        std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
+std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+{
+
+    std::map<std::string, mp::NetworkInterfaceInfo> ret{};
+
+    auto adapter_type_to_str = [](int type) {
+        switch (type)
         {
-            auto terms = line.split(',', Qt::KeepEmptyParts);
-            if (terms.size() != 4)
-            {
-                throw std::runtime_error{fmt::format(
-                    "Could not determine available networks - unexpected powershell output: {}",
-                    ps_output)};
-            }
-
-            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(),
-                                                  interpret_net_type(terms[1], terms[2]),
-                                                  terms[3].toStdString()};
-            ret.emplace(iface.id, iface);
+        case MIB_IF_TYPE_OTHER:
+            return "Other";
+        case MIB_IF_TYPE_ETHERNET:
+            return "Ethernet";
+        case MIB_IF_TYPE_TOKENRING:
+            return "Token Ring";
+        case MIB_IF_TYPE_FDDI:
+            return "FDDI";
+        case MIB_IF_TYPE_PPP:
+            return "PPP";
+        case MIB_IF_TYPE_LOOPBACK:
+            return "Loopback";
+        case MIB_IF_TYPE_SLIP:
+            return "Slip";
+        default:
+            return "Unknown";
         }
+    };
 
-        return ret;
+    // TODO: Move to platform?
+    auto wchar_to_utf8 = [](std::wstring_view input) -> std::string {
+        if (input.empty())
+            return {};
+
+        const auto size_needed =
+            WideCharToMultiByte(CP_UTF8, 0, input.data(), static_cast<int>(input.size()), nullptr, 0, nullptr, nullptr);
+        std::string result(size_needed, 0);
+        WideCharToMultiByte(CP_UTF8,
+                            0,
+                            input.data(),
+                            static_cast<int>(input.size()),
+                            result.data(),
+                            size_needed,
+                            nullptr,
+                            nullptr);
+        // FIXME : Check error code and GetLastError here.
+        return result;
+    };
+
+    ULONG needed_size{0};
+    // Learn how much space we need to allocate.
+    GetAdaptersAddresses(AF_UNSPEC, 0, NULL, nullptr, &needed_size);
+
+    auto adapters_info_raw_storage = std::make_unique<char[]>(needed_size);
+
+    auto adapter_info = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(adapters_info_raw_storage.get());
+
+    if (const auto result = GetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_info, &needed_size); result == NO_ERROR)
+    {
+        // Retrieval was successful. The API returns a linked list, so walk over it.
+        for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
+        {
+            const auto& adapter = *pitr;
+
+            mp::NetworkInterfaceInfo test;
+            test.id = wchar_to_utf8(adapter.FriendlyName);
+            test.type = adapter_type_to_str(adapter.IfType);
+            test.description = wchar_to_utf8(adapter.Description);
+
+            ret.insert(std::make_pair(test.id, test));
+        }
     }
-
-    auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
-    auto err = fmt::format(
-        "Could not determine available networks - error executing powershell command.{}",
-        detail);
-    throw std::runtime_error{err};
+    else
+    {
+        // TODO: FormatMessage.
+        throw GetNetworkInterfacesInfoException{"Failed to retrieve network interface information. Error code: {}", result};
+    }
+    return ret;
 }
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
