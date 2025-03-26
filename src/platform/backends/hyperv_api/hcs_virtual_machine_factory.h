@@ -49,11 +49,8 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
         return "hyperv_api";
     };
 
-    std::vector<NetworkInterfaceInfo> networks() const override
-    {
-        return {};
-    }
-
+    std::vector<NetworkInterfaceInfo> networks() const override;
+    
     void require_snapshots_support() const override
     {
     }
@@ -75,6 +72,11 @@ private:
     hcs_sptr_t hcs_sptr{nullptr};
     hcn_sptr_t hcn_sptr{nullptr};
     virtdisk_sptr_t virtdisk_sptr{nullptr};
+
+    /**
+     * Retrieve a list of available network adapters.
+     */
+    static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass::hyperv
 
