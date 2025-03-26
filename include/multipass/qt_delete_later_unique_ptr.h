@@ -31,7 +31,7 @@ namespace multipass
 
 struct QtDeleteLater {
     void operator()(QObject *o) {
-        // Detach the signal handlers since this object don't live in a QT object
+        // Detach the signal handlers since this object doesn't live in a QT object
         // hierarchy, and that might cause lifetime related issues, especially
         // if signals are involved.
         o->disconnect();
