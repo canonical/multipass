@@ -204,104 +204,116 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
         }
     }
 
-    // Craete
-    maybe_create_compute_system();
+    const auto created_from_scratch = maybe_create_compute_system();
+    const auto state = fetch_state_from_api();
+
+    mpl::debug(kLogCategory,
+               "HCSVirtualMachine::HCSVirtualMachine() > `{}`, created_from_scratch: {}, state: {}",
+               vm_name,
+               created_from_scratch,
+               state);
+
     // Reflect compute system's state
-    set_state(fetch_state_from_api());
+    set_state(state);
     update_state();
 }
 
-void HCSVirtualMachine::maybe_create_compute_system()
+bool HCSVirtualMachine::maybe_create_compute_system()
 {
     hcs::ComputeSystemState cs_state{hcs::ComputeSystemState::unknown};
 
     // Check if the VM already exist
     const auto result = hcs->get_compute_system_state(vm_name, cs_state);
 
-    if (E_INVALIDARG == static_cast<HRESULT>(result.code))
+    if (!(E_INVALIDARG == static_cast<HRESULT>(result.code)))
     {
-        // FIXME: Handle suspend state?
+        // Target compute system already exist.
+        return false;
+    }
 
-        const auto endpoint_params = [this]() {
-            std::vector<hcn::CreateEndpointParameters> endpoint_params{};
-            endpoint_params.emplace_back(
-                hcn::CreateEndpointParameters{primary_network_guid, mac2uuid(description.default_mac_address)});
+    // FIXME: Handle suspend state?
 
-            // TODO: Figure out what to do with the "extra interfaces"
-            // for (const auto& v : desc.extra_interfaces)
-            // {
-            //     endpoint_params.emplace_back(network_guid, mac2uuid(v.mac_address));
-            // }
-            return endpoint_params;
-        }();
+    const auto endpoint_params = [this]() {
+        std::vector<hcn::CreateEndpointParameters> endpoint_params{};
+        endpoint_params.emplace_back(
+            hcn::CreateEndpointParameters{primary_network_guid, mac2uuid(description.default_mac_address)});
 
-        for (const auto& endpoint : endpoint_params)
+        // TODO: Figure out what to do with the "extra interfaces"
+        // for (const auto& v : desc.extra_interfaces)
+        // {
+        //     endpoint_params.emplace_back(network_guid, mac2uuid(v.mac_address));
+        // }
+        return endpoint_params;
+    }();
+
+    for (const auto& endpoint : endpoint_params)
+    {
+        // There might be remnants from an old VM, remove the endpoint if exist before
+        // creating it again.
+        if (hcn->delete_endpoint(endpoint.endpoint_guid))
         {
-            // There might be remnants from an old VM, remove the endpoint if exist before
-            // creating it again.
-            if (hcn->delete_endpoint(endpoint.endpoint_guid))
-            {
-                // TODO: log
-            }
-            if (const auto& [status, msg] = hcn->create_endpoint(endpoint); !status)
-            {
-                throw CreateEndpointException{"create_endpoint failed with {}", status};
-            }
+            mpl::debug(kLogCategory,
+                       "The endpoint {} was already present for the VM {}, removed it.",
+                       endpoint.endpoint_guid,
+                       vm_name);
         }
-
-        // E_INVALIDARG means there's no such VM.
-        // Create the VM from scratch.
-        const auto ccs_params = [this, &endpoint_params]() {
-            hcs::CreateComputeSystemParameters ccs_params{};
-            ccs_params.name = description.vm_name;
-            ccs_params.memory_size_mb = description.mem_size.in_megabytes();
-            ccs_params.processor_count = description.num_cores;
-            ccs_params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
-            ccs_params.vhdx_path = description.image.image_path.toStdString();
-
-            hcs::AddEndpointParameters default_endpoint_params{};
-            default_endpoint_params.nic_mac_address = description.default_mac_address;
-            // Hyper-V API does not like colons. Ensure that the MAC is separated
-            // with dash instead of colon.
-            replace_colon_with_dash(default_endpoint_params.nic_mac_address);
-            // make the UUID deterministic so we can query the endpoint with a MAC address
-            // if needed.
-            default_endpoint_params.endpoint_guid = mac2uuid(description.default_mac_address);
-            default_endpoint_params.target_compute_system_name = ccs_params.name;
-            ccs_params.endpoints.push_back(default_endpoint_params);
-
-            // TODO: Figure out what to do with the "extra interfaces"
-            // for (const auto& v : desc.extra_interfaces)
-            // {
-            //     hcs::AddEndpointParameters endpoint_params{};
-            //     endpoint_params.nic_mac_address = v.mac_address;
-            //     endpoint_params.endpoint_guid = mac2uuid(v.mac_address);
-            //     endpoint_params.target_compute_system_name = ccs_params.name;
-            //     ccs_params.endpoints.push_back(endpoint_params);
-            // }
-
-            return ccs_params;
-        }();
-
-        if (const auto create_result = hcs->create_compute_system(ccs_params); !create_result)
+        if (const auto& [status, msg] = hcn->create_endpoint(endpoint); !status)
         {
-            fmt::print(L"Create compute system failed: {}", create_result.status_msg);
-            throw CreateComputeSystemException{"create_compute_system failed with {}", create_result.code};
-        }
-
-        // Grant access to the VHDX and the cloud-init ISO files.
-        const auto grant_paths = {ccs_params.cloudinit_iso_path, ccs_params.vhdx_path};
-
-        for (const auto& path : grant_paths)
-        {
-            if (!hcs->grant_vm_access(ccs_params.name, path))
-            {
-                throw GrantVMAccessException{"Could not grant access to VM `{}` for the path `{}`",
-                                             ccs_params.name,
-                                             path};
-            }
+            throw CreateEndpointException{"create_endpoint failed with {}", status};
         }
     }
+
+    // E_INVALIDARG means there's no such VM.
+    // Create the VM from scratch.
+    const auto ccs_params = [this, &endpoint_params]() {
+        hcs::CreateComputeSystemParameters ccs_params{};
+        ccs_params.name = description.vm_name;
+        ccs_params.memory_size_mb = description.mem_size.in_megabytes();
+        ccs_params.processor_count = description.num_cores;
+        ccs_params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
+        ccs_params.vhdx_path = description.image.image_path.toStdString();
+
+        hcs::AddEndpointParameters default_endpoint_params{};
+        default_endpoint_params.nic_mac_address = description.default_mac_address;
+        // Hyper-V API does not like colons. Ensure that the MAC is separated
+        // with dash instead of colon.
+        replace_colon_with_dash(default_endpoint_params.nic_mac_address);
+        // make the UUID deterministic so we can query the endpoint with a MAC address
+        // if needed.
+        default_endpoint_params.endpoint_guid = mac2uuid(description.default_mac_address);
+        default_endpoint_params.target_compute_system_name = ccs_params.name;
+        ccs_params.endpoints.push_back(default_endpoint_params);
+
+        // TODO: Figure out what to do with the "extra interfaces"
+        // for (const auto& v : desc.extra_interfaces)
+        // {
+        //     hcs::AddEndpointParameters endpoint_params{};
+        //     endpoint_params.nic_mac_address = v.mac_address;
+        //     endpoint_params.endpoint_guid = mac2uuid(v.mac_address);
+        //     endpoint_params.target_compute_system_name = ccs_params.name;
+        //     ccs_params.endpoints.push_back(endpoint_params);
+        // }
+
+        return ccs_params;
+    }();
+
+    if (const auto create_result = hcs->create_compute_system(ccs_params); !create_result)
+    {
+        fmt::print(L"Create compute system failed: {}", create_result.status_msg);
+        throw CreateComputeSystemException{"create_compute_system failed with {}", create_result.code};
+    }
+
+    // Grant access to the VHDX and the cloud-init ISO files.
+    const auto grant_paths = {ccs_params.cloudinit_iso_path, ccs_params.vhdx_path};
+
+    for (const auto& path : grant_paths)
+    {
+        if (!hcs->grant_vm_access(ccs_params.name, path))
+        {
+            throw GrantVMAccessException{"Could not grant access to VM `{}` for the path `{}`", ccs_params.name, path};
+        }
+    }
+    return true;
 }
 
 void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
@@ -377,9 +389,10 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     {
     case ShutdownPolicy::Powerdown:
         mpl::debug(kLogCategory, "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`", vm_name);
-        
+
         // If the guest has integration modules enabled, we can use graceful shutdown.
-        if(!hcs->shutdown_compute_system(vm_name)){
+        if (!hcs->shutdown_compute_system(vm_name))
+        {
             // Fall back to SSH shutdown.
             ssh_exec("sudo shutdown -h now");
         }
@@ -509,8 +522,9 @@ std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const
                                                                            const VMMount& mount)
 {
     mpl::debug(kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name, target);
-    
-    throw NotImplementedOnThisBackendException{"Plan9 mounts require an agent running on guest, which is not implemented yet."};
+
+    throw NotImplementedOnThisBackendException{
+        "Plan9 mounts require an agent running on guest, which is not implemented yet."};
     // return std::make_unique<hcs::Plan9MountHandler>(this, &key_provider, mount, target, hcs);
 }
 
