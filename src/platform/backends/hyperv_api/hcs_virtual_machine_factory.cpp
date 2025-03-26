@@ -24,8 +24,10 @@
 #include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 
 #include <multipass/constants.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
+
 
 #include <computenetwork.h>
 
@@ -215,6 +217,27 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     }
 
     return create_virtual_machine(desc, key_provider, monitor);
+}
+
+std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_adapters()
+{
+    std::vector<NetworkInterfaceInfo> ret;
+    for (auto& item : MP_PLATFORM.get_network_interfaces_info())
+    {
+        auto& net = item.second;
+        if (const auto& type = net.type; type == "Ethernet")
+        {
+            net.needs_authorization = true;
+            ret.emplace_back(std::move(net));
+        }
+    }
+
+    return ret;
+}
+
+std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
+{
+    return get_adapters();
 }
 
 } // namespace multipass::hyperv
