@@ -93,7 +93,14 @@ private:
 
     hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);
-    void maybe_create_compute_system();
+
+    /**
+     * Create the compute system if it's not already present.
+     *
+     * @return true The compute system was absent and created
+     * @return false The compute system is already present
+     */
+    bool maybe_create_compute_system() noexcept(false);
 };
 } // namespace multipass::hyperv
 
