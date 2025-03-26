@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
@@ -50,6 +51,10 @@ struct TestDaemonAuthenticate : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 } // namespace
 
