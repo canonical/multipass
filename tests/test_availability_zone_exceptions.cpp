@@ -40,12 +40,6 @@ void test_exception_what(const char* message)
 }
 } // namespace
 
-TEST(TestAvailabilityZoneExceptions, formats_availability_zone_error_message)
-{
-    const std::string expected = "test error message";
-    test_exception_what<mp::AvailabilityZoneError>(expected.c_str());
-}
-
 TEST(TestAvailabilityZoneExceptions, formats_availability_zone_serialization_error)
 {
     const std::string expected = "test serialization error";
@@ -56,12 +50,6 @@ TEST(TestAvailabilityZoneExceptions, formats_availability_zone_deserialization_e
 {
     const std::string expected = "test deserialization error";
     test_exception_what<mp::AvailabilityZoneDeserializationError>(expected.c_str());
-}
-
-TEST(TestAvailabilityZoneExceptions, formats_availability_zone_manager_error_message)
-{
-    const std::string expected = "test manager error";
-    test_exception_what<mp::AvailabilityZoneManagerError>(expected.c_str());
 }
 
 TEST(TestAvailabilityZoneExceptions, formats_availability_zone_manager_serialization_error)

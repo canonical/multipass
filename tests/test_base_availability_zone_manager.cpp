@@ -399,3 +399,62 @@ TEST_F(TestBaseAvailabilityZoneManager, serialize_writes_correct_json)
     EXPECT_TRUE(json.contains("automatic_zone"));
     EXPECT_EQ(json["automatic_zone"].toString().toStdString(), "zone2"); // Should be zone2 after first call
 }
+
+TEST_F(TestBaseAvailabilityZoneManager, deserialize_falls_back_to_first_zone_when_invalid_automatic_zone)
+{
+    setup_empty_dir_iterator(test_zones_dir);
+
+    auto& mock_file = *mock_file_ops.first;
+
+    // Setup zone files first
+    for (const auto& zone : {"zone1", "zone2", "zone3"})
+    {
+        const auto zone_file = test_zones_dir / (std::string(zone) + ".json");
+        EXPECT_CALL(mock_file, status(zone_file, _))
+            .WillRepeatedly(
+                DoAll(SetArgReferee<1>(std::error_code{}), Return(fs::file_status{fs::file_type::regular})));
+        EXPECT_CALL(mock_file, open_write(zone_file, _)).WillRepeatedly(Invoke([](const auto&, const auto&) {
+            return std::make_unique<std::stringstream>();
+        }));
+        EXPECT_CALL(mock_file, open_read(zone_file, _)).WillRepeatedly([](const auto&, auto) {
+            auto stream = std::make_unique<std::stringstream>();
+            stream->str("{\"available\":true,\"subnet\":\"10.0.0.0/24\"}");
+            return stream;
+        });
+    }
+
+    // Setup manager file with an invalid zone name
+    EXPECT_CALL(mock_file, status(manager_file, _))
+        .WillOnce(DoAll(SetArgReferee<1>(std::error_code{}), Return(fs::file_status{fs::file_type::regular})));
+
+    auto manager_stream = std::make_unique<std::stringstream>();
+    *manager_stream << "{\"automatic_zone\":\"invalid_zone\"}";
+    EXPECT_CALL(mock_file, open_read(manager_file, _)).WillOnce(Return(ByMove(std::move(manager_stream))));
+
+    // Allow writing to manager file - use WillRepeatedly instead of WillOnce
+    EXPECT_CALL(mock_file, open_write(manager_file, _)).WillRepeatedly(Invoke([](const auto&, const auto&) {
+        return std::make_unique<std::stringstream>();
+    }));
+
+    // Fix the logger expectation
+    EXPECT_CALL(*mock_logger.mock_logger, log(mpl::Level::warning, _, _)).Times(1);
+
+    auto manager = make_manager();
+
+    // Verify that the manager uses the first zone as fallback
+    EXPECT_EQ(manager->get_automatic_zone_name(), "zone1");
+}
+
+TEST_F(TestBaseAvailabilityZoneManager, throws_on_manager_file_status_error)
+{
+    setup_empty_dir_iterator(test_zones_dir);
+
+    auto& mock_file = *mock_file_ops.first;
+    std::error_code status_err{EACCES, std::system_category()};
+    EXPECT_CALL(mock_file, status(manager_file, _))
+        .WillOnce(DoAll(SetArgReferee<1>(status_err), Return(fs::file_status{fs::file_type::regular})));
+
+    MP_EXPECT_THROW_THAT(make_manager(),
+                         mp::AvailabilityZoneManagerDeserializationError,
+                         mpt::match_what(HasSubstr("not accessible")));
+}
