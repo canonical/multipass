@@ -234,7 +234,7 @@ TEST_F(HyperVBackend, createBridgeRequestsNewSwitch)
 
 TEST_F(HyperVBackend, createBridgeReturnsNewSwitchName)
 {
-    const mp::NetworkInterfaceInfo net{"w1", "wifi", "Wireless network"};
+    const mp::NetworkInterfaceInfo net{"e1", "ethernet", "Ethernet network"};
     const auto switch_name = fmt::format("ExtSwitch ({})", net.id);
     ps_helper.mock_ps_exec(QByteArray::fromStdString(switch_name));
     EXPECT_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), Eq(switch_name));
@@ -245,8 +245,9 @@ TEST_F(HyperVBackend, createBridgeThrowsOnNameMismatch)
     const auto bad = "wrong";
     ps_helper.mock_ps_exec(bad);
 
-    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"lagwagon", "wifi", "duh"}),
-                         std::runtime_error, mpt::match_what(HasSubstr(bad)));
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"lagwagon", "ethernet", "duh"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(bad)));
 }
 
 TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
@@ -258,7 +259,8 @@ TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
 
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
-    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), std::runtime_error,
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr("Could not create external switch")));
 }
 
@@ -269,8 +271,9 @@ TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
 
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
-    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"Needle", "wifi", "in the hay"}),
-                         std::runtime_error, mpt::match_what(HasSubstr(error)));
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"Needle", "ethernet", "in the hay"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(error)));
 }
 
 struct CheckFineSuite : public HyperVBackend, public WithParamInterface<std::vector<mpt::PowerShellTestHelper::RunSpec>>
