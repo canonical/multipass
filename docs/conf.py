@@ -140,7 +140,7 @@ html_context = {
     # Docs location in the repo; used in links for viewing the source files
     #
     # TODO: To customise the directory, uncomment and update as needed.
-    "github_folder": "/docs/",
+    "repo_folder": "/docs/",
     # TODO: To enable or disable the Previous / Next buttons at the bottom of pages
     # Valid options: none, prev, next, both
     # "sequential_nav": "both",
@@ -203,7 +203,8 @@ linkcheck_ignore = [
     "https://localhost:8081",
     "https://github.com/canonical/*",
     "https://sourceforge.net/projects/vcxsrv/",
-    "https://sourceforge.net/projects/xming/"
+    "https://sourceforge.net/projects/xming/",
+    "http://www.straightrunning.com/XmingNotes/",
     ]
 
 linkcheck_retries = 3

@@ -18,62 +18,41 @@
 #ifndef MULTIPASS_AVAILABILITY_ZONE_EXCEPTIONS_H
 #define MULTIPASS_AVAILABILITY_ZONE_EXCEPTIONS_H
 
-#include <stdexcept>
-#include <string>
-
-#include <multipass/format.h>
+#include "formatted_exception_base.h"
 
 namespace multipass
 {
-struct AvailabilityZoneError : std::runtime_error
+struct AvailabilityZoneSerializationError final : FormattedExceptionBase<>
 {
-    template <typename... Args>
-    explicit AvailabilityZoneError(fmt::format_string<Args...> fmt, Args&&... args)
-        : runtime_error(fmt::format(fmt, std::forward<Args>(args)...))
-    {
-    }
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-struct AvailabilityZoneSerializationError final : AvailabilityZoneError
+struct AvailabilityZoneDeserializationError final : FormattedExceptionBase<>
 {
-    using AvailabilityZoneError::AvailabilityZoneError;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-struct AvailabilityZoneDeserializationError final : AvailabilityZoneError
+struct AvailabilityZoneManagerSerializationError final : FormattedExceptionBase<>
 {
-    using AvailabilityZoneError::AvailabilityZoneError;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-struct AvailabilityZoneManagerError : std::runtime_error
+struct AvailabilityZoneManagerDeserializationError final : FormattedExceptionBase<>
 {
-    template <typename... Args>
-    explicit AvailabilityZoneManagerError(fmt::format_string<Args...> fmt, Args&&... args)
-        : runtime_error(fmt::format(fmt, std::forward<Args>(args)...))
-    {
-    }
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-struct AvailabilityZoneManagerSerializationError final : AvailabilityZoneManagerError
-{
-    using AvailabilityZoneManagerError::AvailabilityZoneManagerError;
-};
-
-struct AvailabilityZoneManagerDeserializationError final : AvailabilityZoneManagerError
-{
-    using AvailabilityZoneManagerError::AvailabilityZoneManagerError;
-};
-
-struct AvailabilityZoneNotFound final : AvailabilityZoneManagerError
+struct AvailabilityZoneNotFound final : FormattedExceptionBase<>
 {
     explicit AvailabilityZoneNotFound(const std::string& name)
-        : AvailabilityZoneManagerError{"no AZ with name {:?} found", name}
+        : FormattedExceptionBase{"no AZ with name {:?} found", name}
     {
     }
 };
 
-struct NoAvailabilityZoneAvailable final : AvailabilityZoneManagerError
+struct NoAvailabilityZoneAvailable final : FormattedExceptionBase<>
 {
-    NoAvailabilityZoneAvailable() : AvailabilityZoneManagerError{"no AZ is available"}
+    NoAvailabilityZoneAvailable() : FormattedExceptionBase{"no AZ is available"}
     {
     }
 };

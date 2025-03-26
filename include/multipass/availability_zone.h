@@ -25,7 +25,7 @@
 
 namespace multipass
 {
-class AvailabilityZone : DisabledCopyMove
+class AvailabilityZone : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<AvailabilityZone>;

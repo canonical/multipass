@@ -51,7 +51,7 @@ The default configuration binds to localhost port 53, clashing with Internet Sha
 
 `Unable to determine IP address` usually implies some networking configuration is incompatible, or there is interference from a Firewall or VPN.
 
-<!-- add link to https://discourse.ubuntu.com/t/draft-troubleshoot-launch-start-issues/48104 when published -->
+> See also: [How to troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues).
 
 ##### Troubleshooting
 
@@ -64,9 +64,6 @@ The default configuration binds to localhost port 53, clashing with Internet Sha
 1. Little Snitch - defaults are good, it should permit mDNSResponder and bootpd access to BPF
 If you're having trouble downloading images and/or see `Unknown error`s when trying to `multipass launch -vvv`, Little Snitch may be interfering with `multipassd`'s network access (ref. [#1169](https://github.com/canonical/multipass/issues/1169))
 1. Internet Sharing - doesn’t usually clash
-1. <!-- to be removed once https://discourse.ubuntu.com/t/draft-troubleshoot-launch-start-issues/48104 has been published, as it was moved there --> Is the bootpd DHCP server alive? (`sudo lsof -iUDP:67 -n -P` should mention `bootpd`)
-    - It should be launched automatically when there is a request, but you can also launch it manually if needed.
-    - Start it by running `sudo launchctl start com.apple.bootpd`. If that doesn't work for you, try `sudo launchctl load -w /System/Library/LaunchDaemons/bootps.plist`.
 
 (troubleshoot-networking-routing-problems)=
 #### Network routing problems

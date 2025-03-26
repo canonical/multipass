@@ -20,9 +20,14 @@
 
 #include "availability_zone.h"
 
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
 namespace multipass
 {
-class AvailabilityZoneManager : DisabledCopyMove
+class AvailabilityZoneManager : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<AvailabilityZoneManager>;
