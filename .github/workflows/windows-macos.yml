@@ -192,11 +192,12 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Set up caching
+    - name: Set preferred tar
       if: ${{ runner.os == 'macOS' }}
-      id: cache-params
+      id: preferred-tar
       run: |
-        # Use gnu-tar instead of the system tar
+        # Prepend gnu-tar's (future) location to the path, to prioritize it over system tar
+        # Needed for cache: https://github.com/actions/cache?tab=readme-ov-file#pre-requisites
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
 
     - name: Install dependencies from brew
