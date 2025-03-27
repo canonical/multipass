@@ -15,6 +15,16 @@
 cmake_minimum_required(VERSION 3.17)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
+include(src/cmake/environment-utils.cmake)
+is_running_in_ci(IS_RUNNING_IN_CI)
+
+message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
+
+if(NOT ${IS_RUNNING_IN_CI})
+  include(src/cmake/configure-linker.cmake)
+  configure_linker()
+endif()
+
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
