@@ -215,6 +215,7 @@ parts:
     - -protobuf
     source: .
     cmake-parameters:
+    - -DCMAKE_LINKER_TYPE=DEFAULT
     - -DCMAKE_BUILD_TYPE=Release
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
