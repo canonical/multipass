@@ -291,11 +291,40 @@ set(FORMATTER_TEST_LIBRARIES
   yaml # For YAML formatting
 )
 
-target_link_libraries(multipass_daemon_tests ${COMMON_LIBRARIES})
+# Libraries for network tests
+set(NETWORK_TEST_LIBRARIES
+  client # For shared CLI functionality
+  gmock_main
+  gtest_main
+  ip_address # For IP validation
+  network # Core network functionality
+  premock
+  scope_guard
+  settings # For configuration
+  utils_test # For utilities
+)
+
+# Libraries for daemon tests
+set(DAEMON_TEST_LIBRARIES
+  client # For CLI functionality
+  daemon # Core daemon functionality
+  gmock_main
+  gtest_main
+  ip_address # For networking
+  network # Network functionality 
+  premock
+  scope_guard
+  settings # Configuration management
+  ssh_test # For SSH operations
+  utils_test # Utility functions
+  yaml # For config parsing
+)
+
+target_link_libraries(multipass_daemon_tests ${DAEMON_TEST_LIBRARIES})
 target_link_libraries(multipass_client_ssh_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_memory_tests ${MEMORY_TEST_LIBRARIES})
 target_link_libraries(multipass_formatter_tests ${FORMATTER_TEST_LIBRARIES})
-target_link_libraries(multipass_network_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_network_tests ${NETWORK_TEST_LIBRARIES})
 target_link_libraries(multipass_qemu_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
 
