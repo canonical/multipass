@@ -18,6 +18,7 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_image_host.h"
+#include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_vm_blueprint_provider.h"
@@ -55,6 +56,10 @@ struct DaemonFind : public mpt::DaemonTestFixture
 
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 
 TEST_F(DaemonFind, blankQueryReturnsAllData)

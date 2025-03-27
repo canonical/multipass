@@ -21,6 +21,7 @@
 #include <tests/mock_cert_store.h>
 #include <tests/mock_daemon.h>
 #include <tests/mock_logger.h>
+#include <tests/mock_permission_utils.h>
 #include <tests/mock_platform.h>
 #include <tests/mock_utils.h>
 
@@ -98,6 +99,10 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
 
     mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils* mock_utils = attr.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 };
 } // namespace
 
