@@ -103,6 +103,8 @@ int main(int argc, char* argv[])
     auto standard_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(standard_logger);
 
+    MP_PLATFORM.setup_permission_inheritance(false);
+
     try
     {
         auto watchdog =

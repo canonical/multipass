@@ -50,6 +50,7 @@
 #include <json/json.h>
 
 #include <aclapi.h>
+#include <sddl.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -327,13 +328,50 @@ QString systemprofile_app_data_path()
     return ret;
 }
 
-bool set_file_owner(LPSTR path)
+DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
 {
-    auto ps_cmd = QString("takeown /a /r /d Y /f \"%1\"").arg(QString::fromStdString(path).replace("/", "\\"));
-    return mp::PowerShell::exec({ps_cmd}, "chown");
+    LUID id;
+    if (!LookupPrivilegeValue(NULL, privilege, &id))
+    {
+        return GetLastError();
+    }
+
+    TOKEN_PRIVILEGES privileges{};
+    privileges.PrivilegeCount = 1;
+    privileges.Privileges[0].Luid = id;
+    privileges.Privileges[0].Attributes = (enable) ? SE_PRIVILEGE_ENABLED : 0;
+
+    if (!AdjustTokenPrivileges(handle, false, &privileges, sizeof(privileges), NULL, NULL))
+    {
+        return GetLastError();
+    }
+
+    return (GetLastError() == ERROR_NOT_ALL_ASSIGNED) ? ERROR_NOT_ALL_ASSIGNED : ERROR_SUCCESS;
 }
 
-bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
+DWORD set_file_owner(LPSTR path, PSID new_owner)
+{
+    std::unique_ptr<void, decltype(&CloseHandle)> token(nullptr, CloseHandle);
+    if (HANDLE t; !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &t))
+    {
+        return GetLastError();
+    }
+    else
+    {
+        token.reset(t);
+    }
+
+    if (auto err = set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, true); err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    auto r = SetNamedSecurityInfo(path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, new_owner, NULL, NULL, NULL);
+    set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, false);
+    return r;
+}
+
+DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
 {
     PACL pOldDACL = NULL, pDACL = NULL;
     PSECURITY_DESCRIPTOR pSD = NULL;
@@ -351,23 +389,39 @@ bool set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask)
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
     SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
-    auto success = SetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, pDACL, NULL);
+    auto error_code =
+        SetNamedSecurityInfo(path,
+                             SE_FILE_OBJECT,
+                             DACL_SECURITY_INFORMATION | ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
+                                                                    : PROTECTED_DACL_SECURITY_INFORMATION),
+                             NULL,
+                             NULL,
+                             pDACL,
+                             NULL);
 
     LocalFree((HLOCAL)pSD);
     LocalFree((HLOCAL)pDACL);
 
-    return success;
+    return error_code;
 }
 
-bool set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask)
+// returns a PSID unique_ptr for a well known pid
+auto get_well_known_sid(WELL_KNOWN_SID_TYPE type)
 {
-    DWORD dwSize = SECURITY_MAX_SID_SIZE;
-    PSID pSid = static_cast<PSID>(LocalAlloc(LPTR, dwSize));
-    CreateWellKnownSid(sid_type, nullptr, pSid, &dwSize);
-    auto success = set_specific_perms(path, pSid, access_mask);
-    LocalFree(pSid);
+    DWORD len = SECURITY_MAX_SID_SIZE;
+    auto sid = std::unique_ptr<void, decltype(&FreeSid)>(LocalAlloc(LPTR, len), FreeSid);
+    if (!CreateWellKnownSid(type, nullptr, sid.get(), &len))
+    {
+        throw std::system_error(GetLastError(), std::system_category(), "Failed to create well known SID");
+    }
 
-    return success;
+    return sid;
+}
+
+DWORD set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_mask, bool inherit)
+{
+    auto pSid = get_well_known_sid(sid_type);
+    return set_specific_perms(path, pSid.get(), access_mask, inherit);
 }
 
 DWORD convert_permissions(int unix_perms)
@@ -614,7 +668,89 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return -1;
 }
 
-bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, std::filesystem::perms perms) const
+// new_ACL returns a new ACL unique ptr that retains all existing Hyper-V ACEs or NULL if no entries exist.
+auto new_ACL(LPSTR path)
+{
+    auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
+    auto newACL = std::unique_ptr<ACL, decltype(deleter)>{NULL, deleter};
+
+    PSECURITY_DESCRIPTOR pSD;
+    auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
+
+    PACL pOldDACL = NULL;
+    if (GetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &pOldDACL, NULL, &pSD) !=
+        ERROR_SUCCESS)
+    {
+        return newACL;
+    }
+
+    DWORD size = sizeof(ACL);
+    std::vector<ACCESS_ALLOWED_ACE*> aces{};
+
+    // iterate over ACEs in old ACL.
+    for (DWORD i = 0; i < pOldDACL->AceCount; ++i)
+    {
+        ACCESS_ALLOWED_ACE* pACE = NULL;
+        if (!GetAce(pOldDACL, i, (LPVOID*)(&pACE)))
+        {
+            continue;
+        }
+
+        PSID sid = (PSID)(&pACE->SidStart);
+
+        // convert SID to string so we can examine it.
+        LPSTR sidStr = NULL;
+        if (ConvertSidToStringSid(sid, &sidStr))
+        {
+            // Magic string given to us by
+            // https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers#well-known-sids
+            // All Hyper-V SIDs begin with this magic string.
+            static constexpr char VM_SID_ID[] = "S-1-5-83-";
+            auto cmp = strncmp(sidStr, VM_SID_ID, sizeof(VM_SID_ID) - 1);
+            LocalFree((HLOCAL)sidStr);
+
+            if (cmp == 0)
+            {
+                aces.emplace_back(pACE);
+                size += GetLengthSid(sid);
+            }
+        }
+    }
+
+    if (aces.size() > 0)
+    {
+        size += sizeof(ACCESS_ALLOWED_ACE) * aces.size();
+
+        // Align size to a DWORD. (taken from
+        // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-initializeacl)
+        size = (size + (sizeof(DWORD) - 1)) & 0xfffffffc;
+
+        if (newACL.reset((PACL)LocalAlloc(LPTR, size)); newACL)
+        {
+            if (!InitializeAcl(newACL.get(), size, ACL_REVISION))
+            {
+                throw std::system_error(GetLastError(), std::system_category(), "Failed to initialize new ACL");
+            }
+
+            // try to add all Hyper-V ACEs
+            for (const auto& ace : aces)
+            {
+                if (!AddAce(newACL.get(), ACL_REVISION, MAXDWORD, ace, ace->Header.AceSize))
+                {
+                    throw std::system_error(GetLastError(),
+                                            std::system_category(),
+                                            "Failed to add Hyper-V ACE to new ACL");
+                }
+            }
+        }
+    }
+
+    return newACL;
+}
+
+bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
+                                             std::filesystem::perms perms,
+                                             bool inherit) const
 {
     // Windows has both ACLs and very limited POSIX permissions
 
@@ -627,21 +763,38 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path, 
     LPSTR lpPath = u8path.data();
     auto success = true;
 
+    auto newACL = new_ACL(lpPath);
+
     // Wipe out current ACLs
-    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr);
+    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, newACL.get(), nullptr);
 
     if (int others = int(perms) & 0007; others != 0)
-        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others));
+        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) == ERROR_SUCCESS;
     if (int group = int(perms) & 0070; group != 0)
-        success &= set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group >> 3));
+        success &=
+            set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group >> 3), inherit) == ERROR_SUCCESS;
     if (int owner = int(perms) & 0700; owner != 0)
-        success &= set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6));
+        success &=
+            set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6), inherit) == ERROR_SUCCESS;
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
-    success &= set_file_owner(lpPath);
-    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL);
+    success &= take_ownership(path);
+    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, inherit) == ERROR_SUCCESS;
 
     return success;
+}
+
+bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
+{
+    auto u8path = path.u8string();
+    LPSTR lpPath = u8path.data();
+
+    return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) == ERROR_SUCCESS;
+}
+
+void mp::platform::Platform::setup_permission_inheritance(bool) const
+{
+    // this does nothing since Windows doesn't use global state
 }
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
