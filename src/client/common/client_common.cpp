@@ -74,18 +74,11 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 {
     auto opts = grpc::SslCredentialsOptions();
 
-    opts.server_certificate_request = GRPC_SSL_REQUEST_SERVER_CERTIFICATE_BUT_DONT_VERIFY;
+    opts.pem_root_certs = MP_UTILS.contents_of(MP_PLATFORM.get_root_cert_path().u8string().c_str());
     opts.pem_cert_chain = cert_provider.PEM_certificate();
     opts.pem_private_key = cert_provider.PEM_signing_key();
 
     return opts;
-}
-
-bool client_certs_exist(const QString& cert_dir_path)
-{
-    QDir cert_dir{cert_dir_path};
-
-    return cert_dir.exists(mp::client_cert_file) && cert_dir.exists(mp::client_key_file);
 }
 } // namespace
 
@@ -156,11 +149,6 @@ std::unique_ptr<mp::SSLCertProvider> mp::client::get_cert_provider()
 {
     auto data_location{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)};
     auto common_client_cert_dir_path{data_location + common_client_cert_dir};
-
-    if (!client_certs_exist(common_client_cert_dir_path))
-    {
-        MP_UTILS.make_dir(common_client_cert_dir_path);
-    }
 
     return std::make_unique<SSLCertProvider>(common_client_cert_dir_path);
 }
