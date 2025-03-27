@@ -312,10 +312,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
         const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
         if (std::filesystem::exists(root_cert_path) && QFile::exists(priv_key_path) && QFile::exists(cert_path))
         {
-            // In cases where the root certificate exists within the data folder (such as in Snap or Windows
-            // environments), its file permissions is unintentionally overwritten due to recursive permission
-            // settings applied to the entire folder. To ensure the client process has access, we need to explicitly
-            // reset the file permissions on the root certificate.
+            // Unlike other daemon files, the root certificate needs to be accessible by everyone
             MP_PLATFORM.set_permissions(root_cert_path,
                                         std::filesystem::perms::owner_all | std::filesystem::perms::group_read |
                                             std::filesystem::perms::others_read);
