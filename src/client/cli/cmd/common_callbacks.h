@@ -75,9 +75,9 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 }
 
 template <typename Request, typename Reply>
-auto make_confirmation_callback(Terminal& term, const QString& key)
+auto make_confirmation_callback(Terminal& term, QString key)
 {
-    return [&key, &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
+    return [key = std::move(key), &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
         if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) && reply.needs_authorization())
         {
             auto bridged_network = reply.reply_message();
