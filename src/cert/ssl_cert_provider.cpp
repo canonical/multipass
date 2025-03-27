@@ -312,6 +312,9 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
         const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
         if (std::filesystem::exists(root_cert_path) && QFile::exists(priv_key_path) && QFile::exists(cert_path))
         {
+            MP_PLATFORM.set_permissions(root_cert_path,
+                                        std::filesystem::perms::owner_all | std::filesystem::perms::group_read |
+                                            std::filesystem::perms::others_read);
             return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
         }
 
