@@ -241,7 +241,7 @@ target_compile_definitions(ssh_client_test PRIVATE
 target_compile_definitions(utils_test PRIVATE
   -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
 
-# Common libraries
+# Common libraries for most tests
 set(COMMON_LIBRARIES
   cert
   client
@@ -267,10 +267,34 @@ set(COMMON_LIBRARIES
   yaml
 )
 
+# Minimal libraries for memory tests
+set(MEMORY_TEST_LIBRARIES
+  client
+  gmock_main
+  gtest_main
+  ip_address
+  network
+  premock
+  scope_guard
+  utils_test
+)
+
+# Libraries for formatter tests
+set(FORMATTER_TEST_LIBRARIES
+  client # For ArgParser
+  gmock_main
+  gtest_main
+  premock
+  scope_guard
+  settings
+  utils_test
+  yaml # For YAML formatting
+)
+
 target_link_libraries(multipass_daemon_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_client_ssh_tests ${COMMON_LIBRARIES})
-target_link_libraries(multipass_memory_tests ${COMMON_LIBRARIES})
-target_link_libraries(multipass_formatter_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_memory_tests ${MEMORY_TEST_LIBRARIES})
+target_link_libraries(multipass_formatter_tests ${FORMATTER_TEST_LIBRARIES})
 target_link_libraries(multipass_network_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_qemu_tests ${COMMON_LIBRARIES})
 target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
