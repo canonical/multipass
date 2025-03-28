@@ -1465,6 +1465,37 @@ mp::Daemon::~Daemon()
     mp::top_catch_all(category, [this] {
         MP_SETTINGS.unregister_handler(instance_mod_handler);
         MP_SETTINGS.unregister_handler(snapshot_mod_handler);
+
+        /**
+         * Wait until all futures are finished, so there will
+         * be no outstanding requests left behind. Otherwise, the
+         * futures might be interrupted halfway and the actions
+         * associated with the futures are not going to be
+         * executed.
+         */
+        for (auto& [_, watcher] : async_future_watchers)
+        {
+            watcher->waitForFinished();
+        }
+
+        /**
+         * AsyncPeriodicDownloadTask maintain its own QFutureWatcher.
+         * Tell it to wrap things up.
+         *
+         * We would like to do that here explicitly instead of in a destructor
+         * since update_manifests_all_task might be using resources from the daemon
+         * and their destruction might be happening before the update_manifests_all_task
+         * object, which makes it troublesome to do this in the AsyncPeriodicDownloadTask
+         * destructor.
+         */
+        update_manifests_all_task.shutdown();
+
+        // waitForFinished() ensures that the futures are finished gracefully
+        // but there's a chance that the signals which are queued during their
+        // execution haven't got executed yet. So, process all the remaining events
+        // in the event loop immediately to ensure that all recipients are notified
+        // before the daemon object destructs.
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
     });
 }
 
