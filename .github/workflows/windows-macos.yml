@@ -3,15 +3,14 @@ name: WindowsMacOS
 on:
   push:
     branches:
-    - full
-    - release/[0-9]+.[0-9]+
+      - main
+      - release/[0-9]+.[0-9]+
     tags:
-    - v[0-9]+.[0-9]+.[0-9]+\+full
+      - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  repository_dispatch:
-    types: [public_build]
-  workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}

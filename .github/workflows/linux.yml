@@ -3,10 +3,10 @@ name: Linux
 on:
   push:
     branches:
-    - main
-    - release/[0-9]+.[0-9]+
+      - main
+      - release/[0-9]+.[0-9]+
     tags:
-    - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
