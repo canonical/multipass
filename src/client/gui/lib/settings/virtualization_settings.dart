@@ -17,6 +17,7 @@ class VirtualizationSettings extends ConsumerWidget {
     final driver = ref.watch(driverProvider).valueOrNull;
     final bridgedNetwork = ref.watch(bridgedNetworkProvider).valueOrNull;
     final networks = ref.watch(networksProvider);
+    final drivers = ref.watch(driversProvider);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text(
@@ -28,7 +29,7 @@ class VirtualizationSettings extends ConsumerWidget {
         label: 'Driver',
         width: 260,
         value: driver,
-        items: mpPlatform.drivers,
+        items: drivers,
         onChanged: (value) {
           if (value == driver) return;
           ref
