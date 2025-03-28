@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
+import 'package:multipass_gui/platform/platform.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ffi.dart';
@@ -318,4 +319,13 @@ final networksProvider = Provider.autoDispose((ref) {
     }).ignore();
   }
   return BuiltSet<String>();
+});
+
+final driversProvider = Provider.autoDispose((ref) {
+  final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;
+  if (driver != null && !mpPlatform.drivers.containsKey(driver)) {
+    return Map<String, String>.from(mpPlatform.drivers)
+      ..addAll({driver: driver});
+  }
+  return mpPlatform.drivers;
 });
