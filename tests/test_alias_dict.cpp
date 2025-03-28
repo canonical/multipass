@@ -27,10 +27,12 @@
 #include "fake_alias_config.h"
 #include "file_operations.h"
 #include "json_test_utils.h"
+#include "mock_cert_provider.h"
 #include "mock_file_ops.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
+#include "mock_utils.h"
 #include "mock_vm_image_vault.h"
 #include "stub_terminal.h"
 
@@ -623,6 +625,9 @@ TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
     EXPECT_CALL(*mock_image_vault, fetch_image(_, _, _, _, _, _, _)).WillRepeatedly(Return(mp::VMImage{}));
     EXPECT_CALL(*mock_image_vault, prune_expired_images()).WillRepeatedly(Return());
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
+
+    const auto [mock_utils, guard] = mpt::MockUtils::inject<NiceMock>();
+    EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
 
     config_builder.vault = std::move(mock_image_vault);
     auto mock_factory = use_a_mock_vm_factory();

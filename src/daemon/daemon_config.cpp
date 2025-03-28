@@ -109,7 +109,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    MP_PLATFORM.setup_permission_inheritance();
+    MP_PLATFORM.setup_permission_inheritance(true);
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
@@ -169,9 +169,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
-    if (cert_provider == nullptr)
-        cert_provider = std::make_unique<mp::SSLCertProvider>(MP_UTILS.make_dir(data_directory, "certificates"),
-                                                              server_name_from(server_address));
     if (client_cert_store == nullptr)
         client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
     if (ssh_username.empty())
@@ -192,16 +189,27 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
     }
 
-    // restrict permissions for all existing files and folders
+    // tighten permissions for cache and data
     if (!storage_path.isEmpty())
     {
         MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
+        MP_PLATFORM.set_permissions(storage_path.toStdU16String(),
+                                    fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
     }
     else
     {
         MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
+        MP_PLATFORM.set_permissions(data_directory.toStdU16String(),
+                                    fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
         MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
     }
+
+    if (cert_provider == nullptr)
+        cert_provider = std::make_unique<mp::SSLCertProvider>(
+            MP_UTILS.make_dir(data_directory,
+                              "certificates",
+                              fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec),
+            server_name_from(server_address));
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
         std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
