@@ -30,29 +30,97 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "")
 FetchContent_MakeAvailable(googletest)
 
-# Common test sources shared between test executables
-set(COMMON_TEST_SOURCES
-  blueprint_test_lambdas.cpp
+# Minimal sources needed by simplest tests
+set(MINIMAL_TEST_SOURCES
   common.cpp
-  daemon_test_fixture.cpp
-  file_operations.cpp
-  image_host_remote_count.cpp
-  json_test_utils.cpp
   main.cpp
-  mischievous_url_downloader.cpp
   mock_logger.cpp
-  mock_openssl_syscalls.cpp
-  mock_process_factory.cpp
-  mock_sftp.cpp
-  mock_sftpserver.cpp
-  mock_ssh.cpp
-  mock_ssh_client.cpp
   mock_standard_paths.cpp
-  path.cpp
-  reset_process_factory.cpp
-  stub_process_factory.cpp
   temp_dir.cpp
   temp_file.cpp
+)
+
+# Network test specific common sources
+set(NETWORK_COMMON_SOURCES
+  ${MINIMAL_TEST_SOURCES}
+  mischievous_url_downloader.cpp
+  path.cpp # For test_data_path()
+  image_host_remote_count.cpp # For count_remotes()
+)
+
+# Common sources for SSH and client tests
+set(SSH_CLIENT_COMMON_SOURCES
+  ${MINIMAL_TEST_SOURCES}
+  mock_ssh.cpp
+  mock_ssh_client.cpp
+  mock_sftp.cpp
+  mock_sftpserver.cpp
+  mock_process_factory.cpp
+  mock_openssl_syscalls.cpp # For OpenSSL mocks including ut_EVP_PBE_scrypt
+  stub_process_factory.cpp
+  reset_process_factory.cpp
+  daemon_test_fixture.cpp # For daemon mocking
+  file_operations.cpp # For file operations in SSH tests
+  path.cpp # For path utilities
+  json_test_utils.cpp # For JSON handling in client and SSH tests
+)
+
+# Common sources for daemon tests
+set(DAEMON_COMMON_SOURCES
+  ${MINIMAL_TEST_SOURCES}
+  mock_ssh.cpp # For SSH operations in daemon
+  mock_ssh_client.cpp
+  mock_sftp.cpp
+  mock_sftpserver.cpp
+  mock_process_factory.cpp
+  mock_openssl_syscalls.cpp # For SSL operations
+  stub_process_factory.cpp
+  reset_process_factory.cpp
+  daemon_test_fixture.cpp # Core daemon testing utilities
+  file_operations.cpp # For filesystem operations
+  path.cpp # For path utilities
+  json_test_utils.cpp # For JSON operations
+  blueprint_test_lambdas.cpp # For VM blueprint handling
+  image_host_remote_count.cpp # For image operations
+  mischievous_url_downloader.cpp # For network testing
+)
+
+# Common sources for QEMU tests
+set(QEMU_COMMON_SOURCES
+  ${MINIMAL_TEST_SOURCES}
+  mock_process_factory.cpp # For process control
+  mock_ssh.cpp # For VM SSH access
+  mock_ssh_client.cpp
+  mock_sftp.cpp
+  mock_sftpserver.cpp
+  mock_openssl_syscalls.cpp # For OpenSSL mocks including ut_EVP_PBE_scrypt
+  stub_process_factory.cpp
+  reset_process_factory.cpp
+  daemon_test_fixture.cpp # For VM management
+  file_operations.cpp # For filesystem operations
+  path.cpp # For path utilities
+  json_test_utils.cpp # For configuration
+  blueprint_test_lambdas.cpp # For VM blueprints
+  image_host_remote_count.cpp # For image management
+)
+
+# Common test sources for miscellaneous tests not requiring special mocks
+set(COMMON_TEST_SOURCES
+  ${MINIMAL_TEST_SOURCES}
+  mock_process_factory.cpp # For basic process mocking
+  stub_process_factory.cpp
+  reset_process_factory.cpp
+  file_operations.cpp # For filesystem operations
+  path.cpp # For path utilities
+  mock_openssl_syscalls.cpp # For OpenSSL mocks
+  json_test_utils.cpp # For JSON parsing
+  daemon_test_fixture.cpp # For daemon-related tests
+  blueprint_test_lambdas.cpp # For blueprint tests
+  image_host_remote_count.cpp # For image host tests
+  mock_ssh.cpp # For SSH mocking in daemon and VM tests
+  mock_ssh_client.cpp
+  mock_sftp.cpp # For file operations over SSH
+  mock_sftpserver.cpp
 )
 
 # SSH test sources
@@ -117,7 +185,7 @@ set(QEMU_TEST_SOURCES
 
 # Daemon test executable
 add_executable(multipass_daemon_tests
-  ${COMMON_TEST_SOURCES}
+  ${DAEMON_COMMON_SOURCES}
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_clone.cpp
@@ -133,33 +201,32 @@ add_executable(multipass_daemon_tests
 
 # Client and SSH test executable
 add_executable(multipass_client_ssh_tests
-  ${COMMON_TEST_SOURCES}
+  ${SSH_CLIENT_COMMON_SOURCES}
   ${SSH_TEST_SOURCES}
   ${CLIENT_TEST_SOURCES}
 )
 
 # Memory test executable
 add_executable(multipass_memory_tests
-  ${COMMON_TEST_SOURCES}
+  ${MINIMAL_TEST_SOURCES}
   ${MEMORY_TEST_SOURCES}
 )
 
 # Formatter test executable
 add_executable(multipass_formatter_tests
-  ${COMMON_TEST_SOURCES}
+  ${MINIMAL_TEST_SOURCES}
   ${FORMATTER_TEST_SOURCES}
 )
 
 # Network test executable
 add_executable(multipass_network_tests
-  ${COMMON_TEST_SOURCES}
+  ${NETWORK_COMMON_SOURCES}
   ${NETWORK_TEST_SOURCES}
-  mischievous_url_downloader.cpp
 )
 
 # QEMU test executable
 add_executable(multipass_qemu_tests
-  ${COMMON_TEST_SOURCES}
+  ${QEMU_COMMON_SOURCES}
   ${QEMU_TEST_SOURCES}
   test_with_mocked_bin_path.cpp
 )
@@ -251,24 +318,15 @@ set(COMMON_TEST_LIBRARIES
   utils_test # For utility functions
 )
 
-# Common libraries for most tests
+# Common libraries for miscellaneous tests
 set(COMMON_LIBRARIES
   ${COMMON_TEST_LIBRARIES}
-  cert
-  daemon
-  delayed_shutdown
-  ip_address
-  iso
-  network
-  petname
-  poco_utils
-  settings
-  simplestreams
-  sftp_test
-  ssh_test
-  ssh_client_test
-  sshfs_mount_test
-  yaml
+  daemon # For daemon functionality
+  ip_address # For networking
+  network # For core network operations
+  settings # For configuration management
+  ssh_test # For SSH operations
+  yaml # For configuration parsing
 )
 
 # Minimal libraries for memory tests
@@ -316,6 +374,17 @@ set(CLIENT_SSH_TEST_LIBRARIES
   ssh_client_test # For SSH client tests
   sshfs_mount_test # For SFTP server tests
   yaml # For YAML parsing
+)
+
+# Libraries needed by QEMU tests
+set(QEMU_TEST_LIBRARIES
+  ${COMMON_TEST_LIBRARIES}
+  daemon # For VM management
+  ip_address # For networking
+  network # For network operations
+  settings # For VM configuration
+  ssh_test # For SSH operations
+  yaml # For configuration parsing
 )
 
 target_link_libraries(multipass_daemon_tests ${DAEMON_TEST_LIBRARIES})
