@@ -26,15 +26,18 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
   Widget build(BuildContext context) {
     return ConfirmationDialog(
       title: 'Are you sure you want to close this terminal?',
-      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Its current state will be lost.'),
-        const SizedBox(height: 12),
-        Switch(
-          value: doNotAsk,
-          label: 'Do not ask me again.',
-          onChanged: (value) => setState(() => doNotAsk = value),
-        ),
-      ]),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Its current state will be lost.'),
+          const SizedBox(height: 12),
+          Switch(
+            value: doNotAsk,
+            label: 'Do not ask me again.',
+            onChanged: (value) => setState(() => doNotAsk = value),
+          ),
+        ],
+      ),
       actionText: 'Yes',
       onAction: () {
         widget.onYes();

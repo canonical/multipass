@@ -62,9 +62,10 @@ class _MemorySliderState extends State<MemorySlider> {
     TextEditingValue newValue,
   ) {
     if (newValue.text.isEmpty) return newValue;
-    final parsedValue = (unitToBytes == bytesToBytes)
-        ? int.tryParse(newValue.text)
-        : double.tryParse(newValue.text);
+    final parsedValue =
+        (unitToBytes == bytesToBytes)
+            ? int.tryParse(newValue.text)
+            : double.tryParse(newValue.text);
     return parsedValue == null ? oldValue : newValue;
   }
 
@@ -95,16 +96,17 @@ class _MemorySliderState extends State<MemorySlider> {
         (bytesToMebi, mebiToBytes): 'MiB',
         (bytesToGibi, gibiToBytes): 'GiB',
       },
-      onChanged: (convertors) => setState(() {
-        final (fromBytes, toBytes) = convertors!;
-        bytesToUnit = fromBytes;
-        unitToBytes = toBytes;
-        final value = formKey.currentState?.value;
-        if (value != null) {
-          final clampedValue = value.clamp(widget.min, widget.max);
-          controller.text = bytesToUnit(clampedValue).toNiceString();
-        }
-      }),
+      onChanged:
+          (convertors) => setState(() {
+            final (fromBytes, toBytes) = convertors!;
+            bytesToUnit = fromBytes;
+            unitToBytes = toBytes;
+            final value = formKey.currentState?.value;
+            if (value != null) {
+              final clampedValue = value.clamp(widget.min, widget.max);
+              controller.text = bytesToUnit(clampedValue).toNiceString();
+            }
+          }),
     );
 
     final sliderFormField = FormField<int>(
@@ -112,52 +114,62 @@ class _MemorySliderState extends State<MemorySlider> {
       initialValue: widget.initialValue,
       onSaved: (value) => widget.onSaved(value!.clamp(widget.min, widget.max)),
       builder: (field) {
-        return Column(children: [
-          MappingSlider(
-            min: widget.min,
-            max: widget.max,
-            enabled: widget.enabled,
-            value: field.value ?? widget.min,
-            onChanged: (value) {
-              field.didChange(value);
-              final clampedValue = value.clamp(widget.min, widget.max);
-              controller.text = bytesToUnit(clampedValue).toNiceString();
-            },
-          ),
-          const SizedBox(height: 5),
-          Row(children: [
-            Text(humanReadableMemory(widget.min)),
-            Spacer(),
-            Text(humanReadableMemory(widget.max)),
-          ]),
-          if ((field.value ?? widget.min) > widget.sysMax) ...[
-            const SizedBox(height: 25),
-            Row(children: [
-              const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
-              const SizedBox(width: 5),
-              Text(
-                'Over-provisioning of ${widget.label.toLowerCase()}',
-                style: const TextStyle(fontSize: 16),
+        return Column(
+          children: [
+            MappingSlider(
+              min: widget.min,
+              max: widget.max,
+              enabled: widget.enabled,
+              value: field.value ?? widget.min,
+              onChanged: (value) {
+                field.didChange(value);
+                final clampedValue = value.clamp(widget.min, widget.max);
+                controller.text = bytesToUnit(clampedValue).toNiceString();
+              },
+            ),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                Text(humanReadableMemory(widget.min)),
+                Spacer(),
+                Text(humanReadableMemory(widget.max)),
+              ],
+            ),
+            if ((field.value ?? widget.min) > widget.sysMax) ...[
+              const SizedBox(height: 25),
+              Row(
+                children: [
+                  const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Over-provisioning of ${widget.label.toLowerCase()}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
               ),
-            ]),
+            ],
           ],
-        ]);
+        );
       },
     );
 
-    return Column(children: [
-      Row(children: [
-        Text(widget.label, style: TextStyle(fontSize: 16)),
-        Spacer(),
-        ConstrainedBox(
-          constraints: BoxConstraints(minWidth: 65),
-          child: IntrinsicWidth(child: textField),
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(widget.label, style: TextStyle(fontSize: 16)),
+            Spacer(),
+            ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 65),
+              child: IntrinsicWidth(child: textField),
+            ),
+            SizedBox(width: 8),
+            unitDropdown,
+          ],
         ),
-        SizedBox(width: 8),
-        unitDropdown,
-      ]),
-      const SizedBox(height: 25),
-      sliderFormField,
-    ]);
+        const SizedBox(height: 25),
+        sliderFormField,
+      ],
+    );
   }
 }

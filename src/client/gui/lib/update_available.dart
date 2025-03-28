@@ -93,13 +93,15 @@ class UpdateAvailable extends StatelessWidget {
     return Container(
       color: const Color(0xffF7F7F7),
       padding: const EdgeInsets.all(12),
-      child: Row(children: [
-        icon,
-        const SizedBox(width: 12),
-        text,
-        const Spacer(),
-        button,
-      ]),
+      child: Row(
+        children: [
+          icon,
+          const SizedBox(width: 12),
+          text,
+          const Spacer(),
+          button,
+        ],
+      ),
     );
   }
 }
@@ -118,21 +120,24 @@ class UpdateAvailableNotification extends StatelessWidget {
         width: 30,
         colorFilter: const ColorFilter.mode(_color, BlendMode.srcIn),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          'Multipass ${updateInfo.version} is available',
-          style: const TextStyle(fontSize: 16),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () async {
-            await launchInstallUrl();
-            if (!context.mounted) return;
-            closeNotification(context);
-          },
-          child: const Text('Upgrade now', style: TextStyle(fontSize: 14)),
-        ),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Multipass ${updateInfo.version} is available',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () async {
+              await launchInstallUrl();
+              if (!context.mounted) return;
+              closeNotification(context);
+            },
+            child: const Text('Upgrade now', style: TextStyle(fontSize: 14)),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -196,10 +196,7 @@ class GrpcClient {
   Future<FindReply> find({bool images = true, bool blueprints = true}) {
     return doRpc(
       _client.find,
-      FindRequest(
-        showImages: images,
-        showBlueprints: blueprints,
-      ),
+      FindRequest(showImages: images, showBlueprints: blueprints),
     ).then((r) => r!);
   }
 
@@ -247,11 +244,11 @@ class CustomChannelCredentials extends ChannelCredentials {
     super.authority,
     required List<int> certificate,
     required this.certificateKey,
-  })  : certificateChain = certificate,
-        super.secure(
-          certificates: certificate,
-          onBadCertificate: allowBadCertificates,
-        );
+  }) : certificateChain = certificate,
+       super.secure(
+         certificates: certificate,
+         onBadCertificate: allowBadCertificates,
+       );
 
   @override
   SecurityContext get securityContext {
