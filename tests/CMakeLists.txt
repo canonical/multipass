@@ -277,23 +277,64 @@ add_executable(multipass_tests
   test_standard_logger.cpp
 )
 
-# Common include directories
-set(COMMON_INCLUDE_DIRS
+# Base include directories needed by all tests
+set(BASE_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/src
-  ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
 
-target_include_directories(multipass_daemon_tests PRIVATE ${COMMON_INCLUDE_DIRS})
-target_include_directories(multipass_client_ssh_tests PRIVATE ${COMMON_INCLUDE_DIRS})
-target_include_directories(multipass_memory_tests PRIVATE ${COMMON_INCLUDE_DIRS})
-target_include_directories(multipass_formatter_tests PRIVATE ${COMMON_INCLUDE_DIRS})
-target_include_directories(multipass_network_tests PRIVATE ${COMMON_INCLUDE_DIRS})
-target_include_directories(multipass_qemu_tests PRIVATE ${COMMON_INCLUDE_DIRS}
+# Set include directories for each test suite based on their needs
+target_include_directories(multipass_memory_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/network # For IP address and network testing
+)
+
+target_include_directories(multipass_formatter_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/settings # For settings management
+)
+
+target_include_directories(multipass_network_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/network
+  ${CMAKE_SOURCE_DIR}/src/settings
+)
+
+target_include_directories(multipass_client_ssh_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/ssh
+  ${CMAKE_SOURCE_DIR}/src/sshfs_mount
+  ${CMAKE_SOURCE_DIR}/src/client
+  ${CMAKE_SOURCE_DIR}/src/network
+  ${CMAKE_SOURCE_DIR}/src/daemon
+  ${CMAKE_SOURCE_DIR}/src/platform/backends
+  ${CMAKE_SOURCE_DIR}/src/platform/backends/shared # For base VM classes
+)
+
+target_include_directories(multipass_daemon_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/platform/backends
+  ${CMAKE_SOURCE_DIR}/src/daemon
+  ${CMAKE_SOURCE_DIR}/src/ssh
+  ${CMAKE_SOURCE_DIR}/src/network
+)
+
+target_include_directories(multipass_qemu_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/platform/backends
   ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu
   ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu/linux
+  ${CMAKE_SOURCE_DIR}/src/network
+  ${CMAKE_SOURCE_DIR}/src/ssh
 )
-target_include_directories(multipass_tests PRIVATE ${COMMON_INCLUDE_DIRS})
+
+target_include_directories(multipass_tests PRIVATE
+  ${BASE_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/src/platform/backends # For generic backend code
+  ${CMAKE_SOURCE_DIR}/src/network # For base VM networking
+  ${CMAKE_SOURCE_DIR}/src/ssh # For SSH operations
+  ${CMAKE_SOURCE_DIR}/src/settings # For settings tests
+)
 
 add_definitions(-DWITH_SERVER)
 target_compile_definitions(ssh_test PRIVATE
