@@ -241,14 +241,22 @@ target_compile_definitions(ssh_client_test PRIVATE
 target_compile_definitions(utils_test PRIVATE
   -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
 
+# Common libraries needed by all tests
+set(COMMON_TEST_LIBRARIES
+  client # For shared functionality
+  gmock_main # For mocking
+  gtest_main # For testing framework
+  premock # For mocking
+  scope_guard # For cleanup
+  utils_test # For utility functions
+)
+
 # Common libraries for most tests
 set(COMMON_LIBRARIES
+  ${COMMON_TEST_LIBRARIES}
   cert
-  client
   daemon
   delayed_shutdown
-  gmock_main
-  gtest_main
   ip_address
   iso
   network
@@ -260,69 +268,59 @@ set(COMMON_LIBRARIES
   ssh_test
   ssh_client_test
   sshfs_mount_test
-  utils_test
-  # 3rd-party
-  premock
-  scope_guard
   yaml
 )
 
 # Minimal libraries for memory tests
 set(MEMORY_TEST_LIBRARIES
-  client
-  gmock_main
-  gtest_main
+  ${COMMON_TEST_LIBRARIES}
   ip_address
   network
-  premock
-  scope_guard
-  utils_test
 )
 
 # Libraries for formatter tests
 set(FORMATTER_TEST_LIBRARIES
-  client # For ArgParser
-  gmock_main
-  gtest_main
-  premock
-  scope_guard
-  settings
-  utils_test
+  ${COMMON_TEST_LIBRARIES}
+  settings # For settings management
   yaml # For YAML formatting
 )
 
 # Libraries for network tests
 set(NETWORK_TEST_LIBRARIES
-  client # For shared CLI functionality
-  gmock_main
-  gtest_main
+  ${COMMON_TEST_LIBRARIES}
   ip_address # For IP validation
   network # Core network functionality
-  premock
-  scope_guard
   settings # For configuration
-  utils_test # For utilities
 )
 
 # Libraries for daemon tests
 set(DAEMON_TEST_LIBRARIES
-  client # For CLI functionality
+  ${COMMON_TEST_LIBRARIES}
   daemon # Core daemon functionality
-  gmock_main
-  gtest_main
   ip_address # For networking
   network # Network functionality 
-  premock
-  scope_guard
   settings # Configuration management
   ssh_test # For SSH operations
-  utils_test # Utility functions
   yaml # For config parsing
 )
 
+# Libraries for client and SSH tests
+set(CLIENT_SSH_TEST_LIBRARIES
+  ${COMMON_TEST_LIBRARIES}
+  daemon # For daemon mock
+  ip_address # For networking
+  network # Network functionality
+  settings # For settings/config
+  sftp_test # For SFTP tests
+  ssh_test # For SSH tests
+  ssh_client_test # For SSH client tests
+  sshfs_mount_test # For SFTP server tests
+  yaml # For YAML parsing
+)
+
 target_link_libraries(multipass_daemon_tests ${DAEMON_TEST_LIBRARIES})
-target_link_libraries(multipass_client_ssh_tests ${COMMON_LIBRARIES})
-target_link_libraries(multipass_memory_tests ${MEMORY_TEST_LIBRARIES})
+target_link_libraries(multipass_client_ssh_tests ${CLIENT_SSH_TEST_LIBRARIES})
+target_link_libraries(multipass_memory_tests ${MEMORY_TEST_LIBRARIES}) 
 target_link_libraries(multipass_formatter_tests ${FORMATTER_TEST_LIBRARIES})
 target_link_libraries(multipass_network_tests ${NETWORK_TEST_LIBRARIES})
 target_link_libraries(multipass_qemu_tests ${COMMON_LIBRARIES})
