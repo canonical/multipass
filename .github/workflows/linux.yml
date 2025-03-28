@@ -20,8 +20,6 @@ jobs:
   Lint:
     runs-on: ubuntu-latest
 
-    if: ${{ !cancelled() && contains('pull_request merge_group', github.event_name) }}
-
     steps:
     - name: Check out code
       uses: actions/checkout@v4
@@ -56,12 +54,10 @@ jobs:
   BuildAndTest:
     needs: [Lint, GetMatrix]
 
-    # Allow skipped Lint
-    # Let Lint fail on pull requests
+    # Proceed if Lint failed on a PR (but not if cancelled)
     if: ${{ !cancelled() &&
             (
               success() ||
-              needs.Lint.result == 'skipped' ||
               (
                 needs.Lint.result == 'failure' &&
                 github.event_name == 'pull_request'
@@ -298,11 +294,13 @@ jobs:
         if-no-files-found: error
         retention-days: 30
 
-  # Publish the snap to the store if a channel was determined and we have access to secrets.
+  # Publish the snap to the store if all is good, a channel was determined, and we have access to secrets.
   Publish-Snap:
     needs: BuildAndTest
-    # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !cancelled() && success()
+    # Note that Lint failures prevent snap publishing.
+    if: ${{
+      !cancelled()
+      && success()
       && needs.BuildAndTest.outputs.channel != ''
       && (github.event_name == 'push'
           || github.event_name == 'merge_group'
@@ -334,7 +332,6 @@ jobs:
     - Publish-Snap
 
     # Only dispatch if we have access to secrets.
-    # Need to explicitly continue on Lint getting skipped.
     if: ${{ !cancelled() && success()
       && (github.event_name == 'push'
           || github.event_name == 'merge_group'
