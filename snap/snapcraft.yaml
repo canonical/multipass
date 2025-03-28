@@ -215,12 +215,12 @@ parts:
     - -protobuf
     source: .
     cmake-parameters:
-    - -DCMAKE_LINKER_TYPE=DEFAULT
     - -DCMAKE_BUILD_TYPE=Release
     - -DCMAKE_INSTALL_PREFIX=/
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin
     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
+    - -DCMAKE_LINKER_TYPE=DEFAULT
     override-build: |
       craftctl default
       set -e
