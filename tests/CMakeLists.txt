@@ -308,8 +308,8 @@ target_compile_definitions(ssh_client_test PRIVATE
 target_compile_definitions(utils_test PRIVATE
   -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
 
-# Common libraries needed by all tests
-set(COMMON_TEST_LIBRARIES
+# Base libraries needed by all tests
+set(BASE_TEST_LIBRARIES
   client # For shared functionality
   gmock_main # For mocking
   gtest_main # For testing framework
@@ -318,73 +318,40 @@ set(COMMON_TEST_LIBRARIES
   utils_test # For utility functions
 )
 
-# Common libraries for miscellaneous tests
-set(COMMON_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
-  daemon # For daemon functionality
-  ip_address # For networking
-  network # For core network operations
-  settings # For configuration management
-  ssh_test # For SSH operations
-  yaml # For configuration parsing
-)
-
-# Minimal libraries for memory tests
+# Minimal networking libraries
 set(MEMORY_TEST_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
-  ip_address
-  network
+  ${BASE_TEST_LIBRARIES}
+  ip_address # For IP validation
+  network # Core network functionality
 )
 
-# Libraries for formatter tests
+# Libraries for configuration management
 set(FORMATTER_TEST_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
+  ${BASE_TEST_LIBRARIES}
   settings # For settings management
   yaml # For YAML formatting
 )
 
-# Libraries for network tests
+# Libraries for network operations and configuration
 set(NETWORK_TEST_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
-  ip_address # For IP validation
-  network # Core network functionality
+  ${MEMORY_TEST_LIBRARIES}
   settings # For configuration
 )
 
-# Libraries for daemon tests
+# Full set of libraries for VM/daemon operations
 set(DAEMON_TEST_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
+  ${NETWORK_TEST_LIBRARIES}
   daemon # Core daemon functionality
-  ip_address # For networking
-  network # Network functionality 
-  settings # Configuration management
   ssh_test # For SSH operations
   yaml # For config parsing
 )
 
-# Libraries for client and SSH tests
+# Libraries for client and SSH tests (extends daemon libraries)
 set(CLIENT_SSH_TEST_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
-  daemon # For daemon mock
-  ip_address # For networking
-  network # Network functionality
-  settings # For settings/config
+  ${DAEMON_TEST_LIBRARIES}
   sftp_test # For SFTP tests
-  ssh_test # For SSH tests
   ssh_client_test # For SSH client tests
   sshfs_mount_test # For SFTP server tests
-  yaml # For YAML parsing
-)
-
-# Libraries needed by QEMU tests
-set(QEMU_TEST_LIBRARIES
-  ${COMMON_TEST_LIBRARIES}
-  daemon # For VM management
-  ip_address # For networking
-  network # For network operations
-  settings # For VM configuration
-  ssh_test # For SSH operations
-  yaml # For configuration parsing
 )
 
 target_link_libraries(multipass_daemon_tests ${DAEMON_TEST_LIBRARIES})
@@ -392,8 +359,8 @@ target_link_libraries(multipass_client_ssh_tests ${CLIENT_SSH_TEST_LIBRARIES})
 target_link_libraries(multipass_memory_tests ${MEMORY_TEST_LIBRARIES}) 
 target_link_libraries(multipass_formatter_tests ${FORMATTER_TEST_LIBRARIES})
 target_link_libraries(multipass_network_tests ${NETWORK_TEST_LIBRARIES})
-target_link_libraries(multipass_qemu_tests ${COMMON_LIBRARIES})
-target_link_libraries(multipass_tests ${COMMON_LIBRARIES})
+target_link_libraries(multipass_qemu_tests ${DAEMON_TEST_LIBRARIES})
+target_link_libraries(multipass_tests ${DAEMON_TEST_LIBRARIES})
 
 # need https://github.com/google/googletest/commit/a09ea700d32bab83325aff9ff34d0582e50e3997 before this can be removed
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
