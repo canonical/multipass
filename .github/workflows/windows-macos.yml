@@ -76,8 +76,6 @@ jobs:
     needs: Checkout
     runs-on: ubuntu-latest
 
-    if: ${{ github.event_name != 'push' }}
-
     steps:
     - name: Retrieve the repository
       uses: actions/download-artifact@v4
@@ -112,12 +110,11 @@ jobs:
   BuildAndTest:
     needs: [Checkout, Lint, GetMatrix]
 
-    # Allow skipped Lint
-    # Let Lint fail on pull requests and outside of bors runs
+    # Proceed if Lint failed on a PR (but not if cancelled)
+    # TODO@no-merge drop check for dispatch_ci
     if: |
       ${{
         success()
-        || needs.Lint.result == 'skipped'
         || ( needs.Lint.result == 'failure'
              && ( github.event_name == 'pull_request'
                   || github.event.client_payload.dispatch_ci != 'true' ) )
