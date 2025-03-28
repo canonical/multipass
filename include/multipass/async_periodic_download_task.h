@@ -116,6 +116,12 @@ public:
         future.waitForFinished();
     }
 
+    void shutdown()
+    {
+        stop_timer();
+        future_watcher.waitForFinished();
+    }
+
 private:
     QTimer timer;
     QFuture<ReturnType> future;

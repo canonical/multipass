@@ -1478,6 +1478,18 @@ mp::Daemon::~Daemon()
             watcher->waitForFinished();
         }
 
+        /**
+         * AsyncPeriodicDownloadTask maintain its own QFutureWatcher.
+         * Tell it to wrap things up.
+         *
+         * We would like to do that here explicitly instead of in a destructor
+         * since update_manifests_all_task might be using resources from the daemon
+         * and their destruction might be happening before the update_manifests_all_task
+         * object, which makes it troublesome to do this in the AsyncPeriodicDownloadTask
+         * destructor.
+         */
+        update_manifests_all_task.shutdown();
+
         // waitForFinished() ensures that the futures are finished gracefully
         // but there's a chance that the signals which are queued during their
         // execution haven't got executed yet. So, process all the remaining events
