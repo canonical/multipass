@@ -149,6 +149,12 @@ void mp::NewReleaseMonitor::check_for_new_release()
         worker_thread.reset(new mp::LatestReleaseChecker(update_url));
         connect(worker_thread.get(), &mp::LatestReleaseChecker::latest_release_found, this,
                 &mp::NewReleaseMonitor::latest_release_found);
+        // ATTN: The worker_thread is a qt_delete_later_unique_ptr, and the deleter will invoke
+        // disconnect() method upon calling. This is safe to do for this instance because, it's
+        // defined behavior to call disconnect in a signal handler itself. But, it is not without
+        // any quirks. The following signal deliveries might not be triggered if the disconnect happens
+        // in a signal handler. In this particular case, there are none, but be wary of it future travelers.
+        // FIXME: New release monitor code can be much simpler, needs a refactor.
         connect(worker_thread.get(), &QThread::finished, this, [this]() { worker_thread.reset(); });
         worker_thread->start();
     }
