@@ -15,7 +15,6 @@ class LinuxPlatform extends MpPlatform {
   Map<String, String> get drivers => const {
         'qemu': 'QEMU',
         'lxd': 'LXD',
-        'libvirt': 'libvirt',
       };
 
   @override
