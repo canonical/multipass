@@ -23,8 +23,6 @@
 
 namespace multipass
 {
-namespace test
-{
 struct Signal
 {
     template <typename T>
@@ -51,6 +49,5 @@ struct Signal
     std::condition_variable cv;
     bool signaled{false};
 };
-} // namespace test
 } // namespace multipass
 #endif // MULTIPASS_SIGNAL_TEST_FIXTURE_H

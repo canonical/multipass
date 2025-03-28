@@ -19,13 +19,13 @@
 #include "mock_logger.h"
 #include "mock_ssh_process_exit_status.h"
 #include "sftp_server_test_fixture.h"
-#include "signal.h"
 #include "stub_ssh_key_provider.h"
 
 #include <src/sshfs_mount/sshfs_mount.h>
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
+#include <multipass/signal.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 
@@ -386,7 +386,7 @@ TEST_F(SshfsMount, throws_when_sshfs_does_not_exist)
 
 TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
 {
-    mpt::Signal client_message;
+    mp::Signal client_message;
     auto get_client_msg = [&client_message](sftp_session) {
         client_message.wait();
         return nullptr;
