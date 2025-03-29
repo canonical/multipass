@@ -21,30 +21,15 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      conclusion: ${{ steps.wait-lint.outputs.conclusion }}
+      conclusion: ${{ steps.check-lint.outputs.conclusion }}
 
     steps:
-      - name: Wait for Lint workflow
-        uses: fountainhead/action-wait-for-check@v1.2.0
-        id: wait-lint
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: Lint
-          ref: ${{ github.event.pull_request.head.sha || github.sha }} # use PR SHA if available
-          timeoutSeconds: 60
-          intervalSeconds: 5
+      - name: Check out code
+        uses: actions/checkout@v4
 
-      - name: Fail on timeout
-        if: ${{ steps.wait-lint.outputs.conclusion == 'timed_out' }}
-        run: |
-          echo "##[error] Timed out checking for linting result"
-          exit 1
-
-      - name: Fail on unexpected conclusion
-        if: ${{ steps.wait-lint.outputs.conclusion != 'success' && steps.wait-lint.outputs.conclusion != 'failure' }}
-        run: |
-          echo "##[error] Unexpected conclusion: ${{ steps.wait-lint.outputs.conclusion }}"
-          exit 1
+      - name: Check Lint Status
+        id: check-lint
+        uses: ./.github/actions/check-lint
 
   GetMatrix:
     runs-on: ubuntu-latest
