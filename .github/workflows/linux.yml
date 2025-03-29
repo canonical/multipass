@@ -40,6 +40,12 @@ jobs:
           echo "##[error] Timed out checking for linting result"
           exit 1
 
+      - name: Fail on unexpected conclusion
+        if: ${{ steps.wait-lint.outputs.conclusion != 'success' && steps.wait-lint.outputs.conclusion != 'failure' }}
+        run: |
+          echo "##[error] Unexpected conclusion: ${{ steps.wait-lint.outputs.conclusion }}"
+          exit 1
+
   GetMatrix:
     runs-on: ubuntu-latest
 
