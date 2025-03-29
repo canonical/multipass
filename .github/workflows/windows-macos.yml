@@ -90,6 +90,12 @@ jobs:
           timeoutSeconds: 60
           intervalSeconds: 5
 
+      - name: Fail on timeout
+        if: ${{ steps.wait-lint.outputs.conclusion == 'timed_out' }}
+        run: |
+          echo "##[error] Timed out checking for linting result"
+          exit 1
+
   GetMatrix:
     runs-on: ubuntu-latest
 

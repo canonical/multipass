@@ -14,7 +14,7 @@ on:
 
 jobs:
   Lint:
-    name: Lint all the code
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
