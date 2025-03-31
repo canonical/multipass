@@ -61,7 +61,7 @@ endfunction()
 option(MULTIPASS_ENABLE_SYSLOG "Use syslog for logging instead of journald" OFF)
 
 if(NOT MULTIPASS_ENABLE_SYSLOG)
-  add_compile_definitions(-DMULTIPASS_JOURNALD_ENABLED)
+  add_compile_definitions(MULTIPASS_JOURNALD_ENABLED)
 endif()
 
 add_target(platform)

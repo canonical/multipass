@@ -4,6 +4,20 @@ if (MSVC)
   add_compile_options(-wd5045) #Disable warning about Spectre mitigation
 endif()
 
+function(add_subdirectory_compat)
+    #
+    # This is for CMake 4.0 compatibility.
+    #
+    # CMake 4.0 drops support CMake policies below 3.5 and some of our dependencies
+    # declare their minimum required version as 3.4, and CMake 4.0 is not happy
+    # with that. The CMAKE_POLICY_VERSION_MINIMUM option allows us to override that
+    # without having to touch the dependency's source code.
+    #
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_VERSION_MINIMUM.html
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    add_subdirectory(${ARGV})
+endfunction()
+
 # Generates gRPC and protobuf C++ sources and headers from the given .proto files
 #
 # generate_grpc_cpp (<SRCS> <DEST> [<ARGN>...])
@@ -61,7 +75,7 @@ option(YAML_CPP_BUILD_TOOLS OFF)
 option(YAML_CPP_BUILD_CONTRIB OFF)
 option(YAML_CPP_BUILD_TESTS OFF)
 
-add_subdirectory(yaml-cpp EXCLUDE_FROM_ALL)
+add_subdirectory_compat(yaml-cpp EXCLUDE_FROM_ALL)
 set_target_properties(yaml-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(yaml INTERFACE)
@@ -108,7 +122,7 @@ target_compile_definitions(scope_guard INTERFACE
   SG_REQUIRE_NOEXCEPT_IN_CPP17)
 
 # semver library
-add_subdirectory(semver EXCLUDE_FROM_ALL)
+add_subdirectory_compat(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)
 set_target_properties(semver PROPERTIES POSITION_INDEPENDENT_CODE ON)
