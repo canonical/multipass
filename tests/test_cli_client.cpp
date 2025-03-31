@@ -1015,28 +1015,9 @@ TEST_F(Client, launch_cmd_good_arguments_with_zone)
     EXPECT_THAT(send_command({"launch", "--zone", "zone1", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, launch_cmd_fails_with_mac_and_multiple_zones)
-{
-    EXPECT_THAT(
-        send_command({"launch", "--zone", "zone1,zone2", "--network", "name=eth0,mac=01:23:45:67:89:ab", "foo"}),
-        Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, launch_cmd_ok_with_mac_and_single_zone)
-{
-    EXPECT_CALL(mock_daemon, launch(_, _));
-    EXPECT_THAT(send_command({"launch", "--zone", "zone1", "--network", "name=eth0,mac=01:23:45:67:89:ab", "foo"}),
-                Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, launch_cmd_fails_with_empty_zone_list)
+TEST_F(Client, launch_cmd_fails_with_empty_zone)
 {
     EXPECT_THAT(send_command({"launch", "--zone", "", "foo"}), Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, launch_cmd_fails_with_empty_zone_in_list)
-{
-    EXPECT_THAT(send_command({"launch", "--zone", "zone1,,zone2", "foo"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, launch_cmd_fails_with_nonexistent_zone)

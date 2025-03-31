@@ -242,11 +242,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
-    QCommandLineOption zoneOption(
-        "zone",
-        "Launch instances in specific availability zones. Multiple zones can be specified as a "
-        "comma-separated list (e.g., 'zone1,zone2'). Cannot be used with a specific MAC address.",
-        "zones");
+    QCommandLineOption zoneOption("zone", "Launch instance in the specified availability zone.", "zone");
     QCommandLineOption mountOption("mount",
                                    "Mount a local directory inside the instance. If <target> is omitted, the "
                                    "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
@@ -451,17 +447,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         {
             for (const auto& net : parser->values(networkOption))
             {
-                // Check if MAC address is specified with multiple zones
-                auto net_opt = net_digest(net);
-                if (parser->isSet(zoneOption) && !net_opt.mac_address().empty())
-                {
-                    auto zones = parser->value(zoneOption).split(",", Qt::SkipEmptyParts);
-                    if (zones.size() > 1)
-                    {
-                        throw mp::ValidationException("Cannot specify MAC address when launching in multiple zones");
-                    }
-                }
-                *request.add_network_options() = net_opt;
+                *request.add_network_options() = net_digest(net);
             }
         }
 
@@ -485,67 +471,16 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
 
-    // Handle multiple zones
     if (parser->isSet("zone"))
     {
-        auto zone_str = parser->value("zone").trimmed();
-        auto zones = zone_str.split(",", Qt::SkipEmptyParts);
-        if (zones.isEmpty() || zone_str.contains(",,"))
+        auto zone = parser->value("zone").trimmed();
+        if (zone.isEmpty())
         {
             cerr << "Error: Empty zone specified with --zone option\n";
             return ReturnCode::CommandLineError;
         }
-
-        auto original_name = request.instance_name();
-        auto final_ret = ReturnCode::Ok;
-
-        for (const auto& opt : request.network_options())
-        {
-            if (!opt.mac_address().empty() && zones.size() > 1)
-            {
-                cerr << "Error: Cannot specify MAC address when launching in multiple zones\n";
-                return ReturnCode::CommandLineError;
-            }
-        }
-
-        for (int i = 0; i < zones.size(); ++i)
-        {
-            auto zone_name = zones[i].toStdString();
-
-            cout << fmt::format("\nLaunching instance {}/{} in zone '{}':\n", i + 1, zones.size(), zone_name);
-
-            // Set zone in request
-            request.set_zone(zone_name);
-
-            // Generate instance name
-            if (original_name.empty())
-            {
-                request.set_instance_name(""); // Let daemon generate random name
-            }
-            else
-            {
-                request.set_instance_name(original_name + "-" + zone_name); // Always append zone
-            }
-
-            // Launch instance in this zone
-            auto ret = launch_instance(parser);
-            if (ret != ReturnCode::Ok)
-            {
-                final_ret = ret;
-                cerr << "Failed to launch instance in zone " << zone_name << "\n";
-            }
-        }
-
-        // Return success if any instance launches succeeded, else return first error
-        return final_ret == ReturnCode::Ok ? ReturnCode::Ok : final_ret;
+        request.set_zone(zone.toStdString());
     }
-
-    // Single zone case - just launch normally
-    return launch_instance(parser);
-}
-
-mp::ReturnCode cmd::Launch::launch_instance(const ArgParser* parser)
-{
 
     if (timer)
         timer->resume();
@@ -612,7 +547,15 @@ mp::ReturnCode cmd::Launch::launch_instance(const ArgParser* parser)
             }
         }
 
-        cout << "Launched: " << reply.vm_instance_name() << "\n";
+        // Update output message to include zone name
+        if (!reply.zone_name().empty())
+        {
+            cout << "Launched: " << reply.vm_instance_name() << " in zone " << reply.zone_name() << "\n";
+        }
+        else
+        {
+            cout << "Launched: " << reply.vm_instance_name() << "\n";
+        }
 
         if (term->is_live() && update_available(reply.update_info()))
         {

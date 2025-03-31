@@ -3070,6 +3070,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         reply.set_vm_instance_name(name);
                         config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
 
+                        // Set the zone name from the vm_instance_specs
+                        reply.set_zone_name(vm_instance_specs[name].zone);
+
                         // Attach the aliases to be created by the CLI to the last message.
                         for (const auto& blueprint_alias : vm_aliases)
                         {
@@ -3129,7 +3132,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         try
         {
             CreateReply reply;
-            reply.set_create_message("Creating " + name);
+            reply.set_create_message("Creating " + name + "in zone " + zone_name);
             server->Write(reply);
 
             Query query;

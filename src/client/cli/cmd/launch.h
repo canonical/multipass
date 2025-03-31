@@ -52,7 +52,6 @@ private:
     ParseCode parse_args(ArgParser* parser);
     ReturnCode request_launch(const ArgParser* parser);
     ReturnCode mount(const ArgParser* parser, const QString& mount_source, const QString& mount_target);
-    ReturnCode launch_instance(const ArgParser* parser);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
 
     LaunchRequest request;
