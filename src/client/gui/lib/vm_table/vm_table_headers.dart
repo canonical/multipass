@@ -36,12 +36,14 @@ final headers = <TableHeader<VmInfo>>[
     width: 110,
     minWidth: 70,
     sortKey: (info) => info.instanceStatus.status.name,
-    cellBuilder: (info) => Consumer(
-      builder: (_, ref, __) => VmStatusIcon(
-        info.instanceStatus.status,
-        isLaunching: ref.watch(isLaunchingProvider(info.name)),
-      ),
-    ),
+    cellBuilder:
+        (info) => Consumer(
+          builder:
+              (_, ref, __) => VmStatusIcon(
+                info.instanceStatus.status,
+                isLaunching: ref.watch(isLaunchingProvider(info.name)),
+              ),
+        ),
   ),
   TableHeader(
     name: 'CPU USAGE',
@@ -53,19 +55,21 @@ final headers = <TableHeader<VmInfo>>[
     name: 'MEMORY USAGE',
     width: 140,
     minWidth: 130,
-    cellBuilder: (info) => MemoryUsage(
-      used: info.instanceInfo.memoryUsage,
-      total: info.memoryTotal,
-    ),
+    cellBuilder:
+        (info) => MemoryUsage(
+          used: info.instanceInfo.memoryUsage,
+          total: info.memoryTotal,
+        ),
   ),
   TableHeader(
     name: 'DISK USAGE',
     width: 130,
     minWidth: 100,
-    cellBuilder: (info) => MemoryUsage(
-      used: info.instanceInfo.diskUsage,
-      total: info.diskTotal,
-    ),
+    cellBuilder:
+        (info) => MemoryUsage(
+          used: info.instanceInfo.diskUsage,
+          total: info.diskTotal,
+        ),
   ),
   TableHeader(
     name: 'IMAGE',
@@ -98,12 +102,15 @@ class SelectAllCheckbox extends ConsumerWidget {
     final selectedVms = ref.watch(selectedVmsProvider);
     final searchName = ref.watch(searchNameProvider);
     final runningOnly = ref.watch(runningOnlyProvider);
-    final vmNames = ref
-        .watch(vmInfosProvider)
-        .where((i) => !runningOnly || i.instanceStatus.status == Status.RUNNING)
-        .where((i) => i.name.contains(searchName))
-        .map((i) => i.name)
-        .toList();
+    final vmNames =
+        ref
+            .watch(vmInfosProvider)
+            .where(
+              (i) => !runningOnly || i.instanceStatus.status == Status.RUNNING,
+            )
+            .where((i) => i.name.contains(searchName))
+            .map((i) => i.name)
+            .toList();
     final allSelected = selectedVms.containsAll(vmNames);
 
     void toggleSelectedAll(bool isSelected) {
@@ -128,9 +135,11 @@ class SelectVmCheckbox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedVmsProvider.select((selectedVms) {
-      return selectedVms.contains(name);
-    }));
+    final selected = ref.watch(
+      selectedVmsProvider.select((selectedVms) {
+        return selectedVms.contains(name);
+      }),
+    );
 
     void toggleSelected(bool isSelected) {
       ref.read(selectedVmsProvider.notifier).update((state) {
