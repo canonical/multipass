@@ -42,8 +42,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription&,
                                                 const SSHKeyProvider&,
-                                                VMStatusMonitor&,
-                                                AvailabilityZoneManager& az_manager) override
+                                                VMStatusMonitor&) override
     {
         return std::make_unique<StubVirtualMachine>();
     }
