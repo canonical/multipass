@@ -51,10 +51,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 
     MOCK_METHOD(mp::VirtualMachine::UPtr,
                 create_virtual_machine,
-                (const mp::VirtualMachineDescription&,
-                 const mp::SSHKeyProvider&,
-                 mp::VMStatusMonitor&,
-                 mp::AvailabilityZoneManager& az_manager),
+                (const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&),
                 (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));

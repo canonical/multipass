@@ -33,10 +33,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
 {
     MOCK_METHOD(VirtualMachine::UPtr,
                 create_virtual_machine,
-                (const VirtualMachineDescription&,
-                 const SSHKeyProvider&,
-                 VMStatusMonitor&,
-                 AvailabilityZoneManager& az_manager),
+                (const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&),
                 (override));
     MOCK_METHOD(VirtualMachine::UPtr,
                 clone_bare_vm,
@@ -46,8 +43,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                  const std::string&,
                  const VMImage&,
                  const SSHKeyProvider&,
-                 VMStatusMonitor&,
-                 AvailabilityZoneManager& az_manager),
+                 VMStatusMonitor&),
                 (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
 
