@@ -22,7 +22,7 @@ runs:
         token: ${{ github.token }}
         checkName: Lint
         ref: ${{ inputs.sha }}
-        timeoutSeconds: 60
+        timeoutSeconds: 120
         intervalSeconds: 5
 
     - name: Fail on timeout
