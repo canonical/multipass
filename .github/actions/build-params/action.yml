@@ -25,12 +25,8 @@ runs:
     id: build-params
     shell: bash
     run: |
-      # Respect build parameters of the dispatch.
-      if [ ${{ github.event_name }} == "repository_dispatch" ]; then
-        echo "label=${{ github.event.client_payload.label }}" >> $GITHUB_OUTPUT
-
       # If it's a pull request or `trying` push, annotate with `pr#` and publish to `edge/pr#`.
-      elif [ ${{ github.event_name }} == "pull_request" ]; then
+      if [ ${{ github.event_name }} == "pull_request" ]; then
         echo "label=pr${{ github.event.number }}" >> $GITHUB_OUTPUT
         echo "channel=edge/pr${{ github.event.number }}" >> $GITHUB_OUTPUT
 
