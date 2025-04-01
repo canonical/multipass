@@ -118,7 +118,7 @@ TEST_F(LibVirtBackend, createsInOffState)
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path, az_manager};
     mpt::StubVMStatusMonitor stub_monitor;
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
@@ -129,7 +129,7 @@ TEST_F(LibVirtBackend, createsInSuspendedStateWithManagedSave)
     backend.libvirt_wrapper->virDomainHasManagedSaveImage = [](auto...) { return 1; };
 
     mpt::StubVMStatusMonitor stub_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }
@@ -151,7 +151,7 @@ TEST_F(LibVirtBackend, machineSendsMonitoringEvents)
     };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
@@ -174,7 +174,7 @@ TEST_F(LibVirtBackend, machinePersistsAndSetsStateOnStart)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path, az_manager};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->start();
@@ -196,7 +196,7 @@ TEST_F(LibVirtBackend, machinePersistsAndSetsStateOnShutdown)
     };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->shutdown();
@@ -217,7 +217,7 @@ TEST_F(LibVirtBackend, machinePersistsAndSetsStateOnSuspend)
     };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->suspend();
@@ -237,7 +237,7 @@ TEST_F(LibVirtBackend, startWithBrokenLibvirtConnectionThrows)
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_THROW(machine->start(), std::runtime_error);
 
@@ -250,7 +250,7 @@ TEST_F(LibVirtBackend, shutdownWithBrokenLibvirtConnectionThrows)
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_THROW(machine->shutdown(), std::runtime_error);
 
@@ -263,7 +263,7 @@ TEST_F(LibVirtBackend, suspendWithBrokenLibvirtConnectionThrows)
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_THROW(machine->suspend(), std::runtime_error);
 
@@ -276,7 +276,7 @@ TEST_F(LibVirtBackend, currentStateWithBrokenLibvirtUnknown)
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::unknown));
 }
@@ -290,7 +290,7 @@ TEST_F(LibVirtBackend, currentStateDelayedShutdownDomainRunning)
     };
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->state = mp::VirtualMachine::State::delayed_shutdown;
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::delayed_shutdown));
@@ -300,7 +300,7 @@ TEST_F(LibVirtBackend, currentStateDelayedShutdownDomainOff)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path, az_manager};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->state = mp::VirtualMachine::State::delayed_shutdown;
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
@@ -310,7 +310,7 @@ TEST_F(LibVirtBackend, currentStateOffDomainStartsRunning)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path, az_manager};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 
@@ -396,7 +396,7 @@ TEST_F(LibVirtBackend, sshHostnameReturnsExpectedValue)
         return static_virNetworkGetDHCPLeases(network, mac, leases, flags);
     };
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
 
     backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
@@ -414,7 +414,7 @@ TEST_F(LibVirtBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
 
     backend.libvirt_wrapper->virNetworkGetDHCPLeases = [](auto...) { return 0; };
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
 
     backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
@@ -449,7 +449,7 @@ TEST_F(LibVirtBackend, shutdownWhileStartingThrowsAndSetsCorrectState)
         return static_virDomainDestroy(domain);
     };
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start();
 
@@ -479,7 +479,7 @@ TEST_F(LibVirtBackend, machineInOffStateLogsAndIgnoresShutdown)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path, az_manager};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 
@@ -503,7 +503,7 @@ TEST_F(LibVirtBackend, machineNoForceCannotShutdownLogsAndThrows)
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path, az_manager};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
         *state = VIR_DOMAIN_RUNNING;
