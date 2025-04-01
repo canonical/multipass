@@ -25,7 +25,6 @@
 #include "mock_server_reader_writer.h"
 #include "mock_ssh_process_exit_status.h"
 #include "mock_virtual_machine.h"
-#include "stub_availability_zone.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_virtual_machine.h"
 
@@ -107,7 +106,6 @@ struct SSHFSMountHandlerTest : public ::Test
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
     mpt::StubVirtualMachine vm;
-    mpt::StubAvailabilityZone zone{};
     std::unique_ptr<mpt::MockProcessFactory::Scope> factory = mpt::MockProcessFactory::Inject();
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
@@ -123,7 +121,7 @@ TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
 {
     factory->register_callback(sshfs_server_callback(sshfs_prints_connected));
 
-    mpt::MockVirtualMachine mock_vm{"my_instance", zone};
+    mpt::MockVirtualMachine mock_vm{"my_instance"};
     EXPECT_CALL(mock_vm, ssh_port()).Times(3);
     EXPECT_CALL(mock_vm, ssh_hostname()).Times(3);
     EXPECT_CALL(mock_vm, ssh_username()).Times(3);
