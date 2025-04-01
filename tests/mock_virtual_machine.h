@@ -117,6 +117,7 @@ struct MockVirtualMachineT : public T
                 (const Snapshot*),
                 (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
+    MOCK_METHOD(AvailabilityZone&, get_zone, (), (const, override));
 
     std::unique_ptr<TempDir> tmp_dir;
 };

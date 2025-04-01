@@ -26,12 +26,6 @@ namespace test
 {
 struct StubAvailabilityZone final : public AvailabilityZone
 {
-    static AvailabilityZone& instance()
-    {
-        static StubAvailabilityZone zone{};
-        return zone;
-    }
-
     StubAvailabilityZone()
     {
     }

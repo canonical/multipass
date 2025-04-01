@@ -40,7 +40,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir> tmp_dir)
-        : VirtualMachine{name, StubAvailabilityZone::instance(), tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : VirtualMachine{name, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -202,6 +202,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 0;
     }
 
+    const AvailabilityZone& get_zone() const override
+    {
+        return zone;
+    }
+
+    StubAvailabilityZone zone{};
     StubSnapshot snapshot;
     std::unique_ptr<TempDir> tmp_dir;
 };

@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "mock_virtual_machine.h"
-#include "stub_availability_zone.h"
 
 #include <multipass/constants.h>
 #include <multipass/utils.h>
@@ -125,8 +124,7 @@ struct TestInstanceSettingsHandler : public Test
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
     mpt::MockVirtualMachine& mock_vm(const std::string& name, bool deleted = false)
     {
-        mpt::StubAvailabilityZone zone{};
-        auto ret = std::make_shared<MockCharacter<mpt::MockVirtualMachine>>(name, zone);
+        auto ret = std::make_shared<MockCharacter<mpt::MockVirtualMachine>>(name);
 
         auto& vm_collection = deleted ? deleted_vms : vms;
         vm_collection.emplace(name, ret);

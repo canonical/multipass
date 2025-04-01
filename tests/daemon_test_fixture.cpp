@@ -23,6 +23,7 @@
 #include "mock_cert_provider.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
+#include "stub_availability_zone_manager.h"
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
@@ -315,11 +316,14 @@ public:
 
 mpt::DaemonTestFixture::DaemonTestFixture()
 {
+    auto az_manager = std::make_unique<StubAvailabilityZoneManager>();
+
     config_builder.server_address = server_address;
     config_builder.cache_directory = cache_dir.path();
     config_builder.data_directory = data_dir.path();
     config_builder.vault = std::make_unique<StubVMImageVault>();
-    config_builder.factory = std::make_unique<StubVirtualMachineFactory>();
+    config_builder.factory = std::make_unique<StubVirtualMachineFactory>(*az_manager);
+    config_builder.az_manager = std::move(az_manager);
     config_builder.image_hosts.push_back(std::make_unique<StubVMImageHost>());
     config_builder.ssh_key_provider = std::make_unique<StubSSHKeyProvider>();
     config_builder.cert_provider = std::make_unique<NiceMock<MockCertProvider>>();
