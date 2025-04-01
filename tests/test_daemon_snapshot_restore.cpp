@@ -25,8 +25,6 @@
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 #include "multipass/exceptions/snapshot_exceptions.h"
-#include "stub_availability_zone.h"
-#include "stub_availability_zone_manager.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
@@ -44,7 +42,6 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     auto build_daemon_with_mock_instance()
@@ -52,7 +49,7 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
         const auto [temp_dir, filename] =
             plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
         auto* ret_instance = instance_ptr.get();
 
         EXPECT_CALL(*instance_ptr, current_state)
@@ -81,7 +78,6 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
     std::vector<mp::NetworkInterface> extra_interfaces;
     const std::string mac_addr{"52:54:00:73:76:28"};
     const std::string mock_instance_name{"real-zebraphant"};
-    mpt::StubAvailabilityZone zone{};
 };
 
 struct TestDaemonSnapshot : public TestDaemonSnapshotRestoreBase
