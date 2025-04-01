@@ -297,6 +297,7 @@ jobs:
         ${{ env.ARCH_WRAPPER }} cmake --build . --target package
         echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
         echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName' }} )" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
       run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
@@ -477,38 +478,6 @@ jobs:
                        steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
             || ''
           }}
-
-    - name: Prepare dispatch inputs
-      id: prepare-dispatch
-      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
-      run: |
-        ${ARCH_WRAPPER} brew install jq
-
-        INPUTS=""
-
-        if [ -n "${{ steps.s3-upload.outputs.url }}" ]; then
-          INPUTS+="{ \"mac-x86-package\": \"${{ steps.s3-upload.outputs.url }}\" }"
-          INPUTS+="{ \"mac-arm-package\": \"${{ steps.s3-upload.outputs.url }}\" }"
-        fi
-
-        if [ -n "${{ needs.BuildAndTest.outputs.windows-url }}" ]; then
-          INPUTS+="{ \"win-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
-        fi
-
-        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "inputs=" $0 }' >> $GITHUB_OUTPUT
-
-    - name: Dispatch integration tests
-      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
-      uses: Saviq/workflow-dispatch@dist
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        repo: ${{ github.event.client_payload.repository }}
-        ref: ${{ github.event.client_payload.ref }}
-        sha: ${{ github.event.client_payload.sha }}
-        workflow: Integration
-        inputs: ${{ steps.prepare-dispatch.outputs.inputs }}
-      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-error: true
 
   CleanupArtifacts:
     if: ${{ success() && needs.PublishAndDispatch.result == 'success' }}
