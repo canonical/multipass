@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
 #define MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
 
-#include "availability_zone_manager.h"
 #include "days.h"
 #include "disabled_copy_move.h"
 #include "fetch_type.h"
@@ -49,16 +48,14 @@ public:
     virtual ~VirtualMachineFactory() = default;
     virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                         const SSHKeyProvider& key_provider,
-                                                        VMStatusMonitor& monitor,
-                                                        AvailabilityZoneManager& az_manager) = 0;
+                                                        VMStatusMonitor& monitor) = 0;
     virtual VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                                const VMSpecs& dest_spec,
                                                const std::string& src_name,
                                                const std::string& dest_name,
                                                const VMImage& dest_image,
                                                const SSHKeyProvider& key_provider,
-                                               VMStatusMonitor& monitor,
-                                               AvailabilityZoneManager& az_manager) = 0;
+                                               VMStatusMonitor& monitor) = 0;
 
     /** Removes any resources associated with a VM of the given name.
      *
