@@ -74,4 +74,6 @@ constexpr auto petenv_default = "primary";
 constexpr auto timeout_exit_code = 5;
 
 constexpr auto authenticated_certs_dir = "authenticated-certs";
+
+constexpr auto default_zone_names = {"zone1", "zone2", "zone3"};
 } // namespace multipass
