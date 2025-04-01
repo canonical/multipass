@@ -126,6 +126,7 @@ public:
     virtual int get_snapshot_count() const = 0;
 
     QDir instance_directory() const;
+    virtual const AvailabilityZone& get_zone() const = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
@@ -133,18 +134,14 @@ public:
     std::mutex state_mutex;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
-    AvailabilityZone& zone;
 
 protected:
     const QDir instance_dir;
 
-    VirtualMachine(VirtualMachine::State state,
-                   const std::string& vm_name,
-                   AvailabilityZone& zone,
-                   const Path& instance_dir)
-        : state{state}, vm_name{vm_name}, zone{zone}, instance_dir{QDir{instance_dir}} {};
-    VirtualMachine(const std::string& vm_name, AvailabilityZone& zone, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, zone, instance_dir){};
+    VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
+        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
+    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
+        : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass
 
