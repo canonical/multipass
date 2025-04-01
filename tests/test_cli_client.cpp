@@ -1008,6 +1008,31 @@ TEST_F(Client, shell_cmd_disabled_petenv_help)
 }
 
 // launch cli tests
+// Launch CLI zone tests
+TEST_F(Client, launch_cmd_good_arguments_with_zone)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _));
+    EXPECT_THAT(send_command({"launch", "--zone", "zone1", "foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_fails_with_empty_zone)
+{
+    EXPECT_THAT(send_command({"launch", "--zone", "", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_fails_with_nonexistent_zone)
+{
+    const auto error_msg = "msg";
+    const grpc::Status zone_error{grpc::StatusCode::INVALID_ARGUMENT, error_msg};
+
+    EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(zone_error));
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"launch", "--zone", "nonexistent-zone", "foo"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(error_msg));
+}
+
 TEST_F(Client, launch_cmd_good_arguments)
 {
     EXPECT_CALL(mock_daemon, launch(_, _));

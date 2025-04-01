@@ -127,8 +127,9 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 
     if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
-        auto has_home_mount = std::count_if(mount_routes.begin(), mount_routes.end(),
-                                            [](const auto& route) { return route.second == home_automount_dir; });
+        auto has_home_mount = std::count_if(mount_routes.begin(), mount_routes.end(), [](const auto& route) {
+            return route.second == home_automount_dir;
+        });
 
         if (got_petenv && !has_home_mount)
         {
@@ -189,23 +190,31 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
-                                                                     min_cpu_cores, default_cpu_cores)),
-                                  "cpus", default_cpu_cores);
+                                                                     min_cpu_cores,
+                                                                     default_cpu_cores)),
+                                  "cpus",
+                                  default_cpu_cores);
     QCommandLineOption diskOption(
         {"d", "disk"},
         QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
                                            "bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
-                                           min_disk_size, default_disk_size)),
-        "disk", QString::fromUtf8(default_disk_size));
+                                           min_disk_size,
+                                           default_disk_size)),
+        "disk",
+        QString::fromUtf8(default_disk_size));
 
     QCommandLineOption memOption(
         {"m", "memory"},
         QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
                                            "in bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
-                                           min_memory_size, default_memory_size)),
-        "memory", QString::fromUtf8(default_memory_size)); // In MB's
+                                           min_memory_size,
+                                           default_memory_size)),
+        "memory",
+        QString::fromUtf8(default_memory_size)); // In MB's
     QCommandLineOption memOptionDeprecated(
-        "mem", QString::fromStdString("Deprecated memory allocation long option. See \"--memory\"."), "memory",
+        "mem",
+        QString::fromStdString("Deprecated memory allocation long option. See \"--memory\"."),
+        "memory",
         QString::fromUtf8(default_memory_size));
     memOptionDeprecated.setFlags(QCommandLineOption::HiddenFromHelp);
 
@@ -233,14 +242,23 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption zoneOption("zone", "Launch instance in the specified availability zone.", "zone");
     QCommandLineOption mountOption("mount",
                                    "Mount a local directory inside the instance. If <target> is omitted, the "
                                    "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
                                    "the name of the <source> directory.",
                                    "source>:<target");
 
-    parser->addOptions({cpusOption, diskOption, memOption, memOptionDeprecated, nameOption, cloudInitOption,
-                        networkOption, bridgedOption, mountOption});
+    parser->addOptions({cpusOption,
+                        diskOption,
+                        memOption,
+                        memOptionDeprecated,
+                        nameOption,
+                        cloudInitOption,
+                        networkOption,
+                        bridgedOption,
+                        zoneOption,
+                        mountOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -420,14 +438,18 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(bridgedOption))
     {
-        request.mutable_network_options()->Add(net_digest(mp::bridged_network_name));
+        *request.add_network_options() = net_digest(mp::bridged_network_name);
     }
 
     try
     {
         if (parser->isSet(networkOption))
+        {
             for (const auto& net : parser->values(networkOption))
-                request.mutable_network_options()->Add(net_digest(net));
+            {
+                *request.add_network_options() = net_digest(net);
+            }
+        }
 
         request.set_timeout(mp::cmd::parse_timeout(parser));
     }
@@ -449,11 +471,24 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
 
+    if (parser->isSet("zone"))
+    {
+        auto zone = parser->value("zone").trimmed();
+        if (zone.isEmpty())
+        {
+            cerr << "Error: Empty zone specified with --zone option\n";
+            return ReturnCode::CommandLineError;
+        }
+        request.set_zone(zone.toStdString());
+    }
+
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(), spinner.get(), cerr,
+        timer = cmd::make_timer(parser->value("timeout").toInt(),
+                                spinner.get(),
+                                cerr,
                                 "Timed out waiting for instance launch.");
         timer->start();
     }
@@ -469,9 +504,14 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         std::vector<std::string> warning_aliases;
         for (const auto& alias_to_be_created : reply.aliases_to_be_created())
         {
-            AliasDefinition alias_definition{alias_to_be_created.instance(), alias_to_be_created.command(),
+            AliasDefinition alias_definition{alias_to_be_created.instance(),
+                                             alias_to_be_created.command(),
                                              alias_to_be_created.working_directory()};
-            if (create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr,
+            if (create_alias(aliases,
+                             alias_to_be_created.name(),
+                             alias_definition,
+                             cout,
+                             cerr,
                              instance_name.toStdString()) != ReturnCode::Ok)
                 warning_aliases.push_back(alias_to_be_created.name());
         }
@@ -507,7 +547,15 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             }
         }
 
-        cout << "Launched: " << reply.vm_instance_name() << "\n";
+        // Update output message to include zone name
+        if (!reply.zone_name().empty())
+        {
+            cout << "Launched: " << reply.vm_instance_name() << " in zone " << reply.zone_name() << "\n";
+        }
+        else
+        {
+            cout << "Launched: " << reply.vm_instance_name() << "\n";
+        }
 
         if (term->is_live() && update_available(reply.update_info()))
         {
