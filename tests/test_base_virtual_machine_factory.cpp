@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
+#include "stub_availability_zone_manager.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
@@ -38,21 +39,19 @@ namespace
 {
 struct MockBaseFactory : mp::BaseVirtualMachineFactory
 {
-    MockBaseFactory() : MockBaseFactory{std::make_unique<mp::test::TempDir>()}
+    MockBaseFactory(mp::AvailabilityZoneManager& az_manager)
+        : MockBaseFactory{std::make_unique<mp::test::TempDir>(), az_manager}
     {
     }
 
-    MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir)
-        : mp::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir, mp::AvailabilityZoneManager& az_manager)
+        : mp::BaseVirtualMachineFactory{tmp_dir->path(), az_manager}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
     MOCK_METHOD(mp::VirtualMachine::UPtr,
                 create_virtual_machine,
-                (const mp::VirtualMachineDescription&,
-                 const mp::SSHKeyProvider&,
-                 mp::VMStatusMonitor&,
-                 mp::AvailabilityZoneManager& az_manager),
+                (const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&),
                 (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void, prepare_instance_image, (const mp::VMImage&, const mp::VirtualMachineDescription&), (override));
@@ -83,18 +82,19 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 struct BaseFactory : public Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    mpt::StubAvailabilityZoneManager az_manager{};
 };
 
 TEST_F(BaseFactory, returns_image_only_fetch_type)
 {
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
 
     EXPECT_EQ(factory.fetch_type(), mp::FetchType::ImageOnly);
 }
 
 TEST_F(BaseFactory, dir_name_returns_empty_string)
 {
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
 
     const auto dir_name = factory.get_backend_directory_name();
 
@@ -107,7 +107,7 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
     mpt::TempDir cache_dir;
     mpt::TempDir data_dir;
     std::vector<mp::VMImageHost*> hosts;
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
 
     auto vault = factory.create_image_vault(hosts, &stub_downloader, cache_dir.path(), data_dir.path(), mp::days{0});
 
@@ -116,7 +116,7 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
 
 TEST_F(BaseFactory, networks_throws)
 {
-    StrictMock<MockBaseFactory> factory;
+    StrictMock<MockBaseFactory> factory{az_manager};
 
     ASSERT_THROW(factory.mp::BaseVirtualMachineFactory::networks(), mp::NotImplementedOnThisBackendException);
 }
@@ -126,7 +126,7 @@ TEST_F(BaseFactory, networks_throws)
 // at this time.  Instead, just make sure an ISO image is created and has the expected path.
 TEST_F(BaseFactory, creates_cloud_init_iso_image)
 {
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
     const std::string name{"foo"};
     const YAML::Node metadata{YAML::Load({fmt::format("name: {}", name)})}, vendor_data{metadata}, user_data{metadata},
         network_data{metadata};
@@ -157,7 +157,7 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
 
 TEST_F(BaseFactory, create_bridge_not_implemented)
 {
-    StrictMock<MockBaseFactory> factory;
+    StrictMock<MockBaseFactory> factory{az_manager};
 
     MP_EXPECT_THROW_THAT(factory.base_create_bridge_with({}), mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("bridge creation")));
@@ -165,7 +165,7 @@ TEST_F(BaseFactory, create_bridge_not_implemented)
 
 TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
 {
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
 
     EXPECT_CALL(factory, prepare_networking).WillOnce(Invoke([&factory](auto& nets) {
         factory.mp::BaseVirtualMachineFactory::prepare_networking(nets);
@@ -180,7 +180,7 @@ TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
 
 TEST_F(BaseFactory, prepareInterfaceLeavesUnrecognizedNetworkAlone)
 {
-    StrictMock<MockBaseFactory> factory;
+    StrictMock<MockBaseFactory> factory{az_manager};
 
     auto host_nets = std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "asd"}, {"wlan0", "wifi", "asd"}};
     auto extra_net = mp::NetworkInterface{"eth1", "fa:se:ma:c0:12:23", false};
@@ -194,7 +194,7 @@ TEST_F(BaseFactory, prepareInterfaceLeavesUnrecognizedNetworkAlone)
 
 TEST_F(BaseFactory, prepareInterfaceLeavesExistingBridgeAlone)
 {
-    StrictMock<MockBaseFactory> factory;
+    StrictMock<MockBaseFactory> factory{az_manager};
     constexpr auto bridge_type = "arbitrary";
 
     auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
@@ -212,7 +212,7 @@ TEST_F(BaseFactory, prepareInterfaceLeavesExistingBridgeAlone)
 
 TEST_F(BaseFactory, prepareInterfaceReplacesBridgedNetworkWithCorrespondingBridge)
 {
-    StrictMock<MockBaseFactory> factory;
+    StrictMock<MockBaseFactory> factory{az_manager};
     constexpr auto bridge_type = "tunnel";
     constexpr auto bridge = "br";
 
@@ -236,7 +236,7 @@ TEST_F(BaseFactory, prepareInterfaceReplacesBridgedNetworkWithCorrespondingBridg
 
 TEST_F(BaseFactory, prepareInterfaceCreatesBridgeForUnbridgedNetwork)
 {
-    StrictMock<MockBaseFactory> factory;
+    StrictMock<MockBaseFactory> factory{az_manager};
     constexpr auto bridge_type = "gagah";
     constexpr auto bridge = "newbr";
 
@@ -272,7 +272,7 @@ TEST_F(BaseFactory, prepareInterfaceCreatesBridgeForUnbridgedNetwork)
 
 TEST_F(BaseFactory, prepareNetworkingWithNoExtraNetsHasNoObviousEffect)
 {
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
     MP_DELEGATE_MOCK_CALLS_ON_BASE(factory, prepare_networking, mp::BaseVirtualMachineFactory);
 
     std::vector<mp::NetworkInterface> empty;
@@ -293,7 +293,7 @@ TEST_F(BaseFactory, prepareNetworkingPreparesEachRequestedNetwork)
         {"aaa", "alpha", true}, {"bbb", "beta", false}, {"br", "bridge", true}, {"brr", "bridge", false}};
     const auto num_nets = extra_nets.size();
 
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
     EXPECT_CALL(factory, networks).WillOnce(Return(host_nets));
     MP_DELEGATE_MOCK_CALLS_ON_BASE(factory, prepare_networking, mp::BaseVirtualMachineFactory);
 
@@ -307,7 +307,7 @@ TEST_F(BaseFactory, prepareNetworkingPreparesEachRequestedNetwork)
 
 TEST_F(BaseFactory, factoryHasDefaultSuspendSupport)
 {
-    MockBaseFactory factory;
+    MockBaseFactory factory{az_manager};
     EXPECT_NO_THROW(factory.mp::BaseVirtualMachineFactory::require_suspend_support());
 }
 } // namespace

@@ -87,11 +87,11 @@ struct LXDBackend : public Test
     mpt::TempDir data_dir;
     mpt::TempDir instance_dir;
     mpt::StubSSHKeyProvider key_provider;
+    mpt::StubAvailabilityZoneManager az_manager{};
+    mpt::StubAvailabilityZone zone{};
     std::unique_ptr<StrictMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
     const QString default_storage_pool{"default"};
-    mpt::StubAvailabilityZone zone{};
-    mpt::StubAvailabilityZoneManager az_manager{};
 };
 
 struct LXDInstanceStatusTestSuite : LXDBackend, WithParamInterface<LXDInstanceStatusParamType>
@@ -173,7 +173,7 @@ TEST_F(LXDBackend, createsProjectStoragePoolAndNetworkOnHealthcheck)
                 return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
             });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     backend.hypervisor_health_check();
 
@@ -232,7 +232,7 @@ TEST_F(LXDBackend, usesDefaultStoragePoolWhenItExistsAndNoMultipassPool)
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "Using the \'default\' storage pool.");
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     backend.hypervisor_health_check();
 
@@ -289,7 +289,7 @@ TEST_F(LXDBackend, usesMultipassStoragePoolWhenItExists)
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "Using the \'multipass\' storage pool.");
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     backend.hypervisor_health_check();
 
@@ -357,7 +357,7 @@ TEST_F(LXDBackend, usesMultipassPoolWhenDefaultPoolExists)
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "Using the \'multipass\' storage pool.");
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     backend.hypervisor_health_check();
 }
@@ -386,9 +386,9 @@ TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     EXPECT_NE(nullptr, machine);
 }
@@ -401,7 +401,7 @@ TEST_F(LXDBackend, factory_creates_expected_image_vault)
     mpt::TempDir data_dir;
     std::vector<mp::VMImageHost*> hosts;
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     auto vault = backend.create_image_vault(hosts, &stub_downloader, cache_dir.path(), data_dir.path(), mp::days{0});
 
@@ -413,7 +413,7 @@ TEST_F(LXDBackend, factory_does_nothing_on_configure)
     mpt::TempDir data_dir;
     mp::VirtualMachineDescription vm_desc{default_description};
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     backend.configure(vm_desc);
 
@@ -955,7 +955,7 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
 
 TEST_F(LXDBackend, prepare_source_image_does_not_modify)
 {
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
     const mp::VMImage original_image{"/path/to/image",          "deadbeef", "bin", "baz", "the past",
                                      {"fee", "fi", "fo", "fum"}};
 
@@ -1006,7 +1006,7 @@ TEST_F(LXDBackend, returns_expected_backend_string)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     const QString backend_string{"lxd-4.3"};
 
@@ -1015,7 +1015,7 @@ TEST_F(LXDBackend, returns_expected_backend_string)
 
 TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
 {
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     const std::string name{"foo"};
 
@@ -1036,7 +1036,7 @@ TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
 
 TEST_F(LXDBackend, factoryDoesNotSupportSuspend)
 {
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
     MP_EXPECT_THROW_THAT(backend.require_suspend_support(),
                          mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("suspend")));
@@ -1044,7 +1044,7 @@ TEST_F(LXDBackend, factoryDoesNotSupportSuspend)
 
 TEST_F(LXDBackend, image_fetch_type_returns_expected_type)
 {
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     EXPECT_EQ(backend.fetch_type(), mp::FetchType::ImageOnly);
 }
@@ -1083,7 +1083,7 @@ TEST_F(LXDBackend, healthcheck_throws_when_untrusted)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
                          mpt::match_what(StrEq("Failed to authenticate to LXD.")));
@@ -1098,7 +1098,7 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
             throw mp::LocalSocketConnectionException(exception_message);
         });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled.",
@@ -1114,7 +1114,7 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
             throw mp::LocalSocketConnectionException(exception_message);
         });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
                          mpt::match_what(StrEq(fmt::format("{}\n\nPlease ensure the LXD snap is installed and enabled.",
@@ -1125,7 +1125,7 @@ TEST_F(LXDBackend, healthcheck_error_advises_snap_connections_when_in_snap)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest).WillOnce(Throw(mp::LocalSocketConnectionException("")));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
     MP_EXPECT_THROW_THAT(backend.hypervisor_health_check(), std::runtime_error,
@@ -2081,7 +2081,7 @@ TEST_F(LXDBackend, requests_networks)
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::networks_empty_data}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
     EXPECT_THAT(backend.networks(), IsEmpty());
 }
 
@@ -2097,7 +2097,7 @@ TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     EXPECT_THROW(backend.networks(), std::runtime_error);
 }
@@ -2115,7 +2115,7 @@ TEST_P(LXDNetworksBadFields, ignores_network_without_expected_fields)
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
     EXPECT_THAT(backend.networks(), IsEmpty());
 }
 
@@ -2138,7 +2138,7 @@ TEST_P(LXDNetworksOnlySupportedTypes, reports_only_bridge_and_ethernet_networks)
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
@@ -2172,7 +2172,7 @@ TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(std::map<std::string, mp::NetworkInterfaceInfo>{{"br0", {"br0", "bridge", "gibberish"}}}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(description))));
 }
@@ -2190,7 +2190,7 @@ TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform)
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     EXPECT_THAT(backend.networks(), ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(fallback_desc))));
 }
@@ -2206,7 +2206,7 @@ TEST_F(LXDBackend, skips_platform_network_inspection_when_lxd_reports_no_network
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
         .WillOnce(Return(new mpt::MockLocalSocketReply{{data}}));
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     EXPECT_THAT(backend.networks(), IsEmpty());
 }
@@ -2333,7 +2333,7 @@ public:
 
 TEST_F(LXDBackend, prepares_networking_via_base_factory)
 {
-    CustomLXDFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    CustomLXDFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
     std::vector<mp::NetworkInterface> extra_networks{{"netid", "mac", false}};
 
     auto address = [](const auto& v) { return &v; }; // replace with Address matcher once available
@@ -2347,7 +2347,7 @@ TEST_F(LXDBackend, createsBridgesViaBackendUtils)
     const auto bridge = "bli";
     auto [mock_backend, guard] = mpt::MockBackend::inject();
 
-    CustomLXDFactory factory{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    CustomLXDFactory factory{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
     EXPECT_CALL(*mock_backend, create_bridge_with(net.id)).WillOnce(Return(bridge));
     EXPECT_EQ(factory.create_bridge_with(net), bridge);
@@ -2401,9 +2401,9 @@ TEST_F(LXDBackend, addsNetworkInterface)
             return new mpt::MockLocalSocketReply(mpt::not_found_data, QNetworkReply::ContentNotFoundError);
         });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->shutdown();
 
@@ -2421,6 +2421,9 @@ TEST_F(LXDBackend, converts_http_to_https)
         return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
     });
 
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), QUrl{"http://bar"}};
-    backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager),
+                                         data_dir.path(),
+                                         az_manager,
+                                         QUrl{"http://bar"}};
+    backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 }
