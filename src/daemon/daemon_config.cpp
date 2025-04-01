@@ -157,8 +157,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
+    if (az_manager == nullptr)
+        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
     if (factory == nullptr)
-        factory = platform::vm_backend(data_directory);
+        factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -237,9 +239,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                               fs::perms::owner_all | fs::perms::group_exec |
                                   fs::perms::others_exec),
             server_name_from(server_address));
-
-    if (az_manager == nullptr)
-        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
                                                                 std::move(factory),
