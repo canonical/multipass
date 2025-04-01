@@ -31,14 +31,14 @@ class LibVirtVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
     explicit LibVirtVirtualMachineFactory(const Path& data_dir,
-                                          const std::string& libvirt_object_path); // For testing
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir);
+                                          const std::string& libvirt_object_path,
+                                          AvailabilityZoneManager& az_manager); // For testing
+    explicit LibVirtVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
     ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
-                                                VMStatusMonitor& monitor,
-                                                AvailabilityZoneManager& az_manager) override;
+                                                VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;

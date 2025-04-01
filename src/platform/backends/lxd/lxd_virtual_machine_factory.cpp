@@ -83,24 +83,25 @@ mp::NetworkInterfaceInfo munch_network(
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager,
                                                        const mp::Path& data_dir,
+                                                       AvailabilityZoneManager& az_manager,
                                                        const QUrl& base_url)
-    : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
+    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+                                az_manager),
       manager{std::move(manager)},
       base_url{base_url}
 {
 }
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
+                                                       AvailabilityZoneManager& az_manager,
                                                        const QUrl& base_url)
-    : LXDVirtualMachineFactory(std::make_unique<NetworkAccessManager>(), data_dir, base_url)
+    : LXDVirtualMachineFactory(std::make_unique<NetworkAccessManager>(), data_dir, az_manager, base_url)
 {
 }
 
 mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                               const SSHKeyProvider& key_provider,
-                                                                              VMStatusMonitor& monitor,
-                                                                              AvailabilityZoneManager& az_manager)
+                                                                              VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::LXDVirtualMachine>(desc,
                                                    monitor,

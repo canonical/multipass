@@ -1513,7 +1513,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
         auto instance = instance_record[name] =
-            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this, *config->az_manager);
+            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
         instance->load_snapshots();
 
         // Add the new macs to the daemon's list only if we got this far

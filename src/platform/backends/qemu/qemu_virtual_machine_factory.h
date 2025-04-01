@@ -30,12 +30,11 @@ namespace multipass
 class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const Path& data_dir);
+    explicit QemuVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
-                                                VMStatusMonitor& monitor,
-                                                AvailabilityZoneManager& az_manager) override;
+                                                VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;
@@ -52,13 +51,14 @@ protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
-    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
+    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
+                              const Path& data_dir,
+                              AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,
                                        VMStatusMonitor& monitor,
-                                       const SSHKeyProvider& key_provider,
-                                       AvailabilityZoneManager& az_manager) override;
+                                       const SSHKeyProvider& key_provider) override;
 
     QemuPlatform::UPtr qemu_platform;
 };
