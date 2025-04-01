@@ -92,8 +92,6 @@ struct LXDBackend : public Test
     std::unique_ptr<StrictMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
     const QString default_storage_pool{"default"};
-    mpt::StubAvailabilityZone zone{};
-    mpt::StubAvailabilityZoneManager az_manager{};
 };
 
 struct LXDInstanceStatusTestSuite : LXDBackend, WithParamInterface<LXDInstanceStatusParamType>
@@ -390,7 +388,7 @@ TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     EXPECT_NE(nullptr, machine);
 }
@@ -2405,7 +2403,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), az_manager, base_url};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->shutdown();
 
