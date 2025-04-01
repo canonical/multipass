@@ -96,6 +96,11 @@ public:
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
+    const AvailabilityZone& get_zone() const override
+    {
+        return zone;
+    }
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -167,6 +172,7 @@ private:
 
 protected:
     const SSHKeyProvider& key_provider;
+    AvailabilityZone& zone;
 
 private:
     std::optional<SSHSession> ssh_session = std::nullopt;
