@@ -144,7 +144,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : VirtualMachine{state, vm_name, zone, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}, zone{zone}
 {
     zone.add_vm(*this);
 }
@@ -153,14 +153,14 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : VirtualMachine{vm_name, zone, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}, zone{zone}
 {
     zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine()
 {
-    zone.remove_vm(*this);
+    mp::top_catch_all(vm_name, [this] { zone.remove_vm(*this); });
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
