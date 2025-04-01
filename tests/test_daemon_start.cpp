@@ -27,8 +27,6 @@
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
-#include "stub_availability_zone.h"
-#include "stub_availability_zone_manager.h"
 
 #include <src/daemon/daemon.h>
 
@@ -46,8 +44,6 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
-
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     const std::string mock_instance_name{"real-zebraphant"};
@@ -64,7 +60,6 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
-    mpt::StubAvailabilityZone zone{};
 };
 
 TEST_F(TestDaemonStart, successfulStartOkStatus)
@@ -73,7 +68,7 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -109,7 +104,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -145,7 +140,7 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -176,7 +171,7 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -222,7 +217,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*mock_vm, start).Times(1);
@@ -265,7 +260,7 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, activate_impl).WillOnce(Throw(std::runtime_error{error}));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name, zone);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*mock_vm, start).Times(1);
