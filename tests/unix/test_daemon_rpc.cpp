@@ -24,7 +24,6 @@
 #include <tests/mock_permission_utils.h>
 #include <tests/mock_platform.h>
 #include <tests/mock_utils.h>
-#include <tests/stub_availability_zone_manager.h>
 
 #include <src/daemon/daemon_rpc.h>
 
@@ -43,7 +42,6 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
         EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).Times(1);
         EXPECT_CALL(*mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
         EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     mp::Rpc::Stub make_secure_stub()
