@@ -29,6 +29,7 @@
 #include <QRegularExpression>
 #include <QString>
 
+#include <cassert>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -57,7 +58,8 @@ public:
 
     void make_available(bool available) override
     {
-        throw NotImplementedOnThisBackendException("availability zones");
+        // TODO make vm unavailable by force stopping if running or available by starting again if it was running
+        assert(false && "BaseVirtualMachine::make_available is not implemented");
     }
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;

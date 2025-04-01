@@ -107,9 +107,10 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 } // namespace
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
-                                                               const std::string& libvirt_object_path)
-    : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
+                                                               const std::string& libvirt_object_path,
+                                                               AvailabilityZoneManager& az_manager)
+    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+                                az_manager),
       libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
       data_dir{data_dir},
       bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)},
@@ -117,15 +118,15 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 {
 }
 
-mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so.0")
+mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
+                                                               AvailabilityZoneManager& az_manager)
+    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so.0", az_manager)
 {
 }
 
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
                                                                                   const SSHKeyProvider& key_provider,
-                                                                                  VMStatusMonitor& monitor,
-                                                                                  AvailabilityZoneManager& az_manager)
+                                                                                  VMStatusMonitor& monitor)
 {
     if (bridge_name.empty())
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
