@@ -20,8 +20,10 @@
 
 #include "availability_zone_manager.h"
 
+#include <multipass/constants.h>
+
+#include <array>
 #include <filesystem>
-#include <map>
 #include <mutex>
 
 namespace multipass
@@ -39,17 +41,29 @@ public:
 private:
     void serialize() const;
 
+    class ZoneCollection
+    {
+    public:
+        const std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
+
+        ZoneCollection(std::array<AvailabilityZone::UPtr, default_zone_names.size()>&& zones, std::string last_used);
+        std::string next_available();
+        std::string last_used() const;
+
+    private:
+        decltype(zones)::const_iterator automatic_zone;
+    };
+
     // we store all the data in one struct so that it can be created from one function call in the initializer list
     struct data
     {
         const std::filesystem::path file_path{};
-        const std::map<std::string, AvailabilityZone::UPtr> zones{};
-
+        ZoneCollection zone_collection;
+        // we don't have designated initializers, so mutex remains last so it doesn't need to be manually initialized
         mutable std::recursive_mutex mutex{};
-        std::string automatic_zone{};
     } m;
 
-    static data make(const std::filesystem::path& data_dir);
+    static data read_from_file(const std::filesystem::path& file_path, const std::filesystem::path& zones_directory);
 };
 } // namespace multipass
 
