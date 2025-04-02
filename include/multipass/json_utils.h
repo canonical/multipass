@@ -25,6 +25,7 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -41,6 +42,7 @@ public:
 
     virtual void write_json(const QJsonObject& root,
                             QString file_name) const; // transactional; creates parent dirs
+    virtual QJsonObject read_object_from_file(const std::filesystem::path& file_path) const;
     virtual std::string json_to_string(const QJsonObject& root) const;
     virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
                                                      const std::string& src_vm_name,
