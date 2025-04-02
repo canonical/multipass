@@ -32,7 +32,7 @@ public:
     QString description() const override;
 
 private:
-    std::vector<std::string> zone_names{};
+    ZonesStateRequest request{};
     ParseCode parse_args(ArgParser* parser);
 };
 } // namespace multipass::cmd

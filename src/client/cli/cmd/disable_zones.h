@@ -33,7 +33,7 @@ public:
 
 private:
     bool ask_for_confirmation = true;
-    std::vector<std::string> zone_names{};
+    ZonesStateRequest request{};
     ParseCode parse_args(ArgParser* parser);
     bool confirm();
 };

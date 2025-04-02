@@ -33,20 +33,13 @@ ReturnCode EnableZones::run(ArgParser* parser)
         return parser->returnCodeFrom(ret);
 
     AnimatedSpinner spinner{cout};
-    spinner.start(format("Enabling {}", fmt::join(zone_names, ", ")));
-
-    ZonesStateRequest request{};
-    for (const auto& zone_name : zone_names)
-        request.add_zones(zone_name);
-    request.set_available(true);
-    request.set_verbosity_level(parser->verbosityLevel());
+    spinner.start(format("Enabling {}", fmt::join(request.zones(), ", ")));
 
     const auto on_success = [&](const ZonesStateReply&) {
         spinner.stop();
-        const auto n_zones = zone_names.size();
         cout << fmt::format("Zone{} enabled: {}",
-            request.zones_size() == 1 ? "" : "s",
-            fmt::join(request.zones(), ", "));
+                            request.zones_size() == 1 ? "" : "s",
+                            fmt::join(request.zones(), ", "));
         return Ok;
     };
 
@@ -82,10 +75,13 @@ ParseCode EnableZones::parse_args(ArgParser* parser)
     if (const auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
 
-    for (const auto& zone_name : parser->positionalArguments())
-        zone_names.push_back(zone_name.toStdString());
+    request.set_available(true);
+    request.set_verbosity_level(parser->verbosityLevel());
 
-    if (zone_names.empty())
+    for (const auto& zone_name : parser->positionalArguments())
+        request.add_zones(zone_name.toStdString());
+
+    if (request.zones().empty())
     {
         cerr << "No zones supplied" << std::endl;
         return ParseCode::CommandLineError;
