@@ -44,7 +44,9 @@ ReturnCode EnableZones::run(ArgParser* parser)
     const auto on_success = [&](const ZonesStateReply&) {
         spinner.stop();
         const auto n_zones = zone_names.size();
-        cout << n_zones << (n_zones == 1 ? " zone" : " zones") << " enabled successfully" << std::endl;
+        cout << fmt::format("Zone{} enabled: {}",
+            request.zones_size() == 1 ? "" : "s",
+            fmt::join(request.zones(), ", "));
         return Ok;
     };
 
@@ -70,7 +72,7 @@ QString EnableZones::short_help() const
 
 QString EnableZones::description() const
 {
-    return QStringLiteral("Makes the requests availability zones available.");
+    return QStringLiteral("Makes the given availability zones available.");
 }
 
 ParseCode EnableZones::parse_args(ArgParser* parser)

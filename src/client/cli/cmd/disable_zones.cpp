@@ -54,8 +54,9 @@ ReturnCode DisableZones::run(ArgParser* parser)
 
     const auto on_success = [&](const ZonesStateReply&) {
         spinner.stop();
-        const auto n_zones = zone_names.size();
-        cout << n_zones << (n_zones == 1 ? " zone" : " zones") << " disabled successfully" << std::endl;
+        cout << fmt::format("Zone{} disabled: {}",
+                            request.zones_size() == 1 ? "" : "s",
+                            fmt::join(request.zones(), ", "));
         return Ok;
     };
 
@@ -81,7 +82,7 @@ QString DisableZones::short_help() const
 
 QString DisableZones::description() const
 {
-    return QStringLiteral("Makes the requests availability zones unavailable.");
+    return QStringLiteral("Makes the given availability zones unavailable.");
 }
 
 ParseCode DisableZones::parse_args(ArgParser* parser)
