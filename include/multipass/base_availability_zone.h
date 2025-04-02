@@ -48,13 +48,13 @@ private:
         const std::string name{};
         const std::filesystem::path file_path{};
         const std::string subnet{};
-
-        mutable std::recursive_mutex mutex{};
         bool available{};
         std::vector<std::reference_wrapper<VirtualMachine>> vms{};
+        // we don't have designated initializers, so mutex remains last so it doesn't need to be manually initialized
+        mutable std::recursive_mutex mutex{};
     } m;
 
-    static data make(const std::string& name, const std::filesystem::path& az_directory);
+    static data read_from_file(const std::string& name, const std::filesystem::path& file_path);
 };
 } // namespace multipass
 
