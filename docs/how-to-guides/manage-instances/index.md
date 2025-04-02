@@ -27,6 +27,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 
 create-an-instance
 modify-an-instance
+launch-customized-virtual-machines-with-multipass-and-cloud-init
 use-an-instance
 use-the-primary-instance
 use-instance-command-aliases
