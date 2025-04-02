@@ -15,6 +15,33 @@ import 'search_box.dart';
 import 'table.dart';
 import 'vm_table_headers.dart';
 
+class ZoneToggleButton extends ConsumerWidget {
+  final String zoneName;
+
+  const ZoneToggleButton(this.zoneName, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final available = ref.watch(zoneStatusProvider(zoneName));
+    final client = ref.watch(grpcClientProvider);
+
+    return OutlinedButton(
+      onPressed: () {
+        client.zonesState([zoneName], !available);
+      },
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+          (Set<MaterialState> states) {
+            if (available) return Colors.green.withOpacity(0.2);
+            return Colors.grey.withOpacity(0.1);
+          },
+        ),
+      ),
+      child: Text('Zone $zoneName'),
+    );
+  }
+}
+
 final runningOnlyProvider = StateProvider((_) => false);
 final selectedVmsProvider = StateProvider<BuiltSet<String>>((ref) {
   // if any filter is applied (either name or show running only), the provider

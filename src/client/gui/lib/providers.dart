@@ -138,6 +138,29 @@ final deletedVmsProvider = Provider((ref) {
       .toBuiltSet();
 });
 
+final zonesProvider = StreamProvider<List<Zone>>((ref) async* {
+  final grpcClient = ref.watch(grpcClientProvider);
+  while (true) {
+    final timer = Future.delayed(2.seconds);
+    try {
+      final reply = await grpcClient.zones();
+      yield reply?.zones ?? [];
+    } catch (error, stackTrace) {
+      logger.e('Error fetching zones', error: error, stackTrace: stackTrace);
+      yield* Stream.error(error, stackTrace);
+    }
+    await timer;
+  }
+});
+
+final zoneStatusProvider = Provider.family<bool, String>((ref, zoneName) {
+  final zones = ref.watch(zonesProvider).valueOrNull;
+  if (zones == null) return false;
+  return zones
+      .firstWhere((z) => z.name == zoneName, orElse: () => Zone())
+      .available;
+});
+
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   @override
   BuiltList<DetailedInfoItem> build() {
