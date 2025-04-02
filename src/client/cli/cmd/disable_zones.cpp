@@ -34,13 +34,12 @@ ReturnCode DisableZones::run(ArgParser* parser)
 
     if (ask_for_confirmation)
     {
-        const PlainPrompter prompter{term};
-        auto answer = prompter.prompt("This operation will forcefully stop the VMs in zone3. Proceed? (Yes/No)");
-        while (!std::regex_match(answer, client::yes_answer) && !std::regex_match(answer, client::no_answer))
-            answer = prompter.prompt("Please answer (Yes/No)");
+        if (!term->is_live())
+            throw std::runtime_error{
+                "Unable to query client for confirmation. Use '--force' to avoid prompting for confirmation."};
 
-        if (std::regex_match(answer, client::no_answer))
-            return Ok;
+        if (!confirm())
+            return ReturnCode::CommandFail;
     }
 
     AnimatedSpinner spinner{cout};
@@ -107,5 +106,27 @@ ParseCode DisableZones::parse_args(ArgParser* parser)
     ask_for_confirmation = !parser->isSet(forceOption);
 
     return ParseCode::Ok;
+}
+
+bool DisableZones::confirm()
+{
+    // joins zones by comma with an 'and' for the last one e.g. 'zone1, zone2 and zone3'
+    const auto format_zones = [this] {
+        if (request.zones_size() == 1)
+            return request.zones(0);
+
+        const auto last_zone = request.zones_size() - 1;
+        return fmt::format("{} and {}",
+                           fmt::join(request.zones().begin(), request.zones().begin() + last_zone, ", "),
+                           request.zones(last_zone));
+    };
+    const auto message = "This operation will forcefully stop the VMs in " + format_zones() + ". Proceed? (Yes/No)";
+
+    const PlainPrompter prompter{term};
+    auto answer = prompter.prompt(message);
+    while (!std::regex_match(answer, client::yes_answer) && !std::regex_match(answer, client::no_answer))
+        answer = prompter.prompt("Please answer (Yes/No)");
+
+    return std::regex_match(answer, client::yes_answer);
 }
 } // namespace multipass::cmd
