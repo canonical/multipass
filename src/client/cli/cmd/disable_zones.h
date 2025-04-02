@@ -35,6 +35,7 @@ private:
     bool ask_for_confirmation = true;
     std::vector<std::string> zone_names{};
     ParseCode parse_args(ArgParser* parser);
+    bool confirm();
 };
 } // namespace multipass::cmd
 #endif // MULTIPASS_DISABLE_ZONES_H
