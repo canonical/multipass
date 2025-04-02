@@ -36,6 +36,7 @@
 
 namespace multipass
 {
+class AvailabilityZone;
 class MemorySize;
 class VMMount;
 struct VMSpecs;
@@ -55,7 +56,8 @@ public:
         delayed_shutdown,
         suspending,
         suspended,
-        unknown
+        unknown,
+        unavailable,
     };
 
     enum class ShutdownPolicy
@@ -73,6 +75,7 @@ public:
     virtual void start() = 0;
     virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
+    virtual void make_available(bool available) = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname()
@@ -122,6 +125,7 @@ public:
     virtual int get_snapshot_count() const = 0;
 
     QDir instance_directory() const;
+    virtual const AvailabilityZone& get_zone() const = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
