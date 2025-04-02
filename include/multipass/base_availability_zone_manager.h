@@ -20,8 +20,10 @@
 
 #include "availability_zone_manager.h"
 
+#include <multipass/constants.h>
+
+#include <array>
 #include <filesystem>
-#include <map>
 #include <mutex>
 
 namespace multipass
@@ -43,12 +45,13 @@ private:
     struct data
     {
         const std::filesystem::path file_path{};
-        const std::map<std::string, AvailabilityZone::UPtr> zones{};
-
-        mutable std::recursive_mutex mutex{};
+        std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
         std::string automatic_zone{};
+        // we don't have designated initializers, so mutex remains last so it doesn't need to be manually initialized
+        mutable std::recursive_mutex mutex{};
     } m;
 
+    static data read_from_file(const std::filesystem::path& file_path, const std::filesystem::path& zones_directory);
     static data make(const std::filesystem::path& data_dir);
 };
 } // namespace multipass
