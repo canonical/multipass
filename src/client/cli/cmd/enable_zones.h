@@ -22,7 +22,7 @@
 
 namespace multipass::cmd
 {
-class EnableZones final : public Command
+class EnableZones : public Command
 {
 public:
     using Command::Command;
