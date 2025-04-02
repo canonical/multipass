@@ -10,4 +10,4 @@ runs:
         set -e -o pipefail
 
         # On pull requests, HEAD^1 will always be the merge base
-        git diff --check HEAD^1
+        git diff --check HEAD^1 ':(exclude)3rd-party/'

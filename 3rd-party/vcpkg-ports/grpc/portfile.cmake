@@ -5,20 +5,33 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO grpc/grpc
-    REF v1.52.1
-    SHA512 06c69fb817af75b2610761a3a193178b749755eb7bed58875aa251def7c0c253cdaf02cf834c31c8b2cae7b01a6081e2aece4b131a162f64bd45ff0aff4d7758
+    REF "v${VERSION}"
+    SHA512 8f595429afc86e8ef7e1ba7d8b9fb579e9e334f822a4a26ab2cbd0ab13bcb421afaab21febffd023fbd688cfa2b8be834f9047aa70e6561bc181ba6737892304
     HEAD_REF master
     PATCHES
+        00001-fix-uwp.patch
         00002-static-linking-in-linux.patch
-        00003-undef-base64-macro.patch
         00004-link-gdi32-on-windows.patch
         00005-fix-uwp-error.patch
-        00006-remove-unused-libraries.patch
-        snprintf.patch
+        00006-utf8-range.patch
         00015-disable-download-archive.patch
+        00016-fix-plugin-targets.patch
+        00017-fix-NAN-on-Win11.patch
+        00018-fix-windows-event-engine.patch
+        00019-protobuf-generate-with-import-path-correction.patch
+        remove_unneeded_lib_custom.patch
+)
+# Ensure de-vendoring
+file(REMOVE_RECURSE
+    "${SOURCE_PATH}/third_party/abseil-cpp"
+    "${SOURCE_PATH}/third_party/cares"
+    "${SOURCE_PATH}/third_party/protobuf"
+    "${SOURCE_PATH}/third_party/re2"
+    "${SOURCE_PATH}/third_party/utf8_range"
+    "${SOURCE_PATH}/third_party/zlib"
 )
 
-if(NOT TARGET_TRIPLET STREQUAL HOST_TRIPLET)
+if(VCPKG_CROSSCOMPILING)
     vcpkg_add_to_path(PREPEND "${CURRENT_HOST_INSTALLED_DIR}/tools/grpc")
 endif()
 
@@ -49,21 +62,22 @@ vcpkg_cmake_configure(
         -DgRPC_PROTOBUF_PROVIDER=package
         -DgRPC_ABSL_PROVIDER=package
         -DgRPC_RE2_PROVIDER=package
-        -DgRPC_PROTOBUF_PACKAGE_TYPE=CONFIG
         -DgRPC_CARES_PROVIDER=${cares_CARES_PROVIDER}
         -DgRPC_BENCHMARK_PROVIDER=none
         -DgRPC_INSTALL_BINDIR:STRING=bin
         -DgRPC_INSTALL_LIBDIR:STRING=lib
         -DgRPC_INSTALL_INCLUDEDIR:STRING=include
         -DgRPC_INSTALL_CMAKEDIR:STRING=share/grpc
-	-DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF
-	-DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF
-	-DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF
-	-DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF
-	-DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF
-	-DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF
+        -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF
         "-D_gRPC_PROTOBUF_PROTOC_EXECUTABLE=${CURRENT_HOST_INSTALLED_DIR}/tools/protobuf/protoc${VCPKG_HOST_EXECUTABLE_SUFFIX}"
         "-DProtobuf_PROTOC_EXECUTABLE=${CURRENT_HOST_INSTALLED_DIR}/tools/protobuf/protoc${VCPKG_HOST_EXECUTABLE_SUFFIX}"
+        -DgRPC_BUILD_GRPCPP_OTEL_PLUGIN=OFF
+        -DgRPC_DOWNLOAD_ARCHIVES=OFF
     MAYBE_UNUSED_VARIABLES
         gRPC_MSVC_STATIC_RUNTIME
 )
@@ -72,11 +86,15 @@ vcpkg_cmake_install(ADD_BIN_TO_PATH)
 
 vcpkg_cmake_config_fixup()
 
-vcpkg_copy_tools(
-    AUTO_CLEAN
-    TOOL_NAMES
-        grpc_cpp_plugin
-)
+if (gRPC_BUILD_CODEGEN)
+    vcpkg_copy_tools(
+        AUTO_CLEAN
+        TOOL_NAMES
+            grpc_cpp_plugin
+    )
+else()
+    configure_file("${CMAKE_CURRENT_LIST_DIR}/gRPCTargets-vcpkg-tools.cmake" "${CURRENT_PACKAGES_DIR}/share/grpc/gRPCTargets-vcpkg-tools.cmake" @ONLY)
+endif()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share" "${CURRENT_PACKAGES_DIR}/debug/include")
 
@@ -84,7 +102,7 @@ vcpkg_copy_pdbs()
 if (VCPKG_TARGET_IS_WINDOWS)
     file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/lib/pkgconfig" "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig")
 else()
-    vcpkg_fixup_pkgconfig(SKIP_CHECK)
+    vcpkg_fixup_pkgconfig()
 endif()
 
-file(INSTALL "${SOURCE_PATH}/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
