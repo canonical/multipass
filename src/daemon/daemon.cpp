@@ -1286,8 +1286,8 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
 
-template <typename W, typename R>
-void lxd_deprecation_warning(grpc::ServerReaderWriterInterface<W, R>& server) // TODO lxd migration, remove
+template <typename Reply, typename Request>
+void lxd_deprecation_warning(grpc::ServerReaderWriterInterface<Reply, Request>& server) // TODO lxd migration, remove
 {
 #ifdef MULTIPASS_PLATFORM_LINUX
     constexpr auto deprecation_warning =
@@ -1297,7 +1297,7 @@ void lxd_deprecation_warning(grpc::ServerReaderWriterInterface<W, R>& server) //
 
     if (MP_SETTINGS.get(mp::driver_key) == "lxd")
     {
-        W reply{};
+        Reply reply{};
         reply.set_log_line(deprecation_warning);
         server.Write(reply);
     }
