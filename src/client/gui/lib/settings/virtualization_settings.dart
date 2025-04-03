@@ -28,7 +28,10 @@ class VirtualizationSettings extends ConsumerWidget {
         label: 'Driver',
         width: 260,
         value: driver,
-        items: mpPlatform.drivers,
+        items: {
+          if (driver != null) driver: driver,
+          ...mpPlatform.drivers,
+        },
         onChanged: (value) {
           if (value == driver) return;
           ref
