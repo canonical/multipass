@@ -1285,6 +1285,24 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
+
+template <typename W, typename R>
+void lxd_deprecation_warning(grpc::ServerReaderWriterInterface<W, R>& server) // TODO lxd migration, remove
+{
+#ifdef MULTIPASS_PLATFORM_LINUX
+    constexpr auto deprecation_warning =
+        "*** Warning! The lxd driver is deprecated and will be removed in an upcoming release. ***\n\n"
+        "When you are ready to have your instances migrated, please stop them (multipass stop --all) and "
+        "switch to the QEMU driver (multipass set local.driver=qemu).\n\n";
+
+    if (MP_SETTINGS.get(mp::driver_key) == "lxd")
+    {
+        W reply{};
+        reply.set_log_line(deprecation_warning);
+        server.Write(reply);
+    }
+#endif
+}
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1818,6 +1836,7 @@ void mp::Daemon::list(const ListRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
+    lxd_deprecation_warning(*server); // TODO lxd migration, remove
     mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     ListReply response;

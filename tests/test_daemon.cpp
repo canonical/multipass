@@ -132,6 +132,7 @@ struct Daemon : public mpt::DaemonTestFixture
                              a few more tests for `false`, since there are different portions of code depending on it */
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return("eth8"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).Times(AnyNumber()); // TODO lxd migration, remove
     }
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
