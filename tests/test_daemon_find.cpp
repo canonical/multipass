@@ -51,6 +51,8 @@ struct DaemonFind : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+            .Times(AnyNumber()); // TODO lxd and libvirt migration, remove
         ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
     }
 
