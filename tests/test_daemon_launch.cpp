@@ -41,7 +41,8 @@ struct TestDaemonLaunch : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
-        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).Times(AnyNumber()); // TODO lxd and libvirt migration, remove
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+            .Times(AnyNumber()); // TODO lxd and libvirt migration, remove
     }
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
