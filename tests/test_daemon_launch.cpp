@@ -16,19 +16,14 @@
  */
 
 #include "blueprint_test_lambdas.h"
-#include "common.h"
 #include "daemon_test_fixture.h"
-#include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
-#include "mock_virtual_machine.h"
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
-#include "stub_virtual_machine.h"
-#include "stub_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
 
@@ -46,6 +41,7 @@ struct TestDaemonLaunch : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).Times(AnyNumber()); // TODO lxd and libvirt migration, remove
     }
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
