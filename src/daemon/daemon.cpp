@@ -1614,7 +1614,6 @@ void mp::Daemon::find(const FindRequest* request, grpc::ServerReaderWriterInterf
                       std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
-    lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()), *config->logger,
                                                      server};
     FindReply response;
