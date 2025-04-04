@@ -103,7 +103,7 @@ packages:
       path: "."
       ref: "2.11.0+mp"
       resolved-ref: a2830134265c61fa1f8973c42761e0faf349b2db
-      url: "https://github.com/andrei-toterman/dartssh2.git"
+      url: "https://github.com/canonical/dartssh2.git"
     source: git
     version: "2.11.0"
   equatable:
@@ -306,7 +306,7 @@ packages:
       path: "packages/hotkey_manager_linux"
       ref: no-cooked-accel
       resolved-ref: "7e5a662615fbc9f077c1567fd7a66ec34ad52b5e"
-      url: "https://github.com/andrei-toterman/hotkey_manager.git"
+      url: "https://github.com/canonical/hotkey_manager.git"
     source: git
     version: "0.2.0"
   hotkey_manager_macos:
@@ -744,7 +744,7 @@ packages:
       path: "."
       ref: cef5b8f
       resolved-ref: cef5b8f60d7b2717c6f2eef2163a8e11de3b8d3d
-      url: "https://github.com/andrei-toterman/tray_menu.git"
+      url: "https://github.com/canonical/tray_menu.git"
     source: git
     version: "0.0.1"
   two_dimensional_scrollables:
