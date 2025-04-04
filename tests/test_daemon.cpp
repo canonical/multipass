@@ -38,6 +38,7 @@
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
 #include "path.h"
+#include "signal.h"
 #include "stub_virtual_machine.h"
 #include "tracking_url_downloader.h"
 
@@ -118,6 +119,8 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
         EXPECT_CALL(mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
         EXPECT_CALL(mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
+        EXPECT_CALL(mock_platform, setup_permission_inheritance(_)).Times(AnyNumber()).WillRepeatedly(Return());
+        EXPECT_CALL(mock_platform, bridge_nomenclature).Times(AnyNumber()).WillRepeatedly(Return("notabridge"));
     }
 
     void SetUp() override
@@ -354,6 +357,52 @@ TEST_F(Daemon, blueprintsURLOverrideIsCorrect)
     mpt::TrackingURLDownloader* downloader = static_cast<mpt::TrackingURLDownloader*>(config->url_downloader.get());
     EXPECT_EQ(downloader->downloaded_urls.size(), 1);
     EXPECT_EQ(downloader->downloaded_urls.front(), QUrl::fromLocalFile(test_blueprints_zip).toString());
+}
+
+TEST_F(Daemon, ensure_that_on_restart_future_completes)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    constexpr auto instance_json = R"({
+        "yakety-yak": {
+                "deleted": false,
+                "disk_space": "3232323232",
+                "mac_addr": "ab:cd:ef:12:34:56",
+                "mem_size": "2323232323",
+                "metadata": {},
+                "mounts": [],
+                "num_cores": 4,
+                "ssh_username": "ubuntu",
+                "state": 4
+        }
+})";
+    const auto [temp_dir, _] = plant_instance_json(instance_json);
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before, but not now.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("yakety-yak");
+    EXPECT_CALL(*mock_vm, current_state)
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))
+        .WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+
+    mpt::Signal signal;
+    // update_state is called by the finished() handler of the future. If it's called, then
+    // everything's ok.
+    EXPECT_CALL(*mock_vm, update_state).WillOnce([&signal] {
+        // Ensure that update_state is delayed until daemon's destructor call.
+        signal.wait();
+        // Wait a bit to ensure that daemon's destructor has been run
+        std::this_thread::sleep_for(std::chrono::milliseconds{50});
+    });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+        signal.signal();
+    }
 }
 
 namespace
@@ -2378,6 +2427,12 @@ struct DaemonIsBridged : public Daemon,
                          public WithParamInterface<
                              std::tuple<std::vector<mp::NetworkInterfaceInfo>, std::vector<mp::NetworkInterface>, bool>>
 {
+    DaemonIsBridged()
+    {
+        EXPECT_CALL(mock_platform, bridge_nomenclature)
+            .Times(AnyNumber())
+            .WillRepeatedly(Return("this is not a bridge"));
+    }
 };
 
 TEST_P(DaemonIsBridged, is_bridged_works)
