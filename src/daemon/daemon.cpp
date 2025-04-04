@@ -1287,7 +1287,8 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 }
 
 template <typename Reply, typename Request>
-void lxd_and_libvirt_deprecation_warning(grpc::ServerReaderWriterInterface<Reply, Request>& server) // TODO lxd and libvirt migration, remove
+void lxd_and_libvirt_deprecation_warning(
+    grpc::ServerReaderWriterInterface<Reply, Request>& server) // TODO lxd and libvirt migration, remove
 {
 #ifdef MULTIPASS_PLATFORM_LINUX
     const auto current_driver = MP_SETTINGS.get(mp::driver_key);
