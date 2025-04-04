@@ -1290,15 +1290,10 @@ template <typename Reply, typename Request>
 void lxd_and_libvirt_deprecation_warning(grpc::ServerReaderWriterInterface<Reply, Request>& server) // TODO lxd and libvirt migration, remove
 {
 #ifdef MULTIPASS_PLATFORM_LINUX
-    constexpr auto deprecation_warning_template =
-        "*** Warning! The {} driver is deprecated and will be removed in an upcoming release. ***\n\n"
-        "When you are ready to have your instances migrated, please stop them (multipass stop --all) and "
-        "switch to the QEMU driver (multipass set local.driver=qemu).\n\n";
-
     const auto current_driver = MP_SETTINGS.get(mp::driver_key);
     if (current_driver == "lxd" || current_driver == "libvirt")
     {
-        const std::string deprecation_warning_message = fmt::format(deprecation_warning_template, current_driver);
+        const std::string deprecation_warning_message = fmt::format(mp::deprecation_warning_template, current_driver);
         Reply reply{};
         reply.set_log_line(deprecation_warning_message);
         server.Write(reply);

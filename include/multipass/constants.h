@@ -72,6 +72,11 @@ constexpr auto petenv_default = "primary";
 constexpr auto timeout_exit_code = 5;
 
 constexpr auto authenticated_certs_dir = "authenticated-certs";
+
+constexpr auto deprecation_warning_template =
+    "*** Warning! The {} driver is deprecated and will be removed in an upcoming release. ***\n\n"
+    "When you are ready to have your instances migrated, please stop them (multipass stop --all) and "
+    "switch to the QEMU driver (multipass set local.driver=qemu).\n\n"; // TODO lxd and libvirt migration, remove
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H

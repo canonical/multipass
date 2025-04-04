@@ -97,16 +97,14 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
                 key = keyval.at(0);
                 val = keyval.at(1);
 
-                constexpr auto deprecation_warning_template =
-                    "*** Warning! The {} driver is deprecated and will be removed in an upcoming release. ***\n\n"
-                    "When you are ready to have your instances migrated, please stop them (multipass stop --all) and "
-                    "switch to the QEMU driver (multipass set local.driver=qemu).\n\n";
-
+#ifdef MULTIPASS_PLATFORM_LINUX
+                // TODO lxd and libvirt migration, remove
                 if (key == mp::driver_key && (val == "lxd" || val == "libvirt"))
                 {
-                    const std::string deprecation_warning_message = fmt::format(deprecation_warning_template, val);
+                    const std::string deprecation_warning_message = fmt::format(mp::deprecation_warning_template, val);
                     std::cout << deprecation_warning_message << std::endl;
                 }
+#endif
             }
             else
             {
