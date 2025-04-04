@@ -12,7 +12,7 @@ dependencies:
   collection: ^1.19.0
   dartssh2:
     git:
-      url: https://github.com/andrei-toterman/dartssh2.git
+      url: https://github.com/canonical/dartssh2.git
       ref: 2.11.0+mp
   extended_text: ^14.2.0
   ffi: ^2.1.3
@@ -35,7 +35,7 @@ dependencies:
   synchronized: ^3.3.0+3
   tray_menu:
     git:
-      url: https://github.com/andrei-toterman/tray_menu.git
+      url: https://github.com/canonical/tray_menu.git
       ref: cef5b8f
   two_dimensional_scrollables: ^0.3.3
   url_launcher: ^6.3.1
@@ -54,7 +54,7 @@ dependencies:
 dependency_overrides:
   hotkey_manager_linux:
     git:
-      url: https://github.com/andrei-toterman/hotkey_manager.git
+      url: https://github.com/canonical/hotkey_manager.git
       ref: no-cooked-accel
       path: packages/hotkey_manager_linux
 
