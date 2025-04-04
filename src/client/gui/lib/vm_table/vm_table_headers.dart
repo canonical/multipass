@@ -49,7 +49,7 @@ final headers = <TableHeader<VmInfo>>[
     minWidth: 70,
     sortKey: (info) => info.zone.name,
     cellBuilder: (info) => Text(
-      info.zone.name.isNotEmpty ? info.zone.name.nonBreaking : '-',
+      info.zone.name.nonBreaking,
       overflow: TextOverflow.ellipsis,
     ),
   ),

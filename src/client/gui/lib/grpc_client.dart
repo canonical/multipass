@@ -241,18 +241,13 @@ class GrpcClient {
   Future<ZonesStateReply?> zonesState(List<String> zones, bool available) {
     return doRpc(
       _client.zones_state,
-      ZonesStateRequest(
-        zones: zones,
-        available: available,
-      ),
+      ZonesStateRequest(zones: zones, available: available),
     );
   }
 
-  Future<ZonesReply?> zones() {
-    return doRpc(
-      _client.zones,
-      ZonesRequest(),
-    );
+  Future<List<Zone>> zones() {
+    return doRpc(_client.zones, ZonesRequest(), log: false)
+        .then((r) => r!.zones);
   }
 }
 

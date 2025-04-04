@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' hide Switch, ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../dropdown.dart';
 import '../ffi.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
@@ -119,23 +120,15 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    DropdownButton<String>(
-                      value: hasAvailableZones ? field.value : null,
-                      hint: const Text('Select a zone'),
-                      onChanged: hasAvailableZones ? field.didChange : null,
-                      items: hasAvailableZones
-                          ? [
-                              const DropdownMenuItem(
-                                value: 'auto',
-                                child: Text('Auto (assign automatically)'),
-                              ),
-                              for (final zone in availableZones)
-                                DropdownMenuItem(
-                                  value: zone.name,
-                                  child: Text('Zone ${zone.name}'),
-                                ),
-                            ]
-                          : null,
+                    Dropdown<String>(
+                      value: field.value,
+                      onChanged: field.didChange,
+                      items: {
+                        'auto': 'Auto (assign automatically)',
+                        for (final zone in availableZones) ...<String, String>{
+                          zone.name: 'Zone ${zone.name}',
+                        },
+                      },
                     ),
                     if (!hasAvailableZones)
                       const Padding(
@@ -327,6 +320,13 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: const Text('Launch'),
     );
 
+    final launchAndConfigureNextButton = TextButton(
+      onPressed: hasAvailableZones
+          ? () => launch(imageInfo, configureNext: true)
+          : null,
+      child: const Text('Launch & Configure Next'),
+    );
+
     final cancelButton = OutlinedButton(
       onPressed: () => Scaffold.of(context).closeEndDrawer(),
       child: const Text('Cancel'),
@@ -362,12 +362,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
             Row(children: [
               launchButton,
               const SizedBox(width: 16),
-              TextButton(
-                onPressed: hasAvailableZones
-                    ? () => launch(imageInfo, configureNext: true)
-                    : null,
-                child: const Text('Launch & Configure Next'),
-              ),
+              launchAndConfigureNextButton,
               const SizedBox(width: 16),
               cancelButton,
             ]),
@@ -378,8 +373,6 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   }
 
   void launch(ImageInfo imageInfo, {bool configureNext = false}) {
-    launchRequest.clear();
-
     final formState = formKey.currentState;
     if (formState == null) return;
     final mountFormState = mountFormKey.currentState;
@@ -402,17 +395,13 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     initiateLaunchFlow(ref, launchRequest, mountRequests);
 
-    if (configureNext) {
-      // Reset the form
+    if (!configureNext) {
       formState.reset();
       mountFormState?.reset();
       setState(() {
         mountRequests.clear();
         addingMount = false;
       });
-    }
-
-    if (!configureNext) {
       Scaffold.of(context).closeEndDrawer();
     }
   }
