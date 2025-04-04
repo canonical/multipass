@@ -25,6 +25,7 @@
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform_unix.h>
+#include <multipass/signal.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -41,11 +42,13 @@ namespace mpp = multipass::platform;
 
 namespace
 {
+
 class UnixSignalHandler
 {
 public:
-    UnixSignalHandler()
-        : signal_handling_thread{
+    UnixSignalHandler(mp::Signal& app_ready_signal)
+        : app_ready_signal(app_ready_signal),
+          signal_handling_thread{
               [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] { monitor_signals(sigs); }}
     {
     }
@@ -61,20 +64,25 @@ public:
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
             mpl::log(mpl::Level::info, "daemon", fmt::format("Received signal {} ({})", sig, strsignal(sig)));
+
+        // In order to be able to gracefully end the application via QCoreApplication::quit()
+        // the initialization (QT, Daemon) have to happen first. Otherwise, the application
+        // might not be in a state that the QT's event loop would pick up the signal and terminate.
+        // This happens when the daemon is started and being signaled in quick succession.
+        app_ready_signal.wait();
         QCoreApplication::quit();
     }
 
 private:
+    mp::Signal& app_ready_signal;
     mp::AutoJoinThread signal_handling_thread;
 };
 
-int main_impl(int argc, char* argv[])
+int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName(mp::daemon_name);
     QCoreApplication::setApplicationVersion(mp::version_string);
-
-    UnixSignalHandler handler;
 
     mp::daemon::register_global_settings_handlers();
 
@@ -82,7 +90,9 @@ int main_impl(int argc, char* argv[])
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    mp::daemon::monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings handlers
+    mp::daemon::monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings
+                                                       // handlers
+
     mp::Daemon daemon(std::move(config));
     QObject::connect(&app,
                      &QCoreApplication::aboutToQuit,
@@ -92,14 +102,42 @@ int main_impl(int argc, char* argv[])
 
     mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
     mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
-    auto ret = QCoreApplication::exec();
 
+    // Signal the signal handler that app has completed its basic initialization, and
+    // ready to process signals.
+    app_ready_signal.signal();
+    auto exit_code = QCoreApplication::exec();
+    // QConcurrent::run() invocations are dispatched through the global
+    // thread pool. Wait until all threads in the pool are properly cleaned up.
+    QThreadPool::globalInstance()->waitForDone();
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
-    return ret;
+    return exit_code;
 }
 } // namespace
 
 int main(int argc, char* argv[])
 {
-    return mp::top_catch_all("daemon", /* fallback_return = */ EXIT_FAILURE, main_impl, argc, argv);
+    mp::Signal app_ready_signal{};
+    //
+    // Register the signal handler as the first thing so the signal handler won't miss
+    // anything.
+    //
+    // The signal handler will not act upon signals until either the app initializes
+    // successfully, or an error happens.
+    //
+    UnixSignalHandler handler{app_ready_signal};
+    auto exit_code = mp::top_catch_all(
+        "daemon",
+        [&app_ready_signal] {
+            // Ensure that the signal is raised even when
+            // an exception is thrown, so pending signals
+            // could be processed.
+            app_ready_signal.signal();
+            return EXIT_FAILURE;
+        },
+        main_impl,
+        argc,
+        argv,
+        app_ready_signal);
+    return exit_code;
 }
