@@ -21,6 +21,6 @@ add_library(settings STATIC
         settings.cpp)
 
 target_link_libraries(settings
-        fmt
+        fmt::fmt-header-only
         utils
         Qt6::Core)
