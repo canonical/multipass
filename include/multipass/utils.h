@@ -69,7 +69,6 @@ bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
-QString make_abspath(QString target_mount_path);
 
 // filesystem mount helpers
 void make_target_dir(SSHSession& session,
@@ -255,6 +254,7 @@ public:
     virtual bool is_ipv4_valid(const std::string& ipv4) const;
 
     virtual Path default_mount_target(const Path& source) const;
+    virtual Path make_abspath(Path target_mount_path) const;
 };
 } // namespace multipass
 

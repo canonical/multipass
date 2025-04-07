@@ -170,15 +170,6 @@ bool mp::utils::valid_hostname(const std::string& name_string)
     return matcher.match(QString::fromStdString(name_string)).hasMatch();
 }
 
-QString mp::utils::make_abspath(QString target_mount_path) // TODO@ricab move and rename
-{
-    if (QDir::isRelativePath(
-            target_mount_path)) // relying on Qt to understand Linux paths on Windows
-        target_mount_path.prepend("/home/ubuntu/");
-
-    return QDir::cleanPath(target_mount_path);
-}
-
 bool mp::utils::invalid_target_path(const QString& target_path)
 {
     QString sanitized_path{QDir::cleanPath(target_path)};
@@ -629,6 +620,15 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
 mp::Path mp::Utils::default_mount_target(const Path& source) const
 {
     return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
+}
+
+QString mp::Utils::make_abspath(QString target_mount_path) const // TODO@ricab rename
+{
+    if (QDir::isRelativePath(
+            target_mount_path)) // relying on Qt to understand Linux paths on Windows
+        target_mount_path.prepend("/home/ubuntu/");
+
+    return QDir::cleanPath(target_mount_path);
 }
 
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,
