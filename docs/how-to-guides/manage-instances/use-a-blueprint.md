@@ -1,6 +1,6 @@
 (how-to-guides-manage-instances-use-a-blueprint)=
-# Use a blueprint
-
+# Use a blueprint (deprecated)
+**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options.
 > See also: [Blueprint](/explanation/blueprint)
 
 Blueprints provide a shortcut to initialising Multipass instances for a variety of applications.

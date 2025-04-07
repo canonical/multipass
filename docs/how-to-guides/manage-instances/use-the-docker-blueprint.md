@@ -1,5 +1,6 @@
 (how-to-guides-manage-instances-use-the-docker-blueprint)=
-# Use the Docker blueprint
+# Use the Docker blueprint (deprecated)
+**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options.
 
 The Docker blueprint gives Multipass users an easy way to create Ubuntu instances with Docker installed. It is based on the latest LTS release of Ubuntu, and includes docker engine and [Portainer](https://www.portainer.io/). The Docker blueprint automatically aliases the `docker` and `docker-compose` commands to your host, and creates a workspace that is shared between the host and the instance.
 
