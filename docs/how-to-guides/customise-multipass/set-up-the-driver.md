@@ -34,8 +34,9 @@ By default, Multipass on Windows uses the `hyperv` driver.
 `````{tabs}
 
 ````{group-tab} Linux
-
-If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) (deprecated) driver.
+Warning! The libvirt driver is deprecated and will be removed in an upcoming release.
+ 
+If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) driver.
 
 To install libvirt, run the following command (or use the equivalent for your Linux distribution):
 
