@@ -1925,13 +1925,11 @@ try // clang-format on
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto target_path = [&path_entry, src_path = request->source_path()] {
-            auto q_target_path = QString::fromStdString(path_entry.target_path());
-            q_target_path = q_target_path.isEmpty() ? MP_UTILS.default_mount_target(QString::fromStdString(src_path))
-                                                    : MP_UTILS.make_abspath(q_target_path);
-
-            return q_target_path.toStdString();
-        }(); // TODO@ricab extract
+        auto q_target_path = QString::fromStdString(path_entry.target_path());
+        q_target_path = q_target_path.isEmpty()
+                            ? MP_UTILS.default_mount_target(QString::fromStdString(request->source_path()))
+                            : MP_UTILS.make_abspath(q_target_path);
+        auto target_path = q_target_path.toStdString();
 
         auto it = operative_instances.find(name);
         if (it == operative_instances.end())
@@ -1941,7 +1939,7 @@ try // clang-format on
         }
         auto& vm = it->second;
 
-        if (mp::utils::invalid_target_path(QString::fromStdString(target_path))) // TODO@ricab avoid cleanPath and conv
+        if (mp::utils::invalid_target_path(q_target_path)) // TODO@ricab avoid cleanPath
         {
             add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
             continue;
