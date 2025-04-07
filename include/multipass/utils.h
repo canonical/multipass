@@ -254,7 +254,7 @@ public:
     virtual bool is_ipv4_valid(const std::string& ipv4) const;
 
     virtual Path default_mount_target(const Path& source) const;
-    virtual Path make_abspath(Path target_mount_path) const;
+    virtual Path normalize_mount_target(Path target_mount_path) const;
 };
 } // namespace multipass
 

@@ -621,7 +621,7 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
     return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
 }
 
-QString mp::Utils::make_abspath(QString target_mount_path) const // TODO@ricab rename
+QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
     if (QDir::isRelativePath(
             target_mount_path)) // relying on Qt to understand Linux paths on Windows
