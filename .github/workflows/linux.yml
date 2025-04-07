@@ -160,6 +160,10 @@ jobs:
           sed -i "/build-environment:/a \    - VCPKG_BINARY_SOURCES: ${VCPKG_BINARY_SOURCES}" snap/snapcraft.yaml
         fi
 
+        if [ -n "${GITHUB_ACTIONS}" ]; then
+          sed -i "/build-environment:/a \    - GITHUB_ACTIONS: \"${GITHUB_ACTIONS}\"" snap/snapcraft.yaml
+        fi
+
         # Build the `multipass` part.
         /snap/bin/snapcraft build --use-lxd multipass
 
