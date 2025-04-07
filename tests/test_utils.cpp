@@ -107,56 +107,56 @@ TEST(Utils, hostnameContainsSpecialCharacterIsInvalid)
 
 TEST(Utils, pathRootInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/")));
 }
 
 TEST(Utils, pathRootFooValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/foo")));
 }
 
 TEST(Utils, pathDevInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/foo")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/dev")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/dev/foo")));
 }
 
 TEST(Utils, pathDevpathValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/devpath")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/devpath/foo")));
 }
 
 TEST(Utils, pathProcInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/foo")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/proc")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/proc/foo")));
 }
 
 TEST(Utils, pathSysInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/foo")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/sys")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/sys/foo")));
 }
 
 TEST(Utils, pathHomeProperInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/home")));
 }
 
 TEST(Utils, pathHomeUbuntuInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/home/ubuntu")));
 }
 
 TEST(Utils, pathHomeFooValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/home/foo")));
 }
 
 TEST(Utils, pathHomeUbuntuFooValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/home/ubuntu/foo")));
 }
 
 TEST(Utils, makeFileWithContentWorks)

@@ -2169,7 +2169,7 @@ try
         }
         auto& vm = it->second;
 
-        if (mp::utils::invalid_target_path(q_target_path))
+        if (MP_UTILS.invalid_target_path(q_target_path))
         {
             add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
             continue;
