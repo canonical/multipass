@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'merge_group' }}
+  cancel-in-progress: true
 
 jobs:
   Lint:
