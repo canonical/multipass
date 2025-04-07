@@ -153,10 +153,11 @@ bool mp::utils::valid_hostname(const std::string& name_string)
 
 bool mp::utils::invalid_target_path(const QString& target_path)
 {
-    QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegularExpression matcher{QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
+    assert(target_path == QDir::cleanPath(target_path) && "target_path must be normalized");
+    static QRegularExpression matcher{
+        QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 
-    return matcher.match(sanitized_path).hasMatch();
+    return matcher.match(target_path).hasMatch();
 }
 
 QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
