@@ -2154,11 +2154,15 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto q_target_path =
-            path_entry.target_path().empty()
-                ? MP_UTILS.default_mount_target(QString::fromStdString(request->source_path()))
-                : QDir::cleanPath(QString::fromStdString(path_entry.target_path()));
-        const auto target_path = mp::utils::make_abspath(q_target_path);
+        const auto target_path = [&path_entry, src_path = request->source_path()] {
+            auto q_target_path = QString::fromStdString(path_entry.target_path());
+            if (q_target_path.isEmpty())
+                q_target_path = MP_UTILS.default_mount_target(QString::fromStdString(src_path));
+            else
+                q_target_path = mpu::make_abspath(q_target_path);
+
+            return q_target_path.toStdString();
+        }(); // TODO@ricab extract
 
         auto it = operative_instances.find(name);
         if (it == operative_instances.end())
@@ -2168,7 +2172,8 @@ try
         }
         auto& vm = it->second;
 
-        if (mp::utils::invalid_target_path(QString::fromStdString(target_path)))
+        if (mp::utils::invalid_target_path(
+                QString::fromStdString(target_path))) // TODO@ricab avoid cleanPath and conv
         {
             add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
             continue;

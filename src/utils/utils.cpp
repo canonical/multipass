@@ -170,18 +170,13 @@ bool mp::utils::valid_hostname(const std::string& name_string)
     return matcher.match(QString::fromStdString(name_string)).hasMatch();
 }
 
-std::string mp::utils::make_abspath(const QString& input_path)
+QString mp::utils::make_abspath(QString target_mount_path) // TODO@ricab move and rename
 {
-    const fs::path base_path("/home/ubuntu");           // Base path for relative paths
-    const fs::path path_obj = input_path.toStdString(); // Convert QString to std::string
+    if (QDir::isRelativePath(
+            target_mount_path)) // relying on Qt to understand Linux paths on Windows
+        target_mount_path.prepend("/home/ubuntu/");
 
-    if (path_obj.is_absolute())
-    {
-        return path_obj.lexically_normal().string(); // Return as string if already absolute
-    }
-    return (fs::absolute(base_path / path_obj))
-        .lexically_normal()
-        .string(); // Convert to absolute path
+    return QDir::cleanPath(target_mount_path);
 }
 
 bool mp::utils::invalid_target_path(const QString& target_path)
