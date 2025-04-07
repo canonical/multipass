@@ -1928,7 +1928,7 @@ try // clang-format on
         auto q_target_path = QString::fromStdString(path_entry.target_path());
         q_target_path = q_target_path.isEmpty()
                             ? MP_UTILS.default_mount_target(QString::fromStdString(request->source_path()))
-                            : MP_UTILS.make_abspath(q_target_path);
+                            : MP_UTILS.normalize_mount_target(q_target_path);
         auto target_path = q_target_path.toStdString();
 
         auto it = operative_instances.find(name);
