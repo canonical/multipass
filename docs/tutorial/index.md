@@ -658,7 +658,8 @@ Just like that, you've got a web server running in a Multipass instance!
 You can use this web server locally for any kind of local development or testing. However, if you want to access this web server from the internet (for instance, a different computer), you need an instance that is exposed to the external network.
 
 (launch-from-a-blueprint-to-run-docker-containers)=
-### Launch from a Blueprint to run Docker containers
+### Launch from a Blueprint to run Docker containers (deprecated)
+**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options.
 
 Some environments require a lot of configuration and setup. Multipass Blueprints are instances with a deep level of customisation. For example, the Docker Blueprint is a pre-configured Docker environment with a Portainer container already running.
 
