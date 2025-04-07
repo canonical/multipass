@@ -172,11 +172,11 @@ bool mp::utils::valid_hostname(const std::string& name_string)
 
 bool mp::utils::invalid_target_path(const QString& target_path)
 {
-    QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegularExpression matcher{
+    assert(target_path == QDir::cleanPath(target_path) && "target_path must be normalized");
+    static QRegularExpression matcher{
         QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 
-    return matcher.match(sanitized_path).hasMatch();
+    return matcher.match(target_path).hasMatch();
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
