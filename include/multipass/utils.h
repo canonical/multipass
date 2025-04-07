@@ -73,7 +73,6 @@ QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
-QString make_abspath(QString target_mount_path);
 QTemporaryFile create_temp_file_with_path(const QString& filename_template);
 void remove_directories(const std::vector<QString>& dirs);
 
@@ -239,6 +238,7 @@ public:
     virtual bool is_ipv4_valid(const std::string& ipv4) const;
 
     virtual Path default_mount_target(const Path& source) const;
+    virtual Path make_abspath(Path target_mount_path) const;
 };
 } // namespace multipass
 
