@@ -41,7 +41,6 @@
 #include <array>
 #include <cassert>
 #include <cctype>
-#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <random>
