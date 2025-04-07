@@ -2156,10 +2156,8 @@ try
         const auto& name = path_entry.instance_name();
         const auto target_path = [&path_entry, src_path = request->source_path()] {
             auto q_target_path = QString::fromStdString(path_entry.target_path());
-            if (q_target_path.isEmpty())
-                q_target_path = MP_UTILS.default_mount_target(QString::fromStdString(src_path));
-            else
-                q_target_path = MP_UTILS.make_abspath(q_target_path);
+            q_target_path = q_target_path.isEmpty() ? MP_UTILS.default_mount_target(QString::fromStdString(src_path))
+                                                    : MP_UTILS.make_abspath(q_target_path);
 
             return q_target_path.toStdString();
         }(); // TODO@ricab extract
