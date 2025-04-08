@@ -36,10 +36,7 @@ public:
     };
 
     MOCK_METHOD((std::map < std::string, NetworkInterfaceInfo) >, get_network_interfaces_info, (), (const, override));
-    MOCK_METHOD(QString, get_blueprints_url_override, (), (const, override));
-    MOCK_METHOD(bool, is_remote_supported, (const std::string&), (const, override));
     MOCK_METHOD(bool, is_backend_supported, (const QString&), (const, override));
-    MOCK_METHOD(bool, is_alias_supported, (const std::string&, const std::string&), (const, override));
     MOCK_METHOD(int, chown, (const char*, unsigned int, unsigned int), (const, override));
     MOCK_METHOD(bool, set_permissions, (const std::filesystem::path&, std::filesystem::perms, bool), (const, override));
     MOCK_METHOD(bool, take_ownership, (const std::filesystem::path&), (const, override));
@@ -56,7 +53,6 @@ public:
     MOCK_METHOD(QString, daemon_config_home, (), (const, override));
     MOCK_METHOD(QString, default_driver, (), (const, override));
     MOCK_METHOD(QString, default_privileged_mounts, (), (const, override));
-    MOCK_METHOD(bool, is_image_url_supported, (), (const, override));
     MOCK_METHOD(QString, get_username, (), (const, override));
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));
     MOCK_METHOD(std::filesystem::path, get_root_cert_path, (), (const, override));

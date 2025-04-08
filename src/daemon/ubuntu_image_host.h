@@ -54,24 +54,33 @@ private:
     void clear() override;
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
+    const UbuntuVMImageRemote& get_remote(const std::string& remote_name) const;
+    std::string remote_url_from(const std::string& remote_name);
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
-    std::string remote_url_from(const std::string& remote_name);
     QString index_path;
 };
 class UbuntuVMImageRemote
 {
 public:
     UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key = std::nullopt);
+    UbuntuVMImageRemote(std::string official_host,
+                        std::string uri,
+                        std::function<bool(const VMImageInfo&)> custom_image_admitter,
+                        std::optional<QString> mirror_key = std::nullopt);
     const QString get_url() const;
     const QString get_official_url() const;
     const std::optional<QString> get_mirror_url() const;
+    bool admits_image(const VMImageInfo& info) const;
 
 private:
+    static bool default_image_admitter(const VMImageInfo&);
+
     const std::string official_host;
     const std::string uri;
+    const std::function<bool(const VMImageInfo&)> image_admitter;
     const std::optional<QString> mirror_key;
 };
 } // namespace multipass

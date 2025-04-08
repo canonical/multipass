@@ -48,7 +48,6 @@
 #endif
 
 #include "platform_linux_detail.h"
-#include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
@@ -262,26 +261,6 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return detail::get_network_interfaces_from(sysfs);
 }
 
-QString mp::platform::Platform::get_blueprints_url_override() const
-{
-    return QString::fromUtf8(qgetenv("MULTIPASS_BLUEPRINTS_URL"));
-}
-
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
-{
-    if (remote == mp::snapcraft_remote)
-    {
-        return supported_snapcraft_aliases.find(alias) != supported_snapcraft_aliases.end();
-    }
-
-    return true;
-}
-
-bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
-{
-    return true;
-}
-
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     return
@@ -377,11 +356,6 @@ QString mp::platform::Platform::default_driver() const
 QString mp::platform::Platform::default_privileged_mounts() const
 {
     return QStringLiteral("true");
-}
-
-bool mp::platform::Platform::is_image_url_supported() const
-{
-    return true;
 }
 
 std::string mp::platform::Platform::bridge_nomenclature() const

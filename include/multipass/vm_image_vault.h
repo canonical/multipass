@@ -75,7 +75,6 @@ public:
                                 const Query& query,
                                 const PrepareAction& prepare,
                                 const ProgressMonitor& monitor,
-                                const bool unlock,
                                 const std::optional<std::string>& checksum,
                                 const Path& save_dir) = 0;
     virtual void remove(const std::string& name) = 0;

@@ -807,8 +807,6 @@ TEST_P(VMBlueprintFileLaunchFromFile, loadsFile)
             file.open(QFile::WriteOnly);
         });
 
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
-
     auto blueprint_path = QString(mpt::test_data_path() + "/blueprints/" + QString::fromStdString(file)).toStdString();
 
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &mock_url_downloader, cache_dir.path(),
@@ -834,8 +832,6 @@ INSTANTIATE_TEST_SUITE_P(VMBlueprintFileLaunch, VMBlueprintFileLaunchFromFile,
 
 TEST_F(VMBlueprintFileLaunch, mergesBlueprintVendorData)
 {
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
-
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url,
                                                       &url_downloader,
                                                       cache_dir.path(),
@@ -870,8 +866,6 @@ TEST_F(VMBlueprintFileLaunch, mergesBlueprintVendorData)
 
 TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataDifferentTypes)
 {
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
-
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url,
                                                       &url_downloader,
                                                       cache_dir.path(),
@@ -894,8 +888,6 @@ TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataDifferentTypes)
 
 TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataScalarValues)
 {
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
-
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url,
                                                       &url_downloader,
                                                       cache_dir.path(),
@@ -918,8 +910,6 @@ TEST_F(VMBlueprintFileLaunch, failsMergeVmBlueprintVendorDataScalarValues)
 
 TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
 {
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
-
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl};
 
@@ -933,8 +923,6 @@ TEST_F(VMBlueprintFileLaunch, failsWithNonexistentFile)
 
 TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithInvalidHostName)
 {
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
-
     auto blueprint_path =
         QString(mpt::test_data_path() + "/blueprints/v1/42-invalid-hostname-blueprint.yaml").toStdString();
 
@@ -949,22 +937,6 @@ TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithInvalidHostName)
         blueprint_provider.blueprint_from_file(blueprint_path, "42-invalid-hostname-blueprint", vm_desc, dummy_data),
         mp::InvalidBlueprintException,
         mpt::match_what(StrEq("Invalid Blueprint name \'42-invalid-hostname-blueprint\': must be a valid host name")));
-}
-
-TEST_F(VMBlueprintFileLaunch, failsIfFileLaunchIsUnsupported)
-{
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(false));
-
-    mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
-                                                      default_ttl};
-
-    mp::VirtualMachineDescription vm_desc{0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
-
-    mp::ClientLaunchData dummy_data;
-
-    MP_EXPECT_THROW_THAT(blueprint_provider.blueprint_from_file("/blah.yaml", "blah", vm_desc, dummy_data),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Launching a Blueprint from a file is not supported")));
 }
 
 struct NameFromBlueprintTestSuite : public VMBlueprintProvider,
@@ -990,8 +962,6 @@ INSTANTIATE_TEST_SUITE_P(VMBlueprintProvider, NameFromBlueprintTestSuite,
 TEST_F(VMBlueprintFileLaunch, fileLoadfailsWithNoUrl)
 {
     auto blueprint_path = QString(mpt::test_data_path() + "/blueprints/v2/test-blueprint1.yaml").toStdString();
-
-    ON_CALL(*mock_platform, is_image_url_supported()).WillByDefault(Return(true));
 
     mp::DefaultVMBlueprintProvider blueprint_provider{blueprints_zip_url, &url_downloader, cache_dir.path(),
                                                       default_ttl, "microvac"};
