@@ -45,10 +45,21 @@ public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir);
-    BaseVirtualMachine(const std::string& vm_name, const SSHKeyProvider& key_provider, const Path& instance_dir);
+    BaseVirtualMachine(const std::string& vm_name,
+                       const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
+                       const Path& instance_dir);
+    ~BaseVirtualMachine();
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+
+    void make_available(bool available) override
+    {
+        // TODO make vm unavailable by force stopping if running or available by starting again if it was running
+        throw NotImplementedOnThisBackendException("unavailability");
+    }
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
@@ -84,6 +95,11 @@ public:
     void load_snapshots() override;
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
+
+    const AvailabilityZone& get_zone() const override
+    {
+        return zone;
+    }
 
 protected:
     virtual void require_snapshots_support() const;
@@ -151,6 +167,7 @@ private:
 
 protected:
     const SSHKeyProvider& key_provider;
+    AvailabilityZone& zone;
 
 private:
     std::optional<SSHSession> ssh_session = std::nullopt;
