@@ -53,9 +53,6 @@ public:
     Platform(const Singleton::PrivatePass&) noexcept;
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
-    virtual QString get_blueprints_url_override() const;
-    virtual bool is_alias_supported(const std::string& alias, const std::string& remote) const;
-    virtual bool is_remote_supported(const std::string& remote) const;
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual bool set_permissions(const std::filesystem::path& path,
@@ -78,7 +75,6 @@ public:
     virtual SettingSpec::Set extra_client_settings() const;
     virtual QString default_driver() const;
     virtual QString default_privileged_mounts() const;
-    virtual bool is_image_url_supported() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;

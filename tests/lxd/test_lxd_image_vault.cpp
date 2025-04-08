@@ -99,7 +99,6 @@ TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
                                                     default_query,
                                                     stub_prepare,
                                                     stub_monitor,
-                                                    false,
                                                     std::nullopt,
                                                     save_dir.path()));
 
@@ -132,7 +131,6 @@ TEST_F(LXDImageVault, instance_exists_custom_image_returns_expected_image_info)
                                                     default_query,
                                                     stub_prepare,
                                                     stub_monitor,
-                                                    false,
                                                     std::nullopt,
                                                     save_dir.path()));
 
@@ -166,7 +164,6 @@ TEST_F(LXDImageVault, instance_exists_uses_cached_release_title)
                                                     default_query,
                                                     stub_prepare,
                                                     stub_monitor,
-                                                    false,
                                                     std::nullopt,
                                                     save_dir.path()));
 
@@ -201,7 +198,6 @@ TEST_F(LXDImageVault, instance_exists_no_cached_release_title_info_for_fails)
                                                     default_query,
                                                     stub_prepare,
                                                     stub_monitor,
-                                                    false,
                                                     std::nullopt,
                                                     save_dir.path()));
 
@@ -236,7 +232,6 @@ TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
                                                     query,
                                                     stub_prepare,
                                                     stub_monitor,
-                                                    false,
                                                     std::nullopt,
                                                     save_dir.path()));
 
@@ -267,13 +262,8 @@ TEST_F(LXDImageVault, throws_with_invalid_alias)
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     MP_EXPECT_THROW_THAT(
-        image_vault.fetch_image(mp::FetchType::ImageOnly,
-                                query,
-                                stub_prepare,
-                                stub_monitor,
-                                false,
-                                std::nullopt,
-                                save_dir.path()),
+        image_vault
+            .fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
         std::runtime_error,
         mpt::match_what(
             StrEq(fmt::format("Unable to find an image matching \"{}\" in remote \"{}\".", alias, "release"))));
@@ -291,15 +281,11 @@ TEST_F(LXDImageVault, throws_with_invalid_remote)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly,
-                                                 query,
-                                                 stub_prepare,
-                                                 stub_monitor,
-                                                 false,
-                                                 std::nullopt,
-                                                 save_dir.path()),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr(fmt::format("Remote \'{}\' is not found.", remote))));
+    MP_EXPECT_THROW_THAT(
+        image_vault
+            .fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
+        std::runtime_error,
+        mpt::match_what(HasSubstr(fmt::format("Remote \'{}\' is not found.", remote))));
 }
 
 TEST_F(LXDImageVault, does_not_download_if_image_exists)
@@ -330,7 +316,6 @@ TEST_F(LXDImageVault, does_not_download_if_image_exists)
                                             default_query,
                                             stub_prepare,
                                             stub_monitor,
-                                            false,
                                             std::nullopt,
                                             save_dir.path()));
 }
@@ -372,7 +357,6 @@ TEST_F(LXDImageVault, instance_exists_missing_image_does_not_download_image)
                                                     default_query,
                                                     stub_prepare,
                                                     stub_monitor,
-                                                    false,
                                                     std::nullopt,
                                                     save_dir.path()));
     EXPECT_FALSE(download_requested);
@@ -404,7 +388,6 @@ TEST_F(LXDImageVault, requests_download_if_image_does_not_exist)
                                             default_query,
                                             stub_prepare,
                                             stub_monitor,
-                                            false,
                                             std::nullopt,
                                             save_dir.path()));
     EXPECT_TRUE(download_requested);
@@ -433,13 +416,9 @@ TEST_F(LXDImageVault, sets_fingerprint_with_hash_query)
                                     base_url, cache_dir.path(),     mp::days{0}};
 
     const mp::Query query{"", "e3b0c44298fc1c1", false, "release", mp::Query::Type::Alias};
-    EXPECT_NO_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly,
-                                            query,
-                                            stub_prepare,
-                                            stub_monitor,
-                                            false,
-                                            std::nullopt,
-                                            save_dir.path()));
+    EXPECT_NO_THROW(
+        image_vault
+            .fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()));
 }
 
 TEST_F(LXDImageVault, download_deletes_and_throws_on_cancel)
@@ -477,14 +456,10 @@ TEST_F(LXDImageVault, download_deletes_and_throws_on_cancel)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    EXPECT_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly,
-                                         default_query,
-                                         stub_prepare,
-                                         monitor,
-                                         false,
-                                         std::nullopt,
-                                         save_dir.path()),
-                 mp::AbortedDownloadException);
+    EXPECT_THROW(
+        image_vault
+            .fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, monitor, std::nullopt, save_dir.path()),
+        mp::AbortedDownloadException);
 
     EXPECT_TRUE(delete_requested);
 }
@@ -520,14 +495,10 @@ TEST_F(LXDImageVault, percent_complete_returns_negative_on_metadata_download)
     mp::LXDVMImageVault image_vault{hosts,    &stub_url_downloader, mock_network_access_manager.get(),
                                     base_url, cache_dir.path(),     mp::days{0}};
 
-    EXPECT_THROW(image_vault.fetch_image(mp::FetchType::ImageOnly,
-                                         default_query,
-                                         stub_prepare,
-                                         monitor,
-                                         false,
-                                         std::nullopt,
-                                         save_dir.path()),
-                 mp::AbortedDownloadException);
+    EXPECT_THROW(
+        image_vault
+            .fetch_image(mp::FetchType::ImageOnly, default_query, stub_prepare, monitor, std::nullopt, save_dir.path()),
+        mp::AbortedDownloadException);
 }
 
 TEST_F(LXDImageVault, delete_requested_on_instance_remove)
@@ -901,7 +872,6 @@ TEST_F(LXDImageVault, custom_image_found_returns_expected_info)
                                          query,
                                          stub_prepare,
                                          stub_monitor,
-                                         false,
                                          std::nullopt,
                                          save_dir.path());
 
@@ -964,7 +934,6 @@ TEST_F(LXDImageVault, custom_image_downloads_and_creates_correct_upload)
                                          query,
                                          stub_prepare,
                                          stub_monitor,
-                                         false,
                                          std::nullopt,
                                          save_dir.path());
 
@@ -994,7 +963,6 @@ TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank
                                          default_query,
                                          stub_prepare,
                                          stub_monitor,
-                                         false,
                                          std::nullopt,
                                          save_dir.path());
 
@@ -1127,7 +1095,6 @@ TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
                                          query,
                                          stub_prepare,
                                          stub_monitor,
-                                         false,
                                          std::nullopt,
                                          save_dir.path());
 
@@ -1198,7 +1165,6 @@ TEST_F(LXDImageVault, file_based_fetch_copies_image_and_returns_expected_info)
                                          query,
                                          stub_prepare,
                                          stub_monitor,
-                                         false,
                                          std::nullopt,
                                          save_dir.path());
 
@@ -1221,15 +1187,11 @@ TEST_F(LXDImageVault, invalid_local_file_image_throws)
     const std::string missing_file{"/foo"};
     const mp::Query query{"", fmt::format("file://{}", missing_file), false, "", mp::Query::Type::LocalFile};
 
-    MP_EXPECT_THROW_THAT(image_vault.fetch_image(mp::FetchType::ImageOnly,
-                                                 query,
-                                                 stub_prepare,
-                                                 stub_monitor,
-                                                 false,
-                                                 std::nullopt,
-                                                 save_dir.path()),
-                         std::runtime_error,
-                         mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
+    MP_EXPECT_THROW_THAT(
+        image_vault
+            .fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
+        std::runtime_error,
+        mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
 }
 
 TEST_F(LXDImageVault, updateImagesThrowsOnMissingImage)

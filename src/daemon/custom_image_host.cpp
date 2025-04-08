@@ -17,15 +17,12 @@
 
 #include "custom_image_host.h"
 
+#include <multipass/exceptions/download_exception.h>
+#include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
-
-#include <multipass/exceptions/download_exception.h>
-#include <multipass/exceptions/unsupported_remote_exception.h>
-
-#include <multipass/format.h>
 
 #include <QMap>
 #include <QUrl>
@@ -171,8 +168,6 @@ mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* dow
 
 std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
-    check_alias_is_supported(query.release, query.remote_name);
-
     auto custom_manifest = manifest_from(query.remote_name);
 
     auto it = custom_manifest->image_records.find(query.release);
@@ -204,12 +199,7 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
 {
     std::vector<mp::VMImageInfo> images;
     auto custom_manifest = manifest_from(remote_name);
-
-    auto pred = [this, &remote_name](const auto& product) {
-        return alias_verifies_image_is_supported(product.aliases, remote_name);
-    };
-
-    std::copy_if(custom_manifest->products.begin(), custom_manifest->products.end(), std::back_inserter(images), pred);
+    std::copy(custom_manifest->products.begin(), custom_manifest->products.end(), std::back_inserter(images));
 
     return images;
 }
@@ -220,8 +210,7 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& info : manifest.second->products)
         {
-            if (alias_verifies_image_is_supported(info.aliases, manifest.first))
-                action(manifest.first, info);
+            action(manifest.first, info);
         }
     }
 }
@@ -237,7 +226,6 @@ void mp::CustomVMImageHost::fetch_manifests(const bool is_force_update_from_netw
     {
         try
         {
-            check_remote_is_supported(spec.first);
             std::unique_ptr<mp::CustomManifest> custom_manifest =
                 full_image_info_for(spec.second, url_downloader, is_force_update_from_network);
             custom_image_info.emplace(spec.first, std::move(custom_manifest));
@@ -245,10 +233,6 @@ void mp::CustomVMImageHost::fetch_manifests(const bool is_force_update_from_netw
         catch (mp::DownloadException& e)
         {
             throw e;
-        }
-        catch (const mp::UnsupportedRemoteException&)
-        {
-            continue;
         }
     }
 }
@@ -260,8 +244,6 @@ void mp::CustomVMImageHost::clear()
 
 mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
 {
-    check_remote_is_supported(remote_name);
-
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
         throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
