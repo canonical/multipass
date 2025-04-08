@@ -53,6 +53,8 @@ add_executable(multipass_tests
   temp_file.cpp
   test_alias_dict.cpp
   test_argparser.cpp
+  test_base_availability_zone.cpp
+  test_base_availability_zone_manager.cpp
   test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
