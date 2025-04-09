@@ -1,6 +1,10 @@
 (explanation-driver)=
 # Driver
 
+```{warning}
+Support for libvirt and LXD will be deprecated and removed in a future release.
+```
+
 > See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [`local.driver`](/reference/settings/local-driver), [Instance](/explanation/instance), [Platform](/explanation/platform)
 
 A **driver** is the technology through which Multipass emulates a running machine. It corresponds to a hypervisor or intermediary technology to run virtual machines. The driver is sometimes also referred to as "backend".
