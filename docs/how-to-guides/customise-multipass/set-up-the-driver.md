@@ -11,7 +11,7 @@ This document demonstrates how to choose, set up, and manage the drivers behind 
 
 ````{group-tab} Linux
 
-By default, Multipass on Linux uses the `qemu` or `lxd` (deprecated) driver (depending on the architecture).
+By default, Multipass on Linux uses the `qemu` driver.
 
 ````
 
