@@ -52,27 +52,38 @@ final grpcClientProvider = Provider((ref) {
   );
 });
 
-final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
-  final grpcClient = ref.watch(grpcClientProvider);
-  // this is to de-duplicate errors received from the stream
-  Object? lastError;
-  while (true) {
-    final timer = Future.delayed(1900.milliseconds);
-    try {
-      yield await grpcClient.info();
-      lastError = null;
-    } catch (error, stackTrace) {
-      if (error != lastError) {
-        logger.e('Error on polling info', error: error, stackTrace: stackTrace);
-        yield* Stream.error(error, stackTrace);
+final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
+  (ref) async* {
+    final grpcClient = ref.watch(grpcClientProvider);
+    // this is to de-duplicate errors received from the stream
+    Object? lastError;
+    while (true) {
+      final timer = Future.delayed(1900.milliseconds);
+      try {
+        final [info, zones] = await Future.wait(
+          [grpcClient.info(), grpcClient.zones()],
+          eagerError: true,
+        );
+        yield (info: info as List<VmInfo>, zones: zones as List<Zone>);
+        lastError = null;
+      } catch (error, stackTrace) {
+        if (error != lastError) {
+          logger.e('Error on polling info',
+              error: error, stackTrace: stackTrace);
+          yield* Stream.error(error, stackTrace);
+        }
+        lastError = error;
       }
-      lastError = error;
+      // these two timers make it so that requests are sent with at least a 2s pause between them
+      // but if the request takes longer than 1.9s to complete, we still wait 100ms before sending the next one
+      await timer;
+      await Future.delayed(100.milliseconds);
     }
-    // these two timers make it so that requests are sent with at least a 2s pause between them
-    // but if the request takes longer than 1.9s to complete, we still wait 100ms before sending the next one
-    await timer;
-    await Future.delayed(100.milliseconds);
-  }
+  },
+);
+
+final vmInfosStreamProvider = Provider<AsyncValue<List<VmInfo>>>((ref) {
+  return ref.watch(pollingProvider).whenData((data) => data.info);
 });
 
 final daemonAvailableProvider = Provider((ref) {
@@ -157,6 +168,10 @@ final deletedVmsProvider = Provider((ref) {
       .where((info) => info.instanceStatus.status == Status.DELETED)
       .map((info) => info.name)
       .toBuiltSet();
+});
+
+final zonesProvider = Provider<AsyncValue<List<Zone>>>((ref) {
+  return ref.watch(pollingProvider).whenData((data) => data.zones);
 });
 
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
