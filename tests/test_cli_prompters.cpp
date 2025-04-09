@@ -180,8 +180,8 @@ TEST_F(CLIPrompters, failsIfNoNetworks)
 
     EXPECT_CALL(mock_terminal, cin_is_live()).WillRepeatedly(Return(false));
     EXPECT_CALL(mock_terminal, cout_is_live()).WillRepeatedly(Return(false));
-
-    ASSERT_DEBUG_DEATH(prompter.bridge_prompt(nets), "[Aa]ssert");
+    // https://google.github.io/googletest/advanced.html#regular-expression-syntax
+    ASSERT_DEBUG_DEATH(prompter.bridge_prompt(nets), "\\wssert");
 }
 
 TEST_P(BridgePrompterTests, correctlyReturns)
