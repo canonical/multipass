@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../dropdown.dart';
 import '../ffi.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
@@ -106,6 +107,69 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
+    );
+
+    final zonesAsync = ref.watch(zonesProvider);
+    final zoneDropdown = FormField<String>(
+      initialValue: 'auto',
+      onSaved: (value) =>
+          launchRequest.zone = value == 'auto' ? '' : value ?? '',
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('Pseudo zone'),
+                const SizedBox(width: 4),
+                Tooltip(
+                  message:
+                      'Pseudo zones simulate availability zones in public clouds\nand allow for testing resilience against real-world incidents',
+                  child: Icon(Icons.info_outline,
+                      size: 16, color: Colors.blue[700]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            zonesAsync.when(
+              loading: () => const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(),
+              ),
+              error: (_, __) => const Text('Error loading zones'),
+              data: (zones) {
+                final availableZones = zones.where((z) => z.available).toList();
+                final hasAvailableZones = availableZones.isNotEmpty;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Dropdown<String>(
+                      value: field.value,
+                      onChanged: field.didChange,
+                      items: {
+                        'auto': 'Auto (assign automatically)',
+                        for (final zone in availableZones) ...<String, String>{
+                          zone.name: 'Zone ${zone.name}',
+                        },
+                      },
+                    ),
+                    if (!hasAvailableZones)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Cannot launch new instances - all zones are unavailable',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
 
     final chosenImageName = Text(
@@ -253,10 +317,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const SizedBox(height: 4),
         chosenImageName,
         const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [nameInput, const Spacer()],
-        ),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          nameInput,
+          const SizedBox(width: 32),
+          zoneDropdown,
+          const Spacer(),
+        ]),
         const Divider(height: 60),
         const SizedBox(
           height: 50,
@@ -289,8 +355,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ],
     );
 
+    final availableZones =
+        zonesAsync.value?.where((z) => z.available).toList() ?? [];
+    final hasAvailableZones = availableZones.isNotEmpty;
+
     final launchButton = TextButton(
-      onPressed: () => launch(imageInfo),
+      onPressed: hasAvailableZones ? () => launch(imageInfo) : null,
       child: const Text('Launch'),
     );
 
@@ -304,54 +374,49 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: const Text('Cancel'),
     );
 
-    return Stack(
-      fit: StackFit.loose,
-      children: [
-        Positioned.fill(
-          bottom: 80,
-          child: Container(
-            alignment: Alignment.topCenter,
-            color: Colors.white,
-            child: Form(
-              key: formKey,
-              autovalidateMode: AutovalidateMode.always,
-              child: SingleChildScrollView(
-                clipBehavior: Clip.none,
-                controller: scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: formBody,
-                ),
+    return Stack(fit: StackFit.loose, children: [
+      Positioned.fill(
+        bottom: 80,
+        child: Container(
+          alignment: Alignment.topCenter,
+          color: Colors.white,
+          child: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
+            child: SingleChildScrollView(
+              clipBehavior: Clip.none,
+              controller: scrollController,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: formBody,
               ),
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16).copyWith(top: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Divider(height: 30),
-                Row(
-                  children: [
-                    launchButton,
-                    const SizedBox(width: 16),
-                    launchAndConfigureNextButton,
-                    const SizedBox(width: 16),
-                    cancelButton,
-                  ],
-                ),
-              ],
-            ),
-          ),
+      ),
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(16).copyWith(top: 4),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Divider(height: 30),
+            Row(children: [
+              launchButton,
+              const SizedBox(width: 16),
+              launchAndConfigureNextButton,
+              const SizedBox(width: 16),
+              launchAndConfigureNextButton,
+              const SizedBox(width: 16),
+              cancelButton,
+            ]),
+          ]),
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
+  void launch(ImageInfo imageInfo, {bool configureNext = false}) {
   void launch(ImageInfo imageInfo, {bool configureNext = false}) {
     final formState = formKey.currentState;
     if (formState == null) return;
