@@ -47,7 +47,7 @@ jobs:
                 {"build-type": "Clang"}
                 {"build-type": "Release"}'
 
-        if ${{ github.event_name != 'merge_group' }}; then
+        if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
             MATRIX+='{"build-type": "Coverage" }'
         fi
 
