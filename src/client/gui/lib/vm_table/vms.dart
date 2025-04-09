@@ -122,8 +122,9 @@ class Vms extends ConsumerWidget {
         heading,
         const SizedBox(height: 35),
         vmFilters,
+        const SizedBox(height: 20),
         const BulkActionsBar(),
-        const SizedBox(height: 10),
+        const SizedBox(height: 20),
         Flexible(
           child: SizedBox(
             height: (infos.length + 2) * 50,
