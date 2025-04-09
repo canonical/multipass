@@ -98,12 +98,8 @@ jobs:
 
     outputs:
       build-label:     ${{ steps.build-params.outputs.label }}
-      mac-x86-status:  ${{ steps.publish-data.outputs.macOS-x86_64-status }}
       mac-x86-package: ${{ steps.publish-data.outputs.macOS-x86_64-package }}
-      mac-x86-check:   ${{ steps.publish-data.outputs.macOS-x86_64-check_id }}
-      mac-arm-status:  ${{ steps.publish-data.outputs.macOS-arm64-status }}
       mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
-      mac-arm-check:   ${{ steps.publish-data.outputs.macOS-arm64-check_id }}
       windows-package: ${{ steps.publish-data.outputs.Windows--package }}
       windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
 
@@ -331,7 +327,6 @@ jobs:
       run: |
         echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
         echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
   PublishAndDispatch:
     # Want to run even if one of the builds above failed
@@ -421,42 +416,6 @@ jobs:
     - name: Report public URL
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
-
-    - name: Update the macOS x86 check on public
-      if: ${{ always() && needs.BuildAndTest.outputs.mac-x86-check }}
-      uses: canonical/actions/check@release
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ needs.BuildAndTest.outputs.mac-x86-check }}
-        conclusion: ${{ needs.BuildAndTest.outputs.mac-x86-status != 'success' && needs.BuildAndTest.outputs.mac-x86-status || job.status }}
-        output: |
-          ${{
-            steps.s3-upload.outputs.url
-              && format('{{ "summary": "macOS (x86_64) build complete", "text_description": "[{0}]({1})" }}',
-                        steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
-              || ''
-          }}
-
-    - name: Update the macOS ARM check on public
-      if: ${{ always() && needs.BuildAndTest.outputs.mac-arm-check }}
-      uses: canonical/actions/check@release
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ needs.BuildAndTest.outputs.mac-arm-check }}
-        conclusion: ${{ needs.BuildAndTest.outputs.mac-arm-status != 'success' && needs.BuildAndTest.outputs.mac-arm-status || job.status }}
-        output: |
-          ${{
-            steps.s3-upload.outputs.url
-            && format ('{{ "summary": "macOS (arm64) build complete", "text_description": "[{0}]({1})" }}',
-                       steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
-            || ''
-          }}
 
   CleanupArtifacts:
     if: ${{ success() && needs.PublishAndDispatch.result == 'success' }}
