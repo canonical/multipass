@@ -36,7 +36,6 @@ public:
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void deactivate_impl(bool force) override;
-    bool is_active() override;
 
 private:
     qt_delete_later_unique_ptr<Process> process;

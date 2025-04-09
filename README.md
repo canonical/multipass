@@ -189,6 +189,12 @@ make
 
 Please note that if you're working on a forked repository that you created using the "Copy the main branch only" option, the repository will not include the necessary git tags to determine the Multipass version during CMake configuration. In this case, you need to manually fetch the tags from the upstream by running `git fetch --tags https://github.com/canonical/multipass.git` in the `<multipass>` source code directory. 
 
+### Automatic linker selection
+
+***Requires (>= CMake 3.29)***
+
+To accelerate the build, the build system will attempt to locate and utilize `mold` or `lld` (respectively) in place of the default linker of the toolchain. To override, set [CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake configure step.
+
 ## Run the Multipass daemon and client
 
 First, install Multipass's runtime dependencies. On AMD64 architecture, you can do this with:
