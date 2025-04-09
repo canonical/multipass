@@ -104,10 +104,8 @@ jobs:
       mac-arm-status:  ${{ steps.publish-data.outputs.macOS-arm64-status }}
       mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
       mac-arm-check:   ${{ steps.publish-data.outputs.macOS-arm64-check_id }}
-      windows-status:  ${{ steps.publish-data.outputs.Windows--status }}
       windows-package: ${{ steps.publish-data.outputs.Windows--package }}
       windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
-      windows-check:   ${{ steps.publish-data.outputs.Windows--check_id }}
 
     runs-on: ${{ matrix.runs-on }}
 
@@ -331,7 +329,6 @@ jobs:
       if: always()
       id: publish-data
       run: |
-        echo "${{ runner.os }}-${{ matrix.arch }}-check_id=${{ steps.public-check.outputs.check_id }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
         echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
         echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
         echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
@@ -345,24 +342,6 @@ jobs:
     runs-on: macos-13
 
     steps:
-    - name: Update the Windows check on public
-      if: ${{ always() && needs.BuildAndTest.outputs.windows-check }}
-      uses: canonical/actions/check@release
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ needs.BuildAndTest.outputs.windows-check }}
-        conclusion: ${{ needs.BuildAndTest.outputs.windows-status }}
-        output: |
-          ${{
-            needs.BuildAndTest.outputs.windows-url
-              && format('{{ "summary": "Windows build complete", "text_description": "[{0}]({1})" }}',
-                        needs.BuildAndTest.outputs.windows-package, needs.BuildAndTest.outputs.windows-url)
-              || ''
-          }}
-
     - name: Cleanup
       if: ${{ always() }}
       uses: canonical/actions/cleanup@release
