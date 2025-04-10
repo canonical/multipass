@@ -6,6 +6,7 @@ class Dropdown<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final Map<T, String> items;
   final double width;
+  final String? errorText;
 
   const Dropdown({
     super.key,
@@ -14,6 +15,7 @@ class Dropdown<T> extends StatelessWidget {
     required this.onChanged,
     required this.items,
     this.width = 360,
+    this.errorText,
   });
 
   @override
@@ -39,6 +41,7 @@ class Dropdown<T> extends StatelessWidget {
             horizontal: 8,
             vertical: 13,
           ),
+          errorText: errorText,
         ),
         child: Theme(
           data: Theme.of(context).copyWith(

@@ -82,17 +82,13 @@ final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
   },
 );
 
-final vmInfosStreamProvider = Provider<AsyncValue<List<VmInfo>>>((ref) {
-  return ref.watch(pollingProvider).whenData((data) => data.info);
-});
-
 final daemonAvailableProvider = Provider((ref) {
-  // Check FFI availability first
-  if (!ref.watch(ffiAvailableProvider)) {
+  // Check provider availability first
+  if (!ref.watch(pollingProvider)) {
     return false;
   }
 
-  final error = ref.watch(vmInfosStreamProvider).error;
+  final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
     final message = grpcError.message ?? '';
@@ -110,7 +106,7 @@ final daemonInfoProvider = FutureProvider((ref) {
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {
-    return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+    return ref.watch(pollingProvider).valueOrNull?.info ?? const [];
   }
 
   Future<void> update() async {
@@ -170,8 +166,8 @@ final deletedVmsProvider = Provider((ref) {
       .toBuiltSet();
 });
 
-final zonesProvider = Provider<AsyncValue<List<Zone>>>((ref) {
-  return ref.watch(pollingProvider).whenData((data) => data.zones);
+final zonesProvider = Provider<BuiltList<Zone>>((ref) {
+  return ref.watch(pollingProvider).valueOrNull?.zones.build() ?? BuiltList();
 });
 
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
@@ -185,13 +181,14 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   void add(LaunchRequest request) {
     final vms = state;
     state = vms.rebuild((builder) {
-      builder.add(
-        DetailedInfoItem(
-          name: request.instanceName,
-          cpuCount: request.numCores.toString(),
-          diskTotal: request.diskSpace,
-          memoryTotal: request.memSize,
-          instanceInfo: InstanceDetails(currentRelease: request.image),
+      builder.add(DetailedInfoItem(
+        name: request.instanceName,
+        cpuCount: request.numCores.toString(),
+        diskTotal: request.diskSpace,
+        memoryTotal: request.memSize,
+        zone: Zone(name: request.zone),
+        instanceInfo: InstanceDetails(
+          currentRelease: request.image,
         ),
       );
     });
