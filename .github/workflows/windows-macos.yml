@@ -100,8 +100,6 @@ jobs:
       build-label:     ${{ steps.build-params.outputs.label }}
       mac-x86-package: ${{ steps.publish-data.outputs.macOS-x86_64-package }}
       mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
-      windows-package: ${{ steps.publish-data.outputs.Windows--package }}
-      windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
 
     runs-on: ${{ matrix.runs-on }}
 
