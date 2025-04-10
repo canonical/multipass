@@ -416,14 +416,26 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& defaul
                                                        const std::vector<mp::NetworkInterface>& extra_ifaces,
                                                        const std::unordered_map<std::string, mp::VMMount>& mounts)
 {
-    QString contents("{\n"
-                     "    \"real-zebraphant\": {\n"
-                     "        \"deleted\": false,\n"
-                     "        \"disk_space\": \"5368709120\",\n"
-                     "        \"extra_interfaces\": [\n");
+
+    multipass::test::fake_vm_properties vm_properties{};
+    vm_properties.default_mac = default_mac;
+    vm_properties.extra_ifaces = extra_ifaces;
+    vm_properties.mounts = mounts;
+    return fake_json_contents(vm_properties);
+}
+
+std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties& vm_properties)
+{
+    QString contents(QString::fromStdString(fmt::format("{{\n"
+                                                        "    \"{}\": {{\n"
+                                                        "        \"deleted\": {},\n"
+                                                        "        \"disk_space\": \"5368709120\",\n"
+                                                        "        \"extra_interfaces\": [\n",
+                                                        vm_properties.name,
+                                                        vm_properties.deleted)));
 
     QStringList array_elements;
-    for (auto extra_interface : extra_ifaces)
+    for (auto extra_interface : vm_properties.extra_ifaces)
     {
         array_elements += QString::fromStdString(fmt::format("            {{\n"
                                                              "                \"auto_mode\": {},\n"
@@ -446,10 +458,10 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& defaul
                                                    "            \"machine_type\": \"dmc-de-lorean\"\n"
                                                    "        }},\n"
                                                    "        \"mounts\": [\n",
-                                                   default_mac));
+                                                   vm_properties.default_mac));
 
     QStringList mount_array_elements;
-    for (const auto& mount_pair : mounts)
+    for (const auto& mount_pair : vm_properties.mounts)
     {
         const auto& mountpoint = mount_pair.first;
         const auto& mount = mount_pair.second;
@@ -501,9 +513,10 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& defaul
     contents += QString::fromStdString(fmt::format("\n        ],\n"
                                                    "        \"num_cores\": 1,\n"
                                                    "        \"ssh_username\": \"ubuntu\",\n"
-                                                   "        \"state\": 2\n"
+                                                   "        \"state\": {}\n"
                                                    "    }}\n"
-                                                   "}}"));
+                                                   "}}",
+                                                   fmt::underlying(vm_properties.state)));
 
     return contents.toStdString();
 }

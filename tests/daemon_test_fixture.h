@@ -43,6 +43,17 @@ namespace multipass
 {
 namespace test
 {
+
+struct fake_vm_properties
+{
+    std::string name{"real-zebraphant"};
+    std::string default_mac{};
+    std::vector<mp::NetworkInterface> extra_ifaces;
+    std::unordered_map<std::string, mp::VMMount> mounts;
+    bool deleted = false;
+    VirtualMachine::State state = VirtualMachine::State::starting;
+};
+
 struct DaemonTestFixture : public ::Test
 {
     DaemonTestFixture();
@@ -62,6 +73,8 @@ struct DaemonTestFixture : public ::Test
     std::string fake_json_contents(const std::string& default_mac,
                                    const std::vector<mp::NetworkInterface>& extra_ifaces,
                                    const std::unordered_map<std::string, mp::VMMount>& mounts = {});
+
+    std::string fake_json_contents(const fake_vm_properties& vm_properties);
 
     std::pair<std::unique_ptr<TempDir>, QString> // unique_ptr bypasses missing move ctor
     plant_instance_json(const std::string& contents);
