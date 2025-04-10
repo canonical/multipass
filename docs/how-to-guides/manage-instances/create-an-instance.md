@@ -117,7 +117,7 @@ Multipass can create instances with additional network interfaces using the `mul
 
 This feature is only supported for images with [`cloud-init` support for v2 network config](https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html), which in turn requires [netplan](https://netplan.io/) to be installed, meaning that you'll require Ubuntu 17.10 and Ubuntu Core 16 (except `snapcraft:core16`) or later. More specifically, this feature is only supported in the following scenarios:
 
-* on Linux, with LXD (deprecated)
+* on Linux, with QEMU (*from Multipass 1.15 onward*)
 * on Windows, with both Hyper-V and VirtualBox
 * on macOS, with the QEMU and VirtualBox drivers
 
