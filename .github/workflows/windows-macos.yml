@@ -326,7 +326,7 @@ jobs:
         echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
         echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
-  PublishAndDispatch:
+  CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
     if: always()
 
@@ -390,7 +390,7 @@ jobs:
         echo "name=${PKG}" >> $GITHUB_OUTPUT
         echo "path=$( greadlink -f ${PKG} )" >> $GITHUB_OUTPUT
 
-    - name: Upload package
+    - name: Upload combined macOS package
       if: ${{ steps.combine-package.outputs.path }}
       uses: actions/upload-artifact@v4
       with:
@@ -399,7 +399,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
-    - name: Publish package on S3
+    - name: Publish combined macOS package on S3
       if: ${{ steps.combine-package.outputs.path }}
       id: s3-upload
       uses: canonical/actions/s3-upload@release
@@ -416,9 +416,9 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
   CleanupArtifacts:
-    if: ${{ success() && needs.PublishAndDispatch.result == 'success' }}
+    if: ${{ success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
 
-    needs: [BuildAndTest, PublishAndDispatch]
+    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
 
     runs-on: ubuntu-latest
 
