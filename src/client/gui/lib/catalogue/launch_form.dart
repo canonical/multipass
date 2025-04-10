@@ -5,12 +5,14 @@ import 'package:flutter/material.dart' hide Switch, ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../dropdown.dart';
 import '../ffi.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
+import 'zone_dropdown.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
@@ -66,6 +68,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final deletedVms = ref.watch(deletedVmsProvider);
     final networks = ref.watch(networksProvider);
     final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final hasAvailableZones = ref.watch(zonesProvider).any((z) => z.available);
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -81,6 +84,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
+    );
+
+    final zoneDropdown = FormField<String>(
+      initialValue: 'auto',
+      onSaved: (value) =>
+          launchRequest.zone = value == 'auto' ? '' : value ?? '',
+      builder: (field) {
+        return ZoneDropdown(
+          value: field.value!,
+          onChanged: field.didChange,
+        );
+      },
     );
 
     final chosenImageName = Text(
@@ -214,6 +229,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const SizedBox(height: 16),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           nameInput,
+          const SizedBox(width: 32),
+          zoneDropdown,
           const Spacer(),
         ]),
         const Divider(height: 60),
@@ -246,8 +263,15 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final launchButton = TextButton(
-      onPressed: () => launch(imageInfo),
+      onPressed: hasAvailableZones ? () => launch(imageInfo) : null,
       child: const Text('Launch'),
+    );
+
+    final launchAndConfigureNextButton = TextButton(
+      onPressed: hasAvailableZones
+          ? () => launch(imageInfo, configureNext: true)
+          : null,
+      child: const Text('Launch & Configure Next'),
     );
 
     final cancelButton = OutlinedButton(
@@ -285,6 +309,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
             Row(children: [
               launchButton,
               const SizedBox(width: 16),
+              launchAndConfigureNextButton,
+              const SizedBox(width: 16),
               cancelButton,
             ]),
           ]),
@@ -293,9 +319,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     ]);
   }
 
-  void launch(ImageInfo imageInfo) {
-    launchRequest.clear();
-
+  void launch(ImageInfo imageInfo, {bool configureNext = false}) {
     final formState = formKey.currentState;
     if (formState == null) return;
     final mountFormState = mountFormKey.currentState;
@@ -317,7 +341,19 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     }
 
     initiateLaunchFlow(ref, launchRequest, mountRequests);
-    Scaffold.of(context).closeEndDrawer();
+
+    if (!configureNext) {
+      formState.reset();
+      mountFormState?.reset();
+      setState(() {
+        mountRequests.clear();
+        addingMount = false;
+      });
+      Scaffold.of(context).closeEndDrawer();
+      ref
+          .read(sidebarKeyProvider.notifier)
+          .set('vm-${launchRequest.instanceName}');
+    }
   }
 }
 
@@ -346,7 +382,6 @@ void initiateLaunchFlow(
   );
 
   ref.read(notificationsProvider.notifier).add(notification);
-  ref.read(sidebarKeyProvider.notifier).set('vm-${launchRequest.instanceName}');
 }
 
 FormFieldValidator<String> nameValidator(
