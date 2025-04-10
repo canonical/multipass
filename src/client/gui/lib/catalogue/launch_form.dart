@@ -6,13 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../dropdown.dart';
 import '../ffi.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
+import 'zone_dropdown.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
@@ -92,6 +92,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           loading: () => null,
           error: (_, __) => null,
         );
+    final hasAvailableZones = ref.watch(zonesProvider).any((z) => z.available);
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -109,65 +110,14 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       width: 360,
     );
 
-    final zonesAsync = ref.watch(zonesProvider);
     final zoneDropdown = FormField<String>(
       initialValue: 'auto',
       onSaved: (value) =>
           launchRequest.zone = value == 'auto' ? '' : value ?? '',
       builder: (field) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('Pseudo zone'),
-                const SizedBox(width: 4),
-                Tooltip(
-                  message:
-                      'Pseudo zones simulate availability zones in public clouds\nand allow for testing resilience against real-world incidents',
-                  child: Icon(Icons.info_outline,
-                      size: 16, color: Colors.blue[700]),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            zonesAsync.when(
-              loading: () => const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(),
-              ),
-              error: (_, __) => const Text('Error loading zones'),
-              data: (zones) {
-                final availableZones = zones.where((z) => z.available).toList();
-                final hasAvailableZones = availableZones.isNotEmpty;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Dropdown<String>(
-                      value: field.value,
-                      onChanged: field.didChange,
-                      items: {
-                        'auto': 'Auto (assign automatically)',
-                        for (final zone in availableZones) ...<String, String>{
-                          zone.name: 'Zone ${zone.name}',
-                        },
-                      },
-                    ),
-                    if (!hasAvailableZones)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Cannot launch new instances - all zones are unavailable',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
+        return ZoneDropdown(
+          value: field.value!,
+          onChanged: field.didChange,
         );
       },
     );
@@ -354,10 +304,6 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         addingMount ? mountForm : addMountButton,
       ],
     );
-
-    final availableZones =
-        zonesAsync.value?.where((z) => z.available).toList() ?? [];
-    final hasAvailableZones = availableZones.isNotEmpty;
 
     final launchButton = TextButton(
       onPressed: hasAvailableZones ? () => launch(imageInfo) : null,
