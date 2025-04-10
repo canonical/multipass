@@ -24,27 +24,33 @@ function(configure_linker)
             set (LLD_LINKER_NAMES lld-link)
         else()
             set(LLD_LINKER_NAMES ld.lld ld64.lld)
-            set(MOLD_LINKER_NAMES mold sold)
+            set(MOLD_LINKER_NAMES /usr/libexec/mold/ld /usr/local/libexec/mold/ld mold sold)
             find_program(MOLD_LINKER NAMES ${MOLD_LINKER_NAMES})
         endif()
 
         find_program(LLD_LINKER NAMES ${LLD_LINKER_NAMES})
 
         if(MOLD_LINKER)
-            if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12.1)
-                message(STATUS "configure_linker supports `mold` with `g++` only on version 12.1 and above")
-            else()
-                message(STATUS "configure_linker: `mold` found in environment, will use it as default.")
-                set(CMAKE_LINKER_TYPE MOLD PARENT_SCOPE)
-                set(CMAKE_LINKER ${MOLD_LINKER} PARENT_SCOPE)
-                return()
+            message(STATUS "configure_linker: `mold` (${MOLD_LINKER}) found in environment, will use it as default.")
+            set(CMAKE_LINKER_TYPE MOLD PARENT_SCOPE)
+            if(MOLD_LINKER MATCHES "libexec")
+                string(REPLACE "/ld" "" MOLD_LINKER_PATH ${MOLD_LINKER})
+                #
+                # The reason why we're setting this variables is that GCC < 12.1 does not
+                # support the "-fuse-ld=mold" parameter, which causes CMake configure to fail
+                # when configured with mold + < GCC 12.1 combo. There's a detailed discussion
+                # about this in CMake issue board: https://gitlab.kitware.com/cmake/cmake/-/issues/25748#note_1494202
+                # The gist of itis that CMake maintainers decided to not to cover this edge case
+                # so we have to intervene.
+                #
+                # CMake will override this with "-fuse-ld=mold" for clang and GCC >= 12.1
+                #
+                set(CMAKE_C_USING_LINKER_MOLD "-B${MOLD_LINKER_PATH}" PARENT_SCOPE)
+                set(CMAKE_CXX_USING_LINKER_MOLD "-B${MOLD_LINKER_PATH}" PARENT_SCOPE)
             endif()
-        endif()
-
-        if(LLD_LINKER)
-            message(STATUS "configure_linker: `lld` found in environment, will use it as default.")
+        elseif(LLD_LINKER)
+            message(STATUS "configure_linker: `lld` (${LLD_LINKER}) found in environment, will use it as default.")
             set(CMAKE_LINKER_TYPE LLD PARENT_SCOPE)
-            set(CMAKE_LINKER ${LLD_LINKER} PARENT_SCOPE)
         else()
             message(STATUS "configure_linker: could use neither `mold` nor `lld`; will use the toolchain default.")
         endif()
