@@ -8,6 +8,11 @@ on:
     paths:
       - "docs/**"
       - ".github/workflows/automatic-doc-checks.yml"
+  merge_group:
+    types: [checks_requested]
+    paths:
+      - "docs/**"
+      - ".github/workflows/automatic-doc-checks.yml"
   workflow_dispatch:
     # Manual trigger
 
