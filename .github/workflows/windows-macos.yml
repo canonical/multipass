@@ -25,33 +25,6 @@ env:
   S3_BUCKET: multipass-ci
 
 jobs:
-  # This job is here so that the Windows and macOS builds share exactly the same
-  # git tree and as a result have the same version numbers.
-  Checkout:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        # Need to check it all out to merge successfully.
-        fetch-depth: 0
-
-    - name: Create the branch
-      run: git branch ${{ env.HEAD_REF }}
-
-    - name: Remove authentication
-      run: git config --local http.https://github.com/.extraheader ""
-
-    - name: Upload the repository
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git/**
-        if-no-files-found: error
-        include-hidden-files: true
-        retention-days: 3
-
   CheckLint:
     runs-on: ubuntu-latest
 
@@ -84,7 +57,7 @@ jobs:
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    needs: [Checkout, CheckLint, GetMatrix]
+    needs: [CheckLint, GetMatrix]
 
     # Proceed if Lint failed on a PR
     if: |
@@ -130,16 +103,11 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       run: git config --local core.autocrlf false
 
-    - name: Check out the code
-      # This can't be easily abstracted into our `checkout` action due to a chicken'n'egg problem:
-      # GitHub reads ./* actions from $PWD, so it needs to be checked out. It could be extracted
-      # into an external repository, but that would bring its own set of issues.
-      # Authenticate with the new token.
-      run: |
-        ${{ format('git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( {0} )"',
-                   format(runner.os != 'Windows' && 'echo -n x-access-token:{0} | base64' || '[Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes(''x-access-token:{0}''))', secrets.GITHUB_TOKEN ))
-        }}
-        git checkout --progress --force ${{ env.HEAD_REF }}
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        # Need to fetch it all for submodules to work.
+        fetch-depth: 0
 
     - name: Check out submodules and fetch tags
       uses: ./.github/actions/checkout
@@ -341,8 +309,8 @@ jobs:
         name: ${{ env.HEAD_REF }}.git
         path: .git
 
-    - name: Check out the code
-      run: git checkout --progress --force ${{ env.HEAD_REF }}
+    - name: Check out code
+      uses: actions/checkout@v4
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
