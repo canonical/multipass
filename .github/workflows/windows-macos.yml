@@ -335,13 +335,6 @@ jobs:
     runs-on: macos-13
 
     steps:
-    - name: Cleanup
-      if: ${{ always() }}
-      uses: canonical/actions/cleanup@release
-      with:
-        paths: |
-          ${{ github.workspace }}
-
     - name: Retrieve the repository
       uses: actions/download-artifact@v4
       with:
