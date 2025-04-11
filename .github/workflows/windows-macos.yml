@@ -145,14 +145,6 @@ jobs:
       with:
         args: install --yes wget unzip
 
-    - name: Cleanup
-      if: ${{ always() && runner.os == 'macOS' }}
-      uses: canonical/actions/cleanup@release
-      with:
-        # remove everything in the workspace and the dependencies
-        paths: |
-          ${{ github.workspace }}
-
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
