@@ -125,12 +125,12 @@ jobs:
 
         # Find common base between main and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
-        echo "key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: CCache
       uses: actions/cache@v4
       with:
-        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.cache-key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ matrix.build-type }}-
         path: ~/.ccache
