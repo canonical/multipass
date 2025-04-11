@@ -243,11 +243,6 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
-        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
-        #   gcovr -r /root/parts/multipass \
-        #   --object-directory /root/parts/multipass/build \
-        #   --cobertura /root/parts/multipass/coverage.xml"
-
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       with:
@@ -255,15 +250,39 @@ jobs:
 
     - name: Run TICS analysis
       id: tics
-      if: ${{ steps.measure-coverage.outcome == 'success' }}
-      uses: tiobe/tics-github-action@v3
-      with:
-        mode: qserver
-        project: multipass
-        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
-        branchdir: ${{ github.workspace }}
-        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
-        installTics: true
+      if: ${{ matrix.build-type == 'Coverage' }}
+      env:
+        TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
+      run: |
+        set -e
+
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+
+        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "sudo apt install python3-pip"
+        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "python3 -m pip install --user gcovr"
+        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export PATH=\"$HOME/.local/bin:$PATH\"""
+
+        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+        #   gcovr -r /root/parts/multipass \
+        #   --object-directory /root/parts/multipass/build \
+        #   --cobertura /root/parts/multipass/coverage.xml"
+
+        # Install TiCS
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c ". <(curl --silent --show-error 'https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/')"
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export TICSAUTHTOKEN='${TICSAUTHTOKEN}' && TICSQServer -project multipass -tmpdir /tmp/tics -branchdir ."
+    
+    # - name: Run TICS analysis
+    #   id: tics
+    #   if: ${{ steps.measure-coverage.outcome == 'success' }}
+    #   uses: tiobe/tics-github-action@v3
+    #   with:
+    #     mode: qserver
+    #     project: multipass
+    #     viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+    #     branchdir: ${{ github.workspace }}
+    #     ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+    #     installTics: true
 
     - name: Pull coredump and executable from LXC container
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0'}}
