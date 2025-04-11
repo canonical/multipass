@@ -44,7 +44,7 @@ multipass alias docker:docker-compose docker-compose
 multipass prefer default
 multipass aliases
 ```
-See also [`How to use command aliases`](/how-to-guides/manage-instances/use-instance-command-aliases)
+> See also: [`How to use command aliases`](/how-to-guides/manage-instances/use-instance-command-aliases)
 
 ## 🎞️ jellyfin
 Launch with:
