@@ -97,9 +97,11 @@ jobs:
     - name: Patch
       env:
         PATCH_PREFIX: .github/workflows/linux
-      run: |
+      run: >
         [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
-        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
+
+        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] ||
+          patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -139,7 +141,8 @@ jobs:
     - name: Build
       run: |
         # Inject the build label.
-        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
+        label=${{ steps.build-params.outputs.label }}
+        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${label}" snap/snapcraft.yaml
 
         # Inject vcpkg GH Actions cache env vars if they exist
         if [ -n "${ACTIONS_CACHE_URL}" ]; then
@@ -233,7 +236,6 @@ jobs:
       # do not cause job to fail if there are no coredumps available.
       continue-on-error: true
       run: |
-
         set -o xtrace
         # Check whether the test executable is crashed or not.
         # If so, we'll need to pull the core dump and the executable from the container to the
@@ -244,7 +246,8 @@ jobs:
         mkdir -p /tmp/coredump
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         # Pull the crashed executable from the container
-        /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
+        /snap/bin/lxc --project snapcraft file pull \
+          -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
         echo "Pulled the executable."
         # Pull the coredump folder
         /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/coredump" /tmp/coredump
