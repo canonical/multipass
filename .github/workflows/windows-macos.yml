@@ -107,10 +107,8 @@ jobs:
       uses: actions/checkout@v4
       with:
         # Need to fetch it all for submodules to work.
-        fetch-depth: 0
-
-    - name: Check out submodules and fetch tags
-      uses: ./.github/actions/checkout
+        fetch-depth: 0 # TODO@ricab verify
+        submodules: 'recursive'
 
     - name: Determine build parameters
       id: build-params
