@@ -161,14 +161,14 @@ jobs:
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
-        echo "merge_base=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
         echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v4
       with:
-        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.merge_base }}
+        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.cache-key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
