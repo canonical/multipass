@@ -31,9 +31,9 @@ namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
-struct TestBaseAvailabilityZoneManager : public Test
+struct BaseAvailabilityZoneManagerTest : public Test
 {
-    TestBaseAvailabilityZoneManager() : mock_logger{mpt::MockLogger::inject()}
+    BaseAvailabilityZoneManagerTest()
     {
         mock_logger.mock_logger->screen_logs(mpl::Level::error);
     }
@@ -45,10 +45,10 @@ struct TestBaseAvailabilityZoneManager : public Test
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
-    mpt::MockLogger::Scope mock_logger;
+    mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
 };
 
-TEST_F(TestBaseAvailabilityZoneManager, creates_default_zones)
+TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 {
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
 
@@ -78,7 +78,7 @@ TEST_F(TestBaseAvailabilityZoneManager, creates_default_zones)
     EXPECT_EQ(manager.get_automatic_zone_name(), *mp::default_zone_names.begin());
 }
 
-TEST_F(TestBaseAvailabilityZoneManager, automatic_zone_rotation)
+TEST_F(BaseAvailabilityZoneManagerTest, AutomaticZoneRotation)
 {
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
 
@@ -118,7 +118,7 @@ TEST_F(TestBaseAvailabilityZoneManager, automatic_zone_rotation)
     EXPECT_THROW(manager.get_automatic_zone_name(), mp::NoAvailabilityZoneAvailable);
 }
 
-TEST_F(TestBaseAvailabilityZoneManager, throws_when_zone_not_found)
+TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
 
@@ -140,7 +140,7 @@ TEST_F(TestBaseAvailabilityZoneManager, throws_when_zone_not_found)
     EXPECT_THROW(manager.get_zone("nonexistent-zone"), mp::AvailabilityZoneNotFound);
 }
 
-TEST_F(TestBaseAvailabilityZoneManager, cycles_through_available_zones)
+TEST_F(BaseAvailabilityZoneManagerTest, CyclesThroughAvailableZones)
 {
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
 
