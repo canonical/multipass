@@ -3,7 +3,7 @@
 
 If you want to set up an instance with a specific environment or configuration, you can use the launch command along with a custom cloud-init YAML file and an optional post-launch health check to ensure everything is working correctly.
 
-Below are some common examples of using cloud-init YAML and Multipass commands to create a customized instance setups. In each case, a pre-defined cloud-init YAML file is stored in the repository, but users are also free to create and user their own custom cloud-init configurations.
+Below are some common examples of using `cloud-init` with Multipass to create customized instances. The `cloud-init` file is provided by the Multipass team, but users are free to create and use their own personal `cloud-init` configurations.
 
 ## 📦 anbox-cloud-appliance
 Launch with:
