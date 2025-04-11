@@ -13,7 +13,7 @@ A string identifying the hypervisor back-end in use.
 
 ## Possible values
 
-  - `qemu`, `libvirt` and `lxd` on Linux
+  - `qemu`, `libvirt` (deprecated) and `lxd` (deprecated) on Linux
   - `hyperv` and `virtualbox` on Windows
   - `qemu` and `virtualbox` on macOS 10.15+
   - *(deprecated)* `hyperkit` on Intel macOS 10.15+
@@ -21,5 +21,5 @@ A string identifying the hypervisor back-end in use.
 ## Default values
 
   - `qemu` on macOS and AMD64 Linux
-  - `lxd` on non-AMD64 Linux
+  - `lxd` (deprecated) on non-AMD64 Linux
   - `hyperv` on Windows
