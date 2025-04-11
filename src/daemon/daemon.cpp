@@ -2921,7 +2921,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     {
         constexpr auto deprecation_warning =
             "* Warning! Blueprints are deprecated and will be removed in a future release. *\n\n"
-            "You can achieve similar effects with cloud-init and other launch options.\n"
+            "You can achieve similar results with cloud-init and other launch options.\n"
             "Run `multipass help launch` for more info, or find out more at:\n"
             "- "
             "https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/manage-instances/"
