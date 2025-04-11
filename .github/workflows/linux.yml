@@ -297,6 +297,7 @@ jobs:
     if: ${{
       !cancelled()
       && success()
+      && github.repository == 'canonical/multipass'
       && needs.BuildAndTest.outputs.channel != ''
       && (github.event_name == 'push'
           || github.event_name == 'merge_group'
