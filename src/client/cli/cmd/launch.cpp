@@ -233,11 +233,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                      "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
                                      "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
-    QCommandLineOption mountOption("mount",
-                                   "Mount a local directory inside the instance. If <target> is omitted, the "
-                                   "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
-                                   "the name of the <source> directory.",
-                                   "source>:<target");
+    QCommandLineOption mountOption(
+        "mount",
+        QStringLiteral("Mount a local directory inside the instance. If <target> is omitted, the mount point will be "
+                       "under %1/<source-dir>, where <source-dir> is the name of the <source> directory.")
+            .arg(home_in_instance),
+        "source>:<target");
 
     parser->addOptions({cpusOption, diskOption, memOption, memOptionDeprecated, nameOption, cloudInitOption,
                         networkOption, bridgedOption, mountOption});
