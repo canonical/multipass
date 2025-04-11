@@ -408,7 +408,7 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-  CleanupArtifacts:
+  DeleteArtifacts:
     if: ${{ success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
 
     needs: [BuildAndTest, CombineAndPublishMacOSPackage]
@@ -416,7 +416,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Clean up artifacts
+    - name: Delete unused artifacts from github
       uses: geekyeggo/delete-artifact@v5
       with:
         name: |
