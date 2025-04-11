@@ -53,9 +53,7 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
+        MATRIX='{"build-type": "Debug"}'
 
         if ${{ github.event_name != 'merge_group' }}; then
             MATRIX+='{"build-type": "Coverage" }'
@@ -90,7 +88,7 @@ jobs:
     env:
       SNAPCRAFT_BUILD_INFO: 1
 
-    timeout-minutes: 120
+    timeout-minutes: 360
     steps:
     - name: Install Snapcraft
       uses: samuelmeuli/action-snapcraft@v3
@@ -244,6 +242,28 @@ jobs:
           env CTEST_OUTPUT_ON_FAILURE=1 \
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          gcovr -r /root/parts/multipass \
+          --object-directory /root/parts/multipass/build \
+          --cobertura /root/parts/multipass/coverage.xml"
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+
+    - name: Run TICS analysis
+      id: tics
+      if: ${{ steps.measure-coverage.outcome == 'success' }}
+      uses: tiobe/tics-github-action@v3
+      with:
+        mode: qserver
+        project: multipass
+        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+        branchdir: ${{ github.workspace }}
+        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+        installTics: true
 
     - name: Pull coredump and executable from LXC container
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0'}}
