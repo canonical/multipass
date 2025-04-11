@@ -250,6 +250,11 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: const Text('Launch'),
     );
 
+    final launchAndConfigureNextButton = TextButton(
+      onPressed: () => launch(imageInfo, configureNext: true),
+      child: const Text('Launch & Configure Next'),
+    );
+
     final cancelButton = OutlinedButton(
       onPressed: () => Scaffold.of(context).closeEndDrawer(),
       child: const Text('Cancel'),
@@ -285,6 +290,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
             Row(children: [
               launchButton,
               const SizedBox(width: 16),
+              launchAndConfigureNextButton,
+              const SizedBox(width: 16),
               cancelButton,
             ]),
           ]),
@@ -293,9 +300,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     ]);
   }
 
-  void launch(ImageInfo imageInfo) {
-    launchRequest.clear();
-
+  void launch(ImageInfo imageInfo, {bool configureNext = false}) {
     final formState = formKey.currentState;
     if (formState == null) return;
     final mountFormState = mountFormKey.currentState;
@@ -316,8 +321,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       mountRequest.targetPaths.first.instanceName = launchRequest.instanceName;
     }
 
-    initiateLaunchFlow(ref, launchRequest, mountRequests);
-    Scaffold.of(context).closeEndDrawer();
+    initiateLaunchFlow(
+      ref,
+      launchRequest.deepCopy(),
+      mountRequests.map((r) => r.deepCopy()).toList(),
+    );
+
+    if (!configureNext) {
+      Scaffold.of(context).closeEndDrawer();
+      ref
+          .read(sidebarKeyProvider.notifier)
+          .set('vm-${launchRequest.instanceName}');
+    }
   }
 }
 
@@ -346,7 +361,6 @@ void initiateLaunchFlow(
   );
 
   ref.read(notificationsProvider.notifier).add(notification);
-  ref.read(sidebarKeyProvider.notifier).set('vm-${launchRequest.instanceName}');
 }
 
 FormFieldValidator<String> nameValidator(
