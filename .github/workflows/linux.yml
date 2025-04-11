@@ -87,8 +87,7 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
       with:
-        # Need to fetch it all for submodules to work.
-        fetch-depth: 0 # TODO@ricab verify and update comment
+        fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
 
     - name: Determine build parameters
