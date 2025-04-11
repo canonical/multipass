@@ -256,19 +256,19 @@ jobs:
       run: |
         set -e
 
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        # instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
 
-        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "sudo apt install python3-pip"
-        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "python3 -m pip install --user gcovr"
-        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export PATH=\"$HOME/.local/bin:$PATH\"""
-
-        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+        # /snap/bin/lxc --project snapcraft exec snapcraft-multipass-on-amd64-for-amd64-532124 -- bash -c "\
+        #   sudo apt install -y python3-pip && \
+        #   python3 -m pip install --user gcovr && \
+        #   export PATH=\"\$HOME/.local/bin:\$PATH\" && \
         #   gcovr -r /root/parts/multipass \
-        #   --object-directory /root/parts/multipass/build \
-        #   --cobertura /root/parts/multipass/coverage.xml"
+        #     --object-directory /root/parts/multipass/build \
+        #     --cobertura /root/parts/multipass/coverage.xml \
+        #     --gcov-ignore-parse-errors"
 
         # Install TiCS
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c ". <(curl --silent --show-error 'https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/')"
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export TICSAUTHTOKEN='${TICSAUTHTOKEN}' && . <(curl --silent --show-error 'https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/')"
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export TICSAUTHTOKEN='${TICSAUTHTOKEN}' && TICSQServer -project multipass -tmpdir /tmp/tics -branchdir ."
     
