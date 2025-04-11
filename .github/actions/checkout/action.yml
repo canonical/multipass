@@ -11,6 +11,7 @@ runs:
       # This repository can't do depth.
       git -c protocol.version=2 submodule update --init 3rd-party/xz-decoder/xz-embedded
       git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+      git -C 3rd-party/vcpkg fetch --unshallow
 
   - name: Fetch tags
     shell: bash
