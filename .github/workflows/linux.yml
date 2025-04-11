@@ -243,10 +243,10 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
-          gcovr -r /root/parts/multipass \
-          --object-directory /root/parts/multipass/build \
-          --cobertura /root/parts/multipass/coverage.xml"
+        # /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+        #   gcovr -r /root/parts/multipass \
+        #   --object-directory /root/parts/multipass/build \
+        #   --cobertura /root/parts/multipass/coverage.xml"
 
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
