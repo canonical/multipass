@@ -2925,7 +2925,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             "Run `multipass help launch` for more info, or find out more at:\n"
             "- "
             "https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/manage-instances/"
-            "launch-customized-virtual-machines-with-multipass-and-cloud-init/\n"
+            "launch-customized-instances-with-multipass-and-cloud-init/\n"
             "- https://cloudinit.readthedocs.io\n\n";
         CreateReply reply;
         reply.set_log_line(deprecation_warning);
