@@ -1,6 +1,6 @@
 (explanation-blueprint)=
 # Blueprint (deprecated)
-**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](/how-to-guides/manage-instances/launch-customized-virtual-machines-with-multipass-and-cloud-init)
+**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](/how-to-guides/manage-instances/launch-customized-instances-with-multipass-and-cloud-init)
 > See also: [How to use a blueprint](/how-to-guides/manage-instances/use-a-blueprint)
 
 In Multipass, a **blueprint** is a recipe to create a customised Multipass [instance](/explanation/instance).
