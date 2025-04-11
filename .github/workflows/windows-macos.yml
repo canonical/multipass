@@ -168,7 +168,8 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v4
       with:
-        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.cache-key }}
+        key: "ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-\
+          ${{ steps.setup-ccache.outputs.cache-key }}"
         restore-keys: |
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
@@ -234,14 +235,22 @@ jobs:
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
-      run: |
+      run: >
         ${{ env.ARCH_WRAPPER }} cmake --build . --target package
-        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName' }} )" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
+        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' ||
+        '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
+        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' ||
+        '( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName' }} )" >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
-      run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
+      run: >
+        ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR,
+        runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
       uses: actions/upload-artifact@v4
@@ -271,9 +280,12 @@ jobs:
     - name: Store publishing outputs
       if: always()
       id: publish-data
-      run: |
-        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+      run: >
+        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
+        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
@@ -302,7 +314,9 @@ jobs:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
 
     - name: Set the arch wrapper
-      run: echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple && echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
+      run: >
+        echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple &&
+          echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
 
     - name: Combine the macOS package
       id: combine-package
