@@ -8,12 +8,12 @@ Below are some common examples of using cloud-init YAML and Multipass commands t
 ## 📦 anbox-cloud-appliance
 Launch with:
 ```{code-block} text
-multipass launch --name anbox-cloud-appliance --cpus 4 --memory 4G --disk 50G --timeout 900 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-anbox.yaml
+multipass launch --name anbox-cloud-appliance --cpus 4 --memory 4G --disk 50G --timeout 900 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-anbox.yaml
 ```
 ## ⚙️ charm-dev
 Launch with:
 ```{code-block} text
-multipass launch 24.04 --name charm-dev --cpus 2 --memory 4G --disk 50G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-charm-dev.yaml
+multipass launch 24.04 --name charm-dev --cpus 2 --memory 4G --disk 50G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-charm-dev.yaml
 ```
 Health check:
 ```{code-block} text
@@ -29,7 +29,7 @@ multipass exec charm-dev -- bash -c "
 ## 🐳 docker
 Launch with:
 ```{code-block} text
-multipass launch 24.04 --name docker --cpus 2 --memory 4G --disk 40G --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-docker.yaml
+multipass launch 24.04 --name docker --cpus 2 --memory 4G --disk 40G --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-docker.yaml
 ```
 Health check:
 ```{code-block} text
@@ -49,13 +49,13 @@ multipass aliases
 ## 🎞️ jellyfin
 Launch with:
 ```{code-block} text
-multipass launch 22.04 --name jellyfin --cpus 2 --memory 4G --disk 40G --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-jellyfin.yaml
+multipass launch 22.04 --name jellyfin --cpus 2 --memory 4G --disk 40G --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-jellyfin.yaml
 ```
 
 ## ☸️ minikube
 Launch with:
 ```{code-block} text
-multipass launch --name minikube --cpus 2 --memory 4G --disk 40G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-minikube.yaml
+multipass launch --name minikube --cpus 2 --memory 4G --disk 40G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-minikube.yaml
 ```
 Health check:
 ```{code-block} text
@@ -67,7 +67,7 @@ multipass exec minikube -- bash -c "set -e
 ## 🤖 ros2-humble
 Launch with:
 ```{code-block} text
-multipass launch 22.04 --name ros2-humble --cpus 2 --memory 4G --disk 40G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-ros2-humble.yaml
+multipass launch 22.04 --name ros2-humble --cpus 2 --memory 4G --disk 40G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-ros2-humble.yaml
 ```
 Heath check:
 ```{code-block} text
@@ -85,7 +85,7 @@ multipass exec ros2-humble -- bash -c "
 ## 🤖 ros2-jazzy
 Launch with:
 ```{code-block} text
-multipass launch 24.04 --name ros2-jazzy --cpus 2 --memory 4G --disk 40G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/cloud-init-yaml/data/cloud-init-yaml/cloud-init-ros2-jazzy.yaml
+multipass launch 24.04 --name ros2-jazzy --cpus 2 --memory 4G --disk 40G --timeout 1800 --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-ros2-jazzy.yaml
 ```
 Health check:
 ```{code-block} text
