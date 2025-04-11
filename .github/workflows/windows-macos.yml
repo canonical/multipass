@@ -19,7 +19,6 @@ concurrency:
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
   HEAD_REF: ci${{ github.run_id }}
-  RUN_URL: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   S3_BUCKET: multipass-ci
@@ -85,15 +84,11 @@ jobs:
       OPAMYES: 1
 
     steps:
-    - name: Set the arch wrapper
-      if: ${{ matrix.arch }}
-      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
-
-    - name: Retrieve the repository
-      uses: actions/download-artifact@v4
+    - name: Check out code
+      uses: actions/checkout@v4
       with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git
+        fetch-depth: 0 # Need full history to derive version
+        submodules: 'recursive'
 
     - name: Enable symlinks
       if: ${{ runner.os == 'Windows' }}
@@ -102,12 +97,6 @@ jobs:
     - name: Disable auto CRLF on Windows
       if: ${{ runner.os == 'Windows' }}
       run: git config --local core.autocrlf false
-
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Need full history to derive version
-        submodules: 'recursive'
 
     - name: Determine build parameters
       id: build-params
@@ -120,6 +109,10 @@ jobs:
         # Prepend gnu-tar's (future) location to the path, to prioritize it over system tar
         # Needed for cache: https://github.com/actions/cache?tab=readme-ov-file#pre-requisites
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
+
+    - name: Set the arch wrapper
+      if: ${{ matrix.arch }}
+      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
@@ -300,12 +293,6 @@ jobs:
     runs-on: macos-13
 
     steps:
-    - name: Retrieve the repository
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git
-
     - name: Check out code
       uses: actions/checkout@v4
 
