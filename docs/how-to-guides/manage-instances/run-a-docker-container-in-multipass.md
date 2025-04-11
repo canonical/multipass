@@ -1,6 +1,6 @@
 (how-to-guides-manage-instances-run-a-docker-container-in-multipass)=
 # Run a Docker container in Multipass
-**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized virtual machines with Multipass and cloud-init](/how-to-guides/manage-instances/launch-customized-virtual-machines-with-multipass-and-cloud-init)
+**Warning:** Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](/how-to-guides/manage-instances/launch-customized-virtual-machines-with-multipass-and-cloud-init)
 <!-- This is published as an Ubuntu Tutorial at this link: https://ubuntu.com/tutorials/running-a-container-with-the-docker-workflow-in-multipass -->
 
 <!--
