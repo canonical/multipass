@@ -1,0 +1,61 @@
+apt:
+  sources:
+    ros2:
+      source: "deb http://repo.ros2.org/ubuntu/main $RELEASE main"
+      keyid: C1CF 6E31 E6BA DE88 68B1 72B4 F42E D6FB AB17 C654
+
+package_upgrade: true
+
+packages:
+- build-essential
+- cmake
+- curl
+- git
+- lsb-release
+- openssh-client
+- openssh-server
+- python3
+- python3-pip
+- snapd
+- tig
+- unzip
+- vim
+- wget
+- zip
+# ROS 2 specific packages
+- python3-colcon-common-extensions
+- python3-rosdep
+- python3-setuptools
+- python3-vcstool
+- ros-humble-desktop-full
+
+snap:
+  commands:
+  - snap install snapcraft --classic
+
+write_files:
+
+- content: |
+
+    [[ -z "${COLCON_HOME}" ]] && export COLCON_HOME="$HOME/.colcon"
+
+    [[ -z "${XAUTHORITY}" ]] && export XAUTHORITY=$HOME/.Xauthority
+
+    if [ -f /opt/ros/humble/setup.bash ]; then
+      source /opt/ros/humble/setup.bash
+    fi
+
+    if [ -f /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash ]; then
+      source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
+    fi
+  path: /home/ubuntu/.bashrc
+  append: true
+  defer: true
+
+runcmd:
+- |
+  # Initialise rosdep
+  rosdep init
+  sudo -u ubuntu sh -c "rosdep update --rosdistro humble"
+
+final_message: "The ROS 2 Humble environment is up, after $UPTIME seconds."
