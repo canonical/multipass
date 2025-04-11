@@ -103,9 +103,7 @@ jobs:
       with:
         # Need to fetch it all for submodules to work.
         fetch-depth: 0
-
-    - name: Check out tags and submodules
-      uses: ./.github/actions/checkout
+        submodules: 'recursive'
 
     - name: Determine build parameters
       id: build-params
