@@ -7,6 +7,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 
 - [Create an instance](create-an-instance)
 - [Modify an instance](modify-an-instance)
+- [Launch customized instances with Multipass and cloud-init](launch-customized-instances-with-multipass-and-cloud-init)
 - [Use an instance](use-an-instance)
 - [Use the primary instance](use-the-primary-instance)
 - [Use instance command aliases](use-instance-command-aliases)
@@ -26,6 +27,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 
 create-an-instance
 modify-an-instance
+launch-customized-instances-with-multipass-and-cloud-init
 use-an-instance
 use-the-primary-instance
 use-instance-command-aliases
