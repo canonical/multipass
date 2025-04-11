@@ -1,7 +1,7 @@
 (how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)=
 # Launch customized instances with Multipass and cloud-init
 
-If you want to set up an instance with a specific environment or configuration, you can use the launch command along with a custom cloud-init YAML file and an optional post-launch health check to ensure everything is working correctly.
+You can set up instances with a customized environment or configuration using the launch command along with a custom cloud-init YAML file and an optional post-launch health check to ensure everything is working correctly.
 
 Below are some common examples of using `cloud-init` with Multipass to create customized instances. The `cloud-init` file is provided by the Multipass team, but users are free to create and use their own personal `cloud-init` configurations.
 
