@@ -101,9 +101,8 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
       with:
-        # Need to fetch it all for submodules to work.
-        fetch-depth: 0
         submodules: 'recursive'
+        fetch-tags: 'true'
 
     - name: Determine build parameters
       id: build-params
