@@ -255,6 +255,7 @@ jobs:
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
           mkdir -p /root/parts/multipass/src/coverage && \
+          mv /root/parts/multipass/build /root/parts/multipass/src && \
           sudo apt install -y python3-pip && \
           python3 -m pip install --user gcovr && \
           export PATH=\"\$HOME/.local/bin:\$PATH\" && \
