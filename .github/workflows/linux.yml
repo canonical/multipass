@@ -243,11 +243,6 @@ jobs:
             cmake --build /root/parts/multipass/build --target covreport"
         bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
-
     - name: Run TICS analysis
       id: tics
       if: ${{ matrix.build-type == 'Coverage' }}
@@ -272,6 +267,13 @@ jobs:
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export TICSAUTHTOKEN='${TICSAUTHTOKEN}' && TICSQServer -project multipass -tmpdir /tmp/tics -branchdir ."
     
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      env:
+        TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
+      with:
+        limit-access-to-actor: true
+
     # - name: Run TICS analysis
     #   id: tics
     #   if: ${{ steps.measure-coverage.outcome == 'success' }}
