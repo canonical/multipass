@@ -251,7 +251,6 @@ jobs:
       run: |
         set -e
 
-        
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
@@ -260,7 +259,7 @@ jobs:
           python3 -m pip install --user gcovr && \
           export PATH=\"\$HOME/.local/bin:\$PATH\" && \
           gcovr -r /root/parts/multipass \
-            --object-directory /root/parts/multipass/src/build \
+            --object-directory /root/parts/multipass/build \
             --cobertura /root/parts/multipass/src/coverage/coverage.xml \
             --gcov-ignore-parse-errors && \
           mv /root/parts/multipass/build /root/parts/multipass/src"
