@@ -260,7 +260,7 @@ jobs:
           python3 -m pip install --user gcovr && \
           export PATH=\"\$HOME/.local/bin:\$PATH\" && \
           gcovr -r /root/parts/multipass \
-            --object-directory /root/parts/multipass/build \
+            --object-directory /root/parts/multipass/src/build \
             --cobertura /root/parts/multipass/src/coverage/coverage.xml \
             --gcov-ignore-parse-errors"
 
