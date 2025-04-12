@@ -78,9 +78,6 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/build
       CCACHE_DIR: ${{ github.workspace }}/build/ccache
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
-      OPAM_COMP: "4.11.1"
-      OPAMVERBOSE: 1
-      OPAMYES: 1
 
     steps:
     - name: Check out code
