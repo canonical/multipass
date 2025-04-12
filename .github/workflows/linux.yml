@@ -251,6 +251,7 @@ jobs:
       run: |
         set -e
 
+        
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
