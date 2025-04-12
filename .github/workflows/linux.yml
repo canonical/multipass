@@ -38,7 +38,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y devscripts equivs ninja-build lcov python3-pip
+        sudo apt-get install -y devscripts equivs lcov python3-pip
         sudo pip3 install gcovr
         mk-build-deps -s sudo -i
 
@@ -46,7 +46,6 @@ jobs:
       run: |
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
-              -GNinja \
               -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
