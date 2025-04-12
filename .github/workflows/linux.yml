@@ -35,6 +35,26 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Set up CCache
+      id: setup-ccache
+      run: |
+        sudo apt-get install ccache
+        ccache --max-size=2G
+        mkdir -p ${HOME}/.ccache
+        /snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache
+
+        # Find common base between main and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
+        echo "key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+
+    - name: CCache
+      uses: actions/cache@v4
+      with:
+        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.key }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ matrix.build-type }}-
+        path: ~/.ccache
+
     - name: Install build dependencies
       run: |
         sudo apt-get update
@@ -44,15 +64,15 @@ jobs:
 
     - name: Configure
       run: |
-        cmake -B${{ env.BUILD_DIR }}
-              -DCMAKE_BUILD_TYPE=Coverage
-              -GNinja
+        cmake -B${{ env.BUILD_DIR }} \
+              -DCMAKE_BUILD_TYPE=Coverage \
+              -GNinja \
               -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
       run: |
-        cmake --build ${{ env.BUILD_DIR }} 
-              --target covreport 
+        cmake --build ${{ env.BUILD_DIR }} \
+              --target covreport \
               -j$(nproc)
     
     - name: Convert lcov to Cobertura XML
@@ -77,6 +97,9 @@ jobs:
       with:
         name: cobertura.xml
         path: ${{ env.COVERAGE_DIR }}/coverage.xml
+
+    - name: Clear CCache stats
+      run: ccache --show-stats --zero-stats
 
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
