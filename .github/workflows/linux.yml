@@ -254,12 +254,13 @@ jobs:
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          mkdir -p /root/parts/multipass/coverage && \
           sudo apt install -y python3-pip && \
           python3 -m pip install --user gcovr && \
           export PATH=\"\$HOME/.local/bin:\$PATH\" && \
           gcovr -r /root/parts/multipass \
             --object-directory /root/parts/multipass/build \
-            --cobertura /root/parts/multipass/coverage.xml \
+            --cobertura /root/parts/multipass/coverage/coverage.xml \
             --gcov-ignore-parse-errors"
 
         # Install TiCS
