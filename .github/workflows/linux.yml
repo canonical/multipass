@@ -255,14 +255,14 @@ jobs:
 
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
           mkdir -p /root/parts/multipass/src/coverage && \
-          mv /root/parts/multipass/build /root/parts/multipass/src && \
           sudo apt install -y python3-pip && \
           python3 -m pip install --user gcovr && \
           export PATH=\"\$HOME/.local/bin:\$PATH\" && \
           gcovr -r /root/parts/multipass \
             --object-directory /root/parts/multipass/src/build \
             --cobertura /root/parts/multipass/src/coverage/coverage.xml \
-            --gcov-ignore-parse-errors"
+            --gcov-ignore-parse-errors && \
+          mv /root/parts/multipass/build /root/parts/multipass/src"
 
         # Install TiCS
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "export TICSAUTHTOKEN='${TICSAUTHTOKEN}' && . <(curl --silent --show-error 'https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/') && TICSQServer -project multipass -tmpdir /tmp/tics -branchdir /root/parts/multipass/src"
