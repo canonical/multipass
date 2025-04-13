@@ -65,6 +65,8 @@ jobs:
       run: |
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
