@@ -70,6 +70,7 @@ jobs:
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
+        filelist: ../.tics
 
     - name: Upload XML coverage report as artifact
       uses: actions/upload-artifact@v4
