@@ -23,7 +23,7 @@ as well as a {ref}`gui-client-tray-icon` menu.
 (gui-client-catalogue-tab)=
 ## Catalogue tab
 
-Here you can browse the available Ubuntu images. The output is equivalent to the one given by `multipass find --only-images`. Blueprints are not yet available.
+Here you can browse the available Ubuntu images. The output is equivalent to the one given by `multipass find --only-images`.
 
 ```{figure} /images/gui-client/multipass-gui-catalogue-tab.png
    :width: 720px

@@ -1,4 +1,5 @@
 # Leave a blank line at the end of this file to support concatenation
+anbox
 AnyConnect
 ApplicationFirewall
 ARP
@@ -28,6 +29,7 @@ cpus
 cryptographically
 CSV
 customisations
+customized
 Cygwin
 de
 dev
@@ -65,6 +67,7 @@ IPs
 ips
 IPv
 iUDP
+jellyfin
 Junos
 Kaspersky
 KiB
@@ -89,6 +92,7 @@ microk
 Microk
 Microk8s
 Minikube
+minikube
 misconfiguration
 mr
 mscho
@@ -203,6 +207,7 @@ pitifulpete
 porwal
 QuantumLibet
 ricab
+ros
 roscigno
 saviq
 sergiusens
