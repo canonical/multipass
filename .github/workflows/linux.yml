@@ -51,6 +51,7 @@ jobs:
         cmake --build ${{ env.BUILD_DIR }} \
               --target covreport \
               -j$(nproc)
+        mkdir -p ${{ env.COVERAGE_DIR }}
         mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
 
     - name: Run TICS Analysis
