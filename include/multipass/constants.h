@@ -74,9 +74,11 @@ constexpr auto timeout_exit_code = 5;
 constexpr auto authenticated_certs_dir = "authenticated-certs";
 
 constexpr auto driver_deprecation_warning_template =
-    "**Warning! The {0} driver is deprecated and will be removed in an future release.**\n\n"
-    "After the removal, you will find the guide on how to access the {0} instances on \n"
-    "https://documentation.ubuntu.com/multipass/en/latest/\n\n"; // TODO lxd and libvirt migration, remove
+    "**Warning! The {0} driver is deprecated and will be removed in an future "
+    "release.**\n\n"
+    "- for libvirt: \"The instances will remain available with the QEMU driver\"\n"
+    "- for LXD: \"The instances will no longer be available in Multipass then, "
+    "but they will remain in LXD\"\n\n"; // TODO lxd and libvirt migration, remove
 } // namespace multipass
 
 #endif // MULTIPASS_CONSTANTS_H
