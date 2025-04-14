@@ -37,31 +37,27 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y devscripts equivs lcov gcovr
+        sudo apt-get install -y devscripts equivs lcov ninja-build
         mk-build-deps -s sudo -i
 
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
+              -GNinja \
               -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
       run: |
         cmake --build ${{ env.BUILD_DIR }} \
-              --target covreport \
-              -j$(nproc)
-    
-    - name: Convert lcov to Cobertura XML
-      run: |
-        mkdir -p ${{ env.COVERAGE_DIR }}
-        gcovr -r ${{ github.workspace }} \
-              --object-directory ${{ env.BUILD_DIR }} \
-              --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
-              --gcov-ignore-parse-errors
+              --target covreport
+        mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
 
-    - name: Upload XML coverage report as artifact
-      uses: actions/upload-artifact@v4
+    - name: Run TICS Analysis
+      uses: tiobe/tics-github-action@v3
       with:
-        name: cobertura.xml
-        path: ${{ env.COVERAGE_DIR }}/coverage.xml
+        mode: qserver
+        project: multipass
+        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+        installTics: true
