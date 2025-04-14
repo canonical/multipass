@@ -32,8 +32,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y devscripts equivs lcov python3-pip
-        sudo pip3 install gcovr
+        sudo apt-get install -y devscripts equivs lcov
         mk-build-deps -s sudo -i
 
     - name: Configure
@@ -47,14 +46,8 @@ jobs:
         cmake --build ${{ env.BUILD_DIR }} \
               --target covreport \
               -j$(nproc)
-
-    - name: Convert lcov to Cobertura
-      run: |
         mkdir -p ${{ env.COVERAGE_DIR }}
-        gcovr -r ${{ github.workspace }} \
-              --object-directory ${{ env.BUILD_DIR }} \
-              --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
-              --gcov-ignore-parse-errors
+        mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
 
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
@@ -64,9 +57,3 @@ jobs:
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
-
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: cobertura.xml
-        path: ${{ env.COVERAGE_DIR }}/coverage.xml
