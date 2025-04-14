@@ -45,13 +45,13 @@ jobs:
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
               -GNinja \
-              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }} \
-              -j$(nproc)
+              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
       run: |
         cmake --build ${{ env.BUILD_DIR }} \
-              --target covreport
+              --target covreport \
+              -j$(nproc)
         mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
 
     - name: Run TICS Analysis
