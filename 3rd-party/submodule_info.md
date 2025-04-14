@@ -32,8 +32,8 @@ Version: 1.1.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.
 <https://github.com/zmarko/semver/releases>
 
 ### xz-embedded
-Version: v20240322 |
-<https://git.tukaani.org/xz-embedded.git> |
+Version: v2024-12-30 |
+<https://github.com/tukaani-project/xz-embedded.git> |
 <https://tukaani.org/xz/embedded.html>
 
 ### yaml-cpp

@@ -7,7 +7,7 @@
 	url = https://github.com/CanonicalLtd/libssh.git
 [submodule "3rd-party/xz-decoder/xz-embedded"]
 	path = 3rd-party/xz-decoder/xz-embedded
-	url = https://git.tukaani.org/xz-embedded.git
+	url = https://github.com/tukaani-project/xz-embedded.git
 [submodule "3rd-party/semver"]
 	path = 3rd-party/semver
 	url = https://github.com/CanonicalLtd/semver.git
