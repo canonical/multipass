@@ -187,6 +187,10 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::WaitReadyReply, mp::WaitReadyRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status,
+                zones,
+                (grpc::ServerContext * context, (grpc::ServerReaderWriter<mp::ZonesReply, mp::ZonesRequest> * server)),
+                (override));
 };
 
 struct Client : public Test
@@ -4390,6 +4394,49 @@ TEST_F(ClientAlias, aliasRefusesCreationRpcError)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
+}
+
+// zones cli tests
+TEST_F(Client, zones_cmd_no_args_ok)
+{
+    EXPECT_CALL(mock_daemon, zones(_, _));
+    EXPECT_THAT(send_command({"zones"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, zones_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"zones", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, zones_cmd_succeeds_with_format_options)
+{
+    EXPECT_CALL(mock_daemon, zones(_, _)).Times(4);
+    EXPECT_THAT(send_command({"zones", "--format", "table"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"zones", "--format", "json"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"zones", "--format", "csv"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"zones", "--format", "yaml"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, zones_cmd_fails_with_invalid_format)
+{
+    EXPECT_THAT(send_command({"zones", "--format", "invalid"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, zones_cmd_fails_with_args)
+{
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"zones", "foo"}, trash_stream, cerr_stream), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("This command takes no arguments"));
+}
+
+TEST_F(Client, zones_cmd_verbosity_forwarded)
+{
+    const auto verbosity = 2;
+    const auto request_matcher = make_request_verbosity_matcher<mp::ZonesRequest>(verbosity);
+
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(request_matcher, ok)));
+    EXPECT_THAT(send_command({"zones", "-vv"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
