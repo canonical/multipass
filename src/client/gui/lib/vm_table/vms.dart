@@ -11,6 +11,7 @@ import '../switch.dart';
 import '../vm_details/memory_usage.dart';
 import 'bulk_actions.dart';
 import 'header_selection.dart';
+import 'no_vms.dart';
 import 'search_box.dart';
 import 'table.dart';
 import 'vm_table_headers.dart';
@@ -117,6 +118,12 @@ class Vms extends ConsumerWidget {
           const SizedBox.shrink(),
     ];
 
+    // Custom empty state widget to display NoVms inside the table
+    final emptyTableContent = Container(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: const NoVms(),
+    );
+
     return Padding(
       padding: const EdgeInsets.all(20).copyWith(top: 52),
       child: Column(children: [
@@ -127,13 +134,11 @@ class Vms extends ConsumerWidget {
         const BulkActionsBar(),
         const SizedBox(height: 20),
         Flexible(
-          child: SizedBox(
-            height: (infos.length + 2) * 50,
-            child: Table<VmInfo>(
-              headers: enabledHeaders,
-              data: infos.toList(),
-              finalRow: totalUsageRow,
-            ),
+          child: Table<VmInfo>(
+            headers: enabledHeaders,
+            data: infos,
+            finalRow: infos.isNotEmpty ? totalUsageRow : null,
+            emptyContent: emptyTableContent,
           ),
         ],
       ),
