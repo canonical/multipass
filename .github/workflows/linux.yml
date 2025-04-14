@@ -45,7 +45,8 @@ jobs:
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
               -GNinja \
-              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }} \
+              -j$(nproc)
 
     - name: Generate coverage report
       run: |
