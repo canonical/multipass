@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 class Dropdown<T> extends StatelessWidget {
   final String? label;
   final T? value;
-  final ValueChanged<T?> onChanged;
+  final ValueChanged<T?>? onChanged;
   final Map<T, String> items;
   final double width;
   final String? errorText;
+  final bool enabled;
 
   const Dropdown({
     super.key,
@@ -16,6 +17,7 @@ class Dropdown<T> extends StatelessWidget {
     required this.items,
     this.width = 360,
     this.errorText,
+    this.enabled = true,
   });
 
   @override
@@ -27,7 +29,7 @@ class Dropdown<T> extends StatelessWidget {
       focusColor: Colors.white,
       underline: const SizedBox.shrink(),
       value: value,
-      onChanged: onChanged,
+      onChanged: enabled ? onChanged : null,
       items: items.entries
           .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
           .toList(),
