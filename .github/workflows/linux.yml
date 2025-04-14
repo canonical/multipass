@@ -139,10 +139,11 @@ jobs:
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
     - name: Build
+      env:
+        LABEL: ${{ steps.build-params.outputs.label }}
       run: |
         # Inject the build label.
-        label=${{ steps.build-params.outputs.label }}
-        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${label}" snap/snapcraft.yaml
+        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${LABEL}" snap/snapcraft.yaml
 
         # Inject vcpkg GH Actions cache env vars if they exist
         if [ -n "${ACTIONS_CACHE_URL}" ]; then
