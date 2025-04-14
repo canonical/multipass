@@ -21,7 +21,6 @@ jobs:
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
       BUILD_DIR: ${{ github.workspace }}/build
-      CCACHE_DIR: ${{ github.workspace }}/build/ccache
       COVERAGE_DIR: ${{ github.workspace }}/coverage
 
     steps:
@@ -35,38 +34,16 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Set up CCache
-      id: setup-ccache
-      run: |
-        sudo apt-get install ccache
-        ccache --max-size=2G
-        mkdir -p ${HOME}/.ccache
-
-        # Find common base between main and HEAD to use as cache key.
-        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
-        echo "key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
-
-    - name: CCache
-      uses: actions/cache@v4
-      with:
-        key: ccache-${{ runner.os }}-Coverage-${{ steps.setup-ccache.outputs.key }}
-        restore-keys: |
-          ccache-${{ runner.os }}-Coverage-
-        path: ~/.ccache
-  
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y devscripts equivs lcov python3-pip
-        sudo pip3 install gcovr
+        sudo apt-get install -y devscripts equivs lcov gcovr
         mk-build-deps -s sudo -i
 
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
@@ -83,27 +60,8 @@ jobs:
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
               --gcov-ignore-parse-errors
 
-    - name: TICS GitHub Action
-      uses: tiobe/tics-github-action@v3
-      with:
-        mode: qserver
-        project: multipass
-        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
-        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
-        installTics: true
-        filelist: ../.tics
-
     - name: Upload XML coverage report as artifact
       uses: actions/upload-artifact@v4
       with:
         name: cobertura.xml
         path: ${{ env.COVERAGE_DIR }}/coverage.xml
-
-    - name: Clear CCache stats
-      run: ccache --show-stats --zero-stats
-  
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: ${{ failure() }}
-      with:
-        limit-access-to-actor: true
