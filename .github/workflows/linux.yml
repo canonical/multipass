@@ -37,14 +37,13 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y devscripts equivs lcov ninja-build
+        sudo apt-get install -y devscripts equivs lcov
         mk-build-deps -s sudo -i
 
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
-              -GNinja \
               -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
 
     - name: Generate coverage report
