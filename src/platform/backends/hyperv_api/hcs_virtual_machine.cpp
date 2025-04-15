@@ -213,20 +213,31 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
     // FIXME: Handle suspend state?
 
-    const auto endpoint_params = [this]() {
+    const auto create_endpoint_params = [this]() {
         std::vector<hcn::CreateEndpointParameters> endpoint_params{};
-        endpoint_params.emplace_back(
-            hcn::CreateEndpointParameters{primary_network_guid, mac2uuid(description.default_mac_address)});
 
-        // TODO: Figure out what to do with the "extra interfaces"
-        // for (const auto& v : desc.extra_interfaces)
-        // {
-        //     endpoint_params.emplace_back(network_guid, mac2uuid(v.mac_address));
-        // }
+        // The primary endpoint (management)
+        hcn::CreateEndpointParameters primary_endpoint{};
+        primary_endpoint.network_guid = primary_network_guid;
+        primary_endpoint.endpoint_guid = mac2uuid(description.default_mac_address);
+        primary_endpoint.mac_address = description.default_mac_address;
+        replace_colon_with_dash(primary_endpoint.mac_address.value());
+        endpoint_params.push_back(primary_endpoint);
+
+        // Additional endpoints, a.k.a. extra interfaces.
+        for (const auto& v : description.extra_interfaces)
+        {
+            hcn::CreateEndpointParameters extra_endpoint{};
+            extra_endpoint.network_guid = multipass::utils::make_uuid(v.id).toStdString();
+            extra_endpoint.endpoint_guid = mac2uuid(v.mac_address);
+            extra_endpoint.mac_address = v.mac_address;
+            replace_colon_with_dash(extra_endpoint.mac_address.value());
+            endpoint_params.push_back(extra_endpoint);
+        }
         return endpoint_params;
     }();
 
-    for (const auto& endpoint : endpoint_params)
+    for (const auto& endpoint : create_endpoint_params)
     {
         // There might be remnants from an old VM, remove the endpoint if exist before
         // creating it again.
@@ -245,7 +256,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
     // E_INVALIDARG means there's no such VM.
     // Create the VM from scratch.
-    const auto ccs_params = [this, &endpoint_params]() {
+    const auto ccs_params = [this, &create_endpoint_params]() {
         hcs::CreateComputeSystemParameters ccs_params{};
         ccs_params.name = description.vm_name;
         ccs_params.memory_size_mb = description.mem_size.in_megabytes();
@@ -253,27 +264,21 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         ccs_params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
         ccs_params.vhdx_path = description.image.image_path.toStdString();
 
-        hcs::AddEndpointParameters default_endpoint_params{};
-        default_endpoint_params.nic_mac_address = description.default_mac_address;
-        // Hyper-V API does not like colons. Ensure that the MAC is separated
-        // with dash instead of colon.
-        replace_colon_with_dash(default_endpoint_params.nic_mac_address);
-        // make the UUID deterministic so we can query the endpoint with a MAC address
-        // if needed.
-        default_endpoint_params.endpoint_guid = mac2uuid(description.default_mac_address);
-        default_endpoint_params.target_compute_system_name = ccs_params.name;
-        ccs_params.endpoints.push_back(default_endpoint_params);
+        static auto create_to_add = [this](const auto& create_params){
+            hcs::AddEndpointParameters add_params{};
+            add_params.endpoint_guid = create_params.endpoint_guid;
+            if(!create_params.mac_address){
+                throw CreateEndpointException("One of the endpoints do not have a MAC address!");
+            }
+            add_params.nic_mac_address = create_params.mac_address.value();
+            add_params.target_compute_system_name = vm_name;
+            return add_params;
+        };
 
-        // TODO: Figure out what to do with the "extra interfaces"
-        // for (const auto& v : desc.extra_interfaces)
-        // {
-        //     hcs::AddEndpointParameters endpoint_params{};
-        //     endpoint_params.nic_mac_address = v.mac_address;
-        //     endpoint_params.endpoint_guid = mac2uuid(v.mac_address);
-        //     endpoint_params.target_compute_system_name = ccs_params.name;
-        //     ccs_params.endpoints.push_back(endpoint_params);
-        // }
-
+        std::transform(create_endpoint_params.begin(),
+                       create_endpoint_params.end(),
+                       std::back_inserter(ccs_params.endpoints),
+                       create_to_add);
         return ccs_params;
     }();
 
