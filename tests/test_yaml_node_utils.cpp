@@ -87,6 +87,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: extra1
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
@@ -105,11 +106,12 @@ TEST(UtilsTests, addOneExtraInterfaceEmptyNetworkFileContent)
     constexpr std::string_view expected_new_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  primary:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
     dhcp-identifier: mac
+    set-name: primary
   extra0:
     match:
       macaddress: "52:54:00:d8:12:9c"
@@ -118,6 +120,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: extra0
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};

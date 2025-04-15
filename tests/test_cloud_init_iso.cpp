@@ -37,11 +37,12 @@ const std::string default_meta_data_content = fmt::format(meta_data_content_temp
 constexpr auto* network_config_data_content_template = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  primary:
     match:
       macaddress: "{0}"
     dhcp4: true
     dhcp-identifier: mac
+    set-name: {2}
   extra0:
     match:
       macaddress: "{1}"
@@ -50,6 +51,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: {3}
 )";
 
 auto read_returns_failed_ifstream =
@@ -440,7 +442,11 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
     const std::string src_meta_data_content =
         fmt::format(meta_data_content_template, "vm1_e_e", "vm1");
     const std::string src_network_config_data_content =
-        fmt::format(network_config_data_content_template, "00:00:00:00:00:00", "00:00:00:00:00:01");
+        fmt::format(network_config_data_content_template,
+                    "00:00:00:00:00:00",
+                    "00:00:00:00:00:01",
+                    "primary",
+                    "extra0");
 
     mp::CloudInitIso original_iso;
     original_iso.add_file("meta-data", src_meta_data_content);
@@ -457,7 +463,11 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
     const std::string expected_modified_meta_data_content =
         fmt::format(meta_data_content_template, "vm1-clone1_e_e", "vm1-clone1");
     const std::string expected_generated_network_config_data_content =
-        fmt::format(network_config_data_content_template, "52:54:00:56:78:90", "52:54:00:56:78:91");
+        fmt::format(network_config_data_content_template,
+                    "52:54:00:56:78:90",
+                    "52:54:00:56:78:91",
+                    "primary",
+                    "extra0");
 
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path);
