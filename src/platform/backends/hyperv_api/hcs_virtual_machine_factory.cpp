@@ -86,6 +86,39 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(const Virt
     assert(hcn_sptr);
     assert(virtdisk_sptr);
 
+    const auto networks = MP_PLATFORM.get_network_interfaces_info();
+    for (const auto& extra : desc.extra_interfaces)
+    {
+        std::regex pattern{kExtraInterfaceBridgeNameRegex};
+        std::smatch match;
+
+        // The origin interface name is encoded into the interface name itself.
+        if (!std::regex_match(extra.id, match, pattern) || match.size() != 2)
+        {
+            mpl::error(kLogCategory, "Invalid extra interface name `{}`.", extra.id);
+            continue;
+        }
+
+        const auto origin_interface_name = match[1].str();
+        const auto origin_network_guid = match[2].str();
+
+        const auto found = std::find_if(networks.begin(), networks.end(), [&](const auto& kvp) {
+            const auto& [k, v] = kvp;
+            return v.id == origin_interface_name;
+        });
+
+        if (networks.end() == found)
+        {
+            mpl::warn(kLogCategory,
+                      "Could not find the source interface `{}` for extra `{}`",
+                      origin_interface_name,
+                      extra.id);
+            continue;
+        }
+
+        create_bridge_with(found->second);
+    }
+
     return std::make_unique<HCSVirtualMachine>(hcs_sptr,
                                                hcn_sptr,
                                                virtdisk_sptr,
