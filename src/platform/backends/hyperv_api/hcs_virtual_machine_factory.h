@@ -50,7 +50,7 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
     };
 
     std::vector<NetworkInterfaceInfo> networks() const override;
-    
+
     void require_snapshots_support() const override
     {
     }

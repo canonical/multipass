@@ -31,7 +31,6 @@
 #include <multipass/vm_status_monitor.h>
 #include <shared/shared_backend_utils.h>
 
-
 #include <fmt/xchar.h>
 
 #include <stdexcept>
@@ -264,10 +263,11 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         ccs_params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
         ccs_params.vhdx_path = description.image.image_path.toStdString();
 
-        static auto create_to_add = [this](const auto& create_params){
+        static auto create_to_add = [this](const auto& create_params) {
             hcs::AddEndpointParameters add_params{};
             add_params.endpoint_guid = create_params.endpoint_guid;
-            if(!create_params.mac_address){
+            if (!create_params.mac_address)
+            {
                 throw CreateEndpointException("One of the endpoints do not have a MAC address!");
             }
             add_params.nic_mac_address = create_params.mac_address.value();
