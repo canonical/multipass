@@ -9,16 +9,6 @@ on:
     - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore:
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/.jira_sync_config.yaml"
-      - ".github/workflows/automatic-doc-checks.yml"
-      - ".github/workflows/cla-check.yaml"
-      - "debian/**"
-      - "docs/**"
-      - "README.md"
-      - "renovate.json5"
-      - "SECURITY.md"
   merge_group:
     types: [checks_requested]
 
