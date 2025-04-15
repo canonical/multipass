@@ -49,8 +49,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         hyperv::hcn::CreateNetworkParameters network_parameters{};
         network_parameters.name = "multipass-hyperv-cit";
         network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
-        network_parameters.subnet = "10.99.99.0/24";
-        network_parameters.gateway = "10.99.99.1";
+        network_parameters.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
         return network_parameters;
     }();
 
@@ -134,8 +134,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         hyperv::hcn::CreateNetworkParameters network_parameters{};
         network_parameters.name = "multipass-hyperv-cit";
         network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
-        network_parameters.subnet = "10.99.99.0/24";
-        network_parameters.gateway = "10.99.99.1";
+        network_parameters.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
         return network_parameters;
     }();
 

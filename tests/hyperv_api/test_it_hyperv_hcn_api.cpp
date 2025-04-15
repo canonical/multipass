@@ -17,6 +17,7 @@
 
 #include "tests/common.h"
 
+#include <fmt/xchar.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
@@ -36,8 +37,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
     hyperv::hcn::CreateNetworkParameters params{};
     params.name = "multipass-hyperv-api-hcn-create-delete-test";
     params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-    params.subnet = "172.50.224.0/20";
-    params.gateway = "172.50.224.1";
+    params.ipams = {
+        hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
     (void)uut.delete_network(params.guid);
 
@@ -60,8 +61,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
     hyperv::hcn::CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-    network_params.subnet = "172.50.224.0/20";
-    network_params.gateway = "172.50.224.1";
+    network_params.ipams = {
+        hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
     hyperv::hcn::CreateEndpointParameters endpoint_params{};
 
