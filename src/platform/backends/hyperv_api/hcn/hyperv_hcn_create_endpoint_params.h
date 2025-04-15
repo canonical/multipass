@@ -19,6 +19,8 @@
 #define MULTIPASS_HYPERV_API_HCN_CREATE_ENDPOINT_PARAMETERS_H
 
 #include <fmt/format.h>
+
+#include <optional>
 #include <string>
 
 namespace multipass::hyperv::hcn
@@ -42,6 +44,14 @@ struct CreateEndpointParameters
      * Must be unique.
      */
     std::string endpoint_guid{};
+
+    /**
+     * MAC address assocaited with the endpoint (optional).
+     *
+     * HCN will auto-assign a MAC address to the endpoint when
+     * not specified, where applicable.
+     */
+    std::optional<std::string> mac_address;
 };
 
 } // namespace multipass::hyperv::hcn
@@ -61,9 +71,10 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
     auto format(const multipass::hyperv::hcn::CreateEndpointParameters& params, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "Endpoint GUID: ({}) | Network GUID: ({})",
+                         "Endpoint GUID: ({}) | Network GUID: ({}) | MAC address: ({})",
                          params.endpoint_guid,
-                         params.network_guid);
+                         params.network_guid,
+                         params.mac_address);
     }
 };
 
