@@ -26,9 +26,11 @@
 #include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
+#include <multipass/platform_win.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/shared_backend_utils.h>
+
 
 #include <fmt/xchar.h>
 
@@ -46,6 +48,7 @@ constexpr auto kLogCategory = "HyperV-Virtual-Machine";
 constexpr auto kDefaultSSHPort = 22;
 
 namespace mpl = multipass::logging;
+namespace mpp = multipass::platform;
 using lvl = mpl::Level;
 
 inline auto mac2uuid(std::string mac_addr)
@@ -73,37 +76,16 @@ inline auto replace_colon_with_dash(std::string& addr)
  */
 auto resolve_ip_addresses(const std::string& hostname)
 {
-    mpl::trace(kLogCategory, "resolve_ip_addresses() -> resolve being called for hostname `{}`", hostname);
-    static auto wsa_context = [] {
-        struct wsa_init_wrapper
-        {
-            wsa_init_wrapper() : wsa_data{}, wsa_init_success(WSAStartup(MAKEWORD(2, 2) == 0, &wsa_data))
-            {
-                mpl::debug(kLogCategory, "resolve_ip_addresses() -> initialized WSA, status `{}`", wsa_init_success);
-                if (!wsa_init_success)
-                {
-                    mpl::error(kLogCategory, "resolve_ip_addresses() > WSAStartup failed!");
-                }
-            }
-            ~wsa_init_wrapper()
-            {
-                /**
-                 * https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsacleanup
-                 * There must be a call to WSACleanup for each successful call to WSAStartup.
-                 * Only the final WSACleanup function call performs the actual cleanup.
-                 * The preceding calls simply decrement an internal reference count in the WS2_32.DLL.
-                 */
-                if (wsa_init_success)
-                {
-                    WSACleanup();
-                }
-            }
-            WSADATA wsa_data{};
-            const bool wsa_init_success{false};
-        };
+    const static mpp::wsa_init_wrapper wsa_context{};
 
-        return wsa_init_wrapper{};
-    }();
+    std::vector<std::string> ipv4{}, ipv6{};
+    mpl::trace(kLogCategory, "resolve_ip_addresses() -> resolve being called for hostname `{}`", hostname);
+
+    if (!wsa_context)
+    {
+        mpl::error(kLogCategory, "resolve_ip_addresses() -> WSA not initialized! `{}`", hostname);
+        return std::make_pair(ipv4, ipv6);
+    }
 
     // Wrap the raw addrinfo pointer so it's always destroyed properly.
     const auto& [result, addr_info] = [&]() {
@@ -112,8 +94,6 @@ auto resolve_ip_addresses(const std::string& hostname)
         const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
         return std::make_pair(r, std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{result, freeaddrinfo});
     }();
-
-    std::vector<std::string> ipv4{}, ipv6{};
 
     if (result == 0)
     {

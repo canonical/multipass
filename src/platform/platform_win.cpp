@@ -20,6 +20,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/platform_win.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
@@ -49,15 +50,22 @@
 
 #include <json/json.h>
 
+#include <WS2tcpip.h>
+#include <WinSock2.h>
 #include <aclapi.h>
 #include <sddl.h>
 #include <shlobj_core.h>
+#include <in6addr.h>
+#include <inaddr.h>
 #include <iphlpapi.h>
+#include <netioapi.h>
+#include <objbase.h>
+#include <sddl.h>
 #include <windows.h>
-
 
 #include <algorithm>
 #include <cerrno>
+#include <codecvt>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -511,6 +519,114 @@ BOOL signal_handler(DWORD dwCtrlType)
 }
 } // namespace
 
+/**
+ * Formatter for GUID type
+ */
+template <typename Char>
+struct fmt::formatter<::GUID, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const ::GUID& guid, FormatContext& ctx) const
+    {
+        // The format string is laid out char by char to allow it
+        // to be used for initializing variables with different character
+        // sizes.
+        static constexpr Char guid_f[] = {'{', ':', '0', '8', 'x', '}', '-', '{', ':', '0', '4', 'x', '}', '-', '{',
+                                          ':', '0', '4', 'x', '}', '-', '{', ':', '0', '2', 'x', '}', '{', ':', '0',
+                                          '2', 'x', '}', '-', '{', ':', '0', '2', 'x', '}', '{', ':', '0', '2', 'x',
+                                          '}', '{', ':', '0', '2', 'x', '}', '{', ':', '0', '2', 'x', '}', '{', ':',
+                                          '0', '2', 'x', '}', '{', ':', '0', '2', 'x', '}', 0};
+        return format_to(ctx.out(),
+                         guid_f,
+                         guid.Data1,
+                         guid.Data2,
+                         guid.Data3,
+                         guid.Data4[0],
+                         guid.Data4[1],
+                         guid.Data4[2],
+                         guid.Data4[3],
+                         guid.Data4[4],
+                         guid.Data4[5],
+                         guid.Data4[6],
+                         guid.Data4[7]);
+    }
+};
+
+struct GuidParseError : multipass::FormattedExceptionBase<>
+{
+    using FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
+auto mp::platform::guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
+{
+    constexpr auto kGUIDLength = 36;
+    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
+
+    const auto input = [&guid_wstr]() {
+        switch (guid_wstr.length())
+        {
+        case kGUIDLength:
+            // CLSIDFromString requires GUIDs to be wrapped with braces.
+            return fmt::format(L"{{{}}}", guid_wstr);
+        case kGUIDLengthWithBraces:
+        {
+            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
+            {
+                throw GuidParseError{"GUID string either does not start or end with a brace."};
+            }
+            return guid_wstr;
+        }
+        }
+        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
+    }();
+
+    ::GUID guid = {};
+
+    const auto result = CLSIDFromString(input.c_str(), &guid);
+
+    if (FAILED(result))
+    {
+        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
+    }
+
+    return guid;
+}
+
+// ---------------------------------------------------------
+
+auto mp::platform::string_to_wstring(const std::string& str) -> std::wstring
+{
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(str);
+}
+
+// ---------------------------------------------------------
+
+auto mp::platform::guid_from_string(const std::string& guid_str) -> GUID
+{
+    // Just use the wide string overload.
+    return guid_from_wstring(string_to_wstring(guid_str));
+}
+
+// ---------------------------------------------------------
+
+auto mp::platform::guid_to_string(const ::GUID& guid) -> std::string
+{
+
+    return fmt::format("{}", guid);
+}
+
+// ---------------------------------------------------------
+
+auto mp::platform::guid_to_wstring(const ::GUID& guid) -> std::wstring
+{
+    return fmt::format(L"{}", guid);
+}
+
 // std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 // {
 //     static const auto ps_cmd_base = QStringLiteral(
@@ -547,15 +663,106 @@ BOOL signal_handler(DWORD dwCtrlType)
 //     throw std::runtime_error{err};
 // }
 
+mp::platform::wsa_init_wrapper::wsa_init_wrapper()
+    : wsa_data(new ::WSAData()), wsa_init_result(::WSAStartup(MAKEWORD(2, 2), wsa_data))
+{
+    constexpr auto category = "wsa-init-wrapper";
+    mpl::debug(category, " initialized WSA, status `{}`", wsa_init_result);
+
+    if(!operator bool()){
+        mpl::error(category, " WSAStartup failed with `{}`: {}", std::system_category().message(wsa_init_result));
+    }
+}
+
+mp::platform::wsa_init_wrapper::~wsa_init_wrapper()
+{
+    /**
+     * https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsacleanup
+     * There must be a call to WSACleanup for each successful call to WSAStartup.
+     * Only the final WSACleanup function call performs the actual cleanup.
+     * The preceding calls simply decrement an internal reference count in the WS2_32.DLL.
+     */
+    if (operator bool())
+    {
+        WSACleanup();
+    }
+    delete wsa_data;
+}
 
 struct GetNetworkInterfacesInfoException : public multipass::FormattedExceptionBase<>
 {
     using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
+struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptionBase<>
+{
+    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
+static const auto& ip_utils()
+{
+    static multipass::platform::wsa_init_wrapper wrapper;
+    struct ip_utils
+    {
+        static std::string to_string(std::uint32_t addr)
+        {
+            char str[INET_ADDRSTRLEN] = {};
+            if (!inet_ntop(AF_INET, &addr, str, sizeof(str)))
+                throw std::runtime_error("inet_ntop failed: errno");
+            return str;
+        }
+
+        static std::string to_string(const in6_addr& addr)
+        {
+            char str[INET6_ADDRSTRLEN] = {};
+            if (!inet_ntop(AF_INET6, &addr, str, sizeof(str)))
+                throw std::runtime_error("inet_ntop failed: errno");
+            return str;
+        }
+
+        static auto to_network(const in_addr& v4, std::uint8_t prefix_length)
+        {
+            // Convert to the host long first so we can apply a mask to it
+            constexpr static auto kMaxPrefixLength = 32;
+            const auto ip_hbo = ntohl(v4.S_un.S_addr);
+            if (prefix_length > kMaxPrefixLength)
+            {
+                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
+            }
+            const auto mask =
+                (prefix_length == 0) ? 0 : std::numeric_limits<std::uint32_t>::max() << (32 - prefix_length);
+            const auto network_hbo = htonl(ip_hbo & mask);
+
+            return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
+        }
+
+        static auto to_network(const in6_addr& v6, std::uint8_t prefix_length)
+        {
+            // Convert to the host long first so we can apply a mask to it
+            constexpr static auto kMaxPrefixLength = 128;
+            if (prefix_length > kMaxPrefixLength)
+            {
+                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
+            }
+            in6_addr masked = v6;
+
+            for (int i = 0; i < 16; ++i)
+            {
+                int bits = i * 8;
+                if (prefix_length < bits)
+                    masked.u.Byte[i] = 0;
+                else if (prefix_length < bits + 8)
+                    masked.u.Byte[i] &= static_cast<uint8_t>(0xFF << (8 - (prefix_length - bits)));
+            }
+            const auto network_addr = to_string(masked);
+            return fmt::format("{}/{}", network_addr, prefix_length);
+        }
+    } static helper;
+    return helper;
+}
+
 std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
 {
-
     std::map<std::string, mp::NetworkInterfaceInfo> ret{};
 
     auto adapter_type_to_str = [](int type) {
@@ -600,27 +807,84 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
         return result;
     };
 
+    auto unicast_addr_to_network = [](PIP_ADAPTER_UNICAST_ADDRESS_LH first_unicast_addr) {
+        std::vector<std::string> result;
+        for (const auto* unicast_addr = first_unicast_addr; unicast_addr; unicast_addr = unicast_addr->Next)
+        {
+            const auto& sa = *unicast_addr->Address.lpSockaddr;
+            std::optional<std::string> network_addr{};
+            switch (sa.sa_family)
+            {
+            case AF_INET:
+                network_addr = ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                                                     unicast_addr->OnLinkPrefixLength);
+                break;
+            case AF_INET6:
+                network_addr = ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                                                     unicast_addr->OnLinkPrefixLength);
+                break;
+            }
+
+            if (network_addr)
+            {
+                result.emplace_back(std::move(network_addr.value()));
+            }
+        }
+        return result;
+    };
+
     ULONG needed_size{0};
+    constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_ALL_INTERFACES;
     // Learn how much space we need to allocate.
-    GetAdaptersAddresses(AF_UNSPEC, 0, NULL, nullptr, &needed_size);
+    GetAdaptersAddresses(AF_UNSPEC, flags, NULL, nullptr, &needed_size);
 
     auto adapters_info_raw_storage = std::make_unique<char[]>(needed_size);
 
     auto adapter_info = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(adapters_info_raw_storage.get());
 
-    if (const auto result = GetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_info, &needed_size); result == NO_ERROR)
+    if (const auto result = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_info, &needed_size); result == NO_ERROR)
     {
         // Retrieval was successful. The API returns a linked list, so walk over it.
         for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
         {
             const auto& adapter = *pitr;
 
-            mp::NetworkInterfaceInfo test;
-            test.id = wchar_to_utf8(adapter.FriendlyName);
-            test.type = adapter_type_to_str(adapter.IfType);
-            test.description = wchar_to_utf8(adapter.Description);
+            MIB_IF_ROW2 ifRow{};
+            ifRow.InterfaceLuid = adapter.Luid;
+            if (GetIfEntry2(&ifRow) != NO_ERROR) {
+                continue;
+            }
 
-            ret.insert(std::make_pair(test.id, test));
+            // Only list the physical interfaces.
+            if(!ifRow.InterfaceAndOperStatusFlags.HardwareInterface){
+                continue;
+            }
+
+            mp::NetworkInterfaceInfo net{};
+            net.id = wchar_to_utf8(adapter.FriendlyName);
+            net.type = adapter_type_to_str(adapter.IfType);
+            net.description = wchar_to_utf8(adapter.Description);
+            net.links = unicast_addr_to_network(adapter.FirstUnicastAddress);
+            ret.insert(std::make_pair(net.id, net));
+        }
+
+        // Host compute system API requires the original subnet.
+        for (auto& [name, netinfo] : ret)
+        {
+            if (netinfo.links.empty())
+            {
+                const std::wstring search = fmt::format(L"vEthernet ({})", string_to_wstring(netinfo.id));
+                for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
+                {
+                    const auto& adapter = *pitr;
+                    std::wstring name{adapter.FriendlyName};
+
+                    if(name == search){
+                        netinfo.links = unicast_addr_to_network(adapter.FirstUnicastAddress);
+                        break;
+                    }
+                }
+            }
         }
     }
     else
