@@ -364,12 +364,17 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
             "Major": 2,
             "Minor": 16
         }},
-        "HostComputeNetwork": "{0}",
-        "Policies": []
+        "HostComputeNetwork": "{HostComputeNetwork}",
+        "Policies": [],
+        "MacAddress" : {MacAddress}
     }})";
 
     // Render the template
-    const auto endpoint_settings = fmt::format(endpoint_settings_template, string_to_wstring(params.network_guid));
+    const auto endpoint_settings = fmt::format(
+        endpoint_settings_template,
+        fmt::arg(L"HostComputeNetwork", string_to_wstring(params.network_guid)),
+        fmt::arg(L"MacAddress",
+                 params.mac_address ? fmt::format(L"\"{}\"", string_to_wstring(params.mac_address.value())) : L"null"));
     HCN_ENDPOINT endpoint{nullptr};
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
