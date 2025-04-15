@@ -18,9 +18,11 @@
 #include <hyperv_api/hcs_virtual_machine_factory.h>
 
 #include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hyperv_api_common.h>
 #include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 
 #include <multipass/constants.h>
@@ -28,10 +30,11 @@
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
-
 #include <computenetwork.h>
 
 #include <fmt/std.h> // for the std::filesystem::path formatter
+
+#include <regex>
 
 namespace multipass::hyperv
 {
@@ -41,6 +44,12 @@ namespace multipass::hyperv
  */
 static constexpr auto kLogCategory = "HyperV-Virtual-Machine-Factory";
 static constexpr auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
+static constexpr auto kExtraInterfaceBridgeNameFmtStr = "Multipass Bridge ({})";
+/**
+ * Regex pattern to extract the origin network name and GUID from an extra interface
+ * name.
+ */
+static constexpr auto kExtraInterfaceBridgeNameRegex = "Multipass Bridge \\((.*)\\)";
 
 // Delegating constructor
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
@@ -166,9 +175,24 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
 
 std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
 {
-    (void)intf;
+    const auto bridge_name = fmt::format(kExtraInterfaceBridgeNameFmtStr, intf.id);
+    const auto params = [&intf, &bridge_name] {
+        hcn::CreateNetworkParameters network_params{};
+        network_params.name = bridge_name;
+        network_params.type = hcn::HcnNetworkType::Transparent();
+        network_params.guid = multipass::utils::make_uuid(network_params.name).toStdString();
+        network_params.policies.NetAdapterName = intf.id;
+        return network_params;
+    }();
 
-    // No-op. The implementation uses the default Hyper-V switch.
+    assert(hcn_sptr);
+    const auto& [status, status_msg] = hcn_sptr->create_network(params);
+
+    if (status || static_cast<HRESULT>(status) == HCN_E_NETWORK_ALREADY_EXISTS)
+    {
+        return params.name;
+    }
+
     return {};
 }
 
@@ -207,7 +231,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     virtdisk::CreateVirtualDiskParameters clone_vhdx_params{};
     clone_vhdx_params.source = src_vm_vhdx.value();
     clone_vhdx_params.path = desc.image.image_path.toStdString();
-    clone_vhdx_params.size_in_bytes = 0; // use source
+    clone_vhdx_params.size_in_bytes = 0; // use source disk size
 
     const auto& [status, msg] = virtdisk_sptr->create_virtual_disk(clone_vhdx_params);
 
