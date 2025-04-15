@@ -133,6 +133,141 @@ UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network
     return UniqueHcnNetwork{network, api.CloseNetwork};
 }
 
+/**
+ * Determine the log severity level for a HCN error.
+ *
+ * @param [in] result Operation result
+ * @return mpl::Level The determined severity level
+ */
+auto hcn_errc_to_log_level(const OperationResult& result)
+{
+    /**
+     * Some of the errors are "expected", e.g. a network may be already
+     * exist and that's not necessarily an error.
+     */
+    switch (static_cast<HRESULT>(result.code))
+    {
+    case HCN_E_NETWORK_ALREADY_EXISTS:
+        return mpl::Level::debug;
+    }
+
+    return mpl::Level::error;
+}
+
+/**
+ * For each element in @p elem, apply @p op and
+ * aggregate the result. Then, join all by comma.
+ *
+ * @tparam T Element type
+ * @tparam Func Function type
+ * @param [in] elems Elements
+ * @param [in] op Operation to apply
+ * @return Comma-separated list of transformed elements
+ */
+template <typename T, typename Func>
+auto transform_join(const std::vector<T>& elems, Func op)
+{
+    std::vector<std::wstring> result;
+    std::transform(elems.begin(), elems.end(), std::back_inserter(result), op);
+    return fmt::format(L"{}", fmt::join(result, L","));
+}
+
+/**
+ * Format a HcnRoute
+ *
+ * @param [in] route Route to format
+ * @return HCN JSON representation of @p route
+ */
+std::wstring format_route(const HcnRoute& route)
+{
+    constexpr auto route_template = LR"""(
+        {{
+            "NextHop": "{NextHop}",
+            "DestinationPrefix": "{DestinationPrefix}",
+            "Metric": {Metric}
+        }}
+    )""";
+
+    return fmt::format(route_template,
+                       fmt::arg(L"NextHop", string_to_wstring(route.next_hop)),
+                       fmt::arg(L"DestinationPrefix", string_to_wstring(route.destination_prefix)),
+                       fmt::arg(L"Metric", route.metric));
+}
+
+/**
+ * Format a HcnSubnet
+ *
+ * @param [in] subnet Subnet to format
+ * @return HCN JSON representation of @p subnet
+ */
+std::wstring format_subnet(const HcnSubnet& subnet)
+{
+    constexpr auto subnet_template = LR"""(
+            {{
+                "Policies": [],
+                "Routes" : [
+                    {Routes}
+                ],
+                "IpAddressPrefix" : "{IpAddressPrefix}",
+                "IpSubnets": null
+            }}
+        )""";
+
+    return fmt::format(subnet_template,
+                       fmt::arg(L"IpAddressPrefix", string_to_wstring(subnet.ip_address_prefix)),
+                       fmt::arg(L"Routes", transform_join(subnet.routes, format_route)));
+}
+
+/**
+ * Format a HcnIpam
+ *
+ * @param [in] ipam IPAM to format
+ * @return HCN JSON representation of @p ipam
+ */
+std::wstring format_ipam(const HcnIpam& ipam)
+{
+    constexpr auto ipam_template = LR"""(
+        {{
+            "Type": "{Type}",
+            "Subnets": [
+                {Subnets}
+            ]
+        }}
+    )""";
+
+    return fmt::format(ipam_template,
+                       fmt::arg(L"Type", string_to_wstring(std::string{ipam.type})),
+                       fmt::arg(L"Subnets", transform_join(ipam.subnets, format_subnet)));
+}
+
+struct NetworkPolicySettingsFormatters
+{
+    std::wstring operator()(const HcnNetworkPolicyNetAdapterName& policy)
+    {
+        constexpr auto netadaptername_settings_template = LR"""(
+            "NetworkAdapterName": "{NetworkAdapterName}"
+        )""";
+
+        return fmt::format(netadaptername_settings_template,
+                           fmt::arg(L"NetworkAdapterName", string_to_wstring(policy.net_adapter_name)));
+    }
+};
+
+std::wstring format_network_policy(const HcnNetworkPolicy& policy)
+{
+    constexpr auto network_policy_template = LR"""(
+        {{
+            "Type": "{Type}",
+            "Settings": {{
+                {Settings}
+            }}
+        }}
+    )""";
+    return fmt::format(network_policy_template,
+                       fmt::arg(L"Type", string_to_wstring(policy.type)),
+                       fmt::arg(L"Settings", std::visit(NetworkPolicySettingsFormatters{}, policy.settings)));
+}
+
 } // namespace
 
 // ---------------------------------------------------------
@@ -153,29 +288,31 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
      */
     constexpr auto network_settings_template = LR"""(
     {{
-        "Name": "{0}",
-        "Type": "ICS",
-        "Subnets" : [
-            {{
-                "GatewayAddress": "{2}",
-                "AddressPrefix" : "{1}",
-                "IpSubnets" : [
-                    {{
-                        "IpAddressPrefix": "{1}"
-                    }}
-                ]
-            }}
+        "SchemaVersion":
+        {{
+            "Major": 2,
+            "Minor": 2
+        }},
+        "Name": "{Name}",
+        "Type": "{Type}",
+        "Ipams": [
+            {Ipams}
         ],
-        "IsolateSwitch": true,
-        "Flags" : 265
+        "Flags": {Flags},
+        "Policies": [
+            {Policies}
+        ]
     }}
     )""";
 
     // Render the template
-    const auto network_settings = fmt::format(network_settings_template,
-                                              string_to_wstring(params.name),
-                                              string_to_wstring(params.subnet),
-                                              string_to_wstring(params.gateway));
+    const auto network_settings =
+        fmt::format(network_settings_template,
+                    fmt::arg(L"Name", string_to_wstring(params.name)),
+                    fmt::arg(L"Type", string_to_wstring(std::string{params.type})),
+                    fmt::arg(L"Flags", fmt::underlying(params.flags)),
+                    fmt::arg(L"Ipams", transform_join(params.ipams, format_ipam)),
+                    fmt::arg(L"Policies", transform_join(params.policies, format_network_policy)));
 
     HCN_NETWORK network{nullptr};
     const auto result = perform_hcn_operation(api,
@@ -186,8 +323,11 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 
     if (!result)
     {
-        // FIXME: Also include the result error message, if any.
-        mpl::error(kLogCategory, "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}!", result.code);
+        mpl::log(hcn_errc_to_log_level(result),
+                 kLogCategory,
+                 "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}: {}",
+                 result.code,
+                 std::system_category().message(static_cast<HRESULT>(result.code)));
     }
 
     [[maybe_unused]] UniqueHcnNetwork _{network, api.CloseNetwork};
