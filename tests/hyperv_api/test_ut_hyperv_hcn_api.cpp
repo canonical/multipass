@@ -440,7 +440,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                         },
                         "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
                         "Policies": [
-                        ]
+                        ],
+                        "MacAddress": null
                     })""";
 
                     ASSERT_NE(nullptr, network);
@@ -590,7 +591,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                         },
                         "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
                         "Policies": [
-                        ]
+                        ],
+                        "MacAddress": null
                     })""";
 
                     ASSERT_EQ(mock_network_object, network);
