@@ -132,21 +132,27 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
                     {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
                         "Name": "multipass-hyperv-api-hcn-create-test",
                         "Type": "ICS",
-                        "Subnets" : [
+                        "Ipams": [
                             {
-                                "GatewayAddress": "172.50.224.1",
-                                "AddressPrefix" : "172.50.224.0/20",
-                                "IpSubnets" : [
+                                "Type": "static",
+                                "Subnets": [
                                     {
-                                        "IpAddressPrefix": "172.50.224.0/20"
+                                        "Policies": [],
+                                        "Routes": [],
+                                        "IpAddressPrefix": "172.50.224.0/20",
+                                        "IpSubnets": null
                                     }
                                 ]
                             }
                         ],
-                        "IsolateSwitch": true,
-                        "Flags" : 265
+                        "Flags" : 0,
+                        "Policies": []
                     }
                     )""";
                     ASSERT_NE(nullptr, network);
@@ -174,8 +180,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
         hyperv::hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-        params.subnet = "172.50.224.0/20";
-        params.gateway = "172.50.224.1";
+        params.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
         const auto& [status, status_msg] = uut.create_network(params);
         ASSERT_TRUE(status);
@@ -226,8 +232,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
         hyperv::hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-        params.subnet = "172.50.224.0/20";
-        params.gateway = "172.50.224.1";
+        params.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
         uut_t uut{mock_api_table};
         const auto& [success, error_msg] = uut.create_network(params);
@@ -277,7 +283,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_operation(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::error,
-            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003!");
+            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003");
     }
 
     /******************************************************
@@ -287,8 +293,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         hyperv::hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-        params.subnet = "172.50.224.0/20";
-        params.gateway = "172.50.224.1";
+        params.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
         uut_t uut{mock_api_table};
         const auto& [success, error_msg] = uut.create_network(params);
