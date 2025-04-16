@@ -302,11 +302,7 @@ else()
     endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
-    set(MULTIPASS_BACKENDS libvirt lxd)
-
-    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
-      list(APPEND MULTIPASS_BACKENDS qemu)
-    endif()
+    set(MULTIPASS_BACKENDS libvirt lxd qemu)
 
     set(MULTIPASS_PLATFORM linux)
     set(LINUX TRUE)
