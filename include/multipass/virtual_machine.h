@@ -138,7 +138,7 @@ protected:
     VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
     VirtualMachine(const std::string& vm_name, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, instance_dir) {};
+        : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass
 
