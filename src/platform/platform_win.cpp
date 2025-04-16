@@ -16,6 +16,7 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -26,7 +27,6 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/exceptions/formatted_exception_base.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "backends/hyperv_api/hcs_virtual_machine_factory.h"
@@ -669,7 +669,8 @@ mp::platform::wsa_init_wrapper::wsa_init_wrapper()
     constexpr auto category = "wsa-init-wrapper";
     mpl::debug(category, " initialized WSA, status `{}`", wsa_init_result);
 
-    if(!operator bool()){
+    if (!operator bool())
+    {
         mpl::error(category, " WSAStartup failed with `{}`: {}", std::system_category().message(wsa_init_result));
     }
 }
@@ -834,7 +835,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     };
 
     ULONG needed_size{0};
-    constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER |
+                           GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_ALL_INTERFACES;
     // Learn how much space we need to allocate.
     GetAdaptersAddresses(AF_UNSPEC, flags, NULL, nullptr, &needed_size);
 
@@ -842,7 +844,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
     auto adapter_info = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(adapters_info_raw_storage.get());
 
-    if (const auto result = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_info, &needed_size); result == NO_ERROR)
+    if (const auto result = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_info, &needed_size);
+        result == NO_ERROR)
     {
         // Retrieval was successful. The API returns a linked list, so walk over it.
         for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
@@ -851,12 +854,14 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
             MIB_IF_ROW2 ifRow{};
             ifRow.InterfaceLuid = adapter.Luid;
-            if (GetIfEntry2(&ifRow) != NO_ERROR) {
+            if (GetIfEntry2(&ifRow) != NO_ERROR)
+            {
                 continue;
             }
 
             // Only list the physical interfaces.
-            if(!ifRow.InterfaceAndOperStatusFlags.HardwareInterface){
+            if (!ifRow.InterfaceAndOperStatusFlags.HardwareInterface)
+            {
                 continue;
             }
 
@@ -879,7 +884,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
                     const auto& adapter = *pitr;
                     std::wstring name{adapter.FriendlyName};
 
-                    if(name == search){
+                    if (name == search)
+                    {
                         netinfo.links = unicast_addr_to_network(adapter.FirstUnicastAddress);
                         break;
                     }
@@ -890,7 +896,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     else
     {
         // TODO: FormatMessage.
-        throw GetNetworkInterfacesInfoException{"Failed to retrieve network interface information. Error code: {}", result};
+        throw GetNetworkInterfacesInfoException{"Failed to retrieve network interface information. Error code: {}",
+                                                result};
     }
     return ret;
 }
