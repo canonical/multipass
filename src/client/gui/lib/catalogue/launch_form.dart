@@ -332,6 +332,38 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                           ),
                         ),
                       ),
+                    if (!selectedZoneAvailable &&
+                        !zones.any((z) => z.available))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              final grpcClient = ref.read(grpcClientProvider);
+                              final allZones =
+                                  zones.map((z) => z.name).toList();
+                              grpcClient.zonesState(allZones, true).then((_) {
+                                updateZoneAvailability();
+                                ref.read(notificationsProvider.notifier).add(
+                                      SuccessNotification(
+                                        child: Text('All zones enabled'),
+                                      ),
+                                    );
+                              });
+                            },
+                            child: Text(
+                              'Enable all zones',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                decoration: TextDecoration.underline,
+                                fontSize: 14,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
