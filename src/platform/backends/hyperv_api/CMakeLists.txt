@@ -43,6 +43,10 @@ if(WIN32)
   add_library(hyperv_api_backend STATIC
     hyperv_api_common.cpp
     hcn/hyperv_hcn_api_wrapper.cpp
+    hcn/hyperv_hcn_route.cpp
+    hcn/hyperv_hcn_subnet.cpp
+    hcn/hyperv_hcn_ipam.cpp
+    hcn/hyperv_hcn_network_policy.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
     virtdisk/virtdisk_api_wrapper.cpp
     hcs_plan9_mount_handler.cpp
