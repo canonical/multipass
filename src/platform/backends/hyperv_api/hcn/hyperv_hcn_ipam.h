@@ -45,21 +45,11 @@ struct HcnIpam
  * Formatter type specialization for HcnIpam
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnIpam, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnIpam, Char> : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnIpam& ipam, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(),
-                         "Type: ({}) | Subnets: ({})",
-                         static_cast<std::string_view>(ipam.type),
-                         fmt::join(ipam.subnets, ","));
-    }
+    auto format(const multipass::hyperv::hcn::HcnIpam& ipam, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
 };
 
 #endif

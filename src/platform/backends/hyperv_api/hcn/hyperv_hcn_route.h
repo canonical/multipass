@@ -18,10 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_HCN_ROUTE_H
 #define MULTIPASS_HYPERV_API_HCN_ROUTE_H
 
-#include <fmt/format.h>
+#include <hyperv_api/hyperv_api_string_conversion.h>
 
-#include <cstdint>
-#include <string>
+#include <fmt/xchar.h>
 
 namespace multipass::hyperv::hcn
 {
@@ -48,22 +47,11 @@ struct HcnRoute
  * Formatter type specialization for HcnRoute
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnRoute, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnRoute, Char> : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnRoute& route, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(),
-                         "Next Hop: ({}) | Destination Prefix: ({}) | Metric: ({})",
-                         route.next_hop,
-                         route.destination_prefix,
-                         route.metric);
-    }
+    auto format(const multipass::hyperv::hcn::HcnRoute& route, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
 };
 
 #endif
