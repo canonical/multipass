@@ -89,7 +89,9 @@ auto resolve_ip_addresses(const std::string& hostname)
     // Wrap the raw addrinfo pointer so it's always destroyed properly.
     const auto& [result, addr_info] = [&]() {
         struct addrinfo* result = {nullptr};
-        struct addrinfo hints{};
+        struct addrinfo hints
+        {
+        };
         const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
         return std::make_pair(r, std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{result, freeaddrinfo});
     }();

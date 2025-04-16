@@ -56,7 +56,7 @@ struct CreateComputeSystemParameters
     /**
      * Path to the Primary (boot) VHDX file
      */
-     std::filesystem::path vhdx_path{};
+    std::filesystem::path vhdx_path{};
 
     /**
      * List of endpoints that'll be added to the compute system
