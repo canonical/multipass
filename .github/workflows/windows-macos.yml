@@ -294,7 +294,7 @@ jobs:
       uses: lukka/get-cmake@v4.0.0
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: 6.2.4
         setup-python: false
