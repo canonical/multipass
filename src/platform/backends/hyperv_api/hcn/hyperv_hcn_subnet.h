@@ -20,8 +20,7 @@
 
 #include <hyperv_api/hcn/hyperv_hcn_route.h>
 
-#include <fmt/format.h>
-#include <fmt/ranges.h>
+#include <fmt/xchar.h>
 
 #include <string>
 #include <vector>
@@ -41,21 +40,11 @@ struct HcnSubnet
  * Formatter type specialization for HcnSubnet
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char> : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnSubnet& subnet, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(),
-                         "IP Address Prefix: ({}) | Routes: ({})",
-                         subnet.ip_address_prefix,
-                         fmt::join(subnet.routes, ","));
-    }
+    auto format(const multipass::hyperv::hcn::HcnSubnet& route, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
 };
 
 #endif
