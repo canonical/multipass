@@ -26,9 +26,10 @@
 namespace multipass::test
 {
 
-inline auto trim_whitespace(const wchar_t* input)
+template <typename CharT>
+inline auto trim_whitespace(const CharT* input)
 {
-    std::wstring str{input};
+    std::basic_string<CharT> str{input};
     str.erase(std::remove_if(str.begin(), str.end(), ::iswspace), str.end());
     return str;
 }

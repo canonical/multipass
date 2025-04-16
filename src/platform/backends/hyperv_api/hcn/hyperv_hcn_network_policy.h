@@ -21,6 +21,8 @@
 #include <hyperv_api/hcn/hyperv_hcn_network_policy_netadaptername.h>
 #include <hyperv_api/hcn/hyperv_hcn_network_policy_type.h>
 
+#include <fmt/xchar.h>
+
 #include <variant>
 
 namespace multipass::hyperv::hcn
@@ -47,25 +49,11 @@ struct HcnNetworkPolicy
  * Formatter type specialization for HcnNetworkPolicy
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkPolicy, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkPolicy, Char> : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnNetworkPolicy& params, FormatContext& ctx) const
-    {
-        return std::visit(
-            [&](const auto& settings) {
-                return fmt::format_to(ctx.out(),
-                                      "Type: {} | Settings: {}",
-                                      static_cast<std::string_view>(params.type),
-                                      settings);
-            },
-            params.settings);
-    }
+    auto format(const multipass::hyperv::hcn::HcnNetworkPolicy& policy, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
 };
 
 #endif
