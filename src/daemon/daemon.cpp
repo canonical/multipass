@@ -995,6 +995,8 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
         return mp::InstanceStatus::SUSPENDING;
     case mp::VirtualMachine::State::suspended:
         return mp::InstanceStatus::SUSPENDED;
+    case mp::VirtualMachine::State::unavailable:
+        return mp::InstanceStatus::UNAVAILABLE;
     case mp::VirtualMachine::State::unknown:
     default:
         return mp::InstanceStatus::UNKNOWN;
@@ -2129,6 +2131,9 @@ try // clang-format on
         }
         case VirtualMachine::State::suspending:
             fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance '{}' while suspending.", name);
+            continue;
+        case VirtualMachine::State::unavailable:
+            fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance '{}' while unavailable.", name);
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
