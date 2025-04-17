@@ -54,12 +54,7 @@ public:
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
 
-    void set_available(bool available) override
-    {
-        // TODO make vm unavailable by force stopping if running or available by starting again if
-        // it was running
-        throw NotImplementedOnThisBackendException("unavailability");
-    }
+    void set_available(bool available) override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
