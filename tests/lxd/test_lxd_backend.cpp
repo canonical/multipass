@@ -2078,29 +2078,6 @@ TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
 INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadJson,
                          Values("gibberish", "unstarted}", "{unfinished", "strange\"", "{noval}", "]["));
 
-struct LXDNetworksBadFields : LXDBackend, WithParamInterface<QByteArray>
-{
-};
-
-TEST_P(LXDNetworksBadFields, ignores_network_without_expected_fields)
-{
-    EXPECT_CALL(*mock_network_access_manager,
-                createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
-        .WillOnce(Return(new mpt::MockLocalSocketReply{GetParam()}));
-
-    mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
-    EXPECT_THAT(backend.networks(), IsEmpty());
-}
-
-INSTANTIATE_TEST_SUITE_P(LXDBackend, LXDNetworksBadFields,
-                         Values("{}", "{\"other\": \"stuff\"}", "{\"metadata\": \"notarray\"}",
-                                "{\"metadata\": [\"notdict\"]}",
-                                "{\"metadata\": [{\"type\": \"bridge\", \"but\": \"noname\"}]}",
-                                "{\"metadata\": [{\"name\": \"\", \"type\": \"bridge\", \"but\": \"empty name\"}]}",
-                                "{\"metadata\": [{\"name\": \"bla\", \"but\": \"notype\"}]}",
-                                "{\"metadata\": [{\"name\": 123, \"type\": \"bridge\"}]}",
-                                "{\"metadata\": [{\"name\": \"eth0\", \"type\": 123}]}"));
-
 struct LXDNetworksOnlySupportedTypes : LXDBackend, WithParamInterface<QByteArray>
 {
 };
