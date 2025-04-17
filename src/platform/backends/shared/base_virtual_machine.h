@@ -54,7 +54,7 @@ public:
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
 
-    void make_available(bool available) override
+    void set_available(bool available) override
     {
         // TODO make vm unavailable by force stopping if running or available by starting again if it was running
         throw NotImplementedOnThisBackendException("unavailability");

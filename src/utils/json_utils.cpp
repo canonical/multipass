@@ -132,15 +132,11 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 }
 
 QJsonObject mp::JsonUtils::read_object_from_file(const std::filesystem::path& file_path) const
-try
 {
     const auto file = MP_FILEOPS.open_read(file_path);
+    file->exceptions(std::ifstream::failbit | std::ifstream::badbit);
     const auto data = QString::fromStdString(std::string{std::istreambuf_iterator{*file}, {}}).toUtf8();
     return QJsonDocument::fromJson(data).object();
-}
-catch (const std::exception& e)
-{
-    throw mp::FormattedExceptionBase{"failed to read JSON from file '{}': {}", file_path, e.what()};
 }
 
 std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const

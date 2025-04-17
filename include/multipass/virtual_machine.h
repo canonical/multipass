@@ -74,7 +74,7 @@ public:
     virtual void start() = 0;
     virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
-    virtual void make_available(bool available) = 0;
+    virtual void set_available(bool available) = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname()
