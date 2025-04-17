@@ -25,12 +25,16 @@
 
 #include <QJsonDocument>
 
-namespace multipass
+namespace
 {
-namespace mpl = logging;
-
 constexpr auto subnet_key = "subnet";
 constexpr auto available_key = "available";
+} // namespace
+
+namespace mpl = multipass::logging;
+
+namespace multipass
+{
 
 BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::string& name, const fs::path& file_path)
 {
@@ -43,7 +47,7 @@ BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::strin
         }
         catch (std::exception& e)
         {
-            mpl::debug(name, "failed to read AZ file': {}", e.what());
+            mpl::warn(name, "failed to read AZ file: {}", e.what());
             return QJsonObject{};
         }
     };
@@ -110,7 +114,7 @@ void BaseAvailabilityZone::set_available(const bool new_available)
     serialize();
 
     for (auto& vm : m.vms)
-        vm.get().make_available(m.available);
+        vm.get().set_available(m.available);
 }
 
 void BaseAvailabilityZone::add_vm(VirtualMachine& vm)

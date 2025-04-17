@@ -44,14 +44,18 @@ private:
     class ZoneCollection
     {
     public:
-        const std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
+        static constexpr size_t size = default_zone_names.size();
+        using ZoneArray = std::array<AvailabilityZone::UPtr, size>;
+        static_assert(size > 0);
 
-        ZoneCollection(std::array<AvailabilityZone::UPtr, default_zone_names.size()>&& zones, std::string last_used);
-        std::string next_available();
-        std::string last_used() const;
+        const ZoneArray zones{};
+
+        ZoneCollection(ZoneArray&& zones, std::string last_used);
+        [[nodiscard]] std::string next_available();
+        [[nodiscard]] std::string last_used() const;
 
     private:
-        decltype(zones)::const_iterator automatic_zone;
+        ZoneArray::const_iterator automatic_zone;
     };
 
     // we store all the data in one struct so that it can be created from one function call in the initializer list
