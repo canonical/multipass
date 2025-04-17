@@ -56,7 +56,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void make_available(bool) override
+    void set_available(bool) override
     {
     }
 
