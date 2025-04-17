@@ -61,7 +61,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, start, (), (override));
     MOCK_METHOD(void, shutdown, (VirtualMachine::ShutdownPolicy), (override));
     MOCK_METHOD(void, suspend, (), (override));
-    MOCK_METHOD(void, make_available, (bool), (override));
+    MOCK_METHOD(void, set_available, (bool), (override));
     MOCK_METHOD(multipass::VirtualMachine::State, current_state, (), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
