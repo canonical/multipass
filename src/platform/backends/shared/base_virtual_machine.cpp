@@ -59,7 +59,7 @@ constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped(St state)
 {
-    assert(state == St::off || state == St::stopped);
+    assert(state == St::off || state == St::stopped || state == St::unavailable);
 }
 
 mp::Path derive_head_path(const QDir& snapshot_dir)
@@ -200,7 +200,7 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
 {
     // A mutex should already be locked by the caller here
-    if (state == State::off || state == State::stopped)
+    if (state == State::off || state == State::stopped || state == State::unavailable)
     {
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
     }
@@ -236,6 +236,29 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         throw VMStateInvalidException{
             fmt::format("Cannot shut down instance {} while starting.", vm_name)};
     }
+}
+
+void mp::BaseVirtualMachine::set_available(bool available)
+{
+    if (available)
+    {
+        state = State::off;
+        update_state();
+        if (was_running)
+        {
+            start();
+
+            // normally the daemon sets the state to running...
+            state = State::running;
+            update_state();
+        }
+        return;
+    }
+
+    was_running = state == State::running || state == State::starting;
+    shutdown(ShutdownPolicy::Poweroff);
+    state = State::unavailable;
+    update_state();
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
