@@ -25,7 +25,7 @@ Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/)
 
 <!--### Hypervisor.framework / hyperkit-->
 
-The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M1, M2, or Intel based) with **macOS 10.15 Catalina or later** installed.
+The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 10.15 Catalina or later** installed.
 
 ````
 
@@ -173,7 +173,9 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
-> See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
+```{seealso}
+[How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
+```
 
 ````
 
