@@ -26,15 +26,18 @@
 
 #include <QJsonDocument>
 
-namespace multipass
+namespace
 {
-namespace mpl = logging;
-
 constexpr auto category = "az-manager";
 constexpr auto az_file = "az-manager.json";
 constexpr auto zones_directory_name = "zones";
 constexpr auto automatic_zone_key = "automatic_zone";
+} // namespace
 
+namespace mpl = multipass::logging;
+
+namespace multipass
+{
 auto create_default_zones(const fs::path& zones_directory)
 {
     std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
@@ -48,7 +51,7 @@ BaseAvailabilityZoneManager::data BaseAvailabilityZoneManager::read_from_file(
     const std::filesystem::path& file_path,
     const std::filesystem::path& zones_directory)
 {
-    mpl::trace(category, "reading AZ manager from file '{}'", file_path);
+    mpl::debug(category, "reading AZ manager from file '{}'", file_path);
 
     const auto read_json = [&] {
         try
@@ -57,7 +60,7 @@ BaseAvailabilityZoneManager::data BaseAvailabilityZoneManager::read_from_file(
         }
         catch (std::exception& e)
         {
-            mpl::debug(category, "failed to read AZ manager file': {}", e.what());
+            mpl::warn(category, "failed to read AZ manager file': {}", e.what());
             return QJsonObject{};
         }
     };
@@ -120,7 +123,7 @@ std::string BaseAvailabilityZoneManager::get_default_zone_name() const
 
 void BaseAvailabilityZoneManager::serialize() const
 {
-    mpl::trace(category, "writing AZ manager to file '{}'", m.file_path);
+    mpl::debug(category, "writing AZ manager to file '{}'", m.file_path);
     const std::unique_lock lock{m.mutex};
 
     const QJsonObject json{
