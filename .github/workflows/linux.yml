@@ -24,13 +24,13 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true #
+  cancel-in-progress: true
 
 jobs:
   Lint:
     runs-on: ubuntu-latest
 
-    if: ${{ contains('pull_request merge_group', github.event_name) }}
+    if: ${{ !cancelled() && contains('pull_request merge_group', github.event_name) }}
 
     steps:
     - name: Check out code
@@ -64,20 +64,14 @@ jobs:
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    concurrency:
-      group: ${{ github.workflow }}-buildtest-${{ github.head_ref || github.run_id }}-${{ matrix.build-type }}
-      cancel-in-progress: true
     needs: [Lint, GetMatrix]
 
     # Allow skipped Lint
     # Let Lint fail on pull requests
-    if: |
-      ${{
-        success()
-        || needs.Lint.result == 'skipped'
-        || ( needs.Lint.result == 'failure'
-             && github.event_name == 'pull_request' )
-      }}
+    if: ${{ !cancelled() && (success() ||
+           needs.Lint.result == 'skipped' ||
+           (needs.Lint.result == 'failure' && github.event_name == 'pull_request')
+          )}}
 
     outputs:
       label: ${{ steps.build-params.outputs.label }}
@@ -312,9 +306,7 @@ jobs:
   Publish-Snap:
     needs: BuildAndTest
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{
-      !failure()
-      && !cancelled()
+    if: ${{ !cancelled() && success()
       && needs.BuildAndTest.outputs.channel != ''
       && (github.event_name == 'push'
           || github.event_name == 'merge_group'
@@ -347,9 +339,7 @@ jobs:
 
     # Only dispatch if we have access to secrets.
     # Need to explicitly continue on Lint getting skipped.
-    if: ${{
-      !failure()
-      && !cancelled()
+    if: ${{ !cancelled() && success()
       && (github.event_name == 'push'
           || github.event_name == 'merge_group'
           || github.event.pull_request.head.repo.full_name == github.repository)
