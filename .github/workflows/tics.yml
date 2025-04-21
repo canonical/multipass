@@ -3,7 +3,7 @@ name: Linux
 on:
     schedule:
     # 0:00 UTC every Sunday
-    - cron: 0 0 * * 0
+    - cron: 11 4 * * 0
 
 jobs:
   build:
