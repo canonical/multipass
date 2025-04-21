@@ -515,4 +515,20 @@ std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const
     // return std::make_unique<hcs::Plan9MountHandler>(this, &key_provider, mount, target, hcs);
 }
 
+std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
+                                                                    const std::string& comment,
+                                                                    const std::string& instance_id,
+                                                                    const VMSpecs& specs,
+                                                                    std::shared_ptr<Snapshot> parent)
+{
+    throw NotImplementedOnThisBackendException{"Not implemented yet"};
+    // Step 1: Check if VM has been shut down
+    // Step 2: Check if VM already has
+}
+
+std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
+{
+    throw NotImplementedOnThisBackendException{"Not implemented yet"};
+}
+
 } // namespace multipass::hyperv

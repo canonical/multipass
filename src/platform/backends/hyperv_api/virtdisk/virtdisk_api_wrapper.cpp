@@ -31,6 +31,15 @@ namespace multipass::hyperv::virtdisk
 
 namespace
 {
+// helper type for the visitor #4
+template <class... Ts>
+struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+// explicit deduction guide (not needed as of C++20)
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 auto normalize_path(std::filesystem::path p)
 {
@@ -117,56 +126,89 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
     parameters.Version = CREATE_VIRTUAL_DISK_VERSION_2;
     parameters.Version2 = {};
     parameters.Version2.MaximumSize = params.size_in_bytes;
+    parameters.Version2.SourcePath = nullptr;
+    parameters.Version2.ParentPath = nullptr;
+    parameters.Version2.BlockSizeInBytes = CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_BLOCK_SIZE;
+    parameters.Version2.SectorSizeInBytes = CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_SECTOR_SIZE;
 
-    // Tell virtdisk to copy the data from source when it's specified.
-    std::wstring source_path_normalized{};
-    if (params.source.has_value())
-    {
-        source_path_normalized = normalize_path(params.source.value()).wstring();
-        parameters.Version2.SourcePath = source_path_normalized.c_str();
+    CREATE_VIRTUAL_DISK_FLAG flags{CREATE_VIRTUAL_DISK_FLAG_NONE};
 
-        VirtualDiskInfo src_disk_info{};
-        const auto result = get_virtual_disk_info(source_path_normalized, src_disk_info);
-        mpl::debug(kLogCategory, "create_virtual_disk(...) > source disk info fetch result `{}`", result);
+    /**
+     * The source/parent paths need to be normalized first,
+     * and the normalized path needs to outlive the API call itself.
+     */
+    std::wstring predecessor_path_normalized{};
 
-        if (src_disk_info.virtual_storage_type)
-        {
-            if (src_disk_info.virtual_storage_type == "vhd")
+    auto fill_target =
+        [this](const std::wstring& predecessor_path, PCWSTR& target_path, VIRTUAL_STORAGE_TYPE& target_type) {
+            target_path = predecessor_path.c_str();
+            VirtualDiskInfo predecessor_disk_info{};
+            const auto result = get_virtual_disk_info(predecessor_path, predecessor_disk_info);
+            mpl::debug(kLogCategory, "create_virtual_disk(...) > source disk info fetch result `{}`", result);
+            if (predecessor_disk_info.virtual_storage_type)
             {
-                parameters.Version2.SourceVirtualStorageType.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHD;
-            }
-            else if (src_disk_info.virtual_storage_type == "vhdx")
-            {
-                parameters.Version2.SourceVirtualStorageType.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
-            }
-            else if (src_disk_info.virtual_storage_type == "unknown")
-            {
-                throw std::runtime_error{"Unable to determine the source disk type."};
+                if (predecessor_disk_info.virtual_storage_type == "vhd")
+                {
+                    target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHD;
+                }
+                else if (predecessor_disk_info.virtual_storage_type == "vhdx")
+                {
+                    target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
+                }
+                else if (predecessor_disk_info.virtual_storage_type == "unknown")
+                {
+                    throw std::runtime_error{"Unable to determine the source disk type."};
+                }
+                else
+                {
+                    throw std::runtime_error{"Unsupported source disk type for clone/snapshot operation"};
+                }
             }
             else
             {
-                throw std::runtime_error{"Unsupported source disk type for clone operation"};
+                throw std::runtime_error{"Failed to retrieve source disk type for clone/snapshot operation"};
             }
-        }
+        };
 
-        mpl::debug(kLogCategory,
-                   "create_virtual_disk(...) > cloning `{}` to `{}`",
-                   std::filesystem::path{source_path_normalized},
-                   std::filesystem::path{target_path_normalized});
-    }
+    std::visit(overloaded{
+                   [&](const std::monostate&) {
+                       //
+                       // If there's no source or parent:
+                       //
+                       // Internal size of the virtual disk object blocks, in bytes.
+                       // For VHDX this must be a multiple of 1 MB between 1 and 256 MB.
+                       // For VHD 1 this must be set to one of the following values.
+                       // parameters.Version2.BlockSizeInBytes
+                       //
+                       parameters.Version2.BlockSizeInBytes = 1048576; // 1024 KiB
 
-    //
-    // Internal size of the virtual disk object blocks, in bytes.
-    // For VHDX this must be a multiple of 1 MB between 1 and 256 MB.
-    // For VHD 1 this must be set to one of the following values.
-    // parameters.Version2.BlockSizeInBytes
-    //
-    parameters.Version2.BlockSizeInBytes = 1048576; // 1024 KiB
-
-    if (params.path.extension() == ".vhd")
-    {
-        parameters.Version2.BlockSizeInBytes = 524288; // 512 KiB
-    }
+                       if (params.path.extension() == ".vhd")
+                       {
+                           parameters.Version2.BlockSizeInBytes = 524288; // 512 KiB
+                       }
+                   },
+                   [&](const SourcePathParameters& params) {
+                       predecessor_path_normalized = normalize_path(params.path).wstring();
+                       fill_target(predecessor_path_normalized,
+                                   parameters.Version2.SourcePath,
+                                   parameters.Version2.SourceVirtualStorageType);
+                       flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
+                       mpl::debug(kLogCategory,
+                                  "create_virtual_disk(...) > cloning `{}` to `{}`",
+                                  std::filesystem::path{predecessor_path_normalized},
+                                  std::filesystem::path{target_path_normalized});
+                   },
+                   [&](const ParentPathParameters& params) {
+                       predecessor_path_normalized = normalize_path(params.path).wstring();
+                       fill_target(predecessor_path_normalized,
+                                   parameters.Version2.ParentPath,
+                                   parameters.Version2.ParentVirtualStorageType);
+                       flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
+                       // Use parent's size.
+                       parameters.Version2.MaximumSize = 0;
+                   },
+               },
+               params.predecessor);
 
     HANDLE result_handle{nullptr};
 
@@ -178,7 +220,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
                                               // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
                                               nullptr,
                                               // [in] CREATE_VIRTUAL_DISK_FLAG Flags,
-                                              CREATE_VIRTUAL_DISK_FLAG_NONE,
+                                              flags,
                                               // [in] ULONG ProviderSpecificFlags,
                                               0,
                                               // [in] PCREATE_VIRTUAL_DISK_PARAMETERS Parameters,
