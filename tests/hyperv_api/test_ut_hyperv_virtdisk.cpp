@@ -268,12 +268,12 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
 
                     ASSERT_EQ(VirtualDiskAccessMask, VIRTUAL_DISK_ACCESS_NONE);
                     ASSERT_EQ(nullptr, SecurityDescriptor);
-                    ASSERT_EQ(CREATE_VIRTUAL_DISK_FLAG_NONE, Flags);
+                    ASSERT_EQ(CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK, Flags);
                     ASSERT_EQ(0, ProviderSpecificFlags);
                     ASSERT_NE(nullptr, Parameters);
                     ASSERT_EQ(Parameters->Version, CREATE_VIRTUAL_DISK_VERSION_2);
                     ASSERT_EQ(Parameters->Version2.MaximumSize, 0);
-                    ASSERT_EQ(Parameters->Version2.BlockSizeInBytes, 1048576);
+                    ASSERT_EQ(Parameters->Version2.BlockSizeInBytes, CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_BLOCK_SIZE);
                     ASSERT_STREQ(Parameters->Version2.SourcePath, L"source.vhdx");
                     ASSERT_EQ(Parameters->Version2.SourceVirtualStorageType.DeviceId, VIRTUAL_STORAGE_TYPE_DEVICE_VHDX);
                     ASSERT_EQ(Parameters->Version2.SourceVirtualStorageType.VendorId,
@@ -347,7 +347,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
     }
 
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
-    params.source = "source.vhdx";
+    params.predecessor = hyperv::virtdisk::SourcePathParameters{"source.vhdx"};
     params.path = "test.vhdx";
     params.size_in_bytes = 0;
 
