@@ -19,12 +19,21 @@
 #define MULTIPASS_HYPERV_API_VIRTDISK_CREATE_VIRTUAL_DISK_PARAMETERS_H
 
 #include <filesystem>
-#include <optional>
+#include <variant>
 
 #include <fmt/format.h>
 
 namespace multipass::hyperv::virtdisk
 {
+
+struct SourcePathParameters
+{
+    std::filesystem::path path;
+};
+struct ParentPathParameters
+{
+    std::filesystem::path path;
+};
 
 /**
  * Parameters for creating a new virtual disk drive.
@@ -33,7 +42,7 @@ struct CreateVirtualDiskParameters
 {
     std::uint64_t size_in_bytes{};
     std::filesystem::path path{};
-    std::optional<std::filesystem::path> source{};
+    std::variant<std::monostate, SourcePathParameters, ParentPathParameters> predecessor{};
 };
 
 } // namespace multipass::hyperv::virtdisk
