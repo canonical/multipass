@@ -100,7 +100,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
 
     const std::string test_vm_name = "test-vm";
     NiceMock<mpt::MockVirtualMachine> mock_vm{test_vm_name};
-    EXPECT_CALL(mock_vm, make_available(false));
+    EXPECT_CALL(mock_vm, set_available(false));
 
     zone.add_vm(mock_vm);
     zone.set_available(false);
@@ -144,8 +144,8 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     NiceMock<mpt::MockVirtualMachine> mock_vm2{vm2_name};
 
     // Both VMs should be notified when state changes
-    EXPECT_CALL(mock_vm1, make_available(false));
-    EXPECT_CALL(mock_vm2, make_available(false));
+    EXPECT_CALL(mock_vm1, set_available(false));
+    EXPECT_CALL(mock_vm2, set_available(false));
 
     zone.add_vm(mock_vm1);
     zone.add_vm(mock_vm2);
