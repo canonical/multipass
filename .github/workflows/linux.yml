@@ -63,3 +63,9 @@ jobs:
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
+
+    - if: ${{ failure() }}
+      name: Setup tmate session
+      uses: canonical/action-tmate@main
+      with:
+        limit-access-to-actor: true
