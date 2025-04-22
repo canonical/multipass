@@ -133,7 +133,7 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillRepeatedly(Return("eth8"));
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-            .Times(AnyNumber()); // TODO lxd and libvirt migration, remove
+            .WillRepeatedly(Return("qemu")); // TODO lxd and libvirt migration, remove
     }
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
