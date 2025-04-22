@@ -36,8 +36,7 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install --yes devscripts equivs lcov
+        sudo --preserve-env apt-get install --yes devscripts equivs lcov
         sudo --preserve-env apt-get build-dep --yes ./
         # mk-build-deps -s sudo -i
 
@@ -63,9 +62,3 @@ jobs:
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
-
-    - if: ${{ failure() }}
-      name: Setup tmate session
-      uses: canonical/action-tmate@main
-      with:
-        limit-access-to-actor: true
