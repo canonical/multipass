@@ -26,8 +26,6 @@
 #include <thread>
 #endif
 
-#include <iostream>
-
 namespace mp = multipass;
 
 namespace

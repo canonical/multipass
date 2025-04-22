@@ -55,7 +55,8 @@ private:
     const SmbManager* smb_manager;
 
     void remove_cred_files(const QString& user_id);
-    void encrypt_credentials_to_file(const QString& cred_filename, const QString& iv_filename,
+    void encrypt_credentials_to_file(const QString& cred_filename,
+                                     const QString& iv_filename,
                                      const std::string& ptext);
     std::string decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename);
 };

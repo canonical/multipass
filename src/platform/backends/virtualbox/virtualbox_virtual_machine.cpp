@@ -86,12 +86,14 @@ auto instance_state_for(const QString& name)
             return mp::VirtualMachine::State::stopped;
         }
 
-        mpl::log(mpl::Level::error, name.toStdString(),
+        mpl::log(mpl::Level::error,
+                 name.toStdString(),
                  fmt::format("Failed to parse instance state: {}", vmstate_match.captured().toStdString()));
     }
     else if (vminfo.exitCode() == 0)
     {
-        mpl::log(mpl::Level::error, name.toStdString(),
+        mpl::log(mpl::Level::error,
+                 name.toStdString(),
                  fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
     }
 
@@ -114,8 +116,12 @@ QStringList extra_net_args(int index, const mp::NetworkInterface& net)
 
 QStringList networking_arguments(const mp::VirtualMachineDescription& desc)
 {
-    QStringList arguments{"--nic1", "nat",           "--nictype1",
-                          "virtio", "--macaddress1", QString::fromStdString(desc.default_mac_address).remove(':')};
+    QStringList arguments{"--nic1",
+                          "nat",
+                          "--nictype1",
+                          "virtio",
+                          "--macaddress1",
+                          QString::fromStdString(desc.default_mac_address).remove(':')};
 
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
@@ -181,8 +187,10 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
         throw std::runtime_error("VirtualBox does not support more than 8 interfaces");
     }
 
-    if (!mpu::process_log_on_error("VBoxManage", {"showvminfo", name, "--machinereadable"},
-                                   "Could not get instance info: {}", name))
+    if (!mpu::process_log_on_error("VBoxManage",
+                                   {"showvminfo", name, "--machinereadable"},
+                                   "Could not get instance info: {}",
+                                   name))
     {
         const fs::path instances_dir = fs::path{instance_dir_qstr.toStdString()}.parent_path();
         mpu::process_throw_on_error("VBoxManage",
@@ -201,17 +209,40 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
 
         mpu::process_throw_on_error("VBoxManage",
                                     {"storagectl", name, "--add", "sata", "--name", "SATA_0", "--portcount", "2"},
-                                    "Could not modify VM: {}", name);
+                                    "Could not modify VM: {}",
+                                    name);
 
         mpu::process_throw_on_error("VBoxManage",
-                                    {"storageattach", name, "--storagectl", "SATA_0", "--port", "0", "--device", "0",
-                                     "--type", "hdd", "--medium", desc.image.image_path},
-                                    "Could not storageattach HDD: {}", name);
+                                    {"storageattach",
+                                     name,
+                                     "--storagectl",
+                                     "SATA_0",
+                                     "--port",
+                                     "0",
+                                     "--device",
+                                     "0",
+                                     "--type",
+                                     "hdd",
+                                     "--medium",
+                                     desc.image.image_path},
+                                    "Could not storageattach HDD: {}",
+                                    name);
 
         mpu::process_throw_on_error("VBoxManage",
-                                    {"storageattach", name, "--storagectl", "SATA_0", "--port", "1", "--device", "0",
-                                     "--type", "dvddrive", "--medium", desc.cloud_init_iso},
-                                    "Could not storageattach DVD: {}", name);
+                                    {"storageattach",
+                                     name,
+                                     "--storagectl",
+                                     "SATA_0",
+                                     "--port",
+                                     "1",
+                                     "--device",
+                                     "0",
+                                     "--type",
+                                     "dvddrive",
+                                     "--medium",
+                                     desc.cloud_init_iso},
+                                    "Could not storageattach DVD: {}",
+                                    name);
 
         state = State::off;
     }
@@ -419,13 +450,16 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
                 fmt::format("Could not find a port available to listen on: {}", socket.errorString()));
         }
 
-        mpu::process_log_on_error("VBoxManage", {"controlvm", name, "natpf1", "delete", "ssh"},
-                                  "Could not delete SSH port forwarding: {}", name);
+        mpu::process_log_on_error("VBoxManage",
+                                  {"controlvm", name, "natpf1", "delete", "ssh"},
+                                  "Could not delete SSH port forwarding: {}",
+                                  name);
 
         mpu::process_throw_on_error(
             "VBoxManage",
             {"controlvm", name, "natpf1", QString::fromStdString(fmt::format("ssh,tcp,,{},,22", socket.serverPort()))},
-            "Could not add SSH port forwarding: {}", name);
+            "Could not add SSH port forwarding: {}",
+            name);
 
         port.emplace(socket.serverPort());
     }
@@ -478,16 +512,20 @@ void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
 
-    mpu::process_throw_on_error("VBoxManage", {"modifyvm", name, "--cpus", QString::number(num_cores)},
-                                "Could not update CPUs: {}", name);
+    mpu::process_throw_on_error("VBoxManage",
+                                {"modifyvm", name, "--cpus", QString::number(num_cores)},
+                                "Could not update CPUs: {}",
+                                name);
 }
 
 void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    mpu::process_throw_on_error("VBoxManage", {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
-                                "Could not update memory: {}", name);
+    mpu::process_throw_on_error("VBoxManage",
+                                {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
+                                "Could not update memory: {}",
+                                name);
 }
 
 void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)

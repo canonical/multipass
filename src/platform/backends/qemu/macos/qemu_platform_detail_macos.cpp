@@ -86,7 +86,8 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     {
         qemu_args << "-nic"
                   << QString::fromStdString(fmt::format("vmnet-bridged,ifname={},model=virtio-net-pci,mac={}",
-                                                        extra_interface.id, extra_interface.mac_address));
+                                                        extra_interface.id,
+                                                        extra_interface.mac_address));
     }
 
     return qemu_args;

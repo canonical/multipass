@@ -1129,22 +1129,14 @@ TEST_F(Client, launch_cmd_cpu_option_fails_no_value)
 
 TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_file_ok))
 {
-#ifdef MULTIPASS_PLATFORM_APPLE
-    EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::CommandLineError));
-#else
     EXPECT_CALL(mock_daemon, launch(_, _));
     EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
-#endif
 }
 
 TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_http_ok))
 {
-#ifdef MULTIPASS_PLATFORM_APPLE
-    EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::CommandLineError));
-#else
     EXPECT_CALL(mock_daemon, launch(_, _));
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
-#endif
 }
 
 TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)

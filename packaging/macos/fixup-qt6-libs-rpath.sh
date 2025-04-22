@@ -77,4 +77,3 @@ done
 for binary in ${BINARIES}; do
     install_name_tool "${RPATH_CHANGES[@]}" "${BINARY_DIR}/${binary}"
 done
-
