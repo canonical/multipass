@@ -38,7 +38,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --yes devscripts equivs lcov
-        mk-build-deps -s sudo -i
+        sudo --preserve-env apt-get build-dep --yes ./
+        # mk-build-deps -s sudo -i
 
     - name: Configure
       run: |
