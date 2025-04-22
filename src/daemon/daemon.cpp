@@ -1294,10 +1294,8 @@ void lxd_and_libvirt_deprecation_warning(
     const auto current_driver = MP_SETTINGS.get(mp::driver_key);
     if (current_driver == "lxd" || current_driver == "libvirt")
     {
-        const std::string deprecation_warning_message =
-            fmt::format(mp::driver_deprecation_warning_template, current_driver);
         Reply reply{};
-        reply.set_log_line(deprecation_warning_message);
+        reply.set_log_line(deprecation_warning_message_driver_concatenated(current_driver));
         server.Write(reply);
     }
 #endif
