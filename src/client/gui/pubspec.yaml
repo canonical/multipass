@@ -17,7 +17,7 @@ dependencies:
   extended_text: ^14.2.0
   ffi: ^2.1.3
   file_selector: ^1.0.3
-  fl_chart: ^0.70.2
+  fl_chart: ^0.71.0
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
