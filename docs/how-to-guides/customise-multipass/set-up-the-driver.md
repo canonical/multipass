@@ -11,7 +11,7 @@ This document demonstrates how to choose, set up, and manage the drivers behind 
 
 ````{group-tab} Linux
 
-By default, Multipass on Linux uses the `qemu` or `lxd` driver (depending on the architecture).
+By default, Multipass on Linux uses the `qemu` driver.
 
 ````
 
@@ -34,7 +34,9 @@ By default, Multipass on Windows uses the `hyperv` driver.
 `````{tabs}
 
 ````{group-tab} Linux
-
+```{warning}
+Support for libvirt driver will be deprecated and removed in a future release.
+```
 If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) driver.
 
 To install libvirt, run the following command (or use the equivalent for your Linux distribution):
