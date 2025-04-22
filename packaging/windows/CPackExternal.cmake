@@ -34,7 +34,7 @@ string(REGEX REPLACE "-[^.]+|\\+.+|\\.(pr|ci).+" "" BUILD_VERSION ${CPACK_PACKAG
 
 execute_process(
   COMMAND
-    msbuild /Restore /verbosity:normal /p:RestorePackagesConfig=true 
+    msbuild /Restore /verbosity:normal /p:RestorePackagesConfig=true
     /p:Configuration=${CPACK_BUILD_TYPE}
     /p:PublishDir=${PRIMING_DIR}
     /p:OutputPath=${CPACK_OUTPUT_FILE_PREFIX}/packages

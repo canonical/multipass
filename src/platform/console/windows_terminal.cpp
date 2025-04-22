@@ -19,14 +19,13 @@
 
 #include "windows_console.h"
 
-#include <iostream>
 #include <fcntl.h>
 #include <io.h>
+#include <iostream>
 
 namespace mp = multipass;
 
-mp::WindowsTerminal::WindowsTerminal()
-    : input_code_page{GetConsoleCP()}, output_code_page{GetConsoleOutputCP()}
+mp::WindowsTerminal::WindowsTerminal() : input_code_page{GetConsoleCP()}, output_code_page{GetConsoleOutputCP()}
 {
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);

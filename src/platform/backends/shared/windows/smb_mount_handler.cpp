@@ -49,7 +49,8 @@ try
     if (proc.exit_code(timeout) != 0)
     {
         auto error_msg = proc.read_std_error();
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::warning,
+                 category,
                  fmt::format("Failed to install 'cifs-utils', error message: '{}'", mp::utils::trim_end(error_msg)));
         throw std::runtime_error("Failed to install cifs-utils");
     }
@@ -216,7 +217,8 @@ try
 }
 catch (const std::exception& e)
 {
-    mpl::log(mpl::Level::warning, category,
+    mpl::log(mpl::Level::warning,
+             category,
              fmt::format("Failed checking SSHFS mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
     return false;
 }
@@ -286,21 +288,27 @@ try
 
     auto smb_creds = fmt::format("username={}\npassword={}", username, password);
     const std::string credentials_path{"/tmp/.smb_credentials"};
-    auto sftp_client = MP_SFTPUTILS.make_SFTPClient(vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(),
+    auto sftp_client = MP_SFTPUTILS.make_SFTPClient(vm->ssh_hostname(),
+                                                    vm->ssh_port(),
+                                                    vm->ssh_username(),
                                                     ssh_key_provider->private_key_as_base64());
     std::istringstream creds_stringstream(smb_creds);
     sftp_client->from_cin(creds_stringstream, credentials_path, false);
 
     auto hostname = QHostInfo::localHostName();
     auto mount_proc =
-        session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)", hostname,
-                                 share_name, target, credentials_path));
+        session.exec(fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
+                                 hostname,
+                                 share_name,
+                                 target,
+                                 credentials_path));
     auto mount_exit_code = mount_proc.exit_code();
     auto mount_error_msg = mount_proc.read_std_error();
 
     auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
     if (rm_proc.exit_code() != 0)
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::warning,
+                 category,
                  fmt::format("Failed deleting credentials file in \'{}\': {}", vm->vm_name, rm_proc.read_std_error()));
 
     if (mount_exit_code != 0)
@@ -318,7 +326,8 @@ catch (...)
 void SmbMountHandler::deactivate_impl(bool force)
 try
 {
-    mpl::log(mpl::Level::info, category,
+    mpl::log(mpl::Level::info,
+             category,
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     MP_UTILS.run_in_ssh_session(session,
@@ -329,7 +338,8 @@ catch (const std::exception& e)
 {
     if (!force)
         throw;
-    mpl::log(mpl::Level::warning, category,
+    mpl::log(mpl::Level::warning,
+             category,
              fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm->vm_name, e.what()));
     smb_manager->remove_share(share_name);
 }

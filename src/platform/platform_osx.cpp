@@ -186,7 +186,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     auto nsetup_output = get_networksetup_output();
 
     mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
-    mpl::log(mpl::Level::trace, category,
+    mpl::log(mpl::Level::trace,
+             category,
              fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
 
     // split the output of networksetup in multiple entries (one per interface)

@@ -118,7 +118,9 @@ QString interpret_winterm_setting(const QString& val)
     auto ret = val.toLower();
     if (!acceptable.contains(ret))
         throw mp::InvalidSettingException{
-            mp::winterm_key, val, QStringLiteral("Unknown value. Try one of these: %1.").arg(acceptable.join(", "))};
+            mp::winterm_key,
+            val,
+            QStringLiteral("Unknown value. Try one of these: %1.").arg(acceptable.join(", "))};
 
     return ret;
 }
@@ -163,7 +165,8 @@ struct GreaterWintermSyncException : public WintermSyncException
 Json::Value& edit_profiles(const QString& path, Json::Value& json_root)
 {
     if (!json_root.isMember("profiles"))
-        throw ModerateWintermSyncException{"Could not find profiles in Windows Terminal's settings", path,
+        throw ModerateWintermSyncException{"Could not find profiles in Windows Terminal's settings",
+                                           path,
                                            "No \"profiles\" node under JSON root"};
 
     auto& profiles = json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
@@ -489,11 +492,13 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
             auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
-                throw std::runtime_error{fmt::format(
-                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+                throw std::runtime_error{
+                    fmt::format("Could not determine available networks - unexpected powershell output: {}",
+                                ps_output)};
             }
 
-            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(), interpret_net_type(terms[1], terms[2]),
+            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(),
+                                                  interpret_net_type(terms[1], terms[2]),
                                                   terms[3].toStdString()};
             ret.emplace(iface.id, iface);
         }
@@ -571,7 +576,8 @@ void mp::platform::sync_winterm_profiles()
     try
     {
         if (profiles_path.isEmpty())
-            throw LesserWintermSyncException{"Could not find Windows Terminal's settings", profiles_path,
+            throw LesserWintermSyncException{"Could not find Windows Terminal's settings",
+                                             profiles_path,
                                              "File not found"};
 
         auto json_root = read_winterm_settings(profiles_path);
@@ -825,8 +831,13 @@ bool mp::platform::Platform::link(const char* target, const char* link) const
 int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 {
     DWORD ret = NO_ERROR;
-    auto handle = CreateFile(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                             OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+    auto handle = CreateFile(path,
+                             GENERIC_READ | GENERIC_WRITE,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE,
+                             NULL,
+                             OPEN_EXISTING,
+                             FILE_FLAG_OPEN_REPARSE_POINT,
+                             NULL);
 
     if (handle != INVALID_HANDLE_VALUE)
     {
@@ -851,7 +862,8 @@ QString mp::platform::Platform::get_username() const
 {
     QString username;
     mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-                         "get-username", &username);
+                         "get-username",
+                         &username);
     return username.section('\\', 1);
 }
 
@@ -895,8 +907,9 @@ auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
 auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
 {
     SettingSpec::Set ret;
-    ret.insert(std::make_unique<CustomSettingSpec>(
-        winterm_key, petenv_default, [](const QString& val) { return interpret_setting(winterm_key, val); }));
+    ret.insert(std::make_unique<CustomSettingSpec>(winterm_key, petenv_default, [](const QString& val) {
+        return interpret_setting(winterm_key, val);
+    }));
 
     return ret;
 }
@@ -987,15 +1000,18 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
         {
             throw std::runtime_error{
                 fmt::format("Could not obtain adapter description from name \"{}\" - unexpected powershell output: {}",
-                            ux_id, ps_output)};
+                            ux_id,
+                            ps_output)};
         }
 
         return output_lines.first().toStdString();
     }
 
     auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
-    auto err = fmt::format(
-        "Could not obtain adapter description from name \"{}\" - error executing powershell command.{}", ux_id, detail);
+    auto err =
+        fmt::format("Could not obtain adapter description from name \"{}\" - error executing powershell command.{}",
+                    ux_id,
+                    detail);
     throw std::runtime_error{err};
 }
 

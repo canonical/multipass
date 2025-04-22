@@ -92,8 +92,9 @@ struct HyperVBackend : public Test
         std::vector<RunSpec> ret = prefix_ctor_runs;
         ret.insert(std::end(ret), std::cbegin(network_runs), std::cend(network_runs));
 
-        auto failing_run_it = std::find_if(std::cbegin(network_runs), std::cend(network_runs),
-                                           [](const auto& run) { return !run.will_return; });
+        auto failing_run_it = std::find_if(std::cbegin(network_runs), std::cend(network_runs), [](const auto& run) {
+            return !run.will_return;
+        });
         if (failing_run_it == std::cend(network_runs)) // if the ctor succeeds
         {
             // network runs are executed in the ctor, so if they fail the object is never contructed & no further cmds
@@ -147,7 +148,8 @@ TEST_F(HyperVBackend, creates_in_off_state)
 TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
 {
     auto network_run = RunSpec{fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"",
-                                           default_description.vm_name, default_description.default_mac_address)};
+                                           default_description.vm_name,
+                                           default_description.default_mac_address)};
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
 
     backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
@@ -167,8 +169,9 @@ TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
 
 TEST_F(HyperVBackend, adds_extra_network_adapters)
 {
-    default_description.extra_interfaces = {
-        {"switchA", "55:66:44:77:33:88"}, {"switchB", "15:16:14:17:13:18"}, {"switchC", "5e:6f:4e:7f:3e:8f"}};
+    default_description.extra_interfaces = {{"switchA", "55:66:44:77:33:88"},
+                                            {"switchB", "15:16:14:17:13:18"},
+                                            {"switchC", "5e:6f:4e:7f:3e:8f"}};
 
     auto network_runs = std::vector<RunSpec>{default_network_run};
     for (const auto& iface : default_description.extra_interfaces)
@@ -176,7 +179,9 @@ TEST_F(HyperVBackend, adds_extra_network_adapters)
         network_runs.push_back({fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
         network_runs.push_back(
             {fmt::format("Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
-                         default_description.vm_name, iface.id, iface.mac_address)});
+                         default_description.vm_name,
+                         iface.id,
+                         iface.mac_address)});
     };
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(std::move(network_runs)));
@@ -205,7 +210,9 @@ TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
     default_description.extra_interfaces.push_back(extra_iface);
 
     auto failing_cmd = fmt::format("Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
-                                   default_description.vm_name, extra_iface.id, extra_iface.mac_address);
+                                   default_description.vm_name,
+                                   extra_iface.id,
+                                   extra_iface.mac_address);
 
     ps_helper.setup_mocked_run_sequence(
         standard_ps_run_sequence({default_network_run, {"Get-VMSwitch"}, {failing_cmd, "", false}, {"Get-VM"}}));
@@ -223,7 +230,8 @@ TEST_F(HyperVBackend, createBridgeRequestsNewSwitch)
     ps_helper.setup(
         [&net](auto* process) {
             EXPECT_THAT(process->arguments(),
-                        IsSupersetOf({mpt::match_qstring("New-VMSwitch"), mpt::match_qstring(HasSubstr("ExtSwitch")),
+                        IsSupersetOf({mpt::match_qstring("New-VMSwitch"),
+                                      mpt::match_qstring(HasSubstr("ExtSwitch")),
                                       mpt::match_qstring(HasSubstr(net.id))}));
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
         },
@@ -287,7 +295,8 @@ TEST_P(CheckFineSuite, CheckDoesntThrow)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    HyperVBackend, CheckFineSuite,
+    HyperVBackend,
+    CheckFineSuite,
     // Common case, vmms running
     Values(std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
                                                            {"ReleaseId", "1803"},
@@ -329,7 +338,8 @@ TEST_P(CheckBadSuite, CheckThrows)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    HyperVBackend, CheckBadSuite,
+    HyperVBackend,
+    CheckBadSuite,
     // Windows 7
     Values(std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "7"}},
            // Windows 10, too old
@@ -434,7 +444,8 @@ TEST_F(HyperVNetworksPS, throwsOnUnexpectedCmdletOutput)
 {
     constexpr auto output = "g1bb€r1$h";
     ps_helper.mock_ps_exec(output);
-    MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error,
+    MP_ASSERT_THROW_THAT(backend.networks(),
+                         std::runtime_error,
                          Property(&std::runtime_error::what, AllOf(HasSubstr(output), HasSubstr("unexpected"))));
 }
 
@@ -449,7 +460,8 @@ TEST_P(TestWrongNumFields, throwsOnOutputWithWrongFields)
     ASSERT_THROW(backend.networks(), std::runtime_error);
 }
 
-INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestWrongNumFields,
+INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS,
+                         TestWrongNumFields,
                          Values("too,many,fields,in,here", "insufficient,fields"));
 
 struct TestNonExternalSwitchesWithLinks : public HyperVNetworksPS, public WithParamInterface<std::string>
@@ -467,7 +479,8 @@ TEST_P(TestNonExternalSwitchesWithLinks, throwsOnNonExternalSwitchWithLink)
     auto switch_line = fmt::format("a switch,{},{},", switch_type, link_description);
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format(bad_line_in_output_format, switch_line)));
 
-    MP_ASSERT_THROW_THAT(backend.networks(), std::runtime_error,
+    MP_ASSERT_THROW_THAT(backend.networks(),
+                         std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Unexpected"), HasSubstr("non-external"))));
 }
 
@@ -577,7 +590,8 @@ TEST_P(TestSwitchUnsupportedLinks, omitsUnsupportedAdapterFromExternalSwitchDesc
     EXPECT_THAT(backend.networks(), Contains(desc_matcher));
 }
 
-INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS, TestSwitchUnsupportedLinks,
+INSTANTIATE_TEST_SUITE_P(HyperVNetworksPS,
+                         TestSwitchUnsupportedLinks,
                          Values(std::vector<mp::NetworkInterfaceInfo>{},
                                 std::vector<mp::NetworkInterfaceInfo>{{"nic", "wifi", "a wifi"},
                                                                       {"eth", "ethernet", "an ethernet"}},
@@ -627,8 +641,9 @@ TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForKnownAdaptersInSwitch
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
 
     ps_helper.mock_ps_exec(QByteArray::fromStdString(fmt::format("switch,external,{},\n", net.description)));
-    EXPECT_THAT(backend.networks(), Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
-                                                   Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
+    EXPECT_THAT(backend.networks(),
+                Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
+                               Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
 }
 
 TEST_P(TestAdapterAuthorization, requiresAuthorizationForKnownAdaptersInNoSwitches)
@@ -637,8 +652,9 @@ TEST_P(TestAdapterAuthorization, requiresAuthorizationForKnownAdaptersInNoSwitch
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(network_map_from_vector({net})));
 
     ps_helper.mock_ps_exec("switch,external,unknown adapter,\n");
-    EXPECT_THAT(backend.networks(), Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
-                                                   Field(&mp::NetworkInterfaceInfo::needs_authorization, true))));
+    EXPECT_THAT(backend.networks(),
+                Contains(AllOf(Field(&mp::NetworkInterfaceInfo::id, net.id),
+                               Field(&mp::NetworkInterfaceInfo::needs_authorization, true))));
 }
 
 TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForSwitches)
@@ -652,8 +668,9 @@ TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForSwitches)
 
     const auto networks = backend.networks();
     EXPECT_THAT(std::count_if(networks.cbegin(), networks.cend(), [](const auto& x) { return x.type == "switch"; }), 4);
-    EXPECT_THAT(networks, Each(AnyOf(Field(&mp::NetworkInterfaceInfo::type, Ne("switch")),
-                                     Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
+    EXPECT_THAT(networks,
+                Each(AnyOf(Field(&mp::NetworkInterfaceInfo::type, Ne("switch")),
+                           Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
 }
 
 INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS,

@@ -140,7 +140,8 @@ void check_hyperv_support()
 {
     mp::PowerShell power_shell("Hyper-V Health Check");
     QString ps_output;
-    QStringList get_reg_version_info{"Get-ItemProperty", "-Path",
+    QStringList get_reg_version_info{"Get-ItemProperty",
+                                     "-Path",
                                      "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
 
     // Check for Windows 10
@@ -281,8 +282,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
 
     if (!convert.waitForFinished(mp::image_resize_timeout))
     {
-        throw std::runtime_error(
-            qPrintable("Conversion of image to vhdx timed out..."));
+        throw std::runtime_error(qPrintable("Conversion of image to vhdx timed out..."));
     }
 
     if (convert.exitStatus() != QProcess::NormalExit || convert.exitCode() != 0)
@@ -337,10 +337,17 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
 
     const auto switch_name = QStringLiteral("ExtSwitch (%1)").arg(interface.id.c_str());
     auto quote = [](const auto& str) { return QStringLiteral("'%1'").arg(str); };
-    auto ps_args = QStringList{"New-VMSwitch",  "-NetAdapterName",  quote(interface.id.c_str()),
-                               "-Name",         quote(switch_name), "-AllowManagementOS",
-                               "$true",         "-Notes",           "'Created by Multipass'",
-                               "-ComputerName", "localhost"}; // workaround for names with more than 15 chars
+    auto ps_args = QStringList{"New-VMSwitch",
+                               "-NetAdapterName",
+                               quote(interface.id.c_str()),
+                               "-Name",
+                               quote(switch_name),
+                               "-AllowManagementOS",
+                               "$true",
+                               "-Notes",
+                               "'Created by Multipass'",
+                               "-ComputerName",
+                               "localhost"}; // workaround for names with more than 15 chars
     ps_args << expand_property << "Name";
 
     QString ps_output;
@@ -379,8 +386,9 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
             auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
-                throw std::runtime_error{fmt::format(
-                    "Could not determine available networks - unexpected powershell output: {}", ps_output)};
+                throw std::runtime_error{
+                    fmt::format("Could not determine available networks - unexpected powershell output: {}",
+                                ps_output)};
             }
 
             auto links = switch_links(adapters, terms.at(2));
