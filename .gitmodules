@@ -17,6 +17,9 @@
 [submodule "3rd-party/fmt"]
 	path = 3rd-party/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "3rd-party/jsoncpp"]
+	path = 3rd-party/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git
 [submodule "3rd-party/vcpkg"]
 	path = 3rd-party/vcpkg
 	url = https://github.com/microsoft/vcpkg

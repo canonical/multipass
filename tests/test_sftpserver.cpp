@@ -262,7 +262,8 @@ bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permiss
         break;
     }
 
-    return ((ssh_permissions & ssh_perm_mask) >> ssh_bitshift) == ((file.permissions() & qt_perm_mask) >> qt_bitshift);
+    return ((ssh_permissions & ssh_perm_mask) >> ssh_bitshift) ==
+           ((static_cast<uint32_t>(file.permissions()) & qt_perm_mask) >> qt_bitshift);
 }
 } // namespace
 

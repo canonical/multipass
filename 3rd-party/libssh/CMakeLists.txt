@@ -17,7 +17,11 @@ set(WITH_EXAMPLES FALSE)
 set(WITH_SERVER TRUE)
 set(WITH_SFTP TRUE)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion")
+if(MSVC)
+  add_definitions(-Dssize_t=SSIZE_T)
+else()
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion")
+endif()
 
 set(LIBSSH_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/libssh/include

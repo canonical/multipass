@@ -34,7 +34,9 @@ static auto reg = []() -> bool {
 
 mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : QProcess{p}
 {
+#ifndef MULTIPASS_PLATFORM_WINDOWS
     setChildProcessModifier([p] { p->setup_child_process(); });
+#endif
 }
 
 mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_spec{spec}, process{this}

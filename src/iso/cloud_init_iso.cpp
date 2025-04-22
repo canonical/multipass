@@ -26,6 +26,7 @@
 
 #include <array>
 #include <cctype>
+#include <stdexcept>
 
 namespace mp = multipass;
 namespace mpu = multipass::utils;

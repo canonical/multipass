@@ -21,6 +21,13 @@
 
 #include "ssh_client_key_provider.h"
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include <io.h>
+#include <thread>
+#endif
+
+#include <iostream>
+
 namespace mp = multipass;
 
 namespace
@@ -76,6 +83,7 @@ int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& args_list)
 
 void mp::SSHClient::handle_ssh_events()
 {
+#ifndef MULTIPASS_PLATFORM_WINDOWS
     using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
 
@@ -105,6 +113,22 @@ void mp::SSHClient::handle_ssh_events()
     ssh_event_remove_connector(event.get(), connector_in.get());
     ssh_event_remove_connector(event.get(), connector_out.get());
     ssh_event_remove_connector(event.get(), connector_err.get());
+#else
+    auto stdout_thread = std::thread([this]() {
+        while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+        {
+            console->write_console();
+        }
+        console->exit_console();
+    });
+
+    while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+    {
+        console->read_console();
+    }
+
+    stdout_thread.join();
+#endif
 }
 
 int mp::SSHClient::exec_string(const std::string& cmd_line)

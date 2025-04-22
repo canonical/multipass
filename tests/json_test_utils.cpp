@@ -123,7 +123,7 @@ void check_interfaces_in_json(const QJsonObject& doc_object,
     ASSERT_EQ((unsigned)extra.size(), extra_ifaces.size());
 
     auto it = extra_ifaces.cbegin();
-    for (const auto& extra_i : extra)
+    for (const auto extra_i : extra)
     {
         const auto interface = extra_i.toObject();
         ASSERT_EQ(interface["mac_address"].toString().toStdString(), it->mac_address);
@@ -153,7 +153,7 @@ void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_ma
     const auto json_mounts = instance_object["mounts"].toArray();
     ASSERT_EQ(json_mounts.count(), mounts.size());
 
-    for (const QJsonValue& json_mount : json_mounts)
+    for (const QJsonValue json_mount : json_mounts)
     {
         const auto& json_target_path = json_mount["target_path"].toString().toStdString();
         const auto& json_source_path = json_mount["source_path"].toString().toStdString();

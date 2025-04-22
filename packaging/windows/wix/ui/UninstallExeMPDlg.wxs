@@ -1,0 +1,27 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Fragment>
+        <UI>
+            <Dialog Id="UninstallExeMPDlg" Width="260" Height="100"
+                Title="!(loc.UninstallExeMPDlg_Title)">
+                <Control Id="Cancel" Type="PushButton" X="132" Y="72" Width="56" Height="17"
+                    Text="!(loc.WixUICancel)">
+                    <Publish Event="EndDialog" Value="Exit" />
+                </Control>
+                <Control Id="OK" Type="PushButton" X="72" Y="72" Width="56" Height="17"
+                    Text="!(loc.WixUIOK)">
+                    <Publish Event="EndDialog" Value="Return" />
+                </Control>
+                <Control Id="Text" Type="Text" X="48" Y="15" Width="194" Height="45" NoPrefix="yes"
+                    Text="!(loc.UninstallExeMPDlgText)" />
+                <Control Id="Icon" Type="Icon" X="15" Y="15" Width="24" Height="24"
+                    ToolTip="!(loc.UninstallExeMPDlgIconTooltip)" FixedSize="yes" IconSize="32"
+                    Text="!(loc.UninstallExeMPDlgIcon)" />
+            </Dialog>
+
+            <InstallUISequence>
+                <Show Dialog="UninstallExeMPDlg" Before="ProgressDlg"
+                    Condition="NOT Installed AND (MP_INSTALLED6432 OR MP_INSTALLED)" />
+            </InstallUISequence>
+        </UI>
+    </Fragment>
+</Wix>

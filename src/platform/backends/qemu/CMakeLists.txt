@@ -14,12 +14,6 @@
 
 set (CMAKE_AUTOMOC ON)
 
-set(HOST_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
-
-if (${HOST_ARCH} STREQUAL "arm64")
-  set(HOST_ARCH "aarch64")
-endif ()
-
 add_definitions(-DHOST_ARCH="${HOST_ARCH}")
 
 add_library(qemu_backend STATIC
@@ -29,9 +23,7 @@ add_library(qemu_backend STATIC
   qemu_vm_process_spec.cpp
   qemu_vmstate_process_spec.cpp
   qemu_virtual_machine_factory.cpp
-  qemu_virtual_machine.cpp
-  ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
-  ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
+  qemu_virtual_machine.cpp)
 
 target_link_libraries(qemu_backend
   fmt

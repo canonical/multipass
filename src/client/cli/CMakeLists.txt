@@ -23,6 +23,7 @@ target_link_libraries(client
   formatter
   rpc
   scope_guard
+  shared
   Qt6::Core)
 
 add_executable(multipass
@@ -34,6 +35,23 @@ target_link_libraries(multipass
 install(TARGETS multipass
   DESTINATION bin
   COMPONENT multipass)
+
+if(APPLE)
+  set_target_properties( multipass PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
+
+  # Copy any framework depenencies into the install directory for packaging
+  install(CODE "
+    include(${CMAKE_SOURCE_DIR}/packaging/FrameworkUtilities.cmake)
+    install_frameworks(\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\")
+    " COMPONENT multipass)
+endif(APPLE)
+
+if(MSVC)
+  install(CODE "
+    include(BundleUtilities)
+    fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/multipass.exe\"  \"\"  \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
+    " COMPONENT multipass)
+endif()
 
 add_subdirectory(cmd)
 add_subdirectory(formatter)

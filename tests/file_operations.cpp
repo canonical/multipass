@@ -27,6 +27,8 @@
 #include <QFile>
 #include <QFileInfo>
 
+#include <stdexcept>
+
 namespace mpt = multipass::test;
 
 QByteArray mpt::load(QString path)

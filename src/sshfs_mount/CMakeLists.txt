@@ -45,6 +45,9 @@ target_link_libraries(sshfs_server
   logger
   sshfs_mount)
 
+set_target_properties(sshfs_server
+  PROPERTIES INSTALL_RPATH "@executable_path/../lib")
+
 target_include_directories(sshfs_server
   BEFORE
     PRIVATE ${CMAKE_SOURCE_DIR}/src

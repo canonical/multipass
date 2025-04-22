@@ -16,7 +16,9 @@ set(MULTIPASS_PROTOCOL_SPEC multipass.proto)
 set(GRPC_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/rpc)
 file(MAKE_DIRECTORY ${GRPC_GENERATED_SOURCE_DIR})
 
-add_compile_options(-Wno-error=pedantic)
+if(NOT MSVC)
+  add_compile_options(-Wno-error=pedantic)
+endif()
 
 generate_grpc_cpp(GRPC_GENERATED_SOURCES ${GRPC_GENERATED_SOURCE_DIR} ${MULTIPASS_PROTOCOL_SPEC})
 
