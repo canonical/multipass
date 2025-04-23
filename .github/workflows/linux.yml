@@ -40,6 +40,11 @@ jobs:
         sudo --preserve-env apt-get build-dep --yes ./
         # mk-build-deps -s sudo -i
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
@@ -62,9 +67,3 @@ jobs:
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
-
-    - if: ${{ failure() }}
-      name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
