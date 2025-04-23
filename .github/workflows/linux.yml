@@ -36,12 +36,12 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo --preserve-env apt-get install --yes devscripts equivs lcov
+        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build
         sudo --preserve-env apt-get build-dep --yes ./
         # mk-build-deps -s sudo -i
 
-    - name: Setup tmate session
-      uses: canonical/action-tmate@main
+    # - name: Setup tmate session
+    #   uses: canonical/action-tmate@main
   
     - name: Configure
       run: |
