@@ -47,11 +47,14 @@ jobs:
     - name: Determine build matrix
       id: set-matrix
       run: |
+        set -euo pipefail
+
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
         MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"}'
         MATRIX+=']}'
+
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
