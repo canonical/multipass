@@ -41,9 +41,7 @@ jobs:
         # mk-build-deps -s sudo -i
 
     - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
+      uses: canonical/action-tmate@main
   
     - name: Configure
       run: |
