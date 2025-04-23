@@ -359,7 +359,7 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-  DeleteArtifacts:
+  DeleteSeparateMacPackages:
     if: ${{ success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
 
     needs: [BuildAndTest, CombineAndPublishMacOSPackage]
