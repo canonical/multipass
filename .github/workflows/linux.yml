@@ -85,6 +85,14 @@ jobs:
 
     timeout-minutes: 120
     steps:
+
+    # Free some disk space to avoid the "No space left on device" error.
+    - name: Free Disk Space
+      uses: jlumbroso/free-disk-space@v1.3.1
+      with:
+        large-packages: false
+        swap-storage: false
+
     - name: Install Snapcraft
       uses: samuelmeuli/action-snapcraft@v3
 
