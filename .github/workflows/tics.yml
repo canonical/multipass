@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, reactive, amd64, large-tiobe, noble]
+    runs-on: [self-hosted, reactive, amd64, 2xlarge, noble]
 
     outputs:
       label: ${{ steps.build-params.outputs.label }}
@@ -31,9 +31,8 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y devscripts equivs lcov
-        mk-build-deps -s sudo -i
+        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build
+        sudo --preserve-env apt-get build-dep --yes ./
 
     - name: Configure
       run: |
