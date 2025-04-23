@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+      - release/[0-9]+.[0-9]+
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  Lint:
+    name: Lint all the code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Lint the code
+        uses: ./.github/actions/lint
