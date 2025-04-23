@@ -17,17 +17,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Lint:
+  CheckLint:
     runs-on: ubuntu-latest
 
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
+    outputs:
+      conclusion: ${{ steps.wait-lint.outputs.conclusion }}
 
-    - name: Lint the code
-      uses: ./.github/actions/lint
+    steps:
+      - name: Wait for Lint workflow
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        id: wait-lint
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Lint
+          ref: ${{ github.event.pull_request.head.sha || github.sha }} # use PR SHA if available
+          timeoutSeconds: 60
+          intervalSeconds: 5
 
   GetMatrix:
     runs-on: ubuntu-latest
@@ -52,17 +57,12 @@ jobs:
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    needs: [Lint, GetMatrix]
+    needs: [GetMatrix, CheckLint]
 
     # Proceed if Lint failed on a PR (but not if cancelled)
-    if: ${{ !cancelled() &&
-            (
-              success() ||
-              (
-                needs.Lint.result == 'failure' &&
-                github.event_name == 'pull_request'
-              )
-            )
+    if: ${{ !cancelled() && success() &&
+          (needs.CheckLint.outputs.conclusion == 'success' ||
+            (needs.CheckLint.outputs.conclusion == 'failure' && github.event_name == 'pull_request'))
         }}
 
     outputs:
@@ -297,7 +297,6 @@ jobs:
   # Publish the snap to the store if all is good, a channel was determined, and we have access to secrets.
   Publish-Snap:
     needs: BuildAndTest
-    # Note that Lint failures prevent snap publishing.
     if: ${{
       !cancelled()
       && success()
