@@ -21,7 +21,7 @@ add_library(formatter STATIC
 
 target_link_libraries(formatter
   client_common
-  fmt
+  fmt::fmt-header-only
   rpc
   settings
   utils

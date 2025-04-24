@@ -25,7 +25,7 @@ function(add_target TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     apparmor
-    fmt
+    fmt::fmt-header-only
     scope_guard
     shared
     utils

@@ -21,7 +21,7 @@ function(add_ssh_target TARGET_NAME)
     ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
-    fmt
+    fmt::fmt-header-only
     libssh
     utils
     Qt6::Core)
@@ -40,7 +40,7 @@ function(add_sftp_client_target TARGET_NAME)
     ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
-    fmt
+    fmt::fmt-header-only
     libssh
     utils
     Qt6::Core)
@@ -58,7 +58,7 @@ function(add_ssh_client_target TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     console
-    fmt
+    fmt::fmt-header-only
     libssh
     utils
     Qt6::Core)

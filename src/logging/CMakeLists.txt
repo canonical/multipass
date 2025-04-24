@@ -19,5 +19,5 @@ add_library(logger STATIC
   standard_logger.cpp)
 
 target_link_libraries(logger
-  fmt
+  fmt::fmt-header-only
   Qt6::Core)

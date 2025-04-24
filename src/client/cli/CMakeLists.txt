@@ -19,7 +19,7 @@ add_library(client STATIC
 target_link_libraries(client
   client_platform
   commands
-  fmt
+  fmt::fmt-header-only
   formatter
   rpc
   scope_guard
