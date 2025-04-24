@@ -3,15 +3,14 @@ name: WindowsMacOS
 on:
   push:
     branches:
-    - full
-    - release/[0-9]+.[0-9]+
+      - main
+      - release/[0-9]+.[0-9]+
     tags:
-    - v[0-9]+.[0-9]+.[0-9]+\+full
+      - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  repository_dispatch:
-    types: [public_build]
-  workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
@@ -19,79 +18,24 @@ concurrency:
 
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
-  HEAD_REF: ci${{ github.run_id }}
-  RUN_URL: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   S3_BUCKET: multipass-ci
 
 jobs:
-  # This job is here so that the Windows and macOS builds share exactly the same
-  # git tree (including the merge of public), and as a result have the same version
-  # numbers.
-  Checkout:
+  CheckLint:
     runs-on: ubuntu-latest
 
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        # Need to check it all out to merge successfully.
-        fetch-depth: 0
-
-    - name: Fetch the dispatching ref
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      run: |
-        # Try and fetch the matching branch.
-        if [ -n "${{ github.event.client_payload.head_ref }}" ] && git fetch origin ${{ github.event.client_payload.head_ref }}; then
-          echo "ref=${{ github.event.client_payload.head_ref }}" >> $GITHUB_OUTPUT
-        else
-          # Otherwise fetch the triggering commit.
-          git -c protocol.version=2 fetch --prune --progress --no-recurse-submodules https://github.com/${{ github.event.client_payload.repository }}.git ${{ github.event.client_payload.sha }}
-          echo "ref=${{ github.event.client_payload.ref }}" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Merge the dispatching ref
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      run: |
-        git config user.name "Multipass CI Bot"
-        git config user.email "multipass-ci-bot@canonical.com"
-        git merge FETCH_HEAD -m "Automatic merge of ${{ github.event.client_payload.ref }}@$( git rev-parse --short FETCH_HEAD )"
-
-    - name: Create the branch
-      run: git branch ${{ env.HEAD_REF }}
-
-    - name: Remove authentication
-      run: git config --local http.https://github.com/.extraheader ""
-
-    - name: Upload the repository
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git/**
-        if-no-files-found: error
-        include-hidden-files: true
-        retention-days: 3
-
-  Lint:
-    needs: Checkout
-    runs-on: ubuntu-latest
-
-    if: ${{ github.event_name != 'push' }}
+    outputs:
+      conclusion: ${{ steps.check-lint.outputs.conclusion }}
 
     steps:
-    - name: Retrieve the repository
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git
+      - name: Check out code
+        uses: actions/checkout@v4
 
-    - name: Check out the code
-      run: |
-        git checkout --progress --force ${{ env.HEAD_REF }}
-
-    - name: Lint the code
-      uses: ./.github/actions/lint
+      - name: Check Lint Status
+        id: check-lint
+        uses: ./.github/actions/check-lint
 
   GetMatrix:
     runs-on: ubuntu-latest
@@ -103,26 +47,24 @@ jobs:
     - name: Determine build matrix
       id: set-matrix
       run: |
+        set -euo pipefail
+
         MATRIX='{"include": ['
-        [[ '${{ github.event.pull_request.draft }}' != 'true' && '${{ github.event.client_payload.draft }}' != 'true' ]] && MATRIX+='{"runs-on": "windows-latest"},'
+        MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
         MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"}'
         MATRIX+=']}'
+
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    needs: [Checkout, Lint, GetMatrix]
+    needs: [CheckLint, GetMatrix]
 
-    # Allow skipped Lint
-    # Let Lint fail on pull requests and outside of bors runs
+    # Proceed if Lint failed on a PR
     if: |
-      ${{
-        success()
-        || needs.Lint.result == 'skipped'
-        || ( needs.Lint.result == 'failure'
-             && ( github.event_name == 'pull_request'
-                  || github.event.client_payload.dispatch_ci != 'true' ) )
-      }}
+      success() &&
+        (needs.CheckLint.outputs.conclusion == 'success' ||
+          (needs.CheckLint.outputs.conclusion == 'failure' && github.event_name == 'pull_request'))
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -130,16 +72,8 @@ jobs:
 
     outputs:
       build-label:     ${{ steps.build-params.outputs.label }}
-      mac-x86-status:  ${{ steps.publish-data.outputs.macOS-x86_64-status }}
       mac-x86-package: ${{ steps.publish-data.outputs.macOS-x86_64-package }}
-      mac-x86-check:   ${{ steps.publish-data.outputs.macOS-x86_64-check_id }}
-      mac-arm-status:  ${{ steps.publish-data.outputs.macOS-arm64-status }}
       mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
-      mac-arm-check:   ${{ steps.publish-data.outputs.macOS-arm64-check_id }}
-      windows-status:  ${{ steps.publish-data.outputs.Windows--status }}
-      windows-package: ${{ steps.publish-data.outputs.Windows--package }}
-      windows-url:     ${{ steps.publish-data.outputs.Windows--url }}
-      windows-check:   ${{ steps.publish-data.outputs.Windows--check_id }}
 
     runs-on: ${{ matrix.runs-on }}
 
@@ -147,34 +81,13 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/build
       CCACHE_DIR: ${{ github.workspace }}/build/ccache
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
-      OPAM_COMP: "4.11.1"
-      OPAMVERBOSE: 1
-      OPAMYES: 1
 
     steps:
-
-    - name: Create a check on public
-      id: public-check
-      if: ${{ github.event_name == 'repository_dispatch' }}
-      uses: canonical/actions/check@release
+    - name: Check out code
+      uses: actions/checkout@v4
       with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        name: ${{ matrix.arch && format('{0}-{1}', runner.os, matrix.arch) || runner.os }}
-        status: in_progress
-        details_url: ${{ env.RUN_URL }}
-
-    - name: Set the arch wrapper
-      if: ${{ matrix.arch }}
-      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
-
-    - name: Retrieve the repository
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git
+        fetch-depth: 0 # Need full history to derive version
+        submodules: 'recursive'
 
     - name: Enable symlinks
       if: ${{ runner.os == 'Windows' }}
@@ -184,30 +97,21 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       run: git config --local core.autocrlf false
 
-    - name: Check out the code
-      # This can't be easily abstracted into our `checkout` action due to a chicken'n'egg problem:
-      # GitHub reads ./* actions from $PWD, so it needs to be checked out. It could be extracted
-      # into an external repository, but that would bring its own set of issues.
-      # Authenticate with the new token.
-      run: |
-        ${{ format('git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $( {0} )"',
-                   format(runner.os != 'Windows' && 'echo -n x-access-token:{0} | base64' || '[Convert]::ToBase64String([System.Text.Encoding]::Ascii.GetBytes(''x-access-token:{0}''))', secrets.GITHUB_TOKEN ))
-        }}
-        git checkout --progress --force ${{ env.HEAD_REF }}
-
-    - name: Check out submodules and fetch tags
-      uses: ./.github/actions/checkout
-
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Set up caching
+    - name: Set preferred tar
       if: ${{ runner.os == 'macOS' }}
-      id: cache-params
+      id: preferred-tar
       run: |
-        # Use gnu-tar instead of the system tar
+        # Prepend gnu-tar's (future) location to the path, to prioritize it over system tar
+        # Needed for cache: https://github.com/actions/cache?tab=readme-ov-file#pre-requisites
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
+
+    - name: Set the arch wrapper
+      if: ${{ matrix.arch }}
+      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
@@ -241,14 +145,6 @@ jobs:
       with:
         args: install --yes wget unzip
 
-    - name: Cleanup
-      if: ${{ always() && runner.os == 'macOS' }}
-      uses: canonical/actions/cleanup@release
-      with:
-        # remove everything in the workspace and the dependencies
-        paths: |
-          ${{ github.workspace }}
-
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
@@ -258,21 +154,22 @@ jobs:
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
-      run: |
+      run: | # TODO increase the cache size for standard runners
         ${{ env.ARCH_WRAPPER }} brew install ccache
         ccache --max-size=700M
 
-        # Find common base between full and HEAD to use as cache key.
+        # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
-        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin full
-        echo "key=$( git merge-base origin/full ${{ github.sha }} )" >> $GITHUB_OUTPUT
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
         echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v4
       with:
-        key: ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-${{ steps.setup-ccache.outputs.key }}
+        key: "ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-\
+          ${{ steps.setup-ccache.outputs.cache-key }}"
         restore-keys: |
           ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
         path: ${{ env.CCACHE_DIR }}
@@ -338,13 +235,22 @@ jobs:
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
-      run: |
+      run: >
         ${{ env.ARCH_WRAPPER }} cmake --build . --target package
-        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' || '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' || '( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName' }} )" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
+        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' ||
+        '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
+        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' ||
+        '( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName' }} )" >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
-      run: ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR, runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
+      run: >
+        ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR,
+        runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
       uses: actions/upload-artifact@v4
@@ -374,13 +280,11 @@ jobs:
     - name: Store publishing outputs
       if: always()
       id: publish-data
-      run: |
-        echo "${{ runner.os }}-${{ matrix.arch }}-check_id=${{ steps.public-check.outputs.check_id }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "${{ runner.os }}-${{ matrix.arch }}-url=${{ steps.s3-upload.outputs.url }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "${{ runner.os }}-${{ matrix.arch }}-status=${{ job.status }}" >> ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+      run: >
+        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >>
+        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
-  PublishAndDispatch:
+  CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
     if: always()
 
@@ -389,39 +293,8 @@ jobs:
     runs-on: macos-13
 
     steps:
-    - name: Update the Windows check on public
-      if: ${{ always() && needs.BuildAndTest.outputs.windows-check }}
-      uses: canonical/actions/check@release
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ needs.BuildAndTest.outputs.windows-check }}
-        conclusion: ${{ needs.BuildAndTest.outputs.windows-status }}
-        output: |
-          ${{
-            needs.BuildAndTest.outputs.windows-url
-              && format('{{ "summary": "Windows build complete", "text_description": "[{0}]({1})" }}',
-                        needs.BuildAndTest.outputs.windows-package, needs.BuildAndTest.outputs.windows-url)
-              || ''
-          }}
-
-    - name: Cleanup
-      if: ${{ always() }}
-      uses: canonical/actions/cleanup@release
-      with:
-        paths: |
-          ${{ github.workspace }}
-
-    - name: Retrieve the repository
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.HEAD_REF }}.git
-        path: .git
-
-    - name: Check out the code
-      run: git checkout --progress --force ${{ env.HEAD_REF }}
+    - name: Check out code
+      uses: actions/checkout@v4
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
@@ -438,7 +311,9 @@ jobs:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package }}
 
     - name: Set the arch wrapper
-      run: echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple && echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
+      run: >
+        echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple &&
+          echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
 
     - name: Combine the macOS package
       id: combine-package
@@ -462,7 +337,7 @@ jobs:
         echo "name=${PKG}" >> $GITHUB_OUTPUT
         echo "path=$( greadlink -f ${PKG} )" >> $GITHUB_OUTPUT
 
-    - name: Upload package
+    - name: Upload combined macOS package
       if: ${{ steps.combine-package.outputs.path }}
       uses: actions/upload-artifact@v4
       with:
@@ -471,7 +346,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
-    - name: Publish package on S3
+    - name: Publish combined macOS package on S3
       if: ${{ steps.combine-package.outputs.path }}
       id: s3-upload
       uses: canonical/actions/s3-upload@release
@@ -487,87 +362,18 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-    - name: Update the macOS x86 check on public
-      if: ${{ always() && needs.BuildAndTest.outputs.mac-x86-check }}
-      uses: canonical/actions/check@release
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ needs.BuildAndTest.outputs.mac-x86-check }}
-        conclusion: ${{ needs.BuildAndTest.outputs.mac-x86-status != 'success' && needs.BuildAndTest.outputs.mac-x86-status || job.status }}
-        output: |
-          ${{
-            steps.s3-upload.outputs.url
-              && format('{{ "summary": "macOS (x86_64) build complete", "text_description": "[{0}]({1})" }}',
-                        steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
-              || ''
-          }}
+  DeleteSeparateMacPackages:
+    if: ${{ success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
 
-    - name: Update the macOS ARM check on public
-      if: ${{ always() && needs.BuildAndTest.outputs.mac-arm-check }}
-      uses: canonical/actions/check@release
-      with:
-        app_id: ${{ secrets.APP_ID }}
-        private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        repo: ${{ github.event.client_payload.repository }}
-        sha: ${{ github.event.client_payload.head_sha }}
-        check_id: ${{ needs.BuildAndTest.outputs.mac-arm-check }}
-        conclusion: ${{ needs.BuildAndTest.outputs.mac-arm-status != 'success' && needs.BuildAndTest.outputs.mac-arm-status || job.status }}
-        output: |
-          ${{
-            steps.s3-upload.outputs.url
-            && format ('{{ "summary": "macOS (arm64) build complete", "text_description": "[{0}]({1})" }}',
-                       steps.combine-package.outputs.name, steps.s3-upload.outputs.url)
-            || ''
-          }}
-
-    - name: Prepare dispatch inputs
-      id: prepare-dispatch
-      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
-      run: |
-        ${ARCH_WRAPPER} brew install jq
-
-        INPUTS=""
-
-        if [ -n "${{ steps.s3-upload.outputs.url }}" ]; then
-          INPUTS+="{ \"mac-x86-package\": \"${{ steps.s3-upload.outputs.url }}\" }"
-          INPUTS+="{ \"mac-arm-package\": \"${{ steps.s3-upload.outputs.url }}\" }"
-        fi
-
-        if [ -n "${{ needs.BuildAndTest.outputs.windows-url }}" ]; then
-          INPUTS+="{ \"win-package\": \"${{ needs.BuildAndTest.outputs.windows-url }}\" }"
-        fi
-
-        echo "${INPUTS}" | jq -cs '. | add' | awk '{ print "inputs=" $0 }' >> $GITHUB_OUTPUT
-
-    - name: Dispatch integration tests
-      if: ${{ github.event.client_payload.dispatch_ci == 'true' }}
-      uses: Saviq/workflow-dispatch@dist
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        repo: ${{ github.event.client_payload.repository }}
-        ref: ${{ github.event.client_payload.ref }}
-        sha: ${{ github.event.client_payload.sha }}
-        workflow: Integration
-        inputs: ${{ steps.prepare-dispatch.outputs.inputs }}
-      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-error: true
-
-  CleanupArtifacts:
-    if: ${{ success() && needs.PublishAndDispatch.result == 'success' }}
-
-    needs: [BuildAndTest, PublishAndDispatch]
+    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
 
     runs-on: ubuntu-latest
 
     steps:
-    - name: Clean up artifacts
+    - name: Delete unused artifacts from github
       uses: geekyeggo/delete-artifact@v5
       with:
         name: |
-          ${{ env.HEAD_REF }}.git
           ${{ needs.BuildAndTest.outputs.mac-x86-package }}
           ${{ needs.BuildAndTest.outputs.mac-arm-package }}
         failOnError: false
