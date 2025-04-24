@@ -27,7 +27,7 @@
 
 namespace multipass
 {
-class BaseAvailabilityZone final : public AvailabilityZone
+class BaseAvailabilityZone : public AvailabilityZone
 {
 public:
     BaseAvailabilityZone(const std::string& name, const std::filesystem::path& az_directory);
