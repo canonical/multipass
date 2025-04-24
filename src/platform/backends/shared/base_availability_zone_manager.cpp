@@ -148,17 +148,15 @@ std::string BaseAvailabilityZoneManager::ZoneCollection::next_available()
     auto current = start;
     do
     {
-        if (current->get()->is_available())
-        {
-            const auto result = current->get()->get_name();
-            if (++current == zones.end())
-                current = zones.begin();
-            automatic_zone = current;
-            return result;
-        }
-
+        const auto& az = *current->get();
         if (++current == zones.end())
             current = zones.begin();
+
+        if (az.is_available())
+        {
+            automatic_zone = current;
+            return az.get_name();
+        }
     } while (current != start);
 
     throw NoAvailabilityZoneAvailable{};
