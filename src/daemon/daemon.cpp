@@ -2030,6 +2030,12 @@ try // clang-format on
             continue;
         }
 
+        if (vm->current_state() == VirtualMachine::State::unavailable)
+        {
+            mpl::log(mpl::Level::info, name, "Ignoring mount since instance unavailable.");
+            continue;
+        }
+
         auto& vm_mounts = mounts[name];
         if (vm_mounts.find(target_path) != vm_mounts.end())
         {
@@ -2249,6 +2255,16 @@ try // clang-format on
                 return this->shutdown_vm(vm, delay_minutes);
             };
 
+        operation = [op = std::move(operation)](VirtualMachine& vm) {
+            if (vm.current_state() == VirtualMachine::State::unavailable)
+            {
+                mpl::log(mpl::Level::info, vm.vm_name, "Ignoring stop since instance is unavailable.");
+                return grpc::Status::OK;
+            }
+
+            return op(vm);
+        };
+
         status = cmd_vms(instance_selection.operative_selection, operation);
     }
 
@@ -2279,6 +2295,12 @@ try // clang-format on
     {
         config->factory->require_suspend_support();
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
+            if (vm.current_state() == VirtualMachine::State::unavailable)
+            {
+                mpl::log(mpl::Level::info, vm.vm_name, "Ignoring suspend since instance is unavailable.");
+                return grpc::Status::OK;
+            }
+
             stop_mounts(vm.vm_name);
 
             vm.suspend();
@@ -2314,6 +2336,12 @@ try // clang-format on
 
     const auto& instance_targets = instance_selection.operative_selection;
     status = cmd_vms(instance_targets, [this](auto& vm) {
+        if (vm.current_state() == VirtualMachine::State::unavailable)
+        {
+            mpl::log(mpl::Level::info, vm.vm_name, "Ignoring restart since instance is unavailable.");
+            return grpc::Status::OK;
+        }
+
         stop_mounts(vm.vm_name);
 
         return reboot_vm(vm);
@@ -2387,6 +2415,12 @@ try // clang-format on
             {
                 const auto& instance_name = vm_it->first;
 
+                if (vm_it->second->current_state() == VirtualMachine::State::unavailable)
+                {
+                    mpl::log(mpl::Level::info, instance_name, "Ignoring delete since instance is unavailable.");
+                    continue;
+                }
+
                 auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
                                                                                            : snapshot_pick_it->second;
@@ -2430,9 +2464,16 @@ try // clang-format on
         const auto& name = path_entry.instance_name();
         const auto target_path = QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
 
-        if (operative_instances.find(name) == operative_instances.end())
+        auto vm = operative_instances.find(name);
+        if (vm == operative_instances.end())
         {
             add_fmt_to(errors, "instance '{}' does not exist", name);
+            continue;
+        }
+
+        if (vm->second->current_state() == VirtualMachine::State::unavailable)
+        {
+            mpl::log(mpl::Level::info, name, "Ignoring umount since instance unavailable.");
             continue;
         }
 
@@ -3594,6 +3635,12 @@ mp::Daemon::async_wait_for_ssh_and_start_mounts_for(const std::string& name, con
             return fmt::to_string(errors);
         }
         const auto vm = it->second;
+
+        if (vm->current_state() == VirtualMachine::State::unavailable)
+        {
+            return fmt::to_string(errors);
+        }
+
         vm->wait_until_ssh_up(timeout);
 
         if (std::is_same<Reply, LaunchReply>::value)
