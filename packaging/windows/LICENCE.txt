@@ -1,10 +1,10 @@
-### Multipass
+#### Multipass
 Copyright © Canonical Ltd.
 GPL-3.0
 
 https://github.com/canonical/multipass/
 
-### Open source projects used directly:
+#### Open source projects used directly:
 - fmt: https://github.com/fmtlib/fmt
 - grpc: https://github.com/grpc/grpc
   - abseil-cpp: https://github.com/abseil/abseil-cpp
@@ -19,11 +19,11 @@ https://github.com/canonical/multipass/
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
 - yaml-cpp: https://github.com/jbeder/yaml-cpp
 
-### Additional binaries used:
+#### Additional binaries used:
 - qemu (qemu-img): https://chocolatey.org/packages/qemu-img
 - OpenSSL (libssl-1_1-x64.dll & libcrypto-1_1-x64.dll): https://chocolatey.org/packages/openssl
 
-### Licensing:
+#### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
 
 - fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
@@ -56,10 +56,10 @@ Below is a summary of the licensing used in the respective projects. See their s
   - OpenSSL; Copyright (c) 1998-2020 The OpenSSL Project.
   - SSLeay; Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
 
-### Licenses:
+#### Licenses:
 Below are the contents of all the licenses used across all the projects distributed along with Multipass.
 
-### Apache License 2.0
+#### Apache License 2.0
 ```
                                  Apache License
                            Version 2.0, January 2004
@@ -239,7 +239,7 @@ Below are the contents of all the licenses used across all the projects distribu
    END OF TERMS AND CONDITIONS
    ```
 
-### Boost Software License - Version 1.0 - August 17th, 2003
+#### Boost Software License - Version 1.0 - August 17th, 2003
 ```
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
@@ -264,7 +264,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### BSD 2-Clause "Simplified" License
+#### BSD 2-Clause "Simplified" License
 ```
 All rights reserved.
 
@@ -289,7 +289,7 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### BSD 3-Clause "New" or "Revised" License
+#### BSD 3-Clause "New" or "Revised" License
 ```
 All rights reserved.
 
@@ -320,7 +320,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### GNU GPL Version 3 License
+#### GNU GPL Version 3 License
 ```
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 3, 29 June 2007
@@ -945,7 +945,7 @@ copy of the Program in return for a fee.
 		     END OF TERMS AND CONDITIONS
 ```
 
-### GNU GPL Version 2 License
+#### GNU GPL Version 2 License
 ```
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
@@ -1229,7 +1229,7 @@ POSSIBILITY OF SUCH DAMAGES.
 		     END OF TERMS AND CONDITIONS
 ```
 
-### GNU LGPL Version 2.1 License
+#### GNU LGPL Version 2.1 License
 ```
 		   GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
@@ -1690,7 +1690,7 @@ DAMAGES.
 		     END OF TERMS AND CONDITIONS
 ```
 
-### GNU LGPL Version 3 License
+#### GNU LGPL Version 3 License
 ```
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -1859,7 +1859,7 @@ permanent authorization for you to choose that version for the
 Library.
 ```
 
-### ISC License
+#### ISC License
 ```
 /* Copyright (c) 2015, Google Inc.
  *
@@ -1876,7 +1876,7 @@ Library.
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 ```
 
-### MIT License
+#### MIT License
 ```
 Permission to use, copy, modify, and distribute this software and its documentation
 for any purpose and without fee is hereby granted, provided that the above copyright
@@ -1888,7 +1888,7 @@ suitability of this software for any purpose. It is provided "as is" without exp
 or implied warranty.
 ```
 
-### OpenSSL License
+#### OpenSSL License
 ```
 /* ====================================================================
  * Copyright (c) 1998-2019 The OpenSSL Project.  All rights reserved.
@@ -1945,7 +1945,7 @@ or implied warranty.
  */
 ```
 
-### SSLeay License
+#### SSLeay License
 ```
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
@@ -2005,7 +2005,7 @@ or implied warranty.
  */
  ```
 
-### libssh OpenSSL Exception
+#### libssh OpenSSL Exception
 ```
 Linking with OpenSSL
   17. In addition, as a special exception, we give permission to link the code of
@@ -2018,7 +2018,7 @@ do so. If you do not wish to do so, delete this exception statement from your
 version.
 ```
 
-### libffi License
+#### libffi License
 ```
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -2040,7 +2040,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### p11-kit License
+#### p11-kit License
 ```
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -2071,7 +2071,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 ```
 
-### xz-embedded License
+#### xz-embedded License
 ```
 All the files in this package have been written by Lasse Collin
 and/or Igor Pavlov. All these files have been put into the
@@ -2080,7 +2080,7 @@ public domain. You can do whatever you want with these files.
 As usual, this software is provided "as is", without any warranty.
 ```
 
-### zlib License
+#### zlib License
 ```
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
