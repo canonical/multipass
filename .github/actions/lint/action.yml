@@ -52,7 +52,8 @@ runs:
       set -e -o pipefail
       git submodule update --init 3rd-party/flutter
       if [ ! -f "3rd-party/flutter/bin/dart" ]; then
-        echo "##[error] Flutter submodule not initialized. Run 'git submodule update --init 3rd-party/flutter' to fix this issue."
+        echo -n "##[error] Flutter submodule not initialized. "
+        echo "Run 'git submodule update --init 3rd-party/flutter' to fix this issue."
         exit 1
       fi
 
@@ -61,6 +62,7 @@ runs:
     run: |
       set -e -o pipefail
       if ! 3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed src/client/gui; then
-        echo "##[error] Flutter code is not properly formatted. Run '3rd-party/flutter/bin/dart format' to fix formatting."
+        echo -n "##[error] Flutter code is not properly formatted. "
+        echo "Run '3rd-party/flutter/bin/dart format' to fix formatting."
         exit 1
       fi
