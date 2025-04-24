@@ -251,9 +251,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: const Text('Launch'),
     );
 
-    final launchAndConfigureNextButton = TextButton(
+    final launchAndConfigureNextButton = OutlinedButton(
       onPressed: () => launch(imageInfo, configureNext: true),
-      child: const Text('Launch & Configure Next'),
+      child: const Text('Launch & Configure next'),
     );
 
     final cancelButton = OutlinedButton(
