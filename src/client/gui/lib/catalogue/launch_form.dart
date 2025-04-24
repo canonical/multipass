@@ -447,7 +447,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final launchAndConfigureNextButton = Tooltip(
       message: tooltipMessage ?? '',
       visible: !selectedZoneAvailable,
-      child: TextButton(
+      child: OutlinedButton(
         onPressed: selectedZoneAvailable
             ? () => launch(imageInfo, configureNext: true)
             : null,
