@@ -490,8 +490,6 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
               const SizedBox(width: 16),
               launchAndConfigureNextButton,
               const SizedBox(width: 16),
-              launchAndConfigureNextButton,
-              const SizedBox(width: 16),
               cancelButton,
             ]),
           ]),
@@ -500,7 +498,6 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     ]);
   }
 
-  void launch(ImageInfo imageInfo, {bool configureNext = false}) {
   void launch(ImageInfo imageInfo, {bool configureNext = false}) {
     final formState = formKey.currentState;
     if (formState == null) return;
