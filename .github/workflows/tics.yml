@@ -31,8 +31,9 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build
-        sudo --preserve-env apt-get build-dep --yes ./
+        sudo apt-get update
+        sudo apt-get install --yes devscripts equivs lcov ninja-build
+        mk-build-deps -s sudo -i
 
     - name: Configure
       run: |
