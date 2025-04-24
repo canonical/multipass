@@ -15,10 +15,18 @@ class ZonesDropdownButton extends ConsumerWidget {
     return PopupMenuButton(
       tooltip: 'Change zone availability',
       position: PopupMenuPosition.under,
-      child: OutlinedButton.icon(
+      child: OutlinedButton(
         onPressed: null,
-        icon: SvgPicture.asset('assets/zones.svg'),
-        label: const Text('Zones', style: TextStyle(color: Colors.black)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset('assets/zones.svg'),
+            const SizedBox(width: 8),
+            const Text('Zones', style: TextStyle(color: Colors.black)),
+            const SizedBox(width: 4),
+            const Icon(Icons.expand_more, color: Colors.black, size: 20),
+          ],
+        ),
       ),
       itemBuilder: (context) => [
         const PopupMenuItem(
