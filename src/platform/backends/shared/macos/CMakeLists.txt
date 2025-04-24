@@ -20,6 +20,6 @@ include_directories(shared_macos
   ..)
 
 target_link_libraries(shared_macos
-  fmt
+  fmt::fmt-header-only
   ssh_common
   Qt6::Core)

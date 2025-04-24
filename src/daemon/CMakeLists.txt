@@ -34,7 +34,7 @@ include_directories(daemon
 target_link_libraries(daemon
   cert
   delayed_shutdown
-  fmt
+  fmt::fmt-header-only
   logger
   petname
   platform
@@ -55,7 +55,7 @@ add_library(delayed_shutdown STATIC
   ${CMAKE_SOURCE_DIR}/include/multipass/delayed_shutdown_timer.h)
 
 target_link_libraries(delayed_shutdown
-  fmt
+  fmt::fmt-header-only
   logger
   ssh_common
   Qt6::Core
@@ -69,7 +69,7 @@ else()
 endif()
 
 target_link_libraries(multipassd
-  fmt
+  fmt::fmt-header-only
   daemon)
 
 # this TLS plugin is common to all platforms, so we can retrieve it

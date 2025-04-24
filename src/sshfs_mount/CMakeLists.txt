@@ -25,7 +25,7 @@ function(add_sshfs_mount_target TARGET_NAME)
     ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount_handler.h)
 
   target_link_libraries(${TARGET_NAME}
-    fmt
+    fmt::fmt-header-only
     logger
     platform
     ssh

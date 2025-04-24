@@ -16,7 +16,7 @@
 if(MSVC)
   add_library(wineventlogger STATIC win_event_logger.cpp)
   qt6_disable_unicode_defines(wineventlogger)
-  target_link_libraries(wineventlogger fmt Qt6::Core)
+  target_link_libraries(wineventlogger fmt::fmt-header-only Qt6::Core)
 elseif(APPLE)
   # Platform specific logger library here
 else()
