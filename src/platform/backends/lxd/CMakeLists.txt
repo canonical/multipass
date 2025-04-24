@@ -23,7 +23,7 @@ add_library(lxd_backend STATIC
 target_link_libraries(lxd_backend
   Qt6::Core
   Qt6::Network
-  fmt
+  fmt::fmt-header-only
   ip_address
   logger
   network

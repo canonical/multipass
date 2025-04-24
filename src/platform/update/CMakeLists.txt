@@ -20,7 +20,7 @@ add_library(update STATIC
 
 target_link_libraries(update
   network
-  fmt
+  fmt::fmt-header-only
   rpc
   semver
   Qt6::Core)

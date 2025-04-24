@@ -25,7 +25,7 @@ function(add_libvirt_target TARGET_NAME)
   target_include_directories(${TARGET_NAME} PRIVATE ${LIBVIRT_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME}
     daemon
-    fmt
+    fmt::fmt-header-only
     ip_address
     qemu_img_utils
     Qt6::Core

@@ -19,6 +19,6 @@ add_library(xz_image_decoder STATIC
 
 target_link_libraries(xz_image_decoder
   xz-embedded
-  fmt
+  fmt::fmt-header-only
   rpc
   Qt6::Core)

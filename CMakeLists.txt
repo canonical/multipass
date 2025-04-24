@@ -152,6 +152,10 @@ find_package(OpenSSL REQUIRED)
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)
 
+# fmt config
+find_package(fmt CONFIG REQUIRED)
+# targets: fmt::fmt, fmt::fmt-header-only
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 

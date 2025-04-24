@@ -28,7 +28,7 @@ function(add_target TARGET_NAME)
 
   target_link_libraries(${TARGET_NAME}
     cert
-    fmt
+    fmt::fmt-header-only
     logger
     ssh_common
     ssh
