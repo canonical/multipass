@@ -2947,6 +2947,22 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
     const std::string blueprint_name = config->blueprint_provider->name_from_blueprint(request->image());
+    // if the launch target is a blueprint instead of an image, issues a deprecation warning
+    if (!blueprint_name.empty())
+    {
+        constexpr auto deprecation_warning =
+            "*** Warning! Blueprints are deprecated and will be removed in a future release. ***\n\n"
+            "You can achieve similar results with cloud-init and other launch options.\n"
+            "Run `multipass help launch` for more info, or find out more at:\n"
+            "- "
+            "https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/manage-instances/"
+            "launch-customized-instances-with-multipass-and-cloud-init/\n"
+            "- https://cloudinit.readthedocs.io\n\n";
+        CreateReply reply;
+        reply.set_log_line(deprecation_warning);
+        server->Write(reply);
+    }
+
     auto name = name_from(checked_args.instance_name, blueprint_name, *config->name_generator, operative_instances);
 
     auto [instance_trail, status] =
