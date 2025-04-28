@@ -36,7 +36,7 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build
+        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
         sudo --preserve-env apt-get build-dep --yes ./
         # mk-build-deps -s sudo -i
 
