@@ -34,15 +34,12 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    # - name: Install build dependencies
-    #   run: |
-    #     sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build
-    #     sudo --preserve-env apt-get build-dep --yes ./
-    #     # mk-build-deps -s sudo -i
+    - name: Install build dependencies
+      run: |
+        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build
+        sudo --preserve-env apt-get build-dep --yes ./
+        # mk-build-deps -s sudo -i
 
-    - name: Setup tmate session
-      uses: canonical/action-tmate@main
-  
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
@@ -57,6 +54,9 @@ jobs:
         mkdir -p ${{ env.COVERAGE_DIR }}
         mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
 
+    - name: Setup tmate session
+      uses: canonical/action-tmate@main
+    
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
       with:
