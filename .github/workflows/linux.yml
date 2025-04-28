@@ -51,9 +51,21 @@ jobs:
         cmake --build ${{ env.BUILD_DIR }} \
               --target covreport \
               -j$(nproc)
-        mkdir -p ${{ env.COVERAGE_DIR }}
-        mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
 
+    - name: Activate virtual environment
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate
+
+    - name: Convert lcov to Cobertura XML
+      run: |
+        pip install gcovr
+        mkdir -p ${{ env.COVERAGE_DIR }}
+        gcovr -r ${{ github.workspace }} \
+              --object-directory ${{ env.BUILD_DIR }} \
+              --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
+              --gcov-ignore-parse-errors
+  
     - name: Setup tmate session
       uses: canonical/action-tmate@main
     
