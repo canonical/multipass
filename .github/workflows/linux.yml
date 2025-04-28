@@ -52,14 +52,12 @@ jobs:
               --target covreport \
               -j$(nproc)
 
-    - name: Activate virtual environment
-      run: |
-        python -m venv .venv
-        source .venv/bin/activate
-
     - name: Convert lcov to Cobertura XML
       run: |
+        python -m venv .venv
+        source .venv/bin/activate 
         pip install gcovr
+
         mkdir -p ${{ env.COVERAGE_DIR }}
         gcovr -r ${{ github.workspace }} \
               --object-directory ${{ env.BUILD_DIR }} \
