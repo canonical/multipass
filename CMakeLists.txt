@@ -174,7 +174,7 @@ function(determine_version OUTPUT_VARIABLE)
                   OUTPUT_STRIP_TRAILING_WHITESPACE
                   ERROR_QUIET)
 
-  execute_process(COMMAND git describe --long
+  execute_process(COMMAND git describe --long --abbrev=8
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
