@@ -17,6 +17,8 @@ jobs:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
       BUILD_DIR: ${{ github.workspace }}/build
       COVERAGE_DIR: ${{ github.workspace }}/coverage
+      NEEDRESTART_SUSPEND: yes
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
     - name: Checkout code
@@ -32,7 +34,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
+        sudo apt-get --preserve-env install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
         mk-build-deps -s sudo -i
 
     - name: Configure
