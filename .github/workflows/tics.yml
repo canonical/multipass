@@ -32,7 +32,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --yes devscripts equivs lcov ninja-build
+        sudo apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
         mk-build-deps -s sudo -i
 
     - name: Configure
@@ -46,8 +46,18 @@ jobs:
         cmake --build ${{ env.BUILD_DIR }} \
               --target covreport \
               -j$(nproc)
+
+    - name: Convert lcov to Cobertura XML
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install gcovr
+
         mkdir -p ${{ env.COVERAGE_DIR }}
-        mv ${{ env.BUILD_DIR }}/coverage/index.html ${{ env.COVERAGE_DIR }}/coverage.html
+        gcovr -r ${{ github.workspace }} \
+              --object-directory ${{ env.BUILD_DIR }} \
+              --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
+              --gcov-ignore-parse-errors
 
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
