@@ -61,6 +61,13 @@ jobs:
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
               --gcov-ignore-parse-errors
 
+    - name: Install Dart
+      uses: dart-lang/setup-dart@v1
+
+    - name: Install Dart analysis tools
+      run: |
+        dart pub global activate cobertura
+
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
       with:
