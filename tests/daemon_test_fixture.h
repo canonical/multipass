@@ -48,8 +48,8 @@ struct fake_vm_properties
 {
     std::string name{"real-zebraphant"};
     std::string default_mac{};
-    std::vector<mp::NetworkInterface> extra_ifaces;
-    std::unordered_map<std::string, mp::VMMount> mounts;
+    std::vector<mp::NetworkInterface> extra_ifaces{};
+    std::unordered_map<std::string, mp::VMMount> mounts{};
     bool deleted = false;
     VirtualMachine::State state = VirtualMachine::State::starting;
 };
