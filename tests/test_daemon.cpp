@@ -382,8 +382,7 @@ TEST_F(Daemon, ensure_that_on_restart_future_completes)
 
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("yakety-yak");
-    EXPECT_CALL(*mock_vm, current_state)
-        .WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mpt::Signal signal;
@@ -2536,7 +2535,7 @@ TEST_P(DaemonIsBridged, is_bridged_works)
     mp::VMSpecs specs{};
     specs.extra_interfaces = extra_interfaces;
 
-    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
+    auto [mock_platform, platform_guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return("generic"));
 
     auto mock_factory = use_a_mock_vm_factory();
