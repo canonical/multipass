@@ -588,8 +588,8 @@ std::string deprecation_warning_message_driver_concatenated(
     const QString driver_name) // TODO lxd and libvirt migration, remove
 {
     constexpr auto driver_deprecation_warning_template_common_part =
-        "***Warning! The {0} driver is deprecated and will be removed in an future "
-        "release.***\n\n";
+        "*** Warning! The {0} driver is deprecated and will be removed in an future "
+        "release. ***\n\n";
 
     constexpr auto driver_deprecation_warning_lxd_part = "The instances will no longer be available in Multipass then, "
                                                          "but they will remain in LXD.\n\n";
