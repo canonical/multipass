@@ -439,8 +439,28 @@ TEST_F(Daemon, calls_on_restart_for_already_running_vms_on_construction)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    // This will need another patch to be landed first. Otherwise the test'll be flaky.
-    // EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, calls_on_restart_for_already_starting_vms_on_construction)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::running;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before, but not now.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
+    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::starting));
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, update_state).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -462,8 +482,7 @@ TEST_F(Daemon, updates_the_deleted_but_non_stopped_vm_state)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state).Times(0);
     EXPECT_CALL(*mock_vm, start).Times(0);
-    // This will need another patch to be landed first. Otherwise the test'll be flaky.
-    // EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, update_state).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
