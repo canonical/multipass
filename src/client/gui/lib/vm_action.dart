@@ -75,9 +75,7 @@ class VmActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = action.allowedStatuses.containsAny(currentStatuses);
     final onPressed = enabled ? function : null;
-    return action == VmAction.delete
-        ? _buildDeleteButton(onPressed)
-        : _buildButton(onPressed);
+    return _buildButton(onPressed);
   }
 
   Widget _buildButton(VoidCallback? onPressed) {
@@ -91,16 +89,6 @@ class VmActionButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-      child: Text(action.name),
-    );
-  }
-
-  Widget _buildDeleteButton(VoidCallback? onPressed) {
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        backgroundColor: const Color(0xffC7162B),
       ),
       child: Text(action.name),
     );
