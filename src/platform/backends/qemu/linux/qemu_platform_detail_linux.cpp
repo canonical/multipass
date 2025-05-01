@@ -15,6 +15,7 @@
  *
  */
 
+#include "multipass/constants.h"
 #include "qemu_platform_detail.h"
 
 #include <multipass/file_ops.h>
@@ -35,7 +36,7 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto category = "qemu platform";
-const QString multipass_bridge_name{"mpqemubr0"};
+const QString multipass_bridge_name{"mpqemubr%1"};
 
 // An interface name can only be 15 characters, so this generates a hash of the
 // VM instance name with a "tap-" prefix and then truncates it.
@@ -100,13 +101,10 @@ void set_ip_forward()
 }
 
 mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir,
-                                         const QString& bridge_name,
-                                         const std::string& subnet)
+                                         const std::vector<std::pair<QString, std::string>>& subnets)
 {
-    create_virtual_switch(subnet, bridge_name);
     set_ip_forward();
-
-    return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, bridge_name, subnet);
+    return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, subnets);
 }
 
 void delete_virtual_switch(const QString& bridge_name)
@@ -118,12 +116,53 @@ void delete_virtual_switch(const QString& bridge_name)
 }
 } // namespace
 
-mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
-    : bridge_name{multipass_bridge_name},
-      network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
+mp::QemuPlatformDetail::Subnet::Subnet(const Path& network_dir, const std::string& name)
+    : bridge_name{multipass_bridge_name.arg(name.c_str())},
       subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
-      dnsmasq_server{init_nat_network(network_dir, bridge_name, subnet)},
       firewall_config{MP_FIREWALL_CONFIG_FACTORY.make_firewall_config(bridge_name, subnet)}
+{
+    create_virtual_switch(subnet, bridge_name);
+}
+
+mp::QemuPlatformDetail::Subnet::~Subnet()
+{
+    delete_virtual_switch(bridge_name);
+}
+
+[[nodiscard]]
+mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(const Path& network_dir)
+{
+    Subnets subnets{};
+    subnets.reserve(default_zone_names.size());
+
+    for (const auto& zone : default_zone_names)
+    {
+        subnets.emplace(std::piecewise_construct,
+                        std::forward_as_tuple(zone),
+                        std::forward_as_tuple(network_dir, zone));
+    }
+
+    return subnets;
+}
+
+[[nodiscard]]
+std::vector<std::pair<QString, std::string>> mp::QemuPlatformDetail::get_subnets_list(const Subnets& subnets)
+{
+    std::vector<std::pair<QString, std::string>> out{};
+    out.reserve(subnets.size());
+
+    for (const auto& [_, subnet] : subnets)
+    {
+        out.emplace_back(subnet.bridge_name, subnet.subnet);
+    }
+
+    return out;
+}
+
+mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
+    : network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
+      subnets{get_subnets(network_dir)},
+      dnsmasq_server{init_nat_network(network_dir, get_subnets_list(subnets))}
 {
 }
 
@@ -131,11 +170,9 @@ mp::QemuPlatformDetail::~QemuPlatformDetail()
 {
     for (const auto& it : name_to_net_device_map)
     {
-        const auto& [tap_device_name, hw_addr] = it.second;
+        const auto& [tap_device_name, hw_addr, _] = it.second;
         remove_tap_device(tap_device_name);
     }
-
-    delete_virtual_switch(bridge_name);
 }
 
 std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
@@ -148,8 +185,8 @@ void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
     auto it = name_to_net_device_map.find(name);
     if (it != name_to_net_device_map.end())
     {
-        const auto& [tap_device_name, hw_addr] = it->second;
-        dnsmasq_server->release_mac(hw_addr);
+        const auto& [tap_device_name, hw_addr, bridge_name] = it->second;
+        dnsmasq_server->release_mac(hw_addr, bridge_name);
         remove_tap_device(tap_device_name);
 
         name_to_net_device_map.erase(name);
@@ -162,17 +199,21 @@ void mp::QemuPlatformDetail::platform_health_check()
     MP_BACKEND.check_if_kvm_is_in_use();
 
     dnsmasq_server->check_dnsmasq_running();
-    firewall_config->verify_firewall_rules();
+    for (const auto& [_, subnet] : subnets)
+    {
+        subnet.firewall_config->verify_firewall_rules();
+    }
 }
 
 QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     // Configure and generate the args for the default network interface
     auto tap_device_name = generate_tap_device_name(vm_desc.vm_name);
+    const QString& bridge_name = subnets.at(vm_desc.zone).bridge_name;
     create_tap_device(tap_device_name, bridge_name);
 
     name_to_net_device_map.emplace(vm_desc.vm_name,
-                                   std::make_pair(tap_device_name, vm_desc.default_mac_address));
+                                   std::make_tuple(tap_device_name, vm_desc.default_mac_address, bridge_name));
 
     QStringList opts;
 

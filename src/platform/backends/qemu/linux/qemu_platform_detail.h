@@ -46,11 +46,26 @@ public:
     void set_authorization(std::vector<NetworkInterfaceInfo>& networks) override;
 
 private:
-    const QString bridge_name;
+    struct Subnet : DisabledCopyMove
+    {
+        const QString bridge_name;
+        const std::string subnet;
+        FirewallConfig::UPtr firewall_config;
+
+        Subnet(const Path& network_dir, const std::string& name);
+        ~Subnet();
+    };
+    using Subnets = std::unordered_map<std::string, Subnet>;
+
+    [[nodiscard]]
+    static Subnets get_subnets(const Path& network_dir);
+
+    [[nodiscard]]
+    static std::vector<std::pair<QString, std::string>> get_subnets_list(const Subnets&);
+
     const Path network_dir;
-    const std::string subnet;
+    const Subnets subnets;
     DNSMasqServer::UPtr dnsmasq_server;
-    FirewallConfig::UPtr firewall_config;
-    std::unordered_map<std::string, std::pair<QString, std::string>> name_to_net_device_map;
+    std::unordered_map<std::string, std::tuple<QString, std::string, QString>> name_to_net_device_map;
 };
 } // namespace multipass

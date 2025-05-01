@@ -34,7 +34,7 @@
 
 namespace multipass
 {
-class QemuPlatform : private DisabledCopyMove
+class QemuPlatform : protected DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<QemuPlatform>;

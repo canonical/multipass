@@ -25,10 +25,9 @@ namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir,
-                                           const QString& bridge_name,
-                                           const std::string& subnet,
+                                           const std::vector<std::pair<QString, std::string>>& subnets,
                                            const QString& conf_file_path)
-    : data_dir(data_dir), bridge_name(bridge_name), subnet{subnet}, conf_file_path{conf_file_path}
+    : data_dir(data_dir), subnets(subnets), conf_file_path{conf_file_path}
 {
 }
 
@@ -39,26 +38,28 @@ QString mp::DNSMasqProcessSpec::program() const
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
 {
-    const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
-    const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
-    const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
+    auto out = QStringList() << "--keep-in-foreground" << "--strict-order" << "--bind-interfaces"
+                             << QString("--pid-file") << "--domain=multipass" << "--local=/multipass/"
+                             << "--except-interface=lo" << "--dhcp-no-override" << "--dhcp-ignore-clid"
+                             << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
+                             << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir)
+                             // This is to prevent it trying to read /etc/dnsmasq.conf
+                             << QString("--conf-file=%1").arg(conf_file_path);
 
-    return QStringList()
-           << "--keep-in-foreground"
-           << "--strict-order"
-           << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
-           << "--local=/multipass/"
-           << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
-           << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
-           << "--dhcp-no-override"
-           << "--dhcp-ignore-clid"
-           << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
-           << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
-           << QString("%1,%2,infinite")
-                  .arg(QString::fromStdString(start_ip.as_string()))
-                  .arg(QString::fromStdString(end_ip.as_string()))
-           // This is to prevent it trying to read /etc/dnsmasq.conf
-           << QString("--conf-file=%1").arg(conf_file_path);
+    for (const auto& [bridge_name, subnet] : subnets)
+    {
+        const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
+        const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
+        const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
+
+        out << QString("--interface=%1").arg(bridge_name)
+            << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string())) << "--dhcp-range"
+            << QString("%1,%2,infinite")
+                   .arg(QString::fromStdString(start_ip.as_string()))
+                   .arg(QString::fromStdString(end_ip.as_string()));
+    }
+
+    return out;
 }
 
 mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
