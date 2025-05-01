@@ -32,7 +32,7 @@ struct MockDNSMasqServer : public DNSMasqServer
     using DNSMasqServer::DNSMasqServer; // ctor
 
     MOCK_METHOD(std::optional<IPAddress>, get_ip_for, (const std::string&), (override));
-    MOCK_METHOD(void, release_mac, (const std::string&), (override));
+    MOCK_METHOD(void, release_mac, (const std::string&, const QString&), (override));
     MOCK_METHOD(void, check_dnsmasq_running, (), (override));
 };
 
@@ -40,7 +40,9 @@ struct MockDNSMasqServerFactory : public DNSMasqServerFactory
 {
     using DNSMasqServerFactory::DNSMasqServerFactory;
 
-    MOCK_METHOD(DNSMasqServer::UPtr, make_dnsmasq_server, (const Path&, const QString&, const std::string&),
+    MOCK_METHOD(DNSMasqServer::UPtr,
+                make_dnsmasq_server,
+                (const Path&, (const std::vector<std::pair<QString, std::string>>&)),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockDNSMasqServerFactory, DNSMasqServerFactory);
