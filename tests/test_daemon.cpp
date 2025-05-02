@@ -38,7 +38,6 @@
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
 #include "path.h"
-#include "signal.h"
 #include "stub_virtual_machine.h"
 #include "tracking_url_downloader.h"
 
@@ -50,6 +49,7 @@
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
+#include <multipass/signal.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
@@ -385,12 +385,12 @@ TEST_F(Daemon, ensure_that_on_restart_future_completes)
     EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
-    mpt::Signal signal;
+    mp::Signal sig;
     // update_state is called by the finished() handler of the future. If it's called, then
     // everything's ok.
-    EXPECT_CALL(*mock_vm, update_state).WillOnce([&signal] {
+    EXPECT_CALL(*mock_vm, update_state).WillOnce([&sig] {
         // Ensure that update_state is delayed until daemon's destructor call.
-        signal.wait();
+        sig.wait();
         // Wait a bit to ensure that daemon's destructor has been run
         std::this_thread::sleep_for(std::chrono::milliseconds{50});
     });
@@ -399,7 +399,7 @@ TEST_F(Daemon, ensure_that_on_restart_future_completes)
 
     {
         mp::Daemon daemon{config_builder.build()};
-        signal.signal();
+        sig.signal();
     }
 }
 

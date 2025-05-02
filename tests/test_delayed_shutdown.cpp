@@ -18,11 +18,11 @@
 #include "common.h"
 #include "mock_ssh_test_fixture.h"
 #include "mock_virtual_machine.h"
-#include "signal.h"
 #include "stub_virtual_machine.h"
 
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/signal.h>
 
 #include <QEventLoop>
 
@@ -49,7 +49,7 @@ struct DelayedShutdown : public Test
 
 TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
 {
-    mpt::Signal finished;
+    mp::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
@@ -90,7 +90,7 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
 
     EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _)).Times(2).WillRepeatedly(Throw(mp::SSHException("nope")));
 
-    mpt::Signal finished;
+    mp::Signal finished;
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
         loop.quit();
         finished.signal();
@@ -104,7 +104,7 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
 
 TEST_F(DelayedShutdown, emits_finished_with_no_timer)
 {
-    mpt::Signal finished;
+    mp::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] { finished.signal(); });
