@@ -38,9 +38,13 @@ QString mp::DNSMasqProcessSpec::program() const
 
 QStringList mp::DNSMasqProcessSpec::arguments() const
 {
-    auto out = QStringList() << "--keep-in-foreground" << "--strict-order" << "--bind-interfaces"
-                             << QString("--pid-file") << "--domain=multipass" << "--local=/multipass/"
-                             << "--except-interface=lo" << "--dhcp-no-override" << "--dhcp-ignore-clid"
+    auto out = QStringList() << "--keep-in-foreground"
+                             << "--strict-order"
+                             << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
+                             << "--local=/multipass/"
+                             << "--except-interface=lo"
+                             << "--dhcp-no-override"
+                             << "--dhcp-ignore-clid"
                              << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
                              << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir)
                              // This is to prevent it trying to read /etc/dnsmasq.conf
