@@ -40,39 +40,68 @@ namespace
 {
 struct QemuPlatformDetail : public Test
 {
-    QemuPlatformDetail()
-        : mock_dnsmasq_server{std::make_unique<mpt::MockDNSMasqServer>()},
-          mock_firewall_config{std::make_unique<mpt::MockFirewallConfig>()}
+    QemuPlatformDetail() : mock_dnsmasq_server{std::make_unique<mpt::MockDNSMasqServer>()}
     {
-        EXPECT_CALL(*mock_backend, get_subnet(_, _)).WillOnce([this](auto...) { return subnet; });
-
-        EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _, _))
-            .WillOnce([this](auto...) { return std::move(mock_dnsmasq_server); });
-
-        EXPECT_CALL(*mock_firewall_config_factory, make_firewall_config(_, _))
-            .WillOnce([this](auto...) { return std::move(mock_firewall_config); });
-
-        EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), _, _))
-            .WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_utils,
-                    run_cmd_for_status(QString("ip"),
-                                       QStringList({"addr", "show", multipass_bridge_name}),
-                                       _))
-            .WillOnce(Return(false))
-            .WillOnce(Return(true));
+                    run_cmd_for_status(QString("ip"), Not(ElementsAre(QString("addr"), QString("show"), _)), _))
+            .WillRepeatedly(Return(true));
+
+        for (const auto& vswitch : switches)
+        {
+            EXPECT_CALL(*mock_backend, get_subnet(_, vswitch.bridge_name)).WillOnce([subnet = vswitch.subnet](auto...) {
+                return subnet;
+            });
+
+            EXPECT_CALL(*mock_firewall_config_factory, make_firewall_config(vswitch.bridge_name, vswitch.subnet))
+                .WillOnce([this, &vswitch](auto...) { return std::move(vswitch.mock_firewall_config); });
+
+            EXPECT_CALL(*mock_utils,
+                        run_cmd_for_status(QString("ip"),
+                                           ElementsAre(QString("addr"), QString("show"), QString(vswitch.bridge_name)),
+                                           _))
+                .WillOnce(Return(false))
+                .WillOnce(Return(true));
+        }
+
+        EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _)).WillOnce([this](auto...) {
+            return std::move(mock_dnsmasq_server);
+        });
 
         EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1));
     };
 
+    struct Switch
+    {
+        QString bridge_name;
+        std::string hw_addr;
+        std::string subnet;
+        std::string name;
+        mutable std::unique_ptr<multipass::test::MockFirewallConfig> mock_firewall_config;
+
+        Switch(const QString& bridge_name,
+               const std::string& hw_addr,
+               const std::string& subnet,
+               const std::string& name)
+            : bridge_name(bridge_name),
+              hw_addr(hw_addr),
+              subnet(subnet),
+              name(name),
+              mock_firewall_config(std::make_unique<mpt::MockFirewallConfig>())
+        {
+        }
+
+        Switch(const Switch& other) : Switch(other.bridge_name, other.hw_addr, other.subnet, other.name)
+        {
+        }
+    };
+    const std::vector<Switch> switches{{"mpqemubrzone1", "52:54:00:6f:29:7e", "192.168.64", "foo"},
+                                       {"mpqemubrzone2", "52:54:00:6f:29:7f", "192.168.96", "bar"},
+                                       {"mpqemubrzone3", "52:54:00:6f:29:80", "192.168.128", "baz"}};
+
     mpt::TempDir data_dir;
-    const QString multipass_bridge_name{"mpqemubr0"};
-    const std::string hw_addr{"52:54:00:6f:29:7e"};
-    const std::string subnet{"192.168.64"};
-    const std::string name{"foo"};
 
     std::unique_ptr<mpt::MockDNSMasqServer> mock_dnsmasq_server;
-    std::unique_ptr<mpt::MockFirewallConfig> mock_firewall_config;
 
     mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils* mock_utils = utils_attr.first;
@@ -96,69 +125,81 @@ struct QemuPlatformDetail : public Test
 };
 } // namespace
 
-TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitch)
+TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
 {
-    const QString qstring_subnet{QString::fromStdString(subnet)};
+    for (const auto& vswitch : switches)
+    {
+        const QString qstring_subnet{QString::fromStdString(vswitch.subnet)};
 
-    EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"),
-                                               QString("add"),
-                                               multipass_bridge_name,
-                                               QString("address"),
-                                               _,
-                                               QString("type"),
-                                               QString("bridge")),
-                                   _))
-        .WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("address"),
-                                               QString("add"),
-                                               QString("%1.1/24").arg(qstring_subnet),
-                                               QString("dev"),
-                                               multipass_bridge_name,
-                                               "broadcast",
-                                               QString("%1.255").arg(qstring_subnet)),
-                                   _))
-        .WillOnce(Return(true));
-    EXPECT_CALL(
-        *mock_utils,
-        run_cmd_for_status(
-            QString("ip"),
-            ElementsAre(QString("link"), QString("set"), multipass_bridge_name, QString("up")),
-            _))
-        .WillOnce(Return(true));
+        EXPECT_CALL(*mock_utils,
+                    run_cmd_for_status(QString("ip"),
+                                       ElementsAre(QString("link"),
+                                                   QString("add"),
+                                                   vswitch.bridge_name,
+                                                   QString("address"),
+                                                   _,
+                                                   QString("type"),
+                                                   QString("bridge")),
+                                       _))
+            .WillOnce(Return(true));
+        EXPECT_CALL(*mock_utils,
+                    run_cmd_for_status(QString("ip"),
+                                       ElementsAre(QString("address"),
+                                                   QString("add"),
+                                                   QString("%1.1/24").arg(qstring_subnet),
+                                                   QString("dev"),
+                                                   vswitch.bridge_name,
+                                                   "broadcast",
+                                                   QString("%1.255").arg(qstring_subnet)),
+                                       _))
+            .WillOnce(Return(true));
+
+        EXPECT_CALL(*mock_utils,
+                    run_cmd_for_status(QString("ip"),
+                                       ElementsAre(QString("link"), QString("set"), vswitch.bridge_name, QString("up")),
+                                       _))
+            .WillOnce(Return(true));
+    }
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
 
 TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
 {
-    const mp::IPAddress ip_address{fmt::format("{}.5", subnet)};
-
-    EXPECT_CALL(*mock_dnsmasq_server, get_ip_for(hw_addr)).WillOnce([&ip_address](auto...) {
-        return ip_address;
-    });
+    for (const auto& vswitch : switches)
+    {
+        const mp::IPAddress ip_address{fmt::format("{}.5", vswitch.subnet)};
+        EXPECT_CALL(*mock_dnsmasq_server, get_ip_for(vswitch.hw_addr)).WillOnce([ip = ip_address](auto...) {
+            return ip;
+        });
+    }
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    auto addr = qemu_platform_detail.get_ip_for(hw_addr);
+    for (const auto& vswitch : switches)
+    {
+        const mp::IPAddress ip_address{fmt::format("{}.5", vswitch.subnet)};
+        auto addr = qemu_platform_detail.get_ip_for(vswitch.hw_addr);
 
-    EXPECT_EQ(*addr, ip_address);
+        ASSERT_TRUE(addr.has_value());
+        EXPECT_EQ(*addr, ip_address);
+    }
 }
 
 TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpected)
 {
     mp::VirtualMachineDescription vm_desc;
     mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
-    vm_desc.vm_name = "foo";
-    vm_desc.default_mac_address = hw_addr;
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
     vm_desc.extra_interfaces = {extra_interface};
 
     QString tap_name;
 
-    EXPECT_CALL(*mock_dnsmasq_server, release_mac(hw_addr)).WillOnce(Return());
+    EXPECT_CALL(*mock_dnsmasq_server, release_mac(vswitch.hw_addr, vswitch.bridge_name)).WillOnce(Return());
 
     EXPECT_CALL(
         *mock_utils,
@@ -209,7 +250,7 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
                                    _))
         .WillOnce(Return(true));
 
-    qemu_platform_detail.remove_resources_for(name);
+    qemu_platform_detail.remove_resources_for(vswitch.name);
 }
 
 TEST_F(QemuPlatformDetail, platformHealthCheckCallsExpectedMethods)
@@ -217,7 +258,11 @@ TEST_F(QemuPlatformDetail, platformHealthCheckCallsExpectedMethods)
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
     EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
     EXPECT_CALL(*mock_dnsmasq_server, check_dnsmasq_running()).WillOnce(Return());
-    EXPECT_CALL(*mock_firewall_config, verify_firewall_rules()).WillOnce(Return());
+
+    for (const auto& vswitch : switches)
+    {
+        EXPECT_CALL(*vswitch.mock_firewall_config, verify_firewall_rules()).WillOnce(Return());
+    }
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
