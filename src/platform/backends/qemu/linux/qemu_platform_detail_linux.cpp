@@ -133,8 +133,7 @@ mp::QemuPlatformDetail::Subnet::~Subnet()
     delete_virtual_switch(bridge_name);
 }
 
-[[nodiscard]]
-mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(const Path& network_dir)
+[[nodiscard]] mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(const Path& network_dir)
 {
     Subnets subnets{};
     subnets.reserve(default_zone_names.size());
@@ -149,8 +148,8 @@ mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(const Path& 
     return subnets;
 }
 
-[[nodiscard]]
-std::vector<std::pair<QString, std::string>> mp::QemuPlatformDetail::get_subnets_list(const Subnets& subnets)
+[[nodiscard]] std::vector<std::pair<QString, std::string>> mp::QemuPlatformDetail::get_subnets_list(
+    const Subnets& subnets)
 {
     std::vector<std::pair<QString, std::string>> out{};
     out.reserve(subnets.size());
