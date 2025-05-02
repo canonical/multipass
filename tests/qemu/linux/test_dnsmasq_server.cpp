@@ -87,25 +87,31 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     mpt::ResetProcessFactory scope; // will otherwise pollute other tests
     mpt::TempDir data_dir;
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
-    const QString bridge_name{"dummy-bridge"};
-    const std::string subnet{"192.168.64"};
-    const std::string error_subnet{
-        "0.0.0"}; // This forces the mock dnsmasq process to exit with error
+
+    const QString dummy_bridge{"dummy-bridge"};
+    const std::string default_subnet{"192.168.64"};
+    const std::string error_subnet{"0.0.0"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
     const std::string expected_ip{"10.177.224.22"};
     const std::string lease_entry =
         "0 "s + hw_addr + " "s + expected_ip +
         " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 
-    mp::DNSMasqServer make_default_dnsmasq_server()
+    [[nodiscard]] static std::vector<std::pair<QString, std::string>> make_subnets(const QString& bridge,
+                                                                                   const std::string& subnet)
     {
-        return mp::DNSMasqServer{data_dir.path(), bridge_name, subnet};
+        return {{bridge, subnet}};
+    }
+
+    mp::DNSMasqServer make_default_dnsmasq_server() const
+    {
+        return mp::DNSMasqServer{data_dir.path(), make_subnets(dummy_bridge, default_subnet)};
     }
 };
 
 TEST_F(DNSMasqServer, startsDnsmasqProcess)
 {
-    EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, subnet));
+    EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), make_subnets(dummy_bridge, default_subnet)));
 }
 
 TEST_F(DNSMasqServer, findsIp)
@@ -133,10 +139,13 @@ TEST_F(DNSMasqServer, releaseMacReleasesIp)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
 
-    mp::DNSMasqServer dns{data_dir.path(), dhcp_release_called, subnet};
+    auto subnets = make_subnets(dhcp_release_called, default_subnet);
+    ASSERT_EQ(subnets.size(), 1);
+
+    mp::DNSMasqServer dns{data_dir.path(), subnets};
     make_lease_entry();
 
-    dns.release_mac(hw_addr);
+    dns.release_mac(hw_addr, subnets.front().first);
 
     EXPECT_TRUE(QFile::exists(dhcp_release_called));
 }
@@ -145,8 +154,11 @@ TEST_F(DNSMasqServer, releaseMacLogsFailureOnMissingIp)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
 
-    mp::DNSMasqServer dns{data_dir.path(), dhcp_release_called, subnet};
-    dns.release_mac(hw_addr);
+    auto subnets = make_subnets(dhcp_release_called, default_subnet);
+    ASSERT_EQ(subnets.size(), 1);
+
+    mp::DNSMasqServer dns{data_dir.path(), subnets};
+    dns.release_mac(hw_addr, subnets.front().first);
 
     EXPECT_FALSE(QFile::exists(dhcp_release_called));
     EXPECT_TRUE(logger->logged_lines.size() > 0);
@@ -156,10 +168,13 @@ TEST_F(DNSMasqServer, releaseMacLogsFailures)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called.fail")};
 
-    mp::DNSMasqServer dns{data_dir.path(), dhcp_release_called, subnet};
+    auto subnets = make_subnets(dhcp_release_called, default_subnet);
+    ASSERT_EQ(subnets.size(), 1);
+
+    mp::DNSMasqServer dns{data_dir.path(), subnets};
     make_lease_entry();
 
-    dns.release_mac(hw_addr);
+    dns.release_mac(hw_addr, subnets.front().first);
 
     EXPECT_TRUE(QFile::exists(dhcp_release_called));
     EXPECT_TRUE(logger->logged_lines.size() > 0);
@@ -170,10 +185,13 @@ TEST_F(DNSMasqServer, releaseMacCrashesLogsFailure)
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
     const std::string crash_hw_addr{"00:00:00:00:00:00"};
 
-    mp::DNSMasqServer dns{data_dir.path(), dhcp_release_called, subnet};
+    auto subnets = make_subnets(dhcp_release_called, default_subnet);
+    ASSERT_EQ(subnets.size(), 1);
+
+    mp::DNSMasqServer dns{data_dir.path(), subnets};
     make_lease_entry(crash_hw_addr);
 
-    dns.release_mac(crash_hw_addr);
+    dns.release_mac(crash_hw_addr, subnets.front().first);
 
     EXPECT_THAT(logger->logged_lines,
                 Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed",
@@ -190,8 +208,9 @@ TEST_F(DNSMasqServer, dnsmasqStartsAndDoesNotThrow)
 
 TEST_F(DNSMasqServer, dnsmasqFailsAndThrows)
 {
-    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}),
-                 std::runtime_error);
+    auto error_subnets = make_subnets(dummy_bridge, error_subnet);
+    ASSERT_EQ(error_subnets.size(), 1);
+    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), error_subnets}), std::runtime_error);
 }
 
 TEST_F(DNSMasqServer, dnsmasqCreatesConfFile)
@@ -256,7 +275,7 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
     std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope =
         mpt::MockProcessFactory::Inject();
 
-    inline static const auto exe = mp::DNSMasqProcessSpec{{}, {}, {}, {}}.program();
+    inline static const auto exe = mp::DNSMasqProcessSpec{{}, {}, {}}.program();
 };
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasqCheckSkipsStartIfAlreadyRunning)
