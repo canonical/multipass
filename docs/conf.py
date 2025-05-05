@@ -205,6 +205,7 @@ linkcheck_ignore = [
     "https://sourceforge.net/projects/vcxsrv/",
     "https://sourceforge.net/projects/xming/",
     "http://www.straightrunning.com/XmingNotes/",
+    "https://unix.stackexchange.com", # it seems stackexchange is now blocking bots
     ]
 
 linkcheck_retries = 3
