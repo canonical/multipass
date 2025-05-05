@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 function(add_target TARGET_NAME)
   if(LINUX)
     add_library(${TARGET_NAME} STATIC
@@ -21,6 +20,23 @@ function(add_target TARGET_NAME)
 
     target_link_libraries(${TARGET_NAME}
       logger_linux)
+  elseif(MSVC)
+    add_library(${TARGET_NAME} STATIC
+      platform_proprietary.cpp
+      platform_win.cpp)
+    qt6_disable_unicode_defines(${TARGET_NAME})
+    target_link_libraries(${TARGET_NAME}
+      jsoncpp_static
+      shared_win
+      scope_guard
+      wineventlogger)
+  elseif(APPLE)
+    add_library(${TARGET_NAME} STATIC
+      platform_osx.cpp
+      platform_proprietary.cpp
+      platform_unix.cpp)
+    target_link_libraries(${TARGET_NAME}
+      shared_macos)
   endif()
 
   foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)

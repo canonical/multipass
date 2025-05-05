@@ -23,6 +23,8 @@
 #include <QCoreApplication>
 #include <QDir>
 
+#include <stdexcept>
+
 namespace mpt = multipass::test;
 
 QString mpt::test_data_path()

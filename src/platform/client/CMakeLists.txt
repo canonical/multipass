@@ -12,7 +12,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+if(MSVC)
+add_library(client_platform STATIC
+  client_platform_windows.cpp)
+elseif(APPLE)
 add_library(client_platform STATIC
   client_platform.cpp)
+else()
+add_library(client_platform STATIC
+  client_platform.cpp)
+endif()
 
-target_link_libraries(client_platform Qt6::Core)
+target_link_libraries(client_platform
+  Qt6::Core
+  console
+  fmt::fmt-header-only)

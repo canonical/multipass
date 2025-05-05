@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<installer-gui-script minSpecVersion="1.0">
+    <title>@CPACK_PACKAGE_NAME@</title>
+    <allowed-os-versions>
+        <os-version min="@CPACK_OSX_DEPLOYMENT_TARGET@"/>
+    </allowed-os-versions>
+    <welcome file="@CPACK_RESOURCE_FILE_WELCOME_NOPATH@"/>
+    <readme file="@CPACK_RESOURCE_FILE_README_NOPATH@"/>
+    <license file="@CPACK_RESOURCE_FILE_LICENSE_NOPATH@"/>
+    <options allow-external-scripts="no" customize="allow" rootVolumeOnly="false" hostArchitectures="@CMAKE_HOST_SYSTEM_PROCESSOR@"></options>
+
+    @CPACK_PACKAGEMAKER_CHOICES@
+
+    <installation-check script="InstallationCheck();"/>
+    <script>
+        function InstallationCheck()
+        {
+            var hv_support = system.sysctl("kern.hv_support")
+            if (hv_support != 1)
+            {
+                my.result.title = system.localizedString("Unsupported CPU");
+                my.result.message = system.localizedString("Your CPU does not have the features necessary for Multipass. Installation cannot proceed.");
+                my.result.type = "Fatal";
+                return false;
+            }
+            return true;
+        }
+    </script>
+</installer-gui-script>
+

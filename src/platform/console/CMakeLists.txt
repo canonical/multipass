@@ -16,9 +16,18 @@
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     console.cpp
-    terminal.cpp
-    unix_console.cpp
-    unix_terminal.cpp)
+    terminal.cpp)
+
+  if(MSVC)
+    target_sources(${TARGET_NAME} PRIVATE
+      windows_console.cpp
+      windows_terminal.cpp)
+    qt6_disable_unicode_defines(${TARGET_NAME})
+  else()
+    target_sources(${TARGET_NAME} PRIVATE
+      unix_console.cpp
+      unix_terminal.cpp)
+  endif()
 
   target_link_libraries(${TARGET_NAME}
     client_platform

@@ -2302,7 +2302,7 @@ public:
 };
 } // namespace
 
-TEST_F(LXDBackend, prepares_networking_via_base_factory)
+TEST_F(LXDBackend, preparesNetworkingViaBaseFactory)
 {
     CustomLXDFactory backend{std::move(mock_network_access_manager), data_dir.path(), base_url};
     std::vector<mp::NetworkInterface> extra_networks{{"netid", "mac", false}};

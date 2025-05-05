@@ -33,5 +33,13 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
     set(MULTIPASS_GUI_ARCH arm64)
   endif()
 
-  include("CMakeLists.txt.linux")
+  if(UNIX)
+    if(APPLE)
+      include("CMakeLists.txt.macos")
+    else() # Linux
+      include("CMakeLists.txt.linux")
+    endif()
+  else() # Windows
+    include("CMakeLists.txt.windows")
+  endif()
 endif()
