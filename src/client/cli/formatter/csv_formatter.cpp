@@ -234,7 +234,7 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
 
     fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
     fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Cloud Image"));
-    fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint"));
+    fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
 
     return fmt::to_string(buf);
 }

@@ -99,7 +99,14 @@ inline auto multipass::top_catch_all(std::string_view log_category,
         detail::error(log_category);
     }
 
-    return std::forward<decltype(fallback_return)>(fallback_return);
+    if constexpr (std::is_invocable_v<T>)
+    {
+        return std::invoke(std::forward<decltype(fallback_return)>(fallback_return));
+    }
+    else
+    {
+        return std::forward<decltype(fallback_return)>(fallback_return);
+    }
 }
 
 template <typename Fun, typename... Args>

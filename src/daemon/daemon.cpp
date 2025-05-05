@@ -1305,6 +1305,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
       snapshot_mod_handler{
           register_snapshot_mod(operative_instances, deleted_instances, preparing_instances, *config->factory)}
 {
+    using e_state = VirtualMachine::State;
+
     connect_rpc(daemon_rpc, *this);
     std::vector<std::string> invalid_specs;
 
@@ -1374,32 +1376,52 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         allocated_mac_addrs = std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
 
         // FIXME: somehow we're writing contradictory state to disk.
-        if (spec.deleted && spec.state != VirtualMachine::State::stopped && spec.state != VirtualMachine::State::off)
+        if (spec.deleted && spec.state != e_state::stopped && spec.state != e_state::off)
         {
             mpl::log(mpl::Level::warning,
                      category,
                      fmt::format("{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
                                  name,
                                  static_cast<int>(spec.state),
-                                 static_cast<int>(VirtualMachine::State::stopped)));
-            spec.state = VirtualMachine::State::stopped;
+                                 static_cast<int>(e_state::stopped)));
+            spec.state = e_state::stopped;
         }
 
         if (!spec.deleted)
             init_mounts(name);
         std::unique_lock lock{start_mutex};
-        if (spec.state == VirtualMachine::State::running &&
-            operative_instances[name]->current_state() != VirtualMachine::State::running &&
-            operative_instances[name]->current_state() != VirtualMachine::State::starting)
-        {
-            assert(!spec.deleted);
-            mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
 
-            multipass::top_catch_all(name, [this, &name, &lock]() {
-                operative_instances[name]->start();
-                lock.unlock();
-                on_restart(name);
-            });
+        if (spec.state == e_state::running)
+        {
+            // If the VM was in running state before, we need to do some additional
+            // work to ensure everything is in sync.
+            switch (operative_instances[name]->current_state())
+            {
+            case e_state::running:
+            case e_state::starting:
+            {
+                mpl::log(mpl::Level::info, category, fmt::format("{} needs syncing. Syncing now...", name));
+                // We don't need to start the instance, but we need to ensure that
+                // the daemon side resources for the VM are initialized.
+                multipass::top_catch_all(name, [this, &name, &lock] {
+                    lock.unlock();
+                    on_restart(name);
+                });
+            }
+            break;
+            default:
+            {
+                assert(!spec.deleted);
+                mpl::log(mpl::Level::info, category, fmt::format("{} needs starting. Starting now...", name));
+
+                multipass::top_catch_all(name, [this, &name, &lock]() {
+                    operative_instances[name]->start();
+                    lock.unlock();
+                    on_restart(name);
+                });
+            }
+            break;
+            }
         }
     }
 
@@ -2947,6 +2969,22 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and timeout below) will
     //       need a refactoring to do so.
     const std::string blueprint_name = config->blueprint_provider->name_from_blueprint(request->image());
+    // if the launch target is a blueprint instead of an image, issues a deprecation warning
+    if (!blueprint_name.empty())
+    {
+        constexpr auto deprecation_warning =
+            "*** Warning! Blueprints are deprecated and will be removed in a future release. ***\n\n"
+            "You can achieve similar results with cloud-init and other launch options.\n"
+            "Run `multipass help launch` for more info, or find out more at:\n"
+            "- "
+            "https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/manage-instances/"
+            "launch-customized-instances-with-multipass-and-cloud-init/\n"
+            "- https://cloudinit.readthedocs.io\n\n";
+        CreateReply reply;
+        reply.set_log_line(deprecation_warning);
+        server->Write(reply);
+    }
+
     auto name = name_from(checked_args.instance_name, blueprint_name, *config->name_generator, operative_instances);
 
     auto [instance_trail, status] =
