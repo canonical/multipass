@@ -1060,7 +1060,7 @@ TEST_F(SftpServer, rename_cannot_remove_target_fails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, remove(_)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, remove(An<QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
     EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
@@ -1100,7 +1100,7 @@ TEST_F(SftpServer, rename_failure_fails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, rename(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, rename(An<QFile&>(), _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) { return file.ownerId(); });
     EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) { return file.groupId(); });
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
