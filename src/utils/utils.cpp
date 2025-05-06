@@ -591,7 +591,7 @@ std::string deprecation_warning_message_driver_concatenated(
         "*** Warning! The {0} driver is deprecated and will be removed in an future "
         "release. ***\n\n";
 
-    constexpr auto driver_deprecation_warning_lxd_part = "The instances will no longer be available in Multipass then, "
+    constexpr auto driver_deprecation_warning_lxd_part = "Instances will no longer be available in Multipass then, "
                                                          "but they will remain in LXD.\n\n";
 
     constexpr auto driver_deprecation_warning_libvirt_part =
