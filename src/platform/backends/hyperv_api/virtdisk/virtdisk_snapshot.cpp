@@ -31,9 +31,9 @@ constexpr auto kLogCategory = "virtdisk-snapshot";
 namespace multipass::hyperv::virtdisk
 {
 
-struct CreateVirtdiskSnapshotError : public FormattedExceptionBase<>
+struct CreateVirtdiskSnapshotError : public FormattedExceptionBase<std::system_error>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase<std::system_error>::FormattedExceptionBase;
 };
 
 VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
@@ -59,7 +59,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const QString& filename,
 {
 }
 
-std::string VirtDiskSnapshot::make_snapshot_name(const Snapshot& ss)
+std::string VirtDiskSnapshot::make_snapshot_filename(const Snapshot& ss)
 {
     constexpr static auto kSnapshotNameFormat = "{}.avhdx";
     return fmt::format(kSnapshotNameFormat, ss.get_name());
@@ -67,7 +67,7 @@ std::string VirtDiskSnapshot::make_snapshot_name(const Snapshot& ss)
 
 std::filesystem::path VirtDiskSnapshot::make_snapshot_path(const Snapshot& ss) const
 {
-    return base_vhdx_path.parent_path() / make_snapshot_name(ss);
+    return base_vhdx_path.parent_path() / make_snapshot_filename(ss);
 }
 
 void VirtDiskSnapshot::capture_impl()
@@ -77,10 +77,13 @@ void VirtDiskSnapshot::capture_impl()
     const auto& head_path = base_vhdx_path.parent_path() / head_disk_name();
     const auto& snapshot_path = make_snapshot_path(*this);
 
+    // Check if head disk already exists. The head disk may not exist for a VM
+    // that has no snapshots yet.
     if (!std::filesystem::exists(head_path))
     {
         const auto& parent = get_parent();
-        create_new_child_disk(parent ? make_snapshot_path(*parent) : base_vhdx_path, head_path);
+        const auto& target = parent ? make_snapshot_path(*parent) : base_vhdx_path;
+        create_new_child_disk(target, head_path);
     }
 
     // Step 1: Rename current head to snapshot name
@@ -93,35 +96,56 @@ void VirtDiskSnapshot::capture_impl()
 void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent,
                                              const std::filesystem::path& child) const
 {
+    assert(virtdisk);
+    // The parent must already exist.
     if (!std::filesystem::exists(parent))
-    {
-        throw CreateVirtdiskSnapshotError("The parent disk {} does not exist!", child);
-    }
+        throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
+                                          "Parent disk `{}` does not exist",
+                                          parent};
 
+    // The given child path must not exist
     if (std::filesystem::exists(child))
-    {
-        throw CreateVirtdiskSnapshotError("The target child disk {} already exist!", child);
-    }
+        throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
+                                          "Child disk `{}` already exists",
+                                          child};
 
     virtdisk::CreateVirtualDiskParameters params{};
-    params.path = child;
     params.predecessor = virtdisk::ParentPathParameters{parent};
+    params.path = child;
+    const auto result = virtdisk->create_virtual_disk(params);
+    if (result)
+    {
+        mpl::debug(kLogCategory, "Successfully created the child disk: `{}`", child);
+        return;
+    }
 
-    if (const auto r = virtdisk->create_virtual_disk(params); !r)
-        throw CreateVirtdiskSnapshotError{
-            "Could not create the head differencing disk for the snapshot. Error code: {}",
-            r};
+    throw CreateVirtdiskSnapshotError{result, "Could not create the head differencing disk for the snapshot"};
 }
 
 void VirtDiskSnapshot::reparent_snapshot_disks(const VirtualMachine::SnapshotVista& snapshots,
                                                const std::filesystem::path& new_parent) const
 {
+    // The parent must already exist.
+    if (!std::filesystem::exists(new_parent))
+        throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
+                                          "Parent disk `{}` does not exist",
+                                          new_parent};
+    assert(virtdisk);
     for (const auto& child : snapshots)
     {
         const auto& child_path = make_snapshot_path(*child);
+
+        if (std::filesystem::exists(child_path))
+            throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
+                                              "Child disk `{}` already exists",
+                                              child_path};
         if (const auto result = virtdisk->reparent_virtual_disk(child_path, new_parent); !result)
         {
-            mpl::warn(kLogCategory, "Could not reparent `{}` to `{}`. Error code: {}", child_path, new_parent, result);
+            mpl::warn(kLogCategory,
+                      "Could not reparent `{}` to `{}`: {}",
+                      child_path,
+                      new_parent,
+                      static_cast<std::error_code>(result));
             continue;
         }
         mpl::debug(kLogCategory, "Successfully reparented the child disk `{}` to `{}`", child_path, new_parent);
@@ -138,7 +162,10 @@ void VirtDiskSnapshot::erase_impl()
     if (const auto merge_r = virtdisk->merge_virtual_disk_to_parent(self_path); merge_r)
     {
         const auto& parent_path = parent ? make_snapshot_path(*parent) : base_vhdx_path;
-        mpl::debug(kLogCategory, "Successfully merged differencing disk `{}` to its parent", self_path, parent_path);
+        mpl::debug(kLogCategory,
+                   "Successfully merged differencing disk `{}` to parent disk `{}`",
+                   self_path,
+                   parent_path);
 
         // The actual reparenting of the children needs to happen here.
         // Reparenting is not a simple "-> now this is your parent" like thing. The children
@@ -160,7 +187,7 @@ void VirtDiskSnapshot::erase_impl()
     }
     else
     {
-        throw CreateVirtdiskSnapshotError{"Could not merge differencing disk to parent. Error code: {}", merge_r};
+        throw CreateVirtdiskSnapshotError{merge_r, "Could not merge differencing disk to parent"};
     }
     // Finally, erase the merged disk.
     mpl::debug(kLogCategory, "Removing snapshot file: `{}`", self_path);
@@ -177,7 +204,7 @@ void VirtDiskSnapshot::apply_impl()
     // Restoring a snapshot means we're discarding the head state.
     std::error_code ec{};
     std::filesystem::remove(head_path, ec);
-    mpl::debug(kLogCategory, "apply_impl() -> {} remove {}", head_path, ec.message());
+    mpl::debug(kLogCategory, "apply_impl() -> {} remove: {}", head_path, ec);
 
     // Create a new head from the snapshot
     create_new_child_disk(snapshot_path, head_path);
