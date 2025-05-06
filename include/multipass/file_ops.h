@@ -119,11 +119,17 @@ public:
     virtual void copy(const fs::path& src,
                       const fs::path& dist,
                       fs::copy_options copy_options) const;
-    virtual bool exists(const fs::path& path, std::error_code& err) const;
+    virtual void rename(const fs::path& old_p, const fs::path& new_p) const;
+    virtual void rename(const fs::path& old_p,
+                        const fs::path& new_p,
+                        std::error_code& ec) const noexcept;
+    virtual bool exists(const fs::path& path) const;
+    virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directories(const fs::path& path, std::error_code& err) const;
-    virtual bool remove(const fs::path& path, std::error_code& err) const;
+    virtual bool remove(const fs::path& path) const;
+    virtual bool remove(const fs::path& path, std::error_code& err) const noexcept;
     virtual void create_symlink(const fs::path& to,
                                 const fs::path& path,
                                 std::error_code& err) const;
