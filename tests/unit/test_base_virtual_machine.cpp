@@ -486,7 +486,7 @@ TEST_F(BaseVM, providesSnapshotsView)
         vm.delete_snapshot(sname(i));
 
     ASSERT_EQ(vm.get_num_snapshots(), 4);
-    auto snapshots = vm.view_snapshots();
+    auto snapshots = vm.view_snapshots({});
 
     EXPECT_THAT(snapshots, SizeIs(4));
 
