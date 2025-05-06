@@ -33,6 +33,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include <fmt/format.h>
 
@@ -104,7 +105,8 @@ public:
                                                                     const VMMount& mount) = 0;
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views
-    virtual SnapshotVista view_snapshots() const = 0;
+    using SnapshotPredicate = std::function<bool(const Snapshot&)>;
+    virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
     virtual int get_num_snapshots() const = 0;
 
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
