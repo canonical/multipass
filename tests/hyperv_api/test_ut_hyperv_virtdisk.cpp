@@ -61,7 +61,9 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
     ::testing::MockFunction<decltype(::CreateVirtualDisk)> stub_mock_create_virtual_disk;
     ::testing::MockFunction<decltype(::OpenVirtualDisk)> stub_mock_open_virtual_disk;
     ::testing::MockFunction<decltype(::ResizeVirtualDisk)> stub_mock_resize_virtual_disk;
+    ::testing::MockFunction<decltype(::MergeVirtualDisk)> stub_mock_merge_virtual_disk;
     ::testing::MockFunction<decltype(::GetVirtualDiskInformation)> stub_mock_get_virtual_disk_information;
+    ::testing::MockFunction<decltype(::SetVirtualDiskInformation)> stub_mock_set_virtual_disk_information;
     ::testing::MockFunction<decltype(::CloseHandle)> stub_mock_close_handle;
 
     // Initialize the API table with stub functions, so if any of these fire without
@@ -70,7 +72,9 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
         stub_mock_create_virtual_disk.AsStdFunction(),
         stub_mock_open_virtual_disk.AsStdFunction(),
         stub_mock_resize_virtual_disk.AsStdFunction(),
+        stub_mock_merge_virtual_disk.AsStdFunction(),
         stub_mock_get_virtual_disk_information.AsStdFunction(),
+        stub_mock_set_virtual_disk_information.AsStdFunction(),
         stub_mock_close_handle.AsStdFunction(),
     };
 
