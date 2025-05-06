@@ -205,7 +205,7 @@ TEST_F(TestImageVaultUtils, extractFileWontDeleteFile)
         ++calls;
     };
 
-    EXPECT_CALL(mock_file_ops, remove(_)).Times(0);
+    EXPECT_CALL(mock_file_ops, remove(An<QFile&>())).Times(0);
 
     MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, false);
     EXPECT_EQ(calls, 1);
