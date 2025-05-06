@@ -101,7 +101,7 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
                 // TODO lxd and libvirt migration, remove
                 if (key == mp::driver_key && (val == "lxd" || val == "libvirt"))
                 {
-                    std::cout << deprecation_warning_message_driver_concatenated(val) << std::endl;
+                    std::cout << deprecation_warning_message_driver_concatenated(val);
                 }
 #endif
             }
