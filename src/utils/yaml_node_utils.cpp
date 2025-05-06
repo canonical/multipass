@@ -237,8 +237,8 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
         YAML::Node network_data{};
         network_data["version"] = "2";
 
-        const auto default_ = make_default_interface(default_mac_addr);
-        network_data["ethernets"][default_.name] = default_;
+        const auto default_interface = make_default_interface(default_mac_addr);
+        network_data["ethernets"][default_interface.name] = default_interface;
 
         const auto extra = make_extra_interface(extra_interface.mac_address);
         network_data["ethernets"][extra.name] = extra;
