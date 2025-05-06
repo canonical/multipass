@@ -22,6 +22,7 @@
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
+#include <multipass/file_ops.h>
 
 namespace
 {
@@ -79,7 +80,7 @@ void VirtDiskSnapshot::capture_impl()
 
     // Check if head disk already exists. The head disk may not exist for a VM
     // that has no snapshots yet.
-    if (!std::filesystem::exists(head_path))
+    if (!MP_FILEOPS.exists(head_path))
     {
         const auto& parent = get_parent();
         const auto& target = parent ? make_snapshot_path(*parent) : base_vhdx_path;
@@ -87,7 +88,7 @@ void VirtDiskSnapshot::capture_impl()
     }
 
     // Step 1: Rename current head to snapshot name
-    std::filesystem::rename(head_path, snapshot_path);
+    MP_FILEOPS.rename(head_path, snapshot_path);
 
     // Step 2: Create a new head from the snapshot
     create_new_child_disk(snapshot_path, head_path);
@@ -98,13 +99,13 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 {
     assert(virtdisk);
     // The parent must already exist.
-    if (!std::filesystem::exists(parent))
+    if (!MP_FILEOPS.exists(parent))
         throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
                                           "Parent disk `{}` does not exist",
                                           parent};
 
     // The given child path must not exist
-    if (std::filesystem::exists(child))
+    if (MP_FILEOPS.exists(child))
         throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
                                           "Child disk `{}` already exists",
                                           child};
@@ -126,7 +127,7 @@ void VirtDiskSnapshot::reparent_snapshot_disks(const VirtualMachine::SnapshotVis
                                                const std::filesystem::path& new_parent) const
 {
     // The parent must already exist.
-    if (!std::filesystem::exists(new_parent))
+    if (!MP_FILEOPS.exists(new_parent))
         throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
                                           "Parent disk `{}` does not exist",
                                           new_parent};
@@ -135,7 +136,7 @@ void VirtDiskSnapshot::reparent_snapshot_disks(const VirtualMachine::SnapshotVis
     {
         const auto& child_path = make_snapshot_path(*child);
 
-        if (std::filesystem::exists(child_path))
+        if (MP_FILEOPS.exists(child_path))
             throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
                                               "Child disk `{}` already exists",
                                               child_path};
@@ -191,7 +192,7 @@ void VirtDiskSnapshot::erase_impl()
     }
     // Finally, erase the merged disk.
     mpl::debug(kLogCategory, "Removing snapshot file: `{}`", self_path);
-    std::filesystem::remove(self_path);
+    MP_FILEOPS.remove(self_path);
 }
 
 void VirtDiskSnapshot::apply_impl()
@@ -203,7 +204,7 @@ void VirtDiskSnapshot::apply_impl()
 
     // Restoring a snapshot means we're discarding the head state.
     std::error_code ec{};
-    std::filesystem::remove(head_path, ec);
+    MP_FILEOPS.remove(head_path, ec);
     mpl::debug(kLogCategory, "apply_impl() -> {} remove: {}", head_path, ec);
 
     // Create a new head from the snapshot
