@@ -27,6 +27,7 @@
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
+#include <multipass/file_ops.h>
 
 namespace multipass::hyperv::virtdisk
 {
@@ -155,7 +156,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(const CreateVirtualDiskPara
     auto fill_target =
         [this](const std::wstring& predecessor_path, PCWSTR& target_path, VIRTUAL_STORAGE_TYPE& target_type) {
             std::filesystem::path pp{predecessor_path};
-            if (!std::filesystem::exists(pp))
+            if (!MP_FILEOPS.exists(pp))
             {
                 throw VirtDiskCreateError{"Predecessor VHDX file `{}` does not exist!", pp};
             }
@@ -297,8 +298,6 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
     {
         return OperationResult{NOERROR, L""};
     }
-
-    // auto log_and_yield
 
     mpl::error(kLogCategory, "resize_virtual_disk(...) > ResizeVirtualDisk failed with {}!", resize_result);
 

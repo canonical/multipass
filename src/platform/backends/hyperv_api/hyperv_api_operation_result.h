@@ -46,7 +46,7 @@ struct ResultCode
 
     [[nodiscard]] explicit operator bool() const noexcept
     {
-        return !FAILED(result);
+        return result == ERROR_SUCCESS;
     }
 
     [[nodiscard]] explicit operator HRESULT() const noexcept
