@@ -118,8 +118,16 @@ public:
                  fs::copy_options,
                  std::error_code&),
                 (const, override));
+    MOCK_METHOD(void, rename, (const fs::path& old_p, const fs::path& new_p), (override, const));
+    MOCK_METHOD(void,
+                rename,
+                (const fs::path& old_p, const fs::path& new_p, std::error_code& errc),
+                (override, const, noexcept));
     MOCK_METHOD(bool, exists, (const fs::path& path), (override, const));
-    MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool,
+                exists,
+                (const fs::path& path, std::error_code& err),
+                (override, const, noexcept));
     MOCK_METHOD(bool,
                 is_directory,
                 (const fs::path& path, std::error_code& err),
@@ -132,7 +140,11 @@ public:
                 create_directories,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
-    MOCK_METHOD(bool, remove, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool, remove, (const fs::path& path), (override, const));
+    MOCK_METHOD(bool,
+                remove,
+                (const fs::path& path, std::error_code& err),
+                (override, const, noexcept));
     MOCK_METHOD(void,
                 create_symlink,
                 (const fs::path& to, const fs::path& path, std::error_code& err),
