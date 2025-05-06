@@ -393,6 +393,13 @@ void HCSVirtualMachine::start()
         }
     }();
 
+    if (!status)
+    {
+        state = VirtualMachine::State::stopped;
+        update_state();
+        throw StartComputeSystemException{"Could not start the VM: {}", status};
+    }
+
     mpl::debug(kLogCategory, "start() -> Start/resume VM `{}`, result `{}`", vm_name, status);
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)

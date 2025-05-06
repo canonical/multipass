@@ -58,6 +58,11 @@ struct ImageResizeException : public FormattedExceptionBase<>
     using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
+struct StartComputeSystemException : public FormattedExceptionBase<>
+{
+    using FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
 } // namespace multipass::hyperv
 
 #endif
