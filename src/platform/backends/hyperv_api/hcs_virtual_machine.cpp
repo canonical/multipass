@@ -44,6 +44,7 @@ namespace
  * Category for the log messages.
  */
 constexpr auto kLogCategory = "HyperV-Virtual-Machine";
+constexpr auto kVhdxFileName = "current.vhdx";
 constexpr auto kDefaultSSHPort = 22;
 
 namespace mpl = multipass::logging;
@@ -199,23 +200,56 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
     update_state();
 }
 
+std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
+{
+    const std::filesystem::path base_vhdx = description.image.image_path.toStdString();
+    const std::filesystem::path head_avhdx = base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
+    return std::filesystem::exists(head_avhdx) ? head_avhdx : base_vhdx;
+}
+
+void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> paths) const
+{
+    // std::list, because we need iterator and pointer stability while inserting.
+    // Normal for loop here because we want .end() to be evaluated in every
+    // iteration since we might also insert new elements to the list.
+    for (auto itr = paths.begin(); itr != paths.end(); ++itr)
+    {
+        const auto& path = *itr;
+        mpl::debug(kLogCategory, "Granting access to path `{}`, exists? {}", path, std::filesystem::exists(path));
+        if (std::filesystem::is_symlink(path))
+        {
+            paths.push_back(std::filesystem::canonical(path));
+        }
+
+        if (const auto r = hcs->grant_vm_access(vm_name, path); !r)
+        {
+            mpl::error(kLogCategory,
+                       "Could not grant access to VM `{}` for the path `{}`, error code: {}",
+                       vm_name,
+                       path,
+                       r);
+        }
+    }
+}
+
 bool HCSVirtualMachine::maybe_create_compute_system()
 {
-    hcs::ComputeSystemState cs_state{hcs::ComputeSystemState::unknown};
-
-    // Check if the VM already exist
-    const auto result = hcs->get_compute_system_state(vm_name, cs_state);
-
-    if (!(E_INVALIDARG == static_cast<HRESULT>(result.code)))
     {
-        // Target compute system already exist.
-        return false;
+        hcs::ComputeSystemState cs_state{hcs::ComputeSystemState::unknown};
+        // Check if the VM already exist
+        const auto result = hcs->get_compute_system_state(vm_name, cs_state);
+
+        if (!(E_INVALIDARG == static_cast<HRESULT>(result.code)))
+        {
+            // Target compute system already exist, no need to re-create.
+            return false;
+        }
     }
 
     // FIXME: Handle suspend state?
 
     const auto create_endpoint_params = [this]() {
-        std::vector<hcn::CreateEndpointParameters> endpoint_params{};
+        std::vector<hcn::CreateEndpointParameters> params{};
 
         // The primary endpoint (management)
         hcn::CreateEndpointParameters primary_endpoint{};
@@ -223,7 +257,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         primary_endpoint.endpoint_guid = mac2uuid(description.default_mac_address);
         primary_endpoint.mac_address = description.default_mac_address;
         replace_colon_with_dash(primary_endpoint.mac_address.value());
-        endpoint_params.push_back(primary_endpoint);
+        params.push_back(primary_endpoint);
 
         // Additional endpoints, a.k.a. extra interfaces.
         for (const auto& v : description.extra_interfaces)
@@ -233,9 +267,9 @@ bool HCSVirtualMachine::maybe_create_compute_system()
             extra_endpoint.endpoint_guid = mac2uuid(v.mac_address);
             extra_endpoint.mac_address = v.mac_address;
             replace_colon_with_dash(extra_endpoint.mac_address.value());
-            endpoint_params.push_back(extra_endpoint);
+            params.push_back(extra_endpoint);
         }
-        return endpoint_params;
+        return params;
     }();
 
     for (const auto& endpoint : create_endpoint_params)
@@ -257,15 +291,15 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
     // E_INVALIDARG means there's no such VM.
     // Create the VM from scratch.
-    const auto ccs_params = [this, &create_endpoint_params]() {
-        hcs::CreateComputeSystemParameters ccs_params{};
-        ccs_params.name = description.vm_name;
-        ccs_params.memory_size_mb = description.mem_size.in_megabytes();
-        ccs_params.processor_count = description.num_cores;
-        ccs_params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
-        ccs_params.vhdx_path = description.image.image_path.toStdString();
+    const auto create_compute_system_params = [this, &create_endpoint_params]() {
+        hcs::CreateComputeSystemParameters params{};
+        params.name = description.vm_name;
+        params.memory_size_mb = description.mem_size.in_megabytes();
+        params.processor_count = description.num_cores;
+        params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
+        params.vhdx_path = get_primary_disk_path();
 
-        static auto create_to_add = [this](const auto& create_params) {
+        const auto create_to_add = [this](const auto& create_params) {
             hcs::AddEndpointParameters add_params{};
             add_params.endpoint_guid = create_params.endpoint_guid;
             if (!create_params.mac_address)
@@ -279,27 +313,19 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
         std::transform(create_endpoint_params.begin(),
                        create_endpoint_params.end(),
-                       std::back_inserter(ccs_params.endpoints),
+                       std::back_inserter(params.endpoints),
                        create_to_add);
-        return ccs_params;
+        return params;
     }();
 
-    if (const auto create_result = hcs->create_compute_system(ccs_params); !create_result)
+    if (const auto create_result = hcs->create_compute_system(create_compute_system_params); !create_result)
     {
         fmt::print(L"Create compute system failed: {}", create_result.status_msg);
         throw CreateComputeSystemException{"create_compute_system failed with {}", create_result.code};
     }
 
     // Grant access to the VHDX and the cloud-init ISO files.
-    const auto grant_paths = {ccs_params.cloudinit_iso_path, ccs_params.vhdx_path};
-
-    for (const auto& path : grant_paths)
-    {
-        if (!hcs->grant_vm_access(ccs_params.name, path))
-        {
-            throw GrantVMAccessException{"Could not grant access to VM `{}` for the path `{}`", ccs_params.name, path};
-        }
-    }
+    grant_access_to_paths({create_compute_system_params.cloudinit_iso_path, create_compute_system_params.vhdx_path});
     return true;
 }
 
