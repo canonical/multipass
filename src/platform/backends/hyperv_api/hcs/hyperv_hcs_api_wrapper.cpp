@@ -549,7 +549,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
                compute_system_name,
                file_path.string());
 
-    const auto path_as_wstring = file_path.wstring();
+    const auto path_as_wstring = file_path.generic_wstring();
     const auto csname_as_wstring = string_to_wstring(compute_system_name);
     const auto result = api.GrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
