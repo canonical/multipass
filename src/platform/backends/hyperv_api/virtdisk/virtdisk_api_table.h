@@ -43,8 +43,12 @@ struct VirtDiskAPITable
     std::function<decltype(::OpenVirtualDisk)> OpenVirtualDisk = &::OpenVirtualDisk;
     // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-resizevirtualdisk
     std::function<decltype(::ResizeVirtualDisk)> ResizeVirtualDisk = &::ResizeVirtualDisk;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-mergevirtualdisk
+    std::function<decltype(::MergeVirtualDisk)> MergeVirtualDisk = &::MergeVirtualDisk;
     // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-getvirtualdiskinformation
     std::function<decltype(::GetVirtualDiskInformation)> GetVirtualDiskInformation = &::GetVirtualDiskInformation;
+    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-setvirtualdiskinformation
+    std::function<decltype(::SetVirtualDiskInformation)> SetVirtualDiskInformation = &::SetVirtualDiskInformation;
     // @ref https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
     std::function<decltype(::CloseHandle)> CloseHandle = &::CloseHandle;
 };
