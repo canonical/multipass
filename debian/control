@@ -1,5 +1,6 @@
 Source: multipass
 Build-Depends: build-essential,
+               clang,
                cmake,
                curl,
                google-mock,
