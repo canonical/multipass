@@ -69,8 +69,34 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    virtual OperationResult resize_virtual_disk(const std::filesystem::path& vhdx_path,
-                                                std::uint64_t new_size_bytes) const override;
+    [[nodiscard]] virtual OperationResult resize_virtual_disk(const std::filesystem::path& vhdx_path,
+                                                              std::uint64_t new_size_bytes) const override;
+
+    // ---------------------------------------------------------
+
+    /**
+     * Merge a child differencing disk to its parent
+     *
+     * @param [in] child Path to the differencing disk
+     *
+     * @return An object that evaluates to true on success, false otherwise.
+     * message() may contain details of failure when result is false.
+     */
+    [[nodiscard]] OperationResult merge_virtual_disk_to_parent(const std::filesystem::path& child) const override;
+
+    // ---------------------------------------------------------
+
+    /**
+     * Reparent a virtual disk
+     *
+     * @param [in] child Path to the virtual disk to reparent
+     * @param [in] parent Path to the new parent
+     *
+     * @return An object that evaluates to true on success, false otherwise.
+     * message() may contain details of failure when result is false.
+     */
+    [[nodiscard]] virtual OperationResult reparent_virtual_disk(const std::filesystem::path& child,
+                                                                const std::filesystem::path& parent) const override;
 
     // ---------------------------------------------------------
 

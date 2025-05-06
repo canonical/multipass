@@ -23,6 +23,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
 #include <hyperv_api/hcs_plan9_mount_handler.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
@@ -547,14 +548,19 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const std::s
                                                                     const VMSpecs& specs,
                                                                     std::shared_ptr<Snapshot> parent)
 {
-    throw NotImplementedOnThisBackendException{"Not implemented yet"};
-    // Step 1: Check if VM has been shut down
-    // Step 2: Check if VM already has
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(snapshot_name,
+                                                        comment,
+                                                        instance_id,
+                                                        parent,
+                                                        specs,
+                                                        *this,
+                                                        description,
+                                                        virtdisk);
 }
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    throw NotImplementedOnThisBackendException{"Not implemented yet"};
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename, *this, description, virtdisk);
 }
 
 } // namespace multipass::hyperv
