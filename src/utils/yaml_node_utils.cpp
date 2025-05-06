@@ -23,6 +23,8 @@
 
 namespace mp = multipass;
 
+namespace
+{
 struct interface_details
 {
     std::string name;
@@ -30,6 +32,27 @@ struct interface_details
     std::optional<int> route_metric{std::nullopt};
     bool optional{false};
 };
+
+auto make_default_interface(const std::string& mac_addr)
+{
+    constexpr std::string_view kDefaultInterfaceName = "primary";
+    interface_details iface{};
+    iface.name = kDefaultInterfaceName;
+    iface.mac_addr = mac_addr;
+    return iface;
+}
+
+auto make_extra_interface(const std::string& mac_addr, std::uint32_t extra_interface_idx = 0)
+{
+    constexpr std::string_view kExtraInterfaceNamePattern = "extra{}";
+    interface_details iface{};
+    iface.name = fmt::format(kExtraInterfaceNamePattern, extra_interface_idx);
+    iface.mac_addr = mac_addr;
+    iface.optional = true;
+    iface.route_metric = 200;
+    return iface;
+}
+} // namespace
 
 namespace YAML
 {
@@ -59,27 +82,6 @@ struct convert<interface_details>
     }
 };
 } // namespace YAML
-
-constexpr static std::string_view kDefaultInterfaceName = "primary";
-constexpr static std::string_view kExtraInterfaceNamePattern = "extra{}";
-
-static auto make_default_interface(const std::string& mac_addr)
-{
-    interface_details iface{};
-    iface.name = kDefaultInterfaceName;
-    iface.mac_addr = mac_addr;
-    return iface;
-}
-
-static auto make_extra_interface(const std::string& mac_addr, std::uint32_t extra_interface_idx = 0)
-{
-    interface_details iface{};
-    iface.name = fmt::format(kExtraInterfaceNamePattern, extra_interface_idx);
-    iface.mac_addr = mac_addr;
-    iface.optional = true;
-    iface.route_metric = 200;
-    return iface;
-}
 
 std::string mp::utils::emit_yaml(const YAML::Node& node)
 {
