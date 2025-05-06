@@ -595,7 +595,7 @@ std::string deprecation_warning_message_driver_concatenated(
                                                          "but they will remain in LXD.\n\n";
 
     constexpr auto driver_deprecation_warning_libvirt_part =
-        "The instances will remain available with the QEMU driver.\n\n";
+        "Instances will remain available with the QEMU driver.\n\n";
 
     const std::string deprecation_warning_message_driver_specific_part =
         driver_name == "lxd" ? driver_deprecation_warning_lxd_part : driver_deprecation_warning_libvirt_part;
