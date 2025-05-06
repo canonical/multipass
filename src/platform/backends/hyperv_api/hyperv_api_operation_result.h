@@ -59,6 +59,11 @@ struct ResultCode
         return static_cast<unsigned_hresult_t>(result);
     }
 
+    [[nodiscard]] operator std::error_code() const noexcept
+    {
+        return std::error_code{result, std::system_category()};
+    }
+
 private:
     HRESULT result{};
 };
@@ -87,6 +92,11 @@ struct OperationResult
     [[nodiscard]] explicit operator bool() const noexcept
     {
         return static_cast<bool>(code);
+    }
+
+    [[nodiscard]] operator std::error_code() const noexcept
+    {
+        return code;
     }
 };
 } // namespace multipass::hyperv
