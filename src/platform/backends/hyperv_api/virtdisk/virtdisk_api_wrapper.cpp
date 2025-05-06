@@ -80,9 +80,9 @@ UniqueHandle open_virtual_disk(const VirtDiskAPITable& api,
     type.VendorId = VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
 
     HANDLE handle{nullptr};
-    const auto path_w = vhdx_path.wstring();
+    const auto path_w = vhdx_path.generic_wstring();
 
-    const auto result = api.OpenVirtualDisk(
+    const ResultCode result = api.OpenVirtualDisk(
         // [in] PVIRTUAL_STORAGE_TYPE VirtualStorageType
         &type,
         //  [in] PCWSTR Path
@@ -96,10 +96,11 @@ UniqueHandle open_virtual_disk(const VirtDiskAPITable& api,
         // [out] PHANDLE Handle
         &handle);
 
-    if (!(result == ERROR_SUCCESS))
+    if (!result)
     {
-        std::error_code ec{static_cast<int>(result), std::system_category()};
-        mpl::error(kLogCategory, "open_virtual_disk(...) > OpenVirtualDisk failed with: {}", result);
+        mpl::error(kLogCategory,
+                   "open_virtual_disk(...) > OpenVirtualDisk failed with: {}",
+                   static_cast<std::error_code>(result));
         return UniqueHandle{nullptr, api.CloseHandle};
     }
 
