@@ -108,6 +108,13 @@ private:
      * @return false The compute system is already present
      */
     bool maybe_create_compute_system() noexcept(false);
+
+    /**
+     * Retrieve path to the primary disk symbolic link
+     */
+    std::filesystem::path get_primary_disk_path() const noexcept(false);
+
+    void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 };
 } // namespace multipass::hyperv
 
