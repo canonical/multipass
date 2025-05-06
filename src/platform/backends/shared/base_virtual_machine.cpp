@@ -356,18 +356,21 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
     return all_ipv4;
 }
 
-auto mp::BaseVirtualMachine::view_snapshots() const -> SnapshotVista
+auto mp::BaseVirtualMachine::view_snapshots(SnapshotPredicate predicate) const -> SnapshotVista
 {
     require_snapshots_support();
     SnapshotVista ret;
 
     const std::unique_lock lock{snapshot_mutex};
     ret.reserve(snapshots.size());
-    std::transform(std::cbegin(snapshots),
-                   std::cend(snapshots),
-                   std::back_inserter(ret),
-                   [](const auto& pair) { return pair.second; });
 
+    for (const auto& [key, snapshot] : snapshots)
+    {
+        if (!predicate || predicate(*snapshot))
+        {
+            ret.push_back(snapshot);
+        }
+    }
     return ret;
 }
 
