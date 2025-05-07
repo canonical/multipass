@@ -222,34 +222,6 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    const auto plan9_shares = [&]() {
-        std::vector<std::wstring> plan9_shares = {};
-
-        constexpr auto plan9_share_template = LR"(
-            {{
-                "Name": "{0}",
-                "Path": "{1}",
-                "Port": {2},
-                "AccessName": "{3}"
-            }}
-        )";
-
-        for (const auto& share : params.shares)
-        {
-            plan9_shares.push_back(fmt::format(plan9_share_template,
-                                               maybe_widen{share.name},
-                                               share.host_path.wstring(),
-                                               share.port,
-                                               maybe_widen{share.access_name},
-                                               fmt::underlying(share.flags)));
-        }
-
-        return fmt::format(L"{}", fmt::join(plan9_shares, L", "));
-    }();
-
-    // Ideally, we should codegen from the schema
-    // and use that.
-    // https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/refs/heads/main/hyperv-samples/hcs-samples/JSON_files/HCS_Schema%5BWindows_10_SDK_version_1809%5D.json
     constexpr auto vm_settings_template = LR"(
     {{
         "SchemaVersion": {{
@@ -311,7 +283,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                                          maybe_widen{params.name},
                                          fmt::join(params.scsi_devices, L","),
                                          fmt::join(params.network_adapters, L","),
-                                         plan9_shares);
+                                         fmt::join(params.shares, L","));
 
     // FIXME: Replace this with wide-string logging API when it's available.
     fmt::print(L"Rendered VM settings document: \n{}\n", vm_settings);
