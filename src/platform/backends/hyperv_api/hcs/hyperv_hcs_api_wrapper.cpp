@@ -16,7 +16,6 @@
  */
 #include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
 
-#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
@@ -396,7 +395,7 @@ OperationResult HCSWrapper::resume_compute_system(const std::string& compute_sys
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::add_endpoint(const AddEndpointParameters& params) const
+OperationResult HCSWrapper::add_endpoint(const std::string& compute_system_name, const HcsNetworkAdapter& params) const
 {
     mpl::debug(kLogCategory, "add_endpoint(...) > params: {}", params);
     constexpr auto add_endpoint_settings_template = LR"(
@@ -410,15 +409,10 @@ OperationResult HCSWrapper::add_endpoint(const AddEndpointParameters& params) co
             }}
         }})";
 
-    const auto settings = fmt::format(add_endpoint_settings_template,
-                                      maybe_widen{params.endpoint_guid},
-                                      maybe_widen{params.nic_mac_address});
+    const auto settings =
+        fmt::format(add_endpoint_settings_template, maybe_widen{params.endpoint_guid}, maybe_widen{params.mac_address});
 
-    return perform_hcs_operation(api,
-                                 api.ModifyComputeSystem,
-                                 params.target_compute_system_name,
-                                 settings.c_str(),
-                                 nullptr);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
 
 // ---------------------------------------------------------
