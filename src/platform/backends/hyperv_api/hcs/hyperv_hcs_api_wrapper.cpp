@@ -68,7 +68,7 @@ constexpr auto kDefaultOperationTimeout = std::chrono::seconds{240};
  */
 UniqueHcsOperation create_operation(const HCSAPITable& api)
 {
-    mpl::debug(kLogCategory, "create_operation(...)");
+    mpl::trace(kLogCategory, "create_operation(...)");
     return UniqueHcsOperation{api.CreateOperation(nullptr, nullptr), api.CloseOperation};
 }
 
@@ -127,7 +127,7 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
     constexpr auto kRequestedAccessLevel = GENERIC_ALL;
 
     HCS_SYSTEM system{nullptr};
-    const auto result = ResultCode{api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, &system)};
+    const ResultCode result = api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, &system);
 
     if (!result)
     {
@@ -140,6 +140,34 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
 }
 
 // ---------------------------------------------------------
+
+template <typename FnType, typename... Args>
+OperationResult perform_hcs_operation(const HCSAPITable& api, const FnType& fn, UniqueHcsSystem system, Args&&... args)
+{
+    auto operation = create_operation(api);
+
+    if (nullptr == operation)
+    {
+        mpl::error(kLogCategory, "perform_hcs_operation(...) > HcsCreateOperation failed! ");
+        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
+    }
+
+    // Perform the operation.
+    const auto result = ResultCode{fn(system.get(), operation.get(), std::forward<Args>(args)...)};
+
+    if (!result)
+    {
+        mpl::error(kLogCategory, "perform_hcs_operation(...) > Operation failed! Result code {}", result);
+        return OperationResult{result, L"HCS operation failed!"};
+    }
+
+    mpl::debug(kLogCategory,
+               "perform_hcs_operation(...) > fn: {}, result: {}",
+               fmt::ptr(fn.template target<void*>()),
+               static_cast<bool>(result));
+
+    return wait_for_operation_result(api, std::move(operation));
+}
 
 /**
  * Perform a Host Compute System API operation.
@@ -170,7 +198,7 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
         return {E_POINTER, L"Operation function is unbound!"};
     }
 
-    const auto system = open_host_compute_system(api, target_hcs_system_name);
+    auto system = open_host_compute_system(api, target_hcs_system_name);
 
     if (nullptr == system)
     {
@@ -180,31 +208,7 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
         return OperationResult{E_INVALIDARG, L"HcsOpenComputeSystem failed!"};
     }
 
-    auto operation = create_operation(api);
-
-    if (nullptr == operation)
-    {
-        mpl::error(kLogCategory, "perform_hcs_operation(...) > HcsCreateOperation failed! {}", target_hcs_system_name);
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
-    }
-
-    const auto result = ResultCode{fn(system.get(), operation.get(), std::forward<Args>(args)...)};
-
-    if (!result)
-    {
-        mpl::error(kLogCategory,
-                   "perform_hcs_operation(...) > Operation failed! {} Result code {}",
-                   target_hcs_system_name,
-                   result);
-        return OperationResult{result, L"HCS operation failed!"};
-    }
-
-    mpl::debug(kLogCategory,
-               "perform_hcs_operation(...) > fn: {}, result: {}",
-               fmt::ptr(fn.template target<void*>()),
-               static_cast<bool>(result));
-
-    return wait_for_operation_result(api, std::move(operation));
+    return perform_hcs_operation(api, fn, std::move(system), std::forward<Args>(args)...);
 }
 
 } // namespace
@@ -222,11 +226,6 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    // Render the template
-    const auto vm_settings = fmt::format(L"{}", params);
-
-    // FIXME: Replace this with wide-string logging API when it's available.
-    fmt::print(L"Rendered VM settings document: \n{}\n", vm_settings);
     HCS_SYSTEM system{nullptr};
 
     auto operation = create_operation(api);
@@ -237,10 +236,13 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     }
 
     const std::wstring name_w = maybe_widen{params.name};
+    // Render the template
+    const auto vm_settings = fmt::to_wstring(params);
     const auto result =
         ResultCode{api.CreateComputeSystem(name_w.c_str(), vm_settings.c_str(), operation.get(), nullptr, &system)};
 
     // Auto-release the system handle
+    // FIXME: std::out_ptr with C++23
     [[maybe_unused]] UniqueHcsSystem _{system, api.CloseComputeSystem};
 
     if (!result)
