@@ -157,7 +157,7 @@ TEST_F(HyperVHCSAPI_IntegrationTests, DISABLED_update_cpu_count)
 
     const auto u_result = uut.update_cpu_count(params.name, 8);
     EXPECT_TRUE(u_result);
-    auto v = fmt::format("{}", u_result.code);
+    auto v = fmt::to_string(u_result.code);
     std::wprintf(L"%s\n", u_result.status_msg.c_str());
     std::printf("%s \n", v.c_str());
 
