@@ -557,11 +557,27 @@ struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptio
     using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
+/**
+ * IP conversion utilities
+ */
 static const auto& ip_utils()
 {
+    // Winsock initialization has to happen before we can call network
+    // related functions, even the conversion ones (e.g. inet_ntop)
     static multipass::platform::wsa_init_wrapper wrapper;
+
+    /**
+     * Helper struct that provides address conversion
+     * utilities
+     */
     struct ip_utils
     {
+        /**
+         * Convert IPv4 address to string
+         *
+         * @param [in] addr IPv4 address as uint32
+         * @return std::string String representation of @p addr
+         */
         static std::string to_string(std::uint32_t addr)
         {
             char str[INET_ADDRSTRLEN] = {};
@@ -570,6 +586,12 @@ static const auto& ip_utils()
             return str;
         }
 
+        /**
+         * Convert IPv6 address to string
+         *
+         * @param [in] addr IPv6 address
+         * @return std::string String representation of @p addr
+         */
         static std::string to_string(const in6_addr& addr)
         {
             char str[INET6_ADDRSTRLEN] = {};
@@ -578,6 +600,13 @@ static const auto& ip_utils()
             return str;
         }
 
+        /**
+         * Convert an IPv4 address to network CIDR
+         *
+         * @param [in] v4 IPv4 address
+         * @param [in] prefix_length Network prefix
+         * @return std::string Network address in CIDR form
+         */
         static auto to_network(const in_addr& v4, std::uint8_t prefix_length)
         {
             // Convert to the host long first so we can apply a mask to it
@@ -594,6 +623,13 @@ static const auto& ip_utils()
             return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
         }
 
+        /**
+         * Convert an IPv6 address to network CIDR
+         *
+         * @param [in] v6 IPv6 address
+         * @param [in] prefix_length Network prefix
+         * @return std::string Network address in CIDR form
+         */
         static auto to_network(const in6_addr& v6, std::uint8_t prefix_length)
         {
             // Convert to the host long first so we can apply a mask to it
@@ -616,6 +652,8 @@ static const auto& ip_utils()
             return fmt::format("{}/{}", network_addr, prefix_length);
         }
     } static helper;
+
+    // Initialize once and reuse.
     return helper;
 }
 
@@ -752,7 +790,6 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     }
     else
     {
-        // TODO: FormatMessage.
         throw GetNetworkInterfacesInfoException{"Failed to retrieve network interface information. Error code: {}",
                                                 result};
     }
