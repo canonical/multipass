@@ -227,7 +227,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Add endpoint
     {
-        const auto& [status, status_msg] = hcs.add_endpoint(create_vm_parameters.name, network_adapter);
+        const auto& [status, status_msg] = hcs.add_network_adapter(create_vm_parameters.name, network_adapter);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
