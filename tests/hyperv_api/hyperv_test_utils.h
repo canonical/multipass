@@ -20,6 +20,9 @@
 
 #include <filesystem>
 #include <io.h>
+#include <random>
+
+#include <fmt/format.h>
 
 #define EXPECT_NO_CALL(mock) EXPECT_CALL(mock, Call).Times(0)
 
@@ -34,9 +37,12 @@ inline auto trim_whitespace(const CharT* input)
     return str;
 }
 
+/**
+ * Create an unique path for a temporary file.
+ */
 inline auto make_tempfile_path(std::string extension)
 {
-
+    static std::mt19937_64 rng{std::random_device{}()};
     struct auto_remove_path
     {
 
@@ -61,13 +67,23 @@ inline auto make_tempfile_path(std::string extension)
     private:
         const std::filesystem::path path;
     };
-    char pattern[] = "temp-XXXXXX";
-    if (_mktemp_s(pattern) != 0)
+
+    std::filesystem::path temp_path{};
+    std::uint32_t remaining_attempts = 10;
+    do
     {
-        throw std::runtime_error{"Incorrect format for _mktemp_s."};
+        temp_path = std::filesystem::temp_directory_path() / fmt::format("temp-{:016x}{}", rng(), extension);
+        // The generated path is vulnerable to TOCTOU, but it's highly unlikely we'll see a clash.
+        // Better handling of this would require creation of a placeholder file, and an atomic swap
+        // with the real file.
+    } while (std::filesystem::exists(temp_path) && --remaining_attempts);
+
+    if (!remaining_attempts)
+    {
+        throw std::runtime_error{"Exhausted attempt count for temporary filename generation."};
     }
-    const auto filename = pattern + extension;
-    return auto_remove_path{std::filesystem::temp_directory_path() / filename};
+
+    return auto_remove_path{temp_path};
 }
 
 } // namespace multipass::test
