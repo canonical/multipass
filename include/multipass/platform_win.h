@@ -47,27 +47,6 @@ private:
     const int wsa_init_result{-1};
 };
 
-// ---------------------------------------------------------
-
-/**
- * Parse given GUID string into a GUID struct.
- *
- * @param guid_str GUID in string form, either 36 characters
- *                  (without braces) or 38 characters (with braces.)
- *
- * @return GUID The parsed GUID
- */
-[[nodiscard]] auto guid_from_string(const std::string& guid_str) -> GUID;
-
-/**
- * Parse given GUID string into a GUID struct.
- *
- * @param guid_wstr GUID in string form, either 36 characters
- *                  (without braces) or 38 characters (with braces.)
- *
- * @return GUID The parsed GUID
- */
-[[nodiscard]] auto guid_from_wstring(const std::wstring& guid_wstr) -> GUID;
 
 // ---------------------------------------------------------
 
