@@ -18,9 +18,9 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 #define MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 
+#include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device.h>
-#include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
 
 #include <fmt/format.h>
 #include <fmt/std.h>
@@ -74,21 +74,11 @@ struct CreateComputeSystemParameters
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::hcs::CreateComputeSystemParameters, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::CreateComputeSystemParameters& params, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(),
-                         "Compute System name: ({}) | vCPU count: ({}) | Memory size: ({} MiB)",
-                         params.name,
-                         params.processor_count,
-                         params.memory_size_mb);
-    }
+    auto format(const multipass::hyperv::hcs::CreateComputeSystemParameters& policy, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
 };
 
 #endif // MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
