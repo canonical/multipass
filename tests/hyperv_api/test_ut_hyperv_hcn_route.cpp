@@ -41,7 +41,7 @@ TEST_F(HyperVHCNRoute_UnitTests, format_narrow)
     uut.destination_prefix = "0.0.0.0/0";
     uut.metric = 123;
     uut.next_hop = "192.168.1.1";
-    const auto result = fmt::format("{}", uut);
+    const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
         {
             "NextHop": "192.168.1.1",
@@ -60,7 +60,7 @@ TEST_F(HyperVHCNRoute_UnitTests, format_wide)
     uut.destination_prefix = "0.0.0.0/0";
     uut.metric = 123;
     uut.next_hop = "192.168.1.1";
-    const auto result = fmt::format(L"{}", uut);
+    const auto result = fmt::to_wstring(uut);
     constexpr auto expected_result = LR"json(
         {
             "NextHop": "192.168.1.1",
