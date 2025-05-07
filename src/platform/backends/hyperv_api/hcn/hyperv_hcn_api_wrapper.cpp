@@ -212,7 +212,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
                  kLogCategory,
                  "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}: {}",
                  result.code,
-                 std::system_category().message(static_cast<HRESULT>(result.code)));
+                 static_cast<std::error_code>(result.code));
     }
 
     [[maybe_unused]] UniqueHcnNetwork _{network, api.CloseNetwork};

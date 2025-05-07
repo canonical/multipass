@@ -19,12 +19,12 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-namespace hv = multipass::hyperv;
-namespace hcn = hv::hcn;
+using multipass::hyperv::maybe_widen;
+using multipass::hyperv::hcn::HcnIpam;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<hcn::HcnIpam, Char>::format(const hcn::HcnIpam& ipam, FormatContext& ctx) const ->
+auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const ->
     typename FormatContext::iterator
 {
     constexpr static auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
@@ -40,14 +40,13 @@ auto fmt::formatter<hcn::HcnIpam, Char>::format(const hcn::HcnIpam& ipam, Format
 
     return format_to(ctx.out(),
                      subnet_template.as<Char>(),
-                     hv::maybe_widen{ipam.type},
+                     maybe_widen{ipam.type},
                      fmt::join(ipam.subnets, comma.as<Char>()));
 }
 
-template auto fmt::formatter<hcn::HcnIpam, char>::format<fmt::format_context>(const hcn::HcnIpam&,
-                                                                              fmt::format_context&) const
+template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&, fmt::format_context&) const
     -> fmt::format_context::iterator;
 
-template auto fmt::formatter<hcn::HcnIpam, wchar_t>::format<fmt::wformat_context>(const hcn::HcnIpam&,
-                                                                                  fmt::wformat_context&) const
+template auto fmt::formatter<HcnIpam, wchar_t>::format<fmt::wformat_context>(const HcnIpam&,
+                                                                             fmt::wformat_context&) const
     -> fmt::wformat_context::iterator;

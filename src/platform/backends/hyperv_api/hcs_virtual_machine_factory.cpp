@@ -214,7 +214,6 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
         network_params.name = bridge_name;
         network_params.type = hcn::HcnNetworkType::Transparent();
         network_params.guid = multipass::utils::make_uuid(network_params.name).toStdString();
-
         hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
                                      hcn::HcnNetworkPolicyNetAdapterName{intf.id}};
         network_params.policies.push_back(policy);
