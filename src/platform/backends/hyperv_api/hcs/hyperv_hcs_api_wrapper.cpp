@@ -222,68 +222,8 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    constexpr auto vm_settings_template = LR"(
-    {{
-        "SchemaVersion": {{
-            "Major": 2,
-            "Minor": 1
-        }},
-        "Owner": "Multipass",
-        "ShouldTerminateOnLastHandleClosed": false,
-        "VirtualMachine": {{
-            "Chipset": {{
-                "Uefi": {{
-                    "BootThis": {{
-                        "DevicePath": "Primary disk",
-                        "DiskNumber": 0,
-                        "DeviceType": "ScsiDrive"
-                    }},
-                    "Console": "ComPort1"
-                }}
-            }},
-            "ComputeTopology": {{
-                "Memory": {{
-                    "Backing": "Virtual",
-                    "SizeInMB": {1}
-                }},
-                "Processor": {{
-                    "Count": {0}
-                }}
-            }},
-            "Devices": {{
-                "ComPorts": {{
-                    "0": {{
-                        "NamedPipe": "\\\\.\\pipe\\{2}"
-                    }}
-                }},
-                "Scsi": {{
-                    {3}
-                }},
-                "NetworkAdapters": {{
-                    {4}
-                }},
-                "Plan9": {{
-                    "Shares": [
-                        {5}
-                    ]
-                }}
-            }},
-            "Services": {{
-                "Shutdown": {{}},
-                "Heartbeat": {{}}
-            }}
-        }}
-    }})";
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#HvSocketSystemConfig
-
     // Render the template
-    const auto vm_settings = fmt::format(vm_settings_template,
-                                         params.processor_count,
-                                         params.memory_size_mb,
-                                         maybe_widen{params.name},
-                                         fmt::join(params.scsi_devices, L","),
-                                         fmt::join(params.network_adapters, L","),
-                                         fmt::join(params.shares, L","));
+    const auto vm_settings = fmt::format(L"{}", params);
 
     // FIXME: Replace this with wide-string logging API when it's available.
     fmt::print(L"Rendered VM settings document: \n{}\n", vm_settings);
