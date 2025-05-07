@@ -15,6 +15,7 @@
  *
  */
 
+#include "hyperv_api/hyperv_api_string_conversion.h"
 #include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 #include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
@@ -123,7 +124,7 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
     mpl::debug(kLogCategory, "open_host_compute_system(...) > name: ({})", name);
 
     // Windows API uses wide strings.
-    const auto name_w = string_to_wstring(name);
+    const std::wstring name_w = maybe_widen{name};
     constexpr auto kRequestedAccessLevel = GENERIC_ALL;
 
     HCS_SYSTEM system{nullptr};
@@ -270,8 +271,8 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         for (const auto& endpoint : params.endpoints)
         {
             network_adapters.push_back(fmt::format(network_adapter_template,
-                                                   string_to_wstring(endpoint.endpoint_guid),
-                                                   string_to_wstring(endpoint.nic_mac_address)));
+                                                   maybe_widen{endpoint.endpoint_guid},
+                                                   maybe_widen{endpoint.nic_mac_address}));
         }
 
         return fmt::format(L"{}", fmt::join(network_adapters, L", "));
@@ -293,10 +294,10 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         for (const auto& share : params.shares)
         {
             plan9_shares.push_back(fmt::format(plan9_share_template,
-                                               string_to_wstring(share.name),
+                                               maybe_widen{share.name},
                                                share.host_path.wstring(),
                                                share.port,
-                                               string_to_wstring(share.access_name),
+                                               maybe_widen{share.access_name},
                                                fmt::underlying(share.flags)));
         }
 
@@ -364,7 +365,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     const auto vm_settings = fmt::format(vm_settings_template,
                                          params.processor_count,
                                          params.memory_size_mb,
-                                         string_to_wstring(params.name),
+                                         maybe_widen{params.name},
                                          scsi_devices,
                                          network_adapters,
                                          plan9_shares);
@@ -380,7 +381,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
     }
 
-    const auto name_w = string_to_wstring(params.name);
+    const std::wstring name_w = maybe_widen{params.name};
     const auto result =
         ResultCode{api.CreateComputeSystem(name_w.c_str(), vm_settings.c_str(), operation.get(), nullptr, &system)};
 
@@ -466,8 +467,8 @@ OperationResult HCSWrapper::add_endpoint(const AddEndpointParameters& params) co
         }})";
 
     const auto settings = fmt::format(add_endpoint_settings_template,
-                                      string_to_wstring(params.endpoint_guid),
-                                      string_to_wstring(params.nic_mac_address));
+                                      maybe_widen{params.endpoint_guid},
+                                      maybe_widen{params.nic_mac_address});
 
     return perform_hcs_operation(api,
                                  api.ModifyComputeSystem,
@@ -492,7 +493,7 @@ OperationResult HCSWrapper::remove_endpoint(const std::string& compute_system_na
             "RequestType": "Remove"
         }})";
 
-    const auto settings = fmt::format(remove_endpoint_settings_template, string_to_wstring(endpoint_guid));
+    const auto settings = fmt::format(remove_endpoint_settings_template, maybe_widen{endpoint_guid});
 
     return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
@@ -550,7 +551,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
                file_path.string());
 
     const auto path_as_wstring = file_path.generic_wstring();
-    const auto csname_as_wstring = string_to_wstring(compute_system_name);
+    const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
     const auto result = api.GrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
@@ -566,7 +567,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
                file_path.string());
 
     const auto path_as_wstring = file_path.wstring();
-    const auto csname_as_wstring = string_to_wstring(compute_system_name);
+    const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
     const auto result = api.RevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }
@@ -643,13 +644,13 @@ OperationResult HCSWrapper::add_plan9_share(const std::string& compute_system_na
     (void)grant_vm_access(compute_system_name, params.host_path);
 
     const auto settings = fmt::format(add_plan9_share_template,
-                                      string_to_wstring(params.name),
+                                      maybe_widen{params.name},
                                       // generic_* always uses / as separator, use it
                                       // to normalize the path. HCS API does not like
                                       // `\` for example.
                                       preferred.generic_wstring(),
                                       params.port,
-                                      string_to_wstring(params.access_name),
+                                      maybe_widen{params.access_name},
                                       fmt::underlying(params.flags));
     fmt::print(L"{}", settings);
     return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
@@ -681,8 +682,8 @@ OperationResult HCSWrapper::remove_plan9_share(const std::string& compute_system
         }})";
 
     const auto settings = fmt::format(remove_plan9_share_template,
-                                      string_to_wstring(params.name),
-                                      string_to_wstring(params.access_name),
+                                      maybe_widen{params.name},
+                                      maybe_widen{params.access_name},
                                       params.port);
     return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
