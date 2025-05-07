@@ -167,12 +167,14 @@ struct HCSWrapper : public HCSWrapperInterface
      * the endpoint. The network interface card's name will be the
      * endpoint's GUID for convenience.
      *
-     * @param [in] params Endpoint parameters
+     * @param [in] compute_system_name Target compute system's name
+     * @param [in] params Network adapter parameters
      *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult add_endpoint(const AddEndpointParameters& params) const override;
+    [[nodiscard]] OperationResult add_endpoint(const std::string& compute_system_name,
+                                               const HcsNetworkAdapter& params) const override;
 
     // ---------------------------------------------------------
 
