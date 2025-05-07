@@ -78,27 +78,14 @@ struct Plan9ShareParameters
 } // namespace multipass::hyperv::hcs
 
 /**
- * Formatter type specialization for CreateComputeSystemParameters
+ * Formatter type specialization for Plan9ShareParameters
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcs::Plan9ShareParameters, Char>
+struct fmt::formatter<multipass::hyperv::hcs::Plan9ShareParameters, Char> : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::Plan9ShareParameters& params, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(),
-                         "Share name: ({}) | Access name: ({}) | Host path: ({}) | Port: ({}) ",
-                         params.name,
-                         params.access_name,
-                         params.host_path,
-                         params.port,
-                         fmt::underlying(params.flags));
-    }
+    auto format(const multipass::hyperv::hcs::Plan9ShareParameters& policy, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
 };
 
 #endif // MULTIPASS_HYPERV_API_HCS_ADD_9P_SHARE_PARAMS_H
