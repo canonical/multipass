@@ -41,7 +41,7 @@ TEST_F(HyperVHCNSubnet_UnitTests, format_narrow)
     uut_t uut;
     uut.ip_address_prefix = "192.168.1.0/24";
     uut.routes.emplace_back(hcn::HcnRoute{"192.168.1.1", "0.0.0.0/0", 123});
-    const auto result = fmt::format("{}", uut);
+    const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
         {
             "Policies": [],
@@ -72,7 +72,7 @@ TEST_F(HyperVHCNSubnet_UnitTests, format_wide)
     uut_t uut;
     uut.ip_address_prefix = "192.168.1.0/24";
     uut.routes.emplace_back(hcn::HcnRoute{"192.168.1.1", "0.0.0.0/0", 123});
-    const auto result = fmt::format(L"{}", uut);
+    const auto result = fmt::to_wstring(uut);
     constexpr auto expected_result = LR"json(
         {
             "Policies": [],

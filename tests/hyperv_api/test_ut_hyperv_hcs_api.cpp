@@ -308,7 +308,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
@@ -476,7 +476,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
@@ -640,7 +640,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
@@ -796,7 +796,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
@@ -847,7 +847,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
     }
 
     /******************************************************
@@ -997,7 +997,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
     }
 
     /******************************************************
@@ -1172,7 +1172,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
@@ -1466,7 +1466,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(ApiFnT& target_api_fun
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcs_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -1599,7 +1599,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(ApiFnT& tar
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::error,
                                              "perform_hcs_operation(...) > HcsCreateOperation failed!");
     }
@@ -1682,7 +1682,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(ApiFnT& target_api_function,
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::error, "perform_hcs_operation(...) > Operation failed!");
     }
 
@@ -1786,7 +1786,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(ApiFnT& t
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcs_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
