@@ -558,54 +558,6 @@ struct fmt::formatter<::GUID, Char>
     }
 };
 
-struct GuidParseError : multipass::FormattedExceptionBase<>
-{
-    using FormattedExceptionBase<>::FormattedExceptionBase;
-};
-
-auto mp::platform::guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
-{
-    constexpr auto kGUIDLength = 36;
-    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
-
-    const auto input = [&guid_wstr]() {
-        switch (guid_wstr.length())
-        {
-        case kGUIDLength:
-            // CLSIDFromString requires GUIDs to be wrapped with braces.
-            return fmt::format(L"{{{}}}", guid_wstr);
-        case kGUIDLengthWithBraces:
-        {
-            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
-            {
-                throw GuidParseError{"GUID string either does not start or end with a brace."};
-            }
-            return guid_wstr;
-        }
-        }
-        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
-    }();
-
-    ::GUID guid = {};
-
-    const auto result = CLSIDFromString(input.c_str(), &guid);
-
-    if (FAILED(result))
-    {
-        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
-    }
-
-    return guid;
-}
-
-// ---------------------------------------------------------
-
-auto mp::platform::guid_from_string(const std::string& guid_str) -> GUID
-{
-    // Just use the wide string overload.
-    return guid_from_wstring(hyperv::maybe_widen{guid_str});
-}
-
 // ---------------------------------------------------------
 
 auto mp::platform::guid_to_string(const ::GUID& guid) -> std::string
