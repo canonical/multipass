@@ -223,42 +223,6 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    // Fill the SCSI devices template depending on
-    // available drives.
-    const auto scsi_devices = [&params]() {
-        constexpr auto scsi_device_template = LR"(
-        "{0}": {{
-            "Attachments": {{
-                "0": {{
-                    "Type": "{1}",
-                    "Path": "{2}",
-                    "ReadOnly": {3}
-                }}
-            }}
-        }})";
-        std::vector<std::wstring> scsi_nodes{};
-
-        if (!params.cloudinit_iso_path.empty())
-        {
-            scsi_nodes.push_back(fmt::format(scsi_device_template,
-                                             L"cloud-init iso file",
-                                             L"Iso",
-                                             params.cloudinit_iso_path.generic_wstring(),
-                                             true));
-        }
-
-        if (!params.vhdx_path.empty())
-        {
-            scsi_nodes.push_back(fmt::format(scsi_device_template,
-                                             L"Primary disk",
-                                             L"VirtualDisk",
-                                             params.vhdx_path.generic_wstring(),
-                                             false));
-        }
-
-        return fmt::format(L"{}", fmt::join(scsi_nodes, L", "));
-    }();
-
     const auto network_adapters = [&]() {
         std::vector<std::wstring> network_adapters = {};
 
@@ -366,7 +330,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                                          params.processor_count,
                                          params.memory_size_mb,
                                          maybe_widen{params.name},
-                                         scsi_devices,
+                                         fmt::join(params.scsi_devices, L","),
                                          network_adapters,
                                          plan9_shares);
 
