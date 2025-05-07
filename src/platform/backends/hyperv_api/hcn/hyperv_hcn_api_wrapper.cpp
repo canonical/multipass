@@ -193,8 +193,8 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 
     // Render the template
     const auto network_settings = fmt::format(network_settings_template,
-                                              fmt::arg(L"Name", string_to_wstring(params.name)),
-                                              fmt::arg(L"Type", string_to_wstring(std::string{params.type})),
+                                              fmt::arg(L"Name", maybe_widen{params.name}),
+                                              fmt::arg(L"Type", maybe_widen{std::string{params.type}}),
                                               fmt::arg(L"Flags", fmt::underlying(params.flags)),
                                               fmt::arg(L"Ipams", fmt::join(params.ipams, L",")),
                                               fmt::arg(L"Policies", fmt::join(params.policies, L",")));
@@ -257,9 +257,9 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
     // Render the template
     const auto endpoint_settings = fmt::format(
         endpoint_settings_template,
-        fmt::arg(L"HostComputeNetwork", string_to_wstring(params.network_guid)),
+        fmt::arg(L"HostComputeNetwork", maybe_widen{params.network_guid}),
         fmt::arg(L"MacAddress",
-                 params.mac_address ? fmt::format(L"\"{}\"", string_to_wstring(params.mac_address.value())) : L"null"));
+                 params.mac_address ? fmt::format(L"\"{}\"", maybe_widen{params.mac_address.value()}) : L"null"));
     HCN_ENDPOINT endpoint{nullptr};
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
