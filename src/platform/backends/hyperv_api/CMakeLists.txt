@@ -48,6 +48,7 @@ if(WIN32)
     hcn/hyperv_hcn_network_policy.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
     hcs/hyperv_hcs_scsi_device.cpp
+    hcs/hyperv_hcs_network_adapter.cpp
     virtdisk/virtdisk_api_wrapper.cpp
     virtdisk/virtdisk_snapshot.cpp
     hcs_plan9_mount_handler.cpp
