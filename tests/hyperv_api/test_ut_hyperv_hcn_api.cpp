@@ -165,8 +165,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     *network = mock_network_object;
                 },
                 Return(NOERROR)));
@@ -244,8 +243,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     *network = mock_network_object;
                 },
                 Return(NOERROR)));
@@ -334,8 +332,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     *network = mock_network_object;
                 },
                 Return(NOERROR)));
@@ -432,8 +429,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     *network = mock_network_object;
                 },
                 Return(NOERROR)));
@@ -602,8 +598,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
         EXPECT_CALL(mock_delete_network, Call)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
-                    const auto guid_str = fmt::format("{}", guid);
-                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", guid_str);
+                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(guid));
                     ASSERT_EQ(nullptr, *error_record);
                     ASSERT_NE(nullptr, error_record);
                 },
@@ -728,8 +723,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_endpoint_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto endpoint_guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", endpoint_guid_str);
+                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", fmt::to_string(id));
                     *endpoint = mock_endpoint_object;
                 },
                 Return(NOERROR)));
@@ -740,8 +734,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         EXPECT_CALL(mock_open_network, Call)
             .WillOnce(DoAll(
                 [&](REFGUID id, PHCN_NETWORK network, PWSTR* error_record) {
-                    const auto expected_network_guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", expected_network_guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     ASSERT_NE(nullptr, network);
                     ASSERT_EQ(nullptr, *network);
                     ASSERT_NE(nullptr, error_record);
@@ -875,8 +868,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_endpoint_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto expected_endpoint_guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", expected_endpoint_guid_str);
+                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", fmt::to_string(id));
                     *endpoint = mock_endpoint_object;
                     *error_record = mock_error_msg;
                 },
@@ -888,8 +880,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         EXPECT_CALL(mock_open_network, Call)
             .WillOnce(DoAll(
                 [&](REFGUID id, PHCN_NETWORK network, PWSTR* error_record) {
-                    const auto expected_network_guid_str = fmt::format("{}", id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", expected_network_guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     ASSERT_NE(nullptr, error_record);
                     ASSERT_EQ(nullptr, *error_record);
                     *network = mock_network_object;
@@ -950,8 +941,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
         EXPECT_CALL(mock_delete_endpoint, Call)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
-                    const auto guid_str = fmt::format("{}", guid);
-                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", guid_str);
+                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(guid));
                     ASSERT_EQ(nullptr, *error_record);
                     ASSERT_NE(nullptr, error_record);
                 },
