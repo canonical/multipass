@@ -21,8 +21,8 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
 
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
-#include <multipass/platform_win.h>
 #include <multipass/utils.h>
 
 // clang-format off
@@ -43,6 +43,11 @@
 namespace multipass::hyperv::hcn
 {
 
+struct GuidParseError : multipass::FormattedExceptionBase<>
+{
+    using FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
 namespace
 {
 
@@ -59,6 +64,65 @@ using lvl = mpl::Level;
  * Category for the log messages.
  */
 constexpr auto kLogCategory = "HyperV-HCN-Wrapper";
+
+// ---------------------------------------------------------
+
+/**
+ * Parse given GUID string into a GUID struct.
+ *
+ * @param guid_str GUID in string form, either 36 characters
+ *                  (without braces) or 38 characters (with braces.)
+ *
+ * @return GUID The parsed GUID
+ */
+auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
+{
+    constexpr auto kGUIDLength = 36;
+    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
+
+    const auto input = [&guid_wstr]() {
+        switch (guid_wstr.length())
+        {
+        case kGUIDLength:
+            // CLSIDFromString requires GUIDs to be wrapped with braces.
+            return fmt::format(L"{{{}}}", guid_wstr);
+        case kGUIDLengthWithBraces:
+        {
+            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
+            {
+                throw GuidParseError{"GUID string either does not start or end with a brace."};
+            }
+            return guid_wstr;
+        }
+        }
+        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
+    }();
+
+    ::GUID guid = {};
+
+    const auto result = CLSIDFromString(input.c_str(), &guid);
+
+    if (FAILED(result))
+    {
+        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
+    }
+
+    return guid;
+}
+
+/**
+ * Parse given GUID string into a GUID struct.
+ *
+ * @param guid_str GUID in string form, either 36 characters
+ *                  (without braces) or 38 characters (with braces.)
+ *
+ * @return GUID The parsed GUID
+ */
+auto guid_from_string(const std::string& guid_wstr) -> ::GUID
+{
+    const std::wstring v = maybe_widen{guid_wstr};
+    return guid_from_string(v);
+}
 
 // ---------------------------------------------------------
 
@@ -125,7 +189,7 @@ UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network
     mpl::debug(kLogCategory, "open_network(...) > network_guid: {} ", network_guid);
     HCN_NETWORK network{nullptr};
 
-    const auto result = perform_hcn_operation(api, api.OpenNetwork, platform::guid_from_string(network_guid), &network);
+    const auto result = perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), &network);
     if (!result)
     {
         mpl::error(kLogCategory, "open_network() > HcnOpenNetwork failed with {}!", result.code);
@@ -202,7 +266,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
     HCN_NETWORK network{nullptr};
     const auto result = perform_hcn_operation(api,
                                               api.CreateNetwork,
-                                              platform::guid_from_string(params.guid),
+                                              guid_from_string(params.guid),
                                               network_settings.c_str(),
                                               &network);
 
@@ -224,7 +288,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 OperationResult HCNWrapper::delete_network(const std::string& network_guid) const
 {
     mpl::debug(kLogCategory, "HCNWrapper::delete_network(...) > network_guid: {}", network_guid);
-    return perform_hcn_operation(api, api.DeleteNetwork, platform::guid_from_string(network_guid));
+    return perform_hcn_operation(api, api.DeleteNetwork, guid_from_string(network_guid));
 }
 
 // ---------------------------------------------------------
@@ -264,7 +328,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
                                               network.get(),
-                                              platform::guid_from_string(params.endpoint_guid),
+                                              guid_from_string(params.endpoint_guid),
                                               endpoint_settings.c_str(),
                                               &endpoint);
     [[maybe_unused]] UniqueHcnEndpoint _{endpoint, api.CloseEndpoint};
@@ -276,7 +340,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
 OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) const
 {
     mpl::debug(kLogCategory, "HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ", endpoint_guid);
-    return perform_hcn_operation(api, api.DeleteEndpoint, platform::guid_from_string(endpoint_guid));
+    return perform_hcn_operation(api, api.DeleteEndpoint, guid_from_string(endpoint_guid));
 }
 
 } // namespace multipass::hyperv::hcn
