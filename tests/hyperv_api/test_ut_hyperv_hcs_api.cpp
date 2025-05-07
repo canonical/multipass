@@ -15,7 +15,6 @@
  *
  */
 
-#include "hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h"
 #include "hyperv_api/hcs/hyperv_hcs_api_wrapper.h"
 #include "hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h"
 #include "hyperv_test_utils.h"
@@ -2270,15 +2269,11 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_happy_path)
     generic_operation_happy_path<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(
-                mpl::Level::debug,
-                "add_endpoint(...) > params: Host Compute System Name: (test_vm) | Endpoint GUID: "
-                "(288cc1ac-8f31-4a09-9e90-30ad0bcfdbca) | NIC MAC Address: (00:00:00:00:00:00)");
-            hyperv::hcs::AddEndpointParameters params{};
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...) > params:");
+            hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
-            params.nic_mac_address = "00:00:00:00:00:00";
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            params.mac_address = "00:00:00:00:00:00";
+            return wrapper.add_endpoint("test_vm", params);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2297,9 +2292,8 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_hcs_open_fail)
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            hyperv::hcs::HcsNetworkAdapter params{};
+            return wrapper.add_endpoint("test_vm", params);
         });
 }
 
@@ -2311,9 +2305,8 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_create_operation_f
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            hyperv::hcs::HcsNetworkAdapter params{};
+            return wrapper.add_endpoint("test_vm", params);
         });
 }
 
@@ -2336,11 +2329,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_fail)
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
+            hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
-            params.nic_mac_address = "00:00:00:00:00:00";
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            params.mac_address = "00:00:00:00:00:00";
+            return wrapper.add_endpoint("test_vm", params);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2370,11 +2362,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_wait_for_operation
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
+            hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
-            params.nic_mac_address = "00:00:00:00:00:00";
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            params.mac_address = "00:00:00:00:00:00";
+            return wrapper.add_endpoint("test_vm", params);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
