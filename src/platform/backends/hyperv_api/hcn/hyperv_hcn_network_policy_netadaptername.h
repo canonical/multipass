@@ -32,22 +32,4 @@ struct HcnNetworkPolicyNetAdapterName
 
 } // namespace multipass::hyperv::hcn
 
-/**
- * Formatter type specialization for HcnNetworkPolicyNetAdapterName
- */
-template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName, Char>
-{
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName& policy, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(), "NetAdapterName: ({})", policy.net_adapter_name);
-    }
-};
-
 #endif
