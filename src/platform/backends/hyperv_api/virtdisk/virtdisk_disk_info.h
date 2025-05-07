@@ -29,7 +29,6 @@ namespace multipass::hyperv::virtdisk
 
 struct VirtualDiskInfo
 {
-
     struct size_info
     {
         std::uint64_t virtual_{};
