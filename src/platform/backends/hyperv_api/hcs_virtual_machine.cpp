@@ -310,22 +310,21 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         cloudinit_iso.read_only = true;
         params.scsi_devices.push_back(cloudinit_iso);
 
-        const auto create_to_add = [this](const auto& create_params) {
-            hcs::AddEndpointParameters add_params{};
-            add_params.endpoint_guid = create_params.endpoint_guid;
+        const auto create_endpoint_to_network_adapter = [this](const auto& create_params) {
+            hcs::HcsNetworkAdapter network_adapter{};
+            network_adapter.endpoint_guid = create_params.endpoint_guid;
             if (!create_params.mac_address)
             {
                 throw CreateEndpointException("One of the endpoints do not have a MAC address!");
             }
-            add_params.nic_mac_address = create_params.mac_address.value();
-            add_params.target_compute_system_name = vm_name;
-            return add_params;
+            network_adapter.mac_address = create_params.mac_address.value();
+            return network_adapter;
         };
 
         std::transform(create_endpoint_params.begin(),
                        create_endpoint_params.end(),
-                       std::back_inserter(params.endpoints),
-                       create_to_add);
+                       std::back_inserter(params.network_adapters),
+                       create_endpoint_to_network_adapter);
         return params;
     }();
 
@@ -336,7 +335,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     }
 
     // Grant access to the VHDX and the cloud-init ISO files.
-    for(const auto & scsi : create_compute_system_params.scsi_devices){
+    for (const auto& scsi : create_compute_system_params.scsi_devices)
+    {
         grant_access_to_paths({scsi.path});
     }
 
