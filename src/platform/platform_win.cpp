@@ -31,6 +31,7 @@
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "backends/hyperv_api/hcs_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
+#include "hyperv_api/hyperv_api_string_conversion.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
@@ -599,17 +600,10 @@ auto mp::platform::guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
 
 // ---------------------------------------------------------
 
-auto mp::platform::string_to_wstring(const std::string& str) -> std::wstring
-{
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(str);
-}
-
-// ---------------------------------------------------------
-
 auto mp::platform::guid_from_string(const std::string& guid_str) -> GUID
 {
     // Just use the wide string overload.
-    return guid_from_wstring(string_to_wstring(guid_str));
+    return guid_from_wstring(hyperv::maybe_widen{guid_str});
 }
 
 // ---------------------------------------------------------
@@ -878,7 +872,7 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
         {
             if (netinfo.links.empty())
             {
-                const std::wstring search = fmt::format(L"vEthernet ({})", string_to_wstring(netinfo.id));
+                const std::wstring search = fmt::format(L"vEthernet ({})", hyperv::maybe_widen{netinfo.id});
                 for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
                 {
                     const auto& adapter = *pitr;
