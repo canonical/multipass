@@ -219,7 +219,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                     }
                 },
                 "Scsi": {
-                    "cloud-init iso file": {
+                    "cloud-init": {
                         "Attachments": {
                             "0": {
                                 "Type": "Iso",
@@ -228,7 +228,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                             }
                         }
                     },
-                    "Primary disk": {
+                    "primary": {
                         "Attachments": {
                             "0": {
                                 "Type": "VirtualDisk",
@@ -311,7 +311,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: (cloudinit iso path) | VHDX path: (virtual disk path)");
+            "Memory size: (16384 MiB)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -324,8 +324,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -395,7 +399,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                     }
                 },
                 "Scsi": {
-                    "Primary disk": {
+                    "primary": {
                         "Attachments": {
                             "0": {
                                 "Type": "VirtualDisk",
@@ -478,7 +482,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: () | VHDX path: (virtual disk path)");
+            "Memory size: (16384 MiB)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -491,8 +495,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -562,7 +566,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                     }
                 },
                 "Scsi": {
-                    "cloud-init iso file": {
+                    "cloud-init": {
                         "Attachments": {
                             "0": {
                                 "Type": "Iso",
@@ -645,7 +649,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: (cloudinit iso path) | VHDX path: ()");
+            "Memory size: (16384 MiB)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -658,8 +662,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -802,7 +808,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: () | VHDX path: ()");
+            "Memory size: (16384 MiB)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -815,8 +821,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "";
-        params.vhdx_path = "";
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -866,8 +870,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -931,7 +939,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                      }
                  },
                  "Scsi": {
-                     "cloud-init iso file": {
+                     "cloud-init": {
                          "Attachments": {
                              "0": {
                                  "Type": "Iso",
@@ -940,7 +948,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                              }
                          }
                      },
-                     "Primary disk": {
+                     "primary": {
                          "Attachments": {
                              "0": {
                                  "Type": "VirtualDisk",
@@ -1012,8 +1020,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -1083,7 +1095,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                      }
                  },
                  "Scsi": {
-                     "cloud-init iso file": {
+                     "cloud-init": {
                          "Attachments": {
                              "0": {
                                  "Type": "Iso",
@@ -1092,7 +1104,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                              }
                          }
                      },
-                     "Primary disk": {
+                     "primary": {
                          "Attachments": {
                              "0": {
                                  "Type": "VirtualDisk",
@@ -1185,8 +1197,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 

@@ -297,8 +297,18 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         params.name = description.vm_name;
         params.memory_size_mb = description.mem_size.in_megabytes();
         params.processor_count = description.num_cores;
-        params.cloudinit_iso_path = description.cloud_init_iso.toStdString();
-        params.vhdx_path = get_primary_disk_path();
+
+        hcs::HcsScsiDevice primary_disk{hcs::HcsScsiDeviceType::VirtualDisk()};
+        primary_disk.name = "Primary disk";
+        primary_disk.path = get_primary_disk_path();
+        primary_disk.read_only = false;
+        params.scsi_devices.push_back(primary_disk);
+
+        hcs::HcsScsiDevice cloudinit_iso{hcs::HcsScsiDeviceType::Iso()};
+        cloudinit_iso.name = "cloud-init ISO file";
+        cloudinit_iso.path = description.cloud_init_iso.toStdString();
+        cloudinit_iso.read_only = true;
+        params.scsi_devices.push_back(cloudinit_iso);
 
         const auto create_to_add = [this](const auto& create_params) {
             hcs::AddEndpointParameters add_params{};
@@ -326,7 +336,10 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     }
 
     // Grant access to the VHDX and the cloud-init ISO files.
-    grant_access_to_paths({create_compute_system_params.cloudinit_iso_path, create_compute_system_params.vhdx_path});
+    for(const auto & scsi : create_compute_system_params.scsi_devices){
+        grant_access_to_paths({scsi.path});
+    }
+
     return true;
 }
 

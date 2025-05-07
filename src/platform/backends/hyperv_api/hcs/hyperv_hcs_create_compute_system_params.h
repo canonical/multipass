@@ -20,6 +20,7 @@
 
 #include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_scsi_device.h>
 
 #include <fmt/format.h>
 #include <fmt/std.h>
@@ -49,14 +50,9 @@ struct CreateComputeSystemParameters
     std::uint32_t processor_count{};
 
     /**
-     * Path to the cloud-init ISO file
+     * List of SCSI devices that are attached on boot
      */
-    std::filesystem::path cloudinit_iso_path{};
-
-    /**
-     * Path to the Primary (boot) VHDX file
-     */
-    std::filesystem::path vhdx_path{};
+    std::vector<HcsScsiDevice> scsi_devices;
 
     /**
      * List of endpoints that'll be added to the compute system
@@ -88,13 +84,10 @@ struct fmt::formatter<multipass::hyperv::hcs::CreateComputeSystemParameters, Cha
     auto format(const multipass::hyperv::hcs::CreateComputeSystemParameters& params, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "Compute System name: ({}) | vCPU count: ({}) | Memory size: ({} MiB) | cloud-init ISO path: "
-                         "({}) | VHDX path: ({})",
+                         "Compute System name: ({}) | vCPU count: ({}) | Memory size: ({} MiB)",
                          params.name,
                          params.processor_count,
-                         params.memory_size_mb,
-                         params.cloudinit_iso_path,
-                         params.vhdx_path);
+                         params.memory_size_mb);
     }
 };
 
