@@ -19,12 +19,12 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-namespace hv = multipass::hyperv;
-namespace hcn = hv::hcn;
+using multipass::hyperv::maybe_widen;
+using multipass::hyperv::hcn::HcnSubnet;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<hcn::HcnSubnet, Char>::format(const hcn::HcnSubnet& subnet, FormatContext& ctx) const ->
+auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const ->
     typename FormatContext::iterator
 {
     constexpr static auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
@@ -43,13 +43,12 @@ auto fmt::formatter<hcn::HcnSubnet, Char>::format(const hcn::HcnSubnet& subnet, 
     return format_to(ctx.out(),
                      subnet_template.as<Char>(),
                      fmt::join(subnet.routes, comma.as<Char>()),
-                     hv::maybe_widen{subnet.ip_address_prefix});
+                     maybe_widen{subnet.ip_address_prefix});
 }
 
-template auto fmt::formatter<hcn::HcnSubnet, char>::format<fmt::format_context>(const hcn::HcnSubnet&,
-                                                                                fmt::format_context&) const
+template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(const HcnSubnet&, fmt::format_context&) const
     -> fmt::format_context::iterator;
 
-template auto fmt::formatter<hcn::HcnSubnet, wchar_t>::format<fmt::wformat_context>(const hcn::HcnSubnet&,
-                                                                                    fmt::wformat_context&) const
+template auto fmt::formatter<HcnSubnet, wchar_t>::format<fmt::wformat_context>(const HcnSubnet&,
+                                                                               fmt::wformat_context&) const
     -> fmt::wformat_context::iterator;
