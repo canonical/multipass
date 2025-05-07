@@ -31,7 +31,6 @@
 #include <string>
 #include <vector>
 
-
 #include <fmt/format.h>
 
 namespace multipass
