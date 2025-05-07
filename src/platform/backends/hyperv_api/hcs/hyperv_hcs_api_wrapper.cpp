@@ -14,13 +14,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
 
-#include "hyperv_api/hyperv_api_string_conversion.h"
 #include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_api_table.h>
-#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
-#include <hyperv_api/hyperv_api_common.h>
+#include <hyperv_api/hyperv_api_string_conversion.h>
+
 #include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <multipass/logging/log.h>
