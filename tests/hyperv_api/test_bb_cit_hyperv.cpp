@@ -158,20 +158,19 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         return create_disk_parameters;
     }();
 
-    const auto add_endpoint_parameters = [&endpoint_parameters]() {
-        hyperv::hcs::AddEndpointParameters add_endpoint_parameters{};
-        add_endpoint_parameters.endpoint_guid = endpoint_parameters.endpoint_guid;
-        add_endpoint_parameters.target_compute_system_name = "multipass-hyperv-cit-vm";
-        add_endpoint_parameters.nic_mac_address = "00-15-5D-9D-CF-69";
-        return add_endpoint_parameters;
-    }();
-
-    const auto create_vm_parameters = [&add_endpoint_parameters]() {
+    const auto create_vm_parameters = []() {
         hyperv::hcs::CreateComputeSystemParameters vm_parameters{};
         vm_parameters.name = "multipass-hyperv-cit-vm";
         vm_parameters.processor_count = 1;
         vm_parameters.memory_size_mb = 512;
         return vm_parameters;
+    }();
+
+    const auto network_adapter = [&endpoint_parameters]() {
+        hyperv::hcs::HcsNetworkAdapter network_adapter{};
+        network_adapter.endpoint_guid = endpoint_parameters.endpoint_guid;
+        network_adapter.mac_address = "00-15-5D-9D-CF-69";
+        return network_adapter;
     }();
 
     // Remove remnants from previous tests, if any.
@@ -228,7 +227,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Add endpoint
     {
-        const auto& [status, status_msg] = hcs.add_endpoint(add_endpoint_parameters);
+        const auto& [status, status_msg] = hcs.add_endpoint(create_vm_parameters.name, network_adapter);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
