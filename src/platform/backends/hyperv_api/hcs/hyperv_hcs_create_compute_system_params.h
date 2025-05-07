@@ -18,7 +18,6 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 #define MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 
-#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device.h>
 #include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
