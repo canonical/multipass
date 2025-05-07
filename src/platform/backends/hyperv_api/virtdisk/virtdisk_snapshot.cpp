@@ -20,9 +20,9 @@
 #include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
+#include <multipass/file_ops.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/file_ops.h>
 
 namespace
 {
@@ -77,6 +77,7 @@ void VirtDiskSnapshot::capture_impl()
 
     const auto& head_path = base_vhdx_path.parent_path() / head_disk_name();
     const auto& snapshot_path = make_snapshot_path(*this);
+    mpl::debug(kLogCategory, "capture_impl() -> head_path: {}, snapshot_path: {}", head_path, snapshot_path);
 
     // Check if head disk already exists. The head disk may not exist for a VM
     // that has no snapshots yet.
@@ -97,6 +98,7 @@ void VirtDiskSnapshot::capture_impl()
 void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent,
                                              const std::filesystem::path& child) const
 {
+    mpl::debug(kLogCategory, "create_new_child_disk() -> parent: {}, child: {}", parent, child);
     assert(virtdisk);
     // The parent must already exist.
     if (!MP_FILEOPS.exists(parent))
@@ -126,6 +128,11 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 void VirtDiskSnapshot::reparent_snapshot_disks(const VirtualMachine::SnapshotVista& snapshots,
                                                const std::filesystem::path& new_parent) const
 {
+    mpl::debug(kLogCategory,
+               "reparent_snapshot_disks() -> snapshots_count: {}, new_parent: {}",
+               snapshots.size(),
+               new_parent);
+
     // The parent must already exist.
     if (!MP_FILEOPS.exists(new_parent))
         throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
@@ -158,6 +165,7 @@ void VirtDiskSnapshot::erase_impl()
     assert(virtdisk);
     const auto& parent = get_parent();
     const auto& self_path = make_snapshot_path(*this);
+    mpl::debug(kLogCategory, "erase_impl() -> parent: {}, self_path: {}", parent->get_name(), self_path);
 
     //  1: Merge this to its parent
     if (const auto merge_r = virtdisk->merge_virtual_disk_to_parent(self_path); merge_r)
