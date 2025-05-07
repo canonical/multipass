@@ -91,14 +91,6 @@ private:
 
 // ---------------------------------------------------------
 
-/**
- * Convert a multi-byte string to a wide-character string.
- *
- * @param str Multi-byte string
- * @return Wide-character equivalent of the given multi-byte string.
- */
-[[nodiscard]] auto string_to_wstring(const std::string& str) -> std::wstring;
-
 } // namespace multipass::platform
 
 #endif // MULTIPASS_PLATFORM_WIN_H
