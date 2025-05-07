@@ -21,6 +21,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device.h>
+#include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
 
 #include <fmt/format.h>
 #include <fmt/std.h>
@@ -58,7 +59,7 @@ struct CreateComputeSystemParameters
      * List of endpoints that'll be added to the compute system
      * by default at creation time.
      */
-    std::vector<AddEndpointParameters> endpoints{};
+    std::vector<HcsNetworkAdapter> network_adapters{};
 
     /**
      * List of Plan9 shares that'll be added to the compute system
