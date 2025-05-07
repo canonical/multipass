@@ -520,59 +520,6 @@ BOOL signal_handler(DWORD dwCtrlType)
 }
 } // namespace
 
-/**
- * Formatter for GUID type
- */
-template <typename Char>
-struct fmt::formatter<::GUID, Char>
-{
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    auto format(const ::GUID& guid, FormatContext& ctx) const
-    {
-        // The format string is laid out char by char to allow it
-        // to be used for initializing variables with different character
-        // sizes.
-        static constexpr Char guid_f[] = {'{', ':', '0', '8', 'x', '}', '-', '{', ':', '0', '4', 'x', '}', '-', '{',
-                                          ':', '0', '4', 'x', '}', '-', '{', ':', '0', '2', 'x', '}', '{', ':', '0',
-                                          '2', 'x', '}', '-', '{', ':', '0', '2', 'x', '}', '{', ':', '0', '2', 'x',
-                                          '}', '{', ':', '0', '2', 'x', '}', '{', ':', '0', '2', 'x', '}', '{', ':',
-                                          '0', '2', 'x', '}', '{', ':', '0', '2', 'x', '}', 0};
-        return format_to(ctx.out(),
-                         guid_f,
-                         guid.Data1,
-                         guid.Data2,
-                         guid.Data3,
-                         guid.Data4[0],
-                         guid.Data4[1],
-                         guid.Data4[2],
-                         guid.Data4[3],
-                         guid.Data4[4],
-                         guid.Data4[5],
-                         guid.Data4[6],
-                         guid.Data4[7]);
-    }
-};
-
-// ---------------------------------------------------------
-
-auto mp::platform::guid_to_string(const ::GUID& guid) -> std::string
-{
-
-    return fmt::format("{}", guid);
-}
-
-// ---------------------------------------------------------
-
-auto mp::platform::guid_to_wstring(const ::GUID& guid) -> std::wstring
-{
-    return fmt::format(L"{}", guid);
-}
-
 mp::platform::wsa_init_wrapper::wsa_init_wrapper()
     : wsa_data(new ::WSAData()), wsa_init_result(::WSAStartup(MAKEWORD(2, 2), wsa_data))
 {
