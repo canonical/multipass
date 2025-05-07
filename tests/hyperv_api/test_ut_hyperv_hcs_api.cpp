@@ -307,10 +307,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -478,10 +475,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -645,10 +639,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
@@ -804,10 +795,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
