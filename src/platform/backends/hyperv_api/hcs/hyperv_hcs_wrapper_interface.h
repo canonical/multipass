@@ -46,10 +46,10 @@ struct HCSWrapperInterface
                                             const std::filesystem::path& file_path) const = 0;
     virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
                                              const std::filesystem::path& file_path) const = 0;
-    virtual OperationResult add_endpoint(const std::string& compute_system_name,
-                                         const HcsNetworkAdapter& params) const = 0;
-    virtual OperationResult remove_endpoint(const std::string& compute_system_name,
-                                            const std::string& endpoint_guid) const = 0;
+    virtual OperationResult add_network_adapter(const std::string& compute_system_name,
+                                                const HcsNetworkAdapter& params) const = 0;
+    virtual OperationResult remove_network_adapter(const std::string& compute_system_name,
+                                                   const std::string& endpoint_guid) const = 0;
     virtual OperationResult resize_memory(const std::string& compute_system_name,
                                           const std::uint32_t new_size_mib) const = 0;
     virtual OperationResult update_cpu_count(const std::string& compute_system_name,
