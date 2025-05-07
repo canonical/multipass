@@ -28,6 +28,11 @@
 namespace multipass::test
 {
 
+/**
+ * 16 MiB
+ */
+constexpr static auto kTestVhdxSize = 1024 * 1024 * 16ULL;
+
 using uut_t = hyperv::virtdisk::VirtDiskWrapper;
 
 struct HyperVVirtDisk_IntegrationTests : public ::testing::Test
@@ -42,7 +47,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhdx)
     uut_t uut{};
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
     params.path = temp_path;
-    params.size_in_bytes = 1024 * 1024 * 1024; // 1 GiB
+    params.size_in_bytes = kTestVhdxSize;
 
     const auto result = uut.create_virtual_disk(params);
     ASSERT_TRUE(result);
@@ -57,7 +62,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhd)
     uut_t uut{};
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
     params.path = temp_path;
-    params.size_in_bytes = 1024 * 1024 * 1024; // 1 GiB
+    params.size_in_bytes = kTestVhdxSize;
 
     const auto result = uut.create_virtual_disk(params);
     ASSERT_TRUE(result);
@@ -72,7 +77,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, get_virtual_disk_properties)
     uut_t uut{};
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
     params.path = temp_path;
-    params.size_in_bytes = 1024 * 1024 * 1024; // 1 GiB
+    params.size_in_bytes = kTestVhdxSize;
 
     const auto c_result = uut.create_virtual_disk(params);
     ASSERT_TRUE(c_result);
@@ -85,7 +90,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, get_virtual_disk_properties)
     ASSERT_TRUE(info.size.has_value());
 
     ASSERT_STREQ(info.virtual_storage_type.value().c_str(), "vhdx");
-    ASSERT_EQ(info.size->virtual_, 1024 * 1024 * 1024);
+    ASSERT_EQ(info.size->virtual_, params.size_in_bytes);
     ASSERT_EQ(info.size->block, 1024 * 1024);
     ASSERT_EQ(info.size->sector, 512);
 
@@ -100,7 +105,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, resize_grow)
     uut_t uut{};
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
     params.path = temp_path;
-    params.size_in_bytes = 1024 * 1024 * 1024; // 1 GiB
+    params.size_in_bytes = kTestVhdxSize;
 
     const auto c_result = uut.create_virtual_disk(params);
     ASSERT_TRUE(c_result);
@@ -139,53 +144,123 @@ TEST_F(HyperVVirtDisk_IntegrationTests, resize_grow)
     fmt::print("{}", info);
 }
 
-TEST_F(HyperVVirtDisk_IntegrationTests, DISABLED_resize_shrink)
+TEST_F(HyperVVirtDisk_IntegrationTests, create_child_disk)
 {
-    auto temp_path = make_tempfile_path(".vhdx");
-    std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
-
     uut_t uut{};
-    hyperv::virtdisk::CreateVirtualDiskParameters params{};
-    params.path = temp_path;
-    params.size_in_bytes = 1024 * 1024 * 1024; // 1 GiB
+    // Create parent
+    auto parent_temp_path = make_tempfile_path(".vhdx");
+    std::wprintf(L"Parent Path: %s\n", static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.path = parent_temp_path;
+        params.size_in_bytes = kTestVhdxSize;
 
-    const auto c_result = uut.create_virtual_disk(params);
-    ASSERT_TRUE(c_result);
-    ASSERT_TRUE(c_result.status_msg.empty());
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+    // Create child
+    auto child_temp_path = make_tempfile_path(".avhdx");
+    std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.predecessor = hyperv::virtdisk::ParentPathParameters{parent_temp_path};
+        params.path = child_temp_path;
 
-    hyperv::virtdisk::VirtualDiskInfo info{};
-    const auto g_result = uut.get_virtual_disk_info(temp_path, info);
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+}
 
-    ASSERT_TRUE(g_result);
-    ASSERT_TRUE(info.virtual_storage_type.has_value());
-    ASSERT_TRUE(info.size.has_value());
+TEST_F(HyperVVirtDisk_IntegrationTests, merge_virtual_disk)
+{
+    uut_t uut{};
+    // Create parent
+    auto parent_temp_path = make_tempfile_path(".vhdx");
+    std::wprintf(L"Parent Path: %s\n", static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.path = parent_temp_path;
+        params.size_in_bytes = kTestVhdxSize;
 
-    ASSERT_STREQ(info.virtual_storage_type.value().c_str(), "vhdx");
-    ASSERT_EQ(info.size->virtual_, params.size_in_bytes);
-    ASSERT_EQ(info.size->block, 1024 * 1024);
-    ASSERT_EQ(info.size->sector, 512);
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+    // Create child
+    auto child_temp_path = make_tempfile_path(".avhdx");
+    std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.predecessor = hyperv::virtdisk::ParentPathParameters{parent_temp_path};
+        params.path = child_temp_path;
 
-    fmt::print("{}", info);
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
 
-    const auto r_result = uut.resize_virtual_disk(temp_path, params.size_in_bytes / 2);
-    ASSERT_TRUE(r_result);
+    // Merge child to parent
+    const auto result = uut.merge_virtual_disk_to_parent(child_temp_path);
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.status_msg.empty());
+}
 
-    info = {};
+TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
+{
+    uut_t uut{};
+    // Create parent
+    auto parent_temp_path = make_tempfile_path(".vhdx");
+    std::wprintf(L"Parent Path: %s\n", static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.path = parent_temp_path;
+        params.size_in_bytes = kTestVhdxSize;
 
-    // SmallestSafeVirtualSize
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+    // Create child
+    auto child_temp_path = make_tempfile_path(".avhdx");
+    std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.predecessor = hyperv::virtdisk::ParentPathParameters{parent_temp_path};
+        params.path = child_temp_path;
 
-    const auto g2_result = uut.get_virtual_disk_info(temp_path, info);
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
 
-    ASSERT_TRUE(g2_result);
-    ASSERT_TRUE(info.virtual_storage_type.has_value());
-    ASSERT_TRUE(info.size.has_value());
+    // Create grandchild
+    auto grandchild_temp_path = make_tempfile_path(".avhdx");
+    std::wprintf(L"Grandchild Path: %s\n", static_cast<std::filesystem::path>(grandchild_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.predecessor = hyperv::virtdisk::ParentPathParameters{child_temp_path};
+        params.path = grandchild_temp_path;
 
-    ASSERT_STREQ(info.virtual_storage_type.value().c_str(), "vhdx");
-    ASSERT_EQ(info.size->virtual_, params.size_in_bytes / 2);
-    ASSERT_EQ(info.size->block, 1024 * 1024);
-    ASSERT_EQ(info.size->sector, 512);
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
 
-    fmt::print("{}", info);
+    // Merge child to parent
+    {
+        const auto result = uut.merge_virtual_disk_to_parent(child_temp_path);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+
+    // Reparent grandchild to parent
+    {
+        const auto result = uut.reparent_virtual_disk(grandchild_temp_path, parent_temp_path);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
 }
 
 } // namespace multipass::test
