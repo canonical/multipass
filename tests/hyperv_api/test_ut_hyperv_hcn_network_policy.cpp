@@ -41,7 +41,7 @@ TEST_F(HyperVHCNNetworkPolicy_UnitTests, format_narrow)
     uut_t uut{hyperv::hcn::HcnNetworkPolicyType::NetAdapterName()};
     uut.settings = hyperv::hcn::HcnNetworkPolicyNetAdapterName{"client eastwood"};
 
-    const auto result = fmt::format("{}", uut);
+    const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
         {
             "Type": "NetAdapterName",
@@ -66,7 +66,7 @@ TEST_F(HyperVHCNNetworkPolicy_UnitTests, format_wide)
     uut_t uut{hyperv::hcn::HcnNetworkPolicyType::NetAdapterName()};
     uut.settings = hyperv::hcn::HcnNetworkPolicyNetAdapterName{"client eastwood"};
 
-    const auto result = fmt::format(L"{}", uut);
+    const auto result = fmt::to_wstring(uut);
     constexpr auto expected_result = LR"json(
         {
             "Type": "NetAdapterName",
