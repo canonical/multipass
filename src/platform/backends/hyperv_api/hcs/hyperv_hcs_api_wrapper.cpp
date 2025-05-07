@@ -223,26 +223,6 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    const auto network_adapters = [&]() {
-        std::vector<std::wstring> network_adapters = {};
-
-        constexpr auto network_adapter_template = LR"(
-                "{0}": {{
-                    "EndpointId" : "{0}",
-                    "MacAddress": "{1}"
-                }})";
-
-        for (const auto& endpoint : params.endpoints)
-        {
-            network_adapters.push_back(fmt::format(network_adapter_template,
-                                                   maybe_widen{endpoint.endpoint_guid},
-                                                   maybe_widen{endpoint.nic_mac_address}));
-        }
-
-        return fmt::format(L"{}", fmt::join(network_adapters, L", "));
-        ;
-    }();
-
     const auto plan9_shares = [&]() {
         std::vector<std::wstring> plan9_shares = {};
 
@@ -331,7 +311,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                                          params.memory_size_mb,
                                          maybe_widen{params.name},
                                          fmt::join(params.scsi_devices, L","),
-                                         network_adapters,
+                                         fmt::join(params.network_adapters, L","),
                                          plan9_shares);
 
     // FIXME: Replace this with wide-string logging API when it's available.
