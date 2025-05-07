@@ -26,8 +26,8 @@
 #include <fmt/xchar.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
-#include <multipass/logging/log.h>
 #include <multipass/file_ops.h>
+#include <multipass/logging/log.h>
 
 namespace multipass::hyperv::virtdisk
 {
