@@ -48,7 +48,7 @@ if(WIN32)
   )
 
   target_link_libraries(hyperv_api_backend PRIVATE
-    fmt
+    fmt::fmt-header-only
     utils
     computecore.lib
     computenetwork.lib
