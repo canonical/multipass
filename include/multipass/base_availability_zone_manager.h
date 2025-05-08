@@ -25,6 +25,7 @@
 #include <array>
 #include <filesystem>
 #include <mutex>
+#include <shared_mutex>
 
 namespace multipass
 {
@@ -56,6 +57,7 @@ private:
 
     private:
         ZoneArray::const_iterator automatic_zone;
+        mutable std::shared_mutex mutex{};
     };
 
     // we store all the data in one struct so that it can be created from one function call in the initializer list
@@ -66,6 +68,8 @@ private:
         // we don't have designated initializers, so mutex remains last so it doesn't need to be manually initialized
         mutable std::recursive_mutex mutex{};
     } m;
+
+    [[nodiscard]] const ZoneCollection::ZoneArray& zones() const;
 
     static data read_from_file(const std::filesystem::path& file_path, const std::filesystem::path& zones_directory);
 };

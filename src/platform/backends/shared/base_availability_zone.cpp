@@ -25,13 +25,47 @@
 
 #include <QJsonDocument>
 
+namespace mpl = multipass::logging;
+
 namespace
 {
 constexpr auto subnet_key = "subnet";
 constexpr auto available_key = "available";
-} // namespace
 
-namespace mpl = multipass::logging;
+[[nodiscard]] QJsonObject read_json(const multipass::fs::path& file_path, const std::string& name)
+try
+{
+    return MP_JSONUTILS.read_object_from_file(file_path);
+}
+catch (const std::ios_base::failure& e)
+{
+    mpl::warn(name, "failed to read AZ file: {}", e.what());
+    return QJsonObject{};
+}
+
+[[nodiscard]] std::string deserialize_subnet(const QJsonObject& json,
+                                             const multipass::fs::path& file_path,
+                                             const std::string& name)
+{
+    if (const auto json_subnet = json[subnet_key].toString().toStdString(); !json_subnet.empty())
+        return json_subnet;
+
+    mpl::debug(name, "subnet missing from AZ file '{}', using default", file_path);
+    // TODO GET ACTUAL SUBNET
+    return {};
+};
+
+[[nodiscard]] bool deserialize_available(const QJsonObject& json,
+                                         const multipass::fs::path& file_path,
+                                         const std::string& name)
+{
+    if (const auto json_available = json[available_key]; json_available.isBool())
+        return json_available.toBool();
+
+    mpl::debug(name, "availability missing from AZ file '{}', using default", file_path);
+    return true;
+}
+} // namespace
 
 namespace multipass
 {
@@ -40,43 +74,13 @@ BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::strin
 {
     mpl::trace(name, "reading AZ from file '{}'", file_path);
 
-    const auto read_json = [&] {
-        try
-        {
-            return MP_JSONUTILS.read_object_from_file(file_path);
-        }
-        catch (std::exception& e)
-        {
-            mpl::warn(name, "failed to read AZ file: {}", e.what());
-            return QJsonObject{};
-        }
-    };
-
-    const auto json = read_json();
-
-    const auto deserialize_subnet = [&] {
-        if (const auto json_subnet = json[subnet_key].toString().toStdString(); !json_subnet.empty())
-            return json_subnet;
-
-        mpl::debug(name, "subnet missing from AZ file '{}', using default", file_path);
-        // TODO GET ACTUAL SUBNET
-        return std::string{};
-    };
-
-    const auto deserialize_available = [&] {
-        if (const auto json_available = json[available_key]; json_available.isBool())
-            return json_available.toBool();
-
-        mpl::debug(name, "availability missing from AZ file '{}', using default", file_path);
-        return true;
-    };
-
+    const auto json = read_json(file_path, name);
     return {
         // TODO remove these comments in C++20
         /*.name = */ name,
         /*.file_path = */ file_path,
-        /*.subnet = */ deserialize_subnet(),
-        /*.available = */ deserialize_available(),
+        /*.subnet = */ deserialize_subnet(json, file_path, name),
+        /*.available = */ deserialize_available(json, file_path, name),
     };
 }
 
