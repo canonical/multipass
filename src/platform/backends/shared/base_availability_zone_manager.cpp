@@ -26,20 +26,19 @@
 
 #include <QJsonDocument>
 
+namespace mpl = multipass::logging;
+
 namespace
 {
 constexpr auto category = "az-manager";
 constexpr auto az_file = "az-manager.json";
 constexpr auto zones_directory_name = "zones";
 constexpr auto automatic_zone_key = "automatic_zone";
-} // namespace
 
-namespace mpl = multipass::logging;
+[[nodiscard]] auto create_default_zones(const multipass::fs::path& zones_directory)
+{
+    using namespace multipass;
 
-namespace multipass
-{
-auto create_default_zones(const fs::path& zones_directory)
-{
     std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
     std::transform(default_zone_names.begin(), default_zone_names.end(), zones.begin(), [&](const auto& zone_name) {
         return std::make_unique<BaseAvailabilityZone>(zone_name, zones_directory);
@@ -47,40 +46,44 @@ auto create_default_zones(const fs::path& zones_directory)
     return zones;
 };
 
+[[nodiscard]] QJsonObject read_json(const std::filesystem::path& file_path)
+try
+{
+    return MP_JSONUTILS.read_object_from_file(file_path);
+}
+catch (const std::ios_base::failure& e)
+{
+    mpl::warn(category, "failed to read AZ manager file': {}", e.what());
+    return QJsonObject{};
+}
+
+[[nodiscard]] std::string deserialize_automatic_zone(const QJsonObject& json)
+{
+    using namespace multipass;
+
+    auto json_automatic_zone = json[automatic_zone_key].toString().toStdString();
+    if (std::find(default_zone_names.begin(), default_zone_names.end(), json_automatic_zone) !=
+        default_zone_names.end())
+        return json_automatic_zone;
+
+    mpl::debug(category, "automatic zone '{}' not known, using default", json_automatic_zone);
+    return *default_zone_names.begin();
+}
+} // namespace
+
+namespace multipass
+{
+
 BaseAvailabilityZoneManager::data BaseAvailabilityZoneManager::read_from_file(
     const std::filesystem::path& file_path,
     const std::filesystem::path& zones_directory)
 {
     mpl::debug(category, "reading AZ manager from file '{}'", file_path);
-
-    const auto read_json = [&] {
-        try
-        {
-            return MP_JSONUTILS.read_object_from_file(file_path);
-        }
-        catch (std::exception& e)
-        {
-            mpl::warn(category, "failed to read AZ manager file': {}", e.what());
-            return QJsonObject{};
-        }
-    };
-
-    const auto json = read_json();
-
-    const auto deserialize_automatic_zone = [&] {
-        const auto json_automatic_zone = json[automatic_zone_key].toString().toStdString();
-        if (std::find(default_zone_names.begin(), default_zone_names.end(), json_automatic_zone) !=
-            default_zone_names.end())
-            return json_automatic_zone;
-
-        mpl::debug(category, "automatic zone '{}' not known, using default", json_automatic_zone);
-        return std::string{*default_zone_names.begin()};
-    };
-
     return {
         // TODO remove these comments in C++20
         /*.file_path = */ file_path,
-        /*.zone_collection = */ {create_default_zones(zones_directory), deserialize_automatic_zone()},
+        /*.zone_collection = */
+        {create_default_zones(zones_directory), deserialize_automatic_zone(read_json(file_path))},
     };
 }
 
@@ -92,7 +95,7 @@ BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_di
 
 AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name)
 {
-    for (const auto& zone : m.zone_collection.zones)
+    for (const auto& zone : zones())
     {
         if (zone->get_name() == name)
             return *zone;
@@ -110,15 +113,15 @@ std::string BaseAvailabilityZoneManager::get_automatic_zone_name()
 std::vector<std::reference_wrapper<const AvailabilityZone>> BaseAvailabilityZoneManager::get_zones()
 {
     std::vector<std::reference_wrapper<const AvailabilityZone>> zone_list;
-    zone_list.reserve(m.zone_collection.zones.size());
-    for (auto& zone : m.zone_collection.zones)
+    zone_list.reserve(zones().size());
+    for (auto& zone : zones())
         zone_list.emplace_back(*zone);
     return zone_list;
 }
 
 std::string BaseAvailabilityZoneManager::get_default_zone_name() const
 {
-    return m.zone_collection.zones.begin()->get()->get_name();
+    return (*zones().begin())->get_name();
 }
 
 void BaseAvailabilityZoneManager::serialize() const
@@ -133,6 +136,11 @@ void BaseAvailabilityZoneManager::serialize() const
     MP_JSONUTILS.write_json(json, QString::fromStdString(m.file_path.u8string()));
 }
 
+const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray& BaseAvailabilityZoneManager::zones() const
+{
+    return m.zone_collection.zones;
+}
+
 BaseAvailabilityZoneManager::ZoneCollection::ZoneCollection(
     std::array<AvailabilityZone::UPtr, default_zone_names.size()>&& _zones,
     std::string last_used)
@@ -144,6 +152,7 @@ BaseAvailabilityZoneManager::ZoneCollection::ZoneCollection(
 
 std::string BaseAvailabilityZoneManager::ZoneCollection::next_available()
 {
+    std::unique_lock lock{mutex};
     const auto start = automatic_zone;
     auto current = start;
     do
@@ -164,6 +173,7 @@ std::string BaseAvailabilityZoneManager::ZoneCollection::next_available()
 
 std::string BaseAvailabilityZoneManager::ZoneCollection::last_used() const
 {
+    std::shared_lock lock{mutex};
     return automatic_zone->get()->get_name();
 }
 
