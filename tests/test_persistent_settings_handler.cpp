@@ -28,6 +28,7 @@
 #include <QString>
 
 #include <functional>
+#include <optional>
 
 namespace mp = multipass;
 namespace mpt = mp::test;

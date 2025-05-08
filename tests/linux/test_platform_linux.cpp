@@ -176,39 +176,6 @@ TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
     aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
 }
 
-TEST_F(PlatformLinux, blueprintsURLOverrideSetReturnsExpectedData)
-{
-    const QString fake_url{"https://a.fake.url"};
-    mpt::SetEnvScope blueprints_url("MULTIPASS_BLUEPRINTS_URL", fake_url.toUtf8());
-
-    EXPECT_EQ(MP_PLATFORM.get_blueprints_url_override(), fake_url);
-}
-
-TEST_F(PlatformLinux, blueprintsURLOverrideNotSetReturnsEmptyString)
-{
-    EXPECT_TRUE(MP_PLATFORM.get_blueprints_url_override().isEmpty());
-}
-
-TEST_F(PlatformLinux, test_is_remote_supported_returns_true)
-{
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("release"));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported(""));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("snapcraft"));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("appliance"));
-}
-
-TEST_F(PlatformLinux, test_is_remote_supported_lxd)
-{
-    setup_driver_settings("lxd");
-
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("release"));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("daily"));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported(""));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("appliance"));
-    EXPECT_TRUE(MP_PLATFORM.is_remote_supported("snapcraft"));
-}
-
 TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
 {
     const QByteArray base_dir{"/tmp"};
@@ -228,11 +195,6 @@ TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
     mpt::SetEnvScope env2("SNAP_NAME", snap_name);
 
     EXPECT_EQ(mp::platform::default_server_address(), fmt::format("unix:/run/multipass_socket"));
-}
-
-TEST_F(PlatformLinux, test_is_alias_supported_returns_true)
-{
-    EXPECT_TRUE(MP_PLATFORM.is_alias_supported("focal", "release"));
 }
 
 struct TestUnsupportedDrivers : public PlatformLinux, WithParamInterface<QString>

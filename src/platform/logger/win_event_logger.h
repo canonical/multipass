@@ -15,19 +15,25 @@
  *
  */
 
-#ifndef MULTIPASS_UNSUPPORTED_REMOTE_EXCEPTION_H
-#define MULTIPASS_UNSUPPORTED_REMOTE_EXCEPTION_H
+#ifndef MULTIPASS_WIN_EVENT_LOGGER_H
+#define MULTIPASS_WIN_EVENT_LOGGER_H
 
-#include <stdexcept>
+#include <multipass/logging/logger.h>
 
 namespace multipass
 {
-class UnsupportedRemoteException : public std::runtime_error
+namespace logging
+{
+class EventLogger : public Logger
 {
 public:
-    explicit UnsupportedRemoteException(const std::string& message) : runtime_error(message)
-    {
-    }
+    explicit EventLogger(Level level);
+    void log(Level level, std::string_view category, std::string_view message) const override;
+
+private:
+    Level logging_level;
 };
+} // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_UNSUPPORTED_REMOTE_EXCEPTION_H
+
+#endif // MULTIPASS_WIN_EVENT_LOGGER_H

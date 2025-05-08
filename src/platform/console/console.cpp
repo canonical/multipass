@@ -18,12 +18,19 @@
 #include <multipass/console.h>
 #include <multipass/terminal.h>
 
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include "windows_console.h"
+#include "windows_terminal.h"
+#else
 #include "unix_console.h"
 #include "unix_terminal.h"
+#endif
 
 namespace mp = multipass;
 
 void mp::Console::setup_environment()
 {
+#ifndef MULTIPASS_PLATFORM_WINDOWS
     UnixConsole::setup_environment();
+#endif
 }

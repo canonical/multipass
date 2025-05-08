@@ -29,6 +29,9 @@ namespace test
 class StubSSHKeyProvider : public SSHKeyProvider
 {
 public:
+    // A default constructor is needed by Clang++-13, see https://stackoverflow.com/questions/77283333
+    StubSSHKeyProvider(){};
+
     std::string private_key_as_base64() const override
     {
         return {};

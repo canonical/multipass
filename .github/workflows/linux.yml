@@ -3,10 +3,10 @@ name: Linux
 on:
   push:
     branches:
-    - main
-    - release/[0-9]+.[0-9]+
+      - main
+      - release/[0-9]+.[0-9]+
     tags:
-    - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
@@ -17,19 +17,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Lint:
+  CheckLint:
     runs-on: ubuntu-latest
 
-    if: ${{ !cancelled() && contains('pull_request merge_group', github.event_name) }}
+    outputs:
+      conclusion: ${{ steps.check-lint.outputs.conclusion }}
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
+      - name: Check out code
+        uses: actions/checkout@v4
 
-    - name: Lint the code
-      uses: ./.github/actions/lint
+      - name: Check Lint Status
+        id: check-lint
+        uses: ./.github/actions/check-lint
 
   GetMatrix:
     runs-on: ubuntu-latest
@@ -47,26 +47,19 @@ jobs:
                 {"build-type": "Clang"}
                 {"build-type": "Release"}'
 
-        if ${{ github.event_name != 'merge_group' }}; then
+        if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
             MATRIX+='{"build-type": "Coverage" }'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    needs: [Lint, GetMatrix]
+    needs: [GetMatrix, CheckLint]
 
-    # Allow skipped Lint
-    # Let Lint fail on pull requests
-    if: ${{ !cancelled() &&
-            (
-              success() ||
-              needs.Lint.result == 'skipped' ||
-              (
-                needs.Lint.result == 'failure' &&
-                github.event_name == 'pull_request'
-              )
-            )
+    # Proceed if Lint failed on a PR (but not if cancelled)
+    if: ${{ !cancelled() && success() &&
+          (needs.CheckLint.outputs.conclusion == 'success' ||
+            (needs.CheckLint.outputs.conclusion == 'failure' && github.event_name == 'pull_request'))
         }}
 
     outputs:
@@ -102,11 +95,8 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
       with:
-        # Need to fetch it all for submodules to work.
-        fetch-depth: 0
-
-    - name: Check out tags and submodules
-      uses: ./.github/actions/checkout
+        fetch-depth: 0 # Need full history to derive version
+        submodules: 'recursive'
 
     - name: Determine build parameters
       id: build-params
@@ -115,9 +105,11 @@ jobs:
     - name: Patch
       env:
         PATCH_PREFIX: .github/workflows/linux
-      run: |
+      run: >
         [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
-        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
+
+        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] ||
+          patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -135,12 +127,12 @@ jobs:
 
         # Find common base between main and HEAD to use as cache key.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
-        echo "key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: CCache
       uses: actions/cache@v4
       with:
-        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.key }}
+        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.cache-key }}
         restore-keys: |
           ccache-${{ runner.os }}-${{ matrix.build-type }}-
         path: ~/.ccache
@@ -155,9 +147,11 @@ jobs:
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
     - name: Build
+      env:
+        LABEL: ${{ steps.build-params.outputs.label }}
       run: |
         # Inject the build label.
-        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}" snap/snapcraft.yaml
+        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${LABEL}" snap/snapcraft.yaml
 
         # Inject vcpkg GH Actions cache env vars if they exist
         if [ -n "${ACTIONS_CACHE_URL}" ]; then
@@ -251,7 +245,6 @@ jobs:
       # do not cause job to fail if there are no coredumps available.
       continue-on-error: true
       run: |
-
         set -o xtrace
         # Check whether the test executable is crashed or not.
         # If so, we'll need to pull the core dump and the executable from the container to the
@@ -262,7 +255,8 @@ jobs:
         mkdir -p /tmp/coredump
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         # Pull the crashed executable from the container
-        /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
+        /snap/bin/lxc --project snapcraft file pull \
+          -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
         echo "Pulled the executable."
         # Pull the coredump folder
         /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/coredump" /tmp/coredump
@@ -306,11 +300,13 @@ jobs:
         if-no-files-found: error
         retention-days: 30
 
-  # Publish the snap to the store if a channel was determined and we have access to secrets.
+  # Publish the snap to the store if all is good, a channel was determined, and we have access to secrets.
   Publish-Snap:
     needs: BuildAndTest
-    # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !cancelled() && success()
+    if: ${{
+      !cancelled()
+      && success()
+      && github.repository == 'canonical/multipass'
       && needs.BuildAndTest.outputs.channel != ''
       && (github.event_name == 'push'
           || github.event_name == 'merge_group'
@@ -334,64 +330,3 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
-
-  # Dispatch to the private side
-  Dispatch:
-    needs:
-    - BuildAndTest
-    - Publish-Snap
-
-    # Only dispatch if we have access to secrets.
-    # Need to explicitly continue on Lint getting skipped.
-    if: ${{ !cancelled() && success()
-      && (github.event_name == 'push'
-          || github.event_name == 'merge_group'
-          || github.event.pull_request.head.repo.full_name == github.repository)
-      }}
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Determine dispatch parameters
-      id: dispatch-params
-      run: |
-        if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "head_ref=${{ github.head_ref }}" >> $GITHUB_OUTPUT
-            echo "head_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-        else
-            echo "head_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
-            echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Dispatch Linux integration tests
-      if: ${{ github.event_name == 'push' }}
-      uses: Saviq/workflow-dispatch@dist
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        workflow: Integration
-        ref: ${{ steps.dispatch-params.outputs.ref }}
-        sha: ${{ steps.dispatch-params.outputs.sha }}
-        inputs: |
-          {
-            "snap-channel": "${{ needs.BuildAndTest.outputs.channel }}"
-          }
-      # This action will fail if `ref` moved on from `sha` to avoid mistargeting Integration runs.
-      continue-on-error: true
-
-    - name: Dispatch macOS and Windows builds
-      uses: peter-evans/repository-dispatch@v3
-      with:
-        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
-        repository: ${{ secrets.PRIVATE_GITHUB_REPO }}
-        event-type: public_build
-        client-payload: |
-          {
-            "repository": "${{ github.repository }}",
-            "head_ref": "${{ steps.dispatch-params.outputs.head_ref }}",
-            "head_sha": "${{ steps.dispatch-params.outputs.head_sha }}",
-            "ref": "${{ github.ref }}",
-            "sha": "${{ github.sha }}",
-            "draft": "${{ github.event.pull_request.draft }}",
-            "label": "${{ needs.BuildAndTest.outputs.label }}",
-            "dispatch_ci": "${{ github.event_name == 'push' }}"
-          }

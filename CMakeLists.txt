@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.20)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(src/cmake/environment-utils.cmake)
@@ -132,6 +132,20 @@ if(cmake_build_type_lower MATCHES "coverage")
   endif()
 endif()
 
+if(UNIX)
+  set(HOST_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
+
+  if (${HOST_ARCH} STREQUAL "arm64")
+    set(HOST_ARCH "aarch64")
+  endif ()
+
+  if (APPLE AND ${HOST_ARCH} MATCHES "x86_64")
+      list(APPEND MULTIPASS_BACKENDS virtualbox)
+  endif()
+
+  list(APPEND MULTIPASS_BACKENDS qemu)
+endif()
+
 # OpenSSL config
 find_package(OpenSSL REQUIRED)
 
@@ -164,7 +178,7 @@ function(determine_version OUTPUT_VARIABLE)
                   OUTPUT_STRIP_TRAILING_WHITESPACE
                   ERROR_QUIET)
 
-  execute_process(COMMAND git describe --long
+  execute_process(COMMAND git describe --long --abbrev=8
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -261,11 +275,14 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
+  set(MULTIPASS_BACKENDS hyperv virtualbox)
+  set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC -Wno-error=deprecated-declarations)
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
+    set(MULTIPASS_PLATFORM macos)
     add_definitions(-DMULTIPASS_COMPILER_APPLE_CLANG)
   else()
     # Linux

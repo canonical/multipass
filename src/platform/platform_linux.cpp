@@ -37,6 +37,10 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #endif
 
+#ifdef VIRTUALBOX_ENABLED
+#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
+#endif
+
 #ifdef MULTIPASS_JOURNALD_ENABLED
 #include "logger/journald_logger.h"
 #else
@@ -44,7 +48,6 @@
 #endif
 
 #include "platform_linux_detail.h"
-#include "platform_shared.h"
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
@@ -258,31 +261,14 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     return detail::get_network_interfaces_from(sysfs);
 }
 
-QString mp::platform::Platform::get_blueprints_url_override() const
-{
-    return QString::fromUtf8(qgetenv("MULTIPASS_BLUEPRINTS_URL"));
-}
-
-bool mp::platform::Platform::is_alias_supported(const std::string& alias, const std::string& remote) const
-{
-    if (remote == mp::snapcraft_remote)
-    {
-        return supported_snapcraft_aliases.find(alias) != supported_snapcraft_aliases.end();
-    }
-
-    return true;
-}
-
-bool mp::platform::Platform::is_remote_supported(const std::string& remote) const
-{
-    return true;
-}
-
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     return
 #ifdef QEMU_ENABLED
         backend == "qemu" ||
+#endif
+#ifdef VIRTUALBOX_ENABLED
+        backend == "virtualbox" ||
 #endif
         backend == "libvirt" || backend == "lxd";
 }
@@ -372,11 +358,6 @@ QString mp::platform::Platform::default_privileged_mounts() const
     return QStringLiteral("true");
 }
 
-bool mp::platform::Platform::is_image_url_supported() const
-{
-    return true;
-}
-
 std::string mp::platform::Platform::bridge_nomenclature() const
 {
     return br_nomenclature;
@@ -440,6 +421,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
     if (driver == QStringLiteral("lxd"))
         return std::make_unique<LXDVirtualMachineFactory>(data_dir);
+
+#if VIRTUALBOX_ENABLED
+    if (driver == QStringLiteral("virtualbox"))
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+#endif
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }

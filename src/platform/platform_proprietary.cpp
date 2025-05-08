@@ -15,19 +15,18 @@
  *
  */
 
-#ifndef MULTIPASS_UNSUPPORTED_ALIAS_EXCEPTION_H
-#define MULTIPASS_UNSUPPORTED_ALIAS_EXCEPTION_H
+/**
+ * @file
+ * @brief Implementations for proprietary platforms
+ * @details Platform-specific implementations that are common to proprietary platforms, i.e., Windows and macOS.
+ */
 
-#include <stdexcept>
+#include <multipass/format.h>
+#include <multipass/platform.h>
 
-namespace multipass
+namespace mp = multipass;
+
+std::string mp::platform::host_version()
 {
-class UnsupportedAliasException : public std::runtime_error
-{
-public:
-    explicit UnsupportedAliasException(const std::string& message) : runtime_error(message)
-    {
-    }
-};
-} // namespace multipass
-#endif // MULTIPASS_UNSUPPORTED_ALIAS_EXCEPTION_H
+    return fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+}

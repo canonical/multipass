@@ -15,25 +15,16 @@
  *
  */
 
-#ifndef MULTIPASS_PLATFORM_SHARED_H
-#define MULTIPASS_PLATFORM_SHARED_H
+#ifndef MULTIPASS_BACKEND_UTILS_H
+#define MULTIPASS_BACKEND_UTILS_H
 
+#include <multipass/ip_address.h>
+
+#include <optional>
 #include <string>
-#include <unordered_set>
 
-namespace multipass::platform
+namespace multipass::backend
 {
-const std::unordered_set<std::string> supported_snapcraft_aliases{
-    "core18",
-    "18.04",
-    "core20",
-    "20.04",
-    "core22",
-    "22.04",
-    "core24",
-    "24.04",
-    "devel",
-};
-} // namespace multipass::platform
-
-#endif // MULTIPASS_PLATFORM_SHARED_H
+std::optional<IPAddress> get_neighbour_ip(const std::string& mac_address);
+} // namespace multipass::backend
+#endif // MULTIPASS_BACKEND_UTILS_H

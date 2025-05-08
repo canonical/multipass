@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+# Launch agent location
+LAUNCH_AGENT_SRC="$3@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/@MULTIPASSD_PLIST@"
+LAUNCH_AGENT_DEST="$3/Library/LaunchDaemons/@MULTIPASSD_PLIST@"
+
+# Uninstall old launch agent
+if [ -f "$LAUNCH_AGENT_DEST" ]; then
+    launchctl unload -w "$LAUNCH_AGENT_DEST"
+    rm -fv "$LAUNCH_AGENT_DEST"
+fi
+
+# Create log dir and ensure correct permissions
+mkdir -p "$3/Library/Logs/Multipass" -m 755
+
+# Install launch agent
+cp -v "$LAUNCH_AGENT_SRC" "$LAUNCH_AGENT_DEST"
+launchctl load -w "$LAUNCH_AGENT_DEST"
+
+exit 0
