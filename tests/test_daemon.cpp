@@ -1256,7 +1256,7 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, no_extra_network_cloud_init)
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
         .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_FALSE(desc.network_data_config["ethernets"]["default"].IsNull());
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["primary"].IsNull());
             EXPECT_FALSE(desc.network_data_config["ethernets"]["extra0"].IsDefined());
         });
 
@@ -1304,8 +1304,8 @@ TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
                                                    const mp::VirtualMachineDescription& desc) {
             EXPECT_THAT(desc.network_data_config, YAMLNodeContainsMap("ethernets"));
 
-            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("default"));
-            auto const& default_network_stanza = desc.network_data_config["ethernets"]["default"];
+            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("primary"));
+            auto const& default_network_stanza = desc.network_data_config["ethernets"]["primary"];
             EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
             EXPECT_THAT(default_network_stanza["match"], YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
             EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
