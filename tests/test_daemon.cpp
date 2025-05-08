@@ -121,8 +121,6 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
         EXPECT_CALL(mock_platform, setup_permission_inheritance(_)).Times(AnyNumber()).WillRepeatedly(Return());
         EXPECT_CALL(mock_platform, bridge_nomenclature).Times(AnyNumber()).WillRepeatedly(Return("notabridge"));
-
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     void SetUp() override
