@@ -247,8 +247,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            AvailabilityZone& zone,
                                            const Path& instance_dir,
                                            bool remove_snapshots)
-    : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag) ? State::suspended
-                                                                                                      : State::off,
+    : BaseVirtualMachine{!zone.is_available() ? State::unavailable
+                         : mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag)
+                             ? State::suspended
+                             : State::off,
                          desc.vm_name,
                          key_provider,
                          zone,
