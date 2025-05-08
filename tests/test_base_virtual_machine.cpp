@@ -258,7 +258,6 @@ struct BaseVM : public Test
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider, zone};
-    mpt::StubAvailabilityZone zone{};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
