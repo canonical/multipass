@@ -166,7 +166,21 @@ class _AppState extends ConsumerState<App> with WindowListener {
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
-    if (!daemonAvailable || !vmsRunning) windowManager.destroy();
+    final closeJob = ref.read(guiSettingProvider(onAppCloseKey));
+
+    // nothing to do
+    if (!daemonAvailable ||
+        !vmsRunning ||
+        closeJob == 'nothing') {
+      windowManager.destroy();
+      return;
+    }
+
+    // checking the need to restore the window
+    if (!await windowManager.isVisible() ||
+        await windowManager.isMinimized()) {
+      windowManager.showAndRestore();
+    }
 
     stopAllInstances() {
       final notificationsNotifier = ref.read(notificationsProvider.notifier);
@@ -181,31 +195,28 @@ class _AppState extends ConsumerState<App> with WindowListener {
       );
     }
 
-    switch (ref.read(guiSettingProvider(onAppCloseKey))) {
-      case 'nothing':
-        windowManager.destroy();
-      case 'stop':
-        stopAllInstances();
-      default:
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => BeforeQuitDialog(
-            onStop: (remember) {
-              ref
-                  .read(guiSettingProvider(onAppCloseKey).notifier)
-                  .set(remember ? 'stop' : 'ask');
-              stopAllInstances();
-              Navigator.pop(context);
-            },
-            onKeep: (remember) {
-              ref
-                  .read(guiSettingProvider(onAppCloseKey).notifier)
-                  .set(remember ? 'nothing' : 'ask');
-              windowManager.destroy();
-            },
-          ),
-        );
+    if (closeJob == 'ask') {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => BeforeQuitDialog(
+          onStop: (remember) {
+            ref
+                .read(guiSettingProvider(onAppCloseKey).notifier)
+                .set(remember ? 'stop' : 'ask');
+            stopAllInstances();
+            Navigator.pop(context);
+          },
+          onKeep: (remember) {
+            ref
+                .read(guiSettingProvider(onAppCloseKey).notifier)
+                .set(remember ? 'nothing' : 'ask');
+            windowManager.destroy();
+          },
+        ),
+      );
+    } else {
+      stopAllInstances();
     }
   }
 }
