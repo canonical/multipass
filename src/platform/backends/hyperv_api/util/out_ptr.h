@@ -71,6 +71,9 @@ public:
     {
         return std::addressof(const_cast<Pointer&>(raw_));
     }
+
+    template <typename P = Pointer,
+              typename = std::enable_if_t<!std::is_same<typename std::remove_cv<P>::type, void*>::value>>
     operator void**() const noexcept
     {
         return reinterpret_cast<void**>(std::addressof(raw_));
