@@ -165,6 +165,8 @@ if(UNIX)
   list(APPEND MULTIPASS_BACKENDS qemu)
 endif()
 
+include(src/cmake/cmake-deps.cmake)
+
 # OpenSSL config
 find_package(OpenSSL REQUIRED)
 
