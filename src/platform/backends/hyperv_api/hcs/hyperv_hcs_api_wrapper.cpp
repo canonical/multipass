@@ -18,9 +18,9 @@
 
 #include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
-#include <hyperv_api/hyperv_api_string_conversion.h>
-
 #include <hyperv_api/hyperv_api_operation_result.h>
+#include <hyperv_api/hyperv_api_string_conversion.h>
+#include <hyperv_api/util/out_ptr.h>
 
 #include <multipass/logging/log.h>
 
@@ -126,9 +126,9 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
     const std::wstring name_w = maybe_widen{name};
     constexpr auto kRequestedAccessLevel = GENERIC_ALL;
 
-    HCS_SYSTEM system{nullptr};
-    const ResultCode result = api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, &system);
-
+    UniqueHcsSystem system{};
+    const ResultCode result =
+        api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, util::out_ptr(system, api.CloseComputeSystem));
     if (!result)
     {
         mpl::debug(kLogCategory,
@@ -136,7 +136,7 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
                    name,
                    result);
     }
-    return UniqueHcsSystem{system, api.CloseComputeSystem};
+    return system;
 }
 
 // ---------------------------------------------------------
@@ -226,8 +226,6 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    HCS_SYSTEM system{nullptr};
-
     auto operation = create_operation(api);
 
     if (nullptr == operation)
@@ -238,12 +236,13 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     const std::wstring name_w = maybe_widen{params.name};
     // Render the template
     const auto vm_settings = fmt::to_wstring(params);
-    const auto result =
-        ResultCode{api.CreateComputeSystem(name_w.c_str(), vm_settings.c_str(), operation.get(), nullptr, &system)};
 
-    // Auto-release the system handle
-    // FIXME: std::out_ptr with C++23
-    [[maybe_unused]] UniqueHcsSystem _{system, api.CloseComputeSystem};
+    UniqueHcsSystem system{};
+    const auto result = ResultCode{api.CreateComputeSystem(name_w.c_str(),
+                                                           vm_settings.c_str(),
+                                                           operation.get(),
+                                                           nullptr,
+                                                           util::out_ptr(system, api.CloseComputeSystem))};
 
     if (!result)
     {
