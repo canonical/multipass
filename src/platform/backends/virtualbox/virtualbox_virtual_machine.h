@@ -38,12 +38,14 @@ public:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
+                             AvailabilityZone& zone,
                              const Path& instance_dir);
     // Contruct the vm based on the source virtual machine
     VirtualBoxVirtualMachine(const std::string& source_vm_name,
                              const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
+                             AvailabilityZone& zone,
                              const Path& dest_instance_dir);
     ~VirtualBoxVirtualMachine() override;
 
@@ -79,6 +81,7 @@ private:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
+                             AvailabilityZone& zone,
                              const Path& instance_dir_qstr,
                              bool is_internal);
     void remove_snapshots_from_backend() const;
