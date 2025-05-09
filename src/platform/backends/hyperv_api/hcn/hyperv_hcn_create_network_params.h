@@ -18,8 +18,14 @@
 #ifndef MULTIPASS_HYPERV_API_HCN_CREATE_NETWORK_PARAMETERS_H
 #define MULTIPASS_HYPERV_API_HCN_CREATE_NETWORK_PARAMETERS_H
 
+#include <hyperv_api/hcn/hyperv_hcn_ipam.h>
+#include <hyperv_api/hcn/hyperv_hcn_network_flags.h>
+#include <hyperv_api/hcn/hyperv_hcn_network_policy.h>
+#include <hyperv_api/hcn/hyperv_hcn_network_type.h>
+
 #include <fmt/format.h>
-#include <string>
+
+#include <vector>
 
 namespace multipass::hyperv::hcn
 {
@@ -35,20 +41,29 @@ struct CreateNetworkParameters
     std::string name{};
 
     /**
+     * Type of the network
+     */
+    HcnNetworkType type{HcnNetworkType::Ics()};
+
+    /**
+     * Flags for the network.
+     */
+    HcnNetworkFlags flags{HcnNetworkFlags::none};
+
+    /**
      * RFC4122 unique identifier for the network.
      */
     std::string guid{};
 
     /**
-     * Subnet CIDR that defines the address space of
-     * the network.
+     * IP Address Management
      */
-    std::string subnet{};
+    std::vector<HcnIpam> ipams{};
 
     /**
-     * The default gateway address for the network.
+     * Network policies
      */
-    std::string gateway{};
+    std::vector<HcnNetworkPolicy> policies;
 };
 
 } // namespace multipass::hyperv::hcn
@@ -68,11 +83,14 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateNetworkParameters, Char>
     auto format(const multipass::hyperv::hcn::CreateNetworkParameters& params, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "Network Name: ({}) | Network GUID: ({}) | Subnet CIDR: ({}) | Gateway Addr.: ({}) ",
+                         "Network Name: ({}) | Network Type: ({}) | Network GUID: ({}) | Flags: ({}) | IPAMs: ({}) | "
+                         "Policies: ({})",
                          params.name,
+                         static_cast<std::string_view>(params.type),
                          params.guid,
-                         params.subnet,
-                         params.gateway);
+                         params.flags,
+                         fmt::join(params.ipams, ","),
+                         fmt::join(params.policies, ","));
     }
 };
 

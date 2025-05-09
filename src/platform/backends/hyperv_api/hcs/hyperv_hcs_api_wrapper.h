@@ -161,23 +161,25 @@ struct HCSWrapper : public HCSWrapperInterface
     // ---------------------------------------------------------
 
     /**
-     * Add a network endpoint to the host compute system.
+     * Add a network adapter to the host compute system.
      *
      * A new network interface card will be automatically created for
      * the endpoint. The network interface card's name will be the
      * endpoint's GUID for convenience.
      *
-     * @param [in] params Endpoint parameters
+     * @param [in] compute_system_name Target compute system's name
+     * @param [in] params Network adapter parameters
      *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult add_endpoint(const AddEndpointParameters& params) const override;
+    [[nodiscard]] OperationResult add_network_adapter(const std::string& compute_system_name,
+                                                      const HcsNetworkAdapter& params) const override;
 
     // ---------------------------------------------------------
 
     /**
-     * Remove a network endpoint from the host compute system.
+     * Remove a network adapter from the host compute system.
      *
      * @param [in] name Target compute system's name
      * @param [in] endpoint_guid GUID of the endpoint to remove
@@ -185,8 +187,8 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult remove_endpoint(const std::string& compute_system_name,
-                                                  const std::string& endpoint_guid) const override;
+    [[nodiscard]] OperationResult remove_network_adapter(const std::string& compute_system_name,
+                                                         const std::string& endpoint_guid) const override;
 
     // ---------------------------------------------------------
 
@@ -222,11 +224,42 @@ struct HCSWrapper : public HCSWrapperInterface
      * Retrieve the current state of the compute system.
      *
      * @param [in] compute_system_name Target compute system's name
+     * @param [out] state_out Variable to write the compute system's state
      *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult get_compute_system_state(const std::string& compute_system_name) const override;
+    [[nodiscard]] OperationResult get_compute_system_state(const std::string& compute_system_name,
+                                                           ComputeSystemState& state_out) const override;
+
+    // ---------------------------------------------------------
+
+    /**
+     * Add a Plan9 share to a running system
+     *
+     * @param [in] compute_system_name Target compute system's name
+     * @param [in] params Plan9 share details
+     *
+     * @return An object that evaluates to true on success, false otherwise.
+     * message() may contain details of failure when result is false.
+     */
+    [[nodiscard]] OperationResult add_plan9_share(const std::string& compute_system_name,
+                                                  const Plan9ShareParameters& params) const override;
+
+    // ---------------------------------------------------------
+
+    /**
+     * Remove a Plan9 share from a running system
+     *
+     * @param [in] compute_system_name Target compute system's name
+     * @param [in] params Plan9 share to remove. It's sufficient to fill the
+     * name, access_name and port. The rest are redundant for remove.
+     *
+     * @return An object that evaluates to true on success, false otherwise.
+     * message() may contain details of failure when result is false.
+     */
+    [[nodiscard]] OperationResult remove_plan9_share(const std::string& compute_system_name,
+                                                     const Plan9ShareParameters& params) const override;
 
 private:
     const HCSAPITable api{};

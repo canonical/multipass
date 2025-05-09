@@ -222,7 +222,21 @@ void mp::FileOps::copy(const fs::path& src, const fs::path& dist, fs::copy_optio
     fs::copy(src, dist, copy_options);
 }
 
-bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const
+void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p) const
+{
+    fs::rename(old_p, new_p);
+}
+void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p, std::error_code& ec) const noexcept
+{
+    fs::rename(old_p, new_p, ec);
+}
+
+bool mp::FileOps::exists(const fs::path& path) const
+{
+    return fs::exists(path);
+}
+
+bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const noexcept
 {
     return fs::exists(path, err);
 }
@@ -242,7 +256,12 @@ bool mp::FileOps::create_directories(const fs::path& path, std::error_code& err)
     return fs::create_directories(path, err);
 }
 
-bool mp::FileOps::remove(const fs::path& path, std::error_code& err) const
+bool mp::FileOps::remove(const fs::path& path) const
+{
+    return fs::remove(path);
+}
+
+bool mp::FileOps::remove(const fs::path& path, std::error_code& err) const noexcept
 {
     return fs::remove(path, err);
 }

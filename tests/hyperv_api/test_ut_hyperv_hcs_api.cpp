@@ -15,7 +15,6 @@
  *
  */
 
-#include "hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h"
 #include "hyperv_api/hcs/hyperv_hcs_api_wrapper.h"
 #include "hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h"
 #include "hyperv_test_utils.h"
@@ -219,7 +218,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                     }
                 },
                 "Scsi": {
-                    "cloud-init iso file": {
+                    "cloud-init": {
                         "Attachments": {
                             "0": {
                                 "Type": "Iso",
@@ -228,7 +227,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                             }
                         }
                     },
-                    "Primary disk": {
+                    "primary": {
                         "Attachments": {
                             "0": {
                                 "Type": "VirtualDisk",
@@ -236,8 +235,17 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                                 "ReadOnly": false
                             }
                         }
-                    },
+                    }
+                },
+                "NetworkAdapters": {},
+                "Plan9": {
+                    "Shares": [
+                    ]
                 }
+            },
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
             }
         }
     })";
@@ -299,12 +307,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: (cloudinit iso path) | VHDX path: (virtual disk path)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -314,8 +320,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -385,7 +395,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                     }
                 },
                 "Scsi": {
-                    "Primary disk": {
+                    "primary": {
                         "Attachments": {
                             "0": {
                                 "Type": "VirtualDisk",
@@ -393,8 +403,17 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                                 "ReadOnly": false
                             }
                         }
-                    },
+                    }
+                },
+                "NetworkAdapters": {},
+                   "Plan9": {
+                    "Shares": [
+                    ]
                 }
+            },
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
             }
         }
     })";
@@ -456,12 +475,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: () | VHDX path: (virtual disk path)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -471,8 +488,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -542,7 +559,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                     }
                 },
                 "Scsi": {
-                    "cloud-init iso file": {
+                    "cloud-init": {
                         "Attachments": {
                             "0": {
                                 "Type": "Iso",
@@ -550,8 +567,17 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                                 "ReadOnly": true
                             }
                         }
-                    },
+                    }
+                },
+                "NetworkAdapters": {},
+                "Plan9": {
+                    "Shares": [
+                    ]
                 }
+            },
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
             }
         }
     })";
@@ -613,12 +639,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: (cloudinit iso path) | VHDX path: ()");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -628,8 +652,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -698,8 +724,16 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
                         "NamedPipe": "\\\\.\\pipe\\test_vm"
                     }
                 },
-                "Scsi": {
+                "Scsi": {},
+                "NetworkAdapters": {},
+                "Plan9": {
+                    "Shares": [
+                    ]
                 }
+            },
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
             }
         }
     })";
@@ -761,12 +795,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
             .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::debug,
-            "HCSWrapper::create_compute_system(...) > params: Compute System name: (test_vm) | vCPU count: (8) | "
-            "Memory size: (16384 MiB) | cloud-init ISO path: () | VHDX path: ()");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...) > params:");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -776,8 +808,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "";
-        params.vhdx_path = "";
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -817,7 +847,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
     }
 
     /******************************************************
@@ -827,8 +857,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -892,7 +926,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                      }
                  },
                  "Scsi": {
-                     "cloud-init iso file": {
+                     "cloud-init": {
                          "Attachments": {
                              "0": {
                                  "Type": "Iso",
@@ -901,7 +935,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                              }
                          }
                      },
-                     "Primary disk": {
+                     "primary": {
                          "Attachments": {
                              "0": {
                                  "Type": "VirtualDisk",
@@ -909,9 +943,18 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                                  "ReadOnly": false
                              }
                          }
-                     },
-                 }
-             }
+                     }
+                 },
+                 "NetworkAdapters": {},
+                    "Plan9": {
+                    "Shares": [
+                    ]
+                }
+            },
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
+            }
          }
      })";
 
@@ -954,7 +997,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
     }
 
     /******************************************************
@@ -964,8 +1007,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -1035,7 +1082,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                      }
                  },
                  "Scsi": {
-                     "cloud-init iso file": {
+                     "cloud-init": {
                          "Attachments": {
                              "0": {
                                  "Type": "Iso",
@@ -1044,7 +1091,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                              }
                          }
                      },
-                     "Primary disk": {
+                     "primary": {
                          "Attachments": {
                              "0": {
                                  "Type": "VirtualDisk",
@@ -1052,9 +1099,18 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                                  "ReadOnly": false
                              }
                          }
-                     },
-                 }
-             }
+                     }
+                 },
+                 "NetworkAdapters": {},
+                "Plan9": {
+                    "Shares": [
+                    ]
+                }
+            },
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
+            }
          }
      })";
 
@@ -1116,8 +1172,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::create_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -1127,8 +1184,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
         uut_t uut{mock_api_table};
         hyperv::hcs::CreateComputeSystemParameters params{};
         params.name = "test_vm";
-        params.cloudinit_iso_path = "cloudinit iso path";
-        params.vhdx_path = "virtual disk path";
+        params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                                                 "cloud-init",
+                                                                 "cloudinit iso path",
+                                                                 true});
+        params.scsi_devices.push_back(
+            hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
@@ -1405,9 +1466,10 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(ApiFnT& target_api_fun
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcs_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -1462,9 +1524,9 @@ void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(ApiFnT& target_api_
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...) > name: (test_vm)");
         logger_scope.mock_logger->expect_log(
-            mpl::Level::error,
+            mpl::Level::debug,
             "open_host_compute_system(...) > failed to open (test_vm), result code: (0x80004003)");
-        logger_scope.mock_logger->expect_log(mpl::Level::error,
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "perform_hcs_operation(...) > HcsOpenComputeSystem failed!");
     }
 
@@ -1537,7 +1599,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(ApiFnT& tar
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::error,
                                              "perform_hcs_operation(...) > HcsCreateOperation failed!");
     }
@@ -1620,7 +1682,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(ApiFnT& target_api_function,
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::error, "perform_hcs_operation(...) > Operation failed!");
     }
 
@@ -1724,9 +1786,10 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(ApiFnT& t
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCSWrapper::HCSWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcs_operation(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > (");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "wait_for_operation_result(...) > finished");
     }
 
     /******************************************************
@@ -1830,6 +1893,11 @@ TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_wait_for_operation_result_fa
 
 TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_happy_path)
 {
+    static constexpr wchar_t expected_shutdown_option[] = LR"(
+        {
+            "Mechanism": "IntegrationService",
+            "Type": "Shutdown"
+        })";
     generic_operation_happy_path<decltype(HcsShutDownComputeSystem)>(
         mock_api_table.ShutDownComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
@@ -1839,7 +1907,8 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_happy_path)
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR options) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
-            ASSERT_EQ(options, nullptr);
+            ASSERT_NE(options, nullptr);
+            ASSERT_STREQ(options, expected_shutdown_option);
         });
 }
 
@@ -1872,6 +1941,11 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_create_operation_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_fail)
 {
+    static constexpr wchar_t expected_shutdown_option[] = LR"(
+        {
+            "Mechanism": "IntegrationService",
+            "Type": "Shutdown"
+        })";
     generic_operation_fail<decltype(HcsShutDownComputeSystem)>(
         mock_api_table.ShutDownComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
@@ -1881,7 +1955,8 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_fail)
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR options) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
-            ASSERT_EQ(options, nullptr);
+            ASSERT_NE(options, nullptr);
+            ASSERT_STREQ(options, expected_shutdown_option);
         });
 }
 
@@ -1889,6 +1964,11 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_wait_for_operation_result_fail)
 {
+    static constexpr wchar_t expected_shutdown_option[] = LR"(
+        {
+            "Mechanism": "IntegrationService",
+            "Type": "Shutdown"
+        })";
     generic_operation_wait_for_operation_fail<decltype(HcsShutDownComputeSystem)>(
         mock_api_table.ShutDownComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
@@ -1898,7 +1978,8 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_wait_for_operation_result
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR options) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
-            ASSERT_EQ(options, nullptr);
+            ASSERT_NE(options, nullptr);
+            ASSERT_STREQ(options, expected_shutdown_option);
         });
 }
 
@@ -2160,7 +2241,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_wait_for_operation_result_f
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_happy_path)
+TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_happy_path)
 {
     constexpr auto expected_modify_compute_system_configuration = LR"(
         {
@@ -2176,15 +2257,11 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_happy_path)
     generic_operation_happy_path<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(
-                mpl::Level::debug,
-                "add_endpoint(...) > params: Host Compute System Name: (test_vm) | Endpoint GUID: "
-                "(288cc1ac-8f31-4a09-9e90-30ad0bcfdbca) | NIC MAC Address: (00:00:00:00:00:00)");
-            hyperv::hcs::AddEndpointParameters params{};
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...) > params:");
+            hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
-            params.nic_mac_address = "00:00:00:00:00:00";
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            params.mac_address = "00:00:00:00:00:00";
+            return wrapper.add_network_adapter("test_vm", params);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2197,35 +2274,33 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_happy_path)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_hcs_open_fail)
+TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_hcs_open_fail)
 {
     generic_operation_hcs_open_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            hyperv::hcs::HcsNetworkAdapter params{};
+            return wrapper.add_network_adapter("test_vm", params);
         });
 }
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_create_operation_fail)
+TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_create_operation_fail)
 {
     generic_operation_create_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            hyperv::hcs::HcsNetworkAdapter params{};
+            return wrapper.add_network_adapter("test_vm", params);
         });
 }
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_fail)
+TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_fail)
 {
     constexpr auto expected_modify_compute_system_configuration = LR"(
         {
@@ -2241,12 +2316,11 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_fail)
     generic_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
-            params.nic_mac_address = "00:00:00:00:00:00";
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            params.mac_address = "00:00:00:00:00:00";
+            return wrapper.add_network_adapter("test_vm", params);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2259,7 +2333,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_fail)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_wait_for_operation_result_fail)
+TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_wait_for_operation_result_fail)
 {
     constexpr auto expected_modify_compute_system_configuration = LR"(
         {
@@ -2275,12 +2349,11 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_wait_for_operation
     generic_operation_wait_for_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_endpoint(...)");
-            hyperv::hcs::AddEndpointParameters params{};
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
-            params.nic_mac_address = "00:00:00:00:00:00";
-            params.target_compute_system_name = "test_vm";
-            return wrapper.add_endpoint(params);
+            params.mac_address = "00:00:00:00:00:00";
+            return wrapper.add_network_adapter("test_vm", params);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2293,7 +2366,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_wait_for_operation
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_happy_path)
+TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_happy_path)
 {
     constexpr auto expected_modify_compute_system_configuration = LR"(
         {
@@ -2306,8 +2379,8 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_happy_path)
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(
                 mpl::Level::debug,
-                "remove_endpoint(...) > name: (test_vm), endpoint_guid: (288cc1ac-8f31-4a09-9e90-30ad0bcfdbca)");
-            return wrapper.remove_endpoint("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+                "remove_network_adapter(...) > name: (test_vm), endpoint_guid: (288cc1ac-8f31-4a09-9e90-30ad0bcfdbca)");
+            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2320,31 +2393,31 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_happy_path)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_hcs_open_fail)
+TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_hcs_open_fail)
 {
     generic_operation_hcs_open_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_endpoint(...)");
-            return wrapper.remove_endpoint("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
+            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
         });
 }
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_create_operation_fail)
+TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_create_operation_fail)
 {
     generic_operation_create_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_endpoint(...)");
-            return wrapper.remove_endpoint("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
+            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
         });
 }
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_fail)
+TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_fail)
 {
     constexpr auto expected_modify_compute_system_configuration = LR"(
         {
@@ -2355,8 +2428,8 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_fail)
     generic_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_endpoint(...)");
-            return wrapper.remove_endpoint("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
+            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2369,7 +2442,7 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_fail)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_wait_for_operation_result_fail)
+TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_wait_for_operation_result_fail)
 {
     constexpr auto expected_modify_compute_system_configuration = LR"(
         {
@@ -2380,8 +2453,8 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_wait_for_oper
     generic_operation_wait_for_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_endpoint(...)");
-            return wrapper.remove_endpoint("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
+            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2597,21 +2670,22 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_wait_for_operation_
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_happy_path)
 {
     static wchar_t result_doc[21] = L"{\"State\": \"Running\"}";
-    static wchar_t expected_state[8] = L"Running";
 
     generic_operation_happy_path<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...) > name: (test_vm)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::running); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
             ASSERT_EQ(propertyQuery, nullptr);
         },
-        result_doc,
-        expected_state);
+        result_doc);
 }
 
 // ---------------------------------------------------------
@@ -2619,33 +2693,41 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_happy_path)
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_no_state)
 {
     static wchar_t result_doc[21] = L"{\"Frodo\": \"Baggins\"}";
-    static wchar_t expected_state[8] = L"Unknown";
 
     generic_operation_happy_path<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::stopped); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
             ASSERT_EQ(mock_operation_object, operation);
             ASSERT_EQ(propertyQuery, nullptr);
         },
-        result_doc,
-        expected_state);
+        result_doc);
 }
 
 // ---------------------------------------------------------
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_hcs_open_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
+    static wchar_t expected_status_msg[] = L"HcsOpenComputeSystem failed!";
     generic_operation_hcs_open_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state, result]() {
+                ASSERT_EQ(state, decltype(state)::unknown);
+                ASSERT_EQ(static_cast<HRESULT>(result.code), E_INVALIDARG);
+            }();
+
+            return result;
         },
         expected_status_msg);
 }
@@ -2654,12 +2736,15 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_create_operation_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
+    static wchar_t expected_status_msg[] = L"HcsCreateOperation failed!";
     generic_operation_create_operation_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
+            return result;
         },
         expected_status_msg);
 }
@@ -2668,13 +2753,16 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_create_operation_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
+    static wchar_t expected_status_msg[] = L"HCS operation failed!";
 
     generic_operation_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2688,13 +2776,14 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_wait_for_operation_result_fail)
 {
-    static wchar_t expected_status_msg[] = L"Unknown";
-
     generic_operation_wait_for_operation_fail<decltype(HcsGetComputeSystemProperties)>(
         mock_api_table.GetComputeSystemProperties,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
             logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_compute_system_state(...)");
-            return wrapper.get_compute_system_state("test_vm");
+            hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+            const auto result = wrapper.get_compute_system_state("test_vm", state);
+            [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
+            return result;
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR propertyQuery) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2702,7 +2791,7 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_wait_for_operation_resul
             ASSERT_EQ(nullptr, propertyQuery);
         },
         nullptr,
-        expected_status_msg);
+        nullptr);
 }
 
 } // namespace multipass::test

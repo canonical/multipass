@@ -14,13 +14,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
-#include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 #include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+
+#include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
-#include <hyperv_api/hyperv_api_common.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
+#include <hyperv_api/hyperv_api_string_conversion.h>
 
 #include <multipass/logging/log.h>
 
@@ -33,6 +32,9 @@
 #include <memory>
 
 #include <fmt/xchar.h>
+#include <ztd/out_ptr.hpp>
+
+using ztd::out_ptr::out_ptr;
 
 namespace multipass::hyperv::hcs
 {
@@ -68,7 +70,7 @@ constexpr auto kDefaultOperationTimeout = std::chrono::seconds{240};
  */
 UniqueHcsOperation create_operation(const HCSAPITable& api)
 {
-    mpl::debug(kLogCategory, "create_operation(...)");
+    mpl::trace(kLogCategory, "create_operation(...)");
     return UniqueHcsOperation{api.CreateOperation(nullptr, nullptr), api.CloseOperation};
 }
 
@@ -91,19 +93,21 @@ OperationResult wait_for_operation_result(const HCSAPITable& api,
                fmt::ptr(op.get()),
                timeout.count());
 
-    wchar_t* result_msg_out{nullptr};
-    const auto result = api.WaitForOperationResult(op.get(), timeout.count(), &result_msg_out);
-    UniqueHlocalString result_msg{result_msg_out, api.LocalFree};
+    UniqueHlocalString result_msg{};
+    const auto hresult_code =
+        ResultCode{api.WaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg, api.LocalFree))};
+    mpl::debug(kLogCategory,
+               "wait_for_operation_result(...) > finished ({}), result_code: {}",
+               fmt::ptr(op.get()),
+               hresult_code);
 
-    if (result_msg)
-    {
-        // TODO: Convert from wstring to ascii and log this
-        // mpl::debug(kLogCategory,
-        //     "wait_for_operation_result(...): ({}), result: {}, result_msg: {}", fmt::ptr(op.get()),
-        //     result, result_msg);
-        return OperationResult{result, result_msg.get()};
-    }
-    return OperationResult{result, L""};
+    const auto result = OperationResult{hresult_code, result_msg ? result_msg.get() : L""};
+    // FIXME: Replace with unicode logging
+    fmt::print(L"{}{}{}",
+               result.status_msg.empty() ? L"" : L"Result document: ",
+               result.status_msg,
+               result.status_msg.empty() ? L"" : L"\n");
+    return result;
 }
 
 // ---------------------------------------------------------
@@ -121,23 +125,51 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
     mpl::debug(kLogCategory, "open_host_compute_system(...) > name: ({})", name);
 
     // Windows API uses wide strings.
-    const auto name_w = string_to_wstring(name);
+    const std::wstring name_w = maybe_widen{name};
     constexpr auto kRequestedAccessLevel = GENERIC_ALL;
 
-    HCS_SYSTEM system{nullptr};
-    const auto result = ResultCode{api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, &system)};
-
+    UniqueHcsSystem system{};
+    const ResultCode result =
+        api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, out_ptr(system, api.CloseComputeSystem));
     if (!result)
     {
-        mpl::error(kLogCategory,
+        mpl::debug(kLogCategory,
                    "open_host_compute_system(...) > failed to open ({}), result code: ({})",
                    name,
                    result);
     }
-    return UniqueHcsSystem{system, api.CloseComputeSystem};
+    return system;
 }
 
 // ---------------------------------------------------------
+
+template <typename FnType, typename... Args>
+OperationResult perform_hcs_operation(const HCSAPITable& api, const FnType& fn, UniqueHcsSystem system, Args&&... args)
+{
+    auto operation = create_operation(api);
+
+    if (nullptr == operation)
+    {
+        mpl::error(kLogCategory, "perform_hcs_operation(...) > HcsCreateOperation failed! ");
+        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
+    }
+
+    // Perform the operation.
+    const auto result = ResultCode{fn(system.get(), operation.get(), std::forward<Args>(args)...)};
+
+    if (!result)
+    {
+        mpl::error(kLogCategory, "perform_hcs_operation(...) > Operation failed! Result code {}", result);
+        return OperationResult{result, L"HCS operation failed!"};
+    }
+
+    mpl::debug(kLogCategory,
+               "perform_hcs_operation(...) > fn: {}, result: {}",
+               fmt::ptr(fn.template target<void*>()),
+               static_cast<bool>(result));
+
+    return wait_for_operation_result(api, std::move(operation));
+}
 
 /**
  * Perform a Host Compute System API operation.
@@ -168,41 +200,17 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
         return {E_POINTER, L"Operation function is unbound!"};
     }
 
-    const auto system = open_host_compute_system(api, target_hcs_system_name);
+    auto system = open_host_compute_system(api, target_hcs_system_name);
 
     if (nullptr == system)
     {
-        mpl::error(kLogCategory,
+        mpl::debug(kLogCategory,
                    "perform_hcs_operation(...) > HcsOpenComputeSystem failed! {}",
                    target_hcs_system_name);
-        return OperationResult{E_POINTER, L"HcsOpenComputeSystem failed!"};
+        return OperationResult{E_INVALIDARG, L"HcsOpenComputeSystem failed!"};
     }
 
-    auto operation = create_operation(api);
-
-    if (nullptr == operation)
-    {
-        mpl::error(kLogCategory, "perform_hcs_operation(...) > HcsCreateOperation failed! {}", target_hcs_system_name);
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
-    }
-
-    const auto result = ResultCode{fn(system.get(), operation.get(), std::forward<Args>(args)...)};
-
-    if (!result)
-    {
-        mpl::error(kLogCategory,
-                   "perform_hcs_operation(...) > Operation failed! {} Result code {}",
-                   target_hcs_system_name,
-                   result);
-        return OperationResult{result, L"HCS operation failed!"};
-    }
-
-    mpl::debug(kLogCategory,
-               "perform_hcs_operation(...) > fn: {}, result: {}",
-               fmt::ptr(fn.template target<void*>()),
-               static_cast<bool>(result));
-
-    return wait_for_operation_result(api, std::move(operation));
+    return perform_hcs_operation(api, fn, std::move(system), std::forward<Args>(args)...);
 }
 
 } // namespace
@@ -220,93 +228,6 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    // Fill the SCSI devices template depending on
-    // available drives.
-    const auto scsi_devices = [&params]() {
-        constexpr auto scsi_device_template = LR"(
-            "{0}": {{
-                "Attachments": {{
-                    "0": {{
-                        "Type": "{1}",
-                        "Path": "{2}",
-                        "ReadOnly": {3}
-                    }}
-                }}
-            }},
-        )";
-        std::wstring result = {};
-        if (!params.cloudinit_iso_path.empty())
-        {
-            result += fmt::format(scsi_device_template,
-                                  L"cloud-init iso file",
-                                  L"Iso",
-                                  string_to_wstring(params.cloudinit_iso_path),
-                                  true);
-        }
-
-        if (!params.vhdx_path.empty())
-        {
-            result += fmt::format(scsi_device_template,
-                                  L"Primary disk",
-                                  L"VirtualDisk",
-                                  string_to_wstring(params.vhdx_path),
-                                  false);
-        }
-        return result;
-    }();
-
-    // Ideally, we should codegen from the schema
-    // and use that.
-    // https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/refs/heads/main/hyperv-samples/hcs-samples/JSON_files/HCS_Schema%5BWindows_10_SDK_version_1809%5D.json
-    constexpr auto vm_settings_template = LR"(
-    {{
-        "SchemaVersion": {{
-            "Major": 2,
-            "Minor": 1
-        }},
-        "Owner": "Multipass",
-        "ShouldTerminateOnLastHandleClosed": false,
-        "VirtualMachine": {{
-            "Chipset": {{
-                "Uefi": {{
-                    "BootThis": {{
-                        "DevicePath": "Primary disk",
-                        "DiskNumber": 0,
-                        "DeviceType": "ScsiDrive"
-                    }},
-                    "Console": "ComPort1"
-                }}
-            }},
-            "ComputeTopology": {{
-                "Memory": {{
-                    "Backing": "Virtual",
-                    "SizeInMB": {1}
-                }},
-                "Processor": {{
-                    "Count": {0}
-                }}
-            }},
-            "Devices": {{
-                "ComPorts": {{
-                    "0": {{
-                        "NamedPipe": "\\\\.\\pipe\\{2}"
-                    }}
-                }},
-                "Scsi": {{
-                    {3}
-                }}
-            }}
-        }}
-    }})";
-
-    // Render the template
-    const auto vm_settings = fmt::format(vm_settings_template,
-                                         params.processor_count,
-                                         params.memory_size_mb,
-                                         string_to_wstring(params.name),
-                                         scsi_devices);
-    HCS_SYSTEM system{nullptr};
-
     auto operation = create_operation(api);
 
     if (nullptr == operation)
@@ -314,12 +235,16 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
     }
 
-    const auto name_w = string_to_wstring(params.name);
-    const auto result =
-        ResultCode{api.CreateComputeSystem(name_w.c_str(), vm_settings.c_str(), operation.get(), nullptr, &system)};
+    const std::wstring name_w = maybe_widen{params.name};
+    // Render the template
+    const auto vm_settings = fmt::to_wstring(params);
 
-    // Auto-release the system handle
-    [[maybe_unused]] UniqueHcsSystem _{system, api.CloseComputeSystem};
+    UniqueHcsSystem system{};
+    const auto result = ResultCode{api.CreateComputeSystem(name_w.c_str(),
+                                                           vm_settings.c_str(),
+                                                           operation.get(),
+                                                           nullptr,
+                                                           out_ptr(system, api.CloseComputeSystem))};
 
     if (!result)
     {
@@ -342,7 +267,14 @@ OperationResult HCSWrapper::start_compute_system(const std::string& compute_syst
 OperationResult HCSWrapper::shutdown_compute_system(const std::string& compute_system_name) const
 {
     mpl::debug(kLogCategory, "shutdown_compute_system(...) > name: ({})", compute_system_name);
-    return perform_hcs_operation(api, api.ShutDownComputeSystem, compute_system_name, nullptr);
+
+    static constexpr wchar_t c_shutdownOption[] = LR"(
+        {
+            "Mechanism": "IntegrationService",
+            "Type": "Shutdown"
+        })";
+
+    return perform_hcs_operation(api, api.ShutDownComputeSystem, compute_system_name, c_shutdownOption);
 }
 
 // ---------------------------------------------------------
@@ -378,10 +310,11 @@ OperationResult HCSWrapper::resume_compute_system(const std::string& compute_sys
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::add_endpoint(const AddEndpointParameters& params) const
+OperationResult HCSWrapper::add_network_adapter(const std::string& compute_system_name,
+                                                const HcsNetworkAdapter& params) const
 {
-    mpl::debug(kLogCategory, "add_endpoint(...) > params: {}", params);
-    constexpr auto add_endpoint_settings_template = LR"(
+    mpl::debug(kLogCategory, "add_network_adapter(...) > params: {}", params);
+    constexpr auto settings_template = LR"(
         {{
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{{{0}}}",
             "RequestType": "Add",
@@ -392,34 +325,29 @@ OperationResult HCSWrapper::add_endpoint(const AddEndpointParameters& params) co
             }}
         }})";
 
-    const auto settings = fmt::format(add_endpoint_settings_template,
-                                      string_to_wstring(params.endpoint_guid),
-                                      string_to_wstring(params.nic_mac_address));
+    const auto settings =
+        fmt::format(settings_template, maybe_widen{params.endpoint_guid}, maybe_widen{params.mac_address});
 
-    return perform_hcs_operation(api,
-                                 api.ModifyComputeSystem,
-                                 params.target_compute_system_name,
-                                 settings.c_str(),
-                                 nullptr);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::remove_endpoint(const std::string& compute_system_name,
-                                            const std::string& endpoint_guid) const
+OperationResult HCSWrapper::remove_network_adapter(const std::string& compute_system_name,
+                                                   const std::string& endpoint_guid) const
 {
     mpl::debug(kLogCategory,
-               "remove_endpoint(...) > name: ({}), endpoint_guid: ({})",
+               "remove_network_adapter(...) > name: ({}), endpoint_guid: ({})",
                compute_system_name,
                endpoint_guid);
 
-    constexpr auto remove_endpoint_settings_template = LR"(
+    constexpr auto settings_template = LR"(
         {{
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{{{0}}}",
             "RequestType": "Remove"
         }})";
 
-    const auto settings = fmt::format(remove_endpoint_settings_template, string_to_wstring(endpoint_guid));
+    const auto settings = fmt::format(settings_template, maybe_widen{endpoint_guid});
 
     return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
@@ -476,8 +404,8 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
                compute_system_name,
                file_path.string());
 
-    const auto path_as_wstring = file_path.wstring();
-    const auto csname_as_wstring = string_to_wstring(compute_system_name);
+    const auto path_as_wstring = file_path.generic_wstring();
+    const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
     const auto result = api.GrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
@@ -493,34 +421,125 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
                file_path.string());
 
     const auto path_as_wstring = file_path.wstring();
-    const auto csname_as_wstring = string_to_wstring(compute_system_name);
+    const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
     const auto result = api.RevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_system_name) const
+OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_system_name,
+                                                     ComputeSystemState& state_out) const
 {
     mpl::debug(kLogCategory, "get_compute_system_state(...) > name: ({})", compute_system_name);
 
     const auto result = perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, nullptr);
+
     if (!result)
-    {
-        return {result.code, L"Unknown"};
-    }
+        return result;
 
-    const QString qstr{QString::fromStdWString(result.status_msg)};
-    const auto doc = QJsonDocument::fromJson(qstr.toUtf8());
-    const auto obj = doc.object();
-    if (obj.contains("State"))
-    {
-        const auto state = obj["State"];
-        const auto state_str = state.toString();
-        return {result.code, state_str.toStdWString()};
-    }
+    state_out = [json = result.status_msg]() {
+        QString qstr{QString::fromStdWString(json)};
+        const auto doc = QJsonDocument::fromJson(qstr.toUtf8());
+        const auto obj = doc.object();
+        if (obj.contains("State"))
+        {
+            const auto state = obj["State"];
+            const auto state_str = state.toString();
+            const auto ccs = compute_system_state_from_string(state_str.toStdString());
+            if (ccs)
+            {
+                return ccs.value();
+            }
+            return ComputeSystemState::unknown;
+        }
+        return ComputeSystemState::stopped;
+    }();
 
-    return {result.code, L"Unknown"};
+    return {result.code, L""};
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::add_plan9_share(const std::string& compute_system_name,
+                                            const Plan9ShareParameters& params) const
+{
+
+    mpl::debug(kLogCategory, "add_plan9_share(...) > name: ({}), params({})", compute_system_name, params);
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/plan9.go#L13
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#System_PropertyType
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/hcs/schema2/plan9_share.go#L12
+
+    // Settings: hcsschema.Plan9Share{
+    //     Name:         name,
+    //     AccessName:   name,
+    //     Path:         path,
+    //     Port:         port,
+    //     Flags:        flags,
+    //     AllowedFiles: allowed, // < this one is not supported in the base API
+    // },
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/builder.go#L53
+    constexpr auto add_plan9_share_template = LR"(
+    {{
+        "ResourcePath": "VirtualMachine/Devices/Plan9/Shares",
+        "RequestType": "Add",
+        "Settings": {{
+            "Name": "{0}",
+            "Path": "{1}",
+            "Port": {2},
+            "AccessName": "{3}",
+            "Flags": 33
+        }}
+    }})";
+
+    auto preferred{params.host_path};
+    preferred.make_preferred();
+
+    (void)grant_vm_access(compute_system_name, params.host_path);
+
+    const auto settings = fmt::format(add_plan9_share_template,
+                                      maybe_widen{params.name},
+                                      // generic_* always uses / as separator, use it
+                                      // to normalize the path. HCS API does not like
+                                      // `\` for example.
+                                      preferred.generic_wstring(),
+                                      params.port,
+                                      maybe_widen{params.access_name},
+                                      fmt::underlying(params.flags));
+    fmt::print(L"{}", settings);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::remove_plan9_share(const std::string& compute_system_name,
+                                               const Plan9ShareParameters& params) const
+{
+    mpl::debug(kLogCategory, "remove_plan9_share(...) > name: ({}), params({})", compute_system_name, params);
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/plan9.go#L29
+
+    // Settings: hcsschema.Plan9Share{
+    //     Name:       name,
+    //     AccessName: name,
+    //     Port:       port,
+    // },
+
+    constexpr auto remove_plan9_share_template = LR"(
+        {{
+            "ResourcePath": "VirtualMachine/Devices/Plan9/Shares",
+            "RequestType": "Remove",
+            "Settings": {{
+                "Name": "{0}",
+                "AccessName": "{1}",
+                "Port": {2}
+            }}
+        }})";
+
+    const auto settings = fmt::format(remove_plan9_share_template,
+                                      maybe_widen{params.name},
+                                      maybe_widen{params.access_name},
+                                      params.port);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
 
 } // namespace multipass::hyperv::hcs
