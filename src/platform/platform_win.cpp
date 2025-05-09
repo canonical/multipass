@@ -647,12 +647,12 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     }
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperv"))
-        return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
+        return std::make_unique<HyperVVirtualMachineFactory>(data_dir, az_manager);
     else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
@@ -661,7 +661,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
