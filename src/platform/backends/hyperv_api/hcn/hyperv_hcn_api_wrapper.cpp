@@ -20,6 +20,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
+#include <hyperv_api/util/out_ptr.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
@@ -149,16 +150,13 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
     // HCN functions will use CoTaskMemAlloc to allocate the error message buffer
     // so use UniqueCotaskmemString to auto-release it with appropriate free
     // function.
-
-    wchar_t* result_msg_out{nullptr};
+    UniqueCotaskmemString result_msgbuf{};
 
     // Perform the operation. The last argument of the all HCN operations (except
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
     // the API describing the error happened. Therefore, we can streamline all API
     // calls through perform_operation to perform co
-    const auto result = ResultCode{fn(std::forward<Args>(args)..., &result_msg_out)};
-
-    UniqueCotaskmemString result_msgbuf{result_msg_out, api.CoTaskMemFree};
+    const auto result = ResultCode{fn(std::forward<Args>(args)..., util::out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
     mpl::debug(kLogCategory,
                "perform_operation(...) > fn: {}, result: {}",
@@ -187,14 +185,17 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
 UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network_guid)
 {
     mpl::debug(kLogCategory, "open_network(...) > network_guid: {} ", network_guid);
-    HCN_NETWORK network{nullptr};
 
-    const auto result = perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), &network);
+    UniqueHcnNetwork network{};
+    const auto result = perform_hcn_operation(api,
+                                              api.OpenNetwork,
+                                              guid_from_string(network_guid),
+                                              util::out_ptr(network, api.CloseNetwork));
     if (!result)
     {
         mpl::error(kLogCategory, "open_network() > HcnOpenNetwork failed with {}!", result.code);
     }
-    return UniqueHcnNetwork{network, api.CloseNetwork};
+    return network;
 }
 
 /**
@@ -263,12 +264,12 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
                                               fmt::arg(L"Ipams", fmt::join(params.ipams, L",")),
                                               fmt::arg(L"Policies", fmt::join(params.policies, L",")));
 
-    HCN_NETWORK network{nullptr};
+    UniqueHcnNetwork network{};
     const auto result = perform_hcn_operation(api,
                                               api.CreateNetwork,
                                               guid_from_string(params.guid),
                                               network_settings.c_str(),
-                                              &network);
+                                              util::out_ptr(network, api.CloseNetwork));
 
     if (!result)
     {
@@ -279,7 +280,6 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
                  static_cast<std::error_code>(result.code));
     }
 
-    [[maybe_unused]] UniqueHcnNetwork _{network, api.CloseNetwork};
     return result;
 }
 
@@ -324,14 +324,13 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
         fmt::arg(L"HostComputeNetwork", maybe_widen{params.network_guid}),
         fmt::arg(L"MacAddress",
                  params.mac_address ? fmt::format(L"\"{}\"", maybe_widen{params.mac_address.value()}) : L"null"));
-    HCN_ENDPOINT endpoint{nullptr};
+    UniqueHcnEndpoint endpoint{};
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
                                               network.get(),
                                               guid_from_string(params.endpoint_guid),
                                               endpoint_settings.c_str(),
-                                              &endpoint);
-    [[maybe_unused]] UniqueHcnEndpoint _{endpoint, api.CloseEndpoint};
+                                              util::out_ptr(endpoint, api.CloseEndpoint));
     return result;
 }
 
