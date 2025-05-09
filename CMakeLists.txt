@@ -229,6 +229,9 @@ endif()
 # Boost config
 find_package(Boost CONFIG REQUIRED COMPONENTS json)
 
+# Dependencies satisfied by CMake
+include(src/cmake/cmake-deps.cmake)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 

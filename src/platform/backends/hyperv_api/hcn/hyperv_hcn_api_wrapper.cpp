@@ -20,7 +20,6 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
-#include <hyperv_api/util/out_ptr.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
@@ -36,10 +35,13 @@
 // clang-format on
 
 #include <fmt/xchar.h>
+#include <ztd/out_ptr.hpp>
 
 #include <cassert>
 #include <string>
 #include <type_traits>
+
+using ztd::out_ptr::out_ptr;
 
 namespace multipass::hyperv::hcn
 {
@@ -156,7 +158,7 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
     // the API describing the error happened. Therefore, we can streamline all API
     // calls through perform_operation to perform co
-    const auto result = ResultCode{fn(std::forward<Args>(args)..., util::out_ptr(result_msgbuf, api.CoTaskMemFree))};
+    const auto result = ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
     mpl::debug(kLogCategory,
                "perform_operation(...) > fn: {}, result: {}",
@@ -187,10 +189,8 @@ UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network
     mpl::debug(kLogCategory, "open_network(...) > network_guid: {} ", network_guid);
 
     UniqueHcnNetwork network{};
-    const auto result = perform_hcn_operation(api,
-                                              api.OpenNetwork,
-                                              guid_from_string(network_guid),
-                                              util::out_ptr(network, api.CloseNetwork));
+    const auto result =
+        perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), out_ptr(network, api.CloseNetwork));
     if (!result)
     {
         mpl::error(kLogCategory, "open_network() > HcnOpenNetwork failed with {}!", result.code);
@@ -269,7 +269,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
                                               api.CreateNetwork,
                                               guid_from_string(params.guid),
                                               network_settings.c_str(),
-                                              util::out_ptr(network, api.CloseNetwork));
+                                              out_ptr(network, api.CloseNetwork));
 
     if (!result)
     {
@@ -330,7 +330,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
                                               network.get(),
                                               guid_from_string(params.endpoint_guid),
                                               endpoint_settings.c_str(),
-                                              util::out_ptr(endpoint, api.CloseEndpoint));
+                                              out_ptr(endpoint, api.CloseEndpoint));
     return result;
 }
 

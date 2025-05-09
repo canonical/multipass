@@ -20,7 +20,6 @@
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
-#include <hyperv_api/util/out_ptr.h>
 
 #include <multipass/logging/log.h>
 
@@ -33,6 +32,9 @@
 #include <memory>
 
 #include <fmt/xchar.h>
+#include <ztd/out_ptr.hpp>
+
+using ztd::out_ptr::out_ptr;
 
 namespace multipass::hyperv::hcs
 {
@@ -91,9 +93,9 @@ OperationResult wait_for_operation_result(const HCSAPITable& api,
                fmt::ptr(op.get()),
                timeout.count());
 
-    wchar_t* result_msg_out{nullptr};
-    const auto hresult_code = ResultCode{api.WaitForOperationResult(op.get(), timeout.count(), &result_msg_out)};
-    UniqueHlocalString result_msg{result_msg_out, api.LocalFree};
+    UniqueHlocalString result_msg{};
+    const auto hresult_code =
+        ResultCode{api.WaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg, api.LocalFree))};
     mpl::debug(kLogCategory,
                "wait_for_operation_result(...) > finished ({}), result_code: {}",
                fmt::ptr(op.get()),
@@ -128,7 +130,7 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
 
     UniqueHcsSystem system{};
     const ResultCode result =
-        api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, util::out_ptr(system, api.CloseComputeSystem));
+        api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, out_ptr(system, api.CloseComputeSystem));
     if (!result)
     {
         mpl::debug(kLogCategory,
@@ -242,7 +244,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                                                            vm_settings.c_str(),
                                                            operation.get(),
                                                            nullptr,
-                                                           util::out_ptr(system, api.CloseComputeSystem))};
+                                                           out_ptr(system, api.CloseComputeSystem))};
 
     if (!result)
     {
