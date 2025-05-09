@@ -185,8 +185,9 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
+                                                       AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, instance_dir_qstr, true)
+    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, instance_dir_qstr, true)
 {
     if (desc.extra_interfaces.size() > 7)
     {
@@ -266,8 +267,9 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                                        const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
+                                                       AvailabilityZone& zone,
                                                        const Path& dest_instance_dir)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, dest_instance_dir, true)
+    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, dest_instance_dir, true)
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
@@ -332,9 +334,10 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
+                                                       AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir_qstr},
+    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir_qstr},
       desc{desc},
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
