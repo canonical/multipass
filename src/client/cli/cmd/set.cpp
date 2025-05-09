@@ -96,6 +96,14 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
             {
                 key = keyval.at(0);
                 val = keyval.at(1);
+
+#ifdef MULTIPASS_PLATFORM_LINUX
+                // TODO lxd and libvirt migration, remove
+                if (key == mp::driver_key && (val == "lxd" || val == "libvirt"))
+                {
+                    std::cout << deprecation_warning_message_driver_concatenated(val);
+                }
+#endif
             }
             else
             {
