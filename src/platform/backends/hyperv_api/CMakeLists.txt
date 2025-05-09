@@ -60,6 +60,7 @@ if(WIN32)
 
   target_link_libraries(hyperv_api_backend PRIVATE
     fmt::fmt-header-only
+    ztd::out_ptr
     utils
     computecore.lib
     computenetwork.lib
