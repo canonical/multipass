@@ -1,0 +1,78 @@
+name: Linux
+
+on:
+    schedule:
+    # 0:00 UTC every Sunday
+    - cron: 11 4 * * 0
+
+jobs:
+  build:
+    runs-on: [self-hosted, reactive, amd64, 2xlarge, noble]
+
+    outputs:
+      label: ${{ steps.build-params.outputs.label }}
+      channel: ${{ steps.build-params.outputs.channel }}
+
+    env:
+      VCPKG_FORCE_SYSTEM_BINARIES: 1
+      BUILD_DIR: ${{ github.workspace }}/build
+      COVERAGE_DIR: ${{ github.workspace }}/coverage
+      NEEDRESTART_SUSPEND: yes
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get --preserve-env install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
+        mk-build-deps -s sudo -i
+
+    - name: Configure
+      run: |
+        cmake -B${{ env.BUILD_DIR }} \
+              -DCMAKE_BUILD_TYPE=Coverage \
+              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+
+    - name: BuildAndTest
+      run: |
+        cmake --build ${{ env.BUILD_DIR }} \
+              --target covreport \
+              -j$(nproc)
+
+    - name: Convert lcov to Cobertura XML
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install gcovr
+
+        mkdir -p ${{ env.COVERAGE_DIR }}
+        gcovr -r ${{ github.workspace }} \
+              --object-directory ${{ env.BUILD_DIR }} \
+              --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
+              --gcov-ignore-parse-errors
+
+    - name: Install Dart
+      uses: dart-lang/setup-dart@v1
+
+    - name: Install Dart analysis tools
+      run: |
+        dart pub global activate cobertura
+
+    - name: Run TICS Analysis
+      uses: tiobe/tics-github-action@v3
+      with:
+        mode: qserver
+        project: multipass
+        viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+        ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+        installTics: true
