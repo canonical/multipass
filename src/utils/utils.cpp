@@ -150,14 +150,6 @@ bool mp::utils::valid_hostname(const std::string& name_string)
     return matcher.match(QString::fromStdString(name_string)).hasMatch();
 }
 
-bool mp::utils::invalid_target_path(const QString& target_path)
-{
-    QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegularExpression matcher{QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
-
-    return matcher.match(sanitized_path).hasMatch();
-}
-
 QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
 {
     auto temp_folder = QFileInfo(filename_template).absoluteDir();
@@ -569,7 +561,24 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
 
 mp::Path mp::Utils::default_mount_target(const Path& source) const
 {
-    return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
+    return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend(QString{home_in_instance} + '/');
+}
+
+QString mp::Utils::normalize_mount_target(QString target_mount_path) const
+{
+    if (QDir::isRelativePath(target_mount_path)) // relying on Qt to understand Linux paths on Windows
+        target_mount_path.prepend(QString{home_in_instance} + '/');
+
+    return QDir::cleanPath(target_mount_path);
+}
+
+bool mp::Utils::invalid_target_path(const QString& target_path) const
+{
+    assert(target_path == QDir::cleanPath(target_path) && "target_path must be normalized");
+    static QRegularExpression matcher{
+        QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
+
+    return matcher.match(target_path).hasMatch();
 }
 
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,
