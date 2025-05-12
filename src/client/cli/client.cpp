@@ -21,6 +21,8 @@
 #include "cmd/authenticate.h"
 #include "cmd/clone.h"
 #include "cmd/delete.h"
+#include "cmd/disable_zones.h"
+#include "cmd/enable_zones.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -89,6 +91,8 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Authenticate>();
     add_command<cmd::Launch>(aliases);
     add_command<cmd::Purge>(aliases);
+    add_command<cmd::DisableZones>();
+    add_command<cmd::EnableZones>();
     add_command<cmd::Exec>(aliases);
     add_command<cmd::Find>();
     add_command<cmd::Get>();
