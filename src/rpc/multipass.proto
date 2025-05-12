@@ -129,6 +129,7 @@ message LaunchReply {
     repeated Alias aliases_to_be_created = 10;
     repeated string workspaces_to_be_created = 11;
     bool password_requested = 12;
+    string zone = 13;
 }
 
 message PurgeRequest {
