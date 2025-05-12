@@ -3021,7 +3021,8 @@ void mp::Daemon::release_resources(const std::string& instance)
 
 void mp::Daemon::create_vm(const CreateRequest* request,
                            grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
-                           std::promise<grpc::Status>* status_promise, bool start)
+                           std::promise<grpc::Status>* status_promise,
+                           bool start)
 {
     typedef typename std::pair<VirtualMachineDescription, ClientLaunchData> VMFullDescription;
 
@@ -3029,7 +3030,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     if (!checked_args.option_errors.error_codes().empty())
     {
-        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid arguments supplied",
+        return status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                                      "Invalid arguments supplied",
                                                       checked_args.option_errors.SerializeAsString()));
     }
     else if (auto& nets = checked_args.nets_need_bridging; !nets.empty() && !request->permission_to_bridge())
@@ -3094,7 +3096,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     auto log_level = mpl::level_from(request->verbosity_level());
 
     QObject::connect(
-        prepare_future_watcher, &QFutureWatcher<VMFullDescription>::finished,
+        prepare_future_watcher,
+        &QFutureWatcher<VMFullDescription>::finished,
         [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
             mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
@@ -3134,33 +3137,38 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
                     operative_instances[name]->start();
 
-                    auto future_watcher = create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
-                        LaunchReply reply;
-                        reply.set_vm_instance_name(name);
-                        config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                    auto future_watcher =
+                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces, zone = vm_desc.zone] {
+                            LaunchReply reply;
+                            reply.set_vm_instance_name(name);
+                            config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
 
-                        // Attach the aliases to be created by the CLI to the last message.
-                        for (const auto& blueprint_alias : vm_aliases)
-                        {
-                            mpl::log(mpl::Level::debug, category,
-                                     fmt::format("Adding alias '{}' to RPC reply", blueprint_alias.first));
-                            auto alias = reply.add_aliases_to_be_created();
-                            alias->set_name(blueprint_alias.first);
-                            alias->set_instance(blueprint_alias.second.instance);
-                            alias->set_command(blueprint_alias.second.command);
-                            alias->set_working_directory(blueprint_alias.second.working_directory);
-                        }
+                            reply.set_zone(zone);
 
-                        // Now attach the workspaces.
-                        for (const auto& blueprint_workspace : vm_workspaces)
-                        {
-                            mpl::log(mpl::Level::debug, category,
-                                     fmt::format("Adding workspace '{}' to RPC reply", blueprint_workspace));
-                            reply.add_workspaces_to_be_created(blueprint_workspace);
-                        }
+                            // Attach the aliases to be created by the CLI to the last message.
+                            for (const auto& blueprint_alias : vm_aliases)
+                            {
+                                mpl::log(mpl::Level::debug,
+                                         category,
+                                         fmt::format("Adding alias '{}' to RPC reply", blueprint_alias.first));
+                                auto alias = reply.add_aliases_to_be_created();
+                                alias->set_name(blueprint_alias.first);
+                                alias->set_instance(blueprint_alias.second.instance);
+                                alias->set_command(blueprint_alias.second.command);
+                                alias->set_working_directory(blueprint_alias.second.working_directory);
+                            }
 
-                        server->Write(reply);
-                    });
+                            // Now attach the workspaces.
+                            for (const auto& blueprint_workspace : vm_workspaces)
+                            {
+                                mpl::log(mpl::Level::debug,
+                                         category,
+                                         fmt::format("Adding workspace '{}' to RPC reply", blueprint_workspace));
+                                reply.add_workspaces_to_be_created(blueprint_workspace);
+                            }
+
+                            server->Write(reply);
+                        });
                     future_watcher->setFuture(
                         QtConcurrent::run(&Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
                                           this,
@@ -3198,7 +3206,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         try
         {
             CreateReply reply;
-            reply.set_create_message("Creating " + name);
+            reply.set_create_message(fmt::format("Creating {} in {}", name, zone_name));
             server->Write(reply);
 
             Query query;
@@ -3788,8 +3796,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     const auto& name = vm.vm_name;
     info->set_name(name);
     const auto zone = info->mutable_zone();
-    zone->set_name(vm.get_zone().get_name());
-    zone->set_available(vm.get_zone().is_available());
+    const auto& az = vm.get_zone();
+    zone->set_name(az.get_name());
+    zone->set_available(az.is_available());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
