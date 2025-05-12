@@ -283,7 +283,7 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
@@ -296,13 +296,13 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
     else if (driver == QStringLiteral("qemu"))
     {
 #if QEMU_ENABLED
-        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
 
