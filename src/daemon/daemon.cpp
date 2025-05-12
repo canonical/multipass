@@ -3472,11 +3472,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     operative_instances[name]->start();
 
                     auto future_watcher =
-                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
+                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces, zone = vm_desc.zone] {
                             LaunchReply reply;
                             reply.set_vm_instance_name(name);
                             config->update_prompt->populate_if_time_to_show(
                                 reply.mutable_update_info());
+
+                            reply.set_zone(zone);
 
                             // Attach the aliases to be created by the CLI to the last message.
                             for (const auto& blueprint_alias : vm_aliases)
@@ -3543,7 +3545,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         try
         {
             CreateReply reply;
-            reply.set_create_message("Creating " + name);
+            reply.set_create_message(fmt::format("Creating {} in {}", name, zone_name));
             server->Write(reply);
 
             Query query;
@@ -4182,8 +4184,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     const auto& name = vm.vm_name;
     info->set_name(name);
     const auto zone = info->mutable_zone();
-    zone->set_name(vm.get_zone().get_name());
-    zone->set_available(vm.get_zone().is_available());
+    const auto& az = vm.get_zone();
+    zone->set_name(az.get_name());
+    zone->set_available(az.is_available());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
