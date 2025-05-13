@@ -87,7 +87,8 @@ auto record_to_json(const mp::VaultRecord& record)
     QJsonObject json;
     json.insert("image", image_to_json(record.image));
     json.insert("query", query_to_json(record.query));
-    json.insert("last_accessed", static_cast<qint64>(record.last_accessed.time_since_epoch().count()));
+    json.insert("last_accessed",
+                static_cast<qint64>(record.last_accessed.time_since_epoch().count()));
     return json;
 }
 
@@ -191,15 +192,16 @@ void delete_image_dir(const mp::Path& image_path)
 mp::MemorySize get_image_size(const mp::Path& image_path)
 {
     QStringList qemuimg_parameters{{"info", image_path}};
-    auto qemuimg_process =
-        mp::platform::make_process(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image_path));
+    auto qemuimg_process = mp::platform::make_process(
+        std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image_path));
     auto process_state = qemuimg_process->execute();
 
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_process->read_all_standard_error()));
+        throw std::runtime_error(
+            fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
+                        process_state.failure_message(),
+                        qemuimg_process->read_all_standard_error()));
     }
 
     const auto img_info = QString{qemuimg_process->read_all_standard_output()};
@@ -280,7 +282,8 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
         VMImage source_image, vm_image;
 
         if (!QFile::exists(image_url.path()))
-            throw std::runtime_error(fmt::format("Custom image `{}` does not exist.", image_url.path()));
+            throw std::runtime_error(
+                fmt::format("Custom image `{}` does not exist.", image_url.path()));
 
         source_image.image_path = image_url.path();
 
@@ -300,7 +303,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
 
         {
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
-            instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+            instance_image_records[query.name] = {vm_image,
+                                                  query,
+                                                  std::chrono::system_clock::now()};
             persist_instance_records();
         }
 
@@ -317,10 +322,11 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             QUrl image_url(QString::fromStdString(query.release));
 
             // If no checksum given, generate a sha256 hash based on the URL and use that for the id
-            id =
-                checksum
-                    ? *checksum
-                    : QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex().toStdString();
+            id = checksum
+                     ? *checksum
+                     : QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256)
+                           .toHex()
+                           .toStdString();
             auto last_modified = url_downloader->last_modified(image_url);
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -329,7 +335,8 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             {
                 auto& record = entry->second;
 
-                if (last_modified.isValid() && (last_modified.toString().toStdString() == record.image.release_date))
+                if (last_modified.isValid() &&
+                    (last_modified.toString().toStdString() == record.image.release_date))
                 {
                     return finalize_image_records(query, record.image, id, save_dir);
                 }
@@ -359,15 +366,22 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                 const auto image_filename = QFileInfo{image_url.path()}.fileName();
                 // Attempt to make a sane directory name based on the filename of the image
 
-                const auto image_dir_name =
-                    QString("%1-%2").arg(image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2),
-                                         QLocale::c().toString(last_modified, "yyyyMMdd"));
+                const auto image_dir_name = QString("%1-%2").arg(
+                    image_filename.section(".", 0, image_filename.endsWith(".xz") ? -3 : -2),
+                    QLocale::c().toString(last_modified, "yyyyMMdd"));
                 const auto image_dir = MP_UTILS.make_dir(images_dir, image_dir_name);
 
-                // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
-                // QtConcurrent::run()
-                future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
-                                                     info, source_image, image_dir, fetch_type, prepare, monitor));
+                // Had to use std::bind here to workaround the 5 allowable function arguments
+                // constraint of QtConcurrent::run()
+                future = QtConcurrent::run(
+                    std::bind(&DefaultVMImageVault::download_and_prepare_source_image,
+                              this,
+                              info,
+                              source_image,
+                              image_dir,
+                              fetch_type,
+                              prepare,
+                              monitor));
 
                 in_progress_image_fetches[id] = future;
             }
@@ -390,16 +404,21 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
 
                     const auto aliases = record.second.image.aliases;
                     if (id == record.first ||
-                        std::find(aliases.cbegin(), aliases.cend(), query.release) != aliases.cend())
+                        std::find(aliases.cbegin(), aliases.cend(), query.release) !=
+                            aliases.cend())
                     {
                         const auto prepared_image = record.second.image;
                         try
                         {
-                            return finalize_image_records(query, prepared_image, record.first, save_dir);
+                            return finalize_image_records(query,
+                                                          prepared_image,
+                                                          record.first,
+                                                          save_dir);
                         }
                         catch (const std::exception& e)
                         {
-                            mpl::log(mpl::Level::warning, category,
+                            mpl::log(mpl::Level::warning,
+                                     category,
                                      fmt::format("Cannot create instance image: {}", e.what()));
 
                             break;
@@ -417,12 +436,20 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             else
             {
                 const auto image_dir =
-                    MP_UTILS.make_dir(images_dir, QString("%1-%2").arg(info->release).arg(info->version));
+                    MP_UTILS.make_dir(images_dir,
+                                      QString("%1-%2").arg(info->release).arg(info->version));
 
-                // Had to use std::bind here to workaround the 5 allowable function arguments constraint of
-                // QtConcurrent::run()
-                future = QtConcurrent::run(std::bind(&DefaultVMImageVault::download_and_prepare_source_image, this,
-                                                     *info, source_image, image_dir, fetch_type, prepare, monitor));
+                // Had to use std::bind here to workaround the 5 allowable function arguments
+                // constraint of QtConcurrent::run()
+                future = QtConcurrent::run(
+                    std::bind(&DefaultVMImageVault::download_and_prepare_source_image,
+                              this,
+                              *info,
+                              source_image,
+                              image_dir,
+                              fetch_type,
+                              prepare,
+                              monitor));
 
                 in_progress_image_fetches[id] = future;
             }
@@ -467,12 +494,14 @@ void mp::DefaultVMImageVault::prune_expired_images()
     for (const auto& record : prepared_image_records)
     {
         // Expire source images if they aren't persistent and haven't been accessed in 14 days
-        if (record.second.query.query_type == Query::Type::Alias && !record.second.query.persistent &&
+        if (record.second.query.query_type == Query::Type::Alias &&
+            !record.second.query.persistent &&
             record.second.last_accessed + days_to_expire <= std::chrono::system_clock::now())
         {
-            mpl::log(
-                mpl::Level::info, category,
-                fmt::format("Source image {} is expired. Removing it from the cache.", record.second.query.release));
+            mpl::log(mpl::Level::info,
+                     category,
+                     fmt::format("Source image {} is expired. Removing it from the cache.",
+                                 record.second.query.release));
             expired_keys.push_back(record.first);
             delete_image_dir(record.second.image.image_path);
         }
@@ -481,12 +510,15 @@ void mp::DefaultVMImageVault::prune_expired_images()
     // Remove any image directories that have no corresponding database entry
     for (const auto& entry : images_dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot))
     {
-        if (std::find_if(prepared_image_records.cbegin(), prepared_image_records.cend(),
+        if (std::find_if(prepared_image_records.cbegin(),
+                         prepared_image_records.cend(),
                          [&entry](const std::pair<std::string, VaultRecord>& record) {
-                             return record.second.image.image_path.contains(entry.absoluteFilePath());
+                             return record.second.image.image_path.contains(
+                                 entry.absoluteFilePath());
                          }) == prepared_image_records.cend())
         {
-            mpl::log(mpl::Level::info, category,
+            mpl::log(mpl::Level::info,
+                     category,
                      fmt::format("Source image {} is no longer valid. Removing it from the cache.",
                                  entry.absoluteFilePath()));
             delete_image_dir(entry.absoluteFilePath());
@@ -499,7 +531,8 @@ void mp::DefaultVMImageVault::prune_expired_images()
     persist_image_records();
 }
 
-void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
+void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
+                                            const PrepareAction& prepare,
                                             const ProgressMonitor& monitor)
 {
     mpl::log(mpl::Level::debug, category, "Checking for images to update…");
@@ -508,13 +541,16 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     for (const auto& record : prepared_image_records)
     {
         if (record.second.query.query_type == Query::Type::Alias &&
-            record.first.compare(0, record.second.query.release.length(), record.second.query.release) != 0)
+            record.first.compare(0,
+                                 record.second.query.release.length(),
+                                 record.second.query.release) != 0)
         {
             try
             {
                 auto info = info_for(record.second.query);
                 if (!info)
-                    throw mp::ImageNotFoundException(record.second.query.release, record.second.query.remote_name);
+                    throw mp::ImageNotFoundException(record.second.query.release,
+                                                     record.second.query.remote_name);
 
                 if (info->id.toStdString() != record.first)
                 {
@@ -523,11 +559,15 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
             }
             catch (const mp::UnsupportedImageException& e)
             {
-                mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format("Skipping update: {}", e.what()));
             }
             catch (const mp::ImageNotFoundException& e)
             {
-                mpl::log(mpl::Level::warning, category, fmt::format("Skipping update: {}", e.what()));
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format("Skipping update: {}", e.what()));
             }
         }
     }
@@ -535,7 +575,9 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
     for (const auto& key : keys_to_update)
     {
         const auto& record = prepared_image_records[key];
-        mpl::log(mpl::Level::info, category, fmt::format("Updating {} source image to latest", record.query.release));
+        mpl::log(mpl::Level::info,
+                 category,
+                 fmt::format("Updating {} source image to latest", record.query.release));
         try
         {
             fetch_image(fetch_type,
@@ -553,8 +595,10 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type, const P
         }
         catch (const CreateImageException& e)
         {
-            mpl::log(mpl::Level::warning, category,
-                     fmt::format("Cannot update source image {}: {}", record.query.release, e.what()));
+            mpl::log(
+                mpl::Level::warning,
+                category,
+                fmt::format("Cannot update source image {}: {}", record.query.release, e.what()));
         }
     }
 }
@@ -593,22 +637,29 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
 
     if (instance_image_records.find(destination_instance_name) != instance_image_records.end())
     {
-        throw std::runtime_error(destination_instance_name + " already exists in the image records");
+        throw std::runtime_error(destination_instance_name +
+                                 " already exists in the image records");
     }
 
     auto& dest_vault_record = instance_image_records[destination_instance_name] =
         instance_image_records[source_instance_name];
 
     // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-    // "<src_name>"->"<dest_name>", because the second one might match other substrings of the metadata.
+    // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
+    // metadata.
     dest_vault_record.image.image_path.replace("instances/" + QString{source_instance_name.c_str()},
-                                               "instances/" + QString{destination_instance_name.c_str()});
+                                               "instances/" +
+                                                   QString{destination_instance_name.c_str()});
     persist_instance_records();
 }
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
-    const VMImageInfo& info, std::optional<VMImage>& existing_source_image, const QDir& image_dir,
-    const FetchType& fetch_type, const PrepareAction& prepare, const ProgressMonitor& monitor)
+    const VMImageInfo& info,
+    std::optional<VMImage>& existing_source_image,
+    const QDir& image_dir,
+    const FetchType& fetch_type,
+    const PrepareAction& prepare,
+    const ProgressMonitor& monitor)
 {
     VMImage source_image;
     auto id = info.id;
@@ -636,7 +687,10 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
     try
     {
-        url_downloader->download_to(info.image_location, source_image.image_path, info.size, LaunchProgress::IMAGE,
+        url_downloader->download_to(info.image_location,
+                                    source_image.image_path,
+                                    info.size,
+                                    LaunchProgress::IMAGE,
                                     monitor);
 
         if (info.verify)
@@ -648,7 +702,8 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path = MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path, monitor, true);
+            source_image.image_path =
+                MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path, monitor, true);
         }
 
         auto prepared_image = prepare(source_image);
@@ -678,7 +733,8 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
     return MP_IMAGE_VAULT_UTILS.extract_file(image_path, monitor);
 }
 
-mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image, const mp::Path& dest_dir)
+mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image,
+                                                         const mp::Path& dest_dir)
 {
     MP_UTILS.make_dir(dest_dir);
 

@@ -26,7 +26,8 @@ namespace test
 {
 struct MockLocalSocketReply : public LocalSocketReply
 {
-    MockLocalSocketReply(const QByteArray& data, const QNetworkReply::NetworkError error = QNetworkReply::NoError)
+    MockLocalSocketReply(const QByteArray& data,
+                         const QNetworkReply::NetworkError error = QNetworkReply::NoError)
     {
         content_data = data;
         setError(error, "Error");

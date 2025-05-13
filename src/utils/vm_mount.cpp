@@ -33,21 +33,24 @@ mp::VMMount parse_json(const QJsonObject& json)
 
     for (const QJsonValueRef uid_entry : json["uid_mappings"].toArray())
     {
-        uid_mappings.push_back(
-            {uid_entry.toObject()["host_uid"].toInt(), uid_entry.toObject()["instance_uid"].toInt()});
+        uid_mappings.push_back({uid_entry.toObject()["host_uid"].toInt(),
+                                uid_entry.toObject()["instance_uid"].toInt()});
     }
 
     for (const QJsonValueRef gid_entry : json["gid_mappings"].toArray())
     {
-        gid_mappings.push_back(
-            {gid_entry.toObject()["host_gid"].toInt(), gid_entry.toObject()["instance_gid"].toInt()});
+        gid_mappings.push_back({gid_entry.toObject()["host_gid"].toInt(),
+                                gid_entry.toObject()["instance_gid"].toInt()});
     }
 
     mp::unique_id_mappings(uid_mappings);
     mp::unique_id_mappings(gid_mappings);
     auto mount_type = mp::VMMount::MountType(json["mount_type"].toInt());
 
-    return mp::VMMount{std::move(source_path), std::move(gid_mappings), std::move(uid_mappings), mount_type};
+    return mp::VMMount{std::move(source_path),
+                       std::move(gid_mappings),
+                       std::move(uid_mappings),
+                       mount_type};
 }
 
 auto print_mappings(const std::unordered_map<int, std::unordered_set<int>>& dup_id_map,
@@ -105,8 +108,8 @@ mp::VMMount::VMMount(const std::string& sourcePath,
     }
 
     if (errors.size())
-        throw std::runtime_error(
-            fmt::format("Mount cannot apply mapping with duplicate ids:{}", fmt::to_string(errors)));
+        throw std::runtime_error(fmt::format("Mount cannot apply mapping with duplicate ids:{}",
+                                             fmt::to_string(errors)));
 }
 
 mp::VMMount::VMMount(const QJsonObject& json) : VMMount{parse_json(json)} // delegate on copy ctor

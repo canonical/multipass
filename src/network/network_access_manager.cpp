@@ -28,7 +28,8 @@ mp::NetworkAccessManager::NetworkAccessManager(QObject* parent) : QNetworkAccess
 }
 
 QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Operation operation,
-                                                       const QNetworkRequest& orig_request, QIODevice* device)
+                                                       const QNetworkRequest& orig_request,
+                                                       QIODevice* device)
 {
     auto scheme = orig_request.url().scheme();
 

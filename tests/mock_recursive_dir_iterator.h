@@ -55,11 +55,17 @@ struct MockDirectoryEntry : public DirectoryEntry
     MOCK_METHOD(uintmax_t, hard_link_count, (), (const, override));
     MOCK_METHOD(uintmax_t, hard_link_count, (std::error_code & err), (const, noexcept, override));
     MOCK_METHOD(fs::file_time_type, last_write_time, (), (const, override));
-    MOCK_METHOD(fs::file_time_type, last_write_time, (std::error_code & err), (const, noexcept, override));
+    MOCK_METHOD(fs::file_time_type,
+                last_write_time,
+                (std::error_code & err),
+                (const, noexcept, override));
     MOCK_METHOD(fs::file_status, status, (), (const, override));
     MOCK_METHOD(fs::file_status, status, (std::error_code & err), (const, noexcept, override));
     MOCK_METHOD(fs::file_status, symlink_status, (), (const, override));
-    MOCK_METHOD(fs::file_status, symlink_status, (std::error_code & err), (const, noexcept, override));
+    MOCK_METHOD(fs::file_status,
+                symlink_status,
+                (std::error_code & err),
+                (const, noexcept, override));
 };
 
 struct MockRecursiveDirIterator : public RecursiveDirIterator

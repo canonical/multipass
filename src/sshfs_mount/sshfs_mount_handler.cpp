@@ -36,11 +36,16 @@ constexpr auto category = "sshfs-mount-handler";
 void start_and_block_until_connected(mp::Process* process)
 {
     QEventLoop event_loop;
-    auto stop_conn = QObject::connect(process, &mp::Process::finished, &event_loop, &QEventLoop::quit);
-    auto running_conn = QObject::connect(process, &mp::Process::ready_read_standard_output, [process, &event_loop]() {
-        if (process->read_all_standard_output().contains("Connected")) // Magic string printed by sshfs_server
-            event_loop.quit();
-    });
+    auto stop_conn =
+        QObject::connect(process, &mp::Process::finished, &event_loop, &QEventLoop::quit);
+    auto running_conn =
+        QObject::connect(process,
+                         &mp::Process::ready_read_standard_output,
+                         [process, &event_loop]() {
+                             if (process->read_all_standard_output().contains(
+                                     "Connected")) // Magic string printed by sshfs_server
+                                 event_loop.quit();
+                         });
 
     process->start();
 
@@ -57,14 +62,14 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     if (session.exec("which snap").exit_code() != 0)
     {
         mpl::warn(category, "Snap support is not installed in '{}'", name);
-        throw std::runtime_error(
-            fmt::format("Snap support needs to be installed in '{}' in order to support mounts.\n"
-                        "Please see https://docs.snapcraft.io/installing-snapd for information on\n"
-                        "how to install snap support for your instance's distribution.\n\n"
-                        "If your distribution's instructions specify enabling classic snap support,\n"
-                        "please do that as well.\n\n"
-                        "Alternatively, install `sshfs` manually inside the instance.",
-                        name));
+        throw std::runtime_error(fmt::format(
+            "Snap support needs to be installed in '{}' in order to support mounts.\n"
+            "Please see https://docs.snapcraft.io/installing-snapd for information on\n"
+            "how to install snap support for your instance's distribution.\n\n"
+            "If your distribution's instructions specify enabling classic snap support,\n"
+            "please do that as well.\n\n"
+            "Alternatively, install `sshfs` manually inside the instance.",
+            name));
     }
 
     // Check if multipass-sshfs is already installed
@@ -88,7 +93,9 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     return false;
 }
 
-void install_sshfs_for(const std::string& name, mp::SSHSession& session, const std::chrono::milliseconds& timeout)
+void install_sshfs_for(const std::string& name,
+                       mp::SSHSession& session,
+                       const std::chrono::milliseconds& timeout)
 try
 {
     mpl::info(category, "Installing the multipass-sshfs snap in '{}'", name);
@@ -125,7 +132,11 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
              this->mount_spec.get_gid_mappings(),
              this->mount_spec.get_uid_mappings()}
 {
-    mpl::info(category, "initializing mount {} => {} in '{}'", this->mount_spec.get_source_path(), target, vm->vm_name);
+    mpl::info(category,
+              "initializing mount {} => {} in '{}'",
+              this->mount_spec.get_source_path(),
+              target,
+              vm->vm_name);
 }
 
 void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
@@ -166,34 +177,41 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
                       exit_state.failure_message());
         }
     });
-    QObject::connect(process.get(), &Process::error_occurred, [this](auto error, auto error_string) {
-        mpl::error(category,
-                   "There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
-                   vm->vm_name,
-                   target,
-                   mpu::qenum_to_string(error),
-                   error_string);
-    });
+    QObject::connect(
+        process.get(),
+        &Process::error_occurred,
+        [this](auto error, auto error_string) {
+            mpl::error(
+                category,
+                "There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
+                vm->vm_name,
+                target,
+                mpu::qenum_to_string(error),
+                error_string);
+        });
 
     mpl::info(category, "process program '{}'", process->program());
     mpl::info(category, "process arguments '{}'", process->arguments().join(", "));
 
     start_and_block_until_connected(process.get());
     // after the process is started, it must be moved to the main thread
-    // when starting an instance that already has mounts defined, it is started in a thread from the global thread pool
-    // this makes the sshfs_server process to be owned by that thread
-    // when stopping the mount from the main thread again, qt will try to send an event from the main thread to the one
-    // in which the process lives this will result in an error since qt can't send events from one thread to another
+    // when starting an instance that already has mounts defined, it is started in a thread from the
+    // global thread pool this makes the sshfs_server process to be owned by that thread when
+    // stopping the mount from the main thread again, qt will try to send an event from the main
+    // thread to the one in which the process lives this will result in an error since qt can't send
+    // events from one thread to another
     process->moveToThread(QCoreApplication::instance()->thread());
-    // So, for any future travelers, this^ is the main reason why we use qt_delete_later_unique_ptr thingy.
+    // So, for any future travelers, this^ is the main reason why we use qt_delete_later_unique_ptr
+    // thingy.
 
     // Check in case sshfs_server stopped, usually due to an error
     const auto process_state = process->process_state();
     if (process_state.exit_code == 9) // Magic number returned by sshfs_server
         throw SSHFSMissingError();
     else if (process_state.exit_code || process_state.error)
-        throw std::runtime_error(
-            fmt::format("{}: {}", process_state.failure_message(), process->read_all_standard_error()));
+        throw std::runtime_error(fmt::format("{}: {}",
+                                             process_state.failure_message(),
+                                             process->read_all_standard_error()));
 }
 
 void SSHFSMountHandler::deactivate_impl(bool force)
@@ -214,7 +232,8 @@ void SSHFSMountHandler::deactivate_impl(bool force)
         if (force)
         {
             mpl::warn(category,
-                      "Failed to gracefully stop mount \"{}\" in instance '{}': {}, trying to stop it forcefully.",
+                      "Failed to gracefully stop mount \"{}\" in instance '{}': {}, trying to stop "
+                      "it forcefully.",
                       target,
                       vm->vm_name,
                       err);

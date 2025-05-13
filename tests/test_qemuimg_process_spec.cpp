@@ -74,7 +74,8 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(
+        spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
@@ -88,7 +89,8 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correc
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image, target_image);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(
+        spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
@@ -103,13 +105,15 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_only_target_c
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, "", target_image);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(
+        spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
 
 TEST(TestQemuImgProcessSpec,
-     DISABLE_ON_WINDOWS(apparmor_profile_running_as_symlinked_snap_correct)) // TODO tests involving apparmor should
-                                                                             // probably be moved elsewhere
+     DISABLE_ON_WINDOWS(
+         apparmor_profile_running_as_symlinked_snap_correct)) // TODO tests involving apparmor
+                                                              // should probably be moved elsewhere
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, snap_link_dir, common_dir, common_link_dir;
@@ -124,7 +128,8 @@ TEST(TestQemuImgProcessSpec,
     mpt::SetEnvScope e3("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(
+        spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 

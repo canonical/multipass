@@ -31,17 +31,20 @@ mp::ReturnCode cmd::Umount::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::UmountReply& reply) {
-        return ReturnCode::Ok;
-    };
+    auto on_success = [](mp::UmountReply& reply) { return ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::umount, request, on_success, on_failure);
 }
 
-std::string cmd::Umount::name() const { return "umount"; }
+std::string cmd::Umount::name() const
+{
+    return "umount";
+}
 
 std::vector<std::string> cmd::Umount::aliases() const
 {
@@ -60,10 +63,12 @@ QString cmd::Umount::description() const
 
 mp::ParseCode cmd::Umount::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("mount", "Mount points, in <name>[:<path>] format, where <name> "
-                                           "are instance names, and optional <path> are mount points. "
-                                           "If omitted, all mounts will be removed from the named instances.",
-                                  "<mount> [<mount> ...]");
+    parser->addPositionalArgument(
+        "mount",
+        "Mount points, in <name>[:<path>] format, where <name> "
+        "are instance names, and optional <path> are mount points. "
+        "If omitted, all mounts will be removed from the named instances.",
+        "<mount> [<mount> ...]");
 
     auto status = parser->commandParse(this);
 

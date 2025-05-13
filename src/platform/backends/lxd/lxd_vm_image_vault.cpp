@@ -59,8 +59,12 @@ namespace
 {
 constexpr auto category = "lxd image vault";
 
-const QHash<QString, QString> host_to_lxd_arch{{"x86_64", "x86_64"}, {"arm", "armv7l"}, {"arm64", "aarch64"},
-                                               {"i386", "i686"},     {"power", "ppc"},  {"power64", "ppc64"},
+const QHash<QString, QString> host_to_lxd_arch{{"x86_64", "x86_64"},
+                                               {"arm", "armv7l"},
+                                               {"arm64", "aarch64"},
+                                               {"i386", "i686"},
+                                               {"power", "ppc"},
+                                               {"power64", "ppc64"},
                                                {"s390x", "s390x"}};
 
 auto parse_percent_as_int(const QString& progress_string)
@@ -103,7 +107,8 @@ QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir
     QFile metadata_yaml_file{lxd_import_dir.filePath("metadata.yaml")};
     YAML::Node metadata_node;
 
-    metadata_node["architecture"] = host_to_lxd_arch.value(QSysInfo::currentCpuArchitecture()).toStdString();
+    metadata_node["architecture"] =
+        host_to_lxd_arch.value(QSysInfo::currentCpuArchitecture()).toStdString();
     metadata_node["creation_date"] = QDateTime::currentSecsSinceEpoch();
     metadata_node["properties"]["description"] = info.release_title.toStdString();
     metadata_node["properties"]["os"] = info.os.toStdString();
@@ -120,15 +125,17 @@ QString create_metadata_tarball(const mp::VMImageInfo& info, const QTemporaryDir
 
     const auto metadata_tarball_path = lxd_import_dir.filePath("metadata.tar");
     auto process = MP_PROCFACTORY.create_process(
-        "tar", QStringList() << "-cf" << metadata_tarball_path << "-C" << lxd_import_dir.path()
-                             << QFileInfo(metadata_yaml_file.fileName()).fileName());
+        "tar",
+        QStringList() << "-cf" << metadata_tarball_path << "-C" << lxd_import_dir.path()
+                      << QFileInfo(metadata_yaml_file.fileName()).fileName());
 
     auto exit_state = process->execute();
 
     if (!exit_state.completed_successfully())
     {
         throw std::runtime_error(
-            fmt::format("Failed to create LXD image import metadata tarball: {}", process->read_all_standard_error()));
+            fmt::format("Failed to create LXD image import metadata tarball: {}",
+                        process->read_all_standard_error()));
     }
 
     return metadata_tarball_path;
@@ -147,8 +154,11 @@ std::vector<std::string> copy_aliases(const QStringList& aliases)
 }
 } // namespace
 
-mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                     NetworkAccessManager* manager, const QUrl& base_url, const QString& cache_dir_path,
+mp::LXDVMImageVault::LXDVMImageVault(std::vector<VMImageHost*> image_hosts,
+                                     URLDownloader* downloader,
+                                     NetworkAccessManager* manager,
+                                     const QUrl& base_url,
+                                     const QString& cache_dir_path,
                                      const days& days_to_expire)
     : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
@@ -171,9 +181,11 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
     {
         VMImage source_image;
 
-        auto instance_info = lxd_request(
-            manager, "GET",
-            QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(QString::fromStdString(query.name))));
+        auto instance_info = lxd_request(manager,
+                                         "GET",
+                                         QUrl(QString("%1/virtual-machines/%2")
+                                                  .arg(base_url.toString())
+                                                  .arg(QString::fromStdString(query.name))));
 
         auto config = instance_info["metadata"].toObject()["config"].toObject();
 
@@ -217,7 +229,9 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{} - returning blank image info", e.what()));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("{} - returning blank image info", e.what()));
         return VMImage{};
     }
     catch (const std::exception&)
@@ -251,15 +265,17 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
         if (query.query_type == Query::Type::HttpDownload)
         {
             // If no checksum given, generate a sha256 hash based on the URL and use that for the id
-            id = checksum
-                     ? QString::fromStdString(*checksum)
-                     : QString(QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256).toHex());
+            id = checksum ? QString::fromStdString(*checksum)
+                          : QString(QCryptographicHash::hash(query.release.c_str(),
+                                                             QCryptographicHash::Sha256)
+                                        .toHex());
             last_modified = url_downloader->last_modified(image_url);
         }
         else
         {
             if (!QFile::exists(image_url.path()))
-                throw std::runtime_error(fmt::format("Custom image `{}` does not exist.", image_url.path()));
+                throw std::runtime_error(
+                    fmt::format("Custom image `{}` does not exist.", image_url.path()));
 
             source_image.image_path = image_url.path();
             id = MP_IMAGE_VAULT_UTILS.compute_file_hash(source_image.image_path);
@@ -285,7 +301,10 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
 
     try
     {
-        auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
+        auto json_reply =
+            lxd_request(manager,
+                        "GET",
+                        QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
     }
     catch (const LXDNotFoundException&)
     {
@@ -312,7 +331,8 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
             }
             else
             {
-                image_path = MP_IMAGE_VAULT_UTILS.copy_to_dir(source_image.image_path, lxd_import_dir.path());
+                image_path = MP_IMAGE_VAULT_UTILS.copy_to_dir(source_image.image_path,
+                                                              lxd_import_dir.path());
             }
 
             image_path = post_process_downloaded_image(image_path, monitor);
@@ -337,13 +357,17 @@ void mp::LXDVMImageVault::remove(const std::string& name)
     try
     {
         auto task_reply = lxd_request(
-            manager, "DELETE", QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+            manager,
+            "DELETE",
+            QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
 
         lxd_wait(manager, base_url, task_reply, 120000);
     }
     catch (const LXDNotFoundException&)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("Instance \'{}\' does not exist: not removing", name));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("Instance \'{}\' does not exist: not removing", name));
     }
 }
 
@@ -351,7 +375,10 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 {
     try
     {
-        lxd_request(manager, "GET", QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+        lxd_request(
+            manager,
+            "GET",
+            QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
 
         return true;
     }
@@ -361,7 +388,8 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::warning,
+                 category,
                  fmt::format("{} - Unable to determine if \'{}\' exists", e.what(), name));
         // Assume instance exists until it knows for sure
         return true;
@@ -378,27 +406,33 @@ void mp::LXDVMImageVault::prune_expired_images()
         auto properties = image_info["properties"].toObject();
 
         auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
-            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch()));
+            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs)
+                .toMSecsSinceEpoch()));
 
-        // If the image has been downloaded but never used, then check if we added a "last_used_at" property during
-        // update
-        if (last_used < std::chrono::system_clock::time_point(0ms) && properties.contains("last_used_at"))
+        // If the image has been downloaded but never used, then check if we added a "last_used_at"
+        // property during update
+        if (last_used < std::chrono::system_clock::time_point(0ms) &&
+            properties.contains("last_used_at"))
         {
             last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
-                QDateTime::fromString(properties["last_used_at"].toString(), Qt::ISODateWithMs).toMSecsSinceEpoch()));
+                QDateTime::fromString(properties["last_used_at"].toString(), Qt::ISODateWithMs)
+                    .toMSecsSinceEpoch()));
         }
 
         if (last_used + days_to_expire <= std::chrono::system_clock::now())
         {
-            mpl::log(mpl::Level::info, category,
+            mpl::log(mpl::Level::info,
+                     category,
                      fmt::format("Source image \'{}\' is expired. Removing it…",
                                  image_info["properties"].toObject()["release"].toString()));
 
             try
             {
-                lxd_request(
-                    manager, "DELETE",
-                    QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(image_info["fingerprint"].toString())));
+                lxd_request(manager,
+                            "DELETE",
+                            QUrl(QString("%1/images/%2")
+                                     .arg(base_url.toString())
+                                     .arg(image_info["fingerprint"].toString())));
             }
             catch (const LXDNotFoundException&)
             {
@@ -408,7 +442,8 @@ void mp::LXDVMImageVault::prune_expired_images()
     }
 }
 
-void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const PrepareAction& prepare,
+void mp::LXDVMImageVault::update_images(const FetchType& fetch_type,
+                                        const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
     mpl::log(mpl::Level::debug, category, "Checking for images to update…");
@@ -435,12 +470,18 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type, const Prepa
 
                 if (info->id != id)
                 {
-                    mpl::log(mpl::Level::info, category,
+                    mpl::log(mpl::Level::info,
+                             category,
                              fmt::format("Updating {} source image to latest", query.release));
 
-                    lxd_download_image(*info, query, monitor, image_info["last_used_at"].toString());
+                    lxd_download_image(*info,
+                                       query,
+                                       monitor,
+                                       image_info["last_used_at"].toString());
 
-                    lxd_request(manager, "DELETE", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
+                    lxd_request(manager,
+                                "DELETE",
+                                QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(id)));
                 }
             }
             catch (const LXDNotFoundException&)
@@ -458,7 +499,9 @@ mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id
     try
     {
         auto json_reply = lxd_request(
-            manager, "GET", QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(QString::fromStdString(id))));
+            manager,
+            "GET",
+            QUrl(QString("%1/images/%2").arg(base_url.toString()).arg(QString::fromStdString(id))));
         const long image_size_bytes = json_reply["metadata"].toObject()["size"].toDouble();
         const MemorySize image_size{std::to_string(image_size_bytes)};
 
@@ -469,14 +512,17 @@ mp::MemorySize mp::LXDVMImageVault::minimum_image_size_for(const std::string& id
     }
     catch (const std::exception& e)
     {
-        throw std::runtime_error(fmt::format("Cannot retrieve info for image with id \'{}\': {}", id, e.what()));
+        throw std::runtime_error(
+            fmt::format("Cannot retrieve info for image with id \'{}\': {}", id, e.what()));
     }
 
     return lxd_image_size;
 }
 
-void mp::LXDVMImageVault::lxd_download_image(const VMImageInfo& info, const Query& query,
-                                             const ProgressMonitor& monitor, const QString& last_used)
+void mp::LXDVMImageVault::lxd_download_image(const VMImageInfo& info,
+                                             const Query& query,
+                                             const ProgressMonitor& monitor,
+                                             const QString& last_used)
 {
     const auto id = info.id;
     QJsonObject source_object;
@@ -498,8 +544,8 @@ void mp::LXDVMImageVault::lxd_download_image(const VMImageInfo& info, const Quer
                                       {"query.remote", QString::fromStdString(query.remote_name)},
                                       {"release_title", info.release_title}};
 
-        // Need to save the original image's last_used_at as a property since there is no way to modify the
-        // new image's last_used_at field.
+        // Need to save the original image's last_used_at as a property since there is no way to
+        // modify the new image's last_used_at field.
         if (!last_used.isEmpty())
         {
             properties_object.insert("last_used_at", last_used);
@@ -508,17 +554,25 @@ void mp::LXDVMImageVault::lxd_download_image(const VMImageInfo& info, const Quer
         image_object.insert("properties", properties_object);
     }
 
-    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), image_object);
+    auto json_reply = lxd_request(manager,
+                                  "POST",
+                                  QUrl(QString("%1/images").arg(base_url.toString())),
+                                  image_object);
 
     poll_download_operation(json_reply, monitor);
 }
 
-void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info, const QString& image_path,
+void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info,
+                                             const QString& image_path,
                                              const ProgressMonitor& monitor)
 {
     mp::vault::DeleteOnException image_file{image_path};
 
-    url_downloader->download_to(info.image_location, image_path, info.size, LaunchProgress::IMAGE, monitor);
+    url_downloader->download_to(info.image_location,
+                                image_path,
+                                info.size,
+                                LaunchProgress::IMAGE,
+                                monitor);
 
     if (info.verify)
     {
@@ -527,7 +581,8 @@ void mp::LXDVMImageVault::url_download_image(const VMImageInfo& info, const QStr
     }
 }
 
-void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply, const ProgressMonitor& monitor)
+void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
+                                                  const ProgressMonitor& monitor)
 {
     if (json_reply["metadata"].toObject()["class"] == QStringLiteral("task") &&
         json_reply["status_code"].toInt(-1) == 100)
@@ -546,7 +601,9 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
 
                 if (task_reply["error_code"].toInt(-1) != 0)
                 {
-                    mpl::log(mpl::Level::error, category, task_reply["error"].toString().toStdString());
+                    mpl::log(mpl::Level::error,
+                             category,
+                             task_reply["error"].toString().toStdString());
                     break;
                 }
 
@@ -557,8 +614,11 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
                 }
                 else
                 {
-                    auto download_progress = parse_percent_as_int(
-                        task_reply["metadata"].toObject()["metadata"].toObject()["download_progress"].toString());
+                    auto download_progress =
+                        parse_percent_as_int(task_reply["metadata"]
+                                                 .toObject()["metadata"]
+                                                 .toObject()["download_progress"]
+                                                 .toString());
 
                     if (last_download_progress != download_progress &&
                         !monitor(LaunchProgress::IMAGE, download_progress))
@@ -581,16 +641,18 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
     }
 }
 
-std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path, const QString& image_path)
+std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& metadata_path,
+                                                               const QString& image_path)
 {
     QHttpMultiPart lxd_multipart{QHttpMultiPart::FormDataType};
     QFileInfo metadata_info{metadata_path}, image_info{image_path};
 
     QHttpPart metadata_part;
-    metadata_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    metadata_part.setHeader(
-        QNetworkRequest::ContentDispositionHeader,
-        QVariant(QString("form-data; name=\"metadata\"; filename=\"%1\"").arg(metadata_info.fileName())));
+    metadata_part.setHeader(QNetworkRequest::ContentTypeHeader,
+                            QVariant("application/octet-stream"));
+    metadata_part.setHeader(QNetworkRequest::ContentDispositionHeader,
+                            QVariant(QString("form-data; name=\"metadata\"; filename=\"%1\"")
+                                         .arg(metadata_info.fileName())));
     QFile* metadata_file = new QFile(metadata_path);
     metadata_file->open(QIODevice::ReadOnly);
     metadata_part.setBodyDevice(metadata_file);
@@ -600,7 +662,8 @@ std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& me
     image_part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
     image_part.setHeader(
         QNetworkRequest::ContentDispositionHeader,
-        QVariant(QString("form-data; name=\"rootfs.img\"; filename=\"%1\"").arg(image_info.fileName())));
+        QVariant(
+            QString("form-data; name=\"rootfs.img\"; filename=\"%1\"").arg(image_info.fileName())));
     QFile* image_file = new QFile(image_path);
     image_file->open(QIODevice::ReadOnly);
     image_part.setBodyDevice(image_file);
@@ -609,11 +672,18 @@ std::string mp::LXDVMImageVault::lxd_import_metadata_and_image(const QString& me
     lxd_multipart.append(metadata_part);
     lxd_multipart.append(image_part);
 
-    auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/images").arg(base_url.toString())), lxd_multipart);
+    auto json_reply = lxd_request(manager,
+                                  "POST",
+                                  QUrl(QString("%1/images").arg(base_url.toString())),
+                                  lxd_multipart);
 
     auto task_reply = lxd_wait(manager, base_url, json_reply, 300000);
 
-    return task_reply["metadata"].toObject()["metadata"].toObject()["fingerprint"].toString().toStdString();
+    return task_reply["metadata"]
+        .toObject()["metadata"]
+        .toObject()["fingerprint"]
+        .toString()
+        .toStdString();
 }
 
 std::string mp::LXDVMImageVault::get_lxd_image_hash_for(const QString& id)
@@ -644,7 +714,10 @@ QJsonArray mp::LXDVMImageVault::retrieve_image_list()
 
     try
     {
-        auto json_reply = lxd_request(manager, "GET", QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
+        auto json_reply =
+            lxd_request(manager,
+                        "GET",
+                        QUrl(QString("%1/images?recursion=1").arg(base_url.toString())));
 
         image_list = json_reply["metadata"].toArray();
     }

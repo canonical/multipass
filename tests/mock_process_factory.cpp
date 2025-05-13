@@ -23,10 +23,12 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace ::testing;
 
-std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& spec) const
+std::unique_ptr<mp::Process> mpt::MockProcessFactory::create_process(
+    std::unique_ptr<mp::ProcessSpec>&& spec) const
 {
-    auto process = std::make_unique<NiceMock<mpt::MockProcess>>(std::move(spec),
-                                                                const_cast<std::vector<ProcessInfo>&>(process_list));
+    auto process = std::make_unique<NiceMock<mpt::MockProcess>>(
+        std::move(spec),
+        const_cast<std::vector<ProcessInfo>&>(process_list));
     if (callback)
         (*callback)(process.get());
     return process;
@@ -83,7 +85,8 @@ mpt::MockProcessFactory& mpt::MockProcessFactory::mock_instance()
     }
     catch (std::bad_cast&)
     {
-        throw std::runtime_error("ProcessFactory::instance() called before MockProcessFactory::Inject()");
+        throw std::runtime_error(
+            "ProcessFactory::instance() called before MockProcessFactory::Inject()");
     }
 }
 

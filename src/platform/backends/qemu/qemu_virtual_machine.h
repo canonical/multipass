@@ -69,7 +69,8 @@ public:
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) override;
     virtual MountArgs& modifiable_mount_args();
-    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
+                                                            const VMMount& mount) override;
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
@@ -77,7 +78,9 @@ signals:
 
 protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
-    QemuVirtualMachine(const std::string& name, const SSHKeyProvider& key_provider, const Path& instance_dir)
+    QemuVirtualMachine(const std::string& name,
+                       const SSHKeyProvider& key_provider,
+                       const Path& instance_dir)
         : BaseVirtualMachine{name, key_provider, instance_dir}
     {
     }

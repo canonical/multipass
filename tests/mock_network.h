@@ -31,7 +31,10 @@ namespace multipass::test
 class MockQNetworkAccessManager : public QNetworkAccessManager
 {
 public:
-    MOCK_METHOD(QNetworkReply*, createRequest, (Operation, const QNetworkRequest&, QIODevice*), (override));
+    MOCK_METHOD(QNetworkReply*,
+                createRequest,
+                (Operation, const QNetworkRequest&, QIODevice*),
+                (override));
 };
 
 class MockQNetworkReply : public QNetworkReply
@@ -77,7 +80,10 @@ class MockNetworkManagerFactory : public NetworkManagerFactory
 public:
     using NetworkManagerFactory::NetworkManagerFactory;
 
-    MOCK_METHOD(std::unique_ptr<QNetworkAccessManager>, make_network_manager, (const Path&), (const, override));
+    MOCK_METHOD(std::unique_ptr<QNetworkAccessManager>,
+                make_network_manager,
+                (const Path&),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetworkManagerFactory, NetworkManagerFactory);
 };

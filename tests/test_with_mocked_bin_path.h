@@ -29,6 +29,7 @@ struct TestWithMockedBinPath : public testing::Test
 {
     void SetUp() override;
     void TearDown() override;
+
 private:
     std::unique_ptr<SetEnvScope> env;
 };

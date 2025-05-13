@@ -30,8 +30,10 @@ constexpr auto notify_user_frequency = std::chrono::hours(6);
 } // namespace
 
 mp::DefaultUpdatePrompt::DefaultUpdatePrompt()
-    : monitor{std::make_unique<NewReleaseMonitor>(mp::version_string, ::new_release_check_frequency)},
-      last_shown{std::chrono::system_clock::now() - notify_user_frequency} // so we show update message soon after start
+    : monitor{std::make_unique<NewReleaseMonitor>(mp::version_string,
+                                                  ::new_release_check_frequency)},
+      last_shown{std::chrono::system_clock::now() - notify_user_frequency}
+      // so we show update message soon after start
 {
 }
 
@@ -39,7 +41,8 @@ mp::DefaultUpdatePrompt::~DefaultUpdatePrompt() = default;
 
 bool mp::DefaultUpdatePrompt::is_time_to_show()
 {
-    return monitor->get_new_release() && last_shown + ::notify_user_frequency < std::chrono::system_clock::now();
+    return monitor->get_new_release() &&
+           last_shown + ::notify_user_frequency < std::chrono::system_clock::now();
 }
 
 void mp::DefaultUpdatePrompt::populate(mp::UpdateInfo* update_info)

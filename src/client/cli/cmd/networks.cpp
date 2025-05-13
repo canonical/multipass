@@ -41,7 +41,9 @@ mp::ReturnCode cmd::Networks::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     NetworksRequest request;
     request.set_verbosity_level(parser->verbosityLevel());
@@ -65,15 +67,18 @@ QString cmd::Networks::short_help() const
 
 QString cmd::Networks::description() const
 {
-    return QStringLiteral("List host network devices (physical interfaces, virtual switches, bridges)\n"
-                          "available to integrate with using the `--network` switch to the `launch`\ncommand.");
+    return QStringLiteral(
+        "List host network devices (physical interfaces, virtual switches, bridges)\n"
+        "available to integrate with using the `--network` switch to the `launch`\ncommand.");
 }
 
 mp::ParseCode cmd::Networks::parse_args(mp::ArgParser* parser)
 {
-    QCommandLineOption formatOption(
-        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\nValid formats are: "
+                                    "table (default), json, csv and yaml",
+                                    "format",
+                                    "table");
 
     parser->addOption(formatOption);
 

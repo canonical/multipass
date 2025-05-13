@@ -213,7 +213,11 @@ int bridge_helper(const char* bridge, const int unixfd, const int use_vnet)
     ifr.ifr_mtu = mtu;
     if (ioctl(ctlfd, SIOCSIFMTU, &ifr) == -1)
     {
-        fprintf(stderr, "failed to set mtu of device `%s' to %d: %s\n", iface, mtu, strerror(errno));
+        fprintf(stderr,
+                "failed to set mtu of device `%s' to %d: %s\n",
+                iface,
+                mtu,
+                strerror(errno));
         ret = EXIT_FAILURE;
         goto cleanup;
     }
@@ -252,7 +256,11 @@ int bridge_helper(const char* bridge, const int unixfd, const int use_vnet)
 #endif
     if (ret == -1)
     {
-        fprintf(stderr, "failed to add interface `%s' to bridge `%s': %s\n", iface, bridge, strerror(errno));
+        fprintf(stderr,
+                "failed to add interface `%s' to bridge `%s': %s\n",
+                iface,
+                bridge,
+                strerror(errno));
         ret = EXIT_FAILURE;
         goto cleanup;
     }

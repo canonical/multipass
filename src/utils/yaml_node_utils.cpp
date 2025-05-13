@@ -34,7 +34,8 @@ YAML::Node create_extra_interface_node(const std::string& extra_interface_name,
     extra_interface_data["dhcp-identifier"] = "mac";
     // We make the default gateway associated with the first interface.
     extra_interface_data["dhcp4-overrides"]["route-metric"] = 200;
-    // Make the interface optional, which means that networkd will not wait for the device to be configured.
+    // Make the interface optional, which means that networkd will not wait for the device to be
+    // configured.
     extra_interface_data["optional"] = true;
 
     return extra_interface_data;
@@ -70,7 +71,8 @@ std::string mp::utils::emit_cloud_config(const YAML::Node& node)
     return fmt::format("#cloud-config\n{}", emit_yaml(node));
 }
 
-YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name, const std::string& file_content)
+YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name,
+                                                  const std::string& file_content)
 {
     YAML::Node meta_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
@@ -79,7 +81,8 @@ YAML::Node mp::utils::make_cloud_init_meta_config(const std::string& name, const
         const std::string old_hostname = meta_data["local-hostname"].as<std::string>();
         std::string old_instance_id = meta_data["instance-id"].as<std::string>();
 
-        // The assumption here is that the instance_id is the hostname optionally appended _e sequence
+        // The assumption here is that the instance_id is the hostname optionally appended _e
+        // sequence
         assert(old_instance_id.size() >= old_hostname.size());
         // replace the old host name with the new host name
         meta_data["instance-id"] = old_instance_id.replace(0, old_hostname.size(), name);
@@ -112,9 +115,10 @@ YAML::Node mp::utils::make_cloud_init_meta_config_with_id_tweak(const std::strin
     return meta_data;
 }
 
-YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_mac_addr,
-                                                     const std::vector<mp::NetworkInterface>& extra_interfaces,
-                                                     const std::string& file_content)
+YAML::Node mp::utils::make_cloud_init_network_config(
+    const std::string& default_mac_addr,
+    const std::vector<mp::NetworkInterface>& extra_interfaces,
+    const std::string& file_content)
 {
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
 
@@ -126,23 +130,27 @@ YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_
         if (extra_interfaces[i].auto_mode)
         {
             const std::string name = "extra" + std::to_string(i);
-            network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
+            network_data["ethernets"][name] =
+                create_extra_interface_node(name, extra_interfaces[i].mac_address);
         }
     }
 
     return network_data;
 }
 
-YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& default_mac_addr,
-                                                            const NetworkInterface& extra_interface,
-                                                            const std::string& network_config_file_content)
+YAML::Node mp::utils::add_extra_interface_to_network_config(
+    const std::string& default_mac_addr,
+    const NetworkInterface& extra_interface,
+    const std::string& network_config_file_content)
 {
     if (!extra_interface.auto_mode)
     {
-        return network_config_file_content.empty() ? YAML::Node{} : YAML::Load(network_config_file_content);
+        return network_config_file_content.empty() ? YAML::Node{}
+                                                   : YAML::Load(network_config_file_content);
     }
 
-    if (network_config_file_content.empty()) // for backward compatibility with absent default interface
+    if (network_config_file_content
+            .empty()) // for backward compatibility with absent default interface
     {
         YAML::Node network_data{};
         network_data["version"] = "2";

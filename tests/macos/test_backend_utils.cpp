@@ -41,7 +41,8 @@ public:
         mpt::MockProcessFactory::Callback arp_output_callback = [](mpt::MockProcess* process) {
             if (process->program().contains("arp") && process->arguments().contains("-an"))
             {
-                EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(mock_arp_output_stream));
+                EXPECT_CALL(*process, read_all_standard_output())
+                    .WillOnce(Return(mock_arp_output_stream));
             }
         };
 
@@ -49,11 +50,13 @@ public:
     }
 
 private:
-    const std::unique_ptr<mpt::MockProcessFactory::Scope> mock_process_factory{mpt::MockProcessFactory::Inject()};
+    const std::unique_ptr<mpt::MockProcessFactory::Scope> mock_process_factory{
+        mpt::MockProcessFactory::Inject()};
 };
 
-struct GetNeighbourIPValidInputsTests : public GetNeighbourIpFixture,
-                                        public WithParamInterface<std::pair<std::string, std::string>>
+struct GetNeighbourIPValidInputsTests
+    : public GetNeighbourIpFixture,
+      public WithParamInterface<std::pair<std::string, std::string>>
 {
 };
 
@@ -70,7 +73,8 @@ INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
                                 std::make_pair("52:54:00:e1:cd:ab", "192.168.64.4"),
                                 std::make_pair("01:00:5e:00:00:fb", "224.0.0.251")));
 
-struct GetNeighbourIPInValidInputsTests : public GetNeighbourIpFixture, public WithParamInterface<std::string>
+struct GetNeighbourIPInValidInputsTests : public GetNeighbourIpFixture,
+                                          public WithParamInterface<std::string>
 {
 };
 

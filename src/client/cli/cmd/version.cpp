@@ -32,15 +32,13 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::VersionReply& reply)
-    {
+    auto on_success = [this](mp::VersionReply& reply) {
         cout << chosen_formatter->format(reply, multipass::version_string);
 
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status)
-    {
+    auto on_failure = [this](grpc::Status& status) {
         VersionReply reply;
         cout << chosen_formatter->format(reply, multipass::version_string);
 
@@ -73,7 +71,8 @@ mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
     QCommandLineOption formatOption("format",
                                     "Output version information in the requested format.\n"
                                     "Valid formats are: table (default), json, csv and yaml",
-                                    "format", "table");
+                                    "format",
+                                    "table");
 
     parser->addOption(formatOption);
 

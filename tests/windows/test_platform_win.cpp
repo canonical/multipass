@@ -78,14 +78,17 @@ auto guarded_fake_json(const char* contents)
     auto filename = json_file.fileName();
     mock_stdpaths_locate(filename);
 
-    json_file.setAutoRemove(false); // we need to release the file but keep it around, so that it can be overwritten
-    auto guard =
-        sg::make_scope_guard([filename = filename.toStdString()]() noexcept { // we have to remove it ourselves later on
+    json_file.setAutoRemove(
+        false); // we need to release the file but keep it around, so that it can be overwritten
+    auto guard = sg::make_scope_guard(
+        [filename = filename.toStdString()]() noexcept { // we have to remove it ourselves later on
             std::error_code ec;
             std::filesystem::remove(filename, ec);
         });
 
-    return std::make_pair(filename, std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
+    return std::make_pair(
+        filename,
+        std::move(guard)); // needs to be moved into the pair first (NRVO does not apply)
 }
 
 // ptr works around uncopyable QTemporaryFile
@@ -169,11 +172,13 @@ TEST(PlatformWin, winterm_setting_values_case_insensitive)
 TEST(PlatformWin, unsupported_winterm_setting_values_cause_exception)
 {
     for (const auto x : {"Unsupported", "values", "1", "000", "false", "True", "", "  "})
-        MP_EXPECT_THROW_THAT(
-            mp::platform::interpret_setting(mp::winterm_key, x),
-            mp::InvalidSettingException,
-            Property(&mp::InvalidSettingException::what,
-                     AllOf(HasSubstr(mp::winterm_key), HasSubstr(x), HasSubstr("none"), HasSubstr("primary"))));
+        MP_EXPECT_THROW_THAT(mp::platform::interpret_setting(mp::winterm_key, x),
+                             mp::InvalidSettingException,
+                             Property(&mp::InvalidSettingException::what,
+                                      AllOf(HasSubstr(mp::winterm_key),
+                                            HasSubstr(x),
+                                            HasSubstr("none"),
+                                            HasSubstr("primary"))));
 }
 
 struct TestWinTermBase : public Test
@@ -183,11 +188,13 @@ struct TestWinTermBase : public Test
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return(ret));
     }
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
-struct TestWinTermSyncLesserLogging : public TestWinTermBase, public WithParamInterface<std::pair<QString, mpl::Level>>
+struct TestWinTermSyncLesserLogging : public TestWinTermBase,
+                                      public WithParamInterface<std::pair<QString, mpl::Level>>
 {
 };
 
@@ -239,7 +246,8 @@ TEST_P(TestWinTermSyncModerateLogging, logging_on_unavailable_profiles)
     const auto& [setting, lvl] = GetParam();
     mock_winterm_setting(setting);
 
-    const auto [json_file_name, tmp_file_guard] = guarded_fake_json("{ \"someNode\": \"someValue\" }");
+    const auto [json_file_name, tmp_file_guard] =
+        guarded_fake_json("{ \"someNode\": \"someValue\" }");
     const auto mock_logger_guard = expect_only_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
@@ -261,11 +269,14 @@ TEST_P(TestWinTermSyncGreaterLogging, logging_on_failure_to_overwrite)
 
     Json::Value json;
     auto& profile = setup_primary_profile(json);
-    profile["hidden"] = (setting != "none"); // make this the opposite of what the setting says, to require an update
+    profile["hidden"] =
+        (setting !=
+         "none"); // make this the opposite of what the setting says, to require an update
 
     const auto [json_file_name, tmp_file_guard] = guarded_fake_json(json);
 
-    std::ifstream handle{json_file_name.toStdString()}; // open the file, to provoke a failure in overwriting
+    std::ifstream handle{
+        json_file_name.toStdString()}; // open the file, to provoke a failure in overwriting
     const auto mock_logger_guard = expect_only_log(mpl::Level::error, "Could not update");
 
     mp::platform::sync_winterm_profiles();
@@ -387,14 +398,16 @@ public:
 private:
     void dress_with_comments(Json::Value& profiles, unsigned char flags)
     {
-        if (flags & (DressUpFlags::CommentBefore | DressUpFlags::CommentInline | DressUpFlags::CommentAfter))
+        if (flags & (DressUpFlags::CommentBefore | DressUpFlags::CommentInline |
+                     DressUpFlags::CommentAfter))
         {
             auto& elem = profiles.size() ? profiles[0] : profiles;
             const auto comment = std::string{"// a comment"};
 
-            for (const auto [flag, place] : {std::make_pair(DressUpFlags::CommentBefore, Json::commentBefore),
-                                             std::make_pair(DressUpFlags::CommentInline, Json::commentAfterOnSameLine),
-                                             std::make_pair(DressUpFlags::CommentAfter, Json::commentAfter)})
+            for (const auto [flag, place] :
+                 {std::make_pair(DressUpFlags::CommentBefore, Json::commentBefore),
+                  std::make_pair(DressUpFlags::CommentInline, Json::commentAfterOnSameLine),
+                  std::make_pair(DressUpFlags::CommentAfter, Json::commentAfter)})
                 if (flags & flag)
                     elem.setComment(comment, place);
         }
@@ -405,8 +418,9 @@ private:
         if (flags & (DressUpFlags::ProfileBefore | DressUpFlags::ProfileAfter))
         {
             auto num_profiles = profiles.size();
-            for (const auto [flag, distinctive] : {std::make_pair(DressUpFlags::ProfileBefore, "aaa"),
-                                                   std::make_pair(DressUpFlags::ProfileAfter, "zzz")})
+            for (const auto [flag, distinctive] :
+                 {std::make_pair(DressUpFlags::ProfileBefore, "aaa"),
+                  std::make_pair(DressUpFlags::ProfileAfter, "zzz")})
                 if (flags & flag)
                 {
                     profiles[num_profiles]["guid"] = fmt::format("fake_id_{}", distinctive);
@@ -512,7 +526,8 @@ TEST_P(TestWinTermSyncJson, winterm_sync_adds_missing_profile_if_setting_primary
     EXPECT_THAT(primary_profile["icon"].asString(), EndsWith(".ico"));
     EXPECT_TRUE(primary_profile.isMember("background"));
 
-    auto json_proof = json_out; // copy json_out so we can keep it const (to ensure indexing doesn't change it above)
+    auto json_proof = json_out; // copy json_out so we can keep it const (to ensure indexing doesn't
+                                // change it above)
     edit_profiles(json_proof) = get_profiles(json_in);
     EXPECT_EQ(json_proof, json_in); // confirm the rest of the json is the same
 }
@@ -585,16 +600,19 @@ TEST_P(TestWinTermSyncJson, winterm_sync_disables_profile_without_hidden_flag_if
 
 INSTANTIATE_TEST_SUITE_P(PlatformWin,
                          TestWinTermSyncJson,
-                         Range(TestWinTermSyncJson::DressUpFlags::begin, TestWinTermSyncJson::DressUpFlags::end));
+                         Range(TestWinTermSyncJson::DressUpFlags::begin,
+                               TestWinTermSyncJson::DressUpFlags::end));
 
 TEST(PlatformWin, create_alias_script_works)
 {
     const mpt::TempDir tmp_dir;
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::HomeLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+    EXPECT_NO_THROW(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
 
     QFile checked_script(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
     checked_script.open(QFile::ReadOnly);
@@ -612,7 +630,9 @@ TEST(PlatformWin, create_alias_script_overwrites)
 
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+    EXPECT_NO_THROW(
+        MP_PLATFORM.create_alias_script("alias_name",
+                                        mp::AliasDefinition{"instance", "other_command"}));
 }
 
 TEST(PlatformWin, create_alias_script_throws_if_cannot_create_path)
@@ -621,9 +641,10 @@ TEST(PlatformWin, create_alias_script_throws_if_cannot_create_path)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to create dir '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST(PlatformWin, create_alias_script_throws_if_cannot_write_script)
@@ -634,9 +655,10 @@ TEST(PlatformWin, create_alias_script_throws_if_cannot_write_script)
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to write to file '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST(PlatformWin, remove_alias_script_works)
@@ -644,7 +666,8 @@ TEST(PlatformWin, remove_alias_script_works)
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::HomeLocation))
         .WillOnce(Return(tmp_dir.path()));
 
     MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
@@ -659,7 +682,8 @@ TEST(PlatformWin, remove_alias_script_throws_if_cannot_remove_script)
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::HomeLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::HomeLocation))
         .WillOnce(Return(tmp_dir.path()));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"),

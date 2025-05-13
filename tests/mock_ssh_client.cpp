@@ -16,7 +16,8 @@
  */
 
 #include "mock_ssh_client.h"
-extern "C" {
+extern "C"
+{
 IMPL_MOCK_DEFAULT(1, ssh_channel_request_shell);
 IMPL_MOCK_DEFAULT(1, ssh_channel_request_pty);
 IMPL_MOCK_DEFAULT(3, ssh_channel_change_pty_size);

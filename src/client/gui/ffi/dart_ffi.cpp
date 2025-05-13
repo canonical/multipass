@@ -131,13 +131,17 @@ enum SettingResult get_setting(char* key, char** output)
     }
     catch (const mp::UnrecognizedSettingException& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{} '{}': {}", error, key_string, e.what()));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("{} '{}': {}", error, key_string, e.what()));
         *output = nullptr;
         return SettingResult::KeyNotFound;
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{} '{}': {}", error, key_string, e.what()));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("{} '{}': {}", error, key_string, e.what()));
         *output = strdup(e.what());
         return SettingResult::UnexpectedError;
     }
@@ -189,7 +193,9 @@ enum SettingResult set_setting(char* key, char* value, char** output)
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{} '{}'='{}'", error, key_string, value_string));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("{} '{}'='{}'", error, key_string, value_string));
         *output = strdup("unknown error");
         return SettingResult::UnexpectedError;
     }
@@ -233,15 +239,17 @@ long long memory_in_bytes(char* value)
 
 const char* human_readable_memory(long long bytes)
 {
-    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
+    const auto string =
+        mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
     return strdup(string.c_str());
 }
 
 long long get_total_disk_size()
 {
     const auto mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto location =
-        mp_storage.isEmpty() ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation) : mp_storage;
+    const auto location = mp_storage.isEmpty()
+                              ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
+                              : mp_storage;
     QStorageInfo storageInfo{location};
     return storageInfo.bytesTotal();
 }

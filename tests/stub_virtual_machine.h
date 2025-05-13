@@ -34,7 +34,8 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    StubVirtualMachine(const std::string& name) : StubVirtualMachine{name, std::make_unique<TempDir>()}
+    StubVirtualMachine(const std::string& name)
+        : StubVirtualMachine{name, std::make_unique<TempDir>()}
     {
     }
 
@@ -128,7 +129,8 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&, const VMMount&) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&,
+                                                            const VMMount&) override
     {
         return std::make_unique<StubMountHandler>();
     }
@@ -163,7 +165,9 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return nullptr;
     }
 
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs&, const std::string&, const std::string&) override
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs&,
+                                                  const std::string&,
+                                                  const std::string&) override
     {
         return {};
     }

@@ -35,7 +35,8 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ParseCode cmd::check_for_name_and_all_option_conflict(const mp::ArgParser* parser, std::ostream& cerr,
+mp::ParseCode cmd::check_for_name_and_all_option_conflict(const mp::ArgParser* parser,
+                                                          std::ostream& cerr,
                                                           bool allow_empty)
 {
     auto num_names = parser->positionalArguments().count();
@@ -67,7 +68,8 @@ mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser)
     return instance_names;
 }
 
-mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser, const std::string& default_name)
+mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser,
+                                          const std::string& default_name)
 {
     auto instance_names = add_instance_names(parser);
     if (!instance_names.instance_name_size() && !parser->isSet(all_option_name))
@@ -76,7 +78,8 @@ mp::InstanceNames cmd::add_instance_names(const mp::ArgParser* parser, const std
     return instance_names;
 }
 
-std::vector<mp::InstanceSnapshotPair> cmd::add_instance_and_snapshot_names(const mp::ArgParser* parser)
+std::vector<mp::InstanceSnapshotPair> cmd::add_instance_and_snapshot_names(
+    const mp::ArgParser* parser)
 {
     std::vector<mp::InstanceSnapshotPair> instance_snapshot_names;
     instance_snapshot_names.reserve(parser->positionalArguments().count());
@@ -95,7 +98,8 @@ std::vector<mp::InstanceSnapshotPair> cmd::add_instance_and_snapshot_names(const
     return instance_snapshot_names;
 }
 
-mp::ParseCode cmd::handle_format_option(const mp::ArgParser* parser, mp::Formatter** chosen_formatter,
+mp::ParseCode cmd::handle_format_option(const mp::ArgParser* parser,
+                                        mp::Formatter** chosen_formatter,
                                         std::ostream& cerr)
 {
     *chosen_formatter = mp::format::formatter_for(parser->value(format_option_name).toStdString());
@@ -109,7 +113,8 @@ mp::ParseCode cmd::handle_format_option(const mp::ArgParser* parser, mp::Formatt
     return ParseCode::Ok;
 }
 
-std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_names, const std::string& action_name)
+std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_names,
+                                             const std::string& action_name)
 {
     std::string message{action_name};
 
@@ -123,7 +128,9 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
     return message;
 }
 
-mp::ReturnCode cmd::run_cmd(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,
+mp::ReturnCode cmd::run_cmd(const QStringList& args,
+                            const mp::ArgParser* parser,
+                            std::ostream& cout,
                             std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
@@ -143,7 +150,9 @@ mp::ReturnCode ok2retry(mp::ReturnCode code)
 }
 } // namespace
 
-mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgParser* parser, std::ostream& cout,
+mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args,
+                                      const mp::ArgParser* parser,
+                                      std::ostream& cout,
                                       std::ostream& cerr)
 {
     return ok2retry(run_cmd(args, parser, cout, cerr));
@@ -151,7 +160,8 @@ mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args, const mp::ArgPars
 
 auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 {
-    if (dynamic_cast<const InvalidSettingException*>(&e) || dynamic_cast<const UnrecognizedSettingException*>(&e))
+    if (dynamic_cast<const InvalidSettingException*>(&e) ||
+        dynamic_cast<const UnrecognizedSettingException*>(&e))
         return ReturnCode::CommandLineError;
 
     return ReturnCode::CommandFail;
@@ -159,7 +169,8 @@ auto cmd::return_code_from(const mp::SettingsException& e) -> mp::ReturnCode
 
 QString multipass::cmd::describe_common_settings_keys()
 {
-    return std::accumulate(cbegin(mp::key_examples), cend(mp::key_examples),
+    return std::accumulate(cbegin(mp::key_examples),
+                           cend(mp::key_examples),
                            QStringLiteral("Some common settings keys are:"),
                            [](const auto& a, const auto& b) { return a + "\n  - " + b; }) +
            "\n\nUse `" + mp::client_name +
@@ -174,7 +185,8 @@ void multipass::cmd::add_timeout(multipass::ArgParser* parser)
                 "Note that some background operations may continue beyond that. "
                 "By default, instance startup and initialization is limited to "
                 "%1 minutes each.")
-            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout).count()),
+            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout)
+                     .count()),
         "timeout");
     parser->addOption(timeout_option);
 }
@@ -192,15 +204,18 @@ int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
     return -1;
 }
 
-std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout, AnimatedSpinner* spinner,
-                                                                    std::ostream& cerr, const std::string& msg)
+std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout,
+                                                                    AnimatedSpinner* spinner,
+                                                                    std::ostream& cerr,
+                                                                    const std::string& msg)
 {
-    auto timer = std::make_unique<multipass::utils::Timer>(std::chrono::seconds(timeout), [spinner, &cerr, msg]() {
-        if (spinner)
-            spinner->stop();
-        cerr << msg << std::endl;
-        MP_UTILS.exit(mp::timeout_exit_code);
-    });
+    auto timer = std::make_unique<multipass::utils::Timer>(std::chrono::seconds(timeout),
+                                                           [spinner, &cerr, msg]() {
+                                                               if (spinner)
+                                                                   spinner->stop();
+                                                               cerr << msg << std::endl;
+                                                               MP_UTILS.exit(mp::timeout_exit_code);
+                                                           });
 
     return timer;
 }

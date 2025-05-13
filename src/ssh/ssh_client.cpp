@@ -34,15 +34,24 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 {
     mp::SSHClient::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
 
-    mp::SSH::throw_on_error(channel, session, "[ssh client] channel creation failed", ssh_channel_open_session);
+    mp::SSH::throw_on_error(channel,
+                            session,
+                            "[ssh client] channel creation failed",
+                            ssh_channel_open_session);
 
     return channel;
 }
 } // namespace
 
-mp::SSHClient::SSHClient(const std::string& host, int port, const std::string& username,
-                         const std::string& priv_key_blob, ConsoleCreator console_creator)
-    : SSHClient{std::make_unique<mp::SSHSession>(host, port, username, mp::SSHClientKeyProvider(priv_key_blob)),
+mp::SSHClient::SSHClient(const std::string& host,
+                         int port,
+                         const std::string& username,
+                         const std::string& priv_key_blob,
+                         ConsoleCreator console_creator)
+    : SSHClient{std::make_unique<mp::SSHSession>(host,
+                                                 port,
+                                                 username,
+                                                 mp::SSHClientKeyProvider(priv_key_blob)),
                 console_creator}
 {
 }
@@ -132,9 +141,15 @@ void mp::SSHClient::handle_ssh_events()
 int mp::SSHClient::exec_string(const std::string& cmd_line)
 {
     if (cmd_line.empty())
-        SSH::throw_on_error(channel, *ssh_session, "[ssh client] shell request failed", ssh_channel_request_shell);
+        SSH::throw_on_error(channel,
+                            *ssh_session,
+                            "[ssh client] shell request failed",
+                            ssh_channel_request_shell);
     else
-        SSH::throw_on_error(channel, *ssh_session, "[ssh client] exec request failed", ssh_channel_request_exec,
+        SSH::throw_on_error(channel,
+                            *ssh_session,
+                            "[ssh client] exec request failed",
+                            ssh_channel_request_exec,
                             cmd_line.c_str());
 
     handle_ssh_events();

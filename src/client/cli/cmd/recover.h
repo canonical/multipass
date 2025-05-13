@@ -30,7 +30,7 @@ class Recover final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
@@ -41,6 +41,6 @@ private:
 
     ParseCode parse_args(ArgParser* parser);
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_RECOVER_H

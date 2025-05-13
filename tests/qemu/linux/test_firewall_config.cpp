@@ -50,11 +50,13 @@ struct FirewallConfig : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
-struct FirewallToUseTestSuite : FirewallConfig, WithParamInterface<std::tuple<std::string, QByteArray, QByteArray>>
+struct FirewallToUseTestSuite : FirewallConfig,
+                                WithParamInterface<std::tuple<std::string, QByteArray, QByteArray>>
 {
 };
 
-struct KernelCheckTestSuite : FirewallConfig, WithParamInterface<std::tuple<std::string, std::string>>
+struct KernelCheckTestSuite : FirewallConfig,
+                              WithParamInterface<std::tuple<std::string, std::string>>
 {
 };
 } // namespace
@@ -65,7 +67,9 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
     mpt::MockProcessFactory::Callback firewall_callback = [&error_msg](mpt::MockProcess* process) {
         if (process->program() == "iptables-nft")
         {
-            mp::ProcessState exit_state{1, mp::ProcessState::Error{QProcess::FailedToStart, error_msg}};
+            mp::ProcessState exit_state{
+                1,
+                mp::ProcessState::Error{QProcess::FailedToStart, error_msg}};
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
         }
     };
@@ -74,7 +78,8 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
     factory->register_callback(firewall_callback);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    logger_scope.mock_logger->expect_log(mpl::Level::warning, fmt::format("Failure: {}", error_msg));
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         fmt::format("Failure: {}", error_msg));
 
     mp::FirewallConfig firewall_config{goodbr0, subnet};
 }
@@ -117,31 +122,35 @@ TEST_F(FirewallConfig, firewallErrorThrowsOnVerify)
 
     mp::FirewallConfig firewall_config{evilbr0, subnet};
 
-    MP_EXPECT_THROW_THAT(firewall_config.verify_firewall_rules(), std::runtime_error,
+    MP_EXPECT_THROW_THAT(firewall_config.verify_firewall_rules(),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr(msg.data())));
 }
 
 TEST_F(FirewallConfig, dtorDeletesKnownRules)
 {
-    const QByteArray base_rule{fmt::format("POSTROUTING -s {}.0/24 ! -d {}.0/24 -m comment --comment \"generated for "
-                                           "Multipass network {}\" -j MASQUERADE",
-                                           subnet, subnet, goodbr0)
-                                   .data()};
+    const QByteArray base_rule{
+        fmt::format("POSTROUTING -s {}.0/24 ! -d {}.0/24 -m comment --comment \"generated for "
+                    "Multipass network {}\" -j MASQUERADE",
+                    subnet,
+                    subnet,
+                    goodbr0)
+            .data()};
     const QByteArray full_rule{"-A " + base_rule};
     bool delete_called{false};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&base_rule, &full_rule,
-                                                           &delete_called](mpt::MockProcess* process) {
-        if (process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(full_rule));
-        }
-        else if (process->program() == "sh" && process->arguments().at(1).contains("--delete"))
-        {
-            delete_called = true;
-            EXPECT_TRUE(process->arguments().at(1).contains(base_rule));
-        }
-    };
+    mpt::MockProcessFactory::Callback firewall_callback =
+        [&base_rule, &full_rule, &delete_called](mpt::MockProcess* process) {
+            if (process->arguments().contains("--list-rules"))
+            {
+                EXPECT_CALL(*process, read_all_standard_output()).WillRepeatedly(Return(full_rule));
+            }
+            else if (process->program() == "sh" && process->arguments().at(1).contains("--delete"))
+            {
+                delete_called = true;
+                EXPECT_TRUE(process->arguments().at(1).contains(base_rule));
+            }
+        };
 
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(firewall_callback);
@@ -155,10 +164,13 @@ TEST_F(FirewallConfig, dtorDeletesKnownRules)
 
 TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
 {
-    const QByteArray base_rule{fmt::format("POSTROUTING -s {}.0/24 ! -d {}.0/24 -m comment --comment \"generated for "
-                                           "Multipass network {}\" -j MASQUERADE",
-                                           subnet, subnet, goodbr0)
-                                   .data()};
+    const QByteArray base_rule{
+        fmt::format("POSTROUTING -s {}.0/24 ! -d {}.0/24 -m comment --comment \"generated for "
+                    "Multipass network {}\" -j MASQUERADE",
+                    subnet,
+                    subnet,
+                    goodbr0)
+            .data()};
     const QByteArray full_rule{"-A " + base_rule};
     const QByteArray msg{"Bad stuff happened"};
 
@@ -199,7 +211,8 @@ TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(std::get<1>(param)));
         }
-        else if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
+        else if (process->program() == "iptables-legacy" &&
+                 process->arguments().contains("--list-rules"))
         {
             EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(std::get<2>(param)));
         }
@@ -214,7 +227,8 @@ TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
     mp::FirewallConfig firewall_config{goodbr0, subnet};
 }
 
-INSTANTIATE_TEST_SUITE_P(FirewallConfig, FirewallToUseTestSuite,
+INSTANTIATE_TEST_SUITE_P(FirewallConfig,
+                         FirewallToUseTestSuite,
                          Values(std::make_tuple("iptables-legacy", QByteArray(), "-N FOO"),
                                 std::make_tuple("iptables-nft", "-N FOO", QByteArray()),
                                 std::make_tuple("iptables-nft", QByteArray(), QByteArray()),
@@ -225,16 +239,18 @@ TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
     auto [kernel, msg] = GetParam();
     bool nftables_called{false};
 
-    mpt::MockProcessFactory::Callback firewall_callback = [&nftables_called](mpt::MockProcess* process) {
-        if (process->program() == "iptables-legacy" && process->arguments().contains("--list-rules"))
-        {
-            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
-        }
-        else if (process->program() == "iptables-nft")
-        {
-            nftables_called = true;
-        }
-    };
+    mpt::MockProcessFactory::Callback firewall_callback =
+        [&nftables_called](mpt::MockProcess* process) {
+            if (process->program() == "iptables-legacy" &&
+                process->arguments().contains("--list-rules"))
+            {
+                EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray()));
+            }
+            else if (process->program() == "iptables-nft")
+            {
+                nftables_called = true;
+            }
+        };
 
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(firewall_callback);
@@ -251,7 +267,9 @@ TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
     EXPECT_FALSE(nftables_called);
 }
 
-INSTANTIATE_TEST_SUITE_P(FirewallConfig, KernelCheckTestSuite,
-                         Values(std::make_tuple("undefined", "Cannot parse kernel version \'undefined\'"),
-                                std::make_tuple("4.20.1", "Kernel version does not meet minimum requirement of 5.2"),
-                                std::make_tuple("5.1.4", "Kernel version does not meet minimum requirement of 5.2")));
+INSTANTIATE_TEST_SUITE_P(
+    FirewallConfig,
+    KernelCheckTestSuite,
+    Values(std::make_tuple("undefined", "Cannot parse kernel version \'undefined\'"),
+           std::make_tuple("4.20.1", "Kernel version does not meet minimum requirement of 5.2"),
+           std::make_tuple("5.1.4", "Kernel version does not meet minimum requirement of 5.2")));

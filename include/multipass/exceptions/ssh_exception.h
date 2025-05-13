@@ -34,7 +34,8 @@ public:
 class SSHExecFailure : public SSHException
 {
 public:
-    SSHExecFailure(const std::string& what_arg, int exit_code) : SSHException{what_arg}, ec{exit_code}
+    SSHExecFailure(const std::string& what_arg, int exit_code)
+        : SSHException{what_arg}, ec{exit_code}
     {
     }
 

@@ -41,9 +41,10 @@ void throw_if_binary_fails(const char* binary_name, const QStringList& arguments
     process.start(binary_name, arguments);
     if (!process.waitForFinished() || process.exitCode() != 0)
     {
-        throw mp::AppArmorException(
-            fmt::format("AppArmor cannot be configured, the '{}' utility failed to launch with error: {}", binary_name,
-                        process.errorString()));
+        throw mp::AppArmorException(fmt::format(
+            "AppArmor cannot be configured, the '{}' utility failed to launch with error: {}",
+            binary_name,
+            process.errorString()));
     }
 }
 
@@ -59,7 +60,9 @@ QStringList generate_extra_apparmor_args()
         }
         else
         {
-            mpl::log(mpl::Level::debug, "daemon", "Failed to create cache directory for AppArmor - disabling caching");
+            mpl::log(mpl::Level::debug,
+                     "daemon",
+                     "Failed to create cache directory for AppArmor - disabling caching");
         }
     }
     catch (const mp::SnapEnvironmentException&)
@@ -80,8 +83,8 @@ mp::AppArmor::AppArmor() : apparmor_args{generate_extra_apparmor_args()}
         throw mp::AppArmorException("AppArmor is not enabled");
     }
 
-    // libapparmor's profile management API is not easy to use, it is handier to use apparmor_profile CLI tool
-    // Ensure it is available
+    // libapparmor's profile management API is not easy to use, it is handier to use
+    // apparmor_profile CLI tool Ensure it is available
     throw_if_binary_fails(apparmor_parser, {"-V"});
 }
 
@@ -89,7 +92,8 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
 {
     QProcess process;
     process.start(apparmor_parser,
-                  apparmor_args + QStringList({"--abort-on-error", "-r"})); // inserts new or replaces existing
+                  apparmor_args +
+                      QStringList({"--abort-on-error", "-r"})); // inserts new or replaces existing
     process.waitForStarted();
     process.write(aa_policy);
     process.closeWriteChannel();
@@ -99,8 +103,10 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
 
     if (process.exitCode() != 0)
     {
-        throw mp::AppArmorException(fmt::format("Failed to load AppArmor policy {}: errno={} ({})", aa_policy,
-                                                process.exitCode(), process.readAll()));
+        throw mp::AppArmorException(fmt::format("Failed to load AppArmor policy {}: errno={} ({})",
+                                                aa_policy,
+                                                process.exitCode(),
+                                                process.readAll()));
     }
 }
 
@@ -117,8 +123,11 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
 
     if (process.exitCode() != 0)
     {
-        throw mp::AppArmorException(fmt::format("Failed to remove AppArmor policy {}: errno={} ({})", aa_policy,
-                                                process.exitCode(), process.readAll()));
+        throw mp::AppArmorException(
+            fmt::format("Failed to remove AppArmor policy {}: errno={} ({})",
+                        aa_policy,
+                        process.exitCode(),
+                        process.readAll()));
     }
 }
 
@@ -128,7 +137,9 @@ void mp::AppArmor::next_exec_under_policy(const QByteArray& aa_policy_name) cons
 
     if (ret < 0)
     {
-        throw mp::AppArmorException(
-            fmt::format("Failed to apply AppArmor policy {}: errno={} ({})", aa_policy_name, errno, strerror(errno)));
+        throw mp::AppArmorException(fmt::format("Failed to apply AppArmor policy {}: errno={} ({})",
+                                                aa_policy_name,
+                                                errno,
+                                                strerror(errno)));
     }
 }

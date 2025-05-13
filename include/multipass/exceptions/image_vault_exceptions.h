@@ -28,7 +28,9 @@ class ImageNotFoundException : public std::runtime_error
 {
 public:
     ImageNotFoundException(const std::string& image, const std::string& remote)
-        : runtime_error(fmt::format("Unable to find an image matching \"{}\" in remote \"{}\".", image, remote))
+        : runtime_error(fmt::format("Unable to find an image matching \"{}\" in remote \"{}\".",
+                                    image,
+                                    remote))
     {
     }
 };

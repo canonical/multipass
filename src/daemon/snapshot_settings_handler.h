@@ -33,9 +33,10 @@ namespace multipass
 class SnapshotSettingsHandler : public SettingsHandler
 {
 public:
-    SnapshotSettingsHandler(std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
-                            const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-                            const std::unordered_set<std::string>& preparing_instances) noexcept;
+    SnapshotSettingsHandler(
+        std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
+        const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
+        const std::unordered_set<std::string>& preparing_instances) noexcept;
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -45,9 +46,11 @@ private:
     std::shared_ptr<const Snapshot> find_snapshot(const std::string& instance_name,
                                                   const std::string& snapshot_name,
                                                   bool deleted_ok = true) const;
-    std::shared_ptr<const VirtualMachine> find_instance(const std::string& instance_name, bool deleted_ok = true) const;
+    std::shared_ptr<const VirtualMachine> find_instance(const std::string& instance_name,
+                                                        bool deleted_ok = true) const;
 
-    std::shared_ptr<Snapshot> modify_snapshot(const std::string& instance_name, const std::string& snapshot_name);
+    std::shared_ptr<Snapshot> modify_snapshot(const std::string& instance_name,
+                                              const std::string& snapshot_name);
     std::shared_ptr<VirtualMachine> modify_instance(const std::string& instance_name);
 
 private:

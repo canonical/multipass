@@ -24,7 +24,9 @@ mp::StandardPaths::StandardPaths(const Singleton<StandardPaths>::PrivatePass& pa
 {
 }
 
-QString mp::StandardPaths::locate(StandardLocation type, const QString& fileName, LocateOptions options) const
+QString mp::StandardPaths::locate(StandardLocation type,
+                                  const QString& fileName,
+                                  LocateOptions options) const
 {
     return QStandardPaths::locate(type, fileName, options);
 }

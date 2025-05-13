@@ -32,14 +32,21 @@ class TempFile
 {
 public:
     TempFile();
-    QString name() const { return the_name; }
-    QString url() const { return the_url; }
+    QString name() const
+    {
+        return the_name;
+    }
+    QString url() const
+    {
+        return the_url;
+    }
+
 private:
     QTemporaryFile file;
     QString the_name;
     QString the_url;
 };
-}
-}
+} // namespace test
+} // namespace multipass
 
 #endif // MULTIPASS_TEMP_FILE_H

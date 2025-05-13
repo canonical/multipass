@@ -39,5 +39,5 @@ public:
     Type query_type;
     bool allow_unsupported{false};
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_QUERY_H

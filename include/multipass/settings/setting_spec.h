@@ -49,12 +49,14 @@ public:
 };
 } // namespace multipass
 
-inline bool multipass::SettingSpec::LessByKey::operator()(const SettingSpec& a, const SettingSpec& b) const
+inline bool multipass::SettingSpec::LessByKey::operator()(const SettingSpec& a,
+                                                          const SettingSpec& b) const
 {
     return a.get_key() < b.get_key(); // compares lexicographically
 }
 
-inline bool multipass::SettingSpec::LessByKey::operator()(const SettingSpec::UPtr& a, const SettingSpec::UPtr& b) const
+inline bool multipass::SettingSpec::LessByKey::operator()(const SettingSpec::UPtr& a,
+                                                          const SettingSpec::UPtr& b) const
 {
     return a && b ? (*this)(*a, *b) : bool{b}; // nullptr is the lowest, otherwise lexicographical
 }

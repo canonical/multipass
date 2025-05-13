@@ -40,7 +40,8 @@ enum class TimerState : int
 class Timer : private DisabledCopyMove
 {
 public:
-    Timer(std::chrono::milliseconds, std::function<void()>); /* NB: callback runs on the timeout thread. */
+    Timer(std::chrono::milliseconds,
+          std::function<void()>); /* NB: callback runs on the timeout thread. */
     ~Timer();
 
 public:
@@ -67,9 +68,13 @@ public:
     TimerSyncFuncs(const Singleton<TimerSyncFuncs>::PrivatePass&) noexcept;
 
     virtual void notify_all(std::condition_variable& cv) const;
-    virtual void wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock, std::function<bool()>) const;
-    virtual bool wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
-                          const std::chrono::duration<int, std::milli>& rel_time, std::function<bool()>) const;
+    virtual void wait(std::condition_variable& cv,
+                      std::unique_lock<std::mutex>& lock,
+                      std::function<bool()>) const;
+    virtual bool wait_for(std::condition_variable& cv,
+                          std::unique_lock<std::mutex>& lock,
+                          const std::chrono::duration<int, std::milli>& rel_time,
+                          std::function<bool()>) const;
 };
 } // namespace multipass::utils
 

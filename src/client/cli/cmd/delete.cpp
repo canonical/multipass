@@ -27,7 +27,8 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-constexpr auto snapshot_purge_notice_msg = "Snapshots can only be purged (after deletion, they cannot be recovered)";
+constexpr auto snapshot_purge_notice_msg =
+    "Snapshots can only be purged (after deletion, they cannot be recovered)";
 }
 
 mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
@@ -59,8 +60,10 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
                 }
                 catch (const std::runtime_error& e)
                 {
-                    cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n", e.what(),
-                                        removal_context, removed_alias_name);
+                    cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n",
+                                        e.what(),
+                                        removal_context,
+                                        removed_alias_name);
                 }
             }
         }
@@ -71,7 +74,10 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
     auto on_failure = [this](grpc::Status& status) {
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
         return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
-                   ? standard_failure_handler_for(name(), cerr, status, "Use --purge to forcefully delete it.")
+                   ? standard_failure_handler_for(name(),
+                                                  cerr,
+                                                  status,
+                                                  "Use --purge to forcefully delete it.")
                    : standard_failure_handler_for(name(), cerr, status);
     };
 
@@ -110,9 +116,11 @@ QString cmd::Delete::short_help() const
 QString cmd::Delete::description() const
 {
     return QStringLiteral(
-        "Delete instances and snapshots (in stopped instances). Instances can be purged immediately or later on,\n"
+        "Delete instances and snapshots (in stopped instances). Instances can be purged "
+        "immediately or later on,\n"
         "with the \"purge\" command. Until they are purged, instances can be recovered\n"
-        "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be purged at once.");
+        "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be "
+        "purged at once.");
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
@@ -122,7 +130,9 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
-    QCommandLineOption purge_option({"p", "purge"}, "Permanently delete specified instances and snapshots immediately");
+    QCommandLineOption purge_option(
+        {"p", "purge"},
+        "Permanently delete specified instances and snapshots immediately");
     parser->addOptions({all_option, purge_option});
 
     auto status = parser->commandParse(this);
@@ -173,16 +183,18 @@ bool multipass::cmd::Delete::confirm_snapshot_purge() const
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
 {
-    const auto no_purge_base_error_msg = fmt::format("{}. Unable to query client for confirmation. Please use the "
-                                                     "`--purge` flag if that is what you want",
-                                                     snapshot_purge_notice_msg);
+    const auto no_purge_base_error_msg =
+        fmt::format("{}. Unable to query client for confirmation. Please use the "
+                    "`--purge` flag if that is what you want",
+                    snapshot_purge_notice_msg);
 
     if (!instance_args.empty())
-        return fmt::format("{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
-                           "instances without purging them:\n\n\tmultipass delete {}\n",
-                           no_purge_base_error_msg,
-                           snapshot_args,
-                           instance_args);
+        return fmt::format(
+            "{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
+            "instances without purging them:\n\n\tmultipass delete {}\n",
+            no_purge_base_error_msg,
+            snapshot_args,
+            instance_args);
     else
         return fmt::format("{}.\n", no_purge_base_error_msg);
 }

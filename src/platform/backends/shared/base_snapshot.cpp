@@ -42,9 +42,10 @@ namespace
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto index_digits = 4; // these two go together
 constexpr auto max_snapshots = 9999;
-const auto snapshot_template = QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
-                                                          that can't be part of the name (users can call a snapshot
-                                                          "s1", but they cannot call it "@s1") */
+const auto snapshot_template =
+    QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
+                               that can't be part of the name (users can call a snapshot
+                               "s1", but they cannot call it "@s1") */
 
 QString derive_index_string(int index)
 {
@@ -55,7 +56,8 @@ QJsonObject read_snapshot_json(const QString& filename)
 {
     QFile file{filename};
     if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
-        throw std::runtime_error{fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
+        throw std::runtime_error{
+            fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
 
     QJsonParseError parse_error{};
     const auto& data = MP_FILEOPS.read_all(file);
@@ -91,16 +93,19 @@ std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMa
     }
     catch (std::out_of_range&)
     {
-        throw std::runtime_error{fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
-                                             json["name"].toString(),
-                                             parent_idx)};
+        throw std::runtime_error{
+            fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
+                        json["name"].toString(),
+                        parent_idx)};
     }
 }
 
-// When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not have the
-// item and it needs to fill cloud_init_instance_id with the current value. The current value equals to the
-// value at snapshot time because cloud_init_instance_id has been an immutable variable up to this point.
-std::string choose_cloud_init_instance_id(const QJsonObject& json, const std::filesystem::path& cloud_init_iso_path)
+// When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not
+// have the item and it needs to fill cloud_init_instance_id with the current value. The current
+// value equals to the value at snapshot time because cloud_init_instance_id has been an immutable
+// variable up to this point.
+std::string choose_cloud_init_instance_id(const QJsonObject& json,
+                                          const std::filesystem::path& cloud_init_iso_path)
 {
     return json.contains("cloud_init_instance_id")
                ? json["cloud_init_instance_id"].toString().toStdString()
@@ -142,7 +147,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
 {
     using St = VirtualMachine::State;
     if (state != St::off && state != St::stopped)
-        throw std::runtime_error{fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
+        throw std::runtime_error{
+            fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
     if (index < 1)
         throw std::runtime_error{fmt::format("Snapshot index not positive: {}", index)};
     if (index > max_snapshots)
@@ -150,7 +156,8 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
     if (name.empty())
         throw std::runtime_error{"Snapshot names cannot be empty"};
     if (num_cores < 1)
-        throw std::runtime_error{fmt::format("Invalid number of cores for snapshot: {}", num_cores)};
+        throw std::runtime_error{
+            fmt::format("Invalid number of cores for snapshot: {}", num_cores)};
     if (auto mem_bytes = mem_size.in_bytes(); mem_bytes < 1)
         throw std::runtime_error{fmt::format("Invalid memory size for snapshot: {}", mem_bytes)};
     if (auto disk_bytes = disk_space.in_bytes(); disk_bytes < 1)
@@ -182,30 +189,36 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
     assert(index > 0 && "snapshot indices need to start at 1");
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QString& filename, VirtualMachine& vm, const VirtualMachineDescription& desc)
+mp::BaseSnapshot::BaseSnapshot(const QString& filename,
+                               VirtualMachine& vm,
+                               const VirtualMachineDescription& desc)
     : BaseSnapshot{read_snapshot_json(filename), vm, desc}
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc)
-    : BaseSnapshot{
-          json["name"].toString().toStdString(),    // name
-          json["comment"].toString().toStdString(), // comment
-          choose_cloud_init_instance_id(json,
-                                        std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
-                                            cloud_init_file_name), // instance id from cloud init
-          find_parent(json, vm),                                   // parent
-          json["index"].toInt(),                                   // index
-          QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs), // creation_timestamp
-          json["num_cores"].toInt(),                                                       // num_cores
-          MemorySize{json["mem_size"].toString().toStdString()},                           // mem_size
-          MemorySize{json["disk_space"].toString().toStdString()},                         // disk_space
-          MP_JSONUTILS.read_extra_interfaces(json).value_or(desc.extra_interfaces),        // extra_interfaces
-          static_cast<mp::VirtualMachine::State>(json["state"].toInt()),                   // state
-          load_mounts(json["mounts"].toArray()),                                           // mounts
-          json["metadata"].toObject(),                                                     // metadata
-          vm.instance_directory(),                                                         // storage_dir
-          true}                                                                            // captured
+mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json,
+                               VirtualMachine& vm,
+                               const VirtualMachineDescription& desc)
+    : BaseSnapshot{json["name"].toString().toStdString(),    // name
+                   json["comment"].toString().toStdString(), // comment
+                   choose_cloud_init_instance_id(
+                       json,
+                       std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
+                           cloud_init_file_name), // instance id from cloud init
+                   find_parent(json, vm),         // parent
+                   json["index"].toInt(),         // index
+                   QDateTime::fromString(json["creation_timestamp"].toString(),
+                                         Qt::ISODateWithMs),                // creation_timestamp
+                   json["num_cores"].toInt(),                               // num_cores
+                   MemorySize{json["mem_size"].toString().toStdString()},   // mem_size
+                   MemorySize{json["disk_space"].toString().toStdString()}, // disk_space
+                   MP_JSONUTILS.read_extra_interfaces(json).value_or(
+                       desc.extra_interfaces), // extra_interfaces
+                   static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
+                   load_mounts(json["mounts"].toArray()),                         // mounts
+                   json["metadata"].toObject(),                                   // metadata
+                   vm.instance_directory(),                                       // storage_dir
+                   true}                                                          // captured
 {
     if (!(json.contains("extra_interfaces") && json.contains("cloud_init_instance_id")))
     {
@@ -228,7 +241,8 @@ QJsonObject mp::BaseSnapshot::serialize() const
     snapshot.insert("num_cores", num_cores);
     snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
     snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
-    snapshot.insert("extra_interfaces", MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
+    snapshot.insert("extra_interfaces",
+                    MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
     snapshot.insert("state", static_cast<int>(state));
     snapshot.insert("metadata", metadata);
 
@@ -269,7 +283,8 @@ auto mp::BaseSnapshot::erase_helper()
     QFile snapshot_file{snapshot_filepath};
     if (!MP_FILEOPS.rename(snapshot_file, deleting_filepath) && MP_FILEOPS.exists(snapshot_file))
         throw std::runtime_error{
-            fmt::format("Failed to move snapshot file to temporary destination: {}", deleting_filepath)};
+            fmt::format("Failed to move snapshot file to temporary destination: {}",
+                        deleting_filepath)};
 
     return sg::make_scope_guard([tmp_dir = std::move(tmp_dir),
                                  deleting_filepath = std::move(deleting_filepath),

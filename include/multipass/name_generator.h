@@ -39,5 +39,5 @@ protected:
 };
 
 NameGenerator::UPtr make_default_name_generator();
-}
-#endif //MULTIPASS_NAME_GENERATOR_H
+} // namespace multipass
+#endif // MULTIPASS_NAME_GENERATOR_H

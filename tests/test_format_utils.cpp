@@ -210,8 +210,9 @@ TEST(StaticFormatFunctions, columnWidthOnEmptyInputWorks)
     const auto get_width = [](const auto& str) -> int { return str.length(); };
     int min_w = 3;
 
-    ASSERT_EQ(mp::format::column_width(empty_vector.begin(), empty_vector.end(), get_width, 0, min_w),
-              mp::format::col_buffer);
+    ASSERT_EQ(
+        mp::format::column_width(empty_vector.begin(), empty_vector.end(), get_width, 0, min_w),
+        mp::format::col_buffer);
 }
 
 TEST(StaticFormatFunctions, columnWidthOnWideInputWorks)
@@ -223,8 +224,9 @@ TEST(StaticFormatFunctions, columnWidthOnWideInputWorks)
     int min_w = 3;
     int space = 1;
 
-    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, space, min_w),
-              wider_str.length() + mp::format::col_buffer);
+    ASSERT_EQ(
+        mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, space, min_w),
+        wider_str.length() + mp::format::col_buffer);
 }
 
 TEST(StaticFormatFunctions, columnWidthOnNarrowInputWorks)
@@ -234,5 +236,7 @@ TEST(StaticFormatFunctions, columnWidthOnNarrowInputWorks)
     int min_w = 7;
     int space = 2;
 
-    ASSERT_EQ(mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, space, min_w), min_w);
+    ASSERT_EQ(
+        mp::format::column_width(str_vector.begin(), str_vector.end(), get_width, space, min_w),
+        min_w);
 }

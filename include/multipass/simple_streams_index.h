@@ -33,5 +33,5 @@ public:
     const QString manifest_path;
     const QString updated_at;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SIMPLE_STREAMS_INDEX_H

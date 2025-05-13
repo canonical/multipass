@@ -18,7 +18,8 @@
 /**
  * @file
  * @brief Implementations for proprietary platforms
- * @details Platform-specific implementations that are common to proprietary platforms, i.e., Windows and macOS.
+ * @details Platform-specific implementations that are common to proprietary platforms, i.e.,
+ * Windows and macOS.
  */
 
 #include <multipass/format.h>

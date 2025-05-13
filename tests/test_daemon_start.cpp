@@ -53,7 +53,8 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
@@ -64,14 +65,16 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
 TEST_F(TestDaemonStart, successfulStartOkStatus)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
 
     config_builder.data_directory = temp_dir->path();
@@ -98,7 +101,8 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth7", "52:54:00:99:99:99", true}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
@@ -106,9 +110,11 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     });
 
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
-    // New networks configuration was moved to the instance settings handler, add_network_interface mustn't be called.
+    // New networks configuration was moved to the instance settings handler, add_network_interface
+    // mustn't be called.
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
 
     config_builder.data_directory = temp_dir->path();
@@ -131,14 +137,16 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
 TEST_F(TestDaemonStart, unknownStateDoesNotStart)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::unknown));
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::unknown));
     EXPECT_CALL(*instance_ptr, start()).Times(0);
 
     config_builder.data_directory = temp_dir->path();
@@ -160,14 +168,16 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
 TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::suspending));
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::suspending));
     EXPECT_CALL(*instance_ptr, start()).Times(0);
 
     config_builder.data_directory = temp_dir->path();
@@ -186,18 +196,23 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
     EXPECT_FALSE(status.ok());
 
     EXPECT_THAT(status.error_message(),
-                HasSubstr(fmt::format("Cannot start the instance \'{}\' while suspending", mock_instance_name)));
+                HasSubstr(fmt::format("Cannot start the instance \'{}\' while suspending",
+                                      mock_instance_name)));
 }
 
 TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
 {
     const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
     const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
-    const mp::VMMount mount{fake_source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
+    const mp::VMMount mount{fake_source_path,
+                            gid_mappings,
+                            uid_mappings,
+                            mp::VMMount::MountType::Native};
     std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
@@ -206,7 +221,8 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, make_native_mount_handler).WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, make_native_mount_handler)
+        .WillOnce(Return(std::move(mock_mount_handler)));
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -230,11 +246,15 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
 {
     const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
     const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
-    const mp::VMMount mount{fake_source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
+    const mp::VMMount mount{fake_source_path,
+                            gid_mappings,
+                            uid_mappings,
+                            mp::VMMount::MountType::Native};
     std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     auto error = "failed to start mount";
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -244,11 +264,15 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, make_native_mount_handler).WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, make_native_mount_handler)
+        .WillOnce(Return(std::move(mock_mount_handler)));
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
-    auto log = fmt::format("Removing mount \"{}\" from '{}': {}\n", fake_target_path, mock_instance_name, error);
+    auto log = fmt::format("Removing mount \"{}\" from '{}': {}\n",
+                           fake_target_path,
+                           mock_instance_name,
+                           error);
     StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> server;
 
     EXPECT_CALL(server, Write(_, _));

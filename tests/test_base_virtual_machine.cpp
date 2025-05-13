@@ -65,8 +65,14 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, load_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_childrens_names, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_snapshot_count, mp::BaseVirtualMachine);
-        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
-        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(const_self, get_snapshot, mp::BaseVirtualMachine, (An<int>()));
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this,
+                                                     get_snapshot,
+                                                     mp::BaseVirtualMachine,
+                                                     (An<int>()));
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(const_self,
+                                                     get_snapshot,
+                                                     mp::BaseVirtualMachine,
+                                                     (An<int>()));
         MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this,
                                                      get_snapshot,
                                                      mp::BaseVirtualMachine,
@@ -78,7 +84,10 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     }
 
     MOCK_METHOD(void, require_snapshots_support, (), (const, override));
-    MOCK_METHOD(std::shared_ptr<mp::Snapshot>, make_specific_snapshot, (const QString& filename), (override));
+    MOCK_METHOD(std::shared_ptr<mp::Snapshot>,
+                make_specific_snapshot,
+                (const QString& filename),
+                (override));
     MOCK_METHOD(std::shared_ptr<mp::Snapshot>,
                 make_specific_snapshot,
                 (const std::string& snapshot_name,
@@ -111,7 +120,8 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_for_cloud_init, mp::BaseVirtualMachine);
     }
 
-    void simulate_no_snapshots_support() const // doing this here to access protected method on the base
+    void
+    simulate_no_snapshots_support() const // doing this here to access protected method on the base
     {
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, require_snapshots_support, mp::BaseVirtualMachine);
     }
@@ -119,12 +129,14 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
-    StubBaseVirtualMachine(St s = St::off) : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
+    StubBaseVirtualMachine(St s = St::off)
+        : StubBaseVirtualMachine{s, std::make_unique<mpt::TempDir>()}
     {
     }
 
     StubBaseVirtualMachine(St s, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, tmp_dir->path()},
+          tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -209,13 +221,15 @@ struct BaseVM : public Test
     void mock_snapshotting()
     {
         EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _))
-            .WillRepeatedly(WithArgs<0, 4>([this](const std::string& name, std::shared_ptr<mp::Snapshot> parent) {
+            .WillRepeatedly(WithArgs<0, 4>([this](const std::string& name,
+                                                  std::shared_ptr<mp::Snapshot> parent) {
                 auto ret = std::make_shared<NiceMock<mpt::MockSnapshot>>();
                 EXPECT_CALL(*ret, get_name).WillRepeatedly(Return(name));
                 EXPECT_CALL(*ret, get_index).WillRepeatedly(Return(vm.get_snapshot_count() + 1));
                 EXPECT_CALL(*ret, get_parent()).WillRepeatedly(Return(parent));
                 EXPECT_CALL(Const(*ret), get_parent()).WillRepeatedly(Return(parent));
-                EXPECT_CALL(*ret, get_parents_index).WillRepeatedly(Return(parent ? parent->get_index() : 0));
+                EXPECT_CALL(*ret, get_parents_index)
+                    .WillRepeatedly(Return(parent ? parent->get_index() : 0));
 
                 snapshot_album.push_back(ret);
 
@@ -227,7 +241,8 @@ struct BaseVM : public Test
     {
         assert(idx > 0 && "need positive index");
 
-        return vm.tmp_dir->filePath(QString::fromStdString(fmt::format("{:04}.snapshot.json", idx)));
+        return vm.tmp_dir->filePath(
+            QString::fromStdString(fmt::format("{:04}.snapshot.json", idx)));
     }
 
     static std::string n_occurrences(const std::string& regex, int n)
@@ -334,12 +349,16 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 
     auto event_dopoll = [&callbacks, &test_params](ssh_event, int timeout) {
         EXPECT_TRUE(callbacks);
-        callbacks->channel_exit_status_function(nullptr, nullptr, test_params.exit_status, callbacks->userdata);
+        callbacks->channel_exit_status_function(nullptr,
+                                                nullptr,
+                                                test_params.exit_status,
+                                                callbacks->userdata);
         return SSH_OK;
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    auto channel_read = [&test_params, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+    auto channel_read = [&test_params,
+                         &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = test_params.output.begin() + test_params.output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
@@ -353,15 +372,19 @@ TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    BaseVM, IpExecution,
-    Values(IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
-           IpTestParams{0, "eth1             UP             192.168.2.169/24 metric 100 \n", {"192.168.2.169"}},
-           IpTestParams{0,
-                        "wlp4s0           UP             192.168.2.8/24 \n"
-                        "virbr0           DOWN           192.168.3.1/24 \n"
-                        "tun0             UNKNOWN        10.172.66.5/18 \n",
-                        {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
-           IpTestParams{0, "", {}}));
+    BaseVM,
+    IpExecution,
+    Values(
+        IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
+        IpTestParams{0,
+                     "eth1             UP             192.168.2.169/24 metric 100 \n",
+                     {"192.168.2.169"}},
+        IpTestParams{0,
+                     "wlp4s0           UP             192.168.2.8/24 \n"
+                     "virbr0           DOWN           192.168.3.1/24 \n"
+                     "tun0             UNKNOWN        10.172.66.5/18 \n",
+                     {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
+        IpTestParams{0, "", {}}));
 
 TEST_F(BaseVM, startsWithNoSnapshots)
 {
@@ -482,9 +505,10 @@ TEST_F(BaseVM, providesSnapshotsView)
     EXPECT_THAT(snapshots, SizeIs(4));
 
     std::vector<int> snapshot_indices{};
-    std::transform(snapshots.begin(), snapshots.end(), std::back_inserter(snapshot_indices), [](const auto& snapshot) {
-        return snapshot->get_index();
-    });
+    std::transform(snapshots.begin(),
+                   snapshots.end(),
+                   std::back_inserter(snapshot_indices),
+                   [](const auto& snapshot) { return snapshot->get_index(); });
 
     EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5, 6, 8));
 }
@@ -518,7 +542,8 @@ TEST_F(BaseVM, providesSnapshotsByName)
     vm.delete_snapshot("bar");
     vm.take_snapshot(specs, "asdf", "");
 
-    EXPECT_THAT(vm.get_snapshot(target_name), Pointee(Property(&mp::Snapshot::get_name, Eq(target_name))));
+    EXPECT_THAT(vm.get_snapshot(target_name),
+                Pointee(Property(&mp::Snapshot::get_name, Eq(target_name))));
 }
 
 TEST_F(BaseVM, logsSnapshotHead)
@@ -549,9 +574,10 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
     mock_snapshotting();
 
     auto expect_throw = [this](int i) {
-        MP_EXPECT_THROW_THAT(vm.get_snapshot(i),
-                             std::runtime_error,
-                             mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(std::to_string(i)))));
+        MP_EXPECT_THROW_THAT(
+            vm.get_snapshot(i),
+            std::runtime_error,
+            mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(std::to_string(i)))));
     };
 
     for (int i = -2; i < 4; ++i)
@@ -646,11 +672,13 @@ TEST_F(BaseVM, providesChildrenNames)
     std::vector<std::string> expected_children_names{};
     for (int i = 1; i < num_snapshots; ++i)
     {
-        EXPECT_CALL(Const(*snapshot_album[i]), get_parent()).WillRepeatedly(Return(snapshot_album[0]));
+        EXPECT_CALL(Const(*snapshot_album[i]), get_parent())
+            .WillRepeatedly(Return(snapshot_album[0]));
         expected_children_names.push_back(fmt::format(name_template, i));
     }
 
-    EXPECT_THAT(vm.get_childrens_names(snapshot_album[0].get()), UnorderedElementsAreArray(expected_children_names));
+    EXPECT_THAT(vm.get_childrens_names(snapshot_album[0].get()),
+                UnorderedElementsAreArray(expected_children_names));
 
     for (int i = 1; i < num_snapshots; ++i)
     {
@@ -784,8 +812,9 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
 {
     mock_snapshotting();
 
-    // default value of VMSpecs::state is off, so restore_snapshot will pass the assert_vm_stopped check, the other
-    // fields do not matter, and VMSpecs::extra_interfaces is defaulted to be empty, which is we want.
+    // default value of VMSpecs::state is off, so restore_snapshot will pass the assert_vm_stopped
+    // check, the other fields do not matter, and VMSpecs::extra_interfaces is defaulted to be
+    // empty, which is we want.
     const mp::VMSpecs original_specs{};
     const auto* snapshot_name = "snapshot1";
     vm.take_snapshot(original_specs, snapshot_name, "");
@@ -795,14 +824,18 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
 
     mp::VMSpecs new_specs = original_specs;
     new_specs.extra_interfaces =
-        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true}, {"id", "52:54:00:56:78:92", true}};
+        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true},
+                                          {"id", "52:54:00:56:78:92", true}};
 
     // the ref return functions can not use the default mock behavior, so they need to be specified
     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
     EXPECT_CALL(snapshot, get_metadata).WillOnce(ReturnRef(original_specs.metadata));
 
-    // set the behavior of get_extra_interfaces to cause the difference to the new space extra interfaces
-    EXPECT_CALL(snapshot, get_extra_interfaces).Times(3).WillRepeatedly(Return(original_specs.extra_interfaces));
+    // set the behavior of get_extra_interfaces to cause the difference to the new space extra
+    // interfaces
+    EXPECT_CALL(snapshot, get_extra_interfaces)
+        .Times(3)
+        .WillRepeatedly(Return(original_specs.extra_interfaces));
 
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
                 update_cloud_init_with_new_extra_interfaces_and_new_id(_, _, _, _))
@@ -874,7 +907,8 @@ TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesTotalSnapshotCount)
     {
         int expected_idx = initial_count + i;
         vm.take_snapshot(specs, "", "");
-        EXPECT_EQ(vm.get_snapshot(expected_idx)->get_name(), fmt::format("snapshot{}", expected_idx));
+        EXPECT_EQ(vm.get_snapshot(expected_idx)->get_name(),
+                  fmt::format("snapshot{}", expected_idx));
     }
 }
 
@@ -897,7 +931,8 @@ TEST_P(TestLoadingOfPaddedGenericSnapshotInfo, loadsAndUsesSnapshotHeadIndex)
     EXPECT_EQ(vm.get_snapshot(name)->get_parent(), snapshot);
 }
 
-std::vector<std::string> space_paddings = {"", " ", "    ", "\n", " \n", "\n\n\n", "\t", "\t\t\t", "\t \n  \t   "};
+std::vector<std::string> space_paddings =
+    {"", " ", "    ", "\n", " \n", "\n\n\n", "\t", "\t\t\t", "\t \n  \t   "};
 INSTANTIATE_TEST_SUITE_P(BaseVM,
                          TestLoadingOfPaddedGenericSnapshotInfo,
                          Combine(ValuesIn(space_paddings), ValuesIn(space_paddings)));
@@ -906,11 +941,14 @@ TEST_F(BaseVM, loadsSnasphots)
 {
     static constexpr auto num_snapshots = 5;
     static constexpr auto name_prefix = "blankpage";
-    static constexpr auto generate_snapshot_name = [](int count) { return fmt::format("{}{}", name_prefix, count); };
+    static constexpr auto generate_snapshot_name = [](int count) {
+        return fmt::format("{}{}", name_prefix, count);
+    };
     static const auto index_digits_regex = n_occurrences(digit_char_class, 4);
     static const auto file_regex = fmt::format(R"(.*{}\.snapshot\.json)", index_digits_regex);
 
-    auto& expectation = EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
+    auto& expectation =
+        EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
 
     using NiceMockSnapshot = NiceMock<mpt::MockSnapshot>;
     std::array<std::shared_ptr<NiceMockSnapshot>, num_snapshots> snapshot_bag{};
@@ -949,11 +987,15 @@ TEST_F(BaseVM, throwsIfThereAreSnapshotsToLoadButNoGenericInfo)
     EXPECT_CALL(vm, make_specific_snapshot(_)).Times(2).WillRepeatedly(Return(snapshot));
 
     mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
-    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr(count_filename)));
+    MP_EXPECT_THROW_THAT(vm.load_snapshots(),
+                         mp::FileOpenFailedException,
+                         mpt::match_what(HasSubstr(count_filename)));
 
     vm.delete_snapshot(name);
     mpt::make_file_with_content(count_path, "1");
-    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::FileOpenFailedException, mpt::match_what(HasSubstr(head_filename)));
+    MP_EXPECT_THROW_THAT(vm.load_snapshots(),
+                         mp::FileOpenFailedException,
+                         mpt::match_what(HasSubstr(head_filename)));
 }
 
 TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
@@ -968,14 +1010,18 @@ TEST_F(BaseVM, throwsIfLoadedSnapshotsNameIsTaken)
     EXPECT_CALL(*snapshot2, get_name).WillRepeatedly(Return(common_name));
     EXPECT_CALL(*snapshot2, get_index).WillRepeatedly(Return(2));
 
-    EXPECT_CALL(vm, make_specific_snapshot(_)).WillOnce(Return(snapshot1)).WillOnce(Return(snapshot2));
+    EXPECT_CALL(vm, make_specific_snapshot(_))
+        .WillOnce(Return(snapshot1))
+        .WillOnce(Return(snapshot2));
 
     mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
     mpt::make_file_with_content(get_snapshot_file_path(2), "stub");
     mpt::make_file_with_content(head_path, "1");
     mpt::make_file_with_content(count_path, "2");
 
-    MP_EXPECT_THROW_THAT(vm.load_snapshots(), mp::SnapshotNameTakenException, mpt::match_what(HasSubstr(common_name)));
+    MP_EXPECT_THROW_THAT(vm.load_snapshots(),
+                         mp::SnapshotNameTakenException,
+                         mpt::match_what(HasSubstr(common_name)));
 }
 
 TEST_F(BaseVM, snapshotDeletionRestoresParentsOnFailure)
@@ -1016,7 +1062,9 @@ TEST_F(BaseVM, takeSnapshotRevertsToNullHeadOnFirstFailure)
 {
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, capture).WillOnce(Throw(std::runtime_error{"intentional"}));
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot)).RetiresOnSaturation();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _))
+        .WillOnce(Return(snapshot))
+        .RetiresOnSaturation();
 
     mp::VMSpecs specs{};
     EXPECT_ANY_THROW(vm.take_snapshot(specs, "", ""));
@@ -1045,10 +1093,13 @@ TEST_F(BaseVM, takeSnapshotRevertsHeadAndCount)
     EXPECT_CALL(*failing_snapshot, get_name).WillRepeatedly(Return(attempted_name));
     EXPECT_CALL(*failing_snapshot, get_index).WillRepeatedly(Return(2));
     EXPECT_CALL(*failing_snapshot, get_parents_index)
-        .WillOnce(Throw(std::runtime_error{"intentional"})) // causes persisting to break, after successful capture
+        .WillOnce(Throw(std::runtime_error{
+            "intentional"})) // causes persisting to break, after successful capture
         .RetiresOnSaturation();
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(failing_snapshot)).RetiresOnSaturation();
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _))
+        .WillOnce(Return(failing_snapshot))
+        .RetiresOnSaturation();
 
     mp::VMSpecs specs{};
     EXPECT_ANY_THROW(vm.take_snapshot(specs, attempted_name, ""));
@@ -1069,7 +1120,8 @@ TEST_F(BaseVM, renameFailureIsReverted)
 
     vm.take_snapshot({}, current_name, "");
 
-    EXPECT_CALL(*snapshot, set_name(Eq(attempted_name))).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(*snapshot, set_name(Eq(attempted_name)))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
     EXPECT_ANY_THROW(vm.rename_snapshot(current_name, attempted_name));
 
     EXPECT_EQ(vm.get_snapshot(current_name), snapshot);
@@ -1137,7 +1189,10 @@ TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject<NiceMock>();
     auto& mock_utils = *mock_utils_ptr;
 
-    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils, make_file_with_content, mp::Utils, (_, _, Eq(true)));
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils,
+                                                 make_file_with_content,
+                                                 mp::Utils,
+                                                 (_, _, Eq(true)));
     EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true))).Times(2);
     EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
         .WillOnce(Throw(std::runtime_error{"intentional"}))
@@ -1247,9 +1302,10 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
     EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
 
     std::chrono::milliseconds timeout(1);
-    MP_EXPECT_THROW_THAT(vm.wait_for_cloud_init(timeout),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
+    MP_EXPECT_THROW_THAT(
+        vm.wait_for_cloud_init(timeout),
+        std::runtime_error,
+        mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
 TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
@@ -1266,8 +1322,10 @@ TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
                          mpt::match_what(HasSubstr("timed out waiting for response")));
 }
 
-using ExceptionParam =
-    std::variant<std::runtime_error, mp::IPUnavailableException, mp::SSHException, mp::InternalTimeoutException>;
+using ExceptionParam = std::variant<std::runtime_error,
+                                    mp::IPUnavailableException,
+                                    mp::SSHException,
+                                    mp::InternalTimeoutException>;
 class TestWaitForSSHExceptions : public BaseVM, public WithParamInterface<ExceptionParam>
 {
 };
@@ -1308,7 +1366,9 @@ TEST_F(BaseVM, sshExecRefusesToExecuteIfVMIsNotRunning)
     EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session).Times(0);
 
     vm.simulate_ssh_exec();
-    MP_EXPECT_THROW_THAT(vm.ssh_exec("echo"), mp::SSHException, mpt::match_what(HasSubstr("not running")));
+    MP_EXPECT_THROW_THAT(vm.ssh_exec("echo"),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("not running")));
 }
 
 TEST_F(BaseVM, sshExecRunsDirectlyIfConnected)
@@ -1362,12 +1422,15 @@ TEST_F(BaseVM, sshExecRethrowsOtherExceptions)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _)).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
 
-    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), std::runtime_error, mpt::match_what(HasSubstr("intentional")));
+    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("intentional")));
 }
 
 TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
@@ -1376,12 +1439,15 @@ TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _)).WillOnce(Throw(mp::SSHException{"intentional"}));
+    EXPECT_CALL(*mock_utils_ptr, run_in_ssh_session(_, cmd, _))
+        .WillOnce(Throw(mp::SSHException{"intentional"}));
 
     vm.simulate_ssh_exec();
     vm.renew_ssh_session();
 
-    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd), mp::SSHException, mpt::match_what(HasSubstr("intentional")));
+    MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("intentional")));
 }
 
 } // namespace

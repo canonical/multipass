@@ -24,11 +24,16 @@ mpl::SyslogLogger::SyslogLogger(mpl::Level level) : LinuxLogger{level}
 {
 }
 
-void mpl::SyslogLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
+void mpl::SyslogLogger::log(mpl::Level level,
+                            std::string_view category,
+                            std::string_view message) const
 {
     if (level <= logging_level)
     {
         constexpr static std::string_view kFormatString = "[%.*s] %.*s";
-        mpl::SyslogWrapper::instance().write_syslog(to_syslog_priority(level), kFormatString, category, message);
+        mpl::SyslogWrapper::instance().write_syslog(to_syslog_priority(level),
+                                                    kFormatString,
+                                                    category,
+                                                    message);
     }
 }

@@ -27,7 +27,8 @@ using namespace testing;
 static_assert(!std::is_copy_assignable_v<mpt::MockLogger>);
 static_assert(!std::is_copy_constructible_v<mpt::MockLogger>);
 
-mpt::MockLogger::MockLogger(const PrivatePass&, const mpl::Level logging_level) : Logger{logging_level}
+mpt::MockLogger::MockLogger(const PrivatePass&, const mpl::Level logging_level)
+    : Logger{logging_level}
 {
 }
 
@@ -48,7 +49,9 @@ mpt::MockLogger::Scope::~Scope()
         mpl::set_logger(nullptr); // only reset if we are the last scope with the registered logger
 }
 
-void mpt::MockLogger::expect_log(mpl::Level lvl, const std::string& substr, const Cardinality& times)
+void mpt::MockLogger::expect_log(mpl::Level lvl,
+                                 const std::string& substr,
+                                 const Cardinality& times)
 {
     EXPECT_CALL(*this, log(lvl, _, HasSubstr(substr))).Times(times);
 }

@@ -34,8 +34,9 @@ static constexpr auto default_context_name = "default";
 
 typedef std::pair<std::string, std::string> ContextAliasPair;
 
-// The alias dictionary is basically a mapping between strings and contexts. The string represents the context name
-// and the associated context is itself a map relating alias names to alias definitions.
+// The alias dictionary is basically a mapping between strings and contexts. The string represents
+// the context name and the associated context is itself a map relating alias names to alias
+// definitions.
 class AliasDict
 {
 public:

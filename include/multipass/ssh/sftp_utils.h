@@ -24,12 +24,13 @@
 #include <multipass/format.h>
 #include <multipass/singleton.h>
 
-#define MP_SFTP_UNIQUE_PTR(open, close)                                                                                \
-    template <typename... Args>                                                                                        \
-    auto mp_##open(Args&&... args)                                                                                     \
-    {                                                                                                                  \
-        return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,                      \
-                               decltype(std::function{close})>{open(std::forward<Args>(args)...), close};              \
+#define MP_SFTP_UNIQUE_PTR(open, close)                                                            \
+    template <typename... Args>                                                                    \
+    auto mp_##open(Args&&... args)                                                                 \
+    {                                                                                              \
+        return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,  \
+                               decltype(std::function{close})>{open(std::forward<Args>(args)...),  \
+                                                               close};                             \
     }
 
 namespace multipass
@@ -37,7 +38,8 @@ namespace multipass
 struct SFTPError : public std::runtime_error
 {
     template <typename... Args>
-    explicit SFTPError(const char* fmt, Args&&... args) : runtime_error(fmt::format(fmt, std::forward<Args>(args)...))
+    explicit SFTPError(const char* fmt, Args&&... args)
+        : runtime_error(fmt::format(fmt, std::forward<Args>(args)...))
     {
     }
 };
@@ -56,15 +58,26 @@ struct SFTPUtils : public Singleton<SFTPUtils>
 {
     SFTPUtils(const Singleton<SFTPUtils>::PrivatePass&) noexcept;
 
-    virtual fs::path get_local_file_target(const fs::path& source_path, const fs::path& target_path, bool make_parent);
-    virtual fs::path get_remote_file_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path,
+    virtual fs::path get_local_file_target(const fs::path& source_path,
+                                           const fs::path& target_path,
+                                           bool make_parent);
+    virtual fs::path get_remote_file_target(sftp_session sftp,
+                                            const fs::path& source_path,
+                                            const fs::path& target_path,
                                             bool make_parent);
-    virtual fs::path get_local_dir_target(const fs::path& source_path, const fs::path& target_path, bool make_parent);
-    virtual fs::path get_remote_dir_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path,
+    virtual fs::path get_local_dir_target(const fs::path& source_path,
+                                          const fs::path& target_path,
+                                          bool make_parent);
+    virtual fs::path get_remote_dir_target(sftp_session sftp,
+                                           const fs::path& source_path,
+                                           const fs::path& target_path,
                                            bool make_parent);
     virtual void mkdir_recursive(sftp_session sftp, const fs::path& path);
-    virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp, const fs::path& path);
-    virtual std::unique_ptr<SFTPClient> make_SFTPClient(const std::string& host, int port, const std::string& username,
+    virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp,
+                                                                  const fs::path& path);
+    virtual std::unique_ptr<SFTPClient> make_SFTPClient(const std::string& host,
+                                                        int port,
+                                                        const std::string& username,
                                                         const std::string& priv_key_blob);
 };
 } // namespace multipass

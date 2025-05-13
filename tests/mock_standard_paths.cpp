@@ -34,9 +34,10 @@ auto mpt::MockStandardPaths::mock_instance() -> MockStandardPaths&
 void mpt::MockStandardPaths::setup_mock_defaults()
 {
     // see https://github.com/google/googletest/issues/2794
-    ON_CALL(*this, locate(_, _, _)).WillByDefault([this](const auto& a, const auto& b, const auto& c) {
-        return StandardPaths::locate(a, b, c); // call the parent (this implicit)
-    });
+    ON_CALL(*this, locate(_, _, _))
+        .WillByDefault([this](const auto& a, const auto& b, const auto& c) {
+            return StandardPaths::locate(a, b, c); // call the parent (this implicit)
+        });
     ON_CALL(*this, standardLocations(_)).WillByDefault([this](const auto& loc) {
         return StandardPaths::standardLocations(loc); // call the parent (this implicit)
     });

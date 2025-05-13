@@ -44,8 +44,8 @@ sftp_attributes_struct stat_to_attr(const struct stat* st)
     attr.uid = st->st_uid;
     attr.gid = st->st_gid;
 
-    attr.flags =
-        SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS | SSH_FILEXFER_ATTR_ACMODTIME;
+    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
+                 SSH_FILEXFER_ATTR_ACMODTIME;
 
     attr.atime = st->st_atime;
     attr.mtime = st->st_mtime;
@@ -72,9 +72,10 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
     if (ec)
     {
-        mpl::log(mpl::Level::warning,
-                 "permissions",
-                 fmt::format("failed to set permissions for {}: {}", path.u8string(), ec.message()));
+        mpl::log(
+            mpl::Level::warning,
+            "permissions",
+            fmt::format("failed to set permissions for {}: {}", path.u8string(), ec.message()));
     }
 
     return !ec;
@@ -122,9 +123,10 @@ QString mp::platform::Platform::get_username() const
 
 std::string mp::platform::Platform::alias_path_message() const
 {
-    return fmt::format("You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
-                       "aliases to work without prefixing with `multipass`:\n\nPATH=\"$PATH:{}\"\n",
-                       get_alias_scripts_folder().absolutePath());
+    return fmt::format(
+        "You'll need to add this to your shell configuration (.bashrc, .zshrc or so) for\n"
+        "aliases to work without prefixing with `multipass`:\n\nPATH=\"$PATH:{}\"\n",
+        get_alias_scripts_folder().absolutePath());
 }
 
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& server_address,
@@ -135,7 +137,8 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
 
     auto tokens = mp::utils::split(server_address, ":");
     if (tokens.size() != 2u)
-        throw std::runtime_error(fmt::format("invalid server address specified: {}", server_address));
+        throw std::runtime_error(
+            fmt::format("invalid server address specified: {}", server_address));
 
     const auto schema = tokens[0];
     if (schema != "unix")
@@ -163,7 +166,8 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
 
     const auto socket_path = tokens[1];
     if (chown(socket_path.c_str(), 0, gid) == -1)
-        throw std::runtime_error(fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
+        throw std::runtime_error(
+            fmt::format("Could not set ownership of the multipass socket: {}", strerror(errno)));
 
     if (!set_permissions(socket_path, mode))
         throw std::runtime_error(fmt::format("Could not set permissions for the multipass socket"));
@@ -194,7 +198,9 @@ mp::platform::PosixSignal::PosixSignal(const PrivatePass& pass) noexcept : Singl
 {
 }
 
-int mp::platform::PosixSignal::pthread_sigmask(int how, const sigset_t* sigset, sigset_t* old_set) const
+int mp::platform::PosixSignal::pthread_sigmask(int how,
+                                               const sigset_t* sigset,
+                                               sigset_t* old_set) const
 {
     return ::pthread_sigmask(how, sigset, old_set);
 }
@@ -235,8 +241,9 @@ std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::ma
     return [sigset = make_and_block_signals({SIGQUIT, SIGTERM, SIGHUP, SIGUSR2}),
             period](const std::function<bool()>& condition) -> std::optional<int> {
         // create a timer to periodically send SIGUSR2
-        utils::Timer signal_generator{period,
-                                      [signalee = pthread_self()] { MP_POSIX_SIGNAL.pthread_kill(signalee, SIGUSR2); }};
+        utils::Timer signal_generator{period, [signalee = pthread_self()] {
+                                          MP_POSIX_SIGNAL.pthread_kill(signalee, SIGUSR2);
+                                      }};
 
         // wait on signals and condition
         int latest_signal = SIGUSR2;

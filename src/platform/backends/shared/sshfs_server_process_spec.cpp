@@ -45,7 +45,9 @@ QByteArray gen_hash(const std::string& path)
 {
     // need to return unique name for each mount.  The target directory string will be unique,
     // so hash it and return first 8 hex chars.
-    return QCryptographicHash::hash(QByteArray::fromStdString(path), QCryptographicHash::Sha256).toHex().left(8);
+    return QCryptographicHash::hash(QByteArray::fromStdString(path), QCryptographicHash::Sha256)
+        .toHex()
+        .left(8);
 }
 } // namespace
 
@@ -62,8 +64,10 @@ QString mp::SSHFSServerProcessSpec::program() const
 QStringList mp::SSHFSServerProcessSpec::arguments() const
 {
     return QStringList() << QString::fromStdString(config.host) << QString::number(config.port)
-                         << QString::fromStdString(config.username) << QString::fromStdString(config.source_path)
-                         << QString::fromStdString(config.target_path) << serialise_id_mappings(config.uid_mappings)
+                         << QString::fromStdString(config.username)
+                         << QString::fromStdString(config.source_path)
+                         << QString::fromStdString(config.target_path)
+                         << serialise_id_mappings(config.uid_mappings)
                          << serialise_id_mappings(config.gid_mappings)
                          << QString::number(static_cast<int>(mp::logging::get_logging_level()));
 }
@@ -123,8 +127,8 @@ profile %1 flags=(attach_disconnected) {
     )END");
 
     /* Customisations depending on if running inside snap or not */
-    QString root_dir; // sshfs_server is a multipass utility, is located relative to the multipassd binary if not in a
-                      // snap. If snapped, is located relative to $SNAP
+    QString root_dir; // sshfs_server is a multipass utility, is located relative to the multipassd
+                      // binary if not in a snap. If snapped, is located relative to $SNAP
     QString signal_peer; // if snap confined, specify only multipassd can kill dnsmasq
 
     try
@@ -140,7 +144,9 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir,
+    return profile_template.arg(apparmor_profile_name(),
+                                signal_peer,
+                                root_dir,
                                 QString::fromStdString(config.source_path));
 }
 

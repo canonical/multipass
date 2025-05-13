@@ -43,7 +43,9 @@ public:
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
-    BaseSnapshot(const QString& filename, VirtualMachine& vm, const VirtualMachineDescription& desc);
+    BaseSnapshot(const QString& filename,
+                 VirtualMachine& vm,
+                 const VirtualMachineDescription& desc);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
@@ -81,7 +83,9 @@ protected:
     virtual void apply_impl() = 0;
 
 private:
-    BaseSnapshot(const QJsonObject& json, VirtualMachine& vm, const VirtualMachineDescription& desc);
+    BaseSnapshot(const QJsonObject& json,
+                 VirtualMachine& vm,
+                 const VirtualMachineDescription& desc);
     BaseSnapshot(const std::string& name,
                  const std::string& comment,
                  const std::string& cloud_init_instance_id,
@@ -109,18 +113,21 @@ private:
     std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
-    const std::string cloud_init_instance_id;              // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const int index;                                       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QString id;                                      // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QDateTime creation_timestamp;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const int num_cores;                                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const MemorySize mem_size;                             // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const MemorySize disk_space;                           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const std::vector<NetworkInterface> extra_interfaces;  // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const VirtualMachine::State state;                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const std::unordered_map<std::string, VMMount> mounts; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QJsonObject metadata;                            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QDir storage_dir;                                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::string
+        cloud_init_instance_id;         // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const int index;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QString id;                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QDateTime creation_timestamp; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const int num_cores;                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const MemorySize mem_size;          // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const MemorySize disk_space;        // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::vector<NetworkInterface>
+        extra_interfaces;              // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const VirtualMachine::State state; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::unordered_map<std::string, VMMount>
+        mounts;                 // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QJsonObject metadata; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const QDir storage_dir;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     bool captured;
     mutable std::recursive_mutex mutex;
@@ -195,7 +202,8 @@ inline auto multipass::BaseSnapshot::get_disk_space() const noexcept -> MemorySi
     return disk_space;
 }
 
-inline auto multipass::BaseSnapshot::get_extra_interfaces() const noexcept -> std::vector<NetworkInterface>
+inline auto multipass::BaseSnapshot::get_extra_interfaces() const noexcept
+    -> std::vector<NetworkInterface>
 {
     return extra_interfaces;
 }
@@ -205,7 +213,8 @@ inline auto multipass::BaseSnapshot::get_state() const noexcept -> VirtualMachin
     return state;
 }
 
-inline auto multipass::BaseSnapshot::get_mounts() const noexcept -> const std::unordered_map<std::string, VMMount>&
+inline auto multipass::BaseSnapshot::get_mounts() const noexcept
+    -> const std::unordered_map<std::string, VMMount>&
 {
     return mounts;
 }
@@ -245,8 +254,8 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
 inline void multipass::BaseSnapshot::capture()
 {
     const std::unique_lock lock{mutex};
-    assert(!captured &&
-           "pre-condition: capture should only be called once, and only for snapshots that were not loaded from disk");
+    assert(!captured && "pre-condition: capture should only be called once, and only for snapshots "
+                        "that were not loaded from disk");
 
     if (!captured)
     {
@@ -260,8 +269,9 @@ inline void multipass::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
     apply_impl();
-    // no need to persist here for the time being: only private fields of the base class are persisted for now, and
-    // those cannot be affected by apply_impl (except by setters, which already persist)
+    // no need to persist here for the time being: only private fields of the base class are
+    // persisted for now, and those cannot be affected by apply_impl (except by setters, which
+    // already persist)
 }
 
 inline const QString& multipass::BaseSnapshot::get_id() const noexcept

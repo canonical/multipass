@@ -36,8 +36,10 @@ namespace multipass
 
 struct SimpleStreamsManifest
 {
-    static std::unique_ptr<SimpleStreamsManifest>
-    fromJson(const QByteArray& json, const std::optional<QByteArray>& json_from_mirror, const QString& host_url);
+    static std::unique_ptr<SimpleStreamsManifest> fromJson(
+        const QByteArray& json,
+        const std::optional<QByteArray>& json_from_mirror,
+        const QString& host_url);
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;

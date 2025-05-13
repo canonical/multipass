@@ -66,7 +66,8 @@ struct fmt::formatter<AngryTypeThatThrowsUnexpectedThings, Char>
     }
 
     template <typename FormatContext>
-    fmt::context::iterator format(const AngryTypeThatThrowsUnexpectedThings& api, FormatContext& ctx) const
+    fmt::context::iterator format(const AngryTypeThatThrowsUnexpectedThings& api,
+                                  FormatContext& ctx) const
     {
         // What an unusual sight.
         throw int{5};
@@ -90,7 +91,9 @@ TEST_F(exception_tests, throw_non_default_std)
 TEST_F(exception_tests, throw_std_system_error)
 {
     MP_EXPECT_THROW_THAT(
-        throw MockException<std::system_error>(std::make_error_code(std::errc::operation_canceled), "message {}", 1),
+        throw MockException<std::system_error>(std::make_error_code(std::errc::operation_canceled),
+                                               "message {}",
+                                               1),
         std::system_error,
         mpt::match_what(HasSubstr("message 1")));
 }
@@ -118,7 +121,9 @@ TEST_F(exception_tests, throw_unexpected_error)
     constexpr auto expected_error_msg = R"([Error while formatting the exception string]
 Format string: `message {}`)";
 
-    MP_EXPECT_THROW_THAT(throw MockException<std::runtime_error>("message {}", AngryTypeThatThrowsUnexpectedThings{}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr(expected_error_msg)));
+    MP_EXPECT_THROW_THAT(
+        throw MockException<std::runtime_error>("message {}",
+                                                AngryTypeThatThrowsUnexpectedThings{}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr(expected_error_msg)));
 }

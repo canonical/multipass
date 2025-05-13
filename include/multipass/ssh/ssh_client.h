@@ -38,7 +38,10 @@ public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
     using ConsoleCreator = std::function<Console::UPtr(ssh_channel_struct*)>;
 
-    SSHClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob,
+    SSHClient(const std::string& host,
+              int port,
+              const std::string& username,
+              const std::string& priv_key_blob,
               ConsoleCreator console_creator);
     SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator);
 

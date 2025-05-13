@@ -124,4 +124,5 @@ INSTANTIATE_TEST_SUITE_P(SnapUtils,
                          SnapDirs,
                          testing::Values(std::make_pair("SNAP", &mpu::snap_dir),
                                          std::make_pair("SNAP_COMMON", &mpu::snap_common_dir),
-                                         std::make_pair("SNAP_REAL_HOME", &mpu::snap_real_home_dir)));
+                                         std::make_pair("SNAP_REAL_HOME",
+                                                        &mpu::snap_real_home_dir)));

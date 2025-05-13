@@ -52,12 +52,14 @@ auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> 
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
-    auto disk_size = QString::number(disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
+    auto disk_size = QString::number(
+        disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
     QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
 
-    checked_exec_qemu_img(std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
-                          "Cannot resize instance image",
-                          mp::image_resize_timeout);
+    checked_exec_qemu_img(
+        std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
+        "Cannot resize instance image",
+        mp::image_resize_timeout);
 }
 
 mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
@@ -67,7 +69,8 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     const auto qcow2_path{image_path + ".qcow2"};
 
     auto qemuimg_info_process = checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path}, image_path),
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path},
+                                                 image_path),
         "Cannot read image format");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
@@ -76,9 +79,11 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     if (image_record["format"].toString() == "raw")
     {
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
-            QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path}, image_path, qcow2_path);
-        auto qemuimg_convert_process =
-            checked_exec_qemu_img(std::move(qemuimg_convert_spec), "Failed to convert image format");
+            QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path},
+            image_path,
+            qcow2_path);
+        auto qemuimg_convert_process = checked_exec_qemu_img(std::move(qemuimg_convert_spec),
+                                                             "Failed to convert image format");
         return qcow2_path;
     }
     else
@@ -89,9 +94,10 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
 
 void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
 {
-    checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"amend", "-o", "compat=1.1", image_path}, image_path),
-        "Failed to amend image to QCOW2 v3");
+    checked_exec_qemu_img(std::make_unique<mp::QemuImgProcessSpec>(
+                              QStringList{"amend", "-o", "compat=1.1", image_path},
+                              image_path),
+                          "Failed to amend image to QCOW2 v3");
 }
 
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
@@ -103,14 +109,16 @@ bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QStrin
 QByteArray mp::backend::snapshot_list_output(const Path& image_path)
 {
     auto qemuimg_info_process = checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path}, image_path),
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-l", image_path},
+                                                 image_path),
         "Cannot list snapshots from the image");
     return qemuimg_info_process->read_all_standard_output();
 }
 
 void mp::backend::delete_snapshot_from_image(const Path& image_path, const QString& snapshot_tag)
 {
-    checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", snapshot_tag, image_path}, image_path),
-        "Cannot delete snapshot from the image");
+    checked_exec_qemu_img(std::make_unique<mp::QemuImgProcessSpec>(
+                              QStringList{"snapshot", "-d", snapshot_tag, image_path},
+                              image_path),
+                          "Cannot delete snapshot from the image");
 }

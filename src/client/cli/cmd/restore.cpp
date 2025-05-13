@@ -64,8 +64,9 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
             if (term->is_live())
                 client_response.set_destructive(confirm_destruction(request.instance()));
             else
-                throw std::runtime_error("Unable to query client for confirmation. Use '--destructive' to "
-                                         "automatically discard current machine state.");
+                throw std::runtime_error(
+                    "Unable to query client for confirmation. Use '--destructive' to "
+                    "automatically discard current machine state.");
 
             client->Write(client_response);
             spinner.start();
@@ -87,17 +88,20 @@ QString cmd::Restore::short_help() const
 
 QString cmd::Restore::description() const
 {
-    return QStringLiteral("Restore a stopped instance to the state of a previously taken snapshot.");
+    return QStringLiteral(
+        "Restore a stopped instance to the state of a previously taken snapshot.");
 }
 
 mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("instance.snapshot",
-                                  "The instance to restore and snapshot to use, in <instance>.<snapshot> format, where "
-                                  "<instance> is the name of an instance, and <snapshot> is the name of a snapshot",
-                                  "<instance>.<snapshot>");
+    parser->addPositionalArgument(
+        "instance.snapshot",
+        "The instance to restore and snapshot to use, in <instance>.<snapshot> format, where "
+        "<instance> is the name of an instance, and <snapshot> is the name of a snapshot",
+        "<instance>.<snapshot>");
 
-    QCommandLineOption destructive({"d", "destructive"}, "Discard the current state of the instance");
+    QCommandLineOption destructive({"d", "destructive"},
+                                   "Discard the current state of the instance");
     parser->addOption(destructive);
 
     auto status = parser->commandParse(this);
@@ -121,7 +125,8 @@ mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
     const auto tokens = parser->positionalArguments().at(0).split('.');
     if (tokens.size() != 2 || tokens[0].isEmpty() || tokens[1].isEmpty())
     {
-        cerr << "Invalid format. Please specify the instance to restore and snapshot to use in the form "
+        cerr << "Invalid format. Please specify the instance to restore and snapshot to use in the "
+                "form "
                 "<instance>.<snapshot>.\n";
         return ParseCode::CommandLineError;
     }
