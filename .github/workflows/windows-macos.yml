@@ -54,7 +54,10 @@ jobs:
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-        MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"}'
+        MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14"},'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15"}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -78,6 +81,7 @@ jobs:
       mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
 
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ contains(matrix.runs-on, 'macos-13') || contains(matrix.runs-on, 'macos-14') || contains(matrix.runs-on, 'macos-15') }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
