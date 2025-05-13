@@ -119,6 +119,12 @@ jobs:
       if: ${{ matrix.arch }}
       run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
+    - name: Force pip to allow break-system-packages via pip.conf
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        mkdir -p ~/.pip
+        echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
+
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
       run: |
