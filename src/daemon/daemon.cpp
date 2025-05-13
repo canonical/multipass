@@ -754,7 +754,7 @@ const SelectionReaction require_missing_instances_reaction{
 
 template <typename InstanceElem> // call only with InstanceTable::iterator or
                                  // std::reference_wrapper<std::string>
-                                 const std::string& get_instance_name(InstanceElem instance_element)
+const std::string& get_instance_name(InstanceElem instance_element)
 {
     using T = std::decay_t<decltype(instance_element)>;
 
