@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'merge_group' }}
+  cancel-in-progress: true
 
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
@@ -25,6 +25,7 @@ env:
 jobs:
   CheckLint:
     runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
 
     outputs:
       conclusion: ${{ steps.check-lint.outputs.conclusion }}
@@ -39,6 +40,7 @@ jobs:
 
   GetMatrix:
     runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -61,10 +63,10 @@ jobs:
     needs: [CheckLint, GetMatrix]
 
     # Proceed if Lint failed on a PR
-    if: |
-      success() &&
+    if: ${{ !cancelled() && success() &&
         (needs.CheckLint.outputs.conclusion == 'success' ||
           (needs.CheckLint.outputs.conclusion == 'failure' && github.event_name == 'pull_request'))
+        }}
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -286,7 +288,7 @@ jobs:
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
-    if: always()
+    if: ${{ !cancelled() && always() }}
 
     needs: [BuildAndTest]
 
@@ -363,7 +365,7 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
   DeleteSeparateMacPackages:
-    if: ${{ success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
+    if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
 
     needs: [BuildAndTest, CombineAndPublishMacOSPackage]
 
