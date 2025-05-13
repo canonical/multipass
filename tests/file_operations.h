@@ -30,7 +30,8 @@ namespace test
 {
 QByteArray load(QString path);
 QByteArray load_test_file(const char* file_name);
-void make_file_with_content(const QString& file_name, const std::string& content = "this is a test file");
-}
-}
+void make_file_with_content(const QString& file_name,
+                            const std::string& content = "this is a test file");
+} // namespace test
+} // namespace multipass
 #endif // MULTIPASS_FILE_READER_H

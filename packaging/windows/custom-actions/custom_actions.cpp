@@ -28,7 +28,9 @@ UINT __stdcall AskRemoveData(__in MSIHANDLE hInstall)
     ExitOnNullWithLastError(hRec, hr, "Failed to create record");
 
     MsiRecordSetString(hRec, 0, szBuf);
-    removeData = MsiProcessMessage(hInstall, INSTALLMESSAGE(MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2), hRec);
+    removeData = MsiProcessMessage(hInstall,
+                                   INSTALLMESSAGE(MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2),
+                                   hRec);
 
     if (removeData == IDYES)
         hr = MsiSetProperty(hInstall, L"REMOVE_DATA", L"yes");
@@ -109,7 +111,8 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED)
     {
         hr = S_OK;
-        WcaLog(LOGMSG_STANDARD, "Enabled feature Microsoft-Hyper-V. However, it requires reboot to complete");
+        WcaLog(LOGMSG_STANDARD,
+               "Enabled feature Microsoft-Hyper-V. However, it requires reboot to complete");
         if (uiLevel > 3)
             WcaDeferredActionRequiresReboot();
         else

@@ -55,7 +55,8 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
 {
     auto json_reply = lxd_request(manager, "GET", url);
     auto metadata = json_reply["metadata"].toObject();
-    mpl::log(mpl::Level::trace, name.toStdString(),
+    mpl::log(mpl::Level::trace,
+             name.toStdString(),
              fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
 
     switch (metadata["status_code"].toInt(-1))
@@ -78,14 +79,18 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     case 112: // Error
         return mp::VirtualMachine::State::unknown;
     default:
-        mpl::log(mpl::Level::error, name.toStdString(),
-                 fmt::format("Got unexpected LXD state: {} ({})", metadata["status"].toString(),
+        mpl::log(mpl::Level::error,
+                 name.toStdString(),
+                 fmt::format("Got unexpected LXD state: {} ({})",
+                             metadata["status"].toString(),
                              metadata["status_code"].toInt()));
         return mp::VirtualMachine::State::unknown;
     }
 }
 
-std::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAccessManager* manager, const QUrl& url)
+std::optional<mp::IPAddress> get_ip_for(const QString& mac_addr,
+                                        mp::NetworkAccessManager* manager,
+                                        const QUrl& url)
 {
     const auto json_leases = lxd_request(manager, "GET", url);
     const auto leases = json_leases["metadata"].toArray();
@@ -96,7 +101,8 @@ std::optional<mp::IPAddress> get_ip_for(const QString& mac_addr, mp::NetworkAcce
         {
             try
             {
-                return std::optional<mp::IPAddress>{lease.toObject()["address"].toString().toStdString()};
+                return std::optional<mp::IPAddress>{
+                    lease.toObject()["address"].toString().toStdString()};
             }
             catch (const std::invalid_argument&)
             {
@@ -115,26 +121,37 @@ QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& 
                        {"security.secureboot", "false"}};
 
     if (!desc.meta_data_config.IsNull())
-        config["user.meta-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
+        config["user.meta-data"] =
+            QString::fromStdString(mpu::emit_cloud_config(desc.meta_data_config));
 
     if (!desc.vendor_data_config.IsNull())
-        config["user.vendor-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.vendor_data_config));
+        config["user.vendor-data"] =
+            QString::fromStdString(mpu::emit_cloud_config(desc.vendor_data_config));
 
     if (!desc.user_data_config.IsNull())
-        config["user.user-data"] = QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
+        config["user.user-data"] =
+            QString::fromStdString(mpu::emit_cloud_config(desc.user_data_config));
 
     if (!desc.network_data_config.IsNull())
-        config["user.network-config"] = QString::fromStdString(mpu::emit_cloud_config(desc.network_data_config));
+        config["user.network-config"] =
+            QString::fromStdString(mpu::emit_cloud_config(desc.network_data_config));
 
     return config;
 }
 
-QJsonObject create_bridged_interface_json(const QString& name, const QString& parent, const QString& mac)
+QJsonObject create_bridged_interface_json(const QString& name,
+                                          const QString& parent,
+                                          const QString& mac)
 {
-    return QJsonObject{{"name", name}, {"nictype", "bridged"}, {"parent", parent}, {"type", "nic"}, {"hwaddr", mac}};
+    return QJsonObject{{"name", name},
+                       {"nictype", "bridged"},
+                       {"parent", parent},
+                       {"type", "nic"},
+                       {"hwaddr", mac}};
 }
 
-QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& desc, const QString& default_mac_addr,
+QJsonObject generate_devices_config(const multipass::VirtualMachineDescription& desc,
+                                    const QString& default_mac_addr,
                                     const QString& storage_pool)
 {
     QJsonObject devices{{"config", QJsonObject{{"source", "cloud-init:config"}, {"type", "disk"}}},
@@ -164,8 +181,8 @@ bool uses_default_id_mappings(const multipass::VMMount& mount)
     const auto& uid_mappings = mount.get_uid_mappings();
 
     // -1 is the default value for gid and uid
-    return gid_mappings.size() == 1 && gid_mappings.front().second == -1 && uid_mappings.size() == 1 &&
-           uid_mappings.front().second == -1;
+    return gid_mappings.size() == 1 && gid_mappings.front().second == -1 &&
+           uid_mappings.size() == 1 && uid_mappings.front().second == -1;
 }
 
 } // namespace
@@ -194,16 +211,21 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
     }
     catch (const LXDNotFoundException& e)
     {
-        mpl::log(mpl::Level::debug, name.toStdString(),
+        mpl::log(mpl::Level::debug,
+                 name.toStdString(),
                  fmt::format("Creating instance with image id: {}", desc.image.id));
 
         QJsonObject virtual_machine{
             {"name", name},
             {"config", generate_base_vm_config(desc)},
             {"devices", generate_devices_config(desc, mac_addr, storage_pool)},
-            {"source", QJsonObject{{"type", "image"}, {"fingerprint", QString::fromStdString(desc.image.id)}}}};
+            {"source",
+             QJsonObject{{"type", "image"},
+                         {"fingerprint", QString::fromStdString(desc.image.id)}}}};
 
-        auto json_reply = lxd_request(manager, "POST", QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
+        auto json_reply = lxd_request(manager,
+                                      "POST",
+                                      QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
                                       virtual_machine);
 
         // TODO: Need a way to pass in the daemon timeout and make in general for all back ends
@@ -306,7 +328,8 @@ mp::VirtualMachine::State mp::LXDVirtualMachine::current_state()
     {
         auto present_state = instance_state_for(name, manager, state_url());
 
-        if ((state == State::delayed_shutdown || state == State::starting) && present_state == State::running)
+        if ((state == State::delayed_shutdown || state == State::starting) &&
+            present_state == State::running)
             return state;
 
         state = present_state;
@@ -363,7 +386,9 @@ void mp::LXDVirtualMachine::update_state()
 
 std::string mp::LXDVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> std::optional<IPAddress> { return get_ip_for(mac_addr, manager, network_leases_url()); };
+    auto get_ip = [this]() -> std::optional<IPAddress> {
+        return get_ip_for(mac_addr, manager, network_leases_url());
+    };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }
@@ -456,7 +481,8 @@ void mp::LXDVirtualMachine::resize_memory(const MemorySize& new_size)
      *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
      *        lxd/1.0/virtual-machines/asdf?project=multipass
      */
-    QJsonObject patch_json{{"config", QJsonObject{{"limits.memory", QString::number(new_size.in_bytes())}}}};
+    QJsonObject patch_json{
+        {"config", QJsonObject{{"limits.memory", QString::number(new_size.in_bytes())}}}};
     auto reply = lxd_request(manager, "PATCH", url(), patch_json);
 }
 
@@ -472,8 +498,10 @@ void mp::LXDVirtualMachine::resize_disk(const MemorySize& new_size)
      *        --unix-socket /var/snap/lxd/common/lxd/unix.socket \
      *        lxd/1.0/virtual-machines/asdf?project=multipass
      */
-    QJsonObject root_json{
-        {"path", "/"}, {"pool", storage_pool}, {"size", QString::number(new_size.in_bytes())}, {"type", "disk"}};
+    QJsonObject root_json{{"path", "/"},
+                          {"pool", storage_pool},
+                          {"size", QString::number(new_size.in_bytes())},
+                          {"type", "disk"}};
     QJsonObject patch_json{{"devices", QJsonObject{{"root", root_json}}}};
     lxd_request(manager, "PATCH", url(), patch_json);
 }
@@ -485,9 +513,10 @@ void mp::LXDVirtualMachine::add_network_interface(int index,
     assert(manager);
 
     auto net_name = QStringLiteral("eth%1").arg(index + 1);
-    auto net_config = create_bridged_interface_json(net_name,
-                                                    QString::fromStdString(extra_interface.id),
-                                                    QString::fromStdString(extra_interface.mac_address));
+    auto net_config =
+        create_bridged_interface_json(net_name,
+                                      QString::fromStdString(extra_interface.id),
+                                      QString::fromStdString(extra_interface.mac_address));
 
     QJsonObject patch_json{{"devices", QJsonObject{{net_name, net_config}}}};
 
@@ -495,8 +524,8 @@ void mp::LXDVirtualMachine::add_network_interface(int index,
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handler(const std::string& target,
-                                                                                   const VMMount& mount)
+std::unique_ptr<mp::MountHandler>
+mp::LXDVirtualMachine::make_native_mount_handler(const std::string& target, const VMMount& mount)
 {
     if (!uses_default_id_mappings(mount))
     {
@@ -506,8 +535,9 @@ std::unique_ptr<mp::MountHandler> mp::LXDVirtualMachine::make_native_mount_handl
     return std::make_unique<LXDMountHandler>(manager, this, &key_provider, target, mount);
 }
 
-void mp::LXDVirtualMachine::add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                                       const NetworkInterface& extra_interface) const
+void mp::LXDVirtualMachine::add_extra_interface_to_instance_cloud_init(
+    const std::string& default_mac_addr,
+    const NetworkInterface& extra_interface) const
 {
     const QJsonObject instance_info = lxd_request(manager, "GET", url());
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
@@ -516,8 +546,8 @@ void mp::LXDVirtualMachine::add_extra_interface_to_instance_cloud_init(const std
     QJsonValueRef meta_data = config_section["user.meta-data"];
     assert(!meta_data.isNull());
 
-    meta_data = QString::fromStdString(
-        mpu::emit_cloud_config(mpu::make_cloud_init_meta_config_with_id_tweak(meta_data.toString().toStdString())));
+    meta_data = QString::fromStdString(mpu::emit_cloud_config(
+        mpu::make_cloud_init_meta_config_with_id_tweak(meta_data.toString().toStdString())));
 
     QJsonValueRef network_config_data = config_section["user.network-config"];
     network_config_data = QString::fromStdString(mpu::emit_cloud_config(

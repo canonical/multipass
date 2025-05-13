@@ -34,7 +34,9 @@ class LocalSocketReply : public QNetworkReply
 {
     Q_OBJECT
 public:
-    LocalSocketReply(LocalSocketUPtr local_socket, const QNetworkRequest& request, QIODevice* outgoingData);
+    LocalSocketReply(LocalSocketUPtr local_socket,
+                     const QNetworkRequest& request,
+                     QIODevice* outgoingData);
     LocalSocketReply();
     virtual ~LocalSocketReply();
 

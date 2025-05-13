@@ -30,7 +30,8 @@ namespace
 {
 struct TestQemuPlatformDetail : public Test
 {
-    void check_expected_args(const std::vector<QStringList>& expected_args, const QStringList& platform_args)
+    void check_expected_args(const std::vector<QStringList>& expected_args,
+                             const QStringList& platform_args)
     {
         if (expected_args.empty())
         {
@@ -40,7 +41,10 @@ struct TestQemuPlatformDetail : public Test
         {
             for (const auto& args : expected_args)
             {
-                auto it = std::search(platform_args.cbegin(), platform_args.cend(), args.cbegin(), args.cend());
+                auto it = std::search(platform_args.cbegin(),
+                                      platform_args.cend(),
+                                      args.cbegin(),
+                                      args.cend());
 
                 EXPECT_NE(it, platform_args.cend());
             }
@@ -57,7 +61,8 @@ TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
 {
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
-        {"-nic", QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
+        {"-nic",
+         QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
         {"-cpu", "host"}};
     mp::VirtualMachineDescription vm_desc;
     vm_desc.vm_name = "foo";

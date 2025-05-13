@@ -26,4 +26,4 @@ enum class FetchType
     ImageOnly
 };
 }
-#endif //MULTIPASS_FETCH_TYPE_H
+#endif // MULTIPASS_FETCH_TYPE_H

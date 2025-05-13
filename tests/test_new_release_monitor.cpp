@@ -67,7 +67,10 @@ auto check_for_new_release(QString currentVersion, QString newVersion, QString n
     StubUpdateJson json(newVersion, newVersionUrl);
 
     mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
-    QTimer::singleShot(timeout, &e, &QEventLoop::quit); // TODO replace with a thread sync mechanism (e.g. condition)
+    QTimer::singleShot(
+        timeout,
+        &e,
+        &QEventLoop::quit); // TODO replace with a thread sync mechanism (e.g. condition)
     e.exec();
 
     return monitor.get_new_release();
@@ -111,7 +114,8 @@ TEST(NewReleaseMonitor, checks_new_release_when_download_fails)
     EXPECT_FALSE(new_release);
 }
 
-// Just double-checking that the SemVer library applies the ordering we expect for prerelease strings.
+// Just double-checking that the SemVer library applies the ordering we expect for prerelease
+// strings.
 TEST(NewReleaseMonitor, dev_prerelease_ordering_correct)
 {
     auto new_release = check_for_new_release("0.6.0", "0.6.0-dev.238+g5c642f4");

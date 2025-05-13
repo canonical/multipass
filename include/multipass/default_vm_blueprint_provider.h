@@ -33,24 +33,31 @@
 
 namespace multipass
 {
-const QString default_blueprint_url{"https://codeload.github.com/canonical/multipass-blueprints/zip/refs/heads/main"};
+const QString default_blueprint_url{
+    "https://codeload.github.com/canonical/multipass-blueprints/zip/refs/heads/main"};
 
 class URLDownloader;
 
 class DefaultVMBlueprintProvider final : public VMBlueprintProvider
 {
 public:
-    DefaultVMBlueprintProvider(const QUrl& blueprints_url, URLDownloader* downloader, const QDir& cache_dir_path,
+    DefaultVMBlueprintProvider(const QUrl& blueprints_url,
+                               URLDownloader* downloader,
+                               const QDir& cache_dir_path,
                                const std::chrono::milliseconds& blueprints_ttl,
                                const QString& arch = QSysInfo::currentCpuArchitecture());
-    DefaultVMBlueprintProvider(URLDownloader* downloader, const QDir& cache_dir_path,
+    DefaultVMBlueprintProvider(URLDownloader* downloader,
+                               const QDir& cache_dir_path,
                                const std::chrono::milliseconds& blueprints_ttl,
                                const QString& arch = QSysInfo::currentCpuArchitecture());
 
-    Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
+    Query fetch_blueprint_for(const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc,
                               ClientLaunchData& client_launch_data) override;
-    Query blueprint_from_file(const std::string& path, const std::string& blueprint_name,
-                              VirtualMachineDescription& vm_desc, ClientLaunchData& client_launch_data) override;
+    Query blueprint_from_file(const std::string& path,
+                              const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc,
+                              ClientLaunchData& client_launch_data) override;
     std::optional<VMImageInfo> info_for(const std::string& blueprint_name) override;
     std::vector<VMImageInfo> all_blueprints() override;
     std::string name_from_blueprint(const std::string& blueprint_name) override;

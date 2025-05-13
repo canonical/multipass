@@ -33,7 +33,9 @@ public:
     }
 
     SnapEnvironmentException(const std::string& env_var, const std::string& expected_value)
-        : runtime_error(fmt::format("The \'{}\' environment variable is not set to \'{}\'.", env_var, expected_value))
+        : runtime_error(fmt::format("The \'{}\' environment variable is not set to \'{}\'.",
+                                    env_var,
+                                    expected_value))
     {
     }
 };

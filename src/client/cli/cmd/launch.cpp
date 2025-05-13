@@ -60,7 +60,8 @@ auto checked_mode(const std::string& mode)
     if (mode == "manual")
         return mp::LaunchRequest_NetworkOptions_Mode::LaunchRequest_NetworkOptions_Mode_MANUAL;
     else
-        throw mp::ValidationException{fmt::format("Bad network mode '{}', need 'auto' or 'manual'", mode)};
+        throw mp::ValidationException{
+            fmt::format("Bad network mode '{}', need 'auto' or 'manual'", mode)};
 }
 
 const std::string& checked_mac(const std::string& mac)
@@ -98,11 +99,13 @@ auto net_digest(const QString& options)
             net.set_id(key_value_split[0].toStdString());
 
         else
-            throw mp::ValidationException{fmt::format("Bad network field definition: {}", key_value_pair)};
+            throw mp::ValidationException{
+                fmt::format("Bad network field definition: {}", key_value_pair)};
     }
 
     if (net.id().empty())
-        throw mp::ValidationException{fmt::format("Bad network definition, need at least a 'name' field")};
+        throw mp::ValidationException{
+            fmt::format("Bad network definition, need at least a 'name' field")};
 
     return net;
 }
@@ -127,18 +130,22 @@ mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
 
     if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
-        auto has_home_mount = std::count_if(mount_routes.begin(), mount_routes.end(),
-                                            [](const auto& route) { return route.second == home_automount_dir; });
+        auto has_home_mount =
+            std::count_if(mount_routes.begin(), mount_routes.end(), [](const auto& route) {
+                return route.second == home_automount_dir;
+            });
 
         if (got_petenv && !has_home_mount)
         {
             try
             {
-                mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()), home_automount_dir);
+                mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()),
+                                          home_automount_dir);
             }
             catch (const SnapEnvironmentException&)
             {
-                mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()), home_automount_dir);
+                mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()),
+                                          home_automount_dir);
             }
         }
 
@@ -176,71 +183,94 @@ QString cmd::Launch::description() const
 
 mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("image",
-                                  "Optional image to launch. If omitted, then the default Ubuntu LTS "
-                                  "will be used.\n"
-                                  "<remote> can be either ‘release’ or ‘daily‘. If <remote> is omitted, "
-                                  "‘release’ will be used.\n"
-                                  "<image> can be a partial image hash or an Ubuntu release version, "
-                                  "codename or alias.\n"
-                                  "<url> is a custom image URL that is in http://, https://, or file:// "
-                                  "format.\n",
-                                  "[[<remote:>]<image> | <url>]");
+    parser->addPositionalArgument(
+        "image",
+        "Optional image to launch. If omitted, then the default Ubuntu LTS "
+        "will be used.\n"
+        "<remote> can be either ‘release’ or ‘daily‘. If <remote> is omitted, "
+        "‘release’ will be used.\n"
+        "<image> can be a partial image hash or an Ubuntu release version, "
+        "codename or alias.\n"
+        "<url> is a custom image URL that is in http://, https://, or file:// "
+        "format.\n",
+        "[[<remote:>]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
-                                                                     min_cpu_cores, default_cpu_cores)),
-                                  "cpus", default_cpu_cores);
+                                                                     min_cpu_cores,
+                                                                     default_cpu_cores)),
+                                  "cpus",
+                                  default_cpu_cores);
     QCommandLineOption diskOption(
         {"d", "disk"},
-        QString::fromStdString(fmt::format("Disk space to allocate. Positive integers, in "
-                                           "bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
-                                           min_disk_size, default_disk_size)),
-        "disk", QString::fromUtf8(default_disk_size));
+        QString::fromStdString(
+            fmt::format("Disk space to allocate. Positive integers, in "
+                        "bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
+                        min_disk_size,
+                        default_disk_size)),
+        "disk",
+        QString::fromUtf8(default_disk_size));
 
     QCommandLineOption memOption(
         {"m", "memory"},
-        QString::fromStdString(fmt::format("Amount of memory to allocate. Positive integers, "
-                                           "in bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
-                                           min_memory_size, default_memory_size)),
-        "memory", QString::fromUtf8(default_memory_size)); // In MB's
+        QString::fromStdString(
+            fmt::format("Amount of memory to allocate. Positive integers, "
+                        "in bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
+                        min_memory_size,
+                        default_memory_size)),
+        "memory",
+        QString::fromUtf8(default_memory_size)); // In MB's
     QCommandLineOption memOptionDeprecated(
-        "mem", QString::fromStdString("Deprecated memory allocation long option. See \"--memory\"."), "memory",
+        "mem",
+        QString::fromStdString("Deprecated memory allocation long option. See \"--memory\"."),
+        "memory",
         QString::fromUtf8(default_memory_size));
     memOptionDeprecated.setFlags(QCommandLineOption::HiddenFromHelp);
 
-    const auto valid_name_desc = QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
-                                         "letter, and must end with an alphanumeric character."};
+    const auto valid_name_desc =
+        QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
+                "letter, and must end with an alphanumeric character."};
     const auto name_option_desc =
         petenv_name.isEmpty()
             ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
-            : QString{"Name for the instance. If it is '%1' (the configured primary instance name), the user's home "
+            : QString{"Name for the instance. If it is '%1' (the configured primary instance "
+                      "name), the user's home "
                       "directory is mounted inside the newly launched instance, in '%2'.\n%3"}
                   .arg(petenv_name, mp::home_automount_dir, valid_name_desc);
 
     QCommandLineOption nameOption({"n", "name"}, name_option_desc, "name");
-    QCommandLineOption cloudInitOption("cloud-init",
-                                       "Path or URL to a user-data cloud-init configuration, or '-' for stdin.",
-                                       "file> | <url");
-    QCommandLineOption networkOption("network",
-                                     "Add a network interface to the instance, where <spec> is in the "
-                                     "\"key=value,key=value\" format, with the following keys available:\n"
-                                     "  name: the network to connect to (required), use the networks command for a "
-                                     "list of possible values, or use 'bridged' to use the interface configured via "
-                                     "`multipass set local.bridged-network`.\n"
-                                     "  mode: auto|manual (default: auto)\n"
-                                     "  mac: hardware address (default: random).\n"
-                                     "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
-                                     "spec");
+    QCommandLineOption cloudInitOption(
+        "cloud-init",
+        "Path or URL to a user-data cloud-init configuration, or '-' for stdin.",
+        "file> | <url");
+    QCommandLineOption networkOption(
+        "network",
+        "Add a network interface to the instance, where <spec> is in the "
+        "\"key=value,key=value\" format, with the following keys available:\n"
+        "  name: the network to connect to (required), use the networks command for a "
+        "list of possible values, or use 'bridged' to use the interface configured via "
+        "`multipass set local.bridged-network`.\n"
+        "  mode: auto|manual (default: auto)\n"
+        "  mac: hardware address (default: random).\n"
+        "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
+        "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
-    QCommandLineOption mountOption("mount",
-                                   "Mount a local directory inside the instance. If <target> is omitted, the "
-                                   "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
-                                   "the name of the <source> directory.",
-                                   "source>:<target");
+    QCommandLineOption mountOption(
+        "mount",
+        "Mount a local directory inside the instance. If <target> is omitted, the "
+        "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
+        "the name of the <source> directory.",
+        "source>:<target");
 
-    parser->addOptions({cpusOption, diskOption, memOption, memOptionDeprecated, nameOption, cloudInitOption,
-                        networkOption, bridgedOption, mountOption});
+    parser->addOptions({cpusOption,
+                        diskOption,
+                        memOption,
+                        memOptionDeprecated,
+                        nameOption,
+                        cloudInitOption,
+                        networkOption,
+                        bridgedOption,
+                        mountOption});
 
     mp::cmd::add_timeout(parser);
 
@@ -263,13 +293,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
         if (remote_image_name.startsWith("file://"))
         {
-            // Convert to absolute because the daemon doesn't know where the client is being executed.
+            // Convert to absolute because the daemon doesn't know where the client is being
+            // executed.
             auto file_info = QFileInfo(remote_image_name.remove(0, 7));
             auto absolute_file_path = file_info.absoluteFilePath();
 
             request.set_image("file://" + absolute_file_path.toStdString());
         }
-        else if (remote_image_name.startsWith("http://") || remote_image_name.startsWith("https://"))
+        else if (remote_image_name.startsWith("http://") ||
+                 remote_image_name.startsWith("https://"))
         {
             request.set_image(remote_image_name.toStdString());
         }
@@ -307,7 +339,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
         if (!conversion_pass || cpu_count < 1)
         {
-            fmt::print(cerr, "Error: invalid CPU count '{}', need a positive integer value.\n", cpu_text);
+            fmt::print(cerr,
+                       "Error: invalid CPU count '{}', need a positive integer value.\n",
+                       cpu_text);
             return ParseCode::CommandLineError;
         }
 
@@ -318,17 +352,20 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         if (parser->isSet(memOption) && parser->isSet(memOptionDeprecated))
         {
-            cerr << "Error: invalid option(s) used for memory allocation. Please use \"--memory\" to specify amount of "
+            cerr << "Error: invalid option(s) used for memory allocation. Please use \"--memory\" "
+                    "to specify amount of "
                     "memory to allocate.\n";
             return ParseCode::CommandLineError;
         }
 
         if (parser->isSet(memOptionDeprecated))
-            cerr << "Warning: the \"--mem\" long option is deprecated in favour of \"--memory\". Please update any "
+            cerr << "Warning: the \"--mem\" long option is deprecated in favour of \"--memory\". "
+                    "Please update any "
                     "scripts, etc.\n";
 
-        auto arg_mem_size = parser->isSet(memOption) ? parser->value(memOption).toStdString()
-                                                     : parser->value(memOptionDeprecated).toStdString();
+        auto arg_mem_size = parser->isSet(memOption)
+                                ? parser->value(memOption).toStdString()
+                                : parser->value(memOptionDeprecated).toStdString();
 
         mp::MemorySize{arg_mem_size}; // throw if bad
 
@@ -348,8 +385,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         for (const auto& value : parser->values(mountOption))
         {
-            // this is needed so that Windows absolute paths are not split at the colon following the drive letter
-            const auto colon_split = QRegularExpression{R"(^[A-Za-z]:[\\/].*)"}.match(value).hasMatch();
+            // this is needed so that Windows absolute paths are not split at the colon following
+            // the drive letter
+            const auto colon_split =
+                QRegularExpression{R"(^[A-Za-z]:[\\/].*)"}.match(value).hasMatch();
             const auto mount_source = value.section(':', 0, colon_split);
             const auto mount_target = value.section(':', colon_split + 1);
 
@@ -357,19 +396,22 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             QFileInfo source_dir(mount_source);
             if (!MP_FILEOPS.exists(source_dir))
             {
-                cerr << "Mount source path \"" << mount_source.toStdString() << "\" does not exist\n";
+                cerr << "Mount source path \"" << mount_source.toStdString()
+                     << "\" does not exist\n";
                 return ParseCode::CommandLineError;
             }
 
             if (!MP_FILEOPS.isDir(source_dir))
             {
-                cerr << "Mount source path \"" << mount_source.toStdString() << "\" is not a directory\n";
+                cerr << "Mount source path \"" << mount_source.toStdString()
+                     << "\" is not a directory\n";
                 return ParseCode::CommandLineError;
             }
 
             if (!MP_FILEOPS.isReadable(source_dir))
             {
-                cerr << "Mount source path \"" << mount_source.toStdString() << "\" is not readable\n";
+                cerr << "Mount source path \"" << mount_source.toStdString()
+                     << "\" is not readable\n";
                 return ParseCode::CommandLineError;
             }
 
@@ -388,7 +430,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             {
                 node = YAML::Load(term->read_all_cin());
             }
-            else if (cloud_init_file.startsWith("http://") || cloud_init_file.startsWith("https://"))
+            else if (cloud_init_file.startsWith("http://") ||
+                     cloud_init_file.startsWith("https://"))
             {
                 URLDownloader downloader{std::chrono::minutes{1}};
                 auto downloaded_yaml = downloader.download(QUrl(cloud_init_file));
@@ -407,7 +450,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
         catch (const YAML::BadFile& e)
         {
-            auto err_detail = fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
+            auto err_detail =
+                fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
             fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
         }
@@ -453,7 +497,9 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         timer->resume();
     else if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(), spinner.get(), cerr,
+        timer = cmd::make_timer(parser->value("timeout").toInt(),
+                                spinner.get(),
+                                cerr,
                                 "Timed out waiting for instance launch.");
         timer->start();
     }
@@ -463,15 +509,20 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         if (timer)
             timer->pause();
 
-        instance_name = QString::fromStdString(request.instance_name().empty() ? reply.vm_instance_name()
-                                                                               : request.instance_name());
+        instance_name = QString::fromStdString(
+            request.instance_name().empty() ? reply.vm_instance_name() : request.instance_name());
 
         std::vector<std::string> warning_aliases;
         for (const auto& alias_to_be_created : reply.aliases_to_be_created())
         {
-            AliasDefinition alias_definition{alias_to_be_created.instance(), alias_to_be_created.command(),
+            AliasDefinition alias_definition{alias_to_be_created.instance(),
+                                             alias_to_be_created.command(),
                                              alias_to_be_created.working_directory()};
-            if (create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr,
+            if (create_alias(aliases,
+                             alias_to_be_created.name(),
+                             alias_definition,
+                             cout,
+                             cerr,
                              instance_name.toStdString()) != ReturnCode::Ok)
                 warning_aliases.push_back(alias_to_be_created.name());
         }
@@ -483,9 +534,11 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
         for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
         {
-            auto home_dir = mpu::in_multipass_snap() ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
-                                                     : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
-            auto full_path_str = home_dir + "/multipass/" + QString::fromStdString(workspace_to_be_created);
+            auto home_dir = mpu::in_multipass_snap()
+                                ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
+                                : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
+            auto full_path_str =
+                home_dir + "/multipass/" + QString::fromStdString(workspace_to_be_created);
 
             QDir full_path(full_path_str);
             if (full_path.exists())
@@ -501,7 +554,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                 }
             }
 
-            if (mount(parser, full_path_str, QString::fromStdString(workspace_to_be_created)) != ReturnCode::Ok)
+            if (mount(parser, full_path_str, QString::fromStdString(workspace_to_be_created)) !=
+                ReturnCode::Ok)
             {
                 cerr << fmt::format("Error mounting folder {}.\n", full_path_str);
             }
@@ -532,15 +586,18 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                error_details = fmt::format("Invalid disk size value supplied: {}.", request.disk_space());
+                error_details =
+                    fmt::format("Invalid disk size value supplied: {}.", request.disk_space());
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                error_details = fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
+                error_details =
+                    fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
-                error_details = fmt::format("Invalid instance name supplied: {}", request.instance_name());
+                error_details =
+                    fmt::format("Invalid instance name supplied: {}", request.instance_name());
             }
             else if (error == LaunchError::INVALID_NETWORK)
             {
@@ -550,8 +607,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                     return request_launch(parser);
                 }
 
-                // TODO: show the option which triggered the error only. This will need a refactor in the
-                // LaunchError proto.
+                // TODO: show the option which triggered the error only. This will need a refactor
+                // in the LaunchError proto.
                 error_details = "Invalid network options supplied";
             }
         }
@@ -559,51 +616,54 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
-    auto streaming_callback = [this](mp::LaunchReply& reply,
-                                     grpc::ClientReaderWriterInterface<LaunchRequest, LaunchReply>* client) {
-        std::unordered_map<int, std::string> progress_messages{
-            {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
-            {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
-            {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "},
-            {LaunchProgress_ProgressTypes_WAITING, "Preparing image: "}};
+    auto streaming_callback =
+        [this](mp::LaunchReply& reply,
+               grpc::ClientReaderWriterInterface<LaunchRequest, LaunchReply>* client) {
+            std::unordered_map<int, std::string> progress_messages{
+                {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
+                {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
+                {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "},
+                {LaunchProgress_ProgressTypes_WAITING, "Preparing image: "}};
 
-        if (!reply.log_line().empty())
-        {
-            spinner->print(cerr, reply.log_line());
-        }
+            if (!reply.log_line().empty())
+            {
+                spinner->print(cerr, reply.log_line());
+            }
 
-        if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
-        {
-            auto& progress_message = progress_messages[reply.launch_progress().type()];
-            if (reply.launch_progress().percent_complete() != "-1")
+            if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kLaunchProgress)
+            {
+                auto& progress_message = progress_messages[reply.launch_progress().type()];
+                if (reply.launch_progress().percent_complete() != "-1")
+                {
+                    spinner->stop();
+                    cout << "\r";
+                    cout << progress_message << reply.launch_progress().percent_complete() << "%"
+                         << std::flush;
+                }
+                else
+                {
+                    spinner->stop();
+                    spinner->start(progress_message);
+                }
+            }
+            else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
             {
                 spinner->stop();
-                cout << "\r";
-                cout << progress_message << reply.launch_progress().percent_complete() << "%" << std::flush;
+                spinner->start(reply.create_message());
             }
-            else
+            else if (!reply.reply_message().empty())
             {
                 spinner->stop();
-                spinner->start(progress_message);
+                spinner->start(reply.reply_message());
             }
-        }
-        else if (reply.create_oneof_case() == mp::LaunchReply::CreateOneofCase::kCreateMessage)
-        {
-            spinner->stop();
-            spinner->start(reply.create_message());
-        }
-        else if (!reply.reply_message().empty())
-        {
-            spinner->stop();
-            spinner->start(reply.reply_message());
-        }
-    };
+        };
 
     return dispatch(&RpcMethod::launch, request, on_success, on_failure, streaming_callback);
 }
 
-auto cmd::Launch::mount(const mp::ArgParser* parser, const QString& mount_source, const QString& mount_target)
-    -> ReturnCode
+auto cmd::Launch::mount(const mp::ArgParser* parser,
+                        const QString& mount_source,
+                        const QString& mount_target) -> ReturnCode
 {
     const auto full_mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
     auto ret = run_cmd({"multipass", "mount", mount_source, full_mount_target}, parser, cout, cerr);
@@ -617,7 +677,9 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
     std::vector<std::string> nets;
 
-    std::copy(reply.nets_need_bridging().cbegin(), reply.nets_need_bridging().cend(), std::back_inserter(nets));
+    std::copy(reply.nets_need_bridging().cbegin(),
+              reply.nets_need_bridging().cend(),
+              std::back_inserter(nets));
 
     mp::BridgePrompter prompter(term);
     return prompter.bridge_prompt(nets);

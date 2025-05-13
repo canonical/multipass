@@ -41,13 +41,18 @@ mp::ReturnCode cmd::Info::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::info, request, on_success, on_failure);
 }
 
-std::string cmd::Info::name() const { return "info"; }
+std::string cmd::Info::name() const
+{
+    return "info";
+}
 
 QString cmd::Info::short_help() const
 {
@@ -67,19 +72,20 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 
     QCommandLineOption all_option(all_option_name, "Display info for all instances.");
     all_option.setFlags(QCommandLineOption::HiddenFromHelp);
-    QCommandLineOption noRuntimeInfoOption(
-        "no-runtime-information",
-        "Retrieve from the daemon only the information obtained without running commands on the instance.");
+    QCommandLineOption noRuntimeInfoOption("no-runtime-information",
+                                           "Retrieve from the daemon only the information obtained "
+                                           "without running commands on the instance.");
     noRuntimeInfoOption.setFlags(QCommandLineOption::HiddenFromHelp);
-    QCommandLineOption snapshots_option{"snapshots",
-                                        "Display detailed information about the snapshots of specified instances. This "
-                                        "option has no effect on snapshot arguments. Omit instance/snapshot arguments "
-                                        "to obtain detailed information on all the snapshots of all instances."};
-    QCommandLineOption format_option(
-        format_option_name,
-        "Output info in the requested format.\nValid formats are: table (default), json, csv and yaml.",
-        format_option_name,
-        "table");
+    QCommandLineOption snapshots_option{
+        "snapshots",
+        "Display detailed information about the snapshots of specified instances. This "
+        "option has no effect on snapshot arguments. Omit instance/snapshot arguments "
+        "to obtain detailed information on all the snapshots of all instances."};
+    QCommandLineOption format_option(format_option_name,
+                                     "Output info in the requested format.\nValid formats are: "
+                                     "table (default), json, csv and yaml.",
+                                     format_option_name,
+                                     "table");
 
     parser->addOptions({all_option, noRuntimeInfoOption, snapshots_option, format_option});
 
@@ -94,7 +100,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         return status;
 
     if (parser->isSet(all_option_name))
-        cerr << "Warning: the `--all` flag for the `info` command is deprecated. Please use `info` with no positional "
+        cerr << "Warning: the `--all` flag for the `info` command is deprecated. Please use `info` "
+                "with no positional "
                 "arguments for the same effect.\n";
 
     bool instance_found = false, snapshot_found = false;
@@ -113,7 +120,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
     const auto& snapshots_only = parser->isSet(snapshots_option);
     request.set_snapshots(snapshots_only);
 
-    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv" && !snapshots_only)
+    if (instance_found && snapshot_found && parser->value(format_option_name) == "csv" &&
+        !snapshots_only)
     {
         cerr << "Mixed snapshot and instance arguments are not supported with CSV format\n";
         return ParseCode::CommandLineError;

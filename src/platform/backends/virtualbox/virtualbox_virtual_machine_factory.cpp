@@ -46,10 +46,12 @@ struct VirtualBoxNetworkException : public std::runtime_error
     using std::runtime_error::runtime_error;
 };
 
-mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
-                                           const std::map<std::string, mp::NetworkInterfaceInfo>& platform_info)
+mp::NetworkInterfaceInfo list_vbox_network(
+    const QString& vbox_iface_info,
+    const std::map<std::string, mp::NetworkInterfaceInfo>& platform_info)
 {
-    // The Mac version of VBoxManage is the only one which gives us the <description> field for some devices.
+    // The Mac version of VBoxManage is the only one which gives us the <description> field for some
+    // devices.
     const auto name_pattern = QStringLiteral("^Name: +(?<name>.+?)(: (?<description>.+))?\r?$");
     const auto type_pattern = QStringLiteral("^MediumType: +(?<type>\\w+)\r?$");
     const auto wireless_pattern = QStringLiteral("^Wireless: +(?<wireless>\\w+)\r?$");
@@ -62,8 +64,9 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
 
     const auto name_match = name_regexp.match(vbox_iface_info);
 
-    // If the name does not match, we know there is something strange in the input, so we throw. If it matches, we
-    // see if the interface is useful for us and the platform recognizes it; otherwise we throw as well.
+    // If the name does not match, we know there is something strange in the input, so we throw. If
+    // it matches, we see if the interface is useful for us and the platform recognizes it;
+    // otherwise we throw as well.
     if (name_match.hasMatch())
     {
         std::string ifname = name_match.captured("name").toStdString();
@@ -71,9 +74,12 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
         auto platform_if_info = platform_info.find(ifname);
 
         // In Windows, VirtualBox lists interfaces using their description as name.
-        if (platform_if_info == platform_info.end()) // This will be true until VirtualBox fixes the issue.
+        if (platform_if_info ==
+            platform_info.end()) // This will be true until VirtualBox fixes the issue.
         {
-            auto comp_fun = [&ifname](const auto& keyval) { return keyval.second.description == ifname; };
+            auto comp_fun = [&ifname](const auto& keyval) {
+                return keyval.second.description == ifname;
+            };
             platform_if_info = std::find_if(platform_info.begin(), platform_info.end(), comp_fun);
         }
 
@@ -88,34 +94,41 @@ mp::NetworkInterfaceInfo list_vbox_network(const QString& vbox_iface_info,
             if (ifdescription.empty())
             {
                 // Use the OS information about the interface
-                return mp::NetworkInterfaceInfo{if_info.id,
-                                                wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
-                                                if_info.description};
+                return mp::NetworkInterfaceInfo{
+                    if_info.id,
+                    wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
+                    if_info.description};
             }
             else
             {
                 // Get the information from the VBoxManage output.
-                iftype = wireless ? "wifi" : (ifdescription.compare(0, 11, "Thunderbolt") ? iftype : "thunderbolt");
+                iftype = wireless ? "wifi"
+                                  : (ifdescription.compare(0, 11, "Thunderbolt") ? iftype
+                                                                                 : "thunderbolt");
 
                 return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription};
             }
         }
 
-        throw VirtualBoxNetworkException(fmt::format("Network interface \"{}\" not recognized by platform", ifname));
+        throw VirtualBoxNetworkException(
+            fmt::format("Network interface \"{}\" not recognized by platform", ifname));
     }
 
-    throw std::runtime_error(fmt::format("Unexpected data from VBoxManage: \"{}\"", vbox_iface_info));
+    throw std::runtime_error(
+        fmt::format("Unexpected data from VBoxManage: \"{}\"", vbox_iface_info));
 }
 } // namespace
 
 mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::Path& data_dir)
-    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
 {
 }
 
-auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                                 const SSHKeyProvider& key_provider,
-                                                                 VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
+auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
+    const VirtualMachineDescription& desc,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
     return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
                                                           monitor,
@@ -159,10 +172,12 @@ void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::s
     }
 }
 
-mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
+mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(
+    const mp::VMImage& source_image)
 {
     QFileInfo source_file{source_image.image_path};
-    auto vdi_file = QString("%1/%2.vdi").arg(source_file.path()).arg(source_file.completeBaseName());
+    auto vdi_file =
+        QString("%1/%2.vdi").arg(source_file.path()).arg(source_file.completeBaseName());
 
     QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
 
@@ -173,9 +188,10 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     auto process_state = qemuimg_convert_process->execute(mp::image_resize_timeout);
     if (!process_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("Conversion of image to VDI failed ({}) with the following output:\n{}",
-                                             process_state.failure_message(),
-                                             qemuimg_convert_process->read_all_standard_error()));
+        throw std::runtime_error(
+            fmt::format("Conversion of image to VDI failed ({}) with the following output:\n{}",
+                        process_state.failure_message(),
+                        qemuimg_convert_process->read_all_standard_error()));
     }
 
     if (!QFile::exists(vdi_file))
@@ -188,20 +204,23 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(const mp::
     return prepared_image;
 }
 
-void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
-                                                                 const VirtualMachineDescription& desc)
+void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(
+    const mp::VMImage& instance_image,
+    const VirtualMachineDescription& desc)
 {
     // Need to generate a new medium UUID
     mpu::process_throw_on_error("VBoxManage",
                                 {"internalcommands", "sethduuid", instance_image.image_path},
                                 "Could not generate a new UUID: {}");
 
-    mpu::process_log_on_error(
-        "VBoxManage",
-        {"modifyhd", instance_image.image_path, "--resize", QString::number(desc.disk_space.in_megabytes())},
-        "Could not resize image: {}",
-        QString::fromStdString(desc.vm_name),
-        mpl::Level::warning);
+    mpu::process_log_on_error("VBoxManage",
+                              {"modifyhd",
+                               instance_image.image_path,
+                               "--resize",
+                               QString::number(desc.disk_space.in_megabytes())},
+                              "Could not resize image: {}",
+                              QString::fromStdString(desc.vm_name),
+                              mpl::Level::warning);
 }
 
 void mp::VirtualBoxVirtualMachineFactory::hypervisor_health_check()
@@ -215,14 +234,18 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     std::vector<NetworkInterfaceInfo> networks;
 
     // Get the list of all the interfaces which can be bridged by VirtualBox.
-    QString ifs_info = QString::fromStdString(MP_UTILS.run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
+    QString ifs_info = QString::fromStdString(
+        MP_UTILS.run_cmd_for_output("VBoxManage", {"list", "-l", "bridgedifs"}));
 
     // List to store the output of the query command; each element corresponds to one interface.
     QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), Qt::SkipEmptyParts));
 
-    mpl::log(mpl::Level::info, log_category, fmt::format("VirtualBox found {} interface(s)", if_list.size()));
+    mpl::log(mpl::Level::info,
+             log_category,
+             fmt::format("VirtualBox found {} interface(s)", if_list.size()));
 
-    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info = MP_PLATFORM.get_network_interfaces_info();
+    std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info =
+        MP_PLATFORM.get_network_interfaces_info();
 
     for (const auto& iface : if_list)
     {
@@ -241,7 +264,8 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     return networks;
 }
 
-void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& vector)
+void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(
+    std::vector<NetworkInterface>& vector)
 {
     // Nothing to do here, VirtualBox takes host interfaces directly
 }
@@ -253,9 +277,10 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(src_name,
-                                                          dest_vm_desc,
-                                                          monitor,
-                                                          key_provider,
-                                                          get_instance_directory(dest_vm_desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(
+        src_name,
+        dest_vm_desc,
+        monitor,
+        key_provider,
+        get_instance_directory(dest_vm_desc.vm_name));
 }

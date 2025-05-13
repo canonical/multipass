@@ -79,10 +79,11 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 {
     QString state;
 
-    if (power_shell->run({"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"},
-                         &state,
-                         nullptr,
-                         /* whisper = */ true)) // avoid GUI polling spamming the logs
+    if (power_shell->run(
+            {"Get-VM", "-Name", name, "|", "Select-Object", "-ExpandProperty", "State"},
+            &state,
+            nullptr,
+            /* whisper = */ true)) // avoid GUI polling spamming the logs
     {
         if (state == "Running")
         {
@@ -107,17 +108,21 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
 
 void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name)
 {
-    power_shell->easy_run({"Get-VMCheckpoint -VMName",
-                           name,
-                           "| Where-Object { $_.IsAutomaticCheckpoint } | Remove-VMCheckpoint -Confirm:$false"},
-                          "Could not delete existing automatic checkpoints");
+    power_shell->easy_run(
+        {"Get-VMCheckpoint -VMName",
+         name,
+         "| Where-Object { $_.IsAutomaticCheckpoint } | Remove-VMCheckpoint -Confirm:$false"},
+        "Could not delete existing automatic checkpoints");
 }
 
-void add_extra_net(mp::PowerShell& ps, const QString& vm_name, const mp::NetworkInterface& extra_interface)
+void add_extra_net(mp::PowerShell& ps,
+                   const QString& vm_name,
+                   const mp::NetworkInterface& extra_interface)
 {
     const auto switch_name = quoted(QString::fromStdString(extra_interface.id));
     ps.easy_run({"Get-VMSwitch", "-Name", switch_name},
-                fmt::format("Could not find the device to connect to: no switch named \"{}\"", extra_interface.id));
+                fmt::format("Could not find the device to connect to: no switch named \"{}\"",
+                            extra_interface.id));
     ps.easy_run({"Add-VMNetworkAdapter",
                  "-VMName",
                  vm_name,
@@ -134,10 +139,11 @@ fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
     {
         const fs::path vm_state_dir = exported_vm_dir_path / "Virtual Machines";
 
-        if (auto iter = std::find_if(
-                fs::directory_iterator{vm_state_dir},
-                fs::directory_iterator{},
-                [](const fs::directory_entry& entry) -> bool { return entry.path().extension() == ".vmcx"; });
+        if (auto iter = std::find_if(fs::directory_iterator{vm_state_dir},
+                                     fs::directory_iterator{},
+                                     [](const fs::directory_entry& entry) -> bool {
+                                         return entry.path().extension() == ".vmcx";
+                                     });
             iter != fs::directory_iterator{})
         {
             return iter->path();
@@ -156,8 +162,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
-        auto mem_size = QString::number(desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
-        `-MemoryStartupBytes` option; */
+        auto mem_size =
+            QString::number(desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
+`-MemoryStartupBytes` option; */
 
         power_shell->easy_run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
                               "Could not find the default switch");
@@ -178,10 +185,12 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                               "Could not create VM");
         power_shell->easy_run({"Set-VMFirmware", "-VMName", name, "-EnableSecureBoot", "Off"},
                               "Could not disable secure boot");
-        power_shell->easy_run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
-                              "Could not configure VM processor");
-        power_shell->easy_run({"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
-                              "Could not setup cloud-init drive");
+        power_shell->easy_run(
+            {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
+            "Could not configure VM processor");
+        power_shell->easy_run(
+            {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
+            "Could not setup cloud-init drive");
         power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
                               "Could not disable dynamic memory");
 
@@ -195,8 +204,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     }
 
     power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},
-                          "Could not disable automatic snapshots"); // TODO move to new VMs only in a couple of releases
-    delete_automatic_snapshots(power_shell.get(), name); // TODO drop in a couple of releases (going in on v1.13)
+                          "Could not disable automatic snapshots"); // TODO move to new VMs only in
+                                                                    // a couple of releases
+    delete_automatic_snapshots(power_shell.get(),
+                               name); // TODO drop in a couple of releases (going in on v1.13)
 }
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name,
@@ -208,18 +219,23 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     : HyperVVirtualMachine{desc, monitor, key_provider, dest_instance_dir, true}
 {
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
-    power_shell->easy_run(
-        {"Export-VM", "-Name", QString::fromStdString(source_vm_name), "-Path", quoted(dest_instance_dir)},
-        "Could not export the source vm");
+    power_shell->easy_run({"Export-VM",
+                           "-Name",
+                           QString::fromStdString(source_vm_name),
+                           "-Path",
+                           quoted(dest_instance_dir)},
+                          "Could not export the source vm");
 
-    // 2. $imported_vm=Import-VM -Path 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
+    // 2. $imported_vm=Import-VM -Path
+    // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
-    const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
+    const fs::path exported_vm_path =
+        fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
     const fs::path vmcx_file_path = locate_vmcx_file(exported_vm_path);
-    // The next step needs to rename the instance, so we need to store the instance variable $imported_vm from the
-    // Import-VM step. Because we can not use vm name to uniquely identify the vm due to the imported vm has the same
-    // name.
+    // The next step needs to rename the instance, so we need to store the instance variable
+    // $imported_vm from the Import-VM step. Because we can not use vm name to uniquely identify the
+    // vm due to the imported vm has the same name.
     power_shell->easy_run({"$imported_vm=Import-VM",
                            "-Path",
                            quoted(QString::fromStdString(vmcx_file_path.string())),
@@ -229,22 +245,28 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                            quoted(dest_instance_dir)},
                           "Could not import from the exported instance directory");
     // 3. Rename-vm $imported_vm -NewName vm1-clone1
-    power_shell->easy_run({"Rename-vm", "$imported_vm", "-NewName", name}, "Could not rename the imported vm");
+    power_shell->easy_run({"Rename-vm", "$imported_vm", "-NewName", name},
+                          "Could not rename the imported vm");
     // 4. Remove-VMDvdDrive -VMName vm1-clone1 -ControllerNumber 0 -ControllerLocation 1
-    power_shell->easy_run({"Remove-VMDvdDrive",
-                           "-VMName",
-                           name,
-                           "-ControllerNumber",
-                           QString::number(0),
-                           "-ControllerLocation",
-                           QString::number(1)},
-                          "Could not remove the cloud-init-config.iso file from the virtual machine");
+    power_shell->easy_run(
+        {"Remove-VMDvdDrive",
+         "-VMName",
+         name,
+         "-ControllerNumber",
+         QString::number(0),
+         "-ControllerLocation",
+         QString::number(1)},
+        "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
-    const fs::path dest_cloud_init_path = fs::path{dest_instance_dir.toStdString()} / cloud_init_file_name;
-    power_shell->easy_run(
-        {"Add-VMDvdDrive", "-VMName", name, "-Path", quoted(QString::fromStdString(dest_cloud_init_path.string()))},
-        "Could not add the cloud-init-config.iso to the virtual machine");
+    const fs::path dest_cloud_init_path =
+        fs::path{dest_instance_dir.toStdString()} / cloud_init_file_name;
+    power_shell->easy_run({"Add-VMDvdDrive",
+                           "-VMName",
+                           name,
+                           "-Path",
+                           quoted(QString::fromStdString(dest_cloud_init_path.string()))},
+                          "Could not add the cloud-init-config.iso to the virtual machine");
     // 6. Reset the default address, and extra interface addresses
     update_network_interfaces(src_vm_specs);
 
@@ -284,20 +306,22 @@ void mp::HyperVVirtualMachine::setup_network_interfaces()
 
 void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_specs)
 {
-    // We use mac address to identify the corresponding network adapter, it is a cumbersome implementation because the
-    // update requires the original default mac address and extra interface mac addresses. Meanwhile, there are other
-    // alternatives, 1. Make a proper name when we add a network interface by calling Add-VMNetworkAdapter and using the
-    // name as the unique identifier to remove it. However, this was not done from the beginning, so it will not be
-    // backward compatible. 2. Assume the network adapters are in the added order. However, hyper-v Get-VMNetworkAdapter
-    // does not guarantee that. 3. Use the switch name to query the network adapter. However, it might look like a
-    // unique identifier but actually it is not.
+    // We use mac address to identify the corresponding network adapter, it is a cumbersome
+    // implementation because the update requires the original default mac address and extra
+    // interface mac addresses. Meanwhile, there are other alternatives, 1. Make a proper name when
+    // we add a network interface by calling Add-VMNetworkAdapter and using the name as the unique
+    // identifier to remove it. However, this was not done from the beginning, so it will not be
+    // backward compatible. 2. Assume the network adapters are in the added order. However, hyper-v
+    // Get-VMNetworkAdapter does not guarantee that. 3. Use the switch name to query the network
+    // adapter. However, it might look like a unique identifier but actually it is not.
     power_shell->easy_run(
         {"Get-VMNetworkAdapter -VMName",
          name,
          "| Where-Object {$_.MacAddress -eq",
-         // "Where-Object {$_.MacAddress -eq <mac_address>}" clause requires the string quoted and no colon delimiter,
-         // for example "5254002CC58C"; whereas the "Set-VMNetworkAdapter -StaticMacAddress <mac_address>" can accept
-         // unquoted and with colon delimiter like 52:54:00:2C:C5:8B.
+         // "Where-Object {$_.MacAddress -eq <mac_address>}" clause requires the string quoted and
+         // no colon delimiter, for example "5254002CC58C"; whereas the "Set-VMNetworkAdapter
+         // -StaticMacAddress <mac_address>" can accept unquoted and with colon delimiter like
+         // 52:54:00:2C:C5:8B.
          quoted(QString::fromStdString(src_specs.default_mac_address).remove(':')),
          "} | Set-VMNetworkAdapter -StaticMacAddress",
          QString::fromStdString(desc.default_mac_address)},
@@ -306,13 +330,14 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
     assert(src_specs.extra_interfaces.size() == desc.extra_interfaces.size());
     for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
     {
-        power_shell->easy_run({"Get-VMNetworkAdapter -VMName",
-                               name,
-                               "| Where-Object {$_.MacAddress -eq",
-                               quoted(QString::fromStdString(src_specs.extra_interfaces[i].mac_address).remove(':')),
-                               "} | Set-VMNetworkAdapter -StaticMacAddress",
-                               QString::fromStdString(desc.extra_interfaces[i].mac_address)},
-                              "Could not setup the extra network adapter");
+        power_shell->easy_run(
+            {"Get-VMNetworkAdapter -VMName",
+             name,
+             "| Where-Object {$_.MacAddress -eq",
+             quoted(QString::fromStdString(src_specs.extra_interfaces[i].mac_address).remove(':')),
+             "} | Set-VMNetworkAdapter -StaticMacAddress",
+             QString::fromStdString(desc.extra_interfaces[i].mac_address)},
+            "Could not setup the extra network adapter");
     }
 }
 
@@ -406,7 +431,8 @@ mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(power_shell.get(), name);
 
-    if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
+    if ((state == State::delayed_shutdown && present_state == State::running) ||
+        state == State::starting)
         return state;
 
     state = present_state;
@@ -444,9 +470,11 @@ std::string mp::HyperVVirtualMachine::management_ipv4()
 {
     if (!ip)
     {
-        // Not using cached SSH session for this because a) the underlying functions do not guarantee constness;
-        // b) we endure the penalty of creating a new session only when we don't have the IP yet.
-        auto result = remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+        // Not using cached SSH session for this because a) the underlying functions do not
+        // guarantee constness; b) we endure the penalty of creating a new session only when we
+        // don't have the IP yet.
+        auto result =
+            remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
         if (result)
             ip.emplace(result.value());
     }
@@ -462,15 +490,20 @@ void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
 
-    power_shell->easy_run({"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
-                          "Could not update CPUs");
+    power_shell->easy_run(
+        {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
+        "Could not update CPUs");
 }
 
 void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    QStringList resize_cmd = {"Set-VMMemory", "-VMName", name, "-StartupBytes", QString::number(new_size.in_bytes())};
+    QStringList resize_cmd = {"Set-VMMemory",
+                              "-VMName",
+                              name,
+                              "-StartupBytes",
+                              QString::number(new_size.in_bytes())};
     power_shell->easy_run(resize_cmd, "Could not resize memory");
 }
 
@@ -478,7 +511,8 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    // Resize the current disk layer, which will differ from the original image if there are snapshots
+    // Resize the current disk layer, which will differ from the original image if there are
+    // snapshots
     // clang-format off
     QStringList resize_cmd = {"Get-VM", "-VMName", name, "|", "Select-Object", "VMId", "|", "Get-VHD", "|",
                               "Resize-VHD", "-SizeBytes", QString::number(new_size.in_bytes())}; // clang-format on
@@ -494,8 +528,9 @@ void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this bac
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
-mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const std::string& target,
-                                                                           const mp::VMMount& mount)
+mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(
+    const std::string& target,
+    const mp::VMMount& mount)
 {
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
@@ -509,14 +544,16 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(const
 void mp::HyperVVirtualMachine::remove_snapshots_from_backend() const
 {
     // Get-VMSnapshot -VMName "YourVMName" | Remove-VMSnapshot
-    power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"}, "Could not remove the snapshots");
+    power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"},
+                          "Could not remove the snapshots");
 }
 
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                       const std::string& comment,
                                                       const std::string& instance_id,
                                                       const VMSpecs& specs,
-                                                      std::shared_ptr<Snapshot> parent) -> std::shared_ptr<Snapshot>
+                                                      std::shared_ptr<Snapshot> parent)
+    -> std::shared_ptr<Snapshot>
 {
     assert(power_shell);
     return std::make_shared<HyperVSnapshot>(snapshot_name,
@@ -529,7 +566,8 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
                                             *power_shell);
 }
 
-auto mp::HyperVVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
+auto mp::HyperVVirtualMachine::make_specific_snapshot(const QString& filename)
+    -> std::shared_ptr<Snapshot>
 {
     return std::make_shared<HyperVSnapshot>(filename, *this, desc, *power_shell);
 }

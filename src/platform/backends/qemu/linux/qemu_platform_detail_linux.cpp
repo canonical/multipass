@@ -73,10 +73,12 @@ void create_virtual_switch(const std::string& subnet, const QString& bridge_name
         const auto cidr = fmt::format("{}.1/24", subnet);
         const auto broadcast = fmt::format("{}.255", subnet);
 
-        MP_UTILS.run_cmd_for_status("ip",
-                                    {"link", "add", bridge_name, "address", mac_address.c_str(), "type", "bridge"});
         MP_UTILS.run_cmd_for_status(
-            "ip", {"address", "add", cidr.c_str(), "dev", bridge_name, "broadcast", broadcast.c_str()});
+            "ip",
+            {"link", "add", bridge_name, "address", mac_address.c_str(), "type", "bridge"});
+        MP_UTILS.run_cmd_for_status(
+            "ip",
+            {"address", "add", cidr.c_str(), "dev", bridge_name, "broadcast", broadcast.c_str()});
         MP_UTILS.run_cmd_for_status("ip", {"link", "set", bridge_name, "up"});
     }
 }
@@ -87,19 +89,22 @@ void set_ip_forward()
     QFile ip_forward("/proc/sys/net/ipv4/ip_forward");
     if (!MP_FILEOPS.open(ip_forward, QFile::ReadWrite))
     {
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::warning,
+                 category,
                  fmt::format("Unable to open {}", qUtf8Printable(ip_forward.fileName())));
         return;
     }
 
     if (MP_FILEOPS.write(ip_forward, "1") < 0)
     {
-        mpl::log(mpl::Level::warning, category,
+        mpl::log(mpl::Level::warning,
+                 category,
                  fmt::format("Failed to write to {}", qUtf8Printable(ip_forward.fileName())));
     }
 }
 
-mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir, const QString& bridge_name,
+mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir,
+                                         const QString& bridge_name,
                                          const std::string& subnet)
 {
     create_virtual_switch(subnet, bridge_name);
@@ -170,12 +175,14 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     auto tap_device_name = generate_tap_device_name(vm_desc.vm_name);
     create_tap_device(tap_device_name, bridge_name);
 
-    name_to_net_device_map.emplace(vm_desc.vm_name, std::make_pair(tap_device_name, vm_desc.default_mac_address));
+    name_to_net_device_map.emplace(vm_desc.vm_name,
+                                   std::make_pair(tap_device_name, vm_desc.default_mac_address));
 
     QStringList opts;
 
     // Work around for Xenial where UEFI images are not one and the same
-    if (!(vm_desc.image.original_release == "16.04 LTS" && vm_desc.image.image_path.contains("disk1.img")))
+    if (!(vm_desc.image.original_release == "16.04 LTS" &&
+          vm_desc.image.image_path.contains("disk1.img")))
     {
 #if defined Q_PROCESSOR_X86
         opts << "-bios"
@@ -192,8 +199,10 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
          << "host"
          // Set up the network related args
          << "-nic"
-         << QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
-                                               tap_device_name, vm_desc.default_mac_address));
+         << QString::fromStdString(
+                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+                            tap_device_name,
+                            vm_desc.default_mac_address));
 
     const auto bridge_helper_exec_path =
         QDir(QCoreApplication::applicationDirPath()).filePath(BRIDGE_HELPER_EXEC_NAME_CPP);
@@ -201,10 +210,11 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
         opts << "-nic"
-             << QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
-                                                   extra_interface.id,
-                                                   extra_interface.mac_address,
-                                                   bridge_helper_exec_path));
+             << QString::fromStdString(
+                    fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                                extra_interface.id,
+                                extra_interface.mac_address,
+                                bridge_helper_exec_path));
     }
 
     return opts;

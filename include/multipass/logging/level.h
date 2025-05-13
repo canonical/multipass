@@ -30,15 +30,17 @@ namespace logging
  */
 enum class Level : int
 {
-    error = 0,   /**< Indicates a failure that prevents the intended operation from being accomplished in its entirety.
-                      If there is a corresponding CLI command, it should exit with an error code. */
-    warning = 1, /**< Indicates an event or fact that might not correspond to the users' intentions/desires/beliefs, or
-                      a problem that is light enough that it does not prevent main goals from being accomplished.
-                      If there is a corresponding CLI command, it should exit with a success code */
+    error = 0, /**< Indicates a failure that prevents the intended operation from being accomplished
+                  in its entirety. If there is a corresponding CLI command, it should exit with an
+                  error code. */
+    warning = 1, /**< Indicates an event or fact that might not correspond to the users'
+                    intentions/desires/beliefs, or a problem that is light enough that it does not
+                    prevent main goals from being accomplished. If there is a corresponding CLI
+                    command, it should exit with a success code */
     info = 2,    /**< Indicates information that may be useful for the user to know, learn, etc. */
     debug = 3,   /**< Indicates information that is useful for developers and troubleshooting */
-    trace = 4    /**< Indicates information that may be helpful for debugging but which would clutter logs unreasonably
-                      if enabled by default */
+    trace = 4 /**< Indicates information that may be helpful for debugging but which would clutter
+                 logs unreasonably if enabled by default */
 };
 
 constexpr std::string_view as_string(Level l) noexcept

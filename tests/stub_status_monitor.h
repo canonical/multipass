@@ -38,6 +38,6 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
         return QJsonObject();
     };
 };
-}
-}
+} // namespace test
+} // namespace multipass
 #endif // MULTIPASS_STUB_STATUS_MONITOR_H

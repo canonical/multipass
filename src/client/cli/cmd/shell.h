@@ -30,7 +30,7 @@ class Shell final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     std::vector<std::string> aliases() const override;
@@ -43,6 +43,6 @@ private:
 
     ParseCode parse_args(ArgParser* parser);
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_CONNECT_H

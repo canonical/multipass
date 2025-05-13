@@ -26,7 +26,8 @@ namespace multipass
 class AutostartSetupException : public std::runtime_error
 {
 public:
-    AutostartSetupException(const std::string& why, const std::string& detail) : runtime_error(why), detail{detail}
+    AutostartSetupException(const std::string& why, const std::string& detail)
+        : runtime_error(why), detail{detail}
     {
     }
 

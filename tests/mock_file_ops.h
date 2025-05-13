@@ -66,31 +66,63 @@ public:
     MOCK_METHOD(bool, commit, (QSaveFile&), (const, override));
 
     // posix mock methods
-    MOCK_METHOD((std::unique_ptr<NamedFd>), open_fd, (const fs::path&, int, int), (const, override));
+    MOCK_METHOD((std::unique_ptr<NamedFd>),
+                open_fd,
+                (const fs::path&, int, int),
+                (const, override));
     MOCK_METHOD(int, read, (int, void*, size_t), (const, override));
     MOCK_METHOD(int, write, (int, const void*, size_t), (const, override));
     MOCK_METHOD(off_t, lseek, (int, off_t, int), (const, override));
 
     // Mock std methods
-    MOCK_METHOD(void, open, (std::fstream&, const char*, std::ios_base::openmode), (const, override));
+    MOCK_METHOD(void,
+                open,
+                (std::fstream&, const char*, std::ios_base::openmode),
+                (const, override));
     MOCK_METHOD(bool, is_open, (const std::ifstream&), (const, override));
     MOCK_METHOD(std::ifstream&, read, (std::ifstream&, char*, std::streamsize), (const, override));
-    MOCK_METHOD(std::unique_ptr<std::ostream>, open_write, (const fs::path& path, std::ios_base::openmode mode),
+    MOCK_METHOD(std::unique_ptr<std::ostream>,
+                open_write,
+                (const fs::path& path, std::ios_base::openmode mode),
                 (override, const));
-    MOCK_METHOD(std::unique_ptr<std::istream>, open_read, (const fs::path& path, std::ios_base::openmode mode),
+    MOCK_METHOD(std::unique_ptr<std::istream>,
+                open_read,
+                (const fs::path& path, std::ios_base::openmode mode),
                 (override, const));
     MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(bool, is_directory, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(bool, create_directory, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(bool, create_directories, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(bool, remove, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(void, create_symlink, (const fs::path& to, const fs::path& path, std::error_code& err),
+    MOCK_METHOD(bool,
+                is_directory,
+                (const fs::path& path, std::error_code& err),
                 (override, const));
-    MOCK_METHOD(fs::path, read_symlink, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(fs::file_status, status, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(fs::file_status, symlink_status, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(std::unique_ptr<multipass::RecursiveDirIterator>, recursive_dir_iterator,
-                (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool,
+                create_directory,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(bool,
+                create_directories,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(bool, remove, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(void,
+                create_symlink,
+                (const fs::path& to, const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(fs::path,
+                read_symlink,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(fs::file_status,
+                status,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(fs::file_status,
+                symlink_status,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
+    MOCK_METHOD(std::unique_ptr<multipass::RecursiveDirIterator>,
+                recursive_dir_iterator,
+                (const fs::path& path, std::error_code& err),
+                (override, const));
     MOCK_METHOD(std::unique_ptr<multipass::DirIterator>,
                 dir_iterator,
                 (const fs::path& path, std::error_code& err),

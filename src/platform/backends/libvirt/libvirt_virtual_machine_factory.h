@@ -31,7 +31,8 @@ class ProcessFactory;
 class LibVirtVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir, const std::string& libvirt_object_path); // For testing
+    explicit LibVirtVirtualMachineFactory(const Path& data_dir,
+                                          const std::string& libvirt_object_path); // For testing
     explicit LibVirtVirtualMachineFactory(const Path& data_dir);
     ~LibVirtVirtualMachineFactory();
 
@@ -39,7 +40,8 @@ public:
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
-    void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
+    void prepare_instance_image(const VMImage& instance_image,
+                                const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_version_string() const override;
 

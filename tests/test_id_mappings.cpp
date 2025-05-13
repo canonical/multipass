@@ -23,7 +23,9 @@ namespace mp = multipass;
 
 using namespace testing;
 
-struct UniqueIdMappingsTestSuite : public Test, public WithParamInterface<std::pair<mp::id_mappings, mp::id_mappings>>
+struct UniqueIdMappingsTestSuite
+    : public Test,
+      public WithParamInterface<std::pair<mp::id_mappings, mp::id_mappings>>
 {
 };
 

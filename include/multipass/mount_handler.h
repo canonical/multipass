@@ -30,16 +30,18 @@ namespace multipass
 {
 class VirtualMachine;
 
-using ServerVariant = std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
-                                   grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
-                                   grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
-                                   grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
+using ServerVariant =
+    std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
+                 grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
+                 grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
+                 grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
 
 class NativeMountNeedsStoppedVMException : public std::runtime_error
 {
 public:
     NativeMountNeedsStoppedVMException(const std::string& vm_name)
-        : std::runtime_error(fmt::format("Please stop the instance {} before attempting native mounts.", vm_name))
+        : std::runtime_error(
+              fmt::format("Please stop the instance {} before attempting native mounts.", vm_name))
     {
     }
 };
@@ -88,20 +90,28 @@ protected:
                  const SSHKeyProvider* ssh_key_provider,
                  VMMount mount_spec,
                  const std::string& target)
-        : vm{vm}, ssh_key_provider{ssh_key_provider}, mount_spec{std::move(mount_spec)}, target{target}, active{false}
+        : vm{vm},
+          ssh_key_provider{ssh_key_provider},
+          mount_spec{std::move(mount_spec)},
+          target{target},
+          active{false}
     {
         std::error_code err;
         auto source_status = MP_FILEOPS.status(source, err);
         if (source_status.type() == fs::file_type::not_found)
-            throw std::runtime_error(fmt::format("Mount source path \"{}\" does not exist.", source));
-        if (err)
             throw std::runtime_error(
-                fmt::format("Mount source path \"{}\" is not accessible: {}.", source, err.message()));
+                fmt::format("Mount source path \"{}\" does not exist.", source));
+        if (err)
+            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not accessible: {}.",
+                                                 source,
+                                                 err.message()));
         if (source_status.type() != fs::file_type::directory)
-            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not a directory.", source));
+            throw std::runtime_error(
+                fmt::format("Mount source path \"{}\" is not a directory.", source));
         if (source_status.permissions() != fs::perms::unknown &&
             (source_status.permissions() & fs::perms::owner_read) == fs::perms::none)
-            throw std::runtime_error(fmt::format("Mount source path \"{}\" is not readable.", source));
+            throw std::runtime_error(
+                fmt::format("Mount source path \"{}\" is not readable.", source));
     };
 
     virtual void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;

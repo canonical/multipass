@@ -37,7 +37,9 @@ void require_unique_id(const QString& vm_name, const QString& snapshot_id)
 {
     if (snapshot_exists(vm_name, snapshot_id))
         throw std::runtime_error{
-            fmt::format("A snapshot with ID {} already exists for {} in VirtualBox", snapshot_id, vm_name)};
+            fmt::format("A snapshot with ID {} already exists for {} in VirtualBox",
+                        snapshot_id,
+                        vm_name)};
 }
 } // namespace
 
@@ -48,7 +50,8 @@ mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const std::string& name,
                                            const QString& vm_name,
                                            const VMSpecs& specs,
                                            VirtualBoxVirtualMachine& vm)
-    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm}, vm_name{vm_name}
+    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm},
+      vm_name{vm_name}
 {
 }
 
@@ -64,7 +67,8 @@ void multipass::VirtualBoxSnapshot::capture_impl()
     const auto& id = get_id();
     require_unique_id(vm_name, id);
 
-    const auto description_arg = QString{"--description=%1: %2"}.arg(get_name().c_str(), get_comment().c_str());
+    const auto description_arg =
+        QString{"--description=%1: %2"}.arg(get_name().c_str(), get_comment().c_str());
     mpu::process_throw_on_error("VBoxManage",
                                 {"snapshot", vm_name, "take", id, description_arg},
                                 "Could not take snapshot: {}",
@@ -80,9 +84,11 @@ void multipass::VirtualBoxSnapshot::erase_impl()
                                     "Could not delete snapshot: {}",
                                     vm_name);
     else
-        mpl::log(mpl::Level::warning,
-                 vm_name.toStdString(),
-                 fmt::format("Could not find underlying VirtualBox snapshot for \"{}\". Ignoring...", get_name()));
+        mpl::log(
+            mpl::Level::warning,
+            vm_name.toStdString(),
+            fmt::format("Could not find underlying VirtualBox snapshot for \"{}\". Ignoring...",
+                        get_name()));
 }
 
 void multipass::VirtualBoxSnapshot::apply_impl()

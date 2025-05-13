@@ -69,10 +69,13 @@ private:
     SFTPClient::Flags flags;
 
     ParseCode parse_args(ArgParser* parser);
-    std::vector<std::pair<std::string, fs::path>> args_to_instance_and_path(const QStringList& args);
-    std::optional<ParseCode> parse_streaming(const QStringList& full_sources, const QString& full_target,
-                                             std::vector<std::pair<std::string, fs::path>> split_sources,
-                                             std::pair<std::string, fs::path> split_target);
+    std::vector<std::pair<std::string, fs::path>> args_to_instance_and_path(
+        const QStringList& args);
+    std::optional<ParseCode> parse_streaming(
+        const QStringList& full_sources,
+        const QString& full_target,
+        std::vector<std::pair<std::string, fs::path>> split_sources,
+        std::pair<std::string, fs::path> split_target);
     ParseCode parse_non_streaming(std::vector<std::pair<std::string, fs::path>>& split_sources,
                                   std::pair<std::string, fs::path>& split_target);
 };

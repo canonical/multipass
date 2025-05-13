@@ -48,10 +48,12 @@ struct TestDaemonLaunch : public mpt::DaemonTestFixture
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
+    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
+        mpt::MockJsonUtils::inject<NiceMock>();
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
@@ -75,13 +77,19 @@ TEST_F(TestDaemonLaunch, blueprintFoundMountsWorkspaceWithNameOverride)
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_factory, create_virtual_machine)
-        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
+        .WillOnce(
+            mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
 
     EXPECT_CALL(*mock_image_vault, fetch_image).WillOnce(mpt::fetch_image_lambda(release, remote));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(
-            mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt, name));
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores,
+                                                  mem_size,
+                                                  disk_space,
+                                                  release,
+                                                  remote,
+                                                  std::nullopt,
+                                                  name));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
@@ -97,10 +105,11 @@ TEST_F(TestDaemonLaunch, blueprintFoundMountsWorkspaceWithNameOverride)
     mp::LaunchReply reply;
     StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> writer{};
 
-    EXPECT_CALL(writer, Write(_, _)).WillRepeatedly([&reply](const mp::LaunchReply& written_reply, auto) -> bool {
-        reply = written_reply;
-        return true;
-    });
+    EXPECT_CALL(writer, Write(_, _))
+        .WillRepeatedly([&reply](const mp::LaunchReply& written_reply, auto) -> bool {
+            reply = written_reply;
+            return true;
+        });
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, writer);
 
@@ -129,14 +138,22 @@ TEST_F(TestDaemonLaunch, v2BlueprintFoundPropagatesSha)
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_factory, create_virtual_machine)
-        .WillOnce(mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
+        .WillOnce(
+            mpt::create_virtual_machine_lambda(num_cores, mem_size, disk_space, command_line_name));
 
     // The expectation of this test is set in fetch_image_lambda().
-    EXPECT_CALL(*mock_image_vault, fetch_image).WillOnce(mpt::fetch_image_lambda(release, remote, true));
+    EXPECT_CALL(*mock_image_vault, fetch_image)
+        .WillOnce(mpt::fetch_image_lambda(release, remote, true));
 
     EXPECT_CALL(*mock_blueprint_provider, fetch_blueprint_for(_, _, _))
-        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores, mem_size, disk_space, release, remote, std::nullopt,
-                                                  std::nullopt, sha256));
+        .WillOnce(mpt::fetch_blueprint_for_lambda(num_cores,
+                                                  mem_size,
+                                                  disk_space,
+                                                  release,
+                                                  remote,
+                                                  std::nullopt,
+                                                  std::nullopt,
+                                                  sha256));
 
     EXPECT_CALL(*mock_blueprint_provider, name_from_blueprint(_)).WillOnce(Return(name));
 
@@ -152,10 +169,11 @@ TEST_F(TestDaemonLaunch, v2BlueprintFoundPropagatesSha)
     mp::LaunchReply reply;
     StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> writer{};
 
-    EXPECT_CALL(writer, Write(_, _)).WillRepeatedly([&reply](const mp::LaunchReply& written_reply, auto) -> bool {
-        reply = written_reply;
-        return true;
-    });
+    EXPECT_CALL(writer, Write(_, _))
+        .WillRepeatedly([&reply](const mp::LaunchReply& written_reply, auto) -> bool {
+            reply = written_reply;
+            return true;
+        });
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, writer);
 }

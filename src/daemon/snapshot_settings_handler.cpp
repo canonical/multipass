@@ -42,8 +42,10 @@ QRegularExpression make_key_regex()
     const auto property_pattern = property_template.arg(either_prop);
 
     const auto key_template = QStringLiteral(R"(%1\.%2\.%3\.%4)");
-    const auto key_pattern =
-        key_template.arg(mp::daemon_settings_root, instance_pattern, snapshot_pattern, property_pattern);
+    const auto key_pattern = key_template.arg(mp::daemon_settings_root,
+                                              instance_pattern,
+                                              snapshot_pattern,
+                                              property_pattern);
 
     return QRegularExpression{QRegularExpression::anchoredPattern(key_pattern)};
 }
@@ -67,8 +69,12 @@ std::tuple<std::string, QString, std::string> parse_key(const QString& key)
 }
 } // namespace
 
-mp::SnapshotSettingsException::SnapshotSettingsException(const std::string& missing_instance, const std::string& detail)
-    : SettingsException{fmt::format("{}; instance: {}; reason: {}", common_exception_msg, missing_instance, detail)}
+mp::SnapshotSettingsException::SnapshotSettingsException(const std::string& missing_instance,
+                                                         const std::string& detail)
+    : SettingsException{fmt::format("{}; instance: {}; reason: {}",
+                                    common_exception_msg,
+                                    missing_instance,
+                                    detail)}
 {
 }
 
@@ -97,7 +103,8 @@ std::set<QString> mp::SnapshotSettingsHandler::keys() const
         for (const auto& [vm_name, vm] : *instance_map)
             for (const auto& snapshot : vm->view_snapshots())
                 for (const auto* suffix : {name_suffix, comment_suffix})
-                    ret.insert(key_template.arg(vm_name.c_str(), snapshot->get_name().c_str(), suffix));
+                    ret.insert(
+                        key_template.arg(vm_name.c_str(), snapshot->get_name().c_str(), suffix));
 
     return ret;
 }
@@ -144,7 +151,8 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,
                                                 const std::string& snapshot_name,
-                                                bool deleted_ok) const -> std::shared_ptr<const Snapshot>
+                                                bool deleted_ok) const
+    -> std::shared_ptr<const Snapshot>
 {
     try
     {
@@ -156,7 +164,8 @@ auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name
     }
 }
 
-auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name, bool deleted_ok) const
+auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name,
+                                                bool deleted_ok) const
     -> std::shared_ptr<const VirtualMachine>
 {
     if (preparing_instances.find(instance_name) != preparing_instances.end())
@@ -186,13 +195,17 @@ auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name
     }
 }
 
-auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_name) -> std::shared_ptr<VirtualMachine>
+auto mp::SnapshotSettingsHandler::modify_instance(const std::string& instance_name)
+    -> std::shared_ptr<VirtualMachine>
 {
-    return std::const_pointer_cast<VirtualMachine>(find_instance(instance_name, /*deleted_ok=*/false));
+    return std::const_pointer_cast<VirtualMachine>(
+        find_instance(instance_name, /*deleted_ok=*/false));
 }
 
-auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name, const std::string& snapshot_name)
+auto mp::SnapshotSettingsHandler::modify_snapshot(const std::string& instance_name,
+                                                  const std::string& snapshot_name)
     -> std::shared_ptr<Snapshot>
 {
-    return std::const_pointer_cast<Snapshot>(find_snapshot(instance_name, snapshot_name, /*deleted_ok=*/false));
+    return std::const_pointer_cast<Snapshot>(
+        find_snapshot(instance_name, snapshot_name, /*deleted_ok=*/false));
 }

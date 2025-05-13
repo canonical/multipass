@@ -28,7 +28,8 @@ namespace mp = multipass;
 
 namespace
 {
-QJsonObject format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+QJsonObject format_images(
+    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
 {
     QJsonObject images_obj;
 
@@ -49,7 +50,8 @@ QJsonObject format_images(const google::protobuf::RepeatedPtrField<mp::FindReply
         image_obj.insert("aliases", aliases_arr);
         image_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
 
-        images_obj.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])), image_obj);
+        images_obj.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])),
+                          image_obj);
     }
 
     return images_obj;
@@ -76,9 +78,9 @@ QJsonObject generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
     snapshot_info.insert("mounts", mounts);
 
-    snapshot_info.insert(
-        "created",
-        QString::fromStdString(MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp())));
+    snapshot_info.insert("created",
+                         QString::fromStdString(MP_FORMAT_UTILS.convert_to_user_locale(
+                             fundamentals.creation_timestamp())));
     snapshot_info.insert("parent", QString::fromStdString(fundamentals.parent()));
 
     QJsonArray children;
@@ -96,7 +98,9 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
     const auto& instance_details = item.instance_info();
 
     QJsonObject instance_info;
-    instance_info.insert("state", QString::fromStdString(mp::format::status_string_for(item.instance_status())));
+    instance_info.insert(
+        "state",
+        QString::fromStdString(mp::format::status_string_for(item.instance_status())));
     instance_info.insert("image_hash", QString::fromStdString(instance_details.id()));
     instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
     instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
@@ -154,7 +158,9 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
 
             mount_uids.append(QString("%1:%2")
                                   .arg(QString::number(host_uid))
-                                  .arg((instance_uid == mp::default_id) ? "default" : QString::number(instance_uid)));
+                                  .arg((instance_uid == mp::default_id)
+                                           ? "default"
+                                           : QString::number(instance_uid)));
         }
         for (auto i = 0; i < mount_maps.gid_mappings_size(); ++i)
         {
@@ -164,7 +170,9 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
 
             mount_gids.append(QString("%1:%2")
                                   .arg(QString::number(host_gid))
-                                  .arg((instance_gid == mp::default_id) ? "default" : QString::number(instance_gid)));
+                                  .arg((instance_gid == mp::default_id)
+                                           ? "default"
+                                           : QString::number(instance_gid)));
         }
         entry.insert("uid_mappings", mount_uids);
         entry.insert("gid_mappings", mount_gids);
@@ -186,17 +194,20 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         QJsonObject instance_obj;
         instance_obj.insert("name", QString::fromStdString(instance.name()));
-        instance_obj.insert("state", QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
+        instance_obj.insert(
+            "state",
+            QString::fromStdString(mp::format::status_string_for(instance.instance_status())));
 
         QJsonArray ipv4_addrs;
         for (const auto& ip : instance.ipv4())
             ipv4_addrs.append(QString::fromStdString(ip));
         instance_obj.insert("ipv4", ipv4_addrs);
 
-        instance_obj.insert("release",
-                            QString::fromStdString(instance.current_release().empty()
-                                                       ? "Not Available"
-                                                       : fmt::format("Ubuntu {}", instance.current_release())));
+        instance_obj.insert(
+            "release",
+            QString::fromStdString(instance.current_release().empty()
+                                       ? "Not Available"
+                                       : fmt::format("Ubuntu {}", instance.current_release())));
 
         instances.append(instance_obj);
     }
@@ -223,8 +234,9 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         const auto& it = info_obj.find(QString::fromStdString(item.name()));
         if (it == info_obj.end())
         {
-            info_obj.insert(QString::fromStdString(item.name()),
-                            QJsonObject{{QString::fromStdString(snapshot.snapshot_name()), snapshot_obj}});
+            info_obj.insert(
+                QString::fromStdString(item.name()),
+                QJsonObject{{QString::fromStdString(snapshot.snapshot_name()), snapshot_obj}});
         }
         else
         {
@@ -274,16 +286,19 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         }
         else
         {
-            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
+            assert(info.has_snapshot_info() &&
+                   "either one of instance or snapshot details should be populated");
 
             auto snapshot_details = generate_snapshot_details(info);
 
-            // Nothing for the instance so far, so create the "snapshots" node and put snapshot details there
+            // Nothing for the instance so far, so create the "snapshots" node and put snapshot
+            // details there
             if (instance_it == info_obj.end())
             {
                 QJsonObject instance_obj, snapshot_obj;
-                snapshot_obj.insert(QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
-                                    snapshot_details);
+                snapshot_obj.insert(
+                    QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
+                    snapshot_details);
                 instance_obj.insert("snapshots", snapshot_obj);
                 info_obj.insert(QString::fromStdString(info.name()), instance_obj);
             }
@@ -292,11 +307,13 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
             {
                 auto instance_obj = instance_it.value().toObject();
                 auto snapshots_it = instance_obj.find("snapshots");
-                QJsonObject snapshots_obj =
-                    snapshots_it == instance_obj.end() ? QJsonObject() : snapshots_it.value().toObject();
+                QJsonObject snapshots_obj = snapshots_it == instance_obj.end()
+                                                ? QJsonObject()
+                                                : snapshots_it.value().toObject();
 
-                snapshots_obj.insert(QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
-                                     snapshot_details);
+                snapshots_obj.insert(
+                    QString::fromStdString(info.snapshot_info().fundamentals().snapshot_name()),
+                    snapshot_details);
                 instance_obj.insert("snapshots", snapshots_obj);
                 instance_it.value() = instance_obj;
             }
@@ -355,7 +372,8 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     return MP_JSONUTILS.json_to_string(find_json);
 }
 
-std::string mp::JsonFormatter::format(const VersionReply& reply, const std::string& client_version) const
+std::string mp::JsonFormatter::format(const VersionReply& reply,
+                                      const std::string& client_version) const
 {
     QJsonObject version_json;
 

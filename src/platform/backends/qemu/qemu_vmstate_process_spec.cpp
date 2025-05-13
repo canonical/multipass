@@ -19,7 +19,8 @@
 
 namespace mp = multipass;
 
-mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name, const QStringList& platform_args)
+mp::QemuVmStateProcessSpec::QemuVmStateProcessSpec(const QString& file_name,
+                                                   const QStringList& platform_args)
     : file_name{file_name}, platform_args{platform_args}
 {
 }

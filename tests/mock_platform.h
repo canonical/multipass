@@ -35,18 +35,30 @@ public:
             .WillRepeatedly(testing::Return());
     };
 
-    MOCK_METHOD((std::map < std::string, NetworkInterfaceInfo) >, get_network_interfaces_info, (), (const, override));
+    MOCK_METHOD((std::map < std::string, NetworkInterfaceInfo) >,
+                get_network_interfaces_info,
+                (),
+                (const, override));
     MOCK_METHOD(bool, is_backend_supported, (const QString&), (const, override));
     MOCK_METHOD(int, chown, (const char*, unsigned int, unsigned int), (const, override));
-    MOCK_METHOD(bool, set_permissions, (const std::filesystem::path&, std::filesystem::perms, bool), (const, override));
+    MOCK_METHOD(bool,
+                set_permissions,
+                (const std::filesystem::path&, std::filesystem::perms, bool),
+                (const, override));
     MOCK_METHOD(bool, take_ownership, (const std::filesystem::path&), (const, override));
     MOCK_METHOD(void, setup_permission_inheritance, (bool), (const, override));
     MOCK_METHOD(bool, link, (const char*, const char*), (const, override));
     MOCK_METHOD(bool, symlink, (const char*, const char*, bool), (const, override));
     MOCK_METHOD(int, utime, (const char*, int, int), (const, override));
-    MOCK_METHOD(void, create_alias_script, (const std::string&, const AliasDefinition&), (const, override));
+    MOCK_METHOD(void,
+                create_alias_script,
+                (const std::string&, const AliasDefinition&),
+                (const, override));
     MOCK_METHOD(void, remove_alias_script, (const std::string&), (const, override));
-    MOCK_METHOD(void, set_server_socket_restrictions, (const std::string&, const bool), (const, override));
+    MOCK_METHOD(void,
+                set_server_socket_restrictions,
+                (const std::string&, const bool),
+                (const, override));
     MOCK_METHOD(QString, multipass_storage_location, (), (const, override));
     MOCK_METHOD(SettingSpec::Set, extra_daemon_settings, (), (const, override));
     MOCK_METHOD(SettingSpec::Set, extra_client_settings, (), (const, override));

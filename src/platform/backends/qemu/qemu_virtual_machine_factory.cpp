@@ -41,16 +41,19 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_di
 {
 }
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const mp::Path& data_dir)
-    : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, qemu_platform->get_directory_name(), instances_subdir)),
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
+                                                         const mp::Path& data_dir)
+    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir,
+                                                              qemu_platform->get_directory_name(),
+                                                              instances_subdir)),
       qemu_platform{std::move(qemu_platform)}
 {
 }
 
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                                               const SSHKeyProvider& key_provider,
-                                                                               VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
+    const VirtualMachineDescription& desc,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),
@@ -85,8 +88,8 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
 {
-    auto process =
-        mp::platform::make_process(simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
+    auto process = mp::platform::make_process(
+        simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
     auto exit_state = process->execute();
@@ -99,8 +102,10 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
             return QString("qemu-%1").arg(match.captured(1));
         else
         {
-            mpl::log(mpl::Level::error, category,
-                     fmt::format("Failed to parse QEMU version out: '{}'", process->read_all_standard_output()));
+            mpl::log(mpl::Level::error,
+                     category,
+                     fmt::format("Failed to parse QEMU version out: '{}'",
+                                 process->read_all_standard_output()));
             return QString("qemu-unknown");
         }
     }
@@ -108,14 +113,18 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
     {
         if (exit_state.error)
         {
-            mpl::log(mpl::Level::error, category,
+            mpl::log(mpl::Level::error,
+                     category,
                      fmt::format("Qemu failed to start: {}", exit_state.failure_message()));
         }
         else if (exit_state.exit_code)
         {
-            mpl::log(mpl::Level::error, category,
-                     fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}", exit_state.failure_message(),
-                                 process->read_all_standard_output(), process->read_all_standard_error()));
+            mpl::log(mpl::Level::error,
+                     category,
+                     fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}",
+                                 exit_state.failure_message(),
+                                 process->read_all_standard_output(),
+                                 process->read_all_standard_error()));
         }
     }
 
@@ -146,7 +155,8 @@ auto mp::QemuVirtualMachineFactory::networks() const -> std::vector<NetworkInter
     return ret;
 }
 
-void mp::QemuVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+void mp::QemuVirtualMachineFactory::prepare_networking(
+    std::vector<NetworkInterface>& extra_interfaces)
 {
     if (qemu_platform->needs_network_prep())
         mp::BaseVirtualMachineFactory::prepare_networking(extra_interfaces);
@@ -157,11 +167,12 @@ std::string mp::QemuVirtualMachineFactory::create_bridge_with(const NetworkInter
     return qemu_platform->create_bridge_with(interface);
 }
 
-mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(const std::string& /*source_vm_name*/,
-                                                                      const multipass::VMSpecs& /*src_vm_specs*/,
-                                                                      const VirtualMachineDescription& desc,
-                                                                      VMStatusMonitor& monitor,
-                                                                      const SSHKeyProvider& key_provider)
+mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
+    const std::string& /*source_vm_name*/,
+    const multipass::VMSpecs& /*src_vm_specs*/,
+    const VirtualMachineDescription& desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),

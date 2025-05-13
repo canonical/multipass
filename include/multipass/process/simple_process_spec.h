@@ -23,6 +23,7 @@
 
 namespace multipass
 {
-std::unique_ptr<ProcessSpec> simple_process_spec(const QString& cmd, const QStringList& args = QStringList());
+std::unique_ptr<ProcessSpec> simple_process_spec(const QString& cmd,
+                                                 const QStringList& args = QStringList());
 }
 #endif // SIMPLE_PROCESS_SPEC_H

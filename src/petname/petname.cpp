@@ -39,15 +39,13 @@ std::mt19937 make_engine()
     std::random_device device;
     return std::mt19937(device());
 }
-}
+} // namespace
 
-mp::Petname::Petname(std::string separator)
-    : Petname(NumWords::TWO, separator)
+mp::Petname::Petname(std::string separator) : Petname(NumWords::TWO, separator)
 {
 }
 
-mp::Petname::Petname(NumWords num_words)
-    : Petname(num_words, "-")
+mp::Petname::Petname(NumWords num_words) : Petname(num_words, "-")
 {
 }
 
@@ -67,7 +65,7 @@ std::string mp::Petname::make_name()
     std::string adjective = multipass::petname::adjectives[adjective_dist(engine)];
     std::string adverb = multipass::petname::adverbs[adverb_dist(engine)];
 
-    switch(num_words)
+    switch (num_words)
     {
     case NumWords::ONE:
         return name;

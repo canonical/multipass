@@ -58,7 +58,8 @@ public:
 
     StandardPaths(const Singleton<StandardPaths>::PrivatePass&) noexcept;
 
-    virtual QString locate(StandardLocation type, const QString& fileName,
+    virtual QString locate(StandardLocation type,
+                           const QString& fileName,
                            LocateOptions options = LocateOption::LocateFile) const;
     virtual QStringList standardLocations(StandardLocation type) const;
     virtual QString writableLocation(StandardLocation type) const;

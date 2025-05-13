@@ -67,7 +67,8 @@ public:
     }
     void kill() override
     {
-        mp::ProcessState exit_state{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+        mp::ProcessState exit_state{std::nullopt,
+                                    mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
         emit finished(exit_state);
     }
 
@@ -136,10 +137,12 @@ public:
 };
 } // namespace
 
-std::unique_ptr<mp::Process> mpt::StubProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& spec) const
+std::unique_ptr<mp::Process> mpt::StubProcessFactory::create_process(
+    std::unique_ptr<mp::ProcessSpec>&& spec) const
 {
-    return std::make_unique<StubProcess>(std::move(spec),
-                                         const_cast<std::vector<mpt::StubProcessFactory::ProcessInfo>&>(process_list));
+    return std::make_unique<StubProcess>(
+        std::move(spec),
+        const_cast<std::vector<mpt::StubProcessFactory::ProcessInfo>&>(process_list));
 }
 
 std::unique_ptr<mp::test::StubProcessFactory::Scope> mp::test::StubProcessFactory::Inject()

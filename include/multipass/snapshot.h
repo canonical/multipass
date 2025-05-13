@@ -64,9 +64,11 @@ public:
     virtual void set_parent(std::shared_ptr<Snapshot>) = 0;
 
     // precondition: capture only once
-    virtual void capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
+    virtual void
+    capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
     // precondition: call only on captured snapshots
-    virtual void erase() = 0; // not using the destructor, we want snapshots to stick around when daemon quits
+    virtual void
+    erase() = 0; // not using the destructor, we want snapshots to stick around when daemon quits
     // precondition: call only on captured snapshots
     virtual void apply() = 0;
 };

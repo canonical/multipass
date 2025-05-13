@@ -74,9 +74,10 @@ QString get_networksetup_output()
 
     if (!nsetup_exit_state.completed_successfully())
     {
-        throw std::runtime_error(fmt::format("networksetup failed ({}) with the following output:\n",
-                                             nsetup_exit_state.failure_message(),
-                                             nsetup_process->read_all_standard_error()));
+        throw std::runtime_error(
+            fmt::format("networksetup failed ({}) with the following output:\n",
+                        nsetup_exit_state.failure_message(),
+                        nsetup_process->read_all_standard_error()));
     }
 
     return nsetup_process->read_all_standard_output();
@@ -101,9 +102,11 @@ QString get_ifconfig_output()
 QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconfig_output)
 {
     // Search the substring of the full ifconfig output containing only the interface if_name.
-    int start = ifconfig_output.indexOf(
-        QRegularExpression{QStringLiteral("^%1:").arg(if_name), QRegularExpression::MultilineOption});
-    int end = ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption), start + 1);
+    int start = ifconfig_output.indexOf(QRegularExpression{QStringLiteral("^%1:").arg(if_name),
+                                                           QRegularExpression::MultilineOption});
+    int end =
+        ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption),
+                                start + 1);
     auto ifconfig_entry = ifconfig_output.mid(start, end - start);
 
     // Search for the bridged interfaces in the resulting string ref.
@@ -128,10 +131,12 @@ QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconf
 std::string describe_bridge(const QString& name, const QString& ifconfig_output)
 {
     auto members = get_bridged_interfaces(name, ifconfig_output);
-    return members.isEmpty() ? "Empty network bridge" : fmt::format("Network bridge with {}", members.join(", "));
+    return members.isEmpty() ? "Empty network bridge"
+                             : fmt::format("Network bridge with {}", members.join(", "));
 }
 
-std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry, const QString& ifconfig_output)
+std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry,
+                                                     const QString& ifconfig_output)
 {
     const auto name_pattern = QStringLiteral("^Device: ([\\w -]+)$");
     const auto desc_pattern = QStringLiteral("^Hardware Port: (.+)$");
@@ -140,7 +145,9 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
     const auto name = name_regex.match(nsetup_entry).captured(1);
     const auto desc = desc_regex.match(nsetup_entry).captured(1);
 
-    mpl::log(mpl::Level::trace, category, fmt::format("Parsing networksetup chunk:\n{}", nsetup_entry));
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("Parsing networksetup chunk:\n{}", nsetup_entry));
 
     if (!name.isEmpty() && !desc.isEmpty())
     {
@@ -148,7 +155,9 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
 
         // bridges first, so we match on things like "thunderbolt bridge" here
         if (name.contains(br_nomenclature) || desc.contains(br_nomenclature, Qt::CaseInsensitive))
-            return mp::NetworkInterfaceInfo{id, br_nomenclature, describe_bridge(name, ifconfig_output)};
+            return mp::NetworkInterfaceInfo{id,
+                                            br_nomenclature,
+                                            describe_bridge(name, ifconfig_output)};
 
         // simple cases next
         auto description = desc.toStdString();
@@ -160,7 +169,9 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
         if (desc.contains("wi-fi", Qt::CaseInsensitive))
             return mp::NetworkInterfaceInfo{id, "wifi", description};
 
-        mpl::log(mpl::Level::warning, category, fmt::format("Unsupported device \"{}\" ({})", id, description));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("Unsupported device \"{}\" ({})", id, description));
     }
 
     mpl::log(mpl::Level::trace, category, fmt::format("Skipping chunk"));
@@ -175,7 +186,8 @@ std::string get_alias_script_path(const std::string& alias)
 }
 } // namespace
 
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+std::map<std::string, mp::NetworkInterfaceInfo>
+mp::platform::Platform::get_network_interfaces_info() const
 {
     auto networks = std::map<std::string, mp::NetworkInterfaceInfo>();
 
@@ -183,13 +195,16 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     auto ifconfig_output = get_ifconfig_output();
     auto nsetup_output = get_networksetup_output();
 
-    mpl::log(mpl::Level::trace, category, fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
     mpl::log(mpl::Level::trace,
              category,
              fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
 
     // split the output of networksetup in multiple entries (one per interface)
-    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
+    auto empty_line_regex =
+        QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
     auto nsetup_entries = nsetup_output.split(empty_line_regex, Qt::SkipEmptyParts);
 
     // Parse the output we got to obtain each interface's properties
@@ -209,7 +224,8 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     return
 #ifdef QEMU_ENABLED
-        (backend == "qemu" && QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
+        (backend == "qemu" &&
+         QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
 #endif
 #ifdef VIRTUALBOX_ENABLED
         backend == "virtualbox" ||
@@ -293,12 +309,14 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
-std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
+    const mp::SSHFSServerConfig& config)
 {
     return MP_PROCFACTORY.create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
-std::unique_ptr<mp::Process> mp::platform::make_process(std::unique_ptr<mp::ProcessSpec>&& process_spec)
+std::unique_ptr<mp::Process> mp::platform::make_process(
+    std::unique_ptr<mp::ProcessSpec>&& process_spec)
 {
     return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
@@ -329,13 +347,15 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
 
-    QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+    QString location =
+        MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
     aliases_folder = QDir{location};
 
     return aliases_folder;
 }
 
-void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
+void mp::platform::Platform::create_alias_script(const std::string& alias,
+                                                 const mp::AliasDefinition& def) const
 {
     auto file_path = get_alias_script_path(alias);
 
@@ -345,11 +365,12 @@ void mp::platform::Platform::create_alias_script(const std::string& alias, const
 
     MP_UTILS.make_file_with_content(file_path, script, true);
 
-    auto permissions =
-        MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec;
+    auto permissions = MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec |
+                       fs::perms::group_exec | fs::perms::others_exec;
 
     if (!MP_PLATFORM.set_permissions(file_path, permissions))
-        throw std::runtime_error(fmt::format("cannot set permissions to alias script '{}'", file_path));
+        throw std::runtime_error(
+            fmt::format("cannot set permissions to alias script '{}'", file_path));
 }
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias) const

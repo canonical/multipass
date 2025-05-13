@@ -22,27 +22,27 @@
 
 extern "C"
 {
-    IMPL_MOCK_DEFAULT(1, getgrnam);
+IMPL_MOCK_DEFAULT(1, getgrnam);
 
-    int ut_isatty(int fd)
-    {
-        return mock_isatty(fd);
-    }
+int ut_isatty(int fd)
+{
+    return mock_isatty(fd);
+}
 
-    int ut_fileno(FILE* stream)
-    {
-        return mock_fileno(stream);
-    }
+int ut_fileno(FILE* stream)
+{
+    return mock_fileno(stream);
+}
 
-    int ut_tcgetattr(int fd, struct termios* termios_p)
-    {
-        return mock_tcgetattr(fd, termios_p);
-    }
+int ut_tcgetattr(int fd, struct termios* termios_p)
+{
+    return mock_tcgetattr(fd, termios_p);
+}
 
-    int ut_tcsetattr(int fd, int optional_actions, const struct termios* termios_p)
-    {
-        return mock_tcsetattr(fd, optional_actions, termios_p);
-    }
+int ut_tcsetattr(int fd, int optional_actions, const struct termios* termios_p)
+{
+    return mock_tcsetattr(fd, optional_actions, termios_p);
+}
 }
 
 // By default, call real functions

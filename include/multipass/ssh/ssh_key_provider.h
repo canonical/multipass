@@ -39,5 +39,5 @@ public:
 protected:
     SSHKeyProvider() = default;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSH_KEY_PROVIDER_H

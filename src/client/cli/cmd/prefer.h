@@ -33,7 +33,8 @@ class Prefer final : public Command
 public:
     using Command::Command;
 
-    Prefer(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Prefer(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 

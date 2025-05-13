@@ -49,7 +49,9 @@ public:
     UnixSignalHandler(mp::Signal& app_ready_signal)
         : app_ready_signal(app_ready_signal),
           signal_handling_thread{
-              [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] { monitor_signals(sigs); }}
+              [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] {
+                  monitor_signals(sigs);
+              }}
     {
     }
 
@@ -63,7 +65,9 @@ public:
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
-            mpl::log(mpl::Level::info, "daemon", fmt::format("Received signal {} ({})", sig, strsignal(sig)));
+            mpl::log(mpl::Level::info,
+                     "daemon",
+                     fmt::format("Received signal {} ({})", sig, strsignal(sig)));
 
         // In order to be able to gracefully end the application via QCoreApplication::quit()
         // the initialization (QT, Daemon) have to happen first. Otherwise, the application
@@ -90,8 +94,8 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
     auto config = builder.build();
     auto server_address = config->server_address;
 
-    mp::daemon::monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings
-                                                       // handlers
+    mp::daemon::monitor_and_quit_on_settings_change(); // TODO replace with async restart in
+                                                       // relevant settings handlers
 
     mp::Daemon daemon(std::move(config));
     QObject::connect(&app,
@@ -101,7 +105,9 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
                      Qt::DirectConnection);
 
     mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
-    mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    mpl::log(mpl::Level::info,
+             "daemon",
+             fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
 
     // Signal the signal handler that app has completed its basic initialization, and
     // ready to process signals.

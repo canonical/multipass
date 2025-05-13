@@ -54,9 +54,10 @@ std::array<uint8_t, 4> parse(const std::string& ip)
 
 std::array<uint8_t, 4> to_octets(uint32_t value)
 {
-    return {{as_octet(value >> 24u), as_octet(value >> 16u), as_octet(value >> 8u), as_octet(value)}};
+    return {
+        {as_octet(value >> 24u), as_octet(value >> 16u), as_octet(value >> 8u), as_octet(value)}};
 }
-}
+} // namespace
 
 mp::IPAddress::IPAddress(std::array<uint8_t, 4> octets) : octets{octets}
 {
@@ -73,8 +74,8 @@ mp::IPAddress::IPAddress(uint32_t value) : IPAddress(to_octets(value))
 std::string mp::IPAddress::as_string() const
 {
     std::stringstream ip;
-    ip << static_cast<int>(octets[0]) << "." << static_cast<int>(octets[1]) << "." << static_cast<int>(octets[2]) << "."
-       << static_cast<int>(octets[3]);
+    ip << static_cast<int>(octets[0]) << "." << static_cast<int>(octets[1]) << "."
+       << static_cast<int>(octets[2]) << "." << static_cast<int>(octets[3]);
     return ip.str();
 }
 

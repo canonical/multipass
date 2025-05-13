@@ -52,15 +52,17 @@ ethernets:
     optional: true
 )";
 
-auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
+auto read_returns_failed_ifstream =
+    [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
     file.setstate(std::ios::failbit);
     return file;
 };
 
-// Since we can have a valid file to read from and FileOps::read is a cheap function, falls back to the original
-// implementation would be an easy way to implement EXPECT_CALL multiple times instead of mocking multiple single calls
-// with the correct output
-auto original_implementation_of_read = [](std::ifstream& file, char* buffer, std::streamsize pos) -> std::ifstream& {
+// Since we can have a valid file to read from and FileOps::read is a cheap function, falls back to
+// the original implementation would be an easy way to implement EXPECT_CALL multiple times instead
+// of mocking multiple single calls with the correct output
+auto original_implementation_of_read =
+    [](std::ifstream& file, char* buffer, std::streamsize pos) -> std::ifstream& {
     return MP_FILEOPS.FileOps::read(file, buffer, pos);
 };
 } // namespace
@@ -109,7 +111,8 @@ TEST_F(CloudInitIso, check_at_operator_throw)
     MP_EXPECT_THROW_THAT(
         iso.at("non_exist_file"),
         std::runtime_error,
-        mpt::match_what(StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
+        mpt::match_what(
+            StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
 }
 
 TEST_F(CloudInitIso, check_at_operator_found_key)
@@ -169,9 +172,10 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
 
     // failed on the first read_single_byte call
     mp::CloudInitIso new_iso;
-    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("Can not read the next byte data from file at")));
+    MP_EXPECT_THROW_THAT(
+        new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("Can not read the next byte data from file at")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descriptor)
@@ -183,7 +187,8 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descrip
     EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
 
     // value 2_u8 is for Joliet volume descriptor
-    auto read_returns_one_byte_value_one = [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
+    auto read_returns_one_byte_value_one =
+        [](std::ifstream& file, char* one_byte, std::streamsize) -> std::ifstream& {
         const int non_joliet_volume_des_num{1U};
         *one_byte = static_cast<std::uint8_t>(non_joliet_volume_des_num);
         return file;
@@ -209,7 +214,8 @@ TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(original_implementation_of_read);
 
-    auto read_returns_five_bytes_string = [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
+    auto read_returns_five_bytes_string =
+        [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
         std::strcpy(buffer, "NonJo");
         return file;
     };
@@ -256,10 +262,10 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
         .Times(2)
         .WillRepeatedly(original_implementation_of_read);
 
-    // default buffer values makes the buffer[0] not 34_u8 which causes root directory record data checking fail
-    auto read_return_default_buffer = [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
-        return file;
-    };
+    // default buffer values makes the buffer[0] not 34_u8 which causes root directory record data
+    // checking fail
+    auto read_return_default_buffer =
+        [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& { return file; };
 
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(read_return_default_buffer);
@@ -325,9 +331,10 @@ TEST_F(CloudInitIso, reads_iso_file_encoded_file_name_is_not_even_length)
         .WillOnce(original_implementation_of_read);
 
     mp::CloudInitIso new_iso;
-    MP_EXPECT_THROW_THAT(new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("is not even, which does not conform to u16 name format")));
+    MP_EXPECT_THROW_THAT(
+        new_iso.read_from(std::filesystem::path(iso_path.toStdString())),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("is not even, which does not conform to u16 name format")));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
@@ -337,7 +344,8 @@ TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
     original_iso.add_file("test1", "test data1");
     original_iso.add_file("test test 2", "test some data2");
     original_iso.add_file("test_random_name_3", "more \r test \n \n data3");
-    original_iso.add_file("test-title_4", "random_test_data: \n - path: /etc/pollinate/add-user-agent");
+    original_iso.add_file("test-title_4",
+                          "random_test_data: \n - path: /etc/pollinate/add-user-agent");
     original_iso.add_file("t5", "");
     original_iso.write_to(iso_path);
 
@@ -391,13 +399,14 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
-    EXPECT_NO_THROW(
-        MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
-                                                                                      extra_interfaces,
-                                                                                      "vm2",
-                                                                                      iso_path.toStdString()));
+    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
+        default_mac_addr,
+        extra_interfaces,
+        "vm2",
+        iso_path.toStdString()));
 
-    const std::string expected_modified_meta_data_content = fmt::format(meta_data_content_template, "vm2", "vm1");
+    const std::string expected_modified_meta_data_content =
+        fmt::format(meta_data_content_template, "vm2", "vm1");
     const std::string expected_generated_network_config_data_content =
         fmt::format(network_config_data_content_template, "52:54:00:56:78:90", "52:54:00:56:78:91");
 
@@ -416,11 +425,11 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
-    EXPECT_NO_THROW(
-        MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
-                                                                                      empty_extra_interfaces,
-                                                                                      std::string(),
-                                                                                      iso_path.toStdString()));
+    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
+        default_mac_addr,
+        empty_extra_interfaces,
+        std::string(),
+        iso_path.toStdString()));
     mp::CloudInitIso new_iso;
     new_iso.read_from(iso_path.toStdString());
     EXPECT_TRUE(new_iso.contains("network-config"));
@@ -428,7 +437,8 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
 TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
 {
-    const std::string src_meta_data_content = fmt::format(meta_data_content_template, "vm1_e_e", "vm1");
+    const std::string src_meta_data_content =
+        fmt::format(meta_data_content_template, "vm1_e_e", "vm1");
     const std::string src_network_config_data_content =
         fmt::format(network_config_data_content_template, "00:00:00:00:00:00", "00:00:00:00:00:01");
 
@@ -463,7 +473,9 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 
     const mp::NetworkInterface dummy_extra_interface{};
     EXPECT_NO_THROW(
-        MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init("", dummy_extra_interface, iso_path.toStdString()));
+        MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init("",
+                                                                 dummy_extra_interface,
+                                                                 iso_path.toStdString()));
 }
 
 TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
@@ -472,5 +484,6 @@ TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
     original_iso.add_file("meta-data", default_meta_data_content);
     original_iso.write_to(iso_path);
 
-    EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()), "vm1");
+    EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path.toStdString()),
+              "vm1");
 }

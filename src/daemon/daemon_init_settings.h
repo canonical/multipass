@@ -20,7 +20,8 @@
 
 namespace multipass::daemon
 {
-void monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings handlers (see #2514)
+void monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings
+                                            // handlers (see #2514)
 void register_global_settings_handlers();
 } // namespace multipass::daemon
 

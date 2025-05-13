@@ -57,7 +57,9 @@ mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
     : cert_dir(MP_UTILS.make_dir(data_dir, mp::authenticated_certs_dir)),
       authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
-    mpl::log(mpl::Level::trace, category, fmt::format("Loading client certs from {}", cert_dir.absolutePath()));
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("Loading client certs from {}", cert_dir.absolutePath()));
 }
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)

@@ -43,7 +43,8 @@ namespace
 constexpr auto deleted_error_fmt =
     "Instance '{}' is deleted. Use 'recover' to recover it or 'purge' to permanently delete it.\n";
 constexpr auto absent_error_fmt = "Instance '{}' does not exist.\n";
-constexpr auto unknown_error_fmt = "Instance '{}' failed in an unexpected way, check logs for more information.\n";
+constexpr auto unknown_error_fmt =
+    "Instance '{}' failed in an unexpected way, check logs for more information.\n";
 } // namespace
 
 mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
@@ -92,14 +93,18 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
             if (details.empty())
             {
                 assert(start_error.instance_errors_size() == 1 &&
-                       std::cbegin(start_error.instance_errors())->first == petenv_name.toStdString());
+                       std::cbegin(start_error.instance_errors())->first ==
+                           petenv_name.toStdString());
 
                 QStringList launch_args{"multipass", "launch", "--name", petenv_name};
                 if (parser->isSet("timeout"))
                     launch_args.append({"--timeout", parser->value("timeout")});
 
-                return run_cmd_and_retry(launch_args, parser, cout, cerr); /*
-                             TODO replace with create, so that all instances are started in a single go */
+                return run_cmd_and_retry(launch_args,
+                                         parser,
+                                         cout,
+                                         cerr); /*
+  TODO replace with create, so that all instances are started in a single go */
             }
         }
 
@@ -112,18 +117,23 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(), &spinner, cerr,
+        timer = cmd::make_timer(parser->value("timeout").toInt(),
+                                &spinner,
+                                cerr,
                                 "Timed out waiting for instance to start.");
         timer->start();
     }
 
     ReturnCode return_code;
-    auto streaming_callback = make_iterative_spinner_callback<StartRequest, StartReply>(spinner, *term);
+    auto streaming_callback =
+        make_iterative_spinner_callback<StartRequest, StartReply>(spinner, *term);
     do
     {
         spinner.start(instance_action_message_for(request.instance_names(), "Starting "));
-    } while ((return_code = dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback)) ==
-             ReturnCode::Retry);
+    } while (
+        (return_code =
+             dispatch(&RpcMethod::start, request, on_success, on_failure, streaming_callback)) ==
+        ReturnCode::Retry);
 
     return return_code;
 }
@@ -149,10 +159,14 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
 {
     const auto& [description, syntax] =
         petenv_name.isEmpty()
-            ? std::make_pair(QString{"Names of instances to start."}, QString{"<name> [<name> ...]"})
-            : std::make_pair(QString{"Names of instances to start. If omitted, and without the --all option, '%1' (the "
-                                     "configured primary instance name) will be assumed. If '%1' does not exist but is "
-                                     "included in a successful start command (either implicitly or explicitly), it is "
+            ? std::make_pair(QString{"Names of instances to start."},
+                             QString{"<name> [<name> ...]"})
+            : std::make_pair(QString{"Names of instances to start. If omitted, and without the "
+                                     "--all option, '%1' (the "
+                                     "configured primary instance name) will be assumed. If '%1' "
+                                     "does not exist but is "
+                                     "included in a successful start command (either implicitly or "
+                                     "explicitly), it is "
                                      "launched automatically (see `launch` for more info)."}
                                  .arg(petenv_name),
                              QString{"[<name> ...]"});
@@ -169,7 +183,10 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
+    auto parse_code =
+        check_for_name_and_all_option_conflict(parser,
+                                               cerr,
+                                               /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
         if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
@@ -188,7 +205,8 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
+    request.mutable_instance_names()->CopyFrom(
+        add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
 
     return status;
 }

@@ -32,7 +32,11 @@ namespace multipass
 namespace SSH
 {
 template <typename Handle, typename Callable, typename... Args>
-void throw_on_error(Handle&& h, ssh_session session, const char* error_msg, Callable&& f, Args&&... args)
+void throw_on_error(Handle&& h,
+                    ssh_session session,
+                    const char* error_msg,
+                    Callable&& f,
+                    Args&&... args)
 {
     const auto ret = f(h.get(), std::forward<Args>(args)...);
     if (ret != SSH_OK)
@@ -47,7 +51,8 @@ void throw_on_error(Handle&& h, const char* error_msg, Callable&& f, Args&&... a
     // Ensure that the handle type is appropriate for ssh_get_error
     using HandleType = typename std::remove_reference<Handle>::type;
     using HandlePointerType = decltype(std::declval<HandleType>().get());
-    static_assert(std::is_same<ssh_session, HandlePointerType>::value, "ssh_get_error needs an ssh_session");
+    static_assert(std::is_same<ssh_session, HandlePointerType>::value,
+                  "ssh_get_error needs an ssh_session");
 
     throw_on_error(h, h.get(), error_msg, f, std::forward<Args>(args)...);
 }

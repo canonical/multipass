@@ -45,7 +45,8 @@ void mpu::Timer::main()
     while (current_state != TimerState::Stopped)
     {
         auto start_time = std::chrono::system_clock::now();
-        if (current_state == TimerState::Running && !MP_TIMER_SYNC_FUNCS.wait_for(cv, lk, remaining_time, [this] {
+        if (current_state == TimerState::Running &&
+            !MP_TIMER_SYNC_FUNCS.wait_for(cv, lk, remaining_time, [this] {
                 return current_state != TimerState::Running;
             }))
         {
@@ -56,7 +57,9 @@ void mpu::Timer::main()
         {
             remaining_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                 remaining_time - (std::chrono::system_clock::now() - start_time));
-            MP_TIMER_SYNC_FUNCS.wait(cv, lk, [this] { return current_state != TimerState::Paused; });
+            MP_TIMER_SYNC_FUNCS.wait(cv, lk, [this] {
+                return current_state != TimerState::Paused;
+            });
         }
     }
 }
@@ -105,13 +108,15 @@ void mpu::TimerSyncFuncs::notify_all(std::condition_variable& cv) const
     cv.notify_all();
 }
 
-void mpu::TimerSyncFuncs::wait(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
+void mpu::TimerSyncFuncs::wait(std::condition_variable& cv,
+                               std::unique_lock<std::mutex>& lock,
                                std::function<bool()> predicate) const
 {
     cv.wait(lock, predicate);
 }
 
-bool mpu::TimerSyncFuncs::wait_for(std::condition_variable& cv, std::unique_lock<std::mutex>& lock,
+bool mpu::TimerSyncFuncs::wait_for(std::condition_variable& cv,
+                                   std::unique_lock<std::mutex>& lock,
                                    const std::chrono::duration<int, std::milli>& rel_time,
                                    std::function<bool()> predicate) const
 {

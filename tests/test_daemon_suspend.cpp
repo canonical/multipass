@@ -68,7 +68,8 @@ TEST_F(TestDaemonSuspend, suspendNotSupportedDoesNotStopMounts)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -87,13 +88,15 @@ TEST_F(TestDaemonSuspend, suspendNotSupportedDoesNotStopMounts)
     mp::SuspendRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon,
-                                   &mp::Daemon::suspend,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::suspend,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), HasSubstr(("The suspend feature is not implemented on this backend.")));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(("The suspend feature is not implemented on this backend.")));
 }
 
 TEST_F(TestDaemonSuspend, suspendStopsMounts)
@@ -102,7 +105,8 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -120,17 +124,19 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
     mp::SuspendRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon,
-                                   &mp::Daemon::suspend,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::suspend,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
 
 TEST_F(TestDaemonSuspend, suspendNotSupportedReturnsErrorStatus)
 {
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     mp::Daemon daemon{config_builder.build()};
@@ -138,11 +144,13 @@ TEST_F(TestDaemonSuspend, suspendNotSupportedReturnsErrorStatus)
     mp::SuspendRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon,
-                                   &mp::Daemon::suspend,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::suspend,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), HasSubstr(("The suspend feature is not implemented on this backend.")));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(("The suspend feature is not implemented on this backend.")));
 }

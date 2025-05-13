@@ -52,7 +52,10 @@ TEST_F(SSHProcess, can_retrieve_exit_status)
     auto event_dopoll = [&callbacks, &expected_status](auto...) {
         if (!callbacks)
             return SSH_ERROR;
-        callbacks->channel_exit_status_function(nullptr, nullptr, expected_status, callbacks->userdata);
+        callbacks->channel_exit_status_function(nullptr,
+                                                nullptr,
+                                                expected_status,
+                                                callbacks->userdata);
         return SSH_OK;
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
@@ -131,7 +134,8 @@ TEST_F(SSHProcess, can_read_output)
 {
     std::string expected_output{"some content here"};
     auto remaining = expected_output.size();
-    auto channel_read = [&expected_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+    auto channel_read = [&expected_output,
+                         &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = expected_output.begin() + expected_output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));

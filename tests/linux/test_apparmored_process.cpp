@@ -113,8 +113,10 @@ TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
     ASSERT_TRUE(apparmor_input.open(QIODevice::ReadOnly | QIODevice::Text));
     auto input = apparmor_input.readAll();
 
-    EXPECT_TRUE(input.contains(
-        QString("args: -WL, %1/apparmor.d/cache/multipass, --abort-on-error, -r,").arg(cache_dir.path()).toUtf8()));
+    EXPECT_TRUE(
+        input.contains(QString("args: -WL, %1/apparmor.d/cache/multipass, --abort-on-error, -r,")
+                           .arg(cache_dir.path())
+                           .toUtf8()));
     EXPECT_TRUE(input.contains(apparmor_profile_text));
 }
 
@@ -197,7 +199,8 @@ TEST_F(ApparmoredProcessTest, execute_good_command_with_zero_exit_code)
 TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_ok)
 {
     const int exit_code = 7;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process =
+        process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -219,7 +222,8 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_ok)
 TEST_F(ApparmoredProcessTest, process_state_when_runs_but_fails_to_stop)
 {
     const int exit_code = 2;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process =
+        process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -253,7 +257,8 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
 
 TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
 {
-    auto process = process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
+    auto process =
+        process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
     process->start();
 
     process->write("crash"); // will make mock_process crash
@@ -306,17 +311,21 @@ TEST_F(ApparmoredProcessNoFactoryTest, logsAllExpectedMessagesOnStart)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Using AppArmor support");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Loading AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Loading AppArmor policy:\n{}", apparmor_profile_text));
 
     const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
-    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Applied AppArmor policy: multipass.test_prog");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Removing AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                         "Applied AppArmor policy: multipass.test_prog");
     logger_scope.mock_logger->expect_log(
-        mpl::Level::debug, fmt::format("started: {} {}", process->program(), process->arguments().join(' ')));
+        mpl::Level::trace,
+        fmt::format("Removing AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::debug,
+        fmt::format("started: {} {}", process->program(), process->arguments().join(' ')));
 
     process->start();
     process->kill();

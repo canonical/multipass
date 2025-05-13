@@ -93,10 +93,10 @@ TEST_F(RecursiveDirIterator, is_type)
     EXPECT_TRUE(entry.is_regular_file(err));
     EXPECT_FALSE(err);
 
-#define IS_NOT_TYPE(type)                                                                                              \
-    EXPECT_NO_THROW(entry.is_##type());                                                                                \
-    EXPECT_FALSE(entry.is_##type());                                                                                   \
-    EXPECT_FALSE(entry.is_##type(err));                                                                                \
+#define IS_NOT_TYPE(type)                                                                          \
+    EXPECT_NO_THROW(entry.is_##type());                                                            \
+    EXPECT_FALSE(entry.is_##type());                                                               \
+    EXPECT_FALSE(entry.is_##type(err));                                                            \
     EXPECT_FALSE(err);
 
     IS_NOT_TYPE(block_file);

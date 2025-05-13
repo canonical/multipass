@@ -64,15 +64,19 @@ public:
     virtual void remove_resources_for(const std::string& name) = 0;
 
     virtual FetchType fetch_type() = 0;
-    virtual void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) = 0; // note the arg may be updated
+    virtual void prepare_networking(
+        std::vector<NetworkInterface>& extra_interfaces) = 0; // note the arg may be updated
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;
-    virtual void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) = 0;
+    virtual void prepare_instance_image(const VMImage& instance_image,
+                                        const VirtualMachineDescription& desc) = 0;
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() const = 0;
     virtual Path get_instance_directory(const std::string& name) const = 0;
     virtual QString get_backend_version_string() const = 0;
-    virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                                  const Path& cache_dir_path, const Path& data_dir_path,
+    virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
+                                                  URLDownloader* downloader,
+                                                  const Path& cache_dir_path,
+                                                  const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
     virtual void configure(VirtualMachineDescription& vm_desc) = 0;
 
@@ -87,5 +91,5 @@ protected:
 
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) = 0;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_FACTORY_H

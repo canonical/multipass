@@ -38,7 +38,9 @@ mp::ReturnCode cmd::Find::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::find, request, on_success, on_failure);
@@ -56,29 +58,38 @@ QString cmd::Find::short_help() const
 
 QString cmd::Find::description() const
 {
-    return QStringLiteral("Lists available images matching <string> for creating instances from.\n"
-                          "With no search string, lists all aliases for supported Ubuntu releases.");
+    return QStringLiteral(
+        "Lists available images matching <string> for creating instances from.\n"
+        "With no search string, lists all aliases for supported Ubuntu releases.");
 }
 
 mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("string",
-                                  "An optional value to search for in [<remote:>]<string> format, where "
-                                  "<remote> can be either ‘release’ or ‘daily’. If <remote> is omitted, "
-                                  "it will search ‘release‘ first, and if no matches are found, it will "
-                                  "then search ‘daily‘. <string> can be a partial image hash or an "
-                                  "Ubuntu release version, codename or alias.",
-                                  "[<remote:>][<string>]");
-    QCommandLineOption unsupportedOption("show-unsupported", "Show unsupported cloud images as well");
+    parser->addPositionalArgument(
+        "string",
+        "An optional value to search for in [<remote:>]<string> format, where "
+        "<remote> can be either ‘release’ or ‘daily’. If <remote> is omitted, "
+        "it will search ‘release‘ first, and if no matches are found, it will "
+        "then search ‘daily‘. <string> can be a partial image hash or an "
+        "Ubuntu release version, codename or alias.",
+        "[<remote:>][<string>]");
+    QCommandLineOption unsupportedOption("show-unsupported",
+                                         "Show unsupported cloud images as well");
     QCommandLineOption imagesOnlyOption("only-images", "Show only images");
     QCommandLineOption blueprintsOnlyOption("only-blueprints", "Show only blueprints");
-    QCommandLineOption formatOption(
-        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
-    const QCommandLineOption force_manifest_network_download("force-update",
-                                                             "Force the image information to update from the network");
-    parser->addOptions(
-        {unsupportedOption, imagesOnlyOption, blueprintsOnlyOption, formatOption, force_manifest_network_download});
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\nValid formats are: "
+                                    "table (default), json, csv and yaml",
+                                    "format",
+                                    "table");
+    const QCommandLineOption force_manifest_network_download(
+        "force-update",
+        "Force the image information to update from the network");
+    parser->addOptions({unsupportedOption,
+                        imagesOnlyOption,
+                        blueprintsOnlyOption,
+                        formatOption,
+                        force_manifest_network_download});
 
     auto status = parser->commandParse(this);
 

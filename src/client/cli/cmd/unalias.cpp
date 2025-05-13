@@ -52,7 +52,9 @@ mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
         }
         catch (std::runtime_error& e)
         {
-            cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n", e.what(), context_from,
+            cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n",
+                                e.what(),
+                                context_from,
                                 alias_only);
         }
     }
@@ -99,7 +101,8 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
         const auto& active_context_name = aliases.active_context_name();
         const auto& active_context = aliases.get_active_context();
 
-        for (auto definition_it = active_context.cbegin(); definition_it != active_context.cend(); ++definition_it)
+        for (auto definition_it = active_context.cbegin(); definition_it != active_context.cend();
+             ++definition_it)
             aliases_to_remove.emplace_back(active_context_name, definition_it->first);
     }
     else
@@ -119,7 +122,8 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 
     if (!bad_aliases.empty())
     {
-        cerr << fmt::format("Nonexistent {}: {}.\n", bad_aliases.size() == 1 ? "alias" : "aliases",
+        cerr << fmt::format("Nonexistent {}: {}.\n",
+                            bad_aliases.size() == 1 ? "alias" : "aliases",
                             fmt::join(bad_aliases, ", "));
 
         return ParseCode::CommandLineError;

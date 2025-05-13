@@ -50,7 +50,8 @@ QString petenv_interpreter(QString val)
 
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
-    return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail : mp::ReturnCode::CommandFail;
+    return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail
+                                                 : mp::ReturnCode::CommandFail;
 }
 
 std::string message_box(const std::string& message)
@@ -82,10 +83,15 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 }
 } // namespace
 
-mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command, std::ostream& cerr,
-                                                     const grpc::Status& status, const std::string& error_details)
+mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
+                                                     std::ostream& cerr,
+                                                     const grpc::Status& status,
+                                                     const std::string& error_details)
 {
-    fmt::print(cerr, "{} failed: {}\n{}", command, status.error_message(),
+    fmt::print(cerr,
+               "{} failed: {}\n{}",
+               command,
+               status.error_message(),
                !error_details.empty() ? fmt::format("{}\n", error_details) : "");
 
     return return_code_for(status.error_code());
@@ -98,8 +104,10 @@ bool mp::cmd::update_available(const mp::UpdateInfo& update_info)
 
 std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
 {
-    return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}", update_info.title(),
-                                     update_info.description(), update_info.url()));
+    return ::message_box(fmt::format("{}\n{}\n\nGo here for more information: {}",
+                                     update_info.title(),
+                                     update_info.description(),
+                                     update_info.url()));
 }
 
 /*
@@ -110,8 +118,10 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
  */
 QString mp::client::persistent_settings_filename()
 {
-    static const auto file_pattern = QStringLiteral("%2%1").arg(mp::settings_extension); // note the order
-    static const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    static const auto file_pattern =
+        QStringLiteral("%2%1").arg(mp::settings_extension); // note the order
+    static const auto user_config_path =
+        QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
     static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
     static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
 
@@ -120,11 +130,15 @@ QString mp::client::persistent_settings_filename()
 
 void mp::client::register_global_settings_handlers()
 {
-    auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with the same key below
-    settings.insert(std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
+    auto settings =
+        MP_PLATFORM
+            .extra_client_settings(); // platform settings override inserts with the same key below
+    settings.insert(
+        std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
 
     MP_SETTINGS.register_handler(
-        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(),
+                                                    std::move(settings)));
 }
 
 std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& server_address,
@@ -132,9 +146,10 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
 {
     grpc::ChannelArguments channel_args;
     channel_args.SetString(GRPC_ARG_DEFAULT_AUTHORITY, "localhost");
-    return grpc::CreateCustomChannel(server_address,
-                                     grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)),
-                                     channel_args);
+    return grpc::CreateCustomChannel(
+        server_address,
+        grpc::SslCredentials(get_ssl_credentials_opts_from(cert_provider)),
+        channel_args);
 }
 
 std::string mp::client::get_server_address()

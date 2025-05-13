@@ -140,7 +140,9 @@ char* virNetworkGetBridgeName(virNetworkPtr /*network*/)
     return strdup("mpvirt0");
 }
 
-int virNetworkGetDHCPLeases(virNetworkPtr /*network*/, const char* /*mac*/, virNetworkDHCPLeasePtr** /*leases*/,
+int virNetworkGetDHCPLeases(virNetworkPtr /*network*/,
+                            const char* /*mac*/,
+                            virNetworkDHCPLeasePtr** /*leases*/,
                             unsigned int /*flags*/)
 {
     return 0;
@@ -167,7 +169,9 @@ int virDomainSetVcpusFlags(virDomainPtr /*domain*/, unsigned int /*nvcpus*/, uns
     return 1;
 }
 
-int virDomainSetMemoryFlags(virDomainPtr /*domain*/, unsigned long /*memory*/, unsigned int /*flags*/)
+int virDomainSetMemoryFlags(virDomainPtr /*domain*/,
+                            unsigned long /*memory*/,
+                            unsigned int /*flags*/)
 {
     return 1;
 }

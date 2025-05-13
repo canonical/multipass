@@ -48,7 +48,8 @@ struct client_logger_tests : ::testing::Test
 
 TEST_F(client_logger_tests, call_log)
 {
-    EXPECT_CALL(mock_srw, Write(Field(&StubReply::stored_msg, HasSubstr("[debug] [cat] msg")), testing::_))
+    EXPECT_CALL(mock_srw,
+                Write(Field(&StubReply::stored_msg, HasSubstr("[debug] [cat] msg")), testing::_))
         .WillOnce(Return(true));
     uut_t logger{mpl::Level::debug, stub_multiplexing_logger, &mock_srw};
     logger.log(mpl::Level::debug, "cat", "msg");

@@ -32,7 +32,8 @@ class StubTerminal : public multipass::Terminal
 public:
     StubTerminal(std::ostream& cout, std::ostream& cerr, std::istream& cin)
         : cout_stream{cout}, cerr_stream{cerr}, cin_stream{cin}
-    {}
+    {
+    }
 
     ~StubTerminal() override = default;
 
@@ -69,7 +70,7 @@ public:
     }
 
 private:
-    std::ostream &cout_stream;
+    std::ostream& cout_stream;
     std::ostream& cerr_stream;
     std::istream& cin_stream;
 };

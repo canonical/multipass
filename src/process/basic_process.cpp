@@ -39,10 +39,12 @@ mp::BasicProcess::CustomQProcess::CustomQProcess(BasicProcess* p) : QProcess{p}
 #endif
 }
 
-mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_spec{spec}, process{this}
+mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec)
+    : process_spec{spec}, process{this}
 {
     connect(&process, &QProcess::started, this, &mp::BasicProcess::handle_started);
-    connect(&process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
+    connect(&process,
+            qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             [this](int exit_code, QProcess::ExitStatus exit_status) {
                 mp::ProcessState process_state;
 
@@ -56,10 +58,17 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_
                 }
                 emit mp::Process::finished(process_state);
             });
-    connect(&process, &QProcess::errorOccurred,
-            [this](QProcess::ProcessError error) { emit mp::Process::error_occurred(error, error_string()); });
-    connect(&process, &QProcess::readyReadStandardOutput, this, &mp::Process::ready_read_standard_output);
-    connect(&process, &QProcess::readyReadStandardError, this, &mp::Process::ready_read_standard_error);
+    connect(&process, &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
+        emit mp::Process::error_occurred(error, error_string());
+    });
+    connect(&process,
+            &QProcess::readyReadStandardOutput,
+            this,
+            &mp::Process::ready_read_standard_output);
+    connect(&process,
+            &QProcess::readyReadStandardError,
+            this,
+            &mp::Process::ready_read_standard_error);
     connect(&process, &QProcess::stateChanged, this, &mp::Process::state_changed);
 
     process.setProgram(process_spec->program());
@@ -70,13 +79,16 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec) : process_
 
     // TODO: multiline output produces poor formatting in logs, needs improving
     QObject::connect(&process, &QProcess::readyReadStandardError, [this]() {
-        // Using readAllStandardError() removes it from buffer for Process consumers, so peek() instead.
-        // This copies the implementation of QProcess::readAllStandardError() replacing the read with peek.
+        // Using readAllStandardError() removes it from buffer for Process consumers, so peek()
+        // instead. This copies the implementation of QProcess::readAllStandardError() replacing the
+        // read with peek.
         auto original = process.readChannel();
         process.setReadChannel(QProcess::StandardError);
         QByteArray data = process.peek(process.bytesAvailable());
         process.setReadChannel(original);
-        mpl::log(process_spec->error_log_level(), qUtf8Printable(process_spec->program()), qUtf8Printable(data));
+        mpl::log(process_spec->error_log_level(),
+                 qUtf8Printable(process_spec->program()),
+                 qUtf8Printable(data));
     });
 }
 
@@ -196,7 +208,9 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
     if (!process.waitForStarted(timeout) || !process.waitForFinished(timeout) ||
         process.exitStatus() != QProcess::NormalExit)
     {
-        mpl::log(mpl::Level::error, qUtf8Printable(process_spec->program()), qUtf8Printable(process.errorString()));
+        mpl::log(mpl::Level::error,
+                 qUtf8Printable(process_spec->program()),
+                 qUtf8Printable(process.errorString()));
         exit_state.error = mp::ProcessState::Error{process.error(), error_string()};
         return exit_state;
     }
@@ -213,7 +227,8 @@ void mp::BasicProcess::handle_started()
 {
     pid = process.processId(); // save this, so we know it even after finished
     const auto& program = process_spec->program().toStdString();
-    mpl::log(mpl::Level::debug, program,
+    mpl::log(mpl::Level::debug,
+             program,
              fmt::format("[{}] started: {} {}", pid, program, process_spec->arguments().join(' ')));
 
     emit mp::Process::started();

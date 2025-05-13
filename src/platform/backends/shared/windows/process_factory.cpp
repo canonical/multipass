@@ -40,14 +40,14 @@ std::string GetLastErrorAsString()
         return std::string(); // No error message has been recorded
 
     LPSTR messageBuffer = nullptr;
-    size_t size =
-        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                       NULL,
-                       errorMessageID,
-                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                       (LPSTR)&messageBuffer,
-                       0,
-                       NULL);
+    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                                 NULL,
+                                 errorMessageID,
+                                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                 (LPSTR)&messageBuffer,
+                                 0,
+                                 NULL);
 
     std::string message(messageBuffer, size);
 
@@ -73,10 +73,10 @@ public:
                 auto pid = process.processId();
                 if (0 == AssignProcessToJobObject(ghJob, OpenProcess(PROCESS_ALL_ACCESS, 0, pid)))
                 {
-                    mpl::log(
-                        mpl::Level::warning,
-                        ::category,
-                        fmt::format("Could not AssignProcessToObject the spawned process: {}", GetLastErrorAsString()));
+                    mpl::log(mpl::Level::warning,
+                             ::category,
+                             fmt::format("Could not AssignProcessToObject the spawned process: {}",
+                                         GetLastErrorAsString()));
                 }
             });
         }
@@ -96,7 +96,8 @@ public:
     {
         // Let's send the child a signal first to let it gracefully terminate.
         // the process_id() is also the console group id.
-        if (GenerateConsoleCtrlEvent(/*dwCtrlEvent*/ CTRL_BREAK_EVENT, /*dwProcessGroupId*/ process_id()) == 0)
+        if (GenerateConsoleCtrlEvent(/*dwCtrlEvent*/ CTRL_BREAK_EVENT,
+                                     /*dwProcessGroupId*/ process_id()) == 0)
         {
             // failed to Ctrl+C, resort to killing
             mpl::warn(::category,
@@ -140,7 +141,8 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
 
         // Configure all child processes associated with the job to terminate when the
         jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        if (0 == SetInformationJobObject(ghJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
+        if (0 ==
+            SetInformationJobObject(ghJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
         {
             mpl::log(mpl::Level::warning,
                      ::category,
@@ -149,7 +151,8 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
     }
 }
 
-std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
+std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(
+    std::unique_ptr<mp::ProcessSpec>&& process_spec) const
 {
     return std::make_unique<::WindowsProcess>(ghJob, std::move(process_spec));
 }

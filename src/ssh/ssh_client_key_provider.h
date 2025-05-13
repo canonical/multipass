@@ -42,5 +42,5 @@ public:
 private:
     KeyUPtr priv_key;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSH_CLIENT_KEY_PROVIDER_H

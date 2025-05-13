@@ -50,12 +50,13 @@ std::unordered_map<std::string, QByteArray> ifconfig_output{
     {"gif0", QByteArrayLiteral("gif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280\n")},
     {"stf0", QByteArrayLiteral("stf0: flags=0<> mtu 1280\n")},
     {"en0",
-     QByteArrayLiteral("en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=50b<RXCSUM,TXCSUM,VLAN_HWTAGGING,AV,CHANNEL_IO>\n"
-                       "\tether 98:10:e8:f3:14:97 \n"
-                       "\tinet 10.2.0.42 netmask 0xffffff00 broadcast 10.2.0.255\n"
-                       "\tmedia: autoselect (1000baseT <full-duplex,flow-control,energy-efficient-ethernet>)\n"
-                       "\tstatus: active\n")},
+     QByteArrayLiteral(
+         "en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=50b<RXCSUM,TXCSUM,VLAN_HWTAGGING,AV,CHANNEL_IO>\n"
+         "\tether 98:10:e8:f3:14:97 \n"
+         "\tinet 10.2.0.42 netmask 0xffffff00 broadcast 10.2.0.255\n"
+         "\tmedia: autoselect (1000baseT <full-duplex,flow-control,energy-efficient-ethernet>)\n"
+         "\tstatus: active\n")},
     {"en1",
      QByteArrayLiteral("en1: flags=8823<UP,BROADCAST,SMART,SIMPLEX,MULTICAST> mtu 1500\n"
                        "\toptions=400<CHANNEL_IO>\n"
@@ -63,57 +64,63 @@ std::unordered_map<std::string, QByteArray> ifconfig_output{
                        "\tmedia: autoselect (<unknown type>)\n"
                        "\tstatus: inactive\n")},
     {"en2",
-     QByteArrayLiteral("en2: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
-                       "\tether 82:15:07:f3:c5:40 \n"
-                       "\tmedia: autoselect <full-duplex>\n"
-                       "\tstatus: inactive\n")},
+     QByteArrayLiteral(
+         "en2: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
+         "\tether 82:15:07:f3:c5:40 \n"
+         "\tmedia: autoselect <full-duplex>\n"
+         "\tstatus: inactive\n")},
     {"en3",
-     QByteArrayLiteral("en3: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
-                       "\tether 82:15:07:f3:c5:41 \n"
-                       "\tmedia: autoselect <full-duplex>\n"
-                       "\tstatus: inactive\n")},
+     QByteArrayLiteral(
+         "en3: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
+         "\tether 82:15:07:f3:c5:41 \n"
+         "\tmedia: autoselect <full-duplex>\n"
+         "\tstatus: inactive\n")},
     {"en11",
-     QByteArrayLiteral("en11: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
-                       "\tether 82:f1:07:f3:c5:41 \n"
-                       "\tmedia: autoselect <full-duplex>\n"
-                       "\tstatus: inactive\n")},
+     QByteArrayLiteral(
+         "en11: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
+         "\tether 82:f1:07:f3:c5:41 \n"
+         "\tmedia: autoselect <full-duplex>\n"
+         "\tstatus: inactive\n")},
     {"en12",
-     QByteArrayLiteral("en12: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
-                       "\tether 82:f1:07:f3:c1:42 \n"
-                       "\tmedia: autoselect <full-duplex>\n"
-                       "\tstatus: inactive\n")},
+     QByteArrayLiteral(
+         "en12: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=460<TSO4,TSO6,CHANNEL_IO>\n"
+         "\tether 82:f1:07:f3:c1:42 \n"
+         "\tmedia: autoselect <full-duplex>\n"
+         "\tstatus: inactive\n")},
     {"bridge0",
-     QByteArrayLiteral("bridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n"
-                       "\tether 82:15:07:f3:c5:40 \n"
-                       "\tConfiguration:\n"
-                       "\t	id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0\n"
-                       "\t	maxage 0 holdcnt 0 proto stp maxaddr 100 timeout 1200\n"
-                       "\t	root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0\n"
-                       "\t	ipfilter disabled flags 0x0\n"
-                       "\tmember: en2 flags=3<LEARNING,DISCOVER>\n"
-                       "\t        ifmaxaddr 0 port 6 priority 0 path cost 0\n"
-                       "\tmember: en3 flags=3<LEARNING,DISCOVER>\n"
-                       "\t        ifmaxaddr 0 port 7 priority 0 path cost 0\n"
-                       "\tmedia: <unknown type>\n"
-                       "\tstatus: inactive\n")},
+     QByteArrayLiteral(
+         "bridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n"
+         "\tether 82:15:07:f3:c5:40 \n"
+         "\tConfiguration:\n"
+         "\t	id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0\n"
+         "\t	maxage 0 holdcnt 0 proto stp maxaddr 100 timeout 1200\n"
+         "\t	root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0\n"
+         "\t	ipfilter disabled flags 0x0\n"
+         "\tmember: en2 flags=3<LEARNING,DISCOVER>\n"
+         "\t        ifmaxaddr 0 port 6 priority 0 path cost 0\n"
+         "\tmember: en3 flags=3<LEARNING,DISCOVER>\n"
+         "\t        ifmaxaddr 0 port 7 priority 0 path cost 0\n"
+         "\tmedia: <unknown type>\n"
+         "\tstatus: inactive\n")},
     {"bridge2",
-     QByteArrayLiteral("bridge2: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
-                       "\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n"
-                       "\tether a6:83:e7:56:07:02\n"
-                       "\tConfiguration:\n"
-                       "\t        id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0\n"
-                       "\t        maxage 0 holdcnt 0 proto stp maxaddr 100 timeout 1200\n"
-                       "\t        root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0\n"
-                       "\t        ipfilter disabled flags 0x0\n"
-                       "\tAddress cache:\n"
-                       "\tnd6 options=201<PERFORMNUD,DAD>\n"
-                       "\tmedia: <unknown type>\n"
-                       "\tstatus: inactive\n")},
+     QByteArrayLiteral(
+         "bridge2: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
+         "\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n"
+         "\tether a6:83:e7:56:07:02\n"
+         "\tConfiguration:\n"
+         "\t        id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0\n"
+         "\t        maxage 0 holdcnt 0 proto stp maxaddr 100 timeout 1200\n"
+         "\t        root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0\n"
+         "\t        ipfilter disabled flags 0x0\n"
+         "\tAddress cache:\n"
+         "\tnd6 options=201<PERFORMNUD,DAD>\n"
+         "\tmedia: <unknown type>\n"
+         "\tstatus: inactive\n")},
     {"p2p0",
      QByteArrayLiteral("p2p0: flags=8802<BROADCAST,SIMPLEX,MULTICAST> mtu 2304\n"
                        "\toptions=400<CHANNEL_IO>\n"
@@ -151,19 +158,19 @@ std::unordered_map<std::string, QByteArray> ifconfig_output{
                        "\tinet6 fe80::15f1:255f:bb39:92a9%utun4 prefixlen 64 scopeid 0x10 \n"
                        "\tnd6 options=201<PERFORMNUD,DAD>\n")}};
 
-QByteArray networksetup_output =
-    QByteArrayLiteral("\nHardware Port: Ethernet\nDevice: en0\nEthernet Address: 98:10:e8:f3:14:97\n"
-                      "\nHardware Port: Wi-Fi\nDevice: en1\nEthernet Address: dc:a4:ca:f3:67:03\n"
-                      "\nHardware Port: Bluetooth PAN\nDevice: en4\nEthernet Address: dc:a4:ca:f3:67:04\n"
-                      "\nHardware Port: Thunderbolt 1\nDevice: en2\nEthernet Address: 82:15:07:f3:c5:40\n"
-                      "\nHardware Port: Thunderbolt 2\nDevice: en3\nEthernet Address: 82:15:07:f3:c5:41\n"
-                      "\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 82:15:07:f3:c5:40\n"
-                      "\nHardware Port: USB 10/100/1000 LAN\nDevice: en11\nEthernet Address: 9c:eb:e8:98:0e:62\n"
-                      "\nHardware Port: iPhone USB\nDevice: en12\nEthernet Address: 92:8c:43:1e:b2:1c\n"
-                      "\nHardware Port: TestBridge2\nDevice: bridge2\nEthernet Address: a6:83:e7:56:07:02\n"
-                      "\nVLAN Configurations\n===================\n"
-                      "\nVLAN User Defined Name: TestVLAN\nParent Device: en0\nDevice (\"Hardware\" Port): vlan0"
-                      "\nTag: 1\n");
+QByteArray networksetup_output = QByteArrayLiteral(
+    "\nHardware Port: Ethernet\nDevice: en0\nEthernet Address: 98:10:e8:f3:14:97\n"
+    "\nHardware Port: Wi-Fi\nDevice: en1\nEthernet Address: dc:a4:ca:f3:67:03\n"
+    "\nHardware Port: Bluetooth PAN\nDevice: en4\nEthernet Address: dc:a4:ca:f3:67:04\n"
+    "\nHardware Port: Thunderbolt 1\nDevice: en2\nEthernet Address: 82:15:07:f3:c5:40\n"
+    "\nHardware Port: Thunderbolt 2\nDevice: en3\nEthernet Address: 82:15:07:f3:c5:41\n"
+    "\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 82:15:07:f3:c5:40\n"
+    "\nHardware Port: USB 10/100/1000 LAN\nDevice: en11\nEthernet Address: 9c:eb:e8:98:0e:62\n"
+    "\nHardware Port: iPhone USB\nDevice: en12\nEthernet Address: 92:8c:43:1e:b2:1c\n"
+    "\nHardware Port: TestBridge2\nDevice: bridge2\nEthernet Address: a6:83:e7:56:07:02\n"
+    "\nVLAN Configurations\n===================\n"
+    "\nVLAN User Defined Name: TestVLAN\nParent Device: en0\nDevice (\"Hardware\" Port): vlan0"
+    "\nTag: 1\n");
 
 std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
     {"en0", {"en0", "ethernet", "Ethernet"}},
@@ -245,7 +252,8 @@ TEST(PlatformOSX, test_no_extra_daemon_settings)
 TEST(PlatformOSX, test_interpretation_of_winterm_setting_not_supported)
 {
     for (const auto x : {"no", "matter", "what"})
-        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingException);
+        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x),
+                     mp::InvalidSettingException);
 }
 
 TEST(PlatformOSX, test_interpretation_of_unknown_settings_not_supported)
@@ -272,7 +280,8 @@ TEST(PlatformOSX, test_default_privileged_mounts)
 
 TEST(PlatformOSX, test_network_interfaces)
 {
-    std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope = mpt::MockProcessFactory::Inject();
+    std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope =
+        mpt::MockProcessFactory::Inject();
     const mp::ProcessState success{0, std::nullopt};
     mock_factory_scope->register_callback(
         [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
@@ -295,10 +304,12 @@ TEST(PlatformOSX, create_alias_script_works)
 {
     const mpt::TempDir tmp_dir;
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+    EXPECT_NO_THROW(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
     checked_script.open(QFile::ReadOnly);
@@ -325,8 +336,9 @@ TEST(PlatformOSX, create_alias_script_overwrites)
         .WillOnce(Return(std::filesystem::perms::owner_read | std::filesystem::perms::owner_write));
     EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillOnce(Return(true));
 
-    EXPECT_NO_THROW(
-        mock_platform->Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "other_command"}));
+    EXPECT_NO_THROW(mock_platform->Platform::create_alias_script(
+        "alias_name",
+        mp::AliasDefinition{"instance", "other_command"}));
 }
 
 TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
@@ -335,9 +347,10 @@ TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to create dir '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST(PlatformOSX, create_alias_script_throws_if_cannot_write_script)
@@ -348,9 +361,10 @@ TEST(PlatformOSX, create_alias_script_throws_if_cannot_write_script)
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to write to file '")));
+    MP_EXPECT_THROW_THAT(
+        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST(PlatformOSX, remove_alias_script_works)
@@ -358,7 +372,8 @@ TEST(PlatformOSX, remove_alias_script_works)
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
     MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
@@ -373,7 +388,8 @@ TEST(PlatformOSX, remove_alias_script_throws_if_cannot_remove_script)
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
     MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"),

@@ -43,7 +43,8 @@ public:
     };
     using Callback = std::function<void(MockProcess*)>;
 
-    // MockProcessFactory installed with Inject() call, and uninstalled when the Scope object deleted
+    // MockProcessFactory installed with Inject() call, and uninstalled when the Scope object
+    // deleted
     struct Scope
     {
         ~Scope();
@@ -85,7 +86,8 @@ public:
     MOCK_METHOD(bool, wait_for_started, (int msecs), (override));
     MOCK_METHOD(bool, wait_for_finished, (int msecs), (override));
 
-    MockProcess(std::unique_ptr<ProcessSpec>&& spec, std::vector<MockProcessFactory::ProcessInfo>& process_list);
+    MockProcess(std::unique_ptr<ProcessSpec>&& spec,
+                std::vector<MockProcessFactory::ProcessInfo>& process_list);
 
     QString program() const override;
     QStringList arguments() const override;

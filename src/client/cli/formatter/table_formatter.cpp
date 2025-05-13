@@ -30,20 +30,30 @@ namespace
 {
 const std::regex newline("(\r\n|\n)");
 
-std::string format_images(const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-                          std::string type)
+std::string format_images(
+    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+    std::string type)
 {
     fmt::memory_buffer buf;
 
-    fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<28}{:<18}{:<17}{:<}\n",
+                   type,
+                   "Aliases",
+                   "Version",
+                   "Description");
     for (const auto& image : images_info)
     {
         auto aliases = image.aliases_info();
         mp::format::filter_aliases(aliases);
 
-        fmt::format_to(std::back_inserter(buf), "{:<28}{:<18}{:<17}{:<}\n", mp::format::image_string_for(aliases[0]),
-                       fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")), image.version(),
-                       fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+        fmt::format_to(
+            std::back_inserter(buf),
+            "{:<28}{:<18}{:<17}{:<}\n",
+            mp::format::image_string_for(aliases[0]),
+            fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
+            image.version(),
+            fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
     fmt::format_to(std::back_inserter(buf), "\n");
 
@@ -54,7 +64,9 @@ std::string to_usage(const std::string& usage, const std::string& total)
 {
     if (usage.empty() || total.empty())
         return "--";
-    return fmt::format("{} out of {}", mp::MemorySize{usage}.human_readable(), mp::MemorySize{total}.human_readable());
+    return fmt::format("{} out of {}",
+                       mp::MemorySize{usage}.human_readable(),
+                       mp::MemorySize{total}.human_readable());
 }
 
 std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
@@ -62,7 +74,10 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     fmt::memory_buffer buf;
     const auto& fundamentals = item.snapshot_info().fundamentals();
 
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshot:", fundamentals.snapshot_name());
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "Snapshot:",
+                   fundamentals.snapshot_name());
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Instance:", item.name());
 
     if (!item.snapshot_info().size().empty())
@@ -73,7 +88,10 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
     fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Memory size:", item.memory_total());
 
     auto mount_paths = item.mount_info().mount_paths();
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}",
+                   "Mounts:",
+                   mount_paths.empty() ? "--\n" : "");
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
     {
         if (mount != mount_paths.cbegin())
@@ -95,7 +113,10 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
                    fundamentals.parent().empty() ? "--" : fundamentals.parent());
 
     auto children = item.snapshot_info().children();
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Children:", children.empty() ? "--\n" : "");
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}",
+                   "Children:",
+                   children.empty() ? "--\n" : "");
     for (auto child = children.cbegin(); child != children.cend(); ++child)
     {
         if (child != children.cbegin())
@@ -103,14 +124,16 @@ std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
         fmt::format_to(std::back_inserter(buf), "{}\n", *child);
     }
 
-    /* TODO split and align string if it extends onto several lines; but actually better implement generic word-wrapping
-       for all output, taking both terminal width and current indentation level into account */
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}\n",
-                   "Comment:",
-                   fundamentals.comment().empty()
-                       ? "--"
-                       : std::regex_replace(fundamentals.comment(), newline, "$&" + std::string(16, ' ')));
+    /* TODO split and align string if it extends onto several lines; but actually better implement
+       generic word-wrapping for all output, taking both terminal width and current indentation
+       level into account */
+    fmt::format_to(
+        std::back_inserter(buf),
+        "{:<16}{}\n",
+        "Comment:",
+        fundamentals.comment().empty()
+            ? "--"
+            : std::regex_replace(fundamentals.comment(), newline, "$&" + std::string(16, ' ')));
 
     return fmt::to_string(buf);
 }
@@ -127,10 +150,16 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
                    mp::format::status_string_for(item.instance_status()));
 
     if (instance_details.has_num_snapshots())
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
+        fmt::format_to(std::back_inserter(buf),
+                       "{:<16}{}\n",
+                       "Snapshots:",
+                       instance_details.num_snapshots());
 
     int ipv4_size = instance_details.ipv4_size();
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}\n",
+                   "IPv4:",
+                   ipv4_size ? instance_details.ipv4(0) : "--");
 
     for (int i = 1; i < ipv4_size; ++i)
         fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv4(i));
@@ -146,7 +175,8 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
     fmt::format_to(std::back_inserter(buf),
                    "{:<16}{}\n",
                    "Release:",
-                   instance_details.current_release().empty() ? "--" : instance_details.current_release());
+                   instance_details.current_release().empty() ? "--"
+                                                              : instance_details.current_release());
     fmt::format_to(std::back_inserter(buf), "{:<16}", "Image hash:");
     if (instance_details.id().empty())
         fmt::format_to(std::back_inserter(buf), "{}\n", "Not Available");
@@ -176,7 +206,10 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
                    to_usage(instance_details.memory_usage(), item.memory_total()));
 
     const auto& mount_paths = item.mount_info().mount_paths();
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
+    fmt::format_to(std::back_inserter(buf),
+                   "{:<16}{}",
+                   "Mounts:",
+                   mount_paths.empty() ? "--\n" : "");
 
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
     {
@@ -202,24 +235,27 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
                            (i == 0) ? "UID map: " : "",
                            (i == 0) ? 29 : 0,
                            std::to_string(host_uid),
-                           (instance_uid == mp::default_id) ? "default" : std::to_string(instance_uid),
+                           (instance_uid == mp::default_id) ? "default"
+                                                            : std::to_string(instance_uid),
                            (i == uid_mappings_size - 1) ? "\n" : ", ");
         }
 
-        for (auto gid_mapping = mount_maps.gid_mappings().cbegin(); gid_mapping != mount_maps.gid_mappings().cend();
+        for (auto gid_mapping = mount_maps.gid_mappings().cbegin();
+             gid_mapping != mount_maps.gid_mappings().cend();
              ++gid_mapping)
         {
             auto host_gid = gid_mapping->host_id();
             auto instance_gid = gid_mapping->instance_id();
 
-            fmt::format_to(std::back_inserter(buf),
-                           "{:>{}}{}:{}{}{}",
-                           (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
-                           (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0,
-                           std::to_string(host_gid),
-                           (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
-                           (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",
-                           (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
+            fmt::format_to(
+                std::back_inserter(buf),
+                "{:>{}}{}:{}{}{}",
+                (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
+                (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0,
+                std::to_string(host_gid),
+                (instance_gid == mp::default_id) ? "default" : std::to_string(instance_gid),
+                (std::next(gid_mapping) != mount_maps.gid_mappings().cend()) ? ", " : "",
+                (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
         }
     }
 
@@ -260,16 +296,29 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         int ipv4_size = instance.ipv4_size();
 
-        fmt::format_to(std::back_inserter(buf), row_format, instance.name(), name_column_width,
-                       mp::format::status_string_for(instance.instance_status()), state_column_width,
-                       ipv4_size ? instance.ipv4(0) : "--", ip_column_width,
-                       instance.current_release().empty() ? "Not Available"
-                                                          : fmt::format("Ubuntu {}", instance.current_release()));
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       instance.name(),
+                       name_column_width,
+                       mp::format::status_string_for(instance.instance_status()),
+                       state_column_width,
+                       ipv4_size ? instance.ipv4(0) : "--",
+                       ip_column_width,
+                       instance.current_release().empty()
+                           ? "Not Available"
+                           : fmt::format("Ubuntu {}", instance.current_release()));
 
         for (int i = 1; i < ipv4_size; ++i)
         {
-            fmt::format_to(std::back_inserter(buf), row_format, "", name_column_width, "", state_column_width,
-                           instance.ipv4(i), instance.ipv4(i).size(), "");
+            fmt::format_to(std::back_inserter(buf),
+                           row_format,
+                           "",
+                           name_column_width,
+                           "",
+                           state_column_width,
+                           instance.ipv4(i),
+                           instance.ipv4(i).size(),
+                           "");
         }
     }
 
@@ -285,8 +334,8 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
     if (snapshots.empty())
         return "No snapshots found.\n";
 
-    const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot", parent_col_header = "Parent",
-                      comment_col_header = "Comment";
+    const std::string name_col_header = "Instance", snapshot_col_header = "Snapshot",
+                      parent_col_header = "Parent", comment_col_header = "Comment";
     const auto name_column_width = mp::format::column_width(
         snapshots.begin(),
         snapshots.end(),
@@ -295,7 +344,9 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
     const auto snapshot_column_width = mp::format::column_width(
         snapshots.begin(),
         snapshots.end(),
-        [](const auto& snapshot) -> int { return snapshot.fundamentals().snapshot_name().length(); },
+        [](const auto& snapshot) -> int {
+            return snapshot.fundamentals().snapshot_name().length();
+        },
         snapshot_col_header.length());
     const auto parent_column_width = mp::format::column_width(
         snapshots.begin(),
@@ -320,21 +371,26 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         std::smatch match;
         const auto& fundamentals = snapshot.fundamentals();
 
-        if (std::regex_search(fundamentals.comment().begin(), fundamentals.comment().end(), match, newline))
-            max_comment_column_width = std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
+        if (std::regex_search(fundamentals.comment().begin(),
+                              fundamentals.comment().end(),
+                              match,
+                              newline))
+            max_comment_column_width =
+                std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
 
-        fmt::format_to(std::back_inserter(buf),
-                       row_format,
-                       snapshot.name(),
-                       name_column_width,
-                       fundamentals.snapshot_name(),
-                       snapshot_column_width,
-                       fundamentals.parent().empty() ? "--" : fundamentals.parent(),
-                       parent_column_width,
-                       fundamentals.comment().empty() ? "--"
-                       : fundamentals.comment().length() > max_comment_column_width
-                           ? fmt::format("{}…", fundamentals.comment().substr(0, max_comment_column_width - 1))
-                           : fundamentals.comment());
+        fmt::format_to(
+            std::back_inserter(buf),
+            row_format,
+            snapshot.name(),
+            name_column_width,
+            fundamentals.snapshot_name(),
+            snapshot_column_width,
+            fundamentals.parent().empty() ? "--" : fundamentals.parent(),
+            parent_column_width,
+            fundamentals.comment().empty() ? "--"
+            : fundamentals.comment().length() > max_comment_column_width
+                ? fmt::format("{}…", fundamentals.comment().substr(0, max_comment_column_width - 1))
+                : fundamentals.comment());
     }
 
     return fmt::to_string(buf);
@@ -353,7 +409,8 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
         }
         else
         {
-            assert(info.has_snapshot_info() && "either one of instance or snapshot details should be populated");
+            assert(info.has_snapshot_info() &&
+                   "either one of instance or snapshot details should be populated");
             fmt::format_to(std::back_inserter(buf), generate_snapshot_details(info));
         }
 
@@ -379,7 +436,8 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     }
     else
     {
-        assert(reply.has_snapshot_list() && "either one of instances or snapshots should be populated");
+        assert(reply.has_snapshot_list() &&
+               "either one of instances or snapshots should be populated");
         output = generate_snapshots_list(reply.snapshot_list());
     }
 
@@ -395,7 +453,8 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
     if (interfaces.empty())
         return "No network interfaces found.\n";
 
-    const std::string name_col_header = "Name", type_col_header = "Type", desc_col_header = "Description";
+    const std::string name_col_header = "Name", type_col_header = "Type",
+                      desc_col_header = "Description";
     const auto name_column_width = mp::format::column_width(
         interfaces.begin(),
         interfaces.end(),
@@ -418,8 +477,13 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
 
     for (const auto& interface : format::sorted(reply.interfaces()))
     {
-        fmt::format_to(std::back_inserter(buf), row_format, interface.name(), name_column_width, interface.type(),
-                       type_column_width, interface.description());
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       interface.name(),
+                       name_column_width,
+                       interface.type(),
+                       type_column_width,
+                       interface.description());
     }
 
     return fmt::to_string(buf);
@@ -438,7 +502,8 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         else
         {
             if (!reply.images_info().empty())
-                fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
+                fmt::format_to(std::back_inserter(buf),
+                               format_images(reply.images_info(), "Image"));
 
             if (!reply.blueprints_info().empty())
                 fmt::format_to(std::back_inserter(buf),
@@ -457,13 +522,15 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         if (reply.blueprints_info().empty())
             fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
         else
-            fmt::format_to(std::back_inserter(buf), format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
+            fmt::format_to(std::back_inserter(buf),
+                           format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
     }
 
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const VersionReply& reply, const std::string& client_version) const
+std::string mp::TableFormatter::format(const VersionReply& reply,
+                                       const std::string& client_version) const
 {
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{:<12}{}\n", "multipass", client_version);
@@ -474,7 +541,9 @@ std::string mp::TableFormatter::format(const VersionReply& reply, const std::str
 
         if (mp::cmd::update_available(reply.update_info()))
         {
-            fmt::format_to(std::back_inserter(buf), "{}", mp::cmd::update_notice(reply.update_info()));
+            fmt::format_to(std::back_inserter(buf),
+                           "{}",
+                           mp::cmd::update_notice(reply.update_info()));
         }
     }
     return fmt::to_string(buf);
@@ -493,29 +562,34 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
             aliases.cend(),
             [&, get_width](const auto& ctx) -> int {
                 return ctx.second.empty() ? 0
-                                          : get_width(*std::max_element(ctx.second.cbegin(),
-                                                                        ctx.second.cend(),
-                                                                        [&get_width](const auto& lhs, const auto& rhs) {
-                                                                            return get_width(lhs) < get_width(rhs);
-                                                                        }));
+                                          : get_width(*std::max_element(
+                                                ctx.second.cbegin(),
+                                                ctx.second.cend(),
+                                                [&get_width](const auto& lhs, const auto& rhs) {
+                                                    return get_width(lhs) < get_width(rhs);
+                                                }));
             },
             header_width);
     };
 
-    const std::string alias_col_header = "Alias", instance_col_header = "Instance", command_col_header = "Command",
-                      context_col_header = "Context", dir_col_header = "Working directory";
+    const std::string alias_col_header = "Alias", instance_col_header = "Instance",
+                      command_col_header = "Command", context_col_header = "Context",
+                      dir_col_header = "Working directory";
     const std::string active_context = "*";
-    const auto alias_width =
-        width([](const auto& alias) -> int { return alias.first.length(); }, alias_col_header.length());
+    const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); },
+                                   alias_col_header.length());
     const auto instance_width =
-        width([](const auto& alias) -> int { return alias.second.instance.length(); }, instance_col_header.length());
+        width([](const auto& alias) -> int { return alias.second.instance.length(); },
+              instance_col_header.length());
     const auto command_width =
-        width([](const auto& alias) -> int { return alias.second.command.length(); }, command_col_header.length());
+        width([](const auto& alias) -> int { return alias.second.command.length(); },
+              command_col_header.length());
     const auto context_width = mp::format::column_width(
         aliases.cbegin(),
         aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
-            return alias.first == aliases.active_context_name() && !aliases.get_active_context().empty()
+            return alias.first == aliases.active_context_name() &&
+                           !aliases.get_active_context().empty()
                        ? alias.first.length() + active_context.length()
                        : alias.first.length();
         },
@@ -537,13 +611,23 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
 
     for (const auto& [context_name, context_contents] : sort_dict(aliases))
     {
-        std::string shown_context =
-            context_name == aliases.active_context_name() ? context_name + active_context : context_name;
+        std::string shown_context = context_name == aliases.active_context_name()
+                                        ? context_name + active_context
+                                        : context_name;
 
         for (const auto& [name, def] : sort_dict(context_contents))
         {
-            fmt::format_to(std::back_inserter(buf), row_format, name, alias_width, def.instance, instance_width,
-                           def.command, command_width, shown_context, context_width, def.working_directory);
+            fmt::format_to(std::back_inserter(buf),
+                           row_format,
+                           name,
+                           alias_width,
+                           def.instance,
+                           instance_width,
+                           def.command,
+                           command_width,
+                           shown_context,
+                           context_width,
+                           def.working_directory);
         }
     }
 

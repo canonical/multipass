@@ -43,6 +43,6 @@ private:
 
     Formatter* chosen_formatter;
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_FIND_H

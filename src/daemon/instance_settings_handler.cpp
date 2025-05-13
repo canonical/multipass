@@ -43,18 +43,21 @@ enum class Operation
 
 std::string operation_msg(Operation op)
 {
-    return op == Operation::Obtain ? "Cannot obtain instance settings" : "Cannot update instance settings";
+    return op == Operation::Obtain ? "Cannot obtain instance settings"
+                                   : "Cannot update instance settings";
 }
 
 QRegularExpression make_key_regex()
 {
     const auto instance_pattern = QStringLiteral("(?<instance>.+)");
     const auto prop_template = QStringLiteral("(?<property>%1)");
-    const auto either_prop = QStringList{cpus_suffix, mem_suffix, disk_suffix, bridged_suffix}.join("|");
+    const auto either_prop =
+        QStringList{cpus_suffix, mem_suffix, disk_suffix, bridged_suffix}.join("|");
     const auto prop_pattern = prop_template.arg(either_prop);
 
     const auto key_template = QStringLiteral(R"(%1\.%2\.%3)");
-    const auto key_pattern = key_template.arg(mp::daemon_settings_root, instance_pattern, prop_pattern);
+    const auto key_pattern =
+        key_template.arg(mp::daemon_settings_root, instance_pattern, prop_pattern);
 
     return QRegularExpression{QRegularExpression::anchoredPattern(key_pattern)};
 }
@@ -78,7 +81,9 @@ std::pair<std::string, std::string> parse_key(const QString& key)
 
 template <typename InstanceMap>
 typename InstanceMap::mapped_type&
-pick_instance(InstanceMap& instances, const std::string& instance_name, Operation operation,
+pick_instance(InstanceMap& instances,
+              const std::string& instance_name,
+              Operation operation,
               const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted = {})
 {
     try
@@ -89,7 +94,8 @@ pick_instance(InstanceMap& instances, const std::string& instance_name, Operatio
     {
         const auto is_deleted = deleted.find(instance_name) != deleted.end();
         const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
-        assert(!is_deleted || operation == Operation::Modify); // obtaining info from deleted instances is fine
+        assert(!is_deleted ||
+               operation == Operation::Modify); // obtaining info from deleted instances is fine
 
         throw mp::InstanceSettingsException{operation_msg(operation), instance_name, reason};
     }
@@ -120,12 +126,18 @@ mp::MemorySize get_memory_size(const QString& key, const QString& val)
     }
 }
 
-void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec)
+void update_cpus(const QString& key,
+                 const QString& val,
+                 mp::VirtualMachine& instance,
+                 mp::VMSpecs& spec)
 {
     bool converted_ok = false;
     if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < std::stoi(mp::min_cpu_cores))
         throw mp::InvalidSettingException{
-            key, val, QString("Need a positive integer (in decimal format) of minimum %1").arg(mp::min_cpu_cores)};
+            key,
+            val,
+            QString("Need a positive integer (in decimal format) of minimum %1")
+                .arg(mp::min_cpu_cores)};
     else if (cpus != spec.num_cores) // NOOP if equal
     {
         instance.update_cpus(cpus);
@@ -133,12 +145,17 @@ void update_cpus(const QString& key, const QString& val, mp::VirtualMachine& ins
     }
 }
 
-void update_mem(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
+void update_mem(const QString& key,
+                const QString& val,
+                mp::VirtualMachine& instance,
+                mp::VMSpecs& spec,
                 const mp::MemorySize& size)
 {
     if (size < mp::MemorySize{mp::min_memory_size})
-        throw mp::InvalidSettingException{key, val,
-                                          QString("Memory less than %1 minimum not allowed").arg(mp::min_memory_size)};
+        throw mp::InvalidSettingException{
+            key,
+            val,
+            QString("Memory less than %1 minimum not allowed").arg(mp::min_memory_size)};
     else if (size != spec.mem_size) // NOOP if equal
     {
         instance.resize_memory(size);
@@ -146,7 +163,10 @@ void update_mem(const QString& key, const QString& val, mp::VirtualMachine& inst
     }
 }
 
-void update_disk(const QString& key, const QString& val, mp::VirtualMachine& instance, mp::VMSpecs& spec,
+void update_disk(const QString& key,
+                 const QString& val,
+                 mp::VirtualMachine& instance,
+                 mp::VMSpecs& spec,
                  const mp::MemorySize& size)
 {
     if (size < spec.disk_space)
@@ -168,14 +188,18 @@ void update_bridged(const QString& key,
     if (!want_bridged)
     {
         if (is_bridged(instance_name)) // inspects host networks once
-            throw mp::InvalidSettingException{key, val, "Removing the bridged network is currently not supported"};
+            throw mp::InvalidSettingException{
+                key,
+                val,
+                "Removing the bridged network is currently not supported"};
     }
     else
         add_interface(instance_name); // if already bridged, this merely warns
 }
 } // namespace
 
-mp::InstanceSettingsException::InstanceSettingsException(const std::string& reason, const std::string& instance,
+mp::InstanceSettingsException::InstanceSettingsException(const std::string& reason,
+                                                         const std::string& instance,
                                                          const std::string& detail)
     : SettingsException{fmt::format("{}; instance: {}; reason: {}", reason, instance, detail)}
 {
@@ -223,8 +247,9 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     if (property == cpus_suffix)
         return QString::number(spec.num_cores);
     if (property == mem_suffix)
-        return QString::fromStdString(spec.mem_size.human_readable()); /* TODO return in bytes when --raw
-                                                                          (need unmarshall capability, w/ flag) */
+        return QString::fromStdString(
+            spec.mem_size.human_readable()); /* TODO return in bytes when --raw
+                                                (need unmarshall capability, w/ flag) */
 
     assert(property == disk_suffix);
     return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
@@ -235,9 +260,12 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     auto [instance_name, property] = parse_key(key);
 
     if (preparing_instances.find(instance_name) != preparing_instances.end())
-        throw InstanceSettingsException{operation_msg(Operation::Modify), instance_name, "instance is being prepared"};
+        throw InstanceSettingsException{operation_msg(Operation::Modify),
+                                        instance_name,
+                                        "instance is being prepared"};
 
-    auto& instance = modify_instance(instance_name); // we need this first, to refuse updating deleted instances
+    auto& instance =
+        modify_instance(instance_name); // we need this first, to refuse updating deleted instances
     auto& spec = modify_spec(instance_name);
     check_state_for_update(instance);
 
@@ -262,9 +290,11 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     instance_persister();
 }
 
-auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name) -> VirtualMachine&
+auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name)
+    -> VirtualMachine&
 {
-    auto ret = pick_instance(operative_instances, instance_name, Operation::Modify, deleted_instances);
+    auto ret =
+        pick_instance(operative_instances, instance_name, Operation::Modify, deleted_instances);
 
     assert(ret && "can't have null instance");
     return *ret;
@@ -275,7 +305,8 @@ auto mp::InstanceSettingsHandler::modify_spec(const std::string& instance_name) 
     return pick_instance(vm_instance_specs, instance_name, Operation::Modify);
 }
 
-auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name) const -> const VMSpecs&
+auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name) const
+    -> const VMSpecs&
 {
     return pick_instance(vm_instance_specs, instance_name, Operation::Obtain);
 }

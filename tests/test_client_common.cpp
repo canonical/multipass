@@ -42,12 +42,16 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 {
     TestClientCommon()
     {
-        ON_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericDataLocation))
+        ON_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::GenericDataLocation))
             .WillByDefault(Return(temp_dir.path()));
         ON_CALL(*mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
         // delegate some functions to the orignal implementation
-        ON_CALL(*mock_utils, make_dir(A<const QDir&>(), A<const QString&>(), A<std::filesystem::perms>()))
-            .WillByDefault([](const QDir& dir, const QString& name, std::filesystem::perms permissions) -> mp::Path {
+        ON_CALL(*mock_utils,
+                make_dir(A<const QDir&>(), A<const QString&>(), A<std::filesystem::perms>()))
+            .WillByDefault([](const QDir& dir,
+                              const QString& name,
+                              std::filesystem::perms permissions) -> mp::Path {
                 return MP_UTILS.Utils::make_dir(dir, name, permissions);
             });
         ON_CALL(*mock_utils, make_dir(A<const QDir&>(), A<std::filesystem::perms>()))
@@ -83,7 +87,8 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 
 TEST_F(TestClientCommon, usesCommonCertWhenItExists)
 {
-    const auto common_cert_dir = MP_UTILS.make_dir(temp_dir.path(), QString(mp::common_client_cert_dir).remove(0, 1));
+    const auto common_cert_dir =
+        MP_UTILS.make_dir(temp_dir.path(), QString(mp::common_client_cert_dir).remove(0, 1));
     const auto common_client_cert_file = common_cert_dir + "/" + mp::client_cert_file;
     const auto common_client_key_file = common_cert_dir + "/" + mp::client_key_file;
 
