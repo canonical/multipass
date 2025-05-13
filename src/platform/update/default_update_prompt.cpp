@@ -33,7 +33,7 @@ mp::DefaultUpdatePrompt::DefaultUpdatePrompt()
     : monitor{std::make_unique<NewReleaseMonitor>(mp::version_string,
                                                   ::new_release_check_frequency)},
       last_shown{std::chrono::system_clock::now() - notify_user_frequency}
-      // so we show update message soon after start
+// so we show update message soon after start
 {
 }
 
