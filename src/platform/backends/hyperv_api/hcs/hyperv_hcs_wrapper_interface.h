@@ -22,6 +22,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_request.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <filesystem>
@@ -60,6 +61,8 @@ struct HCSWrapperInterface
                                             const Plan9ShareParameters& params) const = 0;
     virtual OperationResult remove_plan9_share(const std::string& compute_system_name,
                                                const Plan9ShareParameters& params) const = 0;
+    virtual OperationResult modify_compute_system(const std::string& compute_system_name,
+                                                  const HcsRequest& request) const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs
