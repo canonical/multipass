@@ -33,6 +33,11 @@ using hcn_wrapper_t = hyperv::hcn::HCNWrapper;
 using hcs_wrapper_t = hyperv::hcs::HCSWrapper;
 using virtdisk_wrapper_t = multipass::hyperv::virtdisk::VirtDiskWrapper;
 
+using multipass::hyperv::hcs::HcsNetworkAdapter;
+using multipass::hyperv::hcs::HcsRequest;
+using multipass::hyperv::hcs::HcsRequestType;
+using multipass::hyperv::hcs::HcsResourcePath;
+
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
 // These tests ensure that the API's working together as expected.
 struct HyperV_ComponentIntegrationTests : public ::testing::Test
@@ -225,9 +230,13 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         ASSERT_TRUE(status_msg.empty());
     }
 
-    // Add endpoint
+    // Add network adapter
     {
-        const auto& [status, status_msg] = hcs.add_network_adapter(create_vm_parameters.name, network_adapter);
+        const HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
+                                                 HcsRequestType::Add(),
+                                                 network_adapter};
+        const auto& [status, status_msg] =
+            hcs.modify_compute_system(create_vm_parameters.name, add_network_adapter_req);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
