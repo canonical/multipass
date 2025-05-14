@@ -267,7 +267,7 @@ jobs:
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.cmake-package.outputs.name }}
+        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
