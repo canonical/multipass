@@ -191,6 +191,11 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 zones,
                 (grpc::ServerContext * context, (grpc::ServerReaderWriter<mp::ZonesReply, mp::ZonesRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status,
+                zones_state,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest> * server)),
+                (override));
 };
 
 struct Client : public Test
@@ -4414,6 +4419,72 @@ TEST_F(Client, zones_cmd_verbosity_forwarded)
     EXPECT_CALL(mock_daemon, zones)
         .WillOnce(WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(request_matcher, ok)));
     EXPECT_THAT(send_command({"zones", "-vv"}), Eq(mp::ReturnCode::Ok));
+}
+
+// enable_zones tests
+TEST_F(Client, enable_zones_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"enable-zones", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, enable_zones_cmd_success)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+    EXPECT_THAT(send_command({"enable-zones", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, enable_zones_cmd_no_zones_fails)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
+    EXPECT_THAT(send_command({"enable-zones"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, enable_zones_cmd_passes_proper_request)
+{
+    const auto request_matcher = AllOf(Property(&mp::ZonesStateRequest::available, true),
+                                       Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+
+    EXPECT_CALL(mock_daemon, zones_state)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher, ok)));
+
+    EXPECT_THAT(send_command({"enable-zones", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+// disable_zones tests
+TEST_F(Client, disable_zones_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"disable-zones", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_success)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_no_zones_fails)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
+    EXPECT_THAT(send_command({"disable-zones"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, disable_zones_cmd_passes_proper_request)
+{
+    const auto request_matcher = AllOf(Property(&mp::ZonesStateRequest::available, false),
+                                       Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+
+    EXPECT_CALL(mock_daemon, zones_state)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher, ok)));
+
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_with_force_option)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
