@@ -37,6 +37,11 @@ namespace multipass::test
 {
 using uut_t = hyperv::hcs::HCSWrapper;
 
+using hyperv::hcs::HcsNetworkAdapter;
+using hyperv::hcs::HcsRequest;
+using hyperv::hcs::HcsRequestType;
+using hyperv::hcs::HcsResourcePath;
+
 struct HyperVHCSAPI_UnitTests : public ::testing::Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
@@ -2257,11 +2262,15 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_happy_path)
     generic_operation_happy_path<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...) > params:");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params:");
             hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
             params.mac_address = "00:00:00:00:00:00";
-            return wrapper.add_network_adapter("test_vm", params);
+
+            HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+                                               HcsRequestType::Add(),
+                                               params};
+            return wrapper.modify_compute_system("test_vm", add_network_adapter_req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2279,9 +2288,12 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_hcs_open_fa
     generic_operation_hcs_open_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
             hyperv::hcs::HcsNetworkAdapter params{};
-            return wrapper.add_network_adapter("test_vm", params);
+            HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+                                               HcsRequestType::Add(),
+                                               params};
+            return wrapper.modify_compute_system("test_vm", add_network_adapter_req);
         });
 }
 
@@ -2292,9 +2304,12 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_create_oper
     generic_operation_create_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
             hyperv::hcs::HcsNetworkAdapter params{};
-            return wrapper.add_network_adapter("test_vm", params);
+            HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+                                               HcsRequestType::Add(),
+                                               params};
+            return wrapper.modify_compute_system("test_vm", add_network_adapter_req);
         });
 }
 
@@ -2316,11 +2331,14 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_fail)
     generic_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
             hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
             params.mac_address = "00:00:00:00:00:00";
-            return wrapper.add_network_adapter("test_vm", params);
+            HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+                                               HcsRequestType::Add(),
+                                               params};
+            return wrapper.modify_compute_system("test_vm", add_network_adapter_req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2349,11 +2367,14 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_wait_for_op
     generic_operation_wait_for_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "add_network_adapter(...)");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
             hyperv::hcs::HcsNetworkAdapter params{};
             params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
             params.mac_address = "00:00:00:00:00:00";
-            return wrapper.add_network_adapter("test_vm", params);
+            HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+                                               HcsRequestType::Add(),
+                                               params};
+            return wrapper.modify_compute_system("test_vm", add_network_adapter_req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2371,16 +2392,19 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_happy_
     constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
-            "RequestType": "Remove"
+            "RequestType": "Remove",
+            "Settings": null
         })";
 
     generic_operation_happy_path<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(
-                mpl::Level::debug,
-                "remove_network_adapter(...) > name: (test_vm), endpoint_guid: (288cc1ac-8f31-4a09-9e90-30ad0bcfdbca)");
-            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params:");
+
+            HcsRequest remove_network_adapter_req{
+                HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                HcsRequestType::Remove()};
+            return wrapper.modify_compute_system("test_vm", remove_network_adapter_req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2398,8 +2422,11 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_hcs_op
     generic_operation_hcs_open_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
-            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params:");
+            HcsRequest remove_network_adapter_req{
+                HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                HcsRequestType::Remove()};
+            return wrapper.modify_compute_system("test_vm", remove_network_adapter_req);
         });
 }
 
@@ -2410,8 +2437,11 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_create
     generic_operation_create_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
-            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params:");
+            HcsRequest remove_network_adapter_req{
+                HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                HcsRequestType::Remove()};
+            return wrapper.modify_compute_system("test_vm", remove_network_adapter_req);
         });
 }
 
@@ -2422,14 +2452,18 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_fail)
     constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
-            "RequestType": "Remove"
+            "RequestType": "Remove",
+            "Settings": null
         })";
 
     generic_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
-            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params:");
+            HcsRequest remove_network_adapter_req{
+                HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                HcsRequestType::Remove()};
+            return wrapper.modify_compute_system("test_vm", remove_network_adapter_req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2447,14 +2481,18 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_wait_f
     constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
-            "RequestType": "Remove"
+            "RequestType": "Remove",
+            "Settings": null
         })";
 
     generic_operation_wait_for_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "remove_network_adapter(...)");
-            return wrapper.remove_network_adapter("test_vm", "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca");
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params:");
+            HcsRequest remove_network_adapter_req{
+                HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                HcsRequestType::Remove()};
+            return wrapper.modify_compute_system("test_vm", remove_network_adapter_req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
