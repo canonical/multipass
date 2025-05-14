@@ -25,6 +25,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_network_policy.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_it_hyperv_hcs_api.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_api.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_request.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_it_hyperv_virtdisk.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_virtdisk.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_bb_cit_hyperv.cpp
