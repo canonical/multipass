@@ -261,6 +261,20 @@ struct HCSWrapper : public HCSWrapperInterface
     [[nodiscard]] OperationResult remove_plan9_share(const std::string& compute_system_name,
                                                      const Plan9ShareParameters& params) const override;
 
+    // ---------------------------------------------------------
+
+    /**
+     * Modify a Host Compute System request.
+     *
+     * @param compute_system_name Target compute system name
+     * @param request The request
+     *
+     * @return An object that evaluates to true on success, false otherwise.
+     * message() may contain details of failure when result is false.
+     */
+    [[nodiscard]] OperationResult modify_compute_system(const std::string& compute_system_name,
+                                                        const HcsRequest& request) const override;
+
 private:
     const HCSAPITable api{};
 };

@@ -542,4 +542,14 @@ OperationResult HCSWrapper::remove_plan9_share(const std::string& compute_system
     return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
 }
 
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::modify_compute_system(const std::string& compute_system_name, const HcsRequest& params) const
+{
+    mpl::debug(kLogCategory, "modify_compute_system(...) > params: {}", params);
+
+    const auto json = fmt::to_wstring(params);
+    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, json.c_str(), nullptr);
+}
+
 } // namespace multipass::hyperv::hcs
