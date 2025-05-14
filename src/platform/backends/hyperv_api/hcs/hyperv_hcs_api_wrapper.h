@@ -161,38 +161,6 @@ struct HCSWrapper : public HCSWrapperInterface
     // ---------------------------------------------------------
 
     /**
-     * Add a network adapter to the host compute system.
-     *
-     * A new network interface card will be automatically created for
-     * the endpoint. The network interface card's name will be the
-     * endpoint's GUID for convenience.
-     *
-     * @param [in] compute_system_name Target compute system's name
-     * @param [in] params Network adapter parameters
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
-    [[nodiscard]] OperationResult add_network_adapter(const std::string& compute_system_name,
-                                                      const HcsNetworkAdapter& params) const override;
-
-    // ---------------------------------------------------------
-
-    /**
-     * Remove a network adapter from the host compute system.
-     *
-     * @param [in] name Target compute system's name
-     * @param [in] endpoint_guid GUID of the endpoint to remove
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
-    [[nodiscard]] OperationResult remove_network_adapter(const std::string& compute_system_name,
-                                                         const std::string& endpoint_guid) const override;
-
-    // ---------------------------------------------------------
-
-    /**
      * Resize the amount of memory the compute system has.
      *
      * @param compute_system_name Target compute system name
