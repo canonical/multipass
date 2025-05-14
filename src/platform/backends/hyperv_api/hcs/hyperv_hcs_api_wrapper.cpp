@@ -310,50 +310,6 @@ OperationResult HCSWrapper::resume_compute_system(const std::string& compute_sys
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::add_network_adapter(const std::string& compute_system_name,
-                                                const HcsNetworkAdapter& params) const
-{
-    mpl::debug(kLogCategory, "add_network_adapter(...) > params: {}", params);
-    constexpr auto settings_template = LR"(
-        {{
-            "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{{{0}}}",
-            "RequestType": "Add",
-            "Settings": {{
-                "EndpointId": "{0}",
-                "MacAddress": "{1}",
-                "InstanceId": "{0}"
-            }}
-        }})";
-
-    const auto settings =
-        fmt::format(settings_template, maybe_widen{params.endpoint_guid}, maybe_widen{params.mac_address});
-
-    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
-}
-
-// ---------------------------------------------------------
-
-OperationResult HCSWrapper::remove_network_adapter(const std::string& compute_system_name,
-                                                   const std::string& endpoint_guid) const
-{
-    mpl::debug(kLogCategory,
-               "remove_network_adapter(...) > name: ({}), endpoint_guid: ({})",
-               compute_system_name,
-               endpoint_guid);
-
-    constexpr auto settings_template = LR"(
-        {{
-            "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{{{0}}}",
-            "RequestType": "Remove"
-        }})";
-
-    const auto settings = fmt::format(settings_template, maybe_widen{endpoint_guid});
-
-    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
-}
-
-// ---------------------------------------------------------
-
 OperationResult HCSWrapper::resize_memory(const std::string& compute_system_name, std::uint32_t new_size_mib) const
 {
     // Machine must be booted up.
@@ -544,7 +500,8 @@ OperationResult HCSWrapper::remove_plan9_share(const std::string& compute_system
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::modify_compute_system(const std::string& compute_system_name, const HcsRequest& params) const
+OperationResult HCSWrapper::modify_compute_system(const std::string& compute_system_name,
+                                                  const HcsRequest& params) const
 {
     mpl::debug(kLogCategory, "modify_compute_system(...) > params: {}", params);
 
