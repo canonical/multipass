@@ -1671,7 +1671,7 @@ TEST_F(SftpServer, handles_readdir_attributes_preserved)
     EXPECT_EQ(test_file_attrs.size, (uint64_t)test_file_info.size());
     EXPECT_EQ(test_file_attrs.gid, test_file_info.groupId());
     EXPECT_EQ(test_file_attrs.uid, test_file_info.ownerId());
-    EXPECT_EQ(test_file_attrs.atime,
+    EXPECT_EQ(test_file_attrs.mtime,
               (uint32_t)test_file_info.lastModified().toSecsSinceEpoch()); // atime64 is zero, expected?
 
     EXPECT_TRUE(compare_permission(test_file_attrs.permissions, test_file_info, Permission::Owner));
