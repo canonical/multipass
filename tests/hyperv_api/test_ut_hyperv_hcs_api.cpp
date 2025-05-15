@@ -2517,9 +2517,12 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
     generic_operation_happy_path<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                                 "resize_memory(...) > name: (test_vm), new_size_mb: (16384)");
-            return wrapper.resize_memory("test_vm", 16384);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...) > params");
+            hyperv::hcs::HcsRequest req{hyperv::hcs::HcsResourcePath::Memory(),
+                                        hyperv::hcs::HcsRequestType::Update(),
+                                        hyperv::hcs::HcsModifyMemorySettings{16384}};
+
+            return wrapper.modify_compute_system("test_vm", req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2537,8 +2540,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_hcs_open_fail)
     generic_operation_hcs_open_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "resize_memory(...)");
-            return wrapper.resize_memory("test_vm", 16384);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
+            hyperv::hcs::HcsRequest req{hyperv::hcs::HcsResourcePath::Memory(),
+                                        hyperv::hcs::HcsRequestType::Update(),
+                                        hyperv::hcs::HcsModifyMemorySettings{16384}};
+            return wrapper.modify_compute_system("test_vm", req);
         });
 }
 
@@ -2549,8 +2555,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_create_operation_
     generic_operation_create_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "resize_memory(...)");
-            return wrapper.resize_memory("test_vm", 16384);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
+            hyperv::hcs::HcsRequest req{hyperv::hcs::HcsResourcePath::Memory(),
+                                        hyperv::hcs::HcsRequestType::Update(),
+                                        hyperv::hcs::HcsModifyMemorySettings{16384}};
+            return wrapper.modify_compute_system("test_vm", req);
         });
 }
 
@@ -2568,8 +2577,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_fail)
     generic_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "resize_memory(...)");
-            return wrapper.resize_memory("test_vm", 16384);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
+            hyperv::hcs::HcsRequest req{hyperv::hcs::HcsResourcePath::Memory(),
+                                        hyperv::hcs::HcsRequestType::Update(),
+                                        hyperv::hcs::HcsModifyMemorySettings{16384}};
+            return wrapper.modify_compute_system("test_vm", req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
@@ -2594,8 +2606,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_wait_for_operatio
     generic_operation_wait_for_operation_fail<decltype(HcsModifyComputeSystem)>(
         mock_api_table.ModifyComputeSystem,
         [&](hyperv::hcs::HCSWrapper& wrapper) {
-            logger_scope.mock_logger->expect_log(mpl::Level::debug, "resize_memory(...)");
-            return wrapper.resize_memory("test_vm", 16384);
+            logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
+            hyperv::hcs::HcsRequest req{hyperv::hcs::HcsResourcePath::Memory(),
+                                        hyperv::hcs::HcsRequestType::Update(),
+                                        hyperv::hcs::HcsModifyMemorySettings{16384}};
+            return wrapper.modify_compute_system("test_vm", req);
         },
         [](HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR configuration, HANDLE identity) {
             ASSERT_EQ(mock_compute_system_object, computeSystem);
