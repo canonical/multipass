@@ -520,15 +520,20 @@ void HCSVirtualMachine::update_cpus(int num_cores)
 
     throw std::runtime_error{"Not yet implemented"};
 }
+
 void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
 {
     mpl::debug(kLogCategory,
                "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
                vm_name,
                new_size.in_megabytes());
-
-    const auto& [status, status_msg] = hcs->resize_memory(vm_name, new_size.in_megabytes());
+    hcs::HcsRequest req{hcs::HcsResourcePath::Memory(),
+                        hcs::HcsRequestType::Update(),
+                        hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
+    hcs->modify_compute_system(vm_name, req);
+    // FIXME: Log the result.
 }
+
 void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     mpl::debug(kLogCategory,
