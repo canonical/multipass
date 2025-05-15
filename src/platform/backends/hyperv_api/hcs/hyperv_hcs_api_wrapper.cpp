@@ -310,25 +310,6 @@ OperationResult HCSWrapper::resume_compute_system(const std::string& compute_sys
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::resize_memory(const std::string& compute_system_name, std::uint32_t new_size_mib) const
-{
-    // Machine must be booted up.
-    mpl::debug(kLogCategory, "resize_memory(...) > name: ({}), new_size_mb: ({})", compute_system_name, new_size_mib);
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsmodifycomputesystem#remarks
-    constexpr auto resize_memory_settings_template = LR"(
-        {{
-            "ResourcePath": "VirtualMachine/ComputeTopology/Memory/SizeInMB",
-            "RequestType": "Update",
-            "Settings": {0}
-        }})";
-
-    const auto settings = fmt::format(resize_memory_settings_template, new_size_mib);
-
-    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, settings.c_str(), nullptr);
-}
-
-// ---------------------------------------------------------
-
 OperationResult HCSWrapper::update_cpu_count(const std::string& compute_system_name, std::uint32_t new_vcpu_count) const
 {
     return OperationResult{E_NOTIMPL, L"Not implemented yet!"};
