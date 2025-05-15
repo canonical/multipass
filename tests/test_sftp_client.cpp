@@ -25,7 +25,6 @@
 #include "mock_sftp_utils.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
-#include <Poco/TeeStream.h>
 
 #include <multipass/ssh/sftp_client.h>
 #include <multipass/ssh/ssh_session.h>
@@ -287,9 +286,8 @@ TEST_F(SFTPClient, pull_file_success)
     EXPECT_CALL(*mock_sftp_utils, get_local_file_target(source_path, target_path, _)).WillOnce(Return(target_path));
 
     std::stringstream test_file;
-    auto tee_stream = std::make_unique<Poco::TeeOutputStream>();
-    tee_stream->addStream(test_file);
-    EXPECT_CALL(*mock_file_ops, open_write(target_path, _)).WillOnce(Return(std::move(tee_stream)));
+    EXPECT_CALL(*mock_file_ops, open_write(target_path, _))
+        .WillOnce(Return(std::make_unique<std::ostream>(test_file.rdbuf())));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     auto mocked_sftp_read = [&, read = false](auto, void* data, auto) mutable {
@@ -737,9 +735,7 @@ TEST_F(SFTPClient, pull_dir_success_regular)
 
     std::string test_data = "test_data";
     std::stringstream test_file;
-    auto tee_stream = std::make_unique<Poco::TeeOutputStream>();
-    tee_stream->addStream(test_file);
-    EXPECT_CALL(*mock_file_ops, open_write).WillOnce(Return(std::move(tee_stream)));
+    EXPECT_CALL(*mock_file_ops, open_write).WillOnce(Return(std::make_unique<std::ostream>(test_file.rdbuf())));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     auto mocked_sftp_read = [&, read = false](auto, const void* data, auto size) mutable {
