@@ -161,20 +161,6 @@ struct HCSWrapper : public HCSWrapperInterface
     // ---------------------------------------------------------
 
     /**
-     * Resize the amount of memory the compute system has.
-     *
-     * @param compute_system_name Target compute system name
-     * @param new_size_mib New memory size, in megabytes
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
-    [[nodiscard]] OperationResult resize_memory(const std::string& compute_system_name,
-                                                std::uint32_t new_size_mib) const override;
-
-    // ---------------------------------------------------------
-
-    /**
      * Change the amount of available vCPUs in the compute system
      *
      * @param compute_system_name Target compute system name
