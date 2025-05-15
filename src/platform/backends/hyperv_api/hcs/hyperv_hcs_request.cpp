@@ -21,6 +21,7 @@
 #include <fmt/std.h>
 
 using multipass::hyperv::maybe_widen;
+using multipass::hyperv::hcs::HcsModifyMemorySettings;
 using multipass::hyperv::hcs::HcsNetworkAdapter;
 using multipass::hyperv::hcs::HcsRequest;
 
@@ -46,6 +47,15 @@ struct HcsRequestSettingsFormatters
         return fmt::format(json_template.as<Char>(),
                            maybe_widen{params.endpoint_guid},
                            maybe_widen{params.mac_address});
+    }
+
+    auto operator()(const HcsModifyMemorySettings& params)
+    {
+        constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+            {0}
+        )json");
+
+        return fmt::format(json_template.as<Char>(), params.size_in_mb);
     }
 };
 
