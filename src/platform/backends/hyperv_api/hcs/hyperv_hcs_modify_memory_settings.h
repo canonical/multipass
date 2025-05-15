@@ -15,45 +15,19 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_RESOURCE_PATH_H
-#define MULTIPASS_HYPERV_API_HCS_RESOURCE_PATH_H
+#ifndef MULTIPASS_HYPERV_API_HCS_MODIFY_MEMORY_SETTINGS_H
+#define MULTIPASS_HYPERV_API_HCS_MODIFY_MEMORY_SETTINGS_H
 
 #include <fmt/format.h>
 
-#include <string>
-#include <string_view>
+#include <cstdint>
 
 namespace multipass::hyperv::hcs
 {
 
-struct HcsResourcePath
+struct HcsModifyMemorySettings
 {
-    operator std::string_view() const
-    {
-        return value;
-    }
-
-    operator const std::string&() const
-    {
-        return value;
-    }
-
-    static HcsResourcePath NetworkAdapters(const std::string& network_adapter_id)
-    {
-        return fmt::format("VirtualMachine/Devices/NetworkAdapters/{{{0}}}", network_adapter_id);
-    }
-
-    static HcsResourcePath Memory()
-    {
-        return std::string{"VirtualMachine/ComputeTopology/Memory/SizeInMB"};
-    }
-
-private:
-    HcsResourcePath(std::string v) : value(v)
-    {
-    }
-
-    std::string value{};
+    std::uint32_t size_in_mb{0};
 };
 
 } // namespace multipass::hyperv::hcs
