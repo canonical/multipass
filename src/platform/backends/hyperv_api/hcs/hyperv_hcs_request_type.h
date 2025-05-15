@@ -46,7 +46,8 @@ struct HcsRequestType
         return HcsRequestType{"Remove"};
     }
 
-    constexpr static auto Update(){
+    constexpr static auto Update()
+    {
         return HcsRequestType{"Update"};
     }
 
