@@ -46,6 +46,10 @@ struct HcsRequestType
         return HcsRequestType{"Remove"};
     }
 
+    constexpr static auto Update(){
+        return HcsRequestType{"Update"};
+    }
+
 private:
     constexpr HcsRequestType(std::string_view v) : value(v)
     {
