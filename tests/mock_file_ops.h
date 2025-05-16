@@ -79,11 +79,23 @@ public:
                 (override, const));
     MOCK_METHOD(std::unique_ptr<std::istream>, open_read, (const fs::path& path, std::ios_base::openmode mode),
                 (override, const));
-    MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));
+
+    MOCK_METHOD(void,
+                copy,
+                (const fs::path& src, const fs::path& dist, fs::copy_options copy_options),
+                (override, const));
+    MOCK_METHOD(void, rename, (const fs::path& old_p, const fs::path& new_p), (override, const));
+    MOCK_METHOD(void,
+                rename,
+                (const fs::path& old_p, const fs::path& new_p, std::error_code& errc),
+                (override, const, noexcept));
+    MOCK_METHOD(bool, exists, (const fs::path& path), (override, const));
+    MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const, noexcept));
     MOCK_METHOD(bool, is_directory, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(bool, create_directory, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(bool, create_directories, (const fs::path& path, std::error_code& err), (override, const));
-    MOCK_METHOD(bool, remove, (const fs::path& path, std::error_code& err), (override, const));
+    MOCK_METHOD(bool, remove, (const fs::path& path), (override, const));
+    MOCK_METHOD(bool, remove, (const fs::path& path, std::error_code& err), (override, const, noexcept));
     MOCK_METHOD(void, create_symlink, (const fs::path& to, const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, read_symlink, (const fs::path& path, std::error_code& err), (override, const));

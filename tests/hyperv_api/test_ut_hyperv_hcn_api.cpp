@@ -15,22 +15,25 @@
  *
  */
 
-#include "hyperv_api/hcn/hyperv_hcn_api_table.h"
 #include "hyperv_test_utils.h"
+#include "tests/common.h"
 #include "tests/mock_logger.h"
 
-#include "gmock/gmock.h"
+#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
+#include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+
+#include <multipass/logging/level.h>
+#include <multipass/platform_win.h>
+
 #include <combaseapi.h>
 #include <computenetwork.h>
-#include <multipass/logging/level.h>
-#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
-#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
-#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
-#include <src/platform/backends/hyperv_api/hyperv_api_common.h>
 #include <winerror.h>
 
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
+namespace hcn = multipass::hyperv::hcn;
 
 using testing::DoAll;
 using testing::Return;
@@ -38,7 +41,7 @@ using testing::Return;
 namespace multipass::test
 {
 
-using uut_t = hyperv::hcn::HCNWrapper;
+using uut_t = hcn::HCNWrapper;
 
 struct HyperVHCNAPI_UnitTests : public ::testing::Test
 {
@@ -86,15 +89,15 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
 
     // Initialize the API table with stub functions, so if any of these fire without
     // our will, we'll know.
-    hyperv::hcn::HCNAPITable mock_api_table{stub_mock_create_network.AsStdFunction(),
-                                            stub_mock_open_network.AsStdFunction(),
-                                            stub_mock_delete_network.AsStdFunction(),
-                                            stub_mock_close_network.AsStdFunction(),
-                                            stub_mock_create_endpoint.AsStdFunction(),
-                                            stub_mock_open_endpoint.AsStdFunction(),
-                                            stub_mock_delete_endpoint.AsStdFunction(),
-                                            stub_mock_close_endpoint.AsStdFunction(),
-                                            stub_mock_cotaskmemfree.AsStdFunction()};
+    hcn::HCNAPITable mock_api_table{stub_mock_create_network.AsStdFunction(),
+                                    stub_mock_open_network.AsStdFunction(),
+                                    stub_mock_delete_network.AsStdFunction(),
+                                    stub_mock_close_network.AsStdFunction(),
+                                    stub_mock_create_endpoint.AsStdFunction(),
+                                    stub_mock_open_endpoint.AsStdFunction(),
+                                    stub_mock_delete_endpoint.AsStdFunction(),
+                                    stub_mock_close_endpoint.AsStdFunction(),
+                                    stub_mock_cotaskmemfree.AsStdFunction()};
 
     // Sentinel values as mock API parameters. These handles are opaque handles and
     // they're not being dereferenced in any way -- only address values are compared.
@@ -111,7 +114,7 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
 /**
  * Success scenario: Everything goes as expected.
  */
-TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
+TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
 {
     /******************************************************
      * Override the default mock functions.
@@ -132,21 +135,27 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
                     {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
                         "Name": "multipass-hyperv-api-hcn-create-test",
                         "Type": "ICS",
-                        "Subnets" : [
+                        "Ipams": [
                             {
-                                "GatewayAddress": "172.50.224.1",
-                                "AddressPrefix" : "172.50.224.0/20",
-                                "IpSubnets" : [
+                                "Type": "static",
+                                "Subnets": [
                                     {
-                                        "IpAddressPrefix": "172.50.224.0/20"
+                                        "Policies": [],
+                                        "Routes": [],
+                                        "IpAddressPrefix": "172.50.224.0/20",
+                                        "IpSubnets": null
                                     }
                                 ]
                             }
                         ],
-                        "IsolateSwitch": true,
-                        "Flags" : 265
+                        "Flags" : 0,
+                        "Policies": []
                     }
                     )""";
                     ASSERT_NE(nullptr, network);
@@ -156,8 +165,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto guid_str = hyperv::guid_to_string(id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     *network = mock_network_object;
                 },
                 Return(NOERROR)));
@@ -171,11 +179,282 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success)
      ******************************************************/
     {
         uut_t uut{mock_api_table};
-        hyperv::hcn::CreateNetworkParameters params{};
+        hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-        params.subnet = "172.50.224.0/20";
-        params.gateway = "172.50.224.1";
+        params.ipams = {hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
+
+        const auto& [status, status_msg] = uut.create_network(params);
+        ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+/**
+ * Success scenario: Everything goes as expected.
+ */
+TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
+{
+    /******************************************************
+     * Override the default mock functions.
+     ******************************************************/
+    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
+    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
+
+    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
+    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
+
+    /******************************************************
+     * Verify that the dependencies are called with right
+     * data.
+     ******************************************************/
+    {
+        EXPECT_CALL(mock_create_network, Call)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
+                    constexpr auto expected_network_settings = LR"""(
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
+                        "Name": "multipass-hyperv-api-hcn-create-test",
+                        "Type": "Transparent",
+                        "Ipams": [
+                        ],
+                        "Flags" : 0,
+                        "Policies": [
+                         {
+                            "Type": "NetAdapterName",
+                            "Settings":
+                            {
+                                "NetworkAdapterName": "test adapter"
+                            }
+                        }
+                        ]
+                    }
+                    )""";
+                    ASSERT_NE(nullptr, network);
+                    ASSERT_EQ(nullptr, *network);
+                    ASSERT_NE(nullptr, error_record);
+                    ASSERT_EQ(nullptr, *error_record);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
+                    *network = mock_network_object;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_close_network, Call)
+            .WillOnce(DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
+    }
+
+    /******************************************************
+     * Verify the expected outcome.
+     ******************************************************/
+    {
+        uut_t uut{mock_api_table};
+        hcn::CreateNetworkParameters params{};
+        params.type = hcn::HcnNetworkType::Transparent();
+        params.name = "multipass-hyperv-api-hcn-create-test";
+        params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+        params.ipams = {};
+        hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
+                                     hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
+        params.policies.push_back(policy);
+
+        const auto& [status, status_msg] = uut.create_network(params);
+        ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+/**
+ * Success scenario: Everything goes as expected.
+ */
+TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_policies)
+{
+    /******************************************************
+     * Override the default mock functions.
+     ******************************************************/
+    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
+    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
+
+    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
+    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
+
+    /******************************************************
+     * Verify that the dependencies are called with right
+     * data.
+     ******************************************************/
+    {
+        EXPECT_CALL(mock_create_network, Call)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
+                    constexpr auto expected_network_settings = LR"""(
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
+                        "Name": "multipass-hyperv-api-hcn-create-test",
+                        "Type": "Transparent",
+                        "Ipams": [
+                        ],
+                        "Flags" : 10,
+                        "Policies": [
+                         {
+                            "Type": "NetAdapterName",
+                            "Settings":
+                            {
+                                "NetworkAdapterName": "test adapter"
+                            }
+                        },
+                        {
+                            "Type": "NetAdapterName",
+                            "Settings":
+                            {
+                                "NetworkAdapterName": "test adapter"
+                            }
+                        }
+                        ]
+                    }
+                    )""";
+                    ASSERT_NE(nullptr, network);
+                    ASSERT_EQ(nullptr, *network);
+                    ASSERT_NE(nullptr, error_record);
+                    ASSERT_EQ(nullptr, *error_record);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
+                    *network = mock_network_object;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_close_network, Call)
+            .WillOnce(DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
+    }
+
+    /******************************************************
+     * Verify the expected outcome.
+     ******************************************************/
+    {
+        uut_t uut{mock_api_table};
+        hcn::CreateNetworkParameters params{};
+        params.type = hcn::HcnNetworkType::Transparent();
+        params.name = "multipass-hyperv-api-hcn-create-test";
+        params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+        params.ipams = {};
+        params.flags = hcn::HcnNetworkFlags::enable_dhcp_server | hcn::HcnNetworkFlags::enable_non_persistent;
+        hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
+                                     hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
+        params.policies.push_back(policy);
+        params.policies.push_back(policy);
+
+        const auto& [status, status_msg] = uut.create_network(params);
+        ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+/**
+ * Success scenario: Everything goes as expected.
+ */
+TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
+{
+    /******************************************************
+     * Override the default mock functions.
+     ******************************************************/
+    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
+    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
+
+    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
+    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
+
+    /******************************************************
+     * Verify that the dependencies are called with right
+     * data.
+     ******************************************************/
+    {
+        EXPECT_CALL(mock_create_network, Call)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
+                    constexpr auto expected_network_settings = LR"""(
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
+                        "Name": "multipass-hyperv-api-hcn-create-test",
+                        "Type": "Transparent",
+                        "Ipams": [
+                            {
+                                "Type": "static",
+                                "Subnets": [
+                                    {
+                                        "Policies": [],
+                                        "Routes": [
+                                            {
+                                                "NextHop": "10.0.0.1",
+                                                "DestinationPrefix": "0.0.0.0/0",
+                                                "Metric": 0
+                                            }
+                                        ],
+                                        "IpAddressPrefix": "10.0.0.10/10",
+                                        "IpSubnets": null
+                                    }
+                                ]
+                            },
+                             {
+                                "Type": "DHCP",
+                                "Subnets": []
+                            }
+                        ],
+                        "Flags" : 0,
+                        "Policies": []
+                    }
+                    )""";
+                    ASSERT_NE(nullptr, network);
+                    ASSERT_EQ(nullptr, *network);
+                    ASSERT_NE(nullptr, error_record);
+                    ASSERT_EQ(nullptr, *error_record);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
+                    *network = mock_network_object;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_close_network, Call)
+            .WillOnce(DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
+    }
+
+    /******************************************************
+     * Verify the expected outcome.
+     ******************************************************/
+    {
+        uut_t uut{mock_api_table};
+        hcn::CreateNetworkParameters params{};
+        params.type = hcn::HcnNetworkType::Transparent();
+        params.name = "multipass-hyperv-api-hcn-create-test";
+        params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+        hcn::HcnIpam ipam1;
+        ipam1.type = hcn::HcnIpamType::Static();
+        ipam1.subnets.push_back(hcn::HcnSubnet{"10.0.0.10/10", {hcn::HcnRoute{"10.0.0.1", "0.0.0.0/0", 0}}});
+        hcn::HcnIpam ipam2;
+        ipam2.type = hcn::HcnIpamType::Dhcp();
+
+        params.ipams.push_back(ipam1);
+        params.ipams.push_back(ipam2);
 
         const auto& [status, status_msg] = uut.create_network(params);
         ASSERT_TRUE(status);
@@ -223,11 +502,10 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
      * Verify the expected outcome.
      ******************************************************/
     {
-        hyperv::hcn::CreateNetworkParameters params{};
+        hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-        params.subnet = "172.50.224.0/20";
-        params.gateway = "172.50.224.1";
+        params.ipams = {hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
         uut_t uut{mock_api_table};
         const auto& [success, error_msg] = uut.create_network(params);
@@ -277,18 +555,17 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_operation(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::error,
-            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003!");
+            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003");
     }
 
     /******************************************************
      * Verify the expected outcome.
      ******************************************************/
     {
-        hyperv::hcn::CreateNetworkParameters params{};
+        hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-        params.subnet = "172.50.224.0/20";
-        params.gateway = "172.50.224.1";
+        params.ipams = {hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
         uut_t uut{mock_api_table};
         const auto& [success, error_msg] = uut.create_network(params);
@@ -321,8 +598,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
         EXPECT_CALL(mock_delete_network, Call)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
-                    const auto guid_str = hyperv::guid_to_string(guid);
-                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", guid_str);
+                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(guid));
                     ASSERT_EQ(nullptr, *error_record);
                     ASSERT_NE(nullptr, error_record);
                 },
@@ -435,11 +711,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                         "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
                         "Policies": [
                         ],
-                        "IpConfigurations": [
-                            {
-                                "IpAddress": "172.50.224.27"
-                            }
-                        ]
+                        "MacAddress": null
                     })""";
 
                     ASSERT_NE(nullptr, network);
@@ -451,8 +723,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_endpoint_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto endpoint_guid_str = hyperv::guid_to_string(id);
-                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", endpoint_guid_str);
+                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", fmt::to_string(id));
                     *endpoint = mock_endpoint_object;
                 },
                 Return(NOERROR)));
@@ -463,8 +734,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         EXPECT_CALL(mock_open_network, Call)
             .WillOnce(DoAll(
                 [&](REFGUID id, PHCN_NETWORK network, PWSTR* error_record) {
-                    const auto expected_network_guid_str = hyperv::guid_to_string(id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", expected_network_guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     ASSERT_NE(nullptr, network);
                     ASSERT_EQ(nullptr, *network);
                     ASSERT_NE(nullptr, error_record);
@@ -480,7 +750,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27)");
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
@@ -493,10 +763,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
      ******************************************************/
     {
         uut_t uut{mock_api_table};
-        hyperv::hcn::CreateEndpointParameters params{};
+        hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-        params.endpoint_ipvx_addr = "172.50.224.27";
 
         const auto& [success, error_msg] = uut.create_endpoint(params);
         ASSERT_TRUE(success);
@@ -529,7 +798,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27)");
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::error,
@@ -542,10 +811,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
      ******************************************************/
     {
         uut_t uut{mock_api_table};
-        hyperv::hcn::CreateEndpointParameters params{};
+        hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-        params.endpoint_ipvx_addr = "172.50.224.27";
 
         const auto& [status, error_msg] = uut.create_endpoint(params);
         ASSERT_FALSE(status);
@@ -592,11 +860,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                         "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
                         "Policies": [
                         ],
-                        "IpConfigurations": [
-                            {
-                                "IpAddress": "172.50.224.27"
-                            }
-                        ]
+                        "MacAddress": null
                     })""";
 
                     ASSERT_EQ(mock_network_object, network);
@@ -604,8 +868,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                     const auto config_no_whitespace = trim_whitespace(settings);
                     const auto expected_no_whitespace = trim_whitespace(expected_endpoint_settings);
                     ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
-                    const auto expected_endpoint_guid_str = hyperv::guid_to_string(id);
-                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", expected_endpoint_guid_str);
+                    ASSERT_EQ("77c27c1e-8204-437d-a7cc-fb4ce1614819", fmt::to_string(id));
                     *endpoint = mock_endpoint_object;
                     *error_record = mock_error_msg;
                 },
@@ -617,8 +880,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         EXPECT_CALL(mock_open_network, Call)
             .WillOnce(DoAll(
                 [&](REFGUID id, PHCN_NETWORK network, PWSTR* error_record) {
-                    const auto expected_network_guid_str = hyperv::guid_to_string(id);
-                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", expected_network_guid_str);
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
                     ASSERT_NE(nullptr, error_record);
                     ASSERT_EQ(nullptr, *error_record);
                     *network = mock_network_object;
@@ -634,7 +896,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | Endpoint IPvX Addr.: (172.50.224.27)");
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_operation(...) > fn: 0x0, result: true");
@@ -646,10 +908,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
      ******************************************************/
     {
         uut_t uut{mock_api_table};
-        hyperv::hcn::CreateEndpointParameters params{};
+        hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-        params.endpoint_ipvx_addr = "172.50.224.27";
 
         const auto& [success, error_msg] = uut.create_endpoint(params);
         ASSERT_FALSE(success);
@@ -680,8 +941,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
         EXPECT_CALL(mock_delete_endpoint, Call)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
-                    const auto guid_str = hyperv::guid_to_string(guid);
-                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", guid_str);
+                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(guid));
                     ASSERT_EQ(nullptr, *error_record);
                     ASSERT_NE(nullptr, error_record);
                 },

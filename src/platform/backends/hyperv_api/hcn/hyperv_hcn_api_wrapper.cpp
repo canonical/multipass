@@ -20,8 +20,8 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
-#include <hyperv_api/hyperv_api_common.h>
 
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
@@ -35,13 +35,21 @@
 // clang-format on
 
 #include <fmt/xchar.h>
+#include <ztd/out_ptr.hpp>
 
 #include <cassert>
 #include <string>
 #include <type_traits>
 
+using ztd::out_ptr::out_ptr;
+
 namespace multipass::hyperv::hcn
 {
+
+struct GuidParseError : multipass::FormattedExceptionBase<>
+{
+    using FormattedExceptionBase<>::FormattedExceptionBase;
+};
 
 namespace
 {
@@ -59,6 +67,65 @@ using lvl = mpl::Level;
  * Category for the log messages.
  */
 constexpr auto kLogCategory = "HyperV-HCN-Wrapper";
+
+// ---------------------------------------------------------
+
+/**
+ * Parse given GUID string into a GUID struct.
+ *
+ * @param guid_str GUID in string form, either 36 characters
+ *                  (without braces) or 38 characters (with braces.)
+ *
+ * @return GUID The parsed GUID
+ */
+auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
+{
+    constexpr auto kGUIDLength = 36;
+    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
+
+    const auto input = [&guid_wstr]() {
+        switch (guid_wstr.length())
+        {
+        case kGUIDLength:
+            // CLSIDFromString requires GUIDs to be wrapped with braces.
+            return fmt::format(L"{{{}}}", guid_wstr);
+        case kGUIDLengthWithBraces:
+        {
+            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
+            {
+                throw GuidParseError{"GUID string either does not start or end with a brace."};
+            }
+            return guid_wstr;
+        }
+        }
+        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
+    }();
+
+    ::GUID guid = {};
+
+    const auto result = CLSIDFromString(input.c_str(), &guid);
+
+    if (FAILED(result))
+    {
+        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
+    }
+
+    return guid;
+}
+
+/**
+ * Parse given GUID string into a GUID struct.
+ *
+ * @param guid_str GUID in string form, either 36 characters
+ *                  (without braces) or 38 characters (with braces.)
+ *
+ * @return GUID The parsed GUID
+ */
+auto guid_from_string(const std::string& guid_wstr) -> ::GUID
+{
+    const std::wstring v = maybe_widen{guid_wstr};
+    return guid_from_string(v);
+}
 
 // ---------------------------------------------------------
 
@@ -85,16 +152,13 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
     // HCN functions will use CoTaskMemAlloc to allocate the error message buffer
     // so use UniqueCotaskmemString to auto-release it with appropriate free
     // function.
-
-    wchar_t* result_msg_out{nullptr};
+    UniqueCotaskmemString result_msgbuf{};
 
     // Perform the operation. The last argument of the all HCN operations (except
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
     // the API describing the error happened. Therefore, we can streamline all API
     // calls through perform_operation to perform co
-    const auto result = ResultCode{fn(std::forward<Args>(args)..., &result_msg_out)};
-
-    UniqueCotaskmemString result_msgbuf{result_msg_out, api.CoTaskMemFree};
+    const auto result = ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
     mpl::debug(kLogCategory,
                "perform_operation(...) > fn: {}, result: {}",
@@ -123,14 +187,36 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
 UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network_guid)
 {
     mpl::debug(kLogCategory, "open_network(...) > network_guid: {} ", network_guid);
-    HCN_NETWORK network{nullptr};
 
-    const auto result = perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), &network);
+    UniqueHcnNetwork network{};
+    const auto result =
+        perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), out_ptr(network, api.CloseNetwork));
     if (!result)
     {
         mpl::error(kLogCategory, "open_network() > HcnOpenNetwork failed with {}!", result.code);
     }
-    return UniqueHcnNetwork{network, api.CloseNetwork};
+    return network;
+}
+
+/**
+ * Determine the log severity level for a HCN error.
+ *
+ * @param [in] result Operation result
+ * @return mpl::Level The determined severity level
+ */
+auto hcn_errc_to_log_level(const OperationResult& result)
+{
+    /**
+     * Some of the errors are "expected", e.g. a network may be already
+     * exist and that's not necessarily an error.
+     */
+    switch (static_cast<HRESULT>(result.code))
+    {
+    case HCN_E_NETWORK_ALREADY_EXISTS:
+        return mpl::Level::debug;
+    }
+
+    return mpl::Level::error;
 }
 
 } // namespace
@@ -153,44 +239,47 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
      */
     constexpr auto network_settings_template = LR"""(
     {{
-        "Name": "{0}",
-        "Type": "ICS",
-        "Subnets" : [
-            {{
-                "GatewayAddress": "{2}",
-                "AddressPrefix" : "{1}",
-                "IpSubnets" : [
-                    {{
-                        "IpAddressPrefix": "{1}"
-                    }}
-                ]
-            }}
+        "SchemaVersion":
+        {{
+            "Major": 2,
+            "Minor": 2
+        }},
+        "Name": "{Name}",
+        "Type": "{Type}",
+        "Ipams": [
+            {Ipams}
         ],
-        "IsolateSwitch": true,
-        "Flags" : 265
+        "Flags": {Flags},
+        "Policies": [
+            {Policies}
+        ]
     }}
     )""";
 
     // Render the template
     const auto network_settings = fmt::format(network_settings_template,
-                                              string_to_wstring(params.name),
-                                              string_to_wstring(params.subnet),
-                                              string_to_wstring(params.gateway));
+                                              fmt::arg(L"Name", maybe_widen{params.name}),
+                                              fmt::arg(L"Type", maybe_widen{std::string{params.type}}),
+                                              fmt::arg(L"Flags", fmt::underlying(params.flags)),
+                                              fmt::arg(L"Ipams", fmt::join(params.ipams, L",")),
+                                              fmt::arg(L"Policies", fmt::join(params.policies, L",")));
 
-    HCN_NETWORK network{nullptr};
+    UniqueHcnNetwork network{};
     const auto result = perform_hcn_operation(api,
                                               api.CreateNetwork,
                                               guid_from_string(params.guid),
                                               network_settings.c_str(),
-                                              &network);
+                                              out_ptr(network, api.CloseNetwork));
 
     if (!result)
     {
-        // FIXME: Also include the result error message, if any.
-        mpl::error(kLogCategory, "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}!", result.code);
+        mpl::log(hcn_errc_to_log_level(result),
+                 kLogCategory,
+                 "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}: {}",
+                 result.code,
+                 static_cast<std::error_code>(result.code));
     }
 
-    [[maybe_unused]] UniqueHcnNetwork _{network, api.CloseNetwork};
     return result;
 }
 
@@ -224,28 +313,24 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
             "Major": 2,
             "Minor": 16
         }},
-        "HostComputeNetwork": "{0}",
-        "Policies": [
-        ],
-        "IpConfigurations": [
-            {{
-                "IpAddress": "{1}"
-            }}
-        ]
+        "HostComputeNetwork": "{HostComputeNetwork}",
+        "Policies": [],
+        "MacAddress" : {MacAddress}
     }})";
 
     // Render the template
-    const auto endpoint_settings = fmt::format(endpoint_settings_template,
-                                               string_to_wstring(params.network_guid),
-                                               string_to_wstring(params.endpoint_ipvx_addr));
-    HCN_ENDPOINT endpoint{nullptr};
+    const auto endpoint_settings = fmt::format(
+        endpoint_settings_template,
+        fmt::arg(L"HostComputeNetwork", maybe_widen{params.network_guid}),
+        fmt::arg(L"MacAddress",
+                 params.mac_address ? fmt::format(L"\"{}\"", maybe_widen{params.mac_address.value()}) : L"null"));
+    UniqueHcnEndpoint endpoint{};
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
                                               network.get(),
                                               guid_from_string(params.endpoint_guid),
                                               endpoint_settings.c_str(),
-                                              &endpoint);
-    [[maybe_unused]] UniqueHcnEndpoint _{endpoint, api.CloseEndpoint};
+                                              out_ptr(endpoint, api.CloseEndpoint));
     return result;
 }
 

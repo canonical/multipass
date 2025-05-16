@@ -18,8 +18,11 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
 #define MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
 
-#include <hyperv_api/hcs/hyperv_hcs_add_endpoint_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
+#include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_request.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <filesystem>
@@ -44,14 +47,10 @@ struct HCSWrapperInterface
                                             const std::filesystem::path& file_path) const = 0;
     virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
                                              const std::filesystem::path& file_path) const = 0;
-    virtual OperationResult add_endpoint(const AddEndpointParameters& params) const = 0;
-    virtual OperationResult remove_endpoint(const std::string& compute_system_name,
-                                            const std::string& endpoint_guid) const = 0;
-    virtual OperationResult resize_memory(const std::string& compute_system_name,
-                                          const std::uint32_t new_size_mib) const = 0;
-    virtual OperationResult update_cpu_count(const std::string& compute_system_name,
-                                             const std::uint32_t new_core_count) const = 0;
-    virtual OperationResult get_compute_system_state(const std::string& compute_system_name) const = 0;
+    virtual OperationResult get_compute_system_state(const std::string& compute_system_name,
+                                                     ComputeSystemState& state_out) const = 0;
+    virtual OperationResult modify_compute_system(const std::string& compute_system_name,
+                                                  const HcsRequest& request) const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs
