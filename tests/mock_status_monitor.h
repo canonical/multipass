@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STATUS_MONITOR_H
-#define MULTIPASS_MOCK_STATUS_MONITOR_H
+#pragma once
 
 #include "common.h"
 
@@ -41,4 +40,3 @@ struct MockVMStatusMonitor : public VMStatusMonitor
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_STATUS_MONITOR_H

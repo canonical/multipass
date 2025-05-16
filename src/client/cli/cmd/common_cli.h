@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_COMMON_CLI_H
-#define MULTIPASS_COMMON_CLI_H
+#pragma once
 
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/return_codes.h>
@@ -73,4 +72,3 @@ std::unique_ptr<multipass::utils::Timer> make_timer(int timeout,
 } // namespace cmd
 } // namespace multipass
 
-#endif // MULTIPASS_COMMON_CLI_H

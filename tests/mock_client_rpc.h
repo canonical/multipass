@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_CLIENT_RPC_H
-#define MULTIPASS_MOCK_CLIENT_RPC_H
+#pragma once
 
 #include "common.h"
 
@@ -442,4 +441,3 @@ public:
 };
 } // namespace multipass::test
 
-#endif // MULTIPASS_MOCK_CLIENT_RPC_H

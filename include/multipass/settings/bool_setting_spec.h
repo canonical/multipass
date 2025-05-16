@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BOOL_SETTING_SPEC_H
-#define MULTIPASS_BOOL_SETTING_SPEC_H
+#pragma once
 
 #include "basic_setting_spec.h"
 
@@ -35,4 +34,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_BOOL_SETTING_SPEC_H

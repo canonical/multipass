@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_LOCAL_SOCKET_REPLY_H
-#define MULTIPASS_MOCK_LOCAL_SOCKET_REPLY_H
+#pragma once
 
 #include <src/network/local_socket_reply.h>
 
@@ -42,4 +41,3 @@ struct MockLocalSocketReply : public LocalSocketReply
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_LOCAL_SOCKET_REPLY_H

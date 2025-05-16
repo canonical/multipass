@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <shared/base_virtual_machine_factory.h>
 
@@ -66,4 +65,3 @@ inline void multipass::VirtualBoxVirtualMachineFactory::require_snapshots_suppor
 {
 }
 
-#endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H

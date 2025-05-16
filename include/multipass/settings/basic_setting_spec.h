@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASIC_SETTING_SPEC_H
-#define MULTIPASS_BASIC_SETTING_SPEC_H
+#pragma once
 
 #include "setting_spec.h"
 
@@ -36,4 +35,3 @@ protected:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_BASIC_SETTING_SPEC_H

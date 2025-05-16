@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <shared/base_virtual_machine_factory.h>
 
@@ -71,4 +70,3 @@ inline void multipass::HyperVVirtualMachineFactory::require_snapshots_support() 
 {
 }
 
-#endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H

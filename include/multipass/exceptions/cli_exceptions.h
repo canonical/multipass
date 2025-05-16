@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLI_EXCEPTIONS_H
-#define MULTIPASS_CLI_EXCEPTIONS_H
+#pragma once
 
 #include <stdexcept>
 
@@ -30,4 +29,3 @@ public:
 
 } // namespace multipass
 
-#endif // MULTIPASS_CLI_EXCEPTIONS_H

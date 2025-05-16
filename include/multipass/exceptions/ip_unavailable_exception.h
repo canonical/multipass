@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_IP_UNAVAILABLE_EXCEPTION_H
-#define MULTIPASS_IP_UNAVAILABLE_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -31,4 +30,3 @@ class IPUnavailableException : public std::runtime_error
 
 } // namespace multipass
 
-#endif // MULTIPASS_IP_UNAVAILABLE_EXCEPTION_H

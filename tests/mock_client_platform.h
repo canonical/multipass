@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MULTIPASS_MOCK_CLIENT_PLATFORM_H
-#define MULTIPASS_MOCK_CLIENT_PLATFORM_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -40,4 +39,3 @@ public:
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_CLIENT_PLATFORM_H

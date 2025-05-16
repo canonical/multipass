@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PLATFORM_H
-#define MULTIPASS_PLATFORM_H
+#pragma once
 
 #include <multipass/alias_definition.h>
 #include <multipass/days.h>
@@ -114,4 +113,3 @@ inline multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept
 {
 }
 
-#endif // MULTIPASS_PLATFORM_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DAYS_H
-#define MULTIPASS_DAYS_H
+#pragma once
 
 #include <chrono>
 namespace multipass
@@ -25,4 +24,3 @@ using days =
     std::chrono::duration<int, std::ratio_multiply<std::ratio<24>, std::chrono::hours::period>>;
 }
 
-#endif // MULTIPASS_DAYS_H

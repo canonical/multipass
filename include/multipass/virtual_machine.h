@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_H
-#define MULTIPASS_VIRTUAL_MACHINE_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "ip_address.h"
@@ -149,4 +148,3 @@ inline QDir multipass::VirtualMachine::instance_directory() const
     return instance_dir; // TODO this should probably only be known at the level of the base VM
 }
 
-#endif // MULTIPASS_VIRTUAL_MACHINE_H

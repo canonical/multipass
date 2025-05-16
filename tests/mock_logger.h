@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_LOGGER_H
-#define MULTIPASS_MOCK_LOGGER_H
+#pragma once
 
 #include "common.h"
 
@@ -67,4 +66,3 @@ public:
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_LOGGER_H

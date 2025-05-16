@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_INTERFACE_H
-#define MULTIPASS_NETWORK_INTERFACE_H
+#pragma once
 
 #include <string>
 #include <tuple>
@@ -36,4 +35,3 @@ inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
 }
 } // namespace multipass
 
-#endif // MULTIPASS_NETWORK_INTERFACE_H

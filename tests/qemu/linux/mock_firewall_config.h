@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_FIREWALL_CONFIG
-#define MULTIPASS_MOCK_FIREWALL_CONFIG
+#pragma once
 
 #include "tests/common.h"
 #include "tests/mock_singleton_helpers.h"
@@ -47,4 +46,3 @@ struct MockFirewallConfigFactory : public FirewallConfigFactory
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_FIREWALL_CONFIG

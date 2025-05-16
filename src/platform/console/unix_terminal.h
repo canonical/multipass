@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UNIX_TERMINAL_H
-#define MULTIPASS_UNIX_TERMINAL_H
+#pragma once
 
 #include <multipass/terminal.h>
 
@@ -37,4 +36,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_UNIX_TERMINAL_H

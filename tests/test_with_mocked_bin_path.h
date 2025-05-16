@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
-#define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+#pragma once
 
 #include "common.h"
 #include "mock_environment_helpers.h"
@@ -36,4 +35,3 @@ private:
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_TEST_WITH_MOCKED_BIN_PATH

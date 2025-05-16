@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SYSLOG_LOGGER_H
-#define MULTIPASS_SYSLOG_LOGGER_H
+#pragma once
 
 #include "linux_logger.h"
 
@@ -32,4 +31,3 @@ public:
 };
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_SYSLOG_LOGGER_H

@@ -21,8 +21,7 @@
 #include <string>
 #include <vector>
 
-#ifndef MULTIPASS_CLI_PROMPTERS_H
-#define MULTIPASS_CLI_PROMPTERS_H
+#pragma once
 
 namespace multipass
 {
@@ -106,4 +105,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_CLI_PROMPTERS_H

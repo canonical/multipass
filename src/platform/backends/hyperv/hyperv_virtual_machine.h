@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
-#define MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <shared/base_virtual_machine.h>
 
@@ -107,4 +106,3 @@ inline void multipass::HyperVVirtualMachine::require_snapshots_support() const
 {
 }
 
-#endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_ENVIRONMENT_HELPER_H
-#define MULTIPASS_MOCK_ENVIRONMENT_HELPER_H
+#pragma once
 
 #include <QByteArray>
 
@@ -68,4 +67,3 @@ private:
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_ENVIRONMENT_HELPER_H

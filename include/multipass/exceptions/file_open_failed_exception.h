@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
-#define MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -37,4 +36,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H

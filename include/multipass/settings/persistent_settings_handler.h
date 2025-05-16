@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H
-#define MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H
+#pragma once
 
 #include "setting_spec.h"
 #include "settings_handler.h"
@@ -48,4 +47,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_PERSISTENT_SETTINGS_HANDLER_H

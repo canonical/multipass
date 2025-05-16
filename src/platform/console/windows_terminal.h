@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WINDOWS_TERMINAL_H
-#define MULTIPASS_WINDOWS_TERMINAL_H
+#pragma once
 
 #include <multipass/terminal.h>
 
@@ -48,4 +47,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_WINDOWS_TERMINAL_H

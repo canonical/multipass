@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_MOUNT_HANDLER_H
-#define MULTIPASS_LXD_MOUNT_HANDLER_H
+#pragma once
 
 #include "lxd_virtual_machine.h"
 #include "multipass/mount_handler.h"
@@ -52,4 +51,3 @@ private:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_LXD_MOUNT_HANDLER_H

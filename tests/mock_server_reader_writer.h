@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SERVER_WRITER_H
-#define MULTIPASS_MOCK_SERVER_WRITER_H
+#pragma once
 
 #include <gmock/gmock.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -37,4 +36,3 @@ public:
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_SERVER_WRITER_H

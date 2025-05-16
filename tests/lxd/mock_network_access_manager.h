@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H
-#define MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H
+#pragma once
 
 #include "mock_local_socket_reply.h"
 
@@ -45,4 +44,3 @@ struct MockNetworkAccessManager : public NetworkAccessManager
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_NETWORK_ACCESS_MANAGER_H

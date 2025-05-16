@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_COMMAND_H
-#define MULTIPASS_COMMAND_H
+#pragma once
 
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
@@ -212,4 +211,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_COMMAND_H

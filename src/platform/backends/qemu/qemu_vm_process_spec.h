@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PROCESS_H
-#define MULTIPASS_QEMU_PROCESS_H
+#pragma once
 
 #include "qemu_base_process_spec.h"
 #include "qemu_virtual_machine.h"
@@ -61,4 +60,3 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_QEMU_PROCESS_H

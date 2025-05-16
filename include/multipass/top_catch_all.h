@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TOP_CATCH_ALL_H
-#define MULTIPASS_TOP_CATCH_ALL_H
+#pragma once
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -136,4 +135,3 @@ inline void multipass::top_catch_all(std::string_view log_category,
     }
 }
 
-#endif // MULTIPASS_TOP_CATCH_ALL_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NEW_RELEASE_MONITOR_H
-#define MULTIPASS_NEW_RELEASE_MONITOR_H
+#pragma once
 
 #include <multipass/new_release_info.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
@@ -68,4 +67,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_NEW_RELEASE_MONITOR_H

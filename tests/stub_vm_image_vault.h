@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_VM_IMAGE_VAULT_H
-#define MULTIPASS_STUB_VM_IMAGE_VAULT_H
+#pragma once
 
 #include "temp_file.h"
 
@@ -38,16 +37,16 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return prepare({dummy_image.name(), {}, {}, {}, {}, {}});
     };
 
-    void remove(const std::string&) override{};
+    void remove(const std::string&) override {};
     bool has_record_for(const std::string&) override
     {
         return false;
     }
 
-    void prune_expired_images() override{};
+    void prune_expired_images() override {};
     void update_images(const FetchType& fetch_type,
                        const PrepareAction& prepare,
-                       const ProgressMonitor& monitor) override{};
+                       const ProgressMonitor& monitor) override {};
 
     MemorySize minimum_image_size_for(const std::string& image) override
     {
@@ -73,4 +72,3 @@ struct StubVMImageVault final : public multipass::VMImageVault
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_VM_IMAGE_VAULT_H

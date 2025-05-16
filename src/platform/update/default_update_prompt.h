@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DEFAULT_UPDATE_PROMPT_H
-#define MULTIPASS_DEFAULT_UPDATE_PROMPT_H
+#pragma once
 
 #include <chrono>
 #include <memory>
@@ -45,4 +44,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_DEFAULT_UPDATE_PROMPT_H

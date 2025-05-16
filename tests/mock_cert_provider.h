@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_CERT_PROVIDER_H
-#define MULTIPASS_MOCK_CERT_PROVIDER_H
+#pragma once
 
 #include <multipass/cert_provider.h>
 
@@ -70,4 +69,3 @@ struct MockCertProvider : public CertProvider
     MOCK_METHOD(std::string, PEM_signing_key, (), (override, const));
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_CERT_PROVIDER_H

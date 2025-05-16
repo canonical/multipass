@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_H
-#define MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_H
+#pragma once
 
 #include "libvirt_wrapper.h"
 
@@ -76,4 +75,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_H

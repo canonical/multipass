@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_POSIX_H
-#define MULTIPASS_POSIX_H
+#pragma once
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 #include <io.h>
@@ -24,4 +23,3 @@
 #include <unistd.h>
 #endif
 
-#endif // MULTIPASS_POSIX_H

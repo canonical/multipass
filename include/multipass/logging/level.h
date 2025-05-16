@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LEVEL_H
-#define MULTIPASS_LEVEL_H
+#pragma once
 
 #include <string_view>
 
@@ -93,4 +92,3 @@ constexpr bool operator>=(Level a, Level b) noexcept
 } // namespace logging
 } // namespace multipass
 
-#endif // MULTIPASS_LEVEL_H

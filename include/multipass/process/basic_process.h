@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASIC_PROCESS_H
-#define MULTIPASS_BASIC_PROCESS_H
+#pragma once
 
 #include <multipass/process/process.h>
 #include <multipass/process/process_spec.h>
@@ -84,4 +83,3 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_BASIC_PROCESS_H

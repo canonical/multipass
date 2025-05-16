@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_READER_H
-#define MULTIPASS_FILE_READER_H
+#pragma once
 
 #include <QByteArray>
 #include <QString>
@@ -34,4 +33,3 @@ void make_file_with_content(const QString& file_name,
                             const std::string& content = "this is a test file");
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_FILE_READER_H

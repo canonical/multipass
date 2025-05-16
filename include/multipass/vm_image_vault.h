@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_IMAGE_VAULT_H
-#define MULTIPASS_VM_IMAGE_VAULT_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "fetch_type.h"
@@ -94,4 +93,3 @@ protected:
     VMImageVault() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_VM_IMAGE_VAULT_H

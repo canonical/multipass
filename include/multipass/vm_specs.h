@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_SPECS_H
-#define MULTIPASS_VM_SPECS_H
+#pragma once
 
 #include "memory_size.h"
 #include "network_interface.h"
@@ -80,4 +79,3 @@ inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20
 
 } // namespace multipass
 
-#endif // MULTIPASS_VM_SPECS_H

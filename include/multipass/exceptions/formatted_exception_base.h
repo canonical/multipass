@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FORMATTED_EXCEPTION_BASE_H
-#define MULTIPASS_FORMATTED_EXCEPTION_BASE_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -137,4 +136,3 @@ private:
 
 } // namespace multipass
 
-#endif // MULTIPASS_FORMATTED_EXCEPTION_BASE_H

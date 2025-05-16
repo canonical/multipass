@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_RESTORE_H
-#define MULTIPASS_RESTORE_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -39,4 +38,3 @@ private:
 };
 } // namespace multipass::cmd
 
-#endif // MULTIPASS_RESTORE_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WIN_EVENT_LOGGER_H
-#define MULTIPASS_WIN_EVENT_LOGGER_H
+#pragma once
 
 #include <multipass/logging/logger.h>
 
@@ -36,4 +35,3 @@ private:
 } // namespace logging
 } // namespace multipass
 
-#endif // MULTIPASS_WIN_EVENT_LOGGER_H

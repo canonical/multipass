@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_COMMON_IMAGE_HOST_H_
-#define MULTIPASS_COMMON_IMAGE_HOST_H_
+#pragma once
 
 #include "multipass/vm_image_host.h"
 
@@ -46,5 +45,3 @@ protected:
 };
 
 } // namespace multipass
-
-#endif /* MULTIPASS_COMMON_IMAGE_HOST_H_ */

@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_PATH_H
-#define MULTIPASS_PATH_H
+#pragma once
 
 #include <QString>
 
@@ -26,4 +25,3 @@ namespace multipass
 {
 using Path = QString;
 }
-#endif // MULTIPASS_PATH_H

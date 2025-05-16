@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_CLOUD_INIT_FILE_OPS_H
-#define MULTIPASS_MOCK_CLOUD_INIT_FILE_OPS_H
+#pragma once
 
 #include "mock_singleton_helpers.h"
 
@@ -56,4 +55,3 @@ public:
 };
 } // namespace multipass::test
 
-#endif // MULTIPASS_MOCK_CLOUD_INIT_FILE_OPS_H

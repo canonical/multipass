@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H
-#define MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H
+#pragma once
 
 #include <multipass/days.h>
 #include <multipass/query.h>
@@ -99,4 +98,3 @@ private:
     std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
 };
 } // namespace multipass
-#endif // MULTIPASS_DEFAULT_VM_IMAGE_VAULT_H

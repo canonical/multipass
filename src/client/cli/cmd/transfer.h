@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TRANSFER_H
-#define MULTIPASS_TRANSFER_H
+#pragma once
 
 #include <multipass/cli/command.h>
 #include <multipass/ssh/sftp_client.h>
@@ -80,4 +79,3 @@ private:
                                   std::pair<std::string, fs::path>& split_target);
 };
 } // namespace multipass::cmd
-#endif // MULTIPASS_TRANSFER_H

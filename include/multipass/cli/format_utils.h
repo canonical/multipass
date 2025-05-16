@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FORMAT_UTILS_H
-#define MULTIPASS_FORMAT_UTILS_H
+#pragma once
 
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -144,4 +143,3 @@ struct formatter<multipass::FindReply_AliasInfo>
 };
 } // namespace fmt
 
-#endif // MULTIPASS_FORMAT_UTILS_H

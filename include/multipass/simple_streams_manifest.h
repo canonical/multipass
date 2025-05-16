@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
-#define MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "vm_image_info.h"
@@ -48,4 +47,3 @@ struct SimpleStreamsManifest
     SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images);
 };
 } // namespace multipass
-#endif // MULTIPASS_SIMPLE_STREAMS_MANIFEST_H

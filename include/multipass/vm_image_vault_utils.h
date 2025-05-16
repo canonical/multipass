@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_IMAGE_VAULT_UTILS_H
-#define MULTIPASS_VM_IMAGE_VAULT_UTILS_H
+#pragma once
 
 #include "file_ops.h"
 #include "xz_image_decoder.h"
@@ -78,4 +77,3 @@ QString ImageVaultUtils::extract_file(const QString& file,
 
 } // namespace multipass
 
-#endif // MULTIPASS_VM_IMAGE_VAULT_UTILS_H

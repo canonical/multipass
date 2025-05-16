@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TERMINAL_H
-#define MULTIPASS_TERMINAL_H
+#pragma once
 
 #include <istream>
 #include <libssh/libssh.h>
@@ -53,4 +52,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_TERMINAL_H

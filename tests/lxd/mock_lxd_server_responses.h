@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_LXD_SERVER_RESPONSES_H
-#define MULTIPASS_MOCK_LXD_SERVER_RESPONSES_H
+#pragma once
 
 #include <QByteArray>
 
@@ -1582,4 +1581,3 @@ const QByteArray networks_faulty_data{R"(
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_MOCK_LXD_SERVER_RESPONSES_H

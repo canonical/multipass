@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_IMG_UTILS_H
-#define MULTIPASS_QEMU_IMG_UTILS_H
+#pragma once
 
 #include <multipass/path.h>
 #include <multipass/platform.h>
@@ -47,4 +46,3 @@ QByteArray snapshot_list_output(const Path& image_path);
 void delete_snapshot_from_image(const Path& image_path, const QString& snapshot_tag);
 } // namespace backend
 } // namespace multipass
-#endif // MULTIPASS_QEMU_IMG_UTILS_H

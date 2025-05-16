@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_URL_DOWNLOADER_H
-#define MULTIPASS_STUB_URL_DOWNLOADER_H
+#pragma once
 
 #include <multipass/url_downloader.h>
 
@@ -43,4 +42,3 @@ struct StubURLDownloader : public multipass::URLDownloader
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_URL_DOWNLOADER_H

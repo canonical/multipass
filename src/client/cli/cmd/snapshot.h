@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAPSHOT_H
-#define MULTIPASS_SNAPSHOT_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -38,4 +37,3 @@ private:
 };
 } // namespace multipass::cmd
 
-#endif // MULTIPASS_SNAPSHOT_H

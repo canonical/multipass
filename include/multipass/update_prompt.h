@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UPDATE_PROMPT_H
-#define MULTIPASS_UPDATE_PROMPT_H
+#pragma once
 
 #include <memory>
 
@@ -36,4 +35,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_UPDATE_PROMPT_H

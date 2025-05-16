@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VM_IMAGE_VAULT_H
-#define MULTIPASS_BASE_VM_IMAGE_VAULT_H
+#pragma once
 
 #include <multipass/format.h>
 #include <multipass/query.h>
@@ -100,4 +99,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_BASE_VM_IMAGE_VAULT_H

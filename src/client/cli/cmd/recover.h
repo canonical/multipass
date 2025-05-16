@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_RECOVER_H
-#define MULTIPASS_RECOVER_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -43,4 +42,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_RECOVER_H

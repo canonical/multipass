@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_STATE_EXCEPTIONS_H
-#define MULTIPASS_VIRTUAL_MACHINE_STATE_EXCEPTIONS_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -41,4 +40,3 @@ public:
 
 } // namespace multipass
 
-#endif // MULTIPASS_VIRTUAL_MACHINE_STATE_EXCEPTIONS_H

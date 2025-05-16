@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_CONSOLE_H
-#define MULTIPASS_STUB_CONSOLE_H
+#pragma once
 
 #include <multipass/console.h>
 
@@ -26,12 +25,11 @@ namespace test
 {
 struct StubConsole final : public multipass::Console
 {
-    void read_console() override{};
+    void read_console() override {};
 
-    void write_console() override{};
+    void write_console() override {};
 
-    void exit_console() override{};
+    void exit_console() override {};
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_CONSOLE_H

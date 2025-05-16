@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DISABLED_UPDATE_PROMPT_H
-#define MULTIPASS_DISABLED_UPDATE_PROMPT_H
+#pragma once
 
 #include <multipass/update_prompt.h>
 
@@ -39,4 +38,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_DISABLED_UPDATE_PROMPT_H

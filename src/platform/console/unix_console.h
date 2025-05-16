@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UNIX_CONSOLE_H
-#define MULTIPASS_UNIX_CONSOLE_H
+#pragma once
 
 #include <multipass/console.h>
 
@@ -51,4 +50,3 @@ private:
     struct sigaction winch_action;
 };
 } // namespace multipass
-#endif // MULTIPASS_UNIX_CONSOLE_H

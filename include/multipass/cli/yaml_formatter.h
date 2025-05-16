@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_YAML_FORMATTER
-#define MULTIPASS_YAML_FORMATTER
+#pragma once
 
 #include <multipass/cli/formatter.h>
 
@@ -33,4 +32,3 @@ public:
     std::string format(const AliasDict& aliases) const override;
 };
 } // namespace multipass
-#endif // MULTIPASS_YAML_FORMATTER

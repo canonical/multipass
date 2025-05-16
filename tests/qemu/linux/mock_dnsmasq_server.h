@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
-#define MULTIPASS_MOCK_DNSMASQ_SERVER_H
+#pragma once
 
 #include "tests/common.h"
 #include "tests/mock_singleton_helpers.h"
@@ -49,4 +48,3 @@ struct MockDNSMasqServerFactory : public DNSMasqServerFactory
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_DNSMASQ_SERVER_H

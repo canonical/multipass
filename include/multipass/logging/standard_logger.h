@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STANDARD_LOGGER_H
-#define MULTIPASS_STANDARD_LOGGER_H
+#pragma once
 
 #include <iosfwd>
 #include <multipass/logging/logger.h>
@@ -59,4 +58,3 @@ private:
 };
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_STANDARD_LOGGER_H
