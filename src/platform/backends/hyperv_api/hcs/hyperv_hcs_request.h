@@ -24,7 +24,6 @@
 #include <hyperv_api/hcs/hyperv_hcs_request_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_resource_path.h>
 
-
 #include <fmt/xchar.h>
 
 #include <variant>
