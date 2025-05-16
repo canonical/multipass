@@ -33,10 +33,9 @@ enum class Plan9ShareFlags : std::uint32_t
     case_sensitive = 0x00000008
 };
 
-/**
- * Parameters for creating a Plan9 share.
- */
-struct Plan9ShareParameters
+namespace detail
+{
+struct HcsPlan9Base
 {
     /**
      * The default port number for Plan9.
@@ -45,7 +44,6 @@ struct Plan9ShareParameters
      * since the host might want to run a Plan9 server itself.
      */
     static inline constexpr std::uint16_t default_port{55035};
-
     /**
      * Unique name for the share
      */
@@ -58,14 +56,22 @@ struct Plan9ShareParameters
     std::string access_name{};
 
     /**
+     * Target port.
+     */
+    std::uint16_t port{default_port};
+};
+} // namespace detail
+
+struct HcsRemovePlan9ShareParameters : public detail::HcsPlan9Base
+{
+};
+
+struct HcsAddPlan9ShareParameters : public detail::HcsPlan9Base
+{
+    /**
      * Host directory to share
      */
     std::filesystem::path host_path{};
-
-    /**
-     * Target path.
-     */
-    std::uint16_t port{default_port};
 
     /**
      * ReadOnly      0x00000001
@@ -74,17 +80,29 @@ struct Plan9ShareParameters
      */
     Plan9ShareFlags flags{Plan9ShareFlags::none};
 };
-
 } // namespace multipass::hyperv::hcs
 
 /**
  * Formatter type specialization for Plan9ShareParameters
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcs::Plan9ShareParameters, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcs::HcsAddPlan9ShareParameters, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::Plan9ShareParameters& policy, FormatContext& ctx) const ->
+    auto format(const multipass::hyperv::hcs::HcsAddPlan9ShareParameters& param, FormatContext& ctx) const ->
+        typename FormatContext::iterator;
+};
+
+/**
+ * Formatter type specialization for Plan9ShareParameters
+ */
+template <typename Char>
+struct fmt::formatter<multipass::hyperv::hcs::HcsRemovePlan9ShareParameters, Char>
+    : formatter<basic_string_view<Char>, Char>
+{
+    template <typename FormatContext>
+    auto format(const multipass::hyperv::hcs::HcsRemovePlan9ShareParameters& param, FormatContext& ctx) const ->
         typename FormatContext::iterator;
 };
 
