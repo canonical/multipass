@@ -310,13 +310,6 @@ OperationResult HCSWrapper::resume_compute_system(const std::string& compute_sys
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::update_cpu_count(const std::string& compute_system_name, std::uint32_t new_vcpu_count) const
-{
-    return OperationResult{E_NOTIMPL, L"Not implemented yet!"};
-}
-
-// ---------------------------------------------------------
-
 OperationResult HCSWrapper::get_compute_system_properties(const std::string& compute_system_name) const
 {
 

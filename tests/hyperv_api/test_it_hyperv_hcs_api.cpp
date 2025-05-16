@@ -130,47 +130,6 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     ASSERT_FALSE(d_result.status_msg.empty());
 }
 
-TEST_F(HyperVHCSAPI_IntegrationTests, DISABLED_update_cpu_count)
-{
-
-    uut_t uut{};
-
-    hyperv::hcs::CreateComputeSystemParameters params{};
-    params.name = "test";
-    params.memory_size_mb = 1024;
-    params.processor_count = 1;
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
-
-    const auto c_result = uut.create_compute_system(params);
-
-    ASSERT_TRUE(c_result);
-    ASSERT_TRUE(c_result.status_msg.empty());
-
-    const auto s_result = uut.start_compute_system(params.name);
-    ASSERT_TRUE(s_result);
-    ASSERT_TRUE(s_result.status_msg.empty());
-
-    const auto p_result = uut.get_compute_system_properties(params.name);
-    EXPECT_TRUE(p_result);
-    std::wprintf(L"%s\n", p_result.status_msg.c_str());
-
-    const auto u_result = uut.update_cpu_count(params.name, 8);
-    EXPECT_TRUE(u_result);
-    auto v = fmt::to_string(u_result.code);
-    std::wprintf(L"%s\n", u_result.status_msg.c_str());
-    std::printf("%s \n", v.c_str());
-
-    // const auto e_result = uut.enumerate_all_compute_systems();
-    // EXPECT_TRUE(e_result);
-    // std::wprintf(L"%s\n", e_result.status_msg.c_str());
-
-    const auto d_result = uut.terminate_compute_system(params.name);
-    ASSERT_TRUE(d_result);
-    std::wprintf(L"%s\n", d_result.status_msg.c_str());
-    ASSERT_FALSE(d_result.status_msg.empty());
-}
-
 TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
 {
 
