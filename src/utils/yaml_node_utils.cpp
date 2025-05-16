@@ -25,33 +25,62 @@ namespace mp = multipass;
 
 namespace
 {
-YAML::Node create_extra_interface_node(const std::string& extra_interface_name,
-                                       const std::string& extra_interface_mac_address)
+struct interface_details
 {
-    YAML::Node extra_interface_data{};
-    extra_interface_data["match"]["macaddress"] = extra_interface_mac_address;
-    extra_interface_data["dhcp4"] = true;
-    extra_interface_data["dhcp-identifier"] = "mac";
-    // We make the default gateway associated with the first interface.
-    extra_interface_data["dhcp4-overrides"]["route-metric"] = 200;
-    // Make the interface optional, which means that networkd will not wait for the device to be configured.
-    extra_interface_data["optional"] = true;
-
-    return extra_interface_data;
+    std::string name;
+    std::string mac_addr;
+    std::optional<int> route_metric{std::nullopt};
+    bool optional{false};
 };
 
-YAML::Node create_default_interface_node(const std::string& default_interface_mac_address)
+auto make_default_interface(const std::string& mac_addr)
 {
-    YAML::Node default_interface_data{};
+    constexpr std::string_view kDefaultInterfaceName = "primary";
+    interface_details iface{};
+    iface.name = kDefaultInterfaceName;
+    iface.mac_addr = mac_addr;
+    return iface;
+}
 
-    default_interface_data["match"]["macaddress"] = default_interface_mac_address;
-    default_interface_data["dhcp4"] = true;
-    default_interface_data["dhcp-identifier"] = "mac";
-
-    return default_interface_data;
-};
-
+auto make_extra_interface(const std::string& mac_addr, std::uint32_t extra_interface_idx = 0)
+{
+    constexpr std::string_view kExtraInterfaceNamePattern = "extra{}";
+    interface_details iface{};
+    iface.name = fmt::format(kExtraInterfaceNamePattern, extra_interface_idx);
+    iface.mac_addr = mac_addr;
+    iface.optional = true;
+    iface.route_metric = 200;
+    return iface;
+}
 } // namespace
+
+namespace YAML
+{
+template <>
+struct convert<interface_details>
+{
+    static Node encode(const interface_details& iface)
+    {
+        Node node;
+        node["match"]["macaddress"] = iface.mac_addr;
+        node["dhcp4"] = true;
+        node["dhcp-identifier"] = "mac";
+        // We make the default gateway associated with the first interface.
+        if (iface.route_metric)
+        {
+            node["dhcp4-overrides"]["route-metric"] = iface.route_metric.value();
+        }
+        // Make the interface optional, which means that networkd will not wait for the device to be configured.
+
+        if (iface.optional)
+        {
+            node["optional"] = true;
+        }
+        node["set-name"] = iface.name;
+        return node;
+    }
+};
+} // namespace YAML
 
 std::string mp::utils::emit_yaml(const YAML::Node& node)
 {
@@ -117,17 +146,20 @@ YAML::Node mp::utils::make_cloud_init_network_config(const std::string& default_
                                                      const std::string& file_content)
 {
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
-
     network_data["version"] = "2";
-    network_data["ethernets"]["default"] = create_default_interface_node(default_mac_addr);
 
-    for (size_t i = 0; i < extra_interfaces.size(); ++i)
+    const auto default_interface = make_default_interface(default_mac_addr);
+    network_data["ethernets"][default_interface.name] = default_interface;
+
+    for (size_t extra_idx = 0; extra_idx < extra_interfaces.size(); ++extra_idx)
     {
-        if (extra_interfaces[i].auto_mode)
-        {
-            const std::string name = "extra" + std::to_string(i);
-            network_data["ethernets"][name] = create_extra_interface_node(name, extra_interfaces[i].mac_address);
-        }
+        const auto& current = extra_interfaces[extra_idx];
+
+        if (!current.auto_mode)
+            continue;
+
+        const auto extra_interface = make_extra_interface(current.mac_address, extra_idx);
+        network_data["ethernets"][extra_interface.name] = extra_interface;
     }
 
     return network_data;
@@ -137,6 +169,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& d
                                                             const NetworkInterface& extra_interface,
                                                             const std::string& network_config_file_content)
 {
+
     if (!extra_interface.auto_mode)
     {
         return network_config_file_content.empty() ? YAML::Node{} : YAML::Load(network_config_file_content);
@@ -147,30 +180,27 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(const std::string& d
         YAML::Node network_data{};
         network_data["version"] = "2";
 
-        network_data["ethernets"]["default"] = create_default_interface_node(default_mac_addr);
+        const auto default_interface = make_default_interface(default_mac_addr);
+        network_data["ethernets"][default_interface.name] = default_interface;
 
-        const std::string extra_interface_name = "extra0";
-        network_data["ethernets"][extra_interface_name] =
-            create_extra_interface_node(extra_interface_name, extra_interface.mac_address);
+        const auto extra = make_extra_interface(extra_interface.mac_address);
+        network_data["ethernets"][extra.name] = extra;
 
         return network_data;
     }
 
     YAML::Node network_data = YAML::Load(network_config_file_content);
 
-    int i = 0;
-    while (true)
+    // Iterate over possible extra interface names and find a vacant one.
+    for (int current_index = 0;; current_index++)
     {
-        const std::string extra_interface_name = "extra" + std::to_string(i);
-        if (!network_data["ethernets"][extra_interface_name].IsDefined())
+        const auto extra = make_extra_interface(extra_interface.mac_address, current_index);
+        if (!network_data["ethernets"][extra.name].IsDefined())
         {
-            // append the new network interface
-            network_data["ethernets"][extra_interface_name] =
-                create_extra_interface_node(extra_interface_name, extra_interface.mac_address);
-
+            network_data["ethernets"][extra.name] = extra;
             return network_data;
         }
-
-        ++i;
     }
+
+    throw std::logic_error{"Code execution reached an unreachable path."};
 }

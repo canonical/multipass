@@ -37,11 +37,12 @@ const std::string default_meta_data_content = fmt::format(meta_data_content_temp
 constexpr auto* network_config_data_content_template = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  primary:
     match:
       macaddress: "{0}"
     dhcp4: true
     dhcp-identifier: mac
+    set-name: primary
   extra0:
     match:
       macaddress: "{1}"
@@ -50,6 +51,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: extra0
 )";
 
 auto read_returns_failed_ifstream = [](std::ifstream& file, char*, std::streamsize) -> std::ifstream& {
