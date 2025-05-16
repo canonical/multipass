@@ -64,7 +64,7 @@ struct CreateComputeSystemParameters
      * List of Plan9 shares that'll be added to the compute system
      * by default at creation time.
      */
-    std::vector<Plan9ShareParameters> shares{};
+    std::vector<HcsAddPlan9ShareParameters> shares{};
 };
 
 } // namespace multipass::hyperv::hcs
