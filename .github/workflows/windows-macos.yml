@@ -54,7 +54,10 @@ jobs:
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-        MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"}'
+        MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14"},'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15"}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -78,6 +81,7 @@ jobs:
       mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
 
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ contains(matrix.runs-on, 'macos-13') || contains(matrix.runs-on, 'macos-14') || contains(matrix.runs-on, 'macos-15') }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
@@ -114,6 +118,12 @@ jobs:
     - name: Set the arch wrapper
       if: ${{ matrix.arch }}
       run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
+
+    - name: Force pip to allow break-system-packages via pip.conf
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        mkdir -p ~/.pip
+        echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
@@ -257,7 +267,7 @@ jobs:
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.cmake-package.outputs.name }}
+        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
