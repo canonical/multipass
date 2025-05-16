@@ -47,8 +47,6 @@ struct HCSWrapperInterface
                                             const std::filesystem::path& file_path) const = 0;
     virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
                                              const std::filesystem::path& file_path) const = 0;
-    virtual OperationResult update_cpu_count(const std::string& compute_system_name,
-                                             const std::uint32_t new_core_count) const = 0;
     virtual OperationResult get_compute_system_state(const std::string& compute_system_name,
                                                      ComputeSystemState& state_out) const = 0;
     virtual OperationResult modify_compute_system(const std::string& compute_system_name,
