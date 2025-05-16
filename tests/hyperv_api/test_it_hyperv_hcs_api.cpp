@@ -196,16 +196,30 @@ TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
     EXPECT_TRUE(p_result);
     std::wprintf(L"%s\n", p_result.status_msg.c_str());
 
-    hyperv::hcs::Plan9ShareParameters share{};
-    share.access_name = "test";
-    share.name = "test";
-    share.host_path = "C://";
+    const auto add_9p_req = []() {
+        hyperv::hcs::HcsAddPlan9ShareParameters share{};
+        share.access_name = "test";
+        share.name = "test";
+        share.host_path = "C://";
+        return hyperv::hcs::HcsRequest{hyperv::hcs::HcsResourcePath::Plan9Shares(),
+                                       hyperv::hcs::HcsRequestType::Add(),
+                                       share};
+    }();
 
-    const auto sh_a_result = uut.add_plan9_share(params.name, share);
+    const auto sh_a_result = uut.modify_compute_system(params.name, add_9p_req);
     EXPECT_TRUE(sh_a_result);
     std::wprintf(L"%s\n", sh_a_result.status_msg.c_str());
 
-    const auto sh_r_result = uut.remove_plan9_share(params.name, share);
+    const auto remove_9p_req = []() {
+        hyperv::hcs::HcsRemovePlan9ShareParameters share{};
+        share.access_name = "test";
+        share.name = "test";
+        return hyperv::hcs::HcsRequest{hyperv::hcs::HcsResourcePath::Plan9Shares(),
+                                       hyperv::hcs::HcsRequestType::Remove(),
+                                       share};
+    }();
+
+    const auto sh_r_result = uut.modify_compute_system(params.name, remove_9p_req);
     EXPECT_TRUE(sh_r_result);
     std::wprintf(L"%s\n", sh_r_result.status_msg.c_str());
 
