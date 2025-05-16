@@ -21,11 +21,13 @@
 #include <fmt/std.h>
 
 using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcs::Plan9ShareParameters;
+using multipass::hyperv::hcs::HcsAddPlan9ShareParameters;
+using multipass::hyperv::hcs::HcsRemovePlan9ShareParameters;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<Plan9ShareParameters, Char>::format(const Plan9ShareParameters& params, FormatContext& ctx) const ->
+auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(const HcsAddPlan9ShareParameters& params,
+                                                              FormatContext& ctx) const ->
     typename FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
@@ -34,23 +36,52 @@ auto fmt::formatter<Plan9ShareParameters, Char>::format(const Plan9ShareParamete
             "Path": "{1}",
             "Port": {2},
             "AccessName": "{3}",
-            "Flags": "{4}"
+            "Flags": {4}
+        }}
+    )json");
+    const auto path_str = params.host_path.generic_string();
+    return format_to(ctx.out(),
+                     json_template.as<Char>(),
+                     maybe_widen{params.name},
+                     maybe_widen{path_str},
+                     params.port,
+                     maybe_widen{params.access_name},
+                     fmt::underlying(params.flags));
+}
+
+template <typename Char>
+template <typename FormatContext>
+auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(const HcsRemovePlan9ShareParameters& params,
+                                                                 FormatContext& ctx) const ->
+    typename FormatContext::iterator
+{
+    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        {{
+            "Name": "{0}",
+            "AccessName": "{1}",
+            "Port": {2}
         }}
     )json");
 
     return format_to(ctx.out(),
                      json_template.as<Char>(),
                      maybe_widen{params.name},
-                     params.host_path,
-                     params.port,
                      maybe_widen{params.access_name},
-                     fmt::underlying(params.flags));
+                     params.port);
 }
 
-template auto fmt::formatter<Plan9ShareParameters, char>::format<fmt::format_context>(const Plan9ShareParameters&,
-                                                                                      fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcsAddPlan9ShareParameters, char>::format<fmt::format_context>(
+    const HcsAddPlan9ShareParameters&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<Plan9ShareParameters, wchar_t>::format<fmt::wformat_context>(const Plan9ShareParameters&,
-                                                                                          fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcsAddPlan9ShareParameters, wchar_t>::format<fmt::wformat_context>(
+    const HcsAddPlan9ShareParameters&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;
+
+template auto fmt::formatter<HcsRemovePlan9ShareParameters, char>::format<fmt::format_context>(
+    const HcsRemovePlan9ShareParameters&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
+
+template auto fmt::formatter<HcsRemovePlan9ShareParameters, wchar_t>::format<fmt::wformat_context>(
+    const HcsRemovePlan9ShareParameters&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

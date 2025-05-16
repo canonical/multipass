@@ -189,35 +189,6 @@ struct HCSWrapper : public HCSWrapperInterface
     // ---------------------------------------------------------
 
     /**
-     * Add a Plan9 share to a running system
-     *
-     * @param [in] compute_system_name Target compute system's name
-     * @param [in] params Plan9 share details
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
-    [[nodiscard]] OperationResult add_plan9_share(const std::string& compute_system_name,
-                                                  const Plan9ShareParameters& params) const override;
-
-    // ---------------------------------------------------------
-
-    /**
-     * Remove a Plan9 share from a running system
-     *
-     * @param [in] compute_system_name Target compute system's name
-     * @param [in] params Plan9 share to remove. It's sufficient to fill the
-     * name, access_name and port. The rest are redundant for remove.
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
-    [[nodiscard]] OperationResult remove_plan9_share(const std::string& compute_system_name,
-                                                     const Plan9ShareParameters& params) const override;
-
-    // ---------------------------------------------------------
-
-    /**
      * Modify a Host Compute System request.
      *
      * @param compute_system_name Target compute system name

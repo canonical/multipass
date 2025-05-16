@@ -21,13 +21,29 @@
 #include <fmt/std.h>
 
 using multipass::hyperv::maybe_widen;
+using multipass::hyperv::hcs::HcsAddPlan9ShareParameters;
 using multipass::hyperv::hcs::HcsModifyMemorySettings;
 using multipass::hyperv::hcs::HcsNetworkAdapter;
+using multipass::hyperv::hcs::HcsRemovePlan9ShareParameters;
 using multipass::hyperv::hcs::HcsRequest;
 
 template <typename Char>
 struct HcsRequestSettingsFormatters
 {
+
+    template <typename T>
+    static auto to_string(const T& v)
+    {
+        if constexpr (std::is_same_v<Char, char>)
+        {
+            return fmt::to_string(v);
+        }
+        else if constexpr (std::is_same_v<Char, wchar_t>)
+        {
+            return fmt::to_wstring(v);
+        }
+    }
+
     auto operator()(const std::monostate&)
     {
         constexpr auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
@@ -51,11 +67,17 @@ struct HcsRequestSettingsFormatters
 
     auto operator()(const HcsModifyMemorySettings& params)
     {
-        constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
-            {0}
-        )json");
+        return to_string(params.size_in_mb);
+    }
 
-        return fmt::format(json_template.as<Char>(), params.size_in_mb);
+    auto operator()(const HcsAddPlan9ShareParameters& params)
+    {
+        return to_string(params);
+    }
+
+    auto operator()(const HcsRemovePlan9ShareParameters& params)
+    {
+        return to_string(params);
     }
 };
 
