@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLI_H
-#define MULTIPASS_CLI_H
+#pragma once
 
 #include "daemon_config.h"
 
@@ -30,4 +29,3 @@ DaemonConfigBuilder parse(const QCoreApplication& app);
 }
 } // namespace multipass
 
-#endif // MULTIPASS_CLI_H

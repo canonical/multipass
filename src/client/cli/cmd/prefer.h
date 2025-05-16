@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PREFER_H
-#define MULTIPASS_PREFER_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -49,4 +48,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_PREFER_H

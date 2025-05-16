@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORKS_H
-#define MULTIPASS_NETWORKS_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -45,4 +44,3 @@ private:
 } // namespace cmd
 } // namespace multipass
 
-#endif // MULTIPASS_NETWORKS_H

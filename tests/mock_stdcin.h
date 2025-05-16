@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STDCIN_H
-#define MULTIPASS_MOCK_STDCIN_H
+#pragma once
 
 #include <iostream>
 #include <sstream>
@@ -45,4 +44,3 @@ private:
     std::stringstream fake_cin;
 };
 
-#endif // MULTIPASS_MOCK_STDCIN_H

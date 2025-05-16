@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_H
-#define MULTIPASS_LXD_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <QString>
 #include <QUrl>
@@ -89,4 +88,3 @@ private:
     void request_state(const QString& new_state, const QJsonObject& args = {});
 };
 } // namespace multipass
-#endif // MULTIPASS_LXD_VIRTUAL_MACHINE_H

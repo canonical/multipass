@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_H
-#define MULTIPASS_PROCESS_H
+#pragma once
 
 #include <QProcessEnvironment>
 #include <QStringList>
@@ -124,4 +123,3 @@ protected:
 
 Q_DECLARE_METATYPE(multipass::ProcessState)
 
-#endif // MULTIPASS_PROCESS_H

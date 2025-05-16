@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PLATFORM_DETAIL_H
-#define MULTIPASS_QEMU_PLATFORM_DETAIL_H
+#pragma once
 
 #include "dnsmasq_server.h"
 #include "firewall_config.h"
@@ -55,4 +54,3 @@ private:
     std::unordered_map<std::string, std::pair<QString, std::string>> name_to_net_device_map;
 };
 } // namespace multipass
-#endif // MULTIPASS_QEMU_PLATFORM_DETAIL_H

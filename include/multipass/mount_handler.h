@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOUNT_HANDLER_H
-#define MULTIPASS_MOUNT_HANDLER_H
+#pragma once
 
 #include <multipass/file_ops.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -128,4 +127,3 @@ protected:
     std::mutex active_mutex;
 };
 } // namespace multipass
-#endif // MULTIPASS_MOUNT_HANDLER_H

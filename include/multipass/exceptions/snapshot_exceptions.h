@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAPSHOT_EXCEPTIONS_H
-#define MULTIPASS_SNAPSHOT_EXCEPTIONS_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -44,4 +43,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_SNAPSHOT_EXCEPTIONS_H

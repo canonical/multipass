@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_SNAPSHOT_H
-#define MULTIPASS_STUB_SNAPSHOT_H
+#pragma once
 
 #include <multipass/memory_size.h>
 #include <multipass/snapshot.h>
@@ -136,4 +135,3 @@ struct StubSnapshot : public Snapshot
 };
 } // namespace multipass::test
 
-#endif // MULTIPASS_STUB_SNAPSHOT_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_LAUNCH_DATA_H
-#define MULTIPASS_CLIENT_LAUNCH_DATA_H
+#pragma once
 
 #include "alias_definition.h"
 
@@ -32,4 +31,3 @@ struct ClientLaunchData
 };
 } // namespace multipass
 
-#endif // MULTIPASS_CLIENT_LAUNCH_DATA_H

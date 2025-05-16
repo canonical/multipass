@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MULTIPLEXING_LOGGER_H
-#define MULTIPASS_MULTIPLEXING_LOGGER_H
+#pragma once
 
 #include "logger.h"
 
@@ -44,4 +43,3 @@ private:
 } // namespace logging
 } // namespace multipass
 
-#endif // MULTIPASS_MULTIPLEXING_LOGGER_H

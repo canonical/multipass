@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_REQUEST_H
-#define MULTIPASS_LXD_REQUEST_H
+#pragma once
 
 #include <QHttpMultiPart>
 #include <QJsonObject>
@@ -75,4 +74,3 @@ const QJsonObject lxd_wait(NetworkAccessManager* manager, const QUrl& base_url, 
                            int timeout /* in milliseconds */);
 } // namespace multipass
 
-#endif // MULTIPASS_LXD_REQUEST_H

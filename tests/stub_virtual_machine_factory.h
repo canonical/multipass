@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "stub_virtual_machine.h"
 #include "stub_vm_image_vault.h"
@@ -101,4 +100,3 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 }
 }
 
-#endif // MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H

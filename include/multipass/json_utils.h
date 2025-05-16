@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_UTILS_H
-#define MULTIPASS_JSON_UTILS_H
+#pragma once
 
 #include "singleton.h"
 
@@ -54,4 +53,3 @@ public:
     virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(const QJsonObject& record) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_JSON_UTILS_H

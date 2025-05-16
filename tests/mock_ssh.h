@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_H
-#define MULTIPASS_MOCK_SSH_H
+#pragma once
 
 #include <premock.hpp>
 
@@ -40,4 +39,3 @@ DECL_MOCK(ssh_event_dopoll);
 DECL_MOCK(ssh_add_channel_callbacks);
 DECL_MOCK(ssh_get_error);
 
-#endif // MULTIPASS_MOCK_SSH_H

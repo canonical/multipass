@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_VIRTUAL_MACHINE_H
-#define MULTIPASS_STUB_VIRTUAL_MACHINE_H
+#pragma once
 
 #include "stub_mount_handler.h"
 #include "stub_snapshot.h"
@@ -199,4 +198,3 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_VIRTUAL_MACHINE_H

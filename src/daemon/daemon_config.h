@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DAEMON_CONFIG_H
-#define MULTIPASS_DAEMON_CONFIG_H
+#pragma once
 
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
@@ -89,4 +88,3 @@ struct DaemonConfigBuilder
 };
 } // namespace multipass
 
-#endif // MULTIPASS_DAEMON_CONFIG_H

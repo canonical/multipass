@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_VM_IMAGE_VAULT_H
-#define MULTIPASS_STUB_VM_IMAGE_VAULT_H
+#pragma once
 
 #include "temp_file.h"
 
@@ -71,4 +70,3 @@ struct StubVMImageVault final : public multipass::VMImageVault
 };
 }
 }
-#endif // MULTIPASS_STUB_VM_IMAGE_VAULT_H

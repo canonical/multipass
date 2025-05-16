@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_MISSING_ERROR_H
-#define MULTIPASS_SSHFS_MISSING_ERROR_H
+#pragma once
 
 #include <stdexcept>
 
@@ -31,4 +30,3 @@ public:
 
 };
 }
-#endif // MULTIPASS_SSHFS_MISSING_ERROR_H

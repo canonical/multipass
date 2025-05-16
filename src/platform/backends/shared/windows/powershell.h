@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_POWERSHELL_H
-#define MULTIPASS_POWERSHELL_H
+#pragma once
 
 #include <multipass/process/process.h>
 
@@ -64,4 +63,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_POWERSHELL_H

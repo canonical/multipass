@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SMB_MOUNT_HANDLER_H
-#define MULTIPASS_SMB_MOUNT_HANDLER_H
+#pragma once
 
 #include <multipass/mount_handler.h>
 #include <multipass/path.h>
@@ -61,4 +60,3 @@ private:
     std::string decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename);
 };
 } // namespace multipass
-#endif // MULTIPASS_SMB_MOUNT_HANDLER_H

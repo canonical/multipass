@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CERT_STORE_H
-#define MULTIPASS_CERT_STORE_H
+#pragma once
 
 #include "disabled_copy_move.h"
 
@@ -37,4 +36,3 @@ protected:
     CertStore() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_CERT_STORE_H
