@@ -48,6 +48,11 @@ struct HcsResourcePath
         return std::string{"VirtualMachine/ComputeTopology/Memory/SizeInMB"};
     }
 
+    static HcsResourcePath Plan9Shares()
+    {
+        return std::string{"VirtualMachine/Devices/Plan9/Shares"};
+    }
+
 private:
     HcsResourcePath(std::string v) : value(v)
     {

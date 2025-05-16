@@ -51,10 +51,6 @@ struct HCSWrapperInterface
                                              const std::uint32_t new_core_count) const = 0;
     virtual OperationResult get_compute_system_state(const std::string& compute_system_name,
                                                      ComputeSystemState& state_out) const = 0;
-    virtual OperationResult add_plan9_share(const std::string& compute_system_name,
-                                            const Plan9ShareParameters& params) const = 0;
-    virtual OperationResult remove_plan9_share(const std::string& compute_system_name,
-                                               const Plan9ShareParameters& params) const = 0;
     virtual OperationResult modify_compute_system(const std::string& compute_system_name,
                                                   const HcsRequest& request) const = 0;
     virtual ~HCSWrapperInterface() = default;
