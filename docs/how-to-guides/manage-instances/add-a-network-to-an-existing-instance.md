@@ -1,7 +1,9 @@
 (how-to-guides-manage-instances-add-a-network-to-an-existing-instance)=
 # Add a network to an existing instance
 
-> See also: [`networks`](/reference/command-line-interface/networks), [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged)
+```{seealso}
+[`networks`](/reference/command-line-interface/networks), [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [`local.<instance-name>.bridged`](/reference/settings/local-instance-name-bridged)
+```
 
 This guide explains how to bridge an existing Multipass instance with the available networks.
 
@@ -54,3 +56,9 @@ multipass get local.ultimate-grosbeak.bridged
 ```
 
 After following the recipe above, the result should be `true`.
+
+Now, [`start`](/reference/command-line-interface/start) the instance.
+
+```{code-block} text
+multipass start ultimate-grosbeak
+```
