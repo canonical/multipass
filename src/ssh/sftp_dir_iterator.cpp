@@ -27,7 +27,9 @@ void SFTPDirIterator::push_dir(const std::string& path)
 {
     auto dir = mp_sftp_opendir(sftp, path.c_str());
     if (!dir)
-        throw SFTPError{"cannot open remote directory '{}': {}", path, ssh_get_error(sftp->session)};
+        throw SFTPError{"cannot open remote directory '{}': {}",
+                        path,
+                        ssh_get_error(sftp->session)};
 
     dirs.push(std::move(dir));
 }

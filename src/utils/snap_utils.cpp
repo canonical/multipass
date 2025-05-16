@@ -47,7 +47,9 @@ QByteArray checked_snap_env_var(const char* var)
 
 QByteArray checked_snap_dir(const char* dir)
 {
-    return QFileInfo(checked_snap_env_var(dir)).canonicalFilePath().toUtf8(); // To resolve any symlinks
+    return QFileInfo(checked_snap_env_var(dir))
+        .canonicalFilePath()
+        .toUtf8(); // To resolve any symlinks
 }
 } // namespace
 

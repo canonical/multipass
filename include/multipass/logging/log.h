@@ -63,10 +63,14 @@ Logger* get_logger(); // for tests, don't rely on it lasting
  * @param [in] args Rest of the format arguments
  */
 template <typename Arg0, typename... Args>
-constexpr void
-log(Level level, std::string_view category, fmt::format_string<Arg0, Args...> fmt, Arg0&& arg0, Args&&... args)
+constexpr void log(Level level,
+                   std::string_view category,
+                   fmt::format_string<Arg0, Args...> fmt,
+                   Arg0&& arg0,
+                   Args&&... args)
 {
-    const auto formatted_log_msg = fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
+    const auto formatted_log_msg =
+        fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
     logging::log(level, category, formatted_log_msg);
 }
 

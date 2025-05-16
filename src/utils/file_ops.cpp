@@ -33,7 +33,8 @@ mp::NamedFd::~NamedFd()
         ::close(fd);
 }
 
-mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept : Singleton<FileOps>::Singleton{pass}
+mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept
+    : Singleton<FileOps>::Singleton{pass}
 {
 }
 
@@ -191,7 +192,9 @@ off_t mp::FileOps::lseek(int fd, off_t offset, int whence) const
     return ::lseek(fd, offset, whence);
 }
 
-void mp::FileOps::open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const
+void mp::FileOps::open(std::fstream& stream,
+                       const char* filename,
+                       std::ios_base::openmode mode) const
 {
     stream.open(filename, mode);
 }
@@ -207,17 +210,21 @@ std::ifstream& mp::FileOps::read(std::ifstream& file, char* buffer, std::streams
     return file;
 }
 
-std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path, std::ios_base::openmode mode) const
+std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path,
+                                                      std::ios_base::openmode mode) const
 {
     return std::make_unique<std::ofstream>(path, mode);
 }
 
-std::unique_ptr<std::istream> mp::FileOps::open_read(const fs::path& path, std::ios_base::openmode mode) const
+std::unique_ptr<std::istream> mp::FileOps::open_read(const fs::path& path,
+                                                     std::ios_base::openmode mode) const
 {
     return std::make_unique<std::ifstream>(path, mode);
 }
 
-void mp::FileOps::copy(const fs::path& src, const fs::path& dist, fs::copy_options copy_options) const
+void mp::FileOps::copy(const fs::path& src,
+                       const fs::path& dist,
+                       fs::copy_options copy_options) const
 {
     fs::copy(src, dist, copy_options);
 }
@@ -247,7 +254,9 @@ bool mp::FileOps::remove(const fs::path& path, std::error_code& err) const
     return fs::remove(path, err);
 }
 
-void mp::FileOps::create_symlink(const fs::path& to, const fs::path& path, std::error_code& err) const
+void mp::FileOps::create_symlink(const fs::path& to,
+                                 const fs::path& path,
+                                 std::error_code& err) const
 {
     fs::create_symlink(to, path, err);
 }
@@ -267,13 +276,14 @@ fs::file_status mp::FileOps::symlink_status(const fs::path& path, std::error_cod
     return fs::symlink_status(path, err);
 }
 
-std::unique_ptr<mp::RecursiveDirIterator> mp::FileOps::recursive_dir_iterator(const fs::path& path,
-                                                                              std::error_code& err) const
+std::unique_ptr<mp::RecursiveDirIterator>
+mp::FileOps::recursive_dir_iterator(const fs::path& path, std::error_code& err) const
 {
     return std::make_unique<mp::RecursiveDirIterator>(path, err);
 }
 
-std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path, std::error_code& err) const
+std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
+                                                           std::error_code& err) const
 {
     return std::make_unique<mp::DirIterator>(path, err);
 }

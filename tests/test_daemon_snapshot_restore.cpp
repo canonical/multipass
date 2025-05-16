@@ -46,12 +46,14 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
 
     auto build_daemon_with_mock_instance()
     {
-        const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+        const auto [temp_dir, filename] =
+            plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
         auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
         auto* ret_instance = instance_ptr.get();
 
-        EXPECT_CALL(*instance_ptr, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+        EXPECT_CALL(*instance_ptr, current_state)
+            .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
 
         config_builder.data_directory = temp_dir->path();
@@ -63,7 +65,8 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
     mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
@@ -79,12 +82,14 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
 
 struct TestDaemonSnapshot : public TestDaemonSnapshotRestoreBase
 {
-    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
+    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to
+                                                // use for test names
 };
 
 struct TestDaemonRestore : public TestDaemonSnapshotRestoreBase
 {
-    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
+    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to
+                                                // use for test names
 };
 
 struct SnapshotRPCTypes
@@ -104,8 +109,10 @@ struct RestoreRPCTypes
 template <typename RPCTypes>
 struct TestDaemonSnapshotRestoreCommon : public TestDaemonSnapshotRestoreBase
 {
-    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to use for test names
-    using MockServer = StrictMock<mpt::MockServerReaderWriter<typename RPCTypes::Reply, typename RPCTypes::Request>>;
+    using TestDaemonSnapshotRestoreBase::SetUp; // It seems this is what signals gtest the type to
+                                                // use for test names
+    using MockServer = StrictMock<
+        mpt::MockServerReaderWriter<typename RPCTypes::Reply, typename RPCTypes::Request>>;
 };
 
 using RPCTypes = Types<SnapshotRPCTypes, RestoreRPCTypes>;
@@ -118,11 +125,14 @@ TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnMissingInstance)
     request.set_instance(missing_instance);
 
     mp::Daemon daemon{this->config_builder.build()};
-    auto status =
-        this->call_daemon_slot(daemon, TypeParam::daemon_slot_ptr, request, typename TestFixture::MockServer{});
+    auto status = this->call_daemon_slot(daemon,
+                                         TypeParam::daemon_slot_ptr,
+                                         request,
+                                         typename TestFixture::MockServer{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
-    EXPECT_EQ(status.error_message(), fmt::format("instance \"{}\" does not exist", missing_instance));
+    EXPECT_EQ(status.error_message(),
+              fmt::format("instance \"{}\" does not exist", missing_instance));
 }
 
 TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
@@ -131,10 +141,13 @@ TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
     request.set_instance(this->mock_instance_name);
 
     auto [daemon, instance] = this->build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
 
-    auto status =
-        this->call_daemon_slot(*daemon, TypeParam::daemon_slot_ptr, request, typename TestFixture::MockServer{});
+    auto status = this->call_daemon_slot(*daemon,
+                                         TypeParam::daemon_slot_ptr,
+                                         request,
+                                         typename TestFixture::MockServer{});
 
     EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
     EXPECT_THAT(status.error_message(), HasSubstr("stopped"));
@@ -146,13 +159,15 @@ TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
         .WillRepeatedly(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
 
     mp::Daemon daemon{config_builder.build()};
-    auto status = call_daemon_slot(daemon,
-                                   &mp::Daemon::snapshot,
-                                   mp::SnapshotRequest{},
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::snapshot,
+        mp::SnapshotRequest{},
+        StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
-    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
 }
 
 TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
@@ -162,12 +177,14 @@ TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
     request.set_snapshot("%$@#*& \t\n nope, no.can.do");
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
-    auto status = call_daemon_slot(*daemon,
-                                   &mp::Daemon::snapshot,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::snapshot,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr("Invalid snapshot name"));
@@ -185,13 +202,15 @@ TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
     EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), _))
         .WillOnce(Throw(mp::SnapshotNameTakenException{mock_instance_name, snapshot_name}));
 
-    auto status = call_daemon_slot(*daemon,
-                                   &mp::Daemon::snapshot,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::snapshot,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), AllOf(HasSubstr(mock_instance_name), HasSubstr(snapshot_name)));
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr(mock_instance_name), HasSubstr(snapshot_name)));
 }
 
 TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
@@ -205,14 +224,17 @@ TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
     request.set_comment(snapshot_comment);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name).WillOnce(Return(snapshot_name));
-    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), Eq(snapshot_comment))).WillOnce(Return(snapshot));
+    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), Eq(snapshot_comment)))
+        .WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
-    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _)).WillOnce(Return(true));
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _))
+        .WillOnce(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
 
@@ -234,7 +256,8 @@ TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
     EXPECT_CALL(*instance, take_snapshot(_, IsEmpty(), IsEmpty())).WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
-    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(generated_name)), _)).WillOnce(Return(true));
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(generated_name)), _))
+        .WillOnce(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
 
@@ -247,17 +270,20 @@ TEST_F(TestDaemonRestore, failsIfBackendDoesNotSupportSnapshots)
     request.set_instance(mock_instance_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, get_snapshot(A<const std::string&>()))
         .WillOnce(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
 
-    auto status = call_daemon_slot(*daemon,
-                                   &mp::Daemon::restore,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>{});
+    auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::restore,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
-    EXPECT_THAT(status.error_message(), AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
 }
 
 TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
@@ -268,18 +294,22 @@ TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
     request.set_snapshot(missing_snapshot_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, get_snapshot(TypedEq<const std::string&>(missing_snapshot_name)))
         .WillOnce(Throw(mp::NoSuchSnapshotException{mock_instance_name, missing_snapshot_name}));
 
-    auto status = call_daemon_slot(*daemon,
-                                   &mp::Daemon::restore,
-                                   request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>{});
+    auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::restore,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
     EXPECT_THAT(status.error_message(),
-                AllOf(HasSubstr("No such snapshot"), HasSubstr(mock_instance_name), HasSubstr(missing_snapshot_name)));
+                AllOf(HasSubstr("No such snapshot"),
+                      HasSubstr(mock_instance_name),
+                      HasSubstr(missing_snapshot_name)));
 }
 
 TEST_F(TestDaemonRestore, restoresSnapshotDirectlyIfDestructive)
@@ -291,7 +321,8 @@ TEST_F(TestDaemonRestore, restoresSnapshotDirectlyIfDestructive)
     request.set_destructive(true);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, restore_snapshot(Eq(snapshot_name), _)).Times(1);
 
     StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>> server{};

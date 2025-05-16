@@ -70,7 +70,8 @@ void mp::XzImageDecoder::decode_to(const Path& xz_file_path,
 
     QFile decoded_file{decoded_image_path};
     if (!decoded_file.open(QIODevice::WriteOnly))
-        throw std::runtime_error(fmt::format("failed to open {} for writing", decoded_file.fileName()));
+        throw std::runtime_error(
+            fmt::format("failed to open {} for writing", decoded_file.fileName()));
 
     struct xz_buf decode_buf
     {

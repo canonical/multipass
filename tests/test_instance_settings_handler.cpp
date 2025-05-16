@@ -116,7 +116,8 @@ struct TestInstanceSettingsHandler : public Test
     {
         return [this](const std::string& n) {
             if (!make_fake_is_bridged()(n))
-                specs[n].extra_interfaces.push_back(mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
+                specs[n].extra_interfaces.push_back(
+                    mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
         };
     }
 
@@ -153,7 +154,8 @@ using Instance = std::tuple<InstanceName, SpecialInstanceState>;
 using Instances = std::vector<Instance>;
 using InstanceLists = std::vector<Instances>;
 
-struct TestInstanceSettingsKeys : public TestInstanceSettingsHandler, public WithParamInterface<Instances>
+struct TestInstanceSettingsKeys : public TestInstanceSettingsHandler,
+                                  public WithParamInterface<Instances>
 {
 };
 
@@ -174,12 +176,17 @@ TEST_P(TestInstanceSettingsKeys, keysCoversAllPropertiesForAllInstances)
     EXPECT_THAT(make_handler().keys(), UnorderedElementsAreArray(expected_keys));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysEmpty, TestInstanceSettingsKeys, Values(Instances{}));
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysSingle, TestInstanceSettingsKeys,
-                         Values(Instances{{"morning-light-mountain", SpecialInstanceState::none}},
-                                Instances{{"morning-light-mountain", SpecialInstanceState::deleted}},
-                                Instances{{"morning-light-mountain", SpecialInstanceState::preparing}}));
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysMultiple, TestInstanceSettingsKeys,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysEmpty,
+                         TestInstanceSettingsKeys,
+                         Values(Instances{}));
+INSTANTIATE_TEST_SUITE_P(
+    TestInstanceSettingsKeysSingle,
+    TestInstanceSettingsKeys,
+    Values(Instances{{"morning-light-mountain", SpecialInstanceState::none}},
+           Instances{{"morning-light-mountain", SpecialInstanceState::deleted}},
+           Instances{{"morning-light-mountain", SpecialInstanceState::preparing}}));
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsKeysMultiple,
+                         TestInstanceSettingsKeys,
                          ValuesIn(InstanceLists{{{"foo", SpecialInstanceState::none},
                                                  {"bar", SpecialInstanceState::none},
                                                  {"baz", SpecialInstanceState::none}},
@@ -224,9 +231,9 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceMemory)
 
     auto got = make_handler().get(make_key(target_instance_name, "memory"));
     got.remove(".0"); // TODO drop decimal removal once MemorySize accepts it as input
-    EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].mem_size); /* note that this doesn't work
-    for all values, because the value is returned in human readable format, which approximates (unless and until --raw
-    is used/implemented) */
+    EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].mem_size); /* note that
+    this doesn't work for all values, because the value is returned in human readable format, which
+    approximates (unless and until --raw is used/implemented) */
 }
 
 TEST_F(TestInstanceSettingsHandler, getFetchesInstanceDisk)
@@ -236,7 +243,7 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceDisk)
     specs[target_instance_name].disk_space = mp::MemorySize{"123G"};
 
     auto got = make_handler().get(make_key(target_instance_name, "disk"));
-    got.remove(".0");                                                                     // TODO idem
+    got.remove(".0"); // TODO idem
     EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].disk_space); // idem
 }
 
@@ -257,8 +264,8 @@ struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler,
 {
 };
 
-// Since the instance handler calls functions from the daemon, which were replaced here by other ones, this test just
-// checks that the correct functions are called from the handler.
+// Since the instance handler calls functions from the daemon, which were replaced here by other
+// ones, this test just checks that the correct functions are called from the handler.
 TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
 {
     const auto [br_interface, bridged] = GetParam();
@@ -322,11 +329,13 @@ TEST_F(TestInstanceSettingsHandler, getDoesNotPersistInstances)
     EXPECT_FALSE(fake_persister_called);
 }
 
-TEST_F(TestInstanceSettingsHandler, constOperationsDoNotModifyInstances) /* note that `const` on the respective methods
-isn't enough for the compiler to catch changes to vms and specs, which live outside the handler (only references held
-there) */
+TEST_F(TestInstanceSettingsHandler, constOperationsDoNotModifyInstances) /* note that `const` on the
+respective methods isn't enough for the compiler to catch changes to vms and specs, which live
+outside the handler (only references held there) */
 {
-    constexpr auto make_mem_size = [](int gigs) { return mp::MemorySize{fmt::format("{}GiB", gigs)}; };
+    constexpr auto make_mem_size = [](int gigs) {
+        return mp::MemorySize{fmt::format("{}GiB", gigs)};
+    };
     auto gigs = 1;
 
     mp::VMSpecs spec;
@@ -361,7 +370,8 @@ TEST_F(TestInstanceSettingsHandler, getThrowsOnWrongProperty)
     specs[target_instance_name];
 
     MP_EXPECT_THROW_THAT(make_handler().get(make_key(target_instance_name, wrong_property)),
-                         mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(wrong_property)));
 }
 
 TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
@@ -385,7 +395,8 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSu
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
-    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(same_cpus)));
+    EXPECT_NO_THROW(
+        make_handler().set(make_key(target_instance_name, "cpus"), QString::number(same_cpus)));
     EXPECT_EQ(actual_cpus, same_cpus);
 }
 
@@ -397,7 +408,8 @@ TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceCPUs)
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(1);
 
-    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"), QString::number(less_cpus)));
+    EXPECT_NO_THROW(
+        make_handler().set(make_key(target_instance_name, "cpus"), QString::number(less_cpus)));
     EXPECT_EQ(actual_cpus, less_cpus);
 }
 
@@ -450,7 +462,8 @@ TEST_F(TestInstanceSettingsHandler, setRefusesDecreaseBelowMinimumMemory)
     EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(0);
 
     MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "memory"), mem_str),
-                         mp::InvalidSettingException, mpt::match_what(HasSubstr("minimum not allowed")));
+                         mp::InvalidSettingException,
+                         mpt::match_what(HasSubstr("minimum not allowed")));
 
     EXPECT_EQ(actual_mem, original_mem);
 }
@@ -491,7 +504,8 @@ TEST_F(TestInstanceSettingsHandler, setResusesToShrinkInstanceDisk)
     EXPECT_CALL(mock_vm(target_instance_name), resize_disk).Times(0);
 
     MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "disk"), less_disk_str),
-                         mp::InvalidSettingException, mpt::match_what(HasSubstr("can only be expanded")));
+                         mp::InvalidSettingException,
+                         mpt::match_what(HasSubstr("can only be expanded")));
 
     EXPECT_EQ(actual_disk, original_disk);
 }
@@ -505,7 +519,8 @@ TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
     MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, wrong_property), "1"),
-                         mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(wrong_property)));
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(wrong_property)));
 
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
@@ -534,7 +549,8 @@ TEST_F(TestInstanceSettingsHandler, setAddsInterface)
     make_handler().set(make_key(target_instance_name, "bridged"), "true");
 
     EXPECT_EQ(specs[target_instance_name].extra_interfaces.size(), 2u);
-    EXPECT_TRUE(mpu::valid_mac_address(specs[target_instance_name].extra_interfaces[1].mac_address));
+    EXPECT_TRUE(
+        mpu::valid_mac_address(specs[target_instance_name].extra_interfaces[1].mac_address));
 }
 
 TEST_F(TestInstanceSettingsHandler, setDoesNotAddTwoInterfaces)
@@ -571,17 +587,24 @@ TEST_P(TestInstanceModOnNonStoppedInstance, setRefusesToModifyNonStoppedInstance
     auto& target_instance = mock_vm<StrictMock>(target_instance_name);
     EXPECT_CALL(target_instance, current_state).WillOnce(Return(state));
 
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, property), "123"),
-                         mp::InstanceStateSettingsException,
-                         mpt::match_what(AllOf(HasSubstr("Cannot update"), HasSubstr("Instance must be stopped"))));
+    MP_EXPECT_THROW_THAT(
+        make_handler().set(make_key(target_instance_name, property), "123"),
+        mp::InstanceStateSettingsException,
+        mpt::match_what(AllOf(HasSubstr("Cannot update"), HasSubstr("Instance must be stopped"))));
 
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler, TestInstanceModOnNonStoppedInstance,
+INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
+                         TestInstanceModOnNonStoppedInstance,
                          Combine(ValuesIn(TestInstanceSettingsHandler::properties),
-                                 Values(VMSt::running, VMSt::restarting, VMSt::starting, VMSt::delayed_shutdown,
-                                        VMSt::suspended, VMSt::suspending, VMSt::unknown)));
+                                 Values(VMSt::running,
+                                        VMSt::restarting,
+                                        VMSt::starting,
+                                        VMSt::delayed_shutdown,
+                                        VMSt::suspended,
+                                        VMSt::suspending,
+                                        VMSt::unknown)));
 
 struct TestInstanceModOnStoppedInstance : public TestInstanceSettingsHandler,
                                           public WithParamInterface<PropertyAndState>
@@ -599,7 +622,8 @@ TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
 
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, property), val));
 
-    const auto props = {static_cast<long long>(target_specs.num_cores), target_specs.mem_size.in_bytes(),
+    const auto props = {static_cast<long long>(target_specs.num_cores),
+                        target_specs.mem_size.in_bytes(),
                         target_specs.disk_space.in_bytes()};
     EXPECT_THAT(props, Contains(QString{val}.toLongLong()));
 }
@@ -609,7 +633,8 @@ INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
                          Combine(ValuesIn(TestInstanceSettingsHandler::numeric_properties),
                                  Values(VMSt::off, VMSt::stopped)));
 
-struct TestInstanceModPersists : public TestInstanceSettingsHandler, public WithParamInterface<Property>
+struct TestInstanceModPersists : public TestInstanceSettingsHandler,
+                                 public WithParamInterface<Property>
 {
 };
 
@@ -652,8 +677,10 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToModifyInstancesInSpecialState)
         EXPECT_CALL(*instance, resize_disk).Times(0);
         for (const auto& property : properties)
         {
-            MP_EXPECT_THROW_THAT(handler.set(make_key(instance_name, property), "234"), mp::InstanceSettingsException,
-                                 mpt::match_what(AllOf(HasSubstr("Cannot update"), HasSubstr(special_state))));
+            MP_EXPECT_THROW_THAT(
+                handler.set(make_key(instance_name, property), "234"),
+                mp::InstanceSettingsException,
+                mpt::match_what(AllOf(HasSubstr("Cannot update"), HasSubstr(special_state))));
         }
     }
 
@@ -668,19 +695,25 @@ TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnMissingInstance)
 
     for (const auto& prop : properties)
     {
-        MP_EXPECT_THROW_THAT(handler.get(make_key(instance, prop)), mp::InstanceSettingsException,
-                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
-        MP_EXPECT_THROW_THAT(handler.set(make_key(instance, prop), "1"), mp::InstanceSettingsException,
-                             mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+        MP_EXPECT_THROW_THAT(
+            handler.get(make_key(instance, prop)),
+            mp::InstanceSettingsException,
+            mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
+        MP_EXPECT_THROW_THAT(
+            handler.set(make_key(instance, prop), "1"),
+            mp::InstanceSettingsException,
+            mpt::match_what(AllOf(HasSubstr(instance), HasSubstr("No such instance"))));
     }
 }
 
 TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnBadKey)
 {
     constexpr auto bad_key = ".#^&nonsense-.-$-$";
-    MP_EXPECT_THROW_THAT(make_handler().get(bad_key), mp::UnrecognizedSettingException,
+    MP_EXPECT_THROW_THAT(make_handler().get(bad_key),
+                         mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(bad_key)));
-    MP_EXPECT_THROW_THAT(make_handler().set(bad_key, "1"), mp::UnrecognizedSettingException,
+    MP_EXPECT_THROW_THAT(make_handler().set(bad_key, "1"),
+                         mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(bad_key)));
 }
 
@@ -700,8 +733,10 @@ TEST_P(TestInstanceSettingsHandlerBadNumericValues, setRefusesBadNumericValues)
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
     MP_EXPECT_THROW_THAT(
-        make_handler().set(make_key(target_instance_name, property), bad_val), mp::InvalidSettingException,
-        mpt::match_what(AllOf(HasSubstr(bad_val), AnyOf(HasSubstr("positive"), HasSubstr("non-negative")))));
+        make_handler().set(make_key(target_instance_name, property), bad_val),
+        mp::InvalidSettingException,
+        mpt::match_what(
+            AllOf(HasSubstr(bad_val), AnyOf(HasSubstr("positive"), HasSubstr("non-negative")))));
 
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }
@@ -738,9 +773,10 @@ TEST_P(TestInstanceSettingsHandlerBadBooleanValues, setRefusesBadBooleanValues)
     const auto original_specs = specs[target_instance_name];
     mock_vm(target_instance_name); // TODO: make this an expectation.
 
-    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, property), bad_val),
-                         mp::InvalidSettingException,
-                         mpt::match_what(AllOf(HasSubstr(bad_val), HasSubstr("try \"true\" or \"false\""))));
+    MP_EXPECT_THROW_THAT(
+        make_handler().set(make_key(target_instance_name, property), bad_val),
+        mp::InvalidSettingException,
+        mpt::match_what(AllOf(HasSubstr(bad_val), HasSubstr("try \"true\" or \"false\""))));
 
     EXPECT_EQ(original_specs, specs[target_instance_name]);
 }

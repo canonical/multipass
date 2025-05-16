@@ -68,7 +68,8 @@ public:
     virtual void create_alias_script(const std::string& alias, const AliasDefinition& def) const;
     virtual void remove_alias_script(const std::string& alias) const;
     virtual std::string alias_path_message() const;
-    virtual void set_server_socket_restrictions(const std::string& server_address, const bool restricted) const;
+    virtual void set_server_socket_restrictions(const std::string& server_address,
+                                                const bool restricted) const;
     virtual QString multipass_storage_location() const;
     virtual QString daemon_config_home() const; // temporary
     virtual SettingSpec::Set extra_daemon_settings() const;
@@ -98,9 +99,11 @@ int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 // If a signal is received the optional contains it, otherwise the optional is empty.
 // `make_quit_watchdog` should only be called once.
 std::function<std::optional<int>(const std::function<bool()>&)> make_quit_watchdog(
-    const std::chrono::milliseconds& period); // call while single-threaded; call result later, in dedicated thread
+    const std::chrono::milliseconds&
+        period); // call while single-threaded; call result later, in dedicated thread
 
-std::string reinterpret_interface_id(const std::string& ux_id); // give platforms a chance to reinterpret network IDs
+std::string reinterpret_interface_id(
+    const std::string& ux_id); // give platforms a chance to reinterpret network IDs
 
 std::string host_version();
 

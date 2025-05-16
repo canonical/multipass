@@ -64,14 +64,21 @@ public:
     }
 };
 
-const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
+const QJsonObject lxd_request(NetworkAccessManager* manager,
+                              const std::string& method,
+                              QUrl url,
                               const std::optional<QJsonObject>& json_data = std::nullopt,
                               int timeout = 30000 /* in milliseconds */);
 
-const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& method, QUrl url,
-                              QHttpMultiPart& multi_part, int timeout = 30000 /* in milliseconds */);
+const QJsonObject lxd_request(NetworkAccessManager* manager,
+                              const std::string& method,
+                              QUrl url,
+                              QHttpMultiPart& multi_part,
+                              int timeout = 30000 /* in milliseconds */);
 
-const QJsonObject lxd_wait(NetworkAccessManager* manager, const QUrl& base_url, const QJsonObject& task_data,
+const QJsonObject lxd_wait(NetworkAccessManager* manager,
+                           const QUrl& base_url,
+                           const QJsonObject& task_data,
                            int timeout /* in milliseconds */);
 } // namespace multipass
 

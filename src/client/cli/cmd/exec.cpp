@@ -69,7 +69,8 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         // Decide whether the working directory must be mapped. There are two cases to consider:
         // 1. when executing an alias, see if the working directory is set to "map";
         // 2. when not executing an alias, see if the user did not specify the no-mapping argument.
-        // If one of these two things is true, then prepend the appropriate `cd` to the command to be ran.
+        // If one of these two things is true, then prepend the appropriate `cd` to the command to
+        // be ran.
         if ((parser->executeAlias() && parser->executeAlias()->working_directory == "map") ||
             (!parser->executeAlias() && !parser->isSet(no_dir_mapping_option)))
         {
@@ -84,12 +85,14 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
                     auto clean_source_dir = QDir::cleanPath(source_dir.absolutePath());
                     QStringList split_source_dir = clean_source_dir.split('/');
 
-                    // If the directory is mounted, we need to `cd` to it in the instance before executing the command.
+                    // If the directory is mounted, we need to `cd` to it in the instance before
+                    // executing the command.
                     if (is_dir_mounted(split_exec_dir, split_source_dir))
                     {
                         for (int i = 0; i < split_source_dir.size(); ++i)
                             split_exec_dir.removeFirst();
-                        work_dir = mount.target_path() + '/' + split_exec_dir.join('/').toStdString();
+                        work_dir =
+                            mount.target_path() + '/' + split_exec_dir.join('/').toStdString();
                     }
                 }
 
@@ -116,14 +119,18 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
 
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
         if (status.error_code() == grpc::StatusCode::ABORTED)
-            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)}, parser, cout, cerr);
+            return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)},
+                                     parser,
+                                     cout,
+                                     cerr);
         else
             return standard_failure_handler_for(name(), cerr, status);
     };
 
     ssh_info_request.set_verbosity_level(parser->verbosityLevel());
     ReturnCode ssh_return_code;
-    while ((ssh_return_code = dispatch(&RpcMethod::ssh_info, ssh_info_request, on_success, on_failure)) ==
+    while ((ssh_return_code =
+                dispatch(&RpcMethod::ssh_info, ssh_info_request, on_success, on_failure)) ==
            ReturnCode::Retry)
         ;
 
@@ -145,8 +152,10 @@ QString cmd::Exec::description() const
     return QStringLiteral("Run a command on an instance");
 }
 
-mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std::optional<std::string>& dir,
-                                       const std::vector<std::string>& args, mp::Terminal* term)
+mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
+                                       const std::optional<std::string>& dir,
+                                       const std::vector<std::string>& args,
+                                       mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
     if (reply.ssh_info().empty())
@@ -170,7 +179,8 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
             {
                 // Use sudo to access the directory, but run the command as the ubuntu user,
                 // This preserves the correct SUDO_ environment variables
-                const auto sh_args = fmt::format("cd {} && sudo -u {} {}", *dir, username, fmt::join(args, " "));
+                const auto sh_args =
+                    fmt::format("cd {} && sudo -u {} {}", *dir, username, fmt::join(args, " "));
 
                 all_args = {{"sudo", "sh", "-c", sh_args}};
             }
@@ -192,9 +202,13 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply, const std:
 mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Name of instance to execute the command on", "<name>");
-    parser->addPositionalArgument("command", "Command to execute on the instance", "[--] <command>");
+    parser->addPositionalArgument("command",
+                                  "Command to execute on the instance",
+                                  "[--] <command>");
 
-    QCommandLineOption workDirOption({"d", work_dir_option_name}, "Change to <dir> before execution", "dir");
+    QCommandLineOption workDirOption({"d", work_dir_option_name},
+                                     "Change to <dir> before execution",
+                                     "dir");
     QCommandLineOption noDirMappingOption({"n", no_dir_mapping_option},
                                           "Do not map the host execution path to a mounted path");
 
@@ -208,7 +222,8 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
         if (!parser->unknownOptionNames().empty() && !parser->containsArgument("--"))
         {
             bool is_alias = parser->executeAlias() != std::nullopt;
-            cerr << fmt::format("\nOptions to the {} should come after \"--\", like this:\nmultipass {} <arguments>\n",
+            cerr << fmt::format("\nOptions to the {} should come after \"--\", like "
+                                "this:\nmultipass {} <arguments>\n",
                                 is_alias ? "alias" : "inner command",
                                 is_alias ? "<alias> --" : "exec <instance> -- <command>");
         }
@@ -217,7 +232,9 @@ mp::ParseCode cmd::Exec::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(work_dir_option_name) && parser->isSet(no_dir_mapping_option))
     {
-        cerr << fmt::format("Options --{} and --{} clash\n", work_dir_option_name, no_dir_mapping_option);
+        cerr << fmt::format("Options --{} and --{} clash\n",
+                            work_dir_option_name,
+                            no_dir_mapping_option);
         status = ParseCode::CommandLineError;
     }
     else if (parser->positionalArguments().count() < 2)

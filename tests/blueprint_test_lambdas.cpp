@@ -40,7 +40,9 @@ std::function<mp::VMImage(const mp::FetchType&,
                           const mp::ProgressMonitor&,
                           const std::optional<std::string>,
                           const mp::Path&)>
-mpt::fetch_image_lambda(const std::string& release, const std::string& remote, const bool must_have_checksum)
+mpt::fetch_image_lambda(const std::string& release,
+                        const std::string& remote,
+                        const bool must_have_checksum)
 {
     return [&release, &remote, must_have_checksum](const mp::FetchType& fetch_type,
                                                    const mp::Query& query,
@@ -63,12 +65,14 @@ mpt::fetch_image_lambda(const std::string& release, const std::string& remote, c
             EXPECT_NE(checksum, std::nullopt);
         }
 
-        return mpt::StubVMImageVault().fetch_image(fetch_type, query, prepare, monitor, checksum, save_dir);
+        return mpt::StubVMImageVault()
+            .fetch_image(fetch_type, query, prepare, monitor, checksum, save_dir);
     };
 }
 
-std::function<
-    mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&)>
+std::function<mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&,
+                                       const mp::SSHKeyProvider&,
+                                       mp::VMStatusMonitor&)>
 mpt::create_virtual_machine_lambda(const int& num_cores,
                                    const mp::MemorySize& mem_size,
                                    const mp::MemorySize& disk_space,
@@ -90,13 +94,19 @@ mpt::create_virtual_machine_lambda(const int& num_cores,
 }
 
 std::function<mp::Query(const std::string&, mp::VirtualMachineDescription&, mp::ClientLaunchData&)>
-mpt::fetch_blueprint_for_lambda(const int& num_cores, const mp::MemorySize& mem_size, const mp::MemorySize& disk_space,
-                                const std::string& release, const std::string& remote,
+mpt::fetch_blueprint_for_lambda(const int& num_cores,
+                                const mp::MemorySize& mem_size,
+                                const mp::MemorySize& disk_space,
+                                const std::string& release,
+                                const std::string& remote,
                                 std::optional<std::pair<std::string, mp::AliasDefinition>> alias,
-                                std::optional<std::string> workspace, std::optional<std::string> sha256)
+                                std::optional<std::string> workspace,
+                                std::optional<std::string> sha256)
 {
-    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias, workspace,
-            sha256](const auto&, mp::VirtualMachineDescription& vm_desc, mp::ClientLaunchData& l_data) -> mp::Query {
+    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias, workspace, sha256](
+               const auto&,
+               mp::VirtualMachineDescription& vm_desc,
+               mp::ClientLaunchData& l_data) -> mp::Query {
         vm_desc.num_cores = num_cores;
         vm_desc.mem_size = mem_size;
         vm_desc.disk_space = disk_space;

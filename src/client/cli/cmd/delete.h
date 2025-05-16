@@ -30,7 +30,8 @@ class Delete final : public Command
 public:
     using Command::Command;
 
-    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 

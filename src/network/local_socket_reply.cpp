@@ -82,14 +82,20 @@ QNetworkReply::NetworkError statusCodeFromHttp(int httpStatusCode)
 }
 } // namespace
 
-mp::LocalSocketReply::LocalSocketReply(LocalSocketUPtr local_socket, const QNetworkRequest& request,
+mp::LocalSocketReply::LocalSocketReply(LocalSocketUPtr local_socket,
+                                       const QNetworkRequest& request,
                                        QIODevice* outgoingData)
     : QNetworkReply(), local_socket{std::move(local_socket)}, reply_data{QByteArray(len, '\0')}
 {
     open(QIODevice::ReadOnly);
 
-    QObject::connect(this->local_socket.get(), &QLocalSocket::readyRead, this, &LocalSocketReply::read_reply);
-    QObject::connect(this->local_socket.get(), &QLocalSocket::readChannelFinished, this,
+    QObject::connect(this->local_socket.get(),
+                     &QLocalSocket::readyRead,
+                     this,
+                     &LocalSocketReply::read_reply);
+    QObject::connect(this->local_socket.get(),
+                     &QLocalSocket::readChannelFinished,
+                     this,
                      &LocalSocketReply::read_finish);
 
     send_request(request, outgoingData);
@@ -181,11 +187,14 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
 
     if (op == "POST" || op == "PUT" || op == "PATCH")
     {
-        http_data = "Content-Type: " + request.header(QNetworkRequest::ContentTypeHeader).toByteArray() + "\r\n";
+        http_data =
+            "Content-Type: " + request.header(QNetworkRequest::ContentTypeHeader).toByteArray() +
+            "\r\n";
 
         if (outgoingData && outgoingData->size() > 0)
         {
-            auto content_length = request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
+            auto content_length =
+                request.header(QNetworkRequest::ContentLengthHeader).toByteArray();
             auto transfer_encoding = request.rawHeader("Transfer-Encoding").toLower();
             bool is_chunked = transfer_encoding.contains("chunked") ? true : false;
 
@@ -193,16 +202,17 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
             {
                 if (is_chunked)
                 {
-                    throw mp::HttpLocalSocketException("Both the \'Content-Length\' header and \'chunked\' transfer "
-                                                       "encoding cannot be set at the same time");
+                    throw mp::HttpLocalSocketException(
+                        "Both the \'Content-Length\' header and \'chunked\' transfer "
+                        "encoding cannot be set at the same time");
                 }
 
                 http_data += "Content-Length: " + content_length + "\r\n";
             }
             else if (content_length.isEmpty() && !is_chunked)
             {
-                throw mp::HttpLocalSocketException(
-                    "Either the \'Content-Length\' header or \'chunked\' transfer encoding must be set");
+                throw mp::HttpLocalSocketException("Either the \'Content-Length\' header or "
+                                                   "\'chunked\' transfer encoding must be set");
             }
 
             if (!transfer_encoding.isEmpty())
@@ -237,7 +247,8 @@ void mp::LocalSocketReply::send_request(const QNetworkRequest& request, QIODevic
             if (bytes_read < 0)
             {
                 throw mp::HttpLocalSocketException(
-                    fmt::format("Cannot read data to send to socket: {}", outgoingData->errorString()));
+                    fmt::format("Cannot read data to send to socket: {}",
+                                outgoingData->errorString()));
             }
 
             // Trailer part for chunked data
@@ -313,7 +324,8 @@ void mp::LocalSocketReply::parse_reply()
 void mp::LocalSocketReply::parse_status(const QByteArray& status)
 {
     QRegularExpression http_status_regex{"^HTTP/\\d\\.\\d (?P<status>\\d{3})\\ (?P<message>.*)$"};
-    QRegularExpressionMatch http_status_match = http_status_regex.match(QString::fromLatin1(status));
+    QRegularExpressionMatch http_status_match =
+        http_status_regex.match(QString::fromLatin1(status));
 
     if (!http_status_match.hasMatch())
     {

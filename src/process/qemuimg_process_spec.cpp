@@ -22,7 +22,8 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args, const QString& source_image,
+mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args,
+                                           const QString& source_image,
                                            const QString& target_image)
     : args{args}, source_image{source_image}, target_image{target_image}
 {
@@ -77,8 +78,8 @@ profile %1 flags=(attach_disconnected) {
     }
     catch (mp::SnapEnvironmentException&)
     {
-        extra_capabilities = "capability dac_override,"; // FIXME - unclear why this is required when
-                                                         // not snap confined
+        extra_capabilities = "capability dac_override,"; // FIXME - unclear why this is required
+                                                         // when not snap confined
         signal_peer = "unconfined";
     }
 
@@ -88,5 +89,6 @@ profile %1 flags=(attach_disconnected) {
     if (!target_image.isEmpty())
         images.append(QString("  %1 rwk,\n").arg(target_image));
 
-    return profile_template.arg(apparmor_profile_name(), extra_capabilities, root_dir, program(), images, signal_peer);
+    return profile_template
+        .arg(apparmor_profile_name(), extra_capabilities, root_dir, program(), images, signal_peer);
 }

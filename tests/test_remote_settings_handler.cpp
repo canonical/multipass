@@ -47,22 +47,28 @@ public:
         return std::make_unique<mpt::MockClientReaderWriter<RequestType, ReplyType>>();
     }
 
-    // Create a callable that returns an owning plain pointer (as expected by grpc), but spares ownership until called.
-    // This is useful in mock actions for grpc functions that return ownership-transferring ptrs.
-    // Note that we'd better not just `EXPECT_CALL(...).Return(uptr.release())` because that would release the ptr right
-    // away, to be adopted only if and when the mock was called.
+    // Create a callable that returns an owning plain pointer (as expected by grpc), but spares
+    // ownership until called. This is useful in mock actions for grpc functions that return
+    // ownership-transferring ptrs. Note that we'd better not just
+    // `EXPECT_CALL(...).Return(uptr.release())` because that would release the ptr right away, to
+    // be adopted only if and when the mock was called.
     template <typename T>
-    static auto make_releaser(std::unique_ptr<T>& uptr) // uptr avoids leaking on exceptions until ownership transfer
+    static auto make_releaser(
+        std::unique_ptr<T>& uptr) // uptr avoids leaking on exceptions until ownership transfer
     {
-        return [&uptr] // we capture by reference - no leaks if uptr is destroyed before lambda called
+        return
+            [&uptr] // we capture by reference - no leaks if uptr is destroyed before lambda called
         {
             return uptr.release(); /* transfer ownership */
         };
     }
 
-    static auto make_status_matcher(grpc::StatusCode code, const std::string& msg, const std::string& details)
+    static auto make_status_matcher(grpc::StatusCode code,
+                                    const std::string& msg,
+                                    const std::string& details)
     {
-        return AllOf(Property(&grpc::Status::error_code, Eq(code)), Property(&grpc::Status::error_message, Eq(msg)),
+        return AllOf(Property(&grpc::Status::error_code, Eq(code)),
+                     Property(&grpc::Status::error_message, Eq(msg)),
                      Property(&grpc::Status::error_details, Eq(details)));
     }
 
@@ -155,8 +161,9 @@ TEST_F(RemoteSettingsTest, keysReturnsRemoteKeys)
         return false;
     });
 
-    EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client)); /* grpc code claims ownership of the
-                                                                                    ptr that keysRaw() returns */
+    EXPECT_CALL(mock_stub, keysRaw)
+        .WillOnce(make_releaser(mock_client)); /* grpc code claims ownership of the
+                                                         ptr that keysRaw() returns */
 
     mp::RemoteSettingsHandler handler{"prefix", mock_stub, &mock_term, 99};
     EXPECT_THAT(handler.keys(), UnorderedElementsAreArray(some_keys));
@@ -167,7 +174,8 @@ TEST_F(RemoteSettingsTest, keysReturnsNoKeysWhenDaemonNotAround)
     auto mock_client = make_mock_reader_writer<mp::KeysRequest, mp::KeysReply>();
 
     EXPECT_CALL(*mock_client, Write).Times(1);
-    EXPECT_CALL(*mock_client, Finish).WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "remote not around"}));
+    EXPECT_CALL(*mock_client, Finish)
+        .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "remote not around"}));
 
     EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client));
 
@@ -186,14 +194,16 @@ TEST_F(RemoteSettingsTest, keysThrowsOnOtherErrorFromRemote)
     auto mock_client = make_mock_reader_writer<mp::KeysRequest, mp::KeysReply>();
 
     EXPECT_CALL(*mock_client, Write).Times(1);
-    EXPECT_CALL(*mock_client, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
+    EXPECT_CALL(*mock_client, Finish)
+        .WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
 
     EXPECT_CALL(mock_stub, keysRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"prefix.", mock_stub, &mock_term, 789};
-    MP_EXPECT_THROW_THAT(
-        handler.keys(), mp::RemoteHandlerException,
-        Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
+    MP_EXPECT_THROW_THAT(handler.keys(),
+                         mp::RemoteHandlerException,
+                         Property(&mp::RemoteHandlerException::get_status,
+                                  make_status_matcher(error_code, error_msg, error_details)));
 }
 
 TEST_F(RemoteSettingsTest, getRequestsSoughtSetting)
@@ -203,7 +213,8 @@ TEST_F(RemoteSettingsTest, getRequestsSoughtSetting)
 
     auto mock_client = make_mock_reader_writer<mp::GetRequest, mp::GetReply>();
 
-    EXPECT_CALL(*mock_client, Write(Property(&mp::GetRequest::key, Eq(key.toStdString())), _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_client, Write(Property(&mp::GetRequest::key, Eq(key.toStdString())), _))
+        .WillOnce(Return(true));
     EXPECT_CALL(mock_stub, getRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 1};
@@ -233,7 +244,9 @@ TEST_F(RemoteSettingsTest, getThrowsOnWrongPrefix)
     constexpr auto prefix = "local.", key = "client.gui.something";
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
-    MP_EXPECT_THROW_THAT(handler.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(handler.get(key),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(RemoteSettingsTest, getThrowsOnOtherErrorFromRemote)
@@ -245,14 +258,16 @@ TEST_F(RemoteSettingsTest, getThrowsOnOtherErrorFromRemote)
     auto mock_client = make_mock_reader_writer<mp::GetRequest, mp::GetReply>();
 
     EXPECT_CALL(*mock_client, Write).WillOnce(Return(true));
-    EXPECT_CALL(*mock_client, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
+    EXPECT_CALL(*mock_client, Finish)
+        .WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
 
     EXPECT_CALL(mock_stub, getRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"asdf", mock_stub, &mock_term, 3};
-    MP_EXPECT_THROW_THAT(
-        handler.get("asdf.asdf"), mp::RemoteHandlerException,
-        Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
+    MP_EXPECT_THROW_THAT(handler.get("asdf.asdf"),
+                         mp::RemoteHandlerException,
+                         Property(&mp::RemoteHandlerException::get_status,
+                                  make_status_matcher(error_code, error_msg, error_details)));
 }
 
 TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
@@ -262,9 +277,10 @@ TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
 
     auto mock_client = make_mock_reader_writer<mp::SetRequest, mp::SetReply>();
 
-    EXPECT_CALL(
-        *mock_client,
-        Write(AllOf(Property(&mp::SetRequest::key, Eq(key.toStdString())), Property(&mp::SetRequest::val, Eq(val))), _))
+    EXPECT_CALL(*mock_client,
+                Write(AllOf(Property(&mp::SetRequest::key, Eq(key.toStdString())),
+                            Property(&mp::SetRequest::val, Eq(val))),
+                      _))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
@@ -277,7 +293,9 @@ TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
     constexpr auto prefix = "local.", key = "client.gui.something";
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
-    MP_EXPECT_THROW_THAT(handler.set(key, "val"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(handler.set(key, "val"),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(RemoteSettingsTest, setThrowsOnOtherErrorFromRemote)
@@ -289,14 +307,16 @@ TEST_F(RemoteSettingsTest, setThrowsOnOtherErrorFromRemote)
     auto mock_client = make_mock_reader_writer<mp::SetRequest, mp::SetReply>();
 
     EXPECT_CALL(*mock_client, Write).WillOnce(Return(true));
-    EXPECT_CALL(*mock_client, Finish).WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
+    EXPECT_CALL(*mock_client, Finish)
+        .WillOnce(Return(grpc::Status{error_code, error_msg, error_details}));
 
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"a", mock_stub, &mock_term, 33};
-    MP_EXPECT_THROW_THAT(
-        handler.set("a.ongajgsiffsgu", "dfoinig"), mp::RemoteHandlerException,
-        Property(&mp::RemoteHandlerException::get_status, make_status_matcher(error_code, error_msg, error_details)));
+    MP_EXPECT_THROW_THAT(handler.set("a.ongajgsiffsgu", "dfoinig"),
+                         mp::RemoteHandlerException,
+                         Property(&mp::RemoteHandlerException::get_status,
+                                  make_status_matcher(error_code, error_msg, error_details)));
 }
 
 } // namespace

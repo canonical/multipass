@@ -30,7 +30,8 @@ class Purge final : public Command
 public:
     using Command::Command;
 
-    Purge(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Purge(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 

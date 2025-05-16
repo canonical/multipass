@@ -84,10 +84,12 @@ QByteArray mpt::PowerShellTestHelper::end_marker(bool succeed) const
 
 void mpt::PowerShellTestHelper::expect_writes(MockProcess* process, QByteArray cmdlet) const
 {
-    auto cmdlet_matcher = Truly([expect = std::move(cmdlet)](const QByteArray& got) { return got.contains(expect); });
+    auto cmdlet_matcher =
+        Truly([expect = std::move(cmdlet)](const QByteArray& got) { return got.contains(expect); });
     EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
 
-    auto marker_matcher = Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()));
+    auto marker_matcher =
+        Property(&QByteArray::toStdString, HasSubstr(output_end_marker.toStdString()));
     EXPECT_CALL(*process, write(marker_matcher)).WillOnce(Return(written));
 }
 

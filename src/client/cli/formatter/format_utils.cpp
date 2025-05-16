@@ -90,7 +90,8 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
 
 std::string mp::format::image_string_for(const mp::FindReply_AliasInfo& alias)
 {
-    return alias.remote_name().empty() ? alias.alias() : fmt::format("{}:{}", alias.remote_name(), alias);
+    return alias.remote_name().empty() ? alias.alias()
+                                       : fmt::format("{}:{}", alias.remote_name(), alias);
 }
 
 mp::Formatter* mp::format::formatter_for(const std::string& format)
@@ -101,7 +102,8 @@ mp::Formatter* mp::format::formatter_for(const std::string& format)
     return nullptr;
 }
 
-void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases)
+void mp::format::filter_aliases(
+    google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases)
 {
     for (auto i = aliases.size() - 1; i >= 0; i--)
     {
@@ -119,7 +121,8 @@ mp::FormatUtils::FormatUtils(const Singleton<FormatUtils>::PrivatePass& pass) no
 {
 }
 
-std::string mp::FormatUtils::convert_to_user_locale(const google::protobuf::Timestamp& timestamp) const
+std::string mp::FormatUtils::convert_to_user_locale(
+    const google::protobuf::Timestamp& timestamp) const
 {
     std::ostringstream oss;
     oss.imbue(std::locale(""));

@@ -81,7 +81,8 @@ struct TestQemuSnapshot : public Test
 
     static void set_tag_output(mpt::MockProcess* process, std::string tag)
     {
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray::fromStdString(tag + ' ')));
+        EXPECT_CALL(*process, read_all_standard_output)
+            .WillOnce(Return(QByteArray::fromStdString(tag + ' ')));
     }
 
     mp::VirtualMachineDescription desc = [] {
@@ -102,17 +103,27 @@ struct TestQemuSnapshot : public Test
         const auto cpus = 3;
         const auto mem_size = mp::MemorySize{"1.23G"};
         const auto disk_space = mp::MemorySize{"3.21M"};
-        const std::vector<mp::NetworkInterface> extra_interfaces{{"eth15", "15:15:15:15:15:15", false}};
+        const std::vector<mp::NetworkInterface> extra_interfaces{
+            {"eth15", "15:15:15:15:15:15", false}};
         const auto state = mp::VirtualMachine::State::off;
-        const auto mounts =
-            std::unordered_map<std::string, mp::VMMount>{{"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
+        const auto mounts = std::unordered_map<std::string, mp::VMMount>{
+            {"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
         const auto metadata = [] {
             auto metadata = QJsonObject{};
             metadata["meta"] = "data";
             return metadata;
         }();
 
-        return mp::VMSpecs{cpus, mem_size, disk_space, "mac", extra_interfaces, "", state, mounts, false, metadata};
+        return mp::VMSpecs{cpus,
+                           mem_size,
+                           disk_space,
+                           "mac",
+                           extra_interfaces,
+                           "",
+                           state,
+                           mounts,
+                           false,
+                           metadata};
     }();
 };
 
@@ -156,14 +167,17 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
     EXPECT_EQ(snapshot.get_state(), mp::VirtualMachine::State::off);
 
     auto mount_matcher1 =
-        Pair(Eq("guybrush"), Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
+        Pair(Eq("guybrush"),
+             Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
     auto mount_matcher2 =
-        Pair(Eq("murray"), Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
+        Pair(Eq("murray"),
+             Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
     EXPECT_THAT(snapshot.get_mounts(), UnorderedElementsAre(mount_matcher1, mount_matcher2));
 
     EXPECT_THAT(
         snapshot.get_metadata(),
-        ResultOf([](const QJsonObject& metadata) { return metadata["arguments"].toArray(); }, Contains("-qmp")));
+        ResultOf([](const QJsonObject& metadata) { return metadata["arguments"].toArray(); },
+                 Contains("-qmp")));
 }
 
 TEST_F(TestQemuSnapshot, capturesSnapshot)
@@ -234,8 +248,9 @@ TEST_F(TestQemuSnapshot, erasesSnapshot)
         }
         else
         {
-            EXPECT_THAT(process->arguments(),
-                        ElementsAre("snapshot", "-d", QString::fromStdString(tag), desc.image.image_path));
+            EXPECT_THAT(
+                process->arguments(),
+                ElementsAre("snapshot", "-d", QString::fromStdString(tag), desc.image.image_path));
         }
     });
 
@@ -311,7 +326,9 @@ TEST_F(TestQemuSnapshot, keepsDescOnFailure)
     desc.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth17", "17:17:17:17:17:17", true}};
 
     const auto orig_desc = desc;
-    MP_EXPECT_THROW_THAT(snapshot.apply(), std::runtime_error, mpt::match_what(HasSubstr("qemu-img failed")));
+    MP_EXPECT_THROW_THAT(snapshot.apply(),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("qemu-img failed")));
 
     EXPECT_EQ(orig_desc.num_cores, desc.num_cores);
     EXPECT_EQ(orig_desc.mem_size, desc.mem_size);

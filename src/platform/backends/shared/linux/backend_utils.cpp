@@ -68,7 +68,8 @@ constexpr auto max_bridge_name_len = 15; // maximum number of characters in a br
 bool subnet_used_locally(const std::string& subnet)
 {
     // CLI equivalent: ip -4 route show | grep -q ${SUBNET}
-    const auto output = QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
+    const auto output =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
     return output.contains(QString::fromStdString(subnet));
 }
 
@@ -82,7 +83,9 @@ auto virtual_switch_subnet(const QString& bridge_name)
     // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3
     QString subnet;
 
-    const auto output = QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
+    const auto output =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}))
+            .split('\n');
     for (const auto& line : output)
     {
         if (line.contains(bridge_name))
@@ -94,8 +97,10 @@ auto virtual_switch_subnet(const QString& bridge_name)
 
     if (subnet.isNull())
     {
-        mpl::log(mpl::Level::info, "daemon",
-                 fmt::format("Unable to determine subnet for the {} subnet", qUtf8Printable(bridge_name)));
+        mpl::log(mpl::Level::info,
+                 "daemon",
+                 fmt::format("Unable to determine subnet for the {} subnet",
+                             qUtf8Printable(bridge_name)));
     }
     return subnet.toStdString();
 }
@@ -104,19 +109,23 @@ const mpdbus::DBusConnection& get_checked_system_bus()
 {
     const auto& system_bus = mpdbus::DBusProvider::instance().get_system_bus();
     if (!system_bus.is_connected())
-        throw mp::backend::CreateBridgeException{"Failed to connect to D-Bus system bus", system_bus.last_error()};
+        throw mp::backend::CreateBridgeException{"Failed to connect to D-Bus system bus",
+                                                 system_bus.last_error()};
 
     return system_bus;
 }
 
-std::unique_ptr<mpdbus::DBusInterface> get_checked_interface(const mpdbus::DBusConnection& bus, const QString& service,
-                                                             const QString& path, const QString& interface)
+std::unique_ptr<mpdbus::DBusInterface> get_checked_interface(const mpdbus::DBusConnection& bus,
+                                                             const QString& service,
+                                                             const QString& path,
+                                                             const QString& interface)
 {
     auto ret = bus.get_interface(service, path, interface);
 
     assert(ret);
     if (!ret->is_valid())
-        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object", ret->last_error()};
+        throw mp::backend::CreateBridgeException{"Could not reach remote D-Bus object",
+                                                 ret->last_error()};
 
     return ret;
 }
@@ -124,24 +133,33 @@ std::unique_ptr<mpdbus::DBusInterface> get_checked_interface(const mpdbus::DBusC
 template <typename T, bool RollingBack = false, typename... Ts>
 T checked_dbus_call(mpdbus::DBusInterface& interface, const QString& method_name, Ts&&... params)
 {
-    static constexpr auto error_template = "Failed DBus call. (Service: {}; Object: {}; Interface: {}; Method: {})";
+    static constexpr auto error_template =
+        "Failed DBus call. (Service: {}; Object: {}; Interface: {}; Method: {})";
 
-    auto reply_msg = interface.call(QDBus::Block, method_name, QVariant::fromValue(std::forward<Ts>(params))...);
+    auto reply_msg =
+        interface.call(QDBus::Block, method_name, QVariant::fromValue(std::forward<Ts>(params))...);
     QDBusReply<T> reply = reply_msg;
 
     if (!reply.isValid())
-        throw mp::backend::CreateBridgeException{
-            fmt::format(error_template, interface.service(), interface.path(), interface.interface(), method_name),
-            reply.error(), RollingBack};
+        throw mp::backend::CreateBridgeException{fmt::format(error_template,
+                                                             interface.service(),
+                                                             interface.path(),
+                                                             interface.interface(),
+                                                             method_name),
+                                                 reply.error(),
+                                                 RollingBack};
 
     if constexpr (!std::is_void_v<T>)
         return reply.value();
 }
 
-auto make_connection_settings(const QString& parent_name, const QString& child_name, const QString& interface_name)
+auto make_connection_settings(const QString& parent_name,
+                              const QString& child_name,
+                              const QString& interface_name)
 {
-    VariantMapMap arg1{{"connection", {{"type", "bridge"}, {"id", parent_name}, {"autoconnect-slaves", 1}}},
-                       {"bridge", {{"interface-name", parent_name}}}};
+    VariantMapMap arg1{
+        {"connection", {{"type", "bridge"}, {"id", parent_name}, {"autoconnect-slaves", 1}}},
+        {"bridge", {{"interface-name", parent_name}}}};
     VariantMapMap arg2{{"connection",
                         {{"id", child_name},
                          {"type", "802-3-ethernet"},
@@ -212,14 +230,18 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
 
     const auto& system_bus = get_checked_system_bus();
     auto nm_root = get_checked_interface(system_bus, nm_bus_name, nm_root_obj, nm_root_ifc);
-    auto nm_settings = get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
+    auto nm_settings =
+        get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
 
     auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
     auto child_name = parent_name + "-child";
-    mpl::log(mpl::Level::debug, log_category_create, fmt::format("Creating bridge: {}", parent_name));
+    mpl::log(mpl::Level::debug,
+             log_category_create,
+             fmt::format("Creating bridge: {}", parent_name));
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
-    const auto& [arg1, arg2] = make_connection_settings(parent_name, child_name, QString::fromStdString(interface));
+    const auto& [arg1, arg2] =
+        make_connection_settings(parent_name, child_name, QString::fromStdString(interface));
 
     // The rollbacks could be achieved with
     //   `nmcli connection delete <parent_connection> <child_connection>
@@ -229,12 +251,17 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
 
     // The following DBus calls are roughly equivalent to:
     //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
-    //   `nmcli connection add type bridge-slave ifname <if> master <br> connection.autoconnect-priority 10`
-    //   `nmcli connection up <child_connection>`
+    //   `nmcli connection add type bridge-slave ifname <if> master <br>
+    //   connection.autoconnect-priority 10` `nmcli connection up <child_connection>`
     parent_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
     child_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
-    checked_dbus_call<QDBusObjectPath>(*nm_root, "ActivateConnection", child_path, root_path, root_path); /* Inspiration
-    for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
+    checked_dbus_call<QDBusObjectPath>(*nm_root,
+                                       "ActivateConnection",
+                                       child_path,
+                                       root_path,
+                                       root_path); /* Inspiration
+for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See
+https://bit.ly/3dMA3QB */
 
     rollback_guard.dismiss(); // we succeeded!
 
@@ -289,16 +316,21 @@ void mp::Backend::check_if_kvm_is_in_use()
     MP_LINUX_SYSCALLS.close(kvm_fd);
 
     if (ret == -1 && errno == EBUSY)
-        throw std::runtime_error("Another virtual machine manager is currently running. Please shut it down before "
-                                 "starting a Multipass instance.");
+        throw std::runtime_error(
+            "Another virtual machine manager is currently running. Please shut it down before "
+            "starting a Multipass instance.");
 
     MP_LINUX_SYSCALLS.close(ret);
 }
 
-mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail, const QDBusError& dbus_error,
+mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail,
+                                                          const QDBusError& dbus_error,
                                                           bool rollback)
-    : std::runtime_error(fmt::format("{}. {}: {}", rollback ? "Could not rollback bridge" : "Could not create bridge",
-                                     detail, dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
+    : std::runtime_error(
+          fmt::format("{}. {}: {}",
+                      rollback ? "Could not rollback bridge" : "Could not create bridge",
+                      detail,
+                      dbus_error.isValid() ? dbus_error.message() : "unknown cause"))
 {
 }
 

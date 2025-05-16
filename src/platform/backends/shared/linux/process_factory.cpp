@@ -41,8 +41,10 @@ public:
         connect(this, &AppArmoredProcess::state_changed, [this](QProcess::ProcessState state) {
             if (state == QProcess::Starting)
             {
-                mpl::log(mpl::Level::debug, "daemon",
-                         fmt::format("Applied AppArmor policy: {}", process_spec->apparmor_profile_name()));
+                mpl::log(mpl::Level::debug,
+                         "daemon",
+                         fmt::format("Applied AppArmor policy: {}",
+                                     process_spec->apparmor_profile_name()));
             }
         });
     }
@@ -93,7 +95,9 @@ std::optional<mp::AppArmor> create_apparmor()
     }
     catch (mp::AppArmorException& e)
     {
-        mpl::log(mpl::Level::warning, "apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
+        mpl::log(mpl::Level::warning,
+                 "apparmor",
+                 fmt::format("Failed to enable AppArmor: {}", e.what()));
         return std::nullopt;
     }
 }
@@ -105,7 +109,8 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
 }
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
-std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
+std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(
+    std::unique_ptr<mp::ProcessSpec>&& process_spec) const
 {
     if (apparmor && !process_spec->apparmor_profile().isNull())
     {

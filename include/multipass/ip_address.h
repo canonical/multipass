@@ -46,6 +46,6 @@ struct IPAddress
 
     std::array<uint8_t, 4> octets;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_IP_ADDRESS_H

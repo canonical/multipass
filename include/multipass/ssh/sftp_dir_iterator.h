@@ -30,7 +30,8 @@ namespace multipass
 {
 namespace fs = std::filesystem;
 
-using SFTPAttributesUPtr = std::unique_ptr<sftp_attributes_struct, std::function<void(sftp_attributes)>>;
+using SFTPAttributesUPtr =
+    std::unique_ptr<sftp_attributes_struct, std::function<void(sftp_attributes)>>;
 using SFTPDirUPtr = std::unique_ptr<sftp_dir_struct, std::function<int(sftp_dir)>>;
 
 class SFTPDirIterator

@@ -60,7 +60,8 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::debug, category,
+        mpl::log(mpl::Level::debug,
+                 category,
                  fmt::format("'multipass-sshfs' snap package is not installed: {}", e.what()));
 
         // Fallback to looking for distro version if snap is not found
@@ -70,7 +71,8 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::warning, category,
+            mpl::log(mpl::Level::warning,
+                     category,
                      fmt::format("Unable to determine if 'sshfs' is installed: {}", e.what()));
             throw mp::SSHFSMissingError();
         }
@@ -88,15 +90,20 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         std::string fuse_version;
 
         // split on the fuse_version_string along with 0 or 1 colon(s)
-        auto tokens = mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
+        auto tokens =
+            mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
         if (tokens.size() == 2)
             fuse_version = tokens[1];
 
         if (fuse_version.empty())
         {
-            mpl::log(mpl::Level::warning, category, fmt::format("Unable to parse the {}", fuse_version_string));
-            mpl::log(mpl::Level::debug, category,
-                     fmt::format("Unable to parse the {}: {}", fuse_version_string, fuse_version_line));
+            mpl::log(mpl::Level::warning,
+                     category,
+                     fmt::format("Unable to parse the {}", fuse_version_string));
+            mpl::log(
+                mpl::Level::debug,
+                category,
+                fmt::format("Unable to parse the {}: {}", fuse_version_string, fuse_version_line));
         }
         // The option was made the default in libfuse 3.0
         else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
@@ -110,17 +117,28 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     }
     else
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("Unable to retrieve \'{}\'", fuse_version_string));
+        mpl::log(mpl::Level::warning,
+                 category,
+                 fmt::format("Unable to retrieve \'{}\'", fuse_version_string));
     }
 
     return sshfs_exec;
 }
 
-auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const std::string& target,
-                      const mp::id_mappings& gid_mappings, const mp::id_mappings& uid_mappings)
+auto make_sftp_server(mp::SSHSession&& session,
+                      const std::string& source,
+                      const std::string& target,
+                      const mp::id_mappings& gid_mappings,
+                      const mp::id_mappings& uid_mappings)
 {
-    mpl::log(mpl::Level::debug, category,
-             fmt::format("{}:{} {}(source = {}, target = {}, …): ", __FILE__, __LINE__, __FUNCTION__, source, target));
+    mpl::log(mpl::Level::debug,
+             category,
+             fmt::format("{}:{} {}(source = {}, target = {}, …): ",
+                         __FILE__,
+                         __LINE__,
+                         __FUNCTION__,
+                         source,
+                         target));
 
     auto sshfs_exec_line = get_sshfs_exec_and_options(session);
 
@@ -128,12 +146,14 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
     const auto& [leading, missing] = mpu::get_path_split(session, target);
 
     auto output = MP_UTILS.run_in_ssh_session(session, "id -u");
-    mpl::log(mpl::Level::debug, category,
+    mpl::log(mpl::Level::debug,
+             category,
              fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_uid = std::stoi(output);
 
     output = MP_UTILS.run_in_ssh_session(session, "id -g");
-    mpl::log(mpl::Level::debug, category,
+    mpl::log(mpl::Level::debug,
+             category,
              fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
     auto default_gid = std::stoi(output);
 
@@ -145,8 +165,14 @@ auto make_sftp_server(mp::SSHSession&& session, const std::string& source, const
         mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
     }
 
-    return std::make_unique<mp::SftpServer>(std::move(session), source, leading + missing, gid_mappings, uid_mappings,
-                                            default_uid, default_gid, sshfs_exec_line);
+    return std::make_unique<mp::SftpServer>(std::move(session),
+                                            source,
+                                            leading + missing,
+                                            gid_mappings,
+                                            uid_mappings,
+                                            default_uid,
+                                            default_gid,
+                                            sshfs_exec_line);
 }
 
 } // namespace

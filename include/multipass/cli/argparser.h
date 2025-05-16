@@ -28,10 +28,13 @@ namespace multipass
 {
 class ArgParser
 {
-    // Note: We are using camelCase here for methods since this class mimics the QCommandLineParser class
+    // Note: We are using camelCase here for methods since this class mimics the QCommandLineParser
+    // class
 
 public:
-    ArgParser(const QStringList& arguments, const std::vector<cmd::Command::UPtr>& commands, std::ostream& cout,
+    ArgParser(const QStringList& arguments,
+              const std::vector<cmd::Command::UPtr>& commands,
+              std::ostream& cout,
               std::ostream& cerr);
 
     void setApplicationDescription(const QString& description);
@@ -39,7 +42,9 @@ public:
     bool addOption(const QCommandLineOption& command_line_option);
     bool addOptions(const QList<QCommandLineOption>& options);
 
-    void addPositionalArgument(const QString& name, const QString& description, const QString& syntax = QString());
+    void addPositionalArgument(const QString& name,
+                               const QString& description,
+                               const QString& syntax = QString());
 
     ParseCode parse(const std::optional<AliasDict>& aliases = std::nullopt);
     cmd::Command* chosenCommand() const;

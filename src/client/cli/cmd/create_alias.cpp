@@ -20,9 +20,12 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
-multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std::string& alias_name,
-                                                   const AliasDefinition& alias_definition, std::ostream& cout,
-                                                   std::ostream& cerr, const std::optional<std::string>& context)
+multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases,
+                                                   const std::string& alias_name,
+                                                   const AliasDefinition& alias_definition,
+                                                   std::ostream& cout,
+                                                   std::ostream& cerr,
+                                                   const std::optional<std::string>& context)
 {
     bool empty_before_add = aliases.empty();
 
@@ -39,7 +42,8 @@ multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std
 
     try
     {
-        MP_PLATFORM.create_alias_script(aliases.active_context_name() + "." + alias_name, alias_definition);
+        MP_PLATFORM.create_alias_script(aliases.active_context_name() + "." + alias_name,
+                                        alias_definition);
     }
     catch (std::runtime_error& e)
     {
@@ -82,10 +86,11 @@ multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases, const std
 
     auto alias_folder = MP_PLATFORM.get_alias_scripts_folder().absolutePath();
 
-    // aliases.size() is the amount of contexts defined. If the alias dictionary is empty and a new alias is created
-    // in a context different to the default context, the dictionary will have two contexts, although only one
-    // defined alias.
-    if (empty_before_add && aliases.size() > 0 && std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
+    // aliases.size() is the amount of contexts defined. If the alias dictionary is empty and a new
+    // alias is created in a context different to the default context, the dictionary will have two
+    // contexts, although only one defined alias.
+    if (empty_before_add && aliases.size() > 0 &&
+        std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
         cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;

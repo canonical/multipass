@@ -64,22 +64,24 @@ QString cmd::Snapshot::short_help() const
 
 QString cmd::Snapshot::description() const
 {
-    return QStringLiteral(
-        "Take a snapshot of a stopped instance that can later be restored to recover the current state.");
+    return QStringLiteral("Take a snapshot of a stopped instance that can later be restored to "
+                          "recover the current state.");
 }
 
 mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("instance", "The instance to take a snapshot of.");
-    QCommandLineOption name_opt({"n", "name"},
-                                "An optional name for the snapshot, subject to the same validity rules as instance "
-                                "names (see `help launch`). Default: \"snapshotN\", where N is one plus the "
-                                "number of snapshots that were ever taken for <instance>.",
-                                "name");
-    QCommandLineOption comment_opt{{"comment", "c", "m"},
-                                   "An optional free comment to associate with the snapshot. (Hint: quote the text to "
-                                   "avoid spaces being parsed by your shell)",
-                                   "comment"};
+    QCommandLineOption name_opt(
+        {"n", "name"},
+        "An optional name for the snapshot, subject to the same validity rules as instance "
+        "names (see `help launch`). Default: \"snapshotN\", where N is one plus the "
+        "number of snapshots that were ever taken for <instance>.",
+        "name");
+    QCommandLineOption comment_opt{
+        {"comment", "c", "m"},
+        "An optional free comment to associate with the snapshot. (Hint: quote the text to "
+        "avoid spaces being parsed by your shell)",
+        "comment"};
     parser->addOptions({name_opt, comment_opt});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)

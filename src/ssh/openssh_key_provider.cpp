@@ -37,9 +37,14 @@ mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
         throw std::runtime_error("unable to generate ssh key");
 
     mp::OpenSSHKeyProvider::KeyUPtr key{priv_key};
-    ret = ssh_pki_export_privkey_file(priv_key, nullptr, nullptr, nullptr, priv_key_path.toStdString().c_str());
+    ret = ssh_pki_export_privkey_file(priv_key,
+                                      nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      priv_key_path.toStdString().c_str());
     if (ret != SSH_OK)
-        throw std::runtime_error(fmt::format("failed to export ssh private key to file '{}'", priv_key_path));
+        throw std::runtime_error(
+            fmt::format("failed to export ssh private key to file '{}'", priv_key_path));
 
     QFile::setPermissions(priv_key_path, QFile::ReadOwner);
     return key;
@@ -51,8 +56,11 @@ mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir)
     if (QFile::exists(priv_key_path))
     {
         ssh_key priv_key;
-        auto imported =
-            ssh_pki_import_privkey_file(priv_key_path.toStdString().c_str(), nullptr, nullptr, nullptr, &priv_key);
+        auto imported = ssh_pki_import_privkey_file(priv_key_path.toStdString().c_str(),
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    &priv_key);
         if (imported != SSH_OK)
             return create_priv_key(priv_key_path);
         return mp::OpenSSHKeyProvider::KeyUPtr{priv_key};
@@ -76,7 +84,8 @@ std::string mp::OpenSSHKeyProvider::private_key_as_base64() const
     QFile key_file{ssh_key_dir.filePath("id_rsa")};
     auto opened = key_file.open(QIODevice::ReadOnly);
     if (!opened)
-        throw std::runtime_error(fmt::format("Unable to open private key file '{}'", key_file.fileName()));
+        throw std::runtime_error(
+            fmt::format("Unable to open private key file '{}'", key_file.fileName()));
 
     auto data = key_file.readAll();
     auto data_size = static_cast<size_t>(data.length());

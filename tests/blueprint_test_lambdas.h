@@ -45,18 +45,27 @@ std::function<VMImage(const FetchType&,
                       const ProgressMonitor&,
                       const std::optional<std::string>,
                       const multipass::Path&)>
-fetch_image_lambda(const std::string& release, const std::string& remote, const bool must_have_checksum = false);
+fetch_image_lambda(const std::string& release,
+                   const std::string& remote,
+                   const bool must_have_checksum = false);
 
-std::function<VirtualMachine::UPtr(const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&)>
+std::function<
+    VirtualMachine::UPtr(const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&)>
 create_virtual_machine_lambda(const int& num_cores,
                               const MemorySize& mem_size,
                               const MemorySize& disk_space,
                               const std::string& name);
 
-std::function<Query(const std::string&, VirtualMachineDescription&, ClientLaunchData&)> fetch_blueprint_for_lambda(
-    const int& num_cores, const MemorySize& mem_size, const MemorySize& disk_space, const std::string& release,
-    const std::string& remote, std::optional<std::pair<std::string, AliasDefinition>> alias = std::nullopt,
-    std::optional<std::string> workspace = std::nullopt, std::optional<std::string> sha256 = std::nullopt);
+std::function<Query(const std::string&, VirtualMachineDescription&, ClientLaunchData&)>
+fetch_blueprint_for_lambda(
+    const int& num_cores,
+    const MemorySize& mem_size,
+    const MemorySize& disk_space,
+    const std::string& release,
+    const std::string& remote,
+    std::optional<std::pair<std::string, AliasDefinition>> alias = std::nullopt,
+    std::optional<std::string> workspace = std::nullopt,
+    std::optional<std::string> sha256 = std::nullopt);
 
 } // namespace test
 } // namespace multipass

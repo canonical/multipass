@@ -105,7 +105,8 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
 {
     for (const auto* x : {"no", "matter", "what"})
-        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x), mp::InvalidSettingException);
+        EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x),
+                     mp::InvalidSettingException);
 }
 
 TEST_F(PlatformLinux, test_interpretation_of_unknown_settings_not_supported)
@@ -184,7 +185,8 @@ TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
     mpt::SetEnvScope env("SNAP_COMMON", base_dir);
     mpt::SetEnvScope env2("SNAP_NAME", snap_name);
 
-    EXPECT_EQ(mp::platform::default_server_address(), fmt::format("unix:{}/multipass_socket", base_dir.toStdString()));
+    EXPECT_EQ(mp::platform::default_server_address(),
+              fmt::format("unix:{}/multipass_socket", base_dir.toStdString()));
 }
 
 TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
@@ -209,7 +211,8 @@ TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
     EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformLinux, TestUnsupportedDrivers,
+INSTANTIATE_TEST_SUITE_P(PlatformLinux,
+                         TestUnsupportedDrivers,
                          Values(QStringLiteral("hyper-v"), QStringLiteral("other")));
 
 TEST_F(PlatformLinux, retrieves_empty_bridges)
@@ -226,10 +229,13 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
 
     using value_type = decltype(net_map)::value_type;
     using Net = mp::NetworkInterfaceInfo;
-    EXPECT_THAT(net_map, ElementsAre(AllOf(
-                             Field(&value_type::first, fake_bridge),
-                             Field(&value_type::second, AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
-                                                              Field(&Net::description, StrEq("Network bridge")))))));
+    EXPECT_THAT(
+        net_map,
+        ElementsAre(AllOf(Field(&value_type::first, fake_bridge),
+                          Field(&value_type::second,
+                                AllOf(Field(&Net::id, fake_bridge),
+                                      Field(&Net::type, "bridge"),
+                                      Field(&Net::description, StrEq("Network bridge")))))));
 }
 
 TEST_F(PlatformLinux, retrieves_ethernet_devices)
@@ -260,7 +266,8 @@ TEST_F(PlatformLinux, does_not_retrieve_unknown_networks)
     for (const auto& net : fake_nets)
         ASSERT_TRUE(fake_sys_class_net.mkpath(net));
 
-    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()),
+                IsEmpty());
 }
 
 TEST_F(PlatformLinux, does_not_retrieve_other_virtual)
@@ -271,7 +278,8 @@ TEST_F(PlatformLinux, does_not_retrieve_other_virtual)
     QDir fake_sys_class_net{tmp_dir.path() + "/virtual"};
     mpt::make_file_with_content(fake_sys_class_net.filePath(fake_virt) + "/type", "1");
 
-    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()),
+                IsEmpty());
 }
 
 TEST_F(PlatformLinux, does_not_retrieve_wireless)
@@ -284,7 +292,8 @@ TEST_F(PlatformLinux, does_not_retrieve_wireless)
     mpt::make_file_with_content(wifi_dir.filePath("type"), "1");
     ASSERT_TRUE(wifi_dir.mkpath("wireless"));
 
-    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()),
+                IsEmpty());
 }
 
 TEST_F(PlatformLinux, does_not_retrieve_protocols)
@@ -295,7 +304,8 @@ TEST_F(PlatformLinux, does_not_retrieve_protocols)
     QDir fake_sys_class_net{tmp_dir.path()};
     mpt::make_file_with_content(fake_sys_class_net.filePath(fake_net) + "/type", "32");
 
-    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()),
+                IsEmpty());
 }
 
 TEST_F(PlatformLinux, does_not_retrieve_other_specified_device_types)
@@ -311,10 +321,12 @@ TEST_F(PlatformLinux, does_not_retrieve_other_specified_device_types)
 
     auto net_map = mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path());
 
-    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()), IsEmpty());
+    EXPECT_THAT(mp::platform::detail::get_network_interfaces_from(fake_sys_class_net.path()),
+                IsEmpty());
 }
 
-struct BridgeMemberTest : public PlatformLinux, WithParamInterface<std::vector<std::pair<std::string, bool>>>
+struct BridgeMemberTest : public PlatformLinux,
+                          WithParamInterface<std::vector<std::pair<std::string, bool>>>
 {
 };
 
@@ -356,17 +368,26 @@ TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
     using Net = mp::NetworkInterfaceInfo;
     network_matchers.push_back(
         AllOf(Field(&net_value_type::first, fake_bridge),
-              Field(&net_value_type::second, AllOf(Field(&Net::id, fake_bridge), Field(&Net::type, "bridge"),
-                                                   Field(&Net::description, AllOfArray(substrs_matchers))))));
+              Field(&net_value_type::second,
+                    AllOf(Field(&Net::id, fake_bridge),
+                          Field(&Net::type, "bridge"),
+                          Field(&Net::description, AllOfArray(substrs_matchers))))));
 
     EXPECT_THAT(net_map, UnorderedElementsAreArray(network_matchers));
 }
 
 using Param = std::vector<std::pair<std::string, bool>>;
-INSTANTIATE_TEST_SUITE_P(
-    PlatformLinux, BridgeMemberTest,
-    Values(Param{{"en0", true}}, Param{{"en0", false}}, Param{{"en0", false}, {"en1", true}},
-           Param{{"asdf", true}, {"ggi", true}, {"a1", true}, {"fu", false}, {"ho", true}, {"ra", false}}));
+INSTANTIATE_TEST_SUITE_P(PlatformLinux,
+                         BridgeMemberTest,
+                         Values(Param{{"en0", true}},
+                                Param{{"en0", false}},
+                                Param{{"en0", false}, {"en1", true}},
+                                Param{{"asdf", true},
+                                      {"ggi", true},
+                                      {"a1", true},
+                                      {"fu", false},
+                                      {"ho", true},
+                                      {"ra", false}}));
 
 using OSReleaseTestParam = std::pair<QStringList, std::pair<std::string, std::string>>;
 struct OSReleaseTest : public PlatformLinux, WithParamInterface<OSReleaseTestParam>
@@ -443,9 +464,12 @@ TEST_P(OSReleaseTest, test_parse_os_release)
     EXPECT_EQ(expected.second, output.second.toStdString());
 }
 
-INSTANTIATE_TEST_SUITE_P(PlatformLinux, OSReleaseTest,
-                         Values(OSReleaseTestParam{{}, {"unknown", "unknown"}}, parse_os_release_empty,
-                                parse_os_release_single_char_fields, parse_os_release_ubuntu2104lts,
+INSTANTIATE_TEST_SUITE_P(PlatformLinux,
+                         OSReleaseTest,
+                         Values(OSReleaseTestParam{{}, {"unknown", "unknown"}},
+                                parse_os_release_empty,
+                                parse_os_release_single_char_fields,
+                                parse_os_release_ubuntu2104lts,
                                 parse_os_release_ubuntu2104lts_rotation));
 
 TEST_F(PlatformLinux, find_os_release_none_found)
@@ -465,7 +489,8 @@ TEST_F(PlatformLinux, find_os_release_etc)
 
     InSequence seq;
     EXPECT_CALL(*mock_file_ops,
-                open(Property(&QFileDevice::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
+                open(Property(&QFileDevice::fileName, Eq(expected_filename)),
+                     QIODevice::ReadOnly | QIODevice::Text))
         .Times(1)
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
@@ -481,11 +506,13 @@ TEST_F(PlatformLinux, find_os_release_usr_lib)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     InSequence seq;
-    EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq("/var/lib/snapd/hostfs/etc/os-release")),
-                                     QIODevice::ReadOnly | QIODevice::Text))
+    EXPECT_CALL(*mock_file_ops,
+                open(Property(&QFileDevice::fileName, Eq("/var/lib/snapd/hostfs/etc/os-release")),
+                     QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops,
-                open(Property(&QFileDevice::fileName, Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
+                open(Property(&QFileDevice::fileName, Eq(expected_filename)),
+                     QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
 
@@ -528,7 +555,8 @@ TEST_F(PlatformLinux, read_os_release_from_file)
 
 TEST_F(PlatformLinux, host_version_from_os)
 {
-    const std::string expected = fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+    const std::string expected =
+        fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 
     auto output = multipass::platform::host_version();
 
@@ -539,10 +567,13 @@ TEST_F(PlatformLinux, create_alias_script_works_unconfined)
 {
     const mpt::TempDir tmp_dir;
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}));
+    EXPECT_NO_THROW(
+        MP_PLATFORM.create_alias_script("alias_name",
+                                        mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
     checked_script.open(QFile::ReadOnly);
@@ -562,19 +593,23 @@ TEST_F(PlatformLinux, create_alias_script_works_confined)
 {
     const mpt::TempDir tmp_dir;
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .Times(0);
 
     qputenv("SNAP_NAME", QByteArray{"multipass"});
     qputenv("SNAP_USER_COMMON", tmp_dir.path().toUtf8());
-    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}));
+    EXPECT_NO_THROW(
+        MP_PLATFORM.create_alias_script("alias_name",
+                                        mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
     checked_script.open(QFile::ReadOnly);
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
-    EXPECT_EQ(checked_script.readLine().toStdString(), "exec /usr/bin/snap run multipass alias_name -- \"${@}\"\n");
+    EXPECT_EQ(checked_script.readLine().toStdString(),
+              "exec /usr/bin/snap run multipass alias_name -- \"${@}\"\n");
     EXPECT_TRUE(checked_script.atEnd());
 
     auto script_permissions = checked_script.permissions();
@@ -598,8 +633,9 @@ TEST_F(PlatformLinux, create_alias_script_overwrites)
     EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillOnce(Return(true));
 
     // Calls the platform function directly since MP_PLATFORM is mocked.
-    EXPECT_NO_THROW(MP_PLATFORM.Platform::create_alias_script("alias_name",
-                                                              mp::AliasDefinition{"instance", "other_command", "map"}));
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::create_alias_script(
+        "alias_name",
+        mp::AliasDefinition{"instance", "other_command", "map"}));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
@@ -609,8 +645,10 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
-        std::runtime_error, mpt::match_what(HasSubstr("failed to create dir '")));
+        MP_PLATFORM.create_alias_script("alias_name",
+                                        mp::AliasDefinition{"instance", "command", "map"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
@@ -622,8 +660,10 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
     EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
-        std::runtime_error, mpt::match_what(HasSubstr("failed to write to file '")));
+        MP_PLATFORM.create_alias_script("alias_name",
+                                        mp::AliasDefinition{"instance", "command", "map"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
@@ -637,10 +677,11 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
         .WillOnce(Return(mp::fs::perms::owner_read | mp::fs::perms::owner_write));
     EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.Platform::create_alias_script("alias_name", mp::AliasDefinition{"instance", "command", "map"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.Platform::create_alias_script(
+                             "alias_name",
+                             mp::AliasDefinition{"instance", "command", "map"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
 }
 
 TEST_F(PlatformLinux, remove_alias_script_works)
@@ -648,7 +689,8 @@ TEST_F(PlatformLinux, remove_alias_script_works)
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
     MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
@@ -663,10 +705,12 @@ TEST_F(PlatformLinux, remove_alias_script_throws_if_cannot_remove_script)
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::AppLocalDataLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.remove_alias_script("alias_name"),
+                         std::runtime_error,
                          mpt::match_what(StrEq("No such file or directory")));
 }
 
@@ -675,6 +719,7 @@ TEST_F(PlatformLinux, test_snap_multipass_storage_location)
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
     mpt::SetEnvScope env2("SNAP_COMMON", "common");
 
-    EXPECT_EQ(MP_PLATFORM.get_root_cert_path(), "data/multipassd/certificates/multipass_root_cert.pem");
+    EXPECT_EQ(MP_PLATFORM.get_root_cert_path(),
+              "data/multipassd/certificates/multipass_root_cert.pem");
 }
 } // namespace

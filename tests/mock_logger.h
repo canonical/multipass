@@ -35,7 +35,9 @@ public:
 
     MOCK_METHOD(void,
                 log,
-                (multipass::logging::Level level, std::string_view category, std::string_view message),
+                (multipass::logging::Level level,
+                 std::string_view category,
+                 std::string_view message),
                 (const, override));
 
     class Scope
@@ -50,14 +52,16 @@ public:
     };
 
     // only one at a time, please
-    [[nodiscard]] static Scope inject(const multipass::logging::Level logging_level = multipass::logging::Level::error);
+    [[nodiscard]] static Scope inject(
+        const multipass::logging::Level logging_level = multipass::logging::Level::error);
 
     void expect_log(multipass::logging::Level lvl,
                     const std::string& substr,
                     const testing::Cardinality& times = testing::Exactly(1));
 
     // Reject logs with severity `lvl` or higher (lower integer), accept the rest
-    // By default, all logs are rejected. Pass error level to accept everything but errors (expect those explicitly)
+    // By default, all logs are rejected. Pass error level to accept everything but errors (expect
+    // those explicitly)
     void screen_logs(multipass::logging::Level lvl = multipass::logging::Level::trace);
 };
 } // namespace test

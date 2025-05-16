@@ -45,7 +45,8 @@ struct TestGlobalSettingsHandlers : public Test
         ON_CALL(mock_platform, is_backend_supported).WillByDefault(Return(true));
 
         EXPECT_CALL(mock_settings,
-                    register_handler(Pointer(WhenDynamicCastTo<const mp::PersistentSettingsHandler*>(NotNull()))))
+                    register_handler(Pointer(
+                        WhenDynamicCastTo<const mp::PersistentSettingsHandler*>(NotNull()))))
             .WillOnce([this](auto uptr) {
                 handler = std::move(uptr);
                 return handler.get();
@@ -79,11 +80,14 @@ struct TestGlobalSettingsHandlers : public Test
     {
         for (const char* key : {keys...})
         {
-            MP_ASSERT_THROW_THAT(handler->get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+            MP_ASSERT_THROW_THAT(handler->get(key),
+                                 mp::UnrecognizedSettingException,
+                                 mpt::match_what(HasSubstr(key)));
         }
     }
 
-    static std::unique_ptr<multipass::WrappedQSettings> make_default_returning_mock_qsettings(const QString& filename)
+    static std::unique_ptr<multipass::WrappedQSettings> make_default_returning_mock_qsettings(
+        const QString& filename)
     {
         auto mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
         EXPECT_CALL(*mock_qsettings, value_impl).WillRepeatedly(ReturnArg<1>());
@@ -103,13 +107,16 @@ struct TestGlobalSettingsHandlers : public Test
 
 public:
     mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
-        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
-                                                             QSettings are used */
+        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than
+                                                             explicitly injected, no QSettings are
+                                                             used */
     mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
-    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
+    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings =
+        std::make_unique<NiceMock<mpt::MockQSettings>>();
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<NiceMock>();
@@ -123,7 +130,8 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFil
     auto config_location = QStringLiteral("/a/b/c");
     auto expected_filename = config_location + "/multipass/multipass.conf";
 
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(mp::StandardPaths::GenericConfigLocation))
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::GenericConfigLocation))
         .WillOnce(Return(config_location));
 
     mp::client::register_global_settings_handlers();
@@ -144,13 +152,15 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSett
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverridingPlatformSettings)
 {
-    const auto platform_defaults = std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
-                                                              {mp::petenv_key, "secondary"},
-                                                              {"client.empty.setting", ""},
-                                                              {"client.an.int", "-12345"},
-                                                              {"client.a.float.with.a.long_key", "3.14"}};
+    const auto platform_defaults =
+        std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
+                                   {mp::petenv_key, "secondary"},
+                                   {"client.empty.setting", ""},
+                                   {"client.an.int", "-12345"},
+                                   {"client.a.float.with.a.long_key", "3.14"}};
 
-    EXPECT_CALL(mock_platform, extra_client_settings).WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
+    EXPECT_CALL(mock_platform, extra_client_settings)
+        .WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
     mp::client::register_global_settings_handlers();
     inject_default_returning_mock_qsettings();
 
@@ -162,7 +172,10 @@ TEST_F(TestGlobalSettingsHandlers, clientsDoNotRegisterPersistentHandlerForDaemo
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(_, _)).Times(0);
-    assert_unrecognized_keys(mp::driver_key, mp::bridged_interface_key, mp::mounts_key, mp::passphrase_key);
+    assert_unrecognized_keys(mp::driver_key,
+                             mp::bridged_interface_key,
+                             mp::mounts_key,
+                             mp::passphrase_key);
 }
 
 struct TestGoodPetEnvSetting : public TestGlobalSettingsHandlers, WithParamInterface<const char*>
@@ -196,7 +209,9 @@ TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestBadPetEnvSetting, TestBadPetEnvSetting, Values("-", "-a-b-", "_asd", "_1", "1-2-3"));
+INSTANTIATE_TEST_SUITE_P(TestBadPetEnvSetting,
+                         TestBadPetEnvSetting,
+                         Values("-", "-a-b-", "_asd", "_1", "1-2-3"));
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFilename)
 {
@@ -223,22 +238,25 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSett
     mp::daemon::register_global_settings_handlers();
     inject_default_returning_mock_qsettings();
 
-    expect_setting_values({{mp::driver_key, driver}, {mp::bridged_interface_key, ""}, {mp::mounts_key, mount}});
+    expect_setting_values(
+        {{mp::driver_key, driver}, {mp::bridged_interface_key, ""}, {mp::mounts_key, mount}});
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
 {
-    const auto platform_defaults = std::map<QString, QString>{{"local.blah", "blargh"},
-                                                              {mp::driver_key, "platform-hypervisor"},
-                                                              {"local.a.bool", "false"},
-                                                              {mp::bridged_interface_key, "platform-bridge"},
-                                                              {"local.foo", "barrrr"},
-                                                              {mp::mounts_key, "false"},
-                                                              {"local.a.long.number", "1234567890"}};
+    const auto platform_defaults =
+        std::map<QString, QString>{{"local.blah", "blargh"},
+                                   {mp::driver_key, "platform-hypervisor"},
+                                   {"local.a.bool", "false"},
+                                   {mp::bridged_interface_key, "platform-bridge"},
+                                   {"local.foo", "barrrr"},
+                                   {mp::mounts_key, "false"},
+                                   {"local.a.long.number", "1234567890"}};
 
     EXPECT_CALL(mock_platform, default_driver).WillOnce(Return("unused"));
     EXPECT_CALL(mock_platform, default_privileged_mounts).WillOnce(Return("true"));
-    EXPECT_CALL(mock_platform, extra_daemon_settings).WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
+    EXPECT_CALL(mock_platform, extra_daemon_settings)
+        .WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
 
     mp::daemon::register_global_settings_handlers();
     inject_default_returning_mock_qsettings();

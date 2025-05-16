@@ -26,14 +26,17 @@ namespace test
 {
 struct StubVMBlueprintProvider final : public VMBlueprintProvider
 {
-    Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
+    Query fetch_blueprint_for(const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc,
                               ClientLaunchData& client_launch_data) override
     {
         throw std::out_of_range("");
     }
 
-    Query blueprint_from_file(const std::string& path, const std::string& blueprint_name,
-                              VirtualMachineDescription& vm_desc, ClientLaunchData& client_launch_data) override
+    Query blueprint_from_file(const std::string& path,
+                              const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc,
+                              ClientLaunchData& client_launch_data) override
     {
         throw InvalidBlueprintException("");
     }

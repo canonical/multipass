@@ -40,21 +40,34 @@ namespace cmd
 const QString all_option_name{"all"};
 const QString format_option_name{"format"};
 
-ParseCode check_for_name_and_all_option_conflict(const ArgParser* parser, std::ostream& cerr, bool allow_empty = false);
+ParseCode check_for_name_and_all_option_conflict(const ArgParser* parser,
+                                                 std::ostream& cerr,
+                                                 bool allow_empty = false);
 InstanceNames add_instance_names(const ArgParser* parser);
 InstanceNames add_instance_names(const ArgParser* parser, const std::string& default_name);
 std::vector<InstanceSnapshotPair> add_instance_and_snapshot_names(const ArgParser* parser);
-ParseCode handle_format_option(const ArgParser* parser, Formatter** chosen_formatter, std::ostream& cerr);
-std::string instance_action_message_for(const InstanceNames& instance_names, const std::string& action_name);
-ReturnCode run_cmd(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr);
-ReturnCode run_cmd_and_retry(const QStringList& args, const ArgParser* parser, std::ostream& cout, std::ostream& cerr);
+ParseCode handle_format_option(const ArgParser* parser,
+                               Formatter** chosen_formatter,
+                               std::ostream& cerr);
+std::string instance_action_message_for(const InstanceNames& instance_names,
+                                        const std::string& action_name);
+ReturnCode run_cmd(const QStringList& args,
+                   const ArgParser* parser,
+                   std::ostream& cout,
+                   std::ostream& cerr);
+ReturnCode run_cmd_and_retry(const QStringList& args,
+                             const ArgParser* parser,
+                             std::ostream& cout,
+                             std::ostream& cerr);
 ReturnCode return_code_from(const SettingsException& e);
 QString describe_common_settings_keys();
 
 // parser helpers
 void add_timeout(multipass::ArgParser*);
 int parse_timeout(const multipass::ArgParser* parser);
-std::unique_ptr<multipass::utils::Timer> make_timer(int timeout, AnimatedSpinner* spinner, std::ostream& cerr,
+std::unique_ptr<multipass::utils::Timer> make_timer(int timeout,
+                                                    AnimatedSpinner* spinner,
+                                                    std::ostream& cerr,
                                                     const std::string& msg);
 
 } // namespace cmd

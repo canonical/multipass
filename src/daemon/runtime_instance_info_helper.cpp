@@ -58,7 +58,8 @@ private:
         std::pair{Keys::cpus_key, "nproc"},
         std::pair{Keys::cpu_times_key, "head -n1 /proc/stat"},
         std::pair{Keys::uptime_key, "uptime -p | tail -c+4"},
-        std::pair{Keys::current_release_key, R"(cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2)"}};
+        std::pair{Keys::current_release_key,
+                  R"(cat /etc/os-release | grep 'PRETTY_NAME' | cut -d \\\" -f2)"}};
 
     inline static const std::array cmds = [] {
         constexpr auto n = key_cmds_pairs.size();
@@ -73,8 +74,10 @@ private:
     }();
 
 public:
-    inline static const std::string sequential_composite_cmd = fmt::to_string(fmt::join(cmds, "; "));
-    inline static const std::string parallel_composite_cmd = fmt::format("{} & wait", fmt::join(cmds, "& "));
+    inline static const std::string sequential_composite_cmd =
+        fmt::to_string(fmt::join(cmds, "; "));
+    inline static const std::string parallel_composite_cmd =
+        fmt::format("{} & wait", fmt::join(cmds, "& "));
 };
 } // namespace
 
@@ -94,12 +97,14 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
     info->set_disk_total(results[Keys::disk_total_key].as<std::string>());
     info->set_cpu_count(results[Keys::cpus_key].as<std::string>());
     instance_info->set_cpu_times(results[Keys::cpu_times_key].as<std::string>());
-    // In some older versions of Ubuntu, "uptime -p" prints only "up" right after startup. In those cases,
-    // results[Keys::uptime_key] is null.
-    instance_info->set_uptime(results[Keys::uptime_key].as<std::string>(/* fallback = */ "0 minutes"));
+    // In some older versions of Ubuntu, "uptime -p" prints only "up" right after startup. In those
+    // cases, results[Keys::uptime_key] is null.
+    instance_info->set_uptime(
+        results[Keys::uptime_key].as<std::string>(/* fallback = */ "0 minutes"));
 
     auto current_release = results[Keys::current_release_key].as<std::string>();
-    instance_info->set_current_release(!current_release.empty() ? current_release : original_release);
+    instance_info->set_current_release(!current_release.empty() ? current_release
+                                                                : original_release);
 
     std::string management_ip = vm.management_ipv4();
     auto all_ipv4 = vm.get_all_ipv4();

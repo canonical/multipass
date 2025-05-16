@@ -39,7 +39,8 @@ class Launch final : public Command
 public:
     using Command::Command;
 
-    Launch(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Launch(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -51,7 +52,9 @@ public:
 private:
     ParseCode parse_args(ArgParser* parser);
     ReturnCode request_launch(const ArgParser* parser);
-    ReturnCode mount(const ArgParser* parser, const QString& mount_source, const QString& mount_target);
+    ReturnCode mount(const ArgParser* parser,
+                     const QString& mount_source,
+                     const QString& mount_target);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
 
     LaunchRequest request;

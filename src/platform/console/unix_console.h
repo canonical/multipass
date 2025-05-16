@@ -24,16 +24,16 @@
 
 #include <vector>
 
+#include "unix_terminal.h"
 #include <csignal>
 #include <termios.h>
-#include "unix_terminal.h"
 
 namespace multipass
 {
 class UnixConsole final : public Console
 {
 public:
-    explicit UnixConsole(ssh_channel channel, UnixTerminal *term);
+    explicit UnixConsole(ssh_channel channel, UnixTerminal* term);
     ~UnixConsole();
 
     void read_console() override{};

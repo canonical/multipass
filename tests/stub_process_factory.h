@@ -37,7 +37,8 @@ public:
         QStringList arguments;
     };
 
-    // StubProcessFactory installed with Inject() call, and uninstalled when the Scope object deleted
+    // StubProcessFactory installed with Inject() call, and uninstalled when the Scope object
+    // deleted
     struct Scope
     {
         ~Scope();

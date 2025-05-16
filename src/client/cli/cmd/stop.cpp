@@ -37,9 +37,7 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::StopReply& reply) {
-        return ReturnCode::Ok;
-    };
+    auto on_success = [](mp::StopReply& reply) { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
     auto on_failure = [this, &spinner](grpc::Status& status) {
@@ -47,17 +45,26 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
 
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
         return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
-                   ? standard_failure_handler_for(name(), cerr, status, "Use --force to power it off.")
+                   ? standard_failure_handler_for(name(),
+                                                  cerr,
+                                                  status,
+                                                  "Use --force to power it off.")
                    : standard_failure_handler_for(name(), cerr, status);
     };
 
     spinner.start(instance_action_message_for(request.instance_names(), "Stopping "));
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::stop, request, on_success, on_failure,
+    return dispatch(&RpcMethod::stop,
+                    request,
+                    on_success,
+                    on_failure,
                     make_logging_spinner_callback<StopRequest, StopReply>(spinner, cerr));
 }
 
-std::string cmd::Stop::name() const { return "stop"; }
+std::string cmd::Stop::name() const
+{
+    return "stop";
+}
 
 QString cmd::Stop::short_help() const
 {
@@ -77,27 +84,33 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
     const auto& [description, syntax] =
         petenv_name.isEmpty()
             ? std::make_pair(QString{"Names of instances to stop."}, QString{"<name> [<name> ...]"})
-            : std::make_pair(
-                  QString{"Names of instances to stop. If omitted, and without the --all option, '%1' will be assumed."}
-                      .arg(petenv_name),
-                  QString{"[<name> ...]"});
+            : std::make_pair(QString{"Names of instances to stop. If omitted, and without the "
+                                     "--all option, '%1' will be assumed."}
+                                 .arg(petenv_name),
+                             QString{"[<name> ...]"});
 
     parser->addPositionalArgument("name", description, syntax);
 
     QCommandLineOption all_option(all_option_name, "Stop all instances");
-    QCommandLineOption time_option({"t", "time"}, "Time from now, in minutes, to delay shutdown of the instance",
-                                   "time", "0");
+    QCommandLineOption time_option({"t", "time"},
+                                   "Time from now, in minutes, to delay shutdown of the instance",
+                                   "time",
+                                   "0");
     QCommandLineOption cancel_option({"c", "cancel"}, "Cancel a pending delayed shutdown");
-    QCommandLineOption force_option("force",
-                                    "Force the instance to shut down immediately. Warning: This could potentially "
-                                    "corrupt a running instance, so use with caution.");
+    QCommandLineOption force_option(
+        "force",
+        "Force the instance to shut down immediately. Warning: This could potentially "
+        "corrupt a running instance, so use with caution.");
     parser->addOptions({all_option, time_option, cancel_option, force_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
         return status;
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
+    auto parse_code =
+        check_for_name_and_all_option_conflict(parser,
+                                               cerr,
+                                               /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
         if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
@@ -140,7 +153,8 @@ mp::ParseCode cmd::Stop::parse_args(mp::ArgParser* parser)
         request.set_cancel_shutdown(true);
     }
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
+    request.mutable_instance_names()->CopyFrom(
+        add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
 
     return status;
 }

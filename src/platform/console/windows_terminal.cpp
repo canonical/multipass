@@ -25,7 +25,8 @@
 
 namespace mp = multipass;
 
-mp::WindowsTerminal::WindowsTerminal() : input_code_page{GetConsoleCP()}, output_code_page{GetConsoleOutputCP()}
+mp::WindowsTerminal::WindowsTerminal()
+    : input_code_page{GetConsoleCP()}, output_code_page{GetConsoleOutputCP()}
 {
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
@@ -44,7 +45,8 @@ HANDLE mp::WindowsTerminal::cin_handle() const
 
 bool mp::WindowsTerminal::cin_is_live() const
 {
-    // GetConsoleMode will fail if cin is not a console. If it does not fail, we check if cin can receive input.
+    // GetConsoleMode will fail if cin is not a console. If it does not fail, we check if cin can
+    // receive input.
     DWORD mode;
     return GetConsoleMode(cin_handle(), &mode) && (mode & ENABLE_LINE_INPUT);
 }
@@ -61,8 +63,9 @@ HANDLE mp::WindowsTerminal::cerr_handle() const
 
 bool mp::WindowsTerminal::cout_is_live() const
 {
-    // GetConsoleScreenBufferInfo will fail if cout is not a console. Since there is nothing to check in the
-    // CONSOLE_SCREEN_BUFFER_INFO structure, we return the result of GetConsoleScreenBufferInfo.
+    // GetConsoleScreenBufferInfo will fail if cout is not a console. Since there is nothing to
+    // check in the CONSOLE_SCREEN_BUFFER_INFO structure, we return the result of
+    // GetConsoleScreenBufferInfo.
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     return GetConsoleScreenBufferInfo(cout_handle(), &csbi);
 }

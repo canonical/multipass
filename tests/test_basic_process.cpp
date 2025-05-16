@@ -85,7 +85,8 @@ TEST_F(BasicProcessTest, execute_good_command_with_zero_exit_code)
 TEST_F(BasicProcessTest, process_state_when_runs_and_stops_ok)
 {
     const int exit_code = 7;
-    mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
+    mp::BasicProcess process(
+        mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
     process.start();
 
     EXPECT_TRUE(process.wait_for_started());
@@ -107,7 +108,8 @@ TEST_F(BasicProcessTest, process_state_when_runs_and_stops_ok)
 TEST_F(BasicProcessTest, process_state_when_runs_but_fails_to_stop)
 {
     const int exit_code = 2;
-    mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
+    mp::BasicProcess process(
+        mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
     process.start();
 
     EXPECT_TRUE(process.wait_for_started());
@@ -141,7 +143,8 @@ TEST_F(BasicProcessTest, process_state_when_crashes_on_start)
 
 TEST_F(BasicProcessTest, process_state_when_crashes_while_running)
 {
-    mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(0), "stay-alive"}));
+    mp::BasicProcess process(
+        mp::simple_process_spec("mock_process", {QString::number(0), "stay-alive"}));
     process.start();
 
     process.write("crash"); // will make mock_process crash
@@ -254,7 +257,9 @@ TEST_F(BasicProcessTest, reports_previous_pid_after_finished)
     const auto program = "mock_process";
     auto pid = 0ll;
     mp::BasicProcess process{mp::simple_process_spec(program)};
-    QObject::connect(&process, &mp::Process::started, [&process, &pid] { pid = process.process_id(); });
+    QObject::connect(&process, &mp::Process::started, [&process, &pid] {
+        pid = process.process_id();
+    });
 
     process.start();
     EXPECT_TRUE(process.wait_for_finished());

@@ -75,7 +75,9 @@ void mp::ImageVaultUtils::verify_file_hash(const QString& file, const QString& h
         throw std::runtime_error(fmt::format("Hash of {} does not match {}", file, hash));
 }
 
-QString mp::ImageVaultUtils::extract_file(const QString& file, const Decoder& decoder, bool delete_original) const
+QString mp::ImageVaultUtils::extract_file(const QString& file,
+                                          const Decoder& decoder,
+                                          bool delete_original) const
 {
     const auto fs_new_path = MP_FILEOPS.remove_extension(file.toStdU16String());
     auto new_path = QString::fromStdString(fs_new_path.u8string());
@@ -91,7 +93,8 @@ QString mp::ImageVaultUtils::extract_file(const QString& file, const Decoder& de
     return new_path;
 }
 
-mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(const Hosts& image_hosts) const
+mp::ImageVaultUtils::HostMap mp::ImageVaultUtils::configure_image_host_map(
+    const Hosts& image_hosts) const
 {
     HostMap remote_image_host_map{};
     for (const auto& image_host : image_hosts)

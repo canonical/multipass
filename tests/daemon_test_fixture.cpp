@@ -55,7 +55,9 @@ public:
     using Command::Command;
     multipass::ReturnCode run(multipass::ArgParser* parser) override
     {
-        auto on_success = [](multipass::CreateReply& /*reply*/) { return multipass::ReturnCode::Ok; };
+        auto on_success = [](multipass::CreateReply& /*reply*/) {
+            return multipass::ReturnCode::Ok;
+        };
         auto on_failure = [this](grpc::Status& status) {
             multipass::CreateError create_error;
             create_error.ParseFromString(status.error_details());
@@ -83,9 +85,12 @@ public:
             };
 
         auto ret = parse_args(parser);
-        return ret == multipass::ParseCode::Ok
-                   ? dispatch(&mp::Rpc::StubInterface::create, request, on_success, on_failure, streaming_callback)
-                   : parser->returnCodeFrom(ret);
+        return ret == multipass::ParseCode::Ok ? dispatch(&mp::Rpc::StubInterface::create,
+                                                          request,
+                                                          on_success,
+                                                          on_failure,
+                                                          streaming_callback)
+                                               : parser->returnCodeFrom(ret);
     }
 
     std::string name() const override
@@ -286,7 +291,8 @@ public:
 private:
     mp::ParseCode parse_args(mp::ArgParser* parser)
     {
-        return parser->commandParse(this) == mp::ParseCode::Ok ? mp::ParseCode::Ok : mp::ParseCode::CommandLineError;
+        return parser->commandParse(this) == mp::ParseCode::Ok ? mp::ParseCode::Ok
+                                                               : mp::ParseCode::CommandLineError;
     }
 
     mp::KeysRequest request;
@@ -326,11 +332,14 @@ mpt::DaemonTestFixture::DaemonTestFixture()
 void mpt::DaemonTestFixture::SetUp()
 {
     EXPECT_CALL(MockStandardPaths::mock_instance(), locate(_, _, _))
-        .Times(AnyNumber()); // needed to allow general calls once we have added the specific expectation below
-    EXPECT_CALL(MockStandardPaths::mock_instance(), locate(_, match_qstring(EndsWith("settings.json")), _))
+        .Times(AnyNumber()); // needed to allow general calls once we have added the specific
+                             // expectation below
+    EXPECT_CALL(MockStandardPaths::mock_instance(),
+                locate(_, match_qstring(EndsWith("settings.json")), _))
         .Times(AnyNumber())
-        .WillRepeatedly(Return("")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
-                                        it gets reset at the end of each test (by VerifyAndClearExpectations) */
+        .WillRepeatedly(Return(
+            "")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
+                     it gets reset at the end of each test (by VerifyAndClearExpectations) */
 }
 
 mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
@@ -349,23 +358,28 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
     ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
     ON_CALL(*mock_factory_ptr, networks())
-        .WillByDefault(Return(std::vector<NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
-                                                                {"wlan0", "wi-fi", "wireless adapter"}}));
+        .WillByDefault(
+            Return(std::vector<NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
+                                                     {"wlan0", "wi-fi", "wireless adapter"}}));
 
     config_builder.factory = std::move(mock_factory);
     return mock_factory_ptr;
 }
 
-void mpt::DaemonTestFixture::send_command(const std::vector<std::string>& command, std::ostream& cout,
-                                          std::ostream& cerr, std::istream& cin)
+void mpt::DaemonTestFixture::send_command(const std::vector<std::string>& command,
+                                          std::ostream& cout,
+                                          std::ostream& cerr,
+                                          std::istream& cin)
 {
     send_commands({command}, cout, cerr, cin);
 }
 
 // "commands" is a vector of commands that includes necessary positional arguments, ie,
 // "start foo"
-void mpt::DaemonTestFixture::send_commands(std::vector<std::vector<std::string>> commands, std::ostream& cout,
-                                           std::ostream& cerr, std::istream& cin)
+void mpt::DaemonTestFixture::send_commands(std::vector<std::vector<std::string>> commands,
+                                           std::ostream& cout,
+                                           std::ostream& cerr,
+                                           std::istream& cin)
 {
     // Commands need to be sent from a thread different from that the QEventLoop is on.
     // Event loop is started/stopped to ensure all signals are delivered
@@ -388,9 +402,9 @@ void mpt::DaemonTestFixture::send_commands(std::vector<std::vector<std::string>>
             client.run(args);
         }
 
-        // Commands not using RPC do not block in the "t" thread. This means that there will be a deadlock if
-        // loop.exec() is called after loop.quit(). The following check avoids this scenario, by making the
-        // thread sleep until the loop is running.
+        // Commands not using RPC do not block in the "t" thread. This means that there will be a
+        // deadlock if loop.exec() is called after loop.quit(). The following check avoids this
+        // scenario, by making the thread sleep until the loop is running.
         while (!loop.isRunning())
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -412,9 +426,10 @@ int mpt::DaemonTestFixture::total_lines_of_output(std::stringstream& output)
     return count;
 }
 
-std::string mpt::DaemonTestFixture::fake_json_contents(const std::string& default_mac,
-                                                       const std::vector<mp::NetworkInterface>& extra_ifaces,
-                                                       const std::unordered_map<std::string, mp::VMMount>& mounts)
+std::string mpt::DaemonTestFixture::fake_json_contents(
+    const std::string& default_mac,
+    const std::vector<mp::NetworkInterface>& extra_ifaces,
+    const std::unordered_map<std::string, mp::VMMount>& mounts)
 {
 
     multipass::test::fake_vm_properties vm_properties{};
@@ -437,28 +452,31 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
     QStringList array_elements;
     for (auto extra_interface : vm_properties.extra_ifaces)
     {
-        array_elements += QString::fromStdString(fmt::format("            {{\n"
-                                                             "                \"auto_mode\": {},\n"
-                                                             "                \"id\": \"{}\",\n"
-                                                             "                \"mac_address\": \"{}\"\n"
-                                                             "            }}\n",
-                                                             extra_interface.auto_mode, extra_interface.id,
-                                                             extra_interface.mac_address));
+        array_elements +=
+            QString::fromStdString(fmt::format("            {{\n"
+                                               "                \"auto_mode\": {},\n"
+                                               "                \"id\": \"{}\",\n"
+                                               "                \"mac_address\": \"{}\"\n"
+                                               "            }}\n",
+                                               extra_interface.auto_mode,
+                                               extra_interface.id,
+                                               extra_interface.mac_address));
     }
     contents += array_elements.join(',');
 
-    contents += QString::fromStdString(fmt::format("        ],\n"
-                                                   "        \"mac_addr\": \"{}\",\n"
-                                                   "        \"mem_size\": \"1073741824\",\n"
-                                                   "        \"metadata\": {{\n"
-                                                   "            \"arguments\": [\n"
-                                                   "                \"many\",\n"
-                                                   "                \"arguments\"\n"
-                                                   "            ],\n"
-                                                   "            \"machine_type\": \"dmc-de-lorean\"\n"
-                                                   "        }},\n"
-                                                   "        \"mounts\": [\n",
-                                                   vm_properties.default_mac));
+    contents +=
+        QString::fromStdString(fmt::format("        ],\n"
+                                           "        \"mac_addr\": \"{}\",\n"
+                                           "        \"mem_size\": \"1073741824\",\n"
+                                           "        \"metadata\": {{\n"
+                                           "            \"arguments\": [\n"
+                                           "                \"many\",\n"
+                                           "                \"arguments\"\n"
+                                           "            ],\n"
+                                           "            \"machine_type\": \"dmc-de-lorean\"\n"
+                                           "        }},\n"
+                                           "        \"mounts\": [\n",
+                                           vm_properties.default_mac));
 
     QStringList mount_array_elements;
     for (const auto& mount_pair : vm_properties.mounts)
@@ -474,19 +492,22 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
         QStringList gid_array_elements;
         for (const auto& gid_pair : mount.get_gid_mappings())
         {
-            gid_array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
-                                                                     "                        \"host_gid\": {},\n"
-                                                                     "                        \"instance_gid\": {}\n"
-                                                                     "                    }}",
-                                                                     gid_pair.first, gid_pair.second));
+            gid_array_elements +=
+                QString::fromStdString(fmt::format("\n                    {{\n"
+                                                   "                        \"host_gid\": {},\n"
+                                                   "                        \"instance_gid\": {}\n"
+                                                   "                    }}",
+                                                   gid_pair.first,
+                                                   gid_pair.second));
         }
         mount_element += gid_array_elements.join(',');
 
-        mount_element += QString::fromStdString(fmt::format("\n                ],\n"
-                                                            "                \"source_path\": {:?},\n"
-                                                            "                \"target_path\": {:?},\n",
-                                                            mount.get_source_path(),
-                                                            mountpoint));
+        mount_element +=
+            QString::fromStdString(fmt::format("\n                ],\n"
+                                               "                \"source_path\": {:?},\n"
+                                               "                \"target_path\": {:?},\n",
+                                               mount.get_source_path(),
+                                               mountpoint));
         mount_element += QString::fromStdString(fmt::format("                \"mount_type\": {},\n"
                                                             "                \"uid_mappings\": [",
                                                             mount.get_mount_type()));
@@ -494,11 +515,13 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
         QStringList uid_array_elements;
         for (const auto& uid_pair : mount.get_uid_mappings())
         {
-            uid_array_elements += QString::fromStdString(fmt::format("\n                    {{\n"
-                                                                     "                        \"host_uid\": {},\n"
-                                                                     "                        \"instance_uid\": {}\n"
-                                                                     "                    }}",
-                                                                     uid_pair.first, uid_pair.second));
+            uid_array_elements +=
+                QString::fromStdString(fmt::format("\n                    {{\n"
+                                                   "                        \"host_uid\": {},\n"
+                                                   "                        \"instance_uid\": {}\n"
+                                                   "                    }}",
+                                                   uid_pair.first,
+                                                   uid_pair.second));
         }
         mount_element += uid_array_elements.join(',');
 
@@ -521,8 +544,8 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
     return contents.toStdString();
 }
 
-std::pair<std::unique_ptr<mpt::TempDir>, QString>
-mpt::DaemonTestFixture::plant_instance_json(const std::string& contents)
+std::pair<std::unique_ptr<mpt::TempDir>, QString> mpt::DaemonTestFixture::plant_instance_json(
+    const std::string& contents)
 {
     auto temp_dir = std::make_unique<TempDir>();
     QString filename(temp_dir->path() + "/multipassd-vm-instances.json");
@@ -568,9 +591,10 @@ template bool mpt::DaemonTestFixture::is_ready(std::future<grpc::Status> const&)
 
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(const mp::AuthenticateRequest*,
-                         grpc::ServerReaderWriterInterface<mp::AuthenticateReply, mp::AuthenticateRequest>*,
-                         std::promise<grpc::Status>*),
+    void (mp::Daemon::*)(
+        const mp::AuthenticateRequest*,
+        grpc::ServerReaderWriterInterface<mp::AuthenticateReply, mp::AuthenticateRequest>*,
+        std::promise<grpc::Status>*),
     const mp::AuthenticateRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
@@ -578,86 +602,113 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     void (mp::Daemon::*)(mp::VersionRequest const*,
                          grpc::ServerReaderWriterInterface<mp::VersionReply, mp::VersionRequest>*,
                          std::promise<grpc::Status>*),
-    mp::VersionRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::VersionReply, mp::VersionRequest>>&);
+    mp::VersionRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::VersionReply, mp::VersionRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(const mp::ListRequest*, grpc::ServerReaderWriterInterface<mp::ListReply, mp::ListRequest>*,
+    void (mp::Daemon::*)(const mp::ListRequest*,
+                         grpc::ServerReaderWriterInterface<mp::ListReply, mp::ListRequest>*,
                          std::promise<grpc::Status>*),
-    mp::ListRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>>&);
+    mp::ListRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::KeysRequest const*, grpc::ServerReaderWriterInterface<mp::KeysReply, mp::KeysRequest>*,
+    void (mp::Daemon::*)(mp::KeysRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::KeysReply, mp::KeysRequest>*,
                          std::promise<grpc::Status>*),
-    mp::KeysRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>&&);
+    mp::KeysRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::KeysRequest const*, grpc::ServerReaderWriterInterface<mp::KeysReply, mp::KeysRequest>*,
+    void (mp::Daemon::*)(mp::KeysRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::KeysReply, mp::KeysRequest>*,
                          std::promise<grpc::Status>*),
-    mp::KeysRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>&);
+    mp::KeysRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::GetRequest const*, grpc::ServerReaderWriterInterface<mp::GetReply, mp::GetRequest>*,
+    void (mp::Daemon::*)(mp::GetRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::GetReply, mp::GetRequest>*,
                          std::promise<grpc::Status>*),
-    mp::GetRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>&&);
+    mp::GetRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::GetRequest const*, grpc::ServerReaderWriterInterface<mp::GetReply, mp::GetRequest>*,
+    void (mp::Daemon::*)(mp::GetRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::GetReply, mp::GetRequest>*,
                          std::promise<grpc::Status>*),
-    mp::GetRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>&);
+    mp::GetRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::SetRequest const*, grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>*,
+    void (mp::Daemon::*)(mp::SetRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>*,
                          std::promise<grpc::Status>*),
-    mp::SetRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>&&);
+    mp::SetRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::SetRequest const*, grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>*,
+    void (mp::Daemon::*)(mp::SetRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>*,
                          std::promise<grpc::Status>*),
-    mp::SetRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>&);
+    mp::SetRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::NetworksRequest const*,
                          grpc::ServerReaderWriterInterface<mp::NetworksReply, mp::NetworksRequest>*,
                          std::promise<grpc::Status>*),
-    mp::NetworksRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>&);
+    mp::NetworksRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::NetworksRequest const*,
                          grpc::ServerReaderWriterInterface<mp::NetworksReply, mp::NetworksRequest>*,
                          std::promise<grpc::Status>*),
-    mp::NetworksRequest const&, NiceMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>&&);
+    mp::NetworksRequest const&,
+    NiceMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(mp::PurgeRequest const*, grpc::ServerReaderWriterInterface<mp::PurgeReply, mp::PurgeRequest>*,
+    void (mp::Daemon::*)(mp::PurgeRequest const*,
+                         grpc::ServerReaderWriterInterface<mp::PurgeReply, mp::PurgeRequest>*,
                          std::promise<grpc::Status>*),
-    mp::PurgeRequest const&, NiceMock<mpt::MockServerReaderWriter<mp::PurgeReply, mp::PurgeRequest>>&&);
+    mp::PurgeRequest const&,
+    NiceMock<mpt::MockServerReaderWriter<mp::PurgeReply, mp::PurgeRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(const mp::MountRequest*, grpc::ServerReaderWriterInterface<mp::MountReply, mp::MountRequest>*,
+    void (mp::Daemon::*)(const mp::MountRequest*,
+                         grpc::ServerReaderWriterInterface<mp::MountReply, mp::MountRequest>*,
                          std::promise<grpc::Status>*),
-    const mp::MountRequest&, StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>&&);
+    const mp::MountRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::UmountRequest*,
                          grpc::ServerReaderWriterInterface<mp::UmountReply, mp::UmountRequest>*,
                          std::promise<grpc::Status>*),
-    const mp::UmountRequest&, StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>&&);
+    const mp::UmountRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::LaunchRequest const*,
                          grpc::ServerReaderWriterInterface<mp::LaunchReply, mp::LaunchRequest>*,
                          std::promise<grpc::Status>*),
-    mp::LaunchRequest const&, StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>>&);
+    mp::LaunchRequest const&,
+    StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(const mp::StartRequest*, grpc::ServerReaderWriterInterface<mp::StartReply, mp::StartRequest>*,
+    void (mp::Daemon::*)(const mp::StartRequest*,
+                         grpc::ServerReaderWriterInterface<mp::StartReply, mp::StartRequest>*,
                          std::promise<grpc::Status>*),
-    const mp::StartRequest&, StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>&&);
+    const mp::StartRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
-    void (mp::Daemon::*)(const mp::InfoRequest*, grpc::ServerReaderWriterInterface<mp::InfoReply, mp::InfoRequest>*,
+    void (mp::Daemon::*)(const mp::InfoRequest*,
+                         grpc::ServerReaderWriterInterface<mp::InfoReply, mp::InfoRequest>*,
                          std::promise<grpc::Status>*),
-    const mp::InfoRequest&, StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>>&);
+    const mp::InfoRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::SuspendRequest*,

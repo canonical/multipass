@@ -40,7 +40,9 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(*mock_cert_provider, PEM_certificate()).Times(1);
         EXPECT_CALL(*mock_cert_provider, PEM_signing_key()).Times(1);
-        EXPECT_CALL(*mock_platform, multipass_storage_location()).Times(AnyNumber()).WillRepeatedly(Return(QString()));
+        EXPECT_CALL(*mock_platform, multipass_storage_location())
+            .Times(AnyNumber())
+            .WillRepeatedly(Return(QString()));
         EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
     }
 
@@ -53,7 +55,8 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
 
         grpc::ChannelArguments channel_args;
         channel_args.SetString(GRPC_ARG_DEFAULT_AUTHORITY, "localhost");
-        return mp::Rpc::Stub(grpc::CreateCustomChannel(server_address, grpc::SslCredentials(opts), channel_args));
+        return mp::Rpc::Stub(
+            grpc::CreateCustomChannel(server_address, grpc::SslCredentials(opts), channel_args));
     }
 
     mpt::MockDaemon make_secure_server()
@@ -66,12 +69,13 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
 
     void mock_empty_list_reply(mpt::MockDaemon& mock_daemon)
     {
-        EXPECT_CALL(mock_daemon, list(_, _, _)).WillOnce([](auto, auto* server, auto* status_promise) {
-            mp::ListReply reply;
-            reply.mutable_instance_list();
-            server->Write(reply);
-            status_promise->set_value(grpc::Status::OK);
-        });
+        EXPECT_CALL(mock_daemon, list(_, _, _))
+            .WillOnce([](auto, auto* server, auto* status_promise) {
+                mp::ListReply reply;
+                reply.mutable_instance_list();
+                server->Write(reply);
+                status_promise->set_value(grpc::Status::OK);
+            });
     }
 
     std::unique_ptr<NiceMock<mpt::MockCertProvider>> mock_cert_provider{
@@ -193,7 +197,8 @@ TEST_F(TestDaemonRpc, pingReturnsUnauthenticatedWhenCertIsNotVerified)
     EXPECT_EQ(stub.ping(&context, request, &reply).error_code(), grpc::StatusCode::UNAUTHENTICATED);
 }
 
-// The following 'list' command tests are for testing the authentication of an arbitrary command in DaemonRpc
+// The following 'list' command tests are for testing the authentication of an arbitrary command in
+// DaemonRpc
 TEST_F(TestDaemonRpc, listCertExistsCompletesSuccessfully)
 {
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, false)).Times(1);
@@ -234,8 +239,9 @@ TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
 
     send_command({"list"}, trash_stream, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
-                                    HasSubstr("Please use 'multipass authenticate' before proceeding.")));
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
+                      HasSubstr("Please use 'multipass authenticate' before proceeding.")));
 }
 
 TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
@@ -255,8 +261,9 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
 
     send_command({"list"}, trash_stream, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
-                                    HasSubstr("Please use 'multipass authenticate' before proceeding.")));
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
+                      HasSubstr("Please use 'multipass authenticate' before proceeding.")));
 }
 
 TEST_F(TestDaemonRpc, listAcceptCertFailsHasError)
@@ -266,7 +273,8 @@ TEST_F(TestDaemonRpc, listAcceptCertFailsHasError)
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);
 
     EXPECT_CALL(*mock_cert_store, empty()).Times(2).WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).WillOnce(Throw(std::runtime_error(error_msg)));
+    EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert)))
+        .WillOnce(Throw(std::runtime_error(error_msg)));
 
     mpt::MockDaemon daemon{make_secure_server()};
 
@@ -296,7 +304,9 @@ TEST_F(TestDaemonRpc, listSettingServerPermissionsFailLogsErrorAndExits)
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::error, error_msg);
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to set up autostart prerequisites", AnyNumber());
+    logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                         "Failed to set up autostart prerequisites",
+                                         AnyNumber());
 
     mock_empty_list_reply(daemon);
 

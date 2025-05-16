@@ -34,7 +34,7 @@ struct ClientConfig
 {
     const std::string server_address;
     std::unique_ptr<CertProvider> cert_provider;
-    Terminal *term;
+    Terminal* term;
 };
 
 class Client

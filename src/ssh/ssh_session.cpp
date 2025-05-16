@@ -52,7 +52,9 @@ mp::SSHSession::SSHSession(const std::string& host,
     constexpr long kEstablishedTimeoutSecs = std::numeric_limits<long>::max();
 
     const int nodelay{1};
-    auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation)).filePath("ssh").toStdString();
+    auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation))
+                       .filePath("ssh")
+                       .toStdString();
 
     set_option(SSH_OPTIONS_HOST, host.c_str());
     set_option(SSH_OPTIONS_PORT, &port);

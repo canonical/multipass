@@ -52,8 +52,10 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
                 }
                 catch (const std::runtime_error& e)
                 {
-                    cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n", e.what(),
-                                        removal_context, removed_alias_name);
+                    cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n",
+                                        e.what(),
+                                        removal_context,
+                                        removed_alias_name);
                 }
             }
         }
@@ -61,7 +63,9 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
         return mp::ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     mp::PurgeRequest request;
     request.set_verbosity_level(parser->verbosityLevel());

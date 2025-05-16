@@ -69,7 +69,9 @@ mpl::EventLogger::EventLogger(mpl::Level level) : logging_level{level}
 {
 }
 
-void mpl::EventLogger::log(mpl::Level level, std::string_view category, std::string_view message) const
+void mpl::EventLogger::log(mpl::Level level,
+                           std::string_view category,
+                           std::string_view message) const
 {
     const static std::string event_source_name{"Multipass"};
     if (level <= logging_level)

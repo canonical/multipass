@@ -36,14 +36,15 @@ constexpr auto gibi = mebi * kibi;
 
 long long mp::in_bytes(const std::string& mem_value)
 {
-    QRegularExpression regex{
-        QRegularExpression::anchoredPattern("\\s*(\\d+)(?:\\.(\\d+)(?=[KMG]))?(?:([KMG])(?:i?B)?|B)?\\s*"),
-        QRegularExpression::CaseInsensitiveOption};
+    QRegularExpression regex{QRegularExpression::anchoredPattern(
+                                 "\\s*(\\d+)(?:\\.(\\d+)(?=[KMG]))?(?:([KMG])(?:i?B)?|B)?\\s*"),
+                             QRegularExpression::CaseInsensitiveOption};
     const auto matcher = regex.match(QString::fromStdString(mem_value)); // TODO accept decimals
 
     if (matcher.hasMatch())
     {
-        auto val = matcher.captured(1).toLongLong(); // value is in the second capture (1st one is the whole match)
+        auto val = matcher.captured(1)
+                       .toLongLong(); // value is in the second capture (1st one is the whole match)
         auto mantissa = 0LL;
         const auto unit = matcher.captured(3); // unit in the fourth capture (idem)
 

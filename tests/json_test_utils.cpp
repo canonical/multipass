@@ -47,53 +47,57 @@ std::string make_instance_json(const std::optional<std::string>& default_mac,
                                                          "                \"id\": \"{}\",\n"
                                                          "                \"mac_address\": \"{}\"\n"
                                                          "            }}\n",
-                                                         extra_interface.auto_mode, extra_interface.id,
+                                                         extra_interface.auto_mode,
+                                                         extra_interface.id,
                                                          extra_interface.mac_address));
     }
     contents += extra_json.join(',');
 
-    contents += QString::fromStdString(fmt::format("        ],\n"
-                                                   "        \"mac_addr\": \"{}\",\n"
-                                                   "        \"mem_size\": \"1073741824\",\n"
-                                                   "        \"metadata\": {{\n"
-                                                   "            \"arguments\": [\n"
-                                                   "                \"many\",\n"
-                                                   "                \"arguments\"\n"
-                                                   "            ],\n"
-                                                   "            \"machine_type\": \"dmc-de-lorean\"\n"
-                                                   "        }},\n"
-                                                   "        \"mounts\": [\n"
-                                                   "        ],\n"
-                                                   "        \"num_cores\": 1,\n"
-                                                   "        \"ssh_username\": \"ubuntu\",\n"
-                                                   "        \"state\": 2\n"
-                                                   "    }}\n",
-                                                   default_mac ? *default_mac : mpu::generate_mac_address()));
+    contents += QString::fromStdString(
+        fmt::format("        ],\n"
+                    "        \"mac_addr\": \"{}\",\n"
+                    "        \"mem_size\": \"1073741824\",\n"
+                    "        \"metadata\": {{\n"
+                    "            \"arguments\": [\n"
+                    "                \"many\",\n"
+                    "                \"arguments\"\n"
+                    "            ],\n"
+                    "            \"machine_type\": \"dmc-de-lorean\"\n"
+                    "        }},\n"
+                    "        \"mounts\": [\n"
+                    "        ],\n"
+                    "        \"num_cores\": 1,\n"
+                    "        \"ssh_username\": \"ubuntu\",\n"
+                    "        \"state\": 2\n"
+                    "    }}\n",
+                    default_mac ? *default_mac : mpu::generate_mac_address()));
 
     for (const auto& instance : extra_instances)
     {
-        contents += QString::fromStdString(fmt::format(",\n"
-                                                       "    \"{}\": {{\n"
-                                                       "        \"deleted\": false,\n"
-                                                       "        \"disk_space\": \"5368709120\",\n"
-                                                       "        \"extra_interfaces\": [\n"
-                                                       "        ],\n"
-                                                       "        \"mac_addr\": \"{}\",\n"
-                                                       "        \"mem_size\": \"1073741824\",\n"
-                                                       "        \"metadata\": {{\n"
-                                                       "            \"arguments\": [\n"
-                                                       "                \"many\",\n"
-                                                       "                \"arguments\"\n"
-                                                       "            ],\n"
-                                                       "            \"machine_type\": \"dmc-de-lorean\"\n"
-                                                       "        }},\n"
-                                                       "        \"mounts\": [\n"
-                                                       "        ],\n"
-                                                       "        \"num_cores\": 1,\n"
-                                                       "        \"ssh_username\": \"ubuntu\",\n"
-                                                       "        \"state\": 2\n"
-                                                       "    }}",
-                                                       instance, mpu::generate_mac_address()));
+        contents +=
+            QString::fromStdString(fmt::format(",\n"
+                                               "    \"{}\": {{\n"
+                                               "        \"deleted\": false,\n"
+                                               "        \"disk_space\": \"5368709120\",\n"
+                                               "        \"extra_interfaces\": [\n"
+                                               "        ],\n"
+                                               "        \"mac_addr\": \"{}\",\n"
+                                               "        \"mem_size\": \"1073741824\",\n"
+                                               "        \"metadata\": {{\n"
+                                               "            \"arguments\": [\n"
+                                               "                \"many\",\n"
+                                               "                \"arguments\"\n"
+                                               "            ],\n"
+                                               "            \"machine_type\": \"dmc-de-lorean\"\n"
+                                               "        }},\n"
+                                               "        \"mounts\": [\n"
+                                               "        ],\n"
+                                               "        \"num_cores\": 1,\n"
+                                               "        \"ssh_username\": \"ubuntu\",\n"
+                                               "        \"state\": 2\n"
+                                               "    }}",
+                                               instance,
+                                               mpu::generate_mac_address()));
     }
 
     contents += "}";
@@ -147,7 +151,8 @@ void check_interfaces_in_json(const QString& file,
     check_interfaces_in_json(doc.object(), mac, extra_ifaces);
 }
 
-void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_map<std::string, mp::VMMount>& mounts)
+void check_mounts_in_json(const QJsonObject& doc_object,
+                          const std::unordered_map<std::string, mp::VMMount>& mounts)
 {
     const auto instance_object = doc_object["real-zebraphant"].toObject();
     const auto json_mounts = instance_object["mounts"].toArray();
@@ -169,19 +174,22 @@ void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_ma
         for (auto i = 0; i < json_uid_mapping.count(); ++i)
         {
             ASSERT_EQ(json_uid_mapping[i]["host_uid"], original_mount.get_uid_mappings()[i].first);
-            ASSERT_EQ(json_uid_mapping[i]["instance_uid"], original_mount.get_uid_mappings()[i].second);
+            ASSERT_EQ(json_uid_mapping[i]["instance_uid"],
+                      original_mount.get_uid_mappings()[i].second);
         }
 
         ASSERT_EQ(json_gid_mapping.count(), original_mount.get_gid_mappings().size());
         for (auto i = 0; i < json_gid_mapping.count(); ++i)
         {
             ASSERT_EQ(json_gid_mapping[i]["host_gid"], original_mount.get_gid_mappings()[i].first);
-            ASSERT_EQ(json_gid_mapping[i]["instance_gid"], original_mount.get_gid_mappings()[i].second);
+            ASSERT_EQ(json_gid_mapping[i]["instance_gid"],
+                      original_mount.get_gid_mappings()[i].second);
         }
     }
 }
 
-void check_mounts_in_json(const QString& file, const std::unordered_map<std::string, mp::VMMount>& mounts)
+void check_mounts_in_json(const QString& file,
+                          const std::unordered_map<std::string, mp::VMMount>& mounts)
 {
     QByteArray json = mpt::load(file);
 

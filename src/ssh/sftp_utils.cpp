@@ -26,7 +26,9 @@ SFTPUtils::SFTPUtils(const PrivatePass& pass) noexcept : Singleton<SFTPUtils>::S
 {
 }
 
-fs::path SFTPUtils::get_local_file_target(const fs::path& source_path, const fs::path& target_path, bool make_parent)
+fs::path SFTPUtils::get_local_file_target(const fs::path& source_path,
+                                          const fs::path& target_path,
+                                          bool make_parent)
 {
     std::error_code err;
     if (!MP_FILEOPS.exists(target_path, err) && !err)
@@ -57,7 +59,9 @@ fs::path SFTPUtils::get_local_file_target(const fs::path& source_path, const fs:
     return target_full_path;
 }
 
-fs::path SFTPUtils::get_remote_file_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path,
+fs::path SFTPUtils::get_remote_file_target(sftp_session sftp,
+                                           const fs::path& source_path,
+                                           const fs::path& target_path,
                                            bool make_parent)
 {
     auto target_full_path = target_path.empty() ? source_path.filename() : target_path;
@@ -69,8 +73,9 @@ fs::path SFTPUtils::get_remote_file_target(sftp_session sftp, const fs::path& so
         parent_path = parent_path.empty() ? "." : parent_path;
         if (make_parent)
             mkdir_recursive(sftp, parent_path);
-        return mp_sftp_stat(sftp, parent_path.c_str()) ? target_full_path
-                                                       : throw SFTPError{"remote target does not exist"};
+        return mp_sftp_stat(sftp, parent_path.c_str())
+                   ? target_full_path
+                   : throw SFTPError{"remote target does not exist"};
     }
 
     if (target_attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
@@ -79,12 +84,15 @@ fs::path SFTPUtils::get_remote_file_target(sftp_session sftp, const fs::path& so
     target_full_path += source_path.filename().u8string().insert(0, "/");
     target_attr = mp_sftp_stat(sftp, target_full_path.u8string().c_str());
     if (target_attr && target_attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
-        throw SFTPError{"cannot overwrite remote directory {:?} with non-directory", target_full_path};
+        throw SFTPError{"cannot overwrite remote directory {:?} with non-directory",
+                        target_full_path};
 
     return target_full_path;
 }
 
-fs::path SFTPUtils::get_local_dir_target(const fs::path& source_path, const fs::path& target_path, bool make_parent)
+fs::path SFTPUtils::get_local_dir_target(const fs::path& source_path,
+                                         const fs::path& target_path,
+                                         bool make_parent)
 {
     std::error_code err;
 
@@ -114,7 +122,9 @@ fs::path SFTPUtils::get_local_dir_target(const fs::path& source_path, const fs::
     return child_path;
 }
 
-fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp, const fs::path& source_path, const fs::path& target_path,
+fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp,
+                                          const fs::path& source_path,
+                                          const fs::path& target_path,
                                           bool make_parent)
 {
     auto target_path_string = target_path.u8string();
@@ -128,7 +138,9 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp, const fs::path& sou
         if (make_parent)
             mkdir_recursive(sftp, target_path);
         else if (sftp_mkdir(sftp, target_path_string.c_str(), 0777) != SSH_FX_OK)
-            throw SFTPError{"cannot create remote directory {}: {}", target_path, ssh_get_error(sftp->session)};
+            throw SFTPError{"cannot create remote directory {}: {}",
+                            target_path,
+                            ssh_get_error(sftp->session)};
         return target_path;
     }
 
@@ -139,7 +151,9 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp, const fs::path& sou
         throw SFTPError{"cannot overwrite remote non-directory {:?} with directory", child_path};
 
     if (!child_info && sftp_mkdir(sftp, child_path_string.c_str(), 0777) != SSH_FX_OK)
-        throw SFTPError{"cannot create remote directory {:?}: {}", child_path, ssh_get_error(sftp->session)};
+        throw SFTPError{"cannot create remote directory {:?}: {}",
+                        child_path,
+                        ssh_get_error(sftp->session)};
 
     return child_path;
 }
@@ -149,23 +163,31 @@ void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
     std::vector<fs::path> partial_paths;
     // this takes a path and creates a list of all sub-paths
     // e.g "some/nested/path" => ["some", "some/nested", "some/nested/path"]
-    std::partial_sum(path.begin(), path.end(), std::back_inserter(partial_paths),
+    std::partial_sum(path.begin(),
+                     path.end(),
+                     std::back_inserter(partial_paths),
                      [](auto acc, auto curr) { return acc.u8string() + '/' + curr.u8string(); });
     for (const auto& partial_path : partial_paths)
         if (auto attr = mp_sftp_lstat(sftp, partial_path.u8string().c_str());
             attr && attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
-            throw SFTPError{"cannot overwrite remote non-directory {:?} with directory", partial_path};
+            throw SFTPError{"cannot overwrite remote non-directory {:?} with directory",
+                            partial_path};
         else if (!attr && sftp_mkdir(sftp, partial_path.u8string().c_str(), 0777) != SSH_FX_OK)
-            throw SFTPError{"cannot create remote directory {:?}: {}", partial_path, ssh_get_error(sftp->session)};
+            throw SFTPError{"cannot create remote directory {:?}: {}",
+                            partial_path,
+                            ssh_get_error(sftp->session)};
 }
 
-std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host, int port, const std::string& username,
+std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host,
+                                                       int port,
+                                                       const std::string& username,
                                                        const std::string& priv_key_blob)
 {
     return std::make_unique<SFTPClient>(host, port, username, priv_key_blob);
 }
 
-std::unique_ptr<SFTPDirIterator> SFTPUtils::make_SFTPDirIterator(sftp_session sftp, const fs::path& path)
+std::unique_ptr<SFTPDirIterator> SFTPUtils::make_SFTPDirIterator(sftp_session sftp,
+                                                                 const fs::path& path)
 {
     return std::make_unique<SFTPDirIterator>(sftp, path);
 }

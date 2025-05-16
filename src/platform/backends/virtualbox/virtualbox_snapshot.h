@@ -35,7 +35,9 @@ public:
                        const QString& vm_name,
                        const VMSpecs& specs,
                        VirtualBoxVirtualMachine& vm);
-    VirtualBoxSnapshot(const QString& filename, VirtualBoxVirtualMachine& vm, const VirtualMachineDescription& desc);
+    VirtualBoxSnapshot(const QString& filename,
+                       VirtualBoxVirtualMachine& vm,
+                       const VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;

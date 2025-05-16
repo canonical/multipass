@@ -58,18 +58,23 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
 
     if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(), &spinner, cerr,
+        timer = cmd::make_timer(parser->value("timeout").toInt(),
+                                &spinner,
+                                cerr,
                                 "Timed out waiting for instance to restart.");
         timer->start();
     }
 
     ReturnCode return_code;
-    auto streaming_callback = make_iterative_spinner_callback<RestartRequest, RestartReply>(spinner, *term);
+    auto streaming_callback =
+        make_iterative_spinner_callback<RestartRequest, RestartReply>(spinner, *term);
     do
     {
         spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
-    } while ((return_code = dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)) ==
-             ReturnCode::Retry);
+    } while (
+        (return_code =
+             dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)) ==
+        ReturnCode::Retry);
 
     return return_code;
 }
@@ -97,12 +102,12 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 
     const auto& [description, syntax] =
         petenv_name.isEmpty()
-            ? std::make_pair(QString{"Names of instances to restart."}, QString{"<name> [<name> ...]"})
-            : std::make_pair(
-                  QString{
-                      "Names of instances to restart. If omitted, and without the --all option, '%1' will be assumed."}
-                      .arg(petenv_name),
-                  QString{"[<name> ...]"});
+            ? std::make_pair(QString{"Names of instances to restart."},
+                             QString{"<name> [<name> ...]"})
+            : std::make_pair(QString{"Names of instances to restart. If omitted, and without the "
+                                     "--all option, '%1' will be assumed."}
+                                 .arg(petenv_name),
+                             QString{"[<name> ...]"});
 
     parser->addPositionalArgument("name", description, syntax);
 
@@ -126,7 +131,10 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    auto parse_code = check_for_name_and_all_option_conflict(parser, cerr, /*allow_empty=*/!petenv_name.isEmpty());
+    auto parse_code =
+        check_for_name_and_all_option_conflict(parser,
+                                               cerr,
+                                               /*allow_empty=*/!petenv_name.isEmpty());
     if (parse_code != ParseCode::Ok)
     {
         if (petenv_name.isEmpty() && parser->positionalArguments().isEmpty())
@@ -135,7 +143,8 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
         return parse_code;
     }
 
-    request.mutable_instance_names()->CopyFrom(add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
+    request.mutable_instance_names()->CopyFrom(
+        add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));
 
     return status;
 }

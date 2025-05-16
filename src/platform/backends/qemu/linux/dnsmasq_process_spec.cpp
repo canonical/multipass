@@ -24,8 +24,10 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir, const QString& bridge_name,
-                                           const std::string& subnet, const QString& conf_file_path)
+mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir,
+                                           const QString& bridge_name,
+                                           const std::string& subnet,
+                                           const QString& conf_file_path)
     : data_dir(data_dir), bridge_name(bridge_name), subnet{subnet}, conf_file_path{conf_file_path}
 {
 }
@@ -41,21 +43,22 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
     const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
     const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
 
-    return QStringList() << "--keep-in-foreground"
-                         << "--strict-order"
-                         << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
-                         << "--local=/multipass/"
-                         << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
-                         << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
-                         << "--dhcp-no-override"
-                         << "--dhcp-ignore-clid"
-                         << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
-                         << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
-                         << QString("%1,%2,infinite")
-                                .arg(QString::fromStdString(start_ip.as_string()))
-                                .arg(QString::fromStdString(end_ip.as_string()))
-                         // This is to prevent it trying to read /etc/dnsmasq.conf
-                         << QString("--conf-file=%1").arg(conf_file_path);
+    return QStringList()
+           << "--keep-in-foreground"
+           << "--strict-order"
+           << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
+           << "--local=/multipass/"
+           << "--except-interface=lo" << QString("--interface=%1").arg(bridge_name)
+           << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
+           << "--dhcp-no-override"
+           << "--dhcp-ignore-clid"
+           << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
+           << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir) << "--dhcp-range"
+           << QString("%1,%2,infinite")
+                  .arg(QString::fromStdString(start_ip.as_string()))
+                  .arg(QString::fromStdString(end_ip.as_string()))
+           // This is to prevent it trying to read /etc/dnsmasq.conf
+           << QString("--conf-file=%1").arg(conf_file_path);
 }
 
 mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
@@ -66,7 +69,8 @@ mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
 
 QString mp::DNSMasqProcessSpec::apparmor_profile() const
 {
-    // Profile based on https://github.com/Rafiot/apparmor-profiles/blob/master/profiles/usr.sbin.dnsmasq
+    // Profile based on
+    // https://github.com/Rafiot/apparmor-profiles/blob/master/profiles/usr.sbin.dnsmasq
     QString profile_template(R"END(
 #include <tunables/global>
 profile %1 flags=(attach_disconnected) {
@@ -120,5 +124,6 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, conf_file_path);
+    return profile_template
+        .arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, conf_file_path);
 }

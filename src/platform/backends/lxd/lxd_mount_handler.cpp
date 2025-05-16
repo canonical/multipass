@@ -37,11 +37,12 @@ LXDMountHandler::LXDMountHandler(mp::NetworkAccessManager* network_manager,
     : MountHandler{lxd_virtual_machine, ssh_key_provider, std::move(mount_spec), target_path},
       network_manager{network_manager},
       lxd_instance_endpoint{
-          QString("%1/instances/%2").arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},
-      // make_uuid is a seed based unique id generator, that makes the device_name reproducible if the seed
-      // (target_path) is the same. If the seeds are different, then the generated ids are likely to be different as
-      // well. 27 (25 + 2(d_)) letters is the maximum device name length that LXD can accept and d_ stands for device
-      // name.
+          QString("%1/instances/%2")
+              .arg(lxd_socket_url.toString(), lxd_virtual_machine->vm_name.c_str())},
+      // make_uuid is a seed based unique id generator, that makes the device_name reproducible if
+      // the seed (target_path) is the same. If the seeds are different, then the generated ids are
+      // likely to be different as well. 27 (25 + 2(d_)) letters is the maximum device name length
+      // that LXD can accept and d_ stands for device name.
       device_name{mp::utils::make_uuid(target_path)
                       .remove("-")
                       .left(length_of_unique_id_without_prefix)
@@ -58,8 +59,10 @@ void LXDMountHandler::activate_impl(ServerVariant /**/, std::chrono::millisecond
         throw mp::NativeMountNeedsStoppedVMException(vm->vm_name);
     }
 
-    mpl::log(mpl::Level::info, std::string(category),
-             fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
+    mpl::log(
+        mpl::Level::info,
+        std::string(category),
+        fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
     lxd_device_add();
 }
 
@@ -69,10 +72,12 @@ void LXDMountHandler::deactivate_impl(bool /*force*/)
     const VirtualMachine::State state = vm->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
     {
-        throw std::runtime_error("Please stop the instance " + vm->vm_name + " before unmount it natively.");
+        throw std::runtime_error("Please stop the instance " + vm->vm_name +
+                                 " before unmount it natively.");
     }
 
-    mpl::log(mpl::Level::info, std::string(category),
+    mpl::log(mpl::Level::info,
+             std::string(category),
              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
     lxd_device_remove();
 }
@@ -88,7 +93,8 @@ void LXDMountHandler::lxd_device_remove()
     device_list.remove(device_name.c_str());
     instance_info_metadata["devices"] = device_list;
     // TODO: make this put method If-Match pattern
-    const QJsonObject json_reply = lxd_request(network_manager, "PUT", lxd_instance_endpoint, instance_info_metadata);
+    const QJsonObject json_reply =
+        lxd_request(network_manager, "PUT", lxd_instance_endpoint, instance_info_metadata);
     lxd_wait(network_manager, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
 
@@ -98,16 +104,19 @@ void LXDMountHandler::lxd_device_add()
     QJsonObject instance_info_metadata = instance_info["metadata"].toObject();
     QJsonObject device_list = instance_info_metadata["devices"].toObject();
 
-    const std::string abs_target_path =
-        std::filesystem::path{target}.is_relative() ? fmt::format("/home/{}/{}", vm->ssh_username(), target) : target;
-    const QJsonObject new_device_object{
-        {"path", abs_target_path.c_str()}, {"source", source.c_str()}, {"type", "disk"}};
+    const std::string abs_target_path = std::filesystem::path{target}.is_relative()
+                                            ? fmt::format("/home/{}/{}", vm->ssh_username(), target)
+                                            : target;
+    const QJsonObject new_device_object{{"path", abs_target_path.c_str()},
+                                        {"source", source.c_str()},
+                                        {"type", "disk"}};
 
     device_list.insert(device_name.c_str(), new_device_object);
     instance_info_metadata["devices"] = device_list;
 
     // TODO: make this put method If-Match pattern
-    const QJsonObject json_reply = lxd_request(network_manager, "PUT", lxd_instance_endpoint, instance_info_metadata);
+    const QJsonObject json_reply =
+        lxd_request(network_manager, "PUT", lxd_instance_endpoint, instance_info_metadata);
     lxd_wait(network_manager, multipass::lxd_socket_url, json_reply, timeout_milliseconds);
 }
 

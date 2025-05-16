@@ -98,12 +98,16 @@ TEST_F(LibVirtBackend, health_check_failed_connection_throws)
 
     mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
-    backend.libvirt_wrapper->virGetLastErrorMessage = [] { return static_virGetLastErrorMessage(); };
+    backend.libvirt_wrapper->virGetLastErrorMessage = [] {
+        return static_virGetLastErrorMessage();
+    };
 
     MP_EXPECT_THROW_THAT(
-        backend.hypervisor_health_check(), std::runtime_error,
+        backend.hypervisor_health_check(),
+        std::runtime_error,
         mpt::match_what(StrEq(fmt::format(
-            "Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.", error_msg))));
+            "Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.",
+            error_msg))));
 }
 
 TEST_F(LibVirtBackend, creates_in_off_state)
@@ -355,7 +359,8 @@ TEST_F(LibVirtBackend, returns_version_string_when_failed_connecting)
 
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
-    backend.libvirt_wrapper->virConnectGetVersion = [](virConnectPtr conn, long unsigned int* hwVer) {
+    backend.libvirt_wrapper->virConnectGetVersion = [](virConnectPtr conn,
+                                                       long unsigned int* hwVer) {
         return static_virConnectGetVersion(conn, hwVer);
     };
 
@@ -381,8 +386,10 @@ TEST_F(LibVirtBackend, ssh_hostname_returns_expected_value)
 
     static auto static_virNetworkGetDHCPLeases = virNetworkGetDHCPLeases;
 
-    backend.libvirt_wrapper->virNetworkGetDHCPLeases = [](virNetworkPtr network, const char* mac,
-                                                          virNetworkDHCPLeasePtr** leases, unsigned int flags) {
+    backend.libvirt_wrapper->virNetworkGetDHCPLeases = [](virNetworkPtr network,
+                                                          const char* mac,
+                                                          virNetworkDHCPLeasePtr** leases,
+                                                          unsigned int flags) {
         return static_virNetworkGetDHCPLeases(network, mac, leases, flags);
     };
 
@@ -435,7 +442,9 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     static auto static_virDomainDestroy = virDomainDestroy;
 
-    backend.libvirt_wrapper->virDomainDestroy = [](virDomainPtr domain) { return static_virDomainDestroy(domain); };
+    backend.libvirt_wrapper->virDomainDestroy = [](virDomainPtr domain) {
+        return static_virDomainDestroy(domain);
+    };
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
@@ -448,13 +457,16 @@ TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
 
     ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread = [&machine] { machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); };
+    mp::AutoJoinThread thread = [&machine] {
+        machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+    };
 
     using namespace std::chrono_literals;
     while (!destroy_called)
         std::this_thread::sleep_for(1ms);
 
-    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(), mp::StartException,
+    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(),
+                         mp::StartException,
                          mpt::match_what(StrEq("Instance failed to start")));
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
@@ -474,7 +486,8 @@ TEST_F(LibVirtBackend, machineInOffStateLogsAndIgnoresShutdown)
     };
 
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "Ignoring shutdown since instance is already stopped.");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Ignoring shutdown since instance is already stopped.");
 
     machine->shutdown();
 
@@ -498,14 +511,17 @@ TEST_F(LibVirtBackend, machineNoForceCannotShutdownLogsAndThrows)
 
     auto virGetLastErrorMessage = [&error_msg] { return error_msg.c_str(); };
     static auto static_virGetLastErrorMessage = virGetLastErrorMessage;
-    backend.libvirt_wrapper->virGetLastErrorMessage = [] { return static_virGetLastErrorMessage(); };
+    backend.libvirt_wrapper->virGetLastErrorMessage = [] {
+        return static_virGetLastErrorMessage();
+    };
 
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     logger_scope.mock_logger->expect_log(mpl::Level::warning, error_msg);
 
-    MP_EXPECT_THROW_THAT(machine->shutdown(),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("pied-piper-valley"), HasSubstr(error_msg))));
+    MP_EXPECT_THROW_THAT(
+        machine->shutdown(),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("pied-piper-valley"), HasSubstr(error_msg))));
 }
 
 TEST_F(LibVirtBackend, lists_no_networks)

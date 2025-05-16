@@ -36,7 +36,8 @@ bool update_local_pty_size(int cout_fd)
     struct winsize win = {0, 0, 0, 0};
     ioctl(cout_fd, TIOCGWINSZ, &win);
 
-    bool local_pty_size_changed = local_pty_size.rows != win.ws_row || local_pty_size.columns != win.ws_col;
+    bool local_pty_size_changed =
+        local_pty_size.rows != win.ws_row || local_pty_size.columns != win.ws_col;
 
     if (local_pty_size_changed)
     {
@@ -53,7 +54,9 @@ static void sigwinch_handler(int sig)
     {
         if (update_local_pty_size(global_cout_fd))
         {
-            ssh_channel_change_pty_size(global_channel, local_pty_size.columns, local_pty_size.rows);
+            ssh_channel_change_pty_size(global_channel,
+                                        local_pty_size.columns,
+                                        local_pty_size.rows);
         }
     }
 }
@@ -75,7 +78,10 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
         term_type = (term_type == nullptr) ? "xterm" : term_type;
 
         update_local_pty_size(term->cout_fd());
-        ssh_channel_request_pty_size(channel, term_type, local_pty_size.columns, local_pty_size.rows);
+        ssh_channel_request_pty_size(channel,
+                                     term_type,
+                                     local_pty_size.columns,
+                                     local_pty_size.rows);
 
         // set stdin to Raw Mode after libssh inherits sane settings from stdin.
         setup_console();

@@ -48,18 +48,22 @@ void ensure_hyperv_service_is_running(mp::PowerShell& power_shell)
     QString ps_output;
     const QStringList get_vmms_service{"Get-Service", "-Name", "vmms"};
 
-    if (!power_shell.run(QStringList() << get_vmms_service << expand_property << "Status", &ps_output))
+    if (!power_shell.run(QStringList() << get_vmms_service << expand_property << "Status",
+                         &ps_output))
     {
-        throw std::runtime_error("The Hyper-V service does not exist. Ensure Hyper-V is installed correctly.");
+        throw std::runtime_error(
+            "The Hyper-V service does not exist. Ensure Hyper-V is installed correctly.");
     }
 
     if (ps_output == "Stopped")
     {
-        power_shell.run(QStringList() << get_vmms_service << expand_property << "StartType", &ps_output);
+        power_shell.run(QStringList() << get_vmms_service << expand_property << "StartType",
+                        &ps_output);
 
         if (ps_output == "Disabled")
         {
-            throw std::runtime_error("The Hyper-V service is set to disabled. Please re-enable \"vmms\".");
+            throw std::runtime_error(
+                "The Hyper-V service is set to disabled. Please re-enable \"vmms\".");
         }
 
         if (!power_shell.run(QStringList() << "Start-Service"
@@ -82,8 +86,9 @@ void check_host_hyperv_support(mp::PowerShell& power_shell)
     {
         if (ps_output == "False")
         {
-            throw std::runtime_error("Virtualization support appears to be disabled in the BIOS.\n"
-                                     "Enter your BIOS setup and enable Virtualization Technology (VT).");
+            throw std::runtime_error(
+                "Virtualization support appears to be disabled in the BIOS.\n"
+                "Enter your BIOS setup and enable Virtualization Technology (VT).");
         }
     }
 
@@ -93,7 +98,8 @@ void check_host_hyperv_support(mp::PowerShell& power_shell)
     {
         if (ps_output == "False")
         {
-            throw std::runtime_error("The CPU does not have proper virtualization extensions to support Hyper-V");
+            throw std::runtime_error(
+                "The CPU does not have proper virtualization extensions to support Hyper-V");
         }
     }
 }
@@ -104,31 +110,34 @@ void check_hyperv_feature_enabled(mp::PowerShell& power_shell)
     const QStringList optional_feature{"Get-WindowsOptionalFeature", "-Online", "-FeatureName"};
 
     // Check if Hyper-V is fully enabled
-    if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << expand_property << "State",
+    if (power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V" << expand_property
+                                      << "State",
                         &ps_output))
     {
         if (ps_output.isEmpty())
         {
-            throw std::runtime_error(
-                "Hyper-V is not available on this edition of Windows 10. Please upgrade to one of Pro, Enterprise"
-                "or Education editions.");
+            throw std::runtime_error("Hyper-V is not available on this edition of Windows 10. "
+                                     "Please upgrade to one of Pro, Enterprise"
+                                     "or Education editions.");
         }
         else if (ps_output == "Enabled")
         {
-            power_shell.run(QStringList()
-                                << optional_feature << "Microsoft-Hyper-V-Hypervisor" << expand_property << "State",
+            power_shell.run(QStringList() << optional_feature << "Microsoft-Hyper-V-Hypervisor"
+                                          << expand_property << "State",
                             &ps_output);
             if (ps_output == "Enabled")
                 return;
 
-            throw std::runtime_error("The Hyper-V Hypervisor is disabled. Please enable by using the following\n"
-                                     "command in an Administrator Powershell and reboot:\n"
-                                     "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor");
+            throw std::runtime_error(
+                "The Hyper-V Hypervisor is disabled. Please enable by using the following\n"
+                "command in an Administrator Powershell and reboot:\n"
+                "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor");
         }
 
-        throw std::runtime_error("The Hyper-V Windows feature is disabled. Please enable by using the following\n"
-                                 "command in an Administrator Powershell and reboot:\n"
-                                 "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All");
+        throw std::runtime_error(
+            "The Hyper-V Windows feature is disabled. Please enable by using the following\n"
+            "command in an Administrator Powershell and reboot:\n"
+            "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All");
     }
     else
     {
@@ -145,23 +154,28 @@ void check_hyperv_support()
                                      "'HKLM:\\Software\\Microsoft\\Windows NT\\CurrentVersion'"};
 
     // Check for Windows 10
-    power_shell.run(QStringList() << get_reg_version_info << expand_property << "CurrentMajorVersionNumber",
+    power_shell.run(QStringList() << get_reg_version_info << expand_property
+                                  << "CurrentMajorVersionNumber",
                     &ps_output);
     if (ps_output.toInt() < 10)
         throw std::runtime_error("Multipass support for Hyper-V requires Windows 10 or newer");
     else if (ps_output == "10")
     {
-        // Check if it's a version less than 1803; NB: comparing strings, as new style ReleaseId is e.g. "21H2"
-        power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId", &ps_output);
+        // Check if it's a version less than 1803; NB: comparing strings, as new style ReleaseId is
+        // e.g. "21H2"
+        power_shell.run(QStringList() << get_reg_version_info << expand_property << "ReleaseId",
+                        &ps_output);
         if (ps_output < "1803")
-            throw std::runtime_error("Multipass requires at least Windows 10 version 1803. Please update your system.");
+            throw std::runtime_error(
+                "Multipass requires at least Windows 10 version 1803. Please update your system.");
     }
 
     // Check if HypervisorPresent is true- implies either Hyper-V is running or running under a
     //   different virtualized environment like VirtualBox or QEMU.
     // If it's running under a different virtualized environment, we can't check if nesting is
     //   available, so the user is on their own and we'll bubble up any failures at `launch`.
-    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << expand_property << "HypervisorPresent",
+    power_shell.run(QStringList() << "Get-CimInstance Win32_ComputerSystem" << expand_property
+                                  << "HypervisorPresent",
                     &ps_output);
 
     QString hypervisor_present{ps_output};
@@ -188,7 +202,8 @@ void check_hyperv_support()
     // not rebooted yet.
     if (hypervisor_present == "False")
     {
-        throw std::runtime_error("The computer needs to be rebooted in order for Hyper-V to be fully available");
+        throw std::runtime_error(
+            "The computer needs to be rebooted in order for Hyper-V to be fully available");
     }
 }
 
@@ -198,7 +213,9 @@ std::vector<std::string> switch_links(const std::vector<mp::NetworkInterfaceInfo
     std::vector<std::string> ret;
     if (!adapter_description.isEmpty())
     {
-        auto same = [&adapter_description](const auto& net) { return adapter_description == net.description.c_str(); };
+        auto same = [&adapter_description](const auto& net) {
+            return adapter_description == net.description.c_str();
+        };
         if (auto it = std::find_if(adapters.cbegin(), adapters.cend(), same); it != adapters.cend())
             ret.emplace_back(it->id);
     }
@@ -206,7 +223,9 @@ std::vector<std::string> switch_links(const std::vector<mp::NetworkInterfaceInfo
     return ret;
 }
 
-std::string switch_description(const QString& switch_type, const std::vector<std::string>& links, const QString& notes)
+std::string switch_description(const QString& switch_type,
+                               const std::vector<std::string>& links,
+                               const QString& notes)
 {
     std::string ret;
     if (switch_type.contains("external", Qt::CaseInsensitive))
@@ -214,10 +233,12 @@ std::string switch_description(const QString& switch_type, const std::vector<std
         if (links.empty())
             ret = "Virtual Switch with external networking";
         else
-            ret = fmt::format("Virtual Switch with external networking via \"{}\"", fmt::join(links, ", "));
+            ret = fmt::format("Virtual Switch with external networking via \"{}\"",
+                              fmt::join(links, ", "));
     }
     else if (!links.empty())
-        throw std::runtime_error{fmt::format("Unexpected link(s) for non-external switch: {}", fmt::join(links, ", "))};
+        throw std::runtime_error{
+            fmt::format("Unexpected link(s) for non-external switch: {}", fmt::join(links, ", "))};
     else if (switch_type.contains("private", Qt::CaseInsensitive))
         ret = "Private virtual switch";
     else if (switch_type.contains("internal", Qt::CaseInsensitive))
@@ -235,9 +256,11 @@ void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapte
                                    const std::vector<mp::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization = std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
-            return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) != switch_.links.cend();
-        });
+        adapter.needs_authorization =
+            std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+                return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
+                       switch_.links.cend();
+            });
 }
 
 std::string error_msg_helper(const std::string& msg_core, const QString& ps_output)
@@ -248,13 +271,15 @@ std::string error_msg_helper(const std::string& msg_core, const QString& ps_outp
 } // namespace
 
 mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir)
-    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
 {
 }
 
-mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                                                 const SSHKeyProvider& key_provider,
-                                                                                 VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(
+    const VirtualMachineDescription& desc,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::HyperVVirtualMachine>(desc,
                                                       monitor,
@@ -270,10 +295,16 @@ void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::strin
 mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     QFileInfo source_file{source_image.image_path};
-    auto vhdx_file = QString("%1/%2.vhdx").arg(source_file.path()).arg(source_file.completeBaseName());
+    auto vhdx_file =
+        QString("%1/%2.vhdx").arg(source_file.path()).arg(source_file.completeBaseName());
 
-    QStringList convert_args(
-        {QStringLiteral("convert"), "-o", "subformat=dynamic", "-O", "vhdx", source_image.image_path, vhdx_file});
+    QStringList convert_args({QStringLiteral("convert"),
+                              "-o",
+                              "subformat=dynamic",
+                              "-O",
+                              "vhdx",
+                              source_image.image_path,
+                              vhdx_file});
 
     QProcess convert;
     convert.setProgram("qemu-img.exe");
@@ -287,8 +318,8 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
 
     if (convert.exitStatus() != QProcess::NormalExit || convert.exitCode() != 0)
     {
-        throw std::runtime_error(
-            qPrintable("Conversion of image to vhdx failed with error: " + convert.readAllStandardError()));
+        throw std::runtime_error(qPrintable("Conversion of image to vhdx failed with error: " +
+                                            convert.readAllStandardError()));
     }
     if (!QFile::exists(vhdx_file))
     {
@@ -303,15 +334,21 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
 void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& instance_image,
                                                              const VirtualMachineDescription& desc)
 {
-    const auto disk_size = QString::number(desc.disk_space.in_bytes()); // format documented in `Help(Resize-VHD)`
+    const auto disk_size =
+        QString::number(desc.disk_space.in_bytes()); // format documented in `Help(Resize-VHD)`
 
-    // Resize-VHD can't operate on the sparse images that `qemu-img` produces. The `fsutil` cmd allocates them fully.
-    // Images copied from the cache aren't sparse, but they remain unaffected.
+    // Resize-VHD can't operate on the sparse images that `qemu-img` produces. The `fsutil` cmd
+    // allocates them fully. Images copied from the cache aren't sparse, but they remain unaffected.
     QStringList unsparse_cmd = {"fsutil", "sparse", "setFlag", instance_image.image_path, "0"};
-    QStringList resize_cmd = {"Resize-VHD", "-Path", instance_image.image_path, "-SizeBytes", disk_size};
+    QStringList resize_cmd = {"Resize-VHD",
+                              "-Path",
+                              instance_image.image_path,
+                              "-SizeBytes",
+                              disk_size};
     PowerShell ps{desc.vm_name};
 
-    for (const auto& [cmd, op] : {std::pair(&unsparse_cmd, "unsparse"), std::pair(&resize_cmd, "resize")})
+    for (const auto& [cmd, op] :
+         {std::pair(&unsparse_cmd, "unsparse"), std::pair(&resize_cmd, "resize")})
         ps.easy_run(*cmd, fmt::format("Failed to {} instance image", op));
 }
 
@@ -335,7 +372,8 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
     return networks;
 }
 
-std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
+std::string mp::HyperVVirtualMachineFactory::create_bridge_with(
+    const NetworkInterfaceInfo& interface)
 {
     assert(interface.type == "ethernet");
 
@@ -360,7 +398,8 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
                               "Hyper-V Switch Creation",
                               &ps_output,
                               &ps_output_err)) // TODO should probably cache PS processes
-        throw std::runtime_error{error_msg_helper("Could not create external switch", ps_output_err)};
+        throw std::runtime_error{
+            error_msg_helper("Could not create external switch", ps_output_err)};
 
     if (ps_output != switch_name)
         throw std::runtime_error{error_msg_helper("Could not create external switch", ps_output)};
@@ -368,17 +407,18 @@ std::string mp::HyperVVirtualMachineFactory::create_bridge_with(const NetworkInt
     return ps_output.toStdString();
 }
 
-auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInterfaceInfo>& adapters)
-    -> std::vector<NetworkInterfaceInfo>
+auto mp::HyperVVirtualMachineFactory::get_switches(
+    const std::vector<NetworkInterfaceInfo>& adapters) -> std::vector<NetworkInterfaceInfo>
 {
-    static const auto ps_args = QStringList{"Get-VMSwitch",
-                                            "-ComputerName",
-                                            "localhost", // workaround for names with more than 15 chars
-                                            "|",
-                                            "Select-Object",
-                                            "-Property",
-                                            "Name,SwitchType,NetAdapterInterfaceDescription,Notes"} +
-                                mp::PowerShell::Snippets::to_bare_csv;
+    static const auto ps_args =
+        QStringList{"Get-VMSwitch",
+                    "-ComputerName",
+                    "localhost", // workaround for names with more than 15 chars
+                    "|",
+                    "Select-Object",
+                    "-Property",
+                    "Name,SwitchType,NetAdapterInterfaceDescription,Notes"} +
+        mp::PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
     QString ps_output_err;
@@ -390,9 +430,9 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
             auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
-                throw std::runtime_error{
-                    fmt::format("Could not determine available networks - unexpected powershell output: {}",
-                                ps_output)};
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}",
+                    ps_output)};
             }
 
             auto links = switch_links(adapters, terms.at(2));
@@ -403,7 +443,8 @@ auto mp::HyperVVirtualMachineFactory::get_switches(const std::vector<NetworkInte
         return ret;
     }
 
-    throw std::runtime_error{error_msg_helper("Could not determine available networks", ps_output_err)};
+    throw std::runtime_error{
+        error_msg_helper("Could not determine available networks", ps_output_err)};
 }
 
 auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInterfaceInfo>
@@ -422,11 +463,12 @@ auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInter
     return ret;
 }
 
-mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(const std::string& src_name,
-                                                                        const multipass::VMSpecs& src_spec,
-                                                                        const VirtualMachineDescription& dest_vm_desc,
-                                                                        VMStatusMonitor& monitor,
-                                                                        const SSHKeyProvider& key_provider)
+mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
+    const std::string& src_name,
+    const multipass::VMSpecs& src_spec,
+    const VirtualMachineDescription& dest_vm_desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
 {
     return std::make_unique<mp::HyperVVirtualMachine>(src_name,
                                                       src_spec,

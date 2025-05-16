@@ -45,7 +45,7 @@ QJsonObject parse_index(const QByteArray& json)
 
     return index;
 }
-}
+} // namespace
 
 mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(const QByteArray& json)
 {

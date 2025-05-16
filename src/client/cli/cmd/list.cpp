@@ -41,7 +41,9 @@ mp::ReturnCode cmd::List::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::list, request, on_success, on_failure);
@@ -70,10 +72,13 @@ QString cmd::List::description() const
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
-    QCommandLineOption formatOption(
-        "format", "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
-        "format", "table");
-    QCommandLineOption noIpv4Option("no-ipv4", "Do not query the instances for the IPv4's they are using");
+    QCommandLineOption formatOption("format",
+                                    "Output list in the requested format.\nValid formats are: "
+                                    "table (default), json, csv and yaml",
+                                    "format",
+                                    "table");
+    QCommandLineOption noIpv4Option("no-ipv4",
+                                    "Do not query the instances for the IPv4's they are using");
     noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);
 
     parser->addOptions({snapshotsOption, formatOption, noIpv4Option});

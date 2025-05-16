@@ -34,5 +34,5 @@ public:
     std::string release_date;
     std::vector<std::string> aliases;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_VIRTUAL_MACHINE_IMAGE_H

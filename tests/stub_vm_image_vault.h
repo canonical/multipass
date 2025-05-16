@@ -45,7 +45,8 @@ struct StubVMImageVault final : public multipass::VMImageVault
     }
 
     void prune_expired_images() override{};
-    void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
+    void update_images(const FetchType& fetch_type,
+                       const PrepareAction& prepare,
                        const ProgressMonitor& monitor) override{};
 
     MemorySize minimum_image_size_for(const std::string& image) override
@@ -63,12 +64,13 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return {};
     }
 
-    void clone(const std::string& source_instance_name, const std::string& destination_instance_name) override
+    void clone(const std::string& source_instance_name,
+               const std::string& destination_instance_name) override
     {
     }
 
     TempFile dummy_image;
 };
-}
-}
+} // namespace test
+} // namespace multipass
 #endif // MULTIPASS_STUB_VM_IMAGE_VAULT_H

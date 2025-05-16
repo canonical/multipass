@@ -46,7 +46,9 @@ namespace
 {
 struct CapturingLogger : public mp::logging::Logger
 {
-    void log(mpl::Level level, std::string_view /*category*/, std::string_view message) const override
+    void log(mpl::Level level,
+             std::string_view /*category*/,
+             std::string_view message) const override
     {
         logged_lines.emplace_back(message);
     }
@@ -70,9 +72,10 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     {
         mpt::make_file_with_content(
             QDir{data_dir.path()}.filePath("dnsmasq.leases"),
-            fmt::format("0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12",
-                        expected_hw_addr,
-                        expected_ip));
+            fmt::format(
+                "0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12",
+                expected_hw_addr,
+                expected_ip));
     }
 
     void make_lease_entry()
@@ -86,11 +89,13 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
     const QString bridge_name{"dummy-bridge"};
     const std::string subnet{"192.168.64"};
-    const std::string error_subnet{"0.0.0"}; // This forces the mock dnsmasq process to exit with error
+    const std::string error_subnet{
+        "0.0.0"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
     const std::string expected_ip{"10.177.224.22"};
     const std::string lease_entry =
-        "0 "s + hw_addr + " "s + expected_ip + " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
+        "0 "s + hw_addr + " "s + expected_ip +
+        " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 
     mp::DNSMasqServer make_default_dnsmasq_server()
     {
@@ -171,7 +176,9 @@ TEST_F(DNSMasqServer, release_mac_crashes_logs_failure)
     dns.release_mac(crash_hw_addr);
 
     EXPECT_THAT(logger->logged_lines,
-                Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed", expected_ip, crash_hw_addr)));
+                Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed",
+                                     expected_ip,
+                                     crash_hw_addr)));
 }
 
 TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
@@ -183,7 +190,8 @@ TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
 
 TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
 {
-    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}), std::runtime_error);
+    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}),
+                 std::runtime_error);
 }
 
 TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
@@ -205,7 +213,8 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 {
     void SetUp() override
     {
-        logger_scope.mock_logger->screen_logs(mpl::Level::warning); // warning and above expected explicitly in tests
+        logger_scope.mock_logger->screen_logs(
+            mpl::Level::warning); // warning and above expected explicitly in tests
     }
 
     void TearDown() override
@@ -244,7 +253,8 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 
     bool forked = false;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
+    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope =
+        mpt::MockProcessFactory::Inject();
 
     inline static const auto exe = mp::DNSMasqProcessSpec{{}, {}, {}, {}}.program();
 };
@@ -309,9 +319,10 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
         EXPECT_CALL(*process, process_state()).WillOnce(Return(state));
     });
 
-    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
+    MP_EXPECT_THROW_THAT(
+        make_default_dnsmasq_server(),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
 }
 
 TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)

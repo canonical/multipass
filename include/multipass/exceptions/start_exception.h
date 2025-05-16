@@ -39,5 +39,5 @@ public:
 private:
     const std::string instance_name;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_START_EXCEPTION_H

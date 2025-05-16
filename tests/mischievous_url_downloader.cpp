@@ -20,12 +20,16 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
-mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::milliseconds timeout) : URLDownloader(timeout)
+mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::milliseconds timeout)
+    : URLDownloader(timeout)
 {
 }
 
-void mpt::MischievousURLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size,
-                                                const int download_type, const mp::ProgressMonitor& monitor)
+void mpt::MischievousURLDownloader::download_to(const QUrl& url,
+                                                const QString& file_name,
+                                                int64_t size,
+                                                const int download_type,
+                                                const mp::ProgressMonitor& monitor)
 {
     URLDownloader::download_to(choose_url(url), file_name, size, download_type, monitor);
 }
@@ -35,7 +39,8 @@ QByteArray mpt::MischievousURLDownloader::download(const QUrl& url)
     return URLDownloader::download(choose_url(url));
 }
 
-QByteArray mpt::MischievousURLDownloader::download(const QUrl& url, const bool is_force_update_from_network)
+QByteArray mpt::MischievousURLDownloader::download(const QUrl& url,
+                                                   const bool is_force_update_from_network)
 {
     return URLDownloader::download(choose_url(url), is_force_update_from_network);
 }

@@ -44,6 +44,6 @@ private:
     std::condition_variable cv;
     std::thread t;
 };
-}
+} // namespace multipass
 
 #endif // MULTIPASS_ANIMATED_SPINNER_H
