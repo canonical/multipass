@@ -172,8 +172,13 @@ class GeneralDetails extends ConsumerWidget {
       height: baseVmStatHeight,
       label: 'CREATED',
       child: CopyableText(
-        DateFormat('yyyy-MM-dd HH:mm:ss')
-            .format(info.instanceInfo.creationTimestamp.toDateTime()),
+        // Show a dash when VM is still launching and timestamp is therefore 0
+        isLaunching &&
+                info.instanceInfo.creationTimestamp.seconds == 0 &&
+                info.instanceInfo.creationTimestamp.nanos == 0
+            ? '-'
+            : DateFormat('yyyy-MM-dd HH:mm:ss')
+                .format(info.instanceInfo.creationTimestamp.toDateTime()),
       ),
     );
 
