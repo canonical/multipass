@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROGRESS_MONITOR_H
-#define MULTIPASS_PROGRESS_MONITOR_H
+#pragma once
 
 #include <functional>
 
@@ -26,4 +25,3 @@ namespace multipass
 {
 using ProgressMonitor = std::function<bool(int download_type, int progress)>;
 }
-#endif // MULTIPASS_PROGRESS_MONITOR_H

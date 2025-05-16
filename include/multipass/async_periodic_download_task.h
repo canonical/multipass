@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ASYNC_PERIODIC_DOWNLOAD_TASK_H
-#define MULTIPASS_ASYNC_PERIODIC_DOWNLOAD_TASK_H
+#pragma once
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
@@ -130,5 +129,3 @@ private:
     std::chrono::milliseconds retry_current_delay_time;
 };
 } // namespace multipass::utils
-
-#endif

@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLOUD_INIT_ISO_H
-#define MULTIPASS_CLOUD_INIT_ISO_H
+#pragma once
 
 #include <multipass/path.h>
 
@@ -86,4 +85,3 @@ public:
     virtual std::string get_instance_id_from_cloud_init(const std::filesystem::path& cloud_init_path) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_CLOUD_INIT_ISO_H

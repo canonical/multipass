@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DISABLED_COPY_MOVE_H
-#define MULTIPASS_DISABLED_COPY_MOVE_H
+#pragma once
 
 namespace multipass
 {
@@ -41,4 +40,3 @@ protected:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_DISABLED_COPY_MOVE_H

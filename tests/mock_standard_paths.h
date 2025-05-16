@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STANDARD_PATHS_H
-#define MULTIPASS_MOCK_STANDARD_PATHS_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -45,4 +44,3 @@ private:
 };
 } // namespace multipass::test
 
-#endif // MULTIPASS_MOCK_STANDARD_PATHS_H

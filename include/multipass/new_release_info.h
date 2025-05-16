@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NEW_RELEASE_INFO_H
-#define MULTIPASS_NEW_RELEASE_INFO_H
+#pragma once
 
 #include <QMetaType>
 #include <QUrl>
@@ -36,4 +35,3 @@ struct NewReleaseInfo
 
 Q_DECLARE_METATYPE(multipass::NewReleaseInfo)
 
-#endif // MULTIPASS_NEW_RELEASE_INFO_H

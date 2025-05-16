@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_CONSOLE_H
-#define MULTIPASS_STUB_CONSOLE_H
+#pragma once
 
 #include <multipass/console.h>
 
@@ -34,4 +33,3 @@ struct StubConsole final : public multipass::Console
 };
 }
 }
-#endif // MULTIPASS_STUB_CONSOLE_H

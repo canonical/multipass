@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H
-#define MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H
+#pragma once
 
 #include <cstddef>
 
@@ -28,5 +27,3 @@ namespace test
 size_t count_remotes(VMImageHost& host);
 }
 } // namespace multipass
-
-#endif /* MULTIPASS_IMAGE_HOST_REMOTE_COUNT_H */

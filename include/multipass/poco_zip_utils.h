@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_POCO_ZIP_UTILS_H
-#define MULTIPASS_POCO_ZIP_UTILS_H
+#pragma once
 
 #include "singleton.h"
 
@@ -37,4 +36,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_POCO_ZIP_UTILS_H

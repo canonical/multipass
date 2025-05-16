@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DOWNLOAD_H
-#define MULTIPASS_DOWNLOAD_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -33,4 +32,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_DOWNLOAD_H

@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_SSH_KEY_PROVIDER_H
-#define MULTIPASS_STUB_SSH_KEY_PROVIDER_H
+#pragma once
 
 #include <multipass/ssh/ssh_key_provider.h>
 
@@ -49,4 +48,3 @@ public:
 };
 }
 }
-#endif // MULTIPASS_STUB_SSH_KEY_PROVIDER_H

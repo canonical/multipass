@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "qemu_platform.h"
 
@@ -69,4 +68,3 @@ inline void multipass::QemuVirtualMachineFactory::require_snapshots_support() co
 inline void multipass::QemuVirtualMachineFactory::require_clone_support() const
 {
 }
-#endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H

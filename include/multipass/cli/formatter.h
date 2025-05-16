@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FORMATTER_H
-#define MULTIPASS_FORMATTER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -51,4 +50,3 @@ protected:
     }
 };
 }
-#endif // MULTIPASS_FORMATTER_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MANIFEST_EXCEPTIONS_H
-#define MULTIPASS_MANIFEST_EXCEPTIONS_H
+#pragma once
 
 #include <stdexcept>
 
@@ -38,4 +37,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_MANIFEST_EXCEPTIONS_H

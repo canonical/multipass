@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PLATFORM_LINUX_DETAIL_H
-#define MULTIPASS_PLATFORM_LINUX_DETAIL_H
+#pragma once
 
 #include <multipass/network_interface_info.h>
 
@@ -30,4 +29,3 @@ std::pair<QString, QString> parse_os_release(const QStringList& os_data);
 std::string read_os_release();
 } // namespace multipass::platform::detail
 
-#endif // MULTIPASS_PLATFORM_LINUX_DETAIL_H

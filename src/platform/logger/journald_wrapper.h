@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JOURNALD_WRAPPER_H
-#define MULTIPASS_JOURNALD_WRAPPER_H
+#pragma once
 
 #include <multipass/singleton.h>
 #include <string_view>
@@ -51,4 +50,3 @@ public:
 };
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_JOURNALD_WRAPPER_H

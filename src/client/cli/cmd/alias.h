@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ALIAS_H
-#define MULTIPASS_ALIAS_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -51,4 +50,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_ALIAS_H

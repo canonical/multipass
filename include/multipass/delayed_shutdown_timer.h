@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
-#define MULTIPASS_DELAYED_SHUTDOWN_TIMER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/virtual_machine.h>
@@ -54,4 +53,3 @@ private:
     std::chrono::milliseconds time_remaining;
 };
 } // namespace multipass
-#endif // MULTIPASS_DELAYED_SHUTDOWN_TIMER_H

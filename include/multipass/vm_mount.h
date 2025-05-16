@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_MOUNT_H
-#define MULTIPASS_VM_MOUNT_H
+#pragma once
 
 #include <multipass/id_mappings.h>
 
@@ -108,4 +107,3 @@ struct formatter<multipass::VMMount::MountType>
 };
 } // namespace fmt
 
-#endif // MULTIPASS_VM_MOUNT_H

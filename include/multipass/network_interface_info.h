@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_INTERFACE_INFO_H
-#define MULTIPASS_NETWORK_INTERFACE_INFO_H
+#pragma once
 
 #include <multipass/ip_address.h>
 
@@ -49,4 +48,3 @@ inline bool operator==(const NetworkInterfaceInfo& a, const NetworkInterfaceInfo
 }
 
 } // namespace multipass
-#endif // MULTIPASS_NETWORK_INTERFACE_INFO_H

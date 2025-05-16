@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LIBVIRT_WRAPPER_H
-#define MULTIPASS_LIBVIRT_WRAPPER_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -124,4 +123,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_LIBVIRT_WRAPPER_H

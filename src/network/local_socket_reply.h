@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LOCAL_SOCKET_REPLY_H
-#define MULTIPASS_LOCAL_SOCKET_REPLY_H
+#pragma once
 
 #include <QByteArray>
 #include <QLocalSocket>
@@ -63,4 +62,3 @@ private:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_LOCAL_SOCKET_REPLY_H

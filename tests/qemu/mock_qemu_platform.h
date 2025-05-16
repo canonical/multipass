@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_QEMU_PLATFORM_H
-#define MULTIPASS_MOCK_QEMU_PLATFORM_H
+#pragma once
 
 #include "tests/common.h"
 #include "tests/mock_singleton_helpers.h"
@@ -58,4 +57,3 @@ struct MockQemuPlatformFactory : public QemuPlatformFactory
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_QEMU_PLATFORM

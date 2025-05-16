@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LOCAL_SOCKET_SERVER_TEST_FIXTURE_H
-#define MULTIPASS_LOCAL_SOCKET_SERVER_TEST_FIXTURE_H
+#pragma once
 
 #include <QByteArray>
 #include <QLocalServer>
@@ -60,5 +59,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif /* MULTIPASS_LOCAL_SOCKET_SERVER_TEST_FIXTURE_H */

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_SPEC_H
-#define MULTIPASS_PROCESS_SPEC_H
+#pragma once
 
 #include <QProcessEnvironment>
 #include <QString>
@@ -46,4 +45,3 @@ public:
 
 } // namespace multipass
 
-#endif // MULTIPASS_PROCESS_SPEC_H

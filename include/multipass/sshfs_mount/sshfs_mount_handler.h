@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_MOUNT_HANDLER_H
-#define MULTIPASS_SSHFS_MOUNT_HANDLER_H
+#pragma once
 
 #include <multipass/mount_handler.h>
 #include <multipass/process/process.h>
@@ -42,4 +41,3 @@ private:
     SSHFSServerConfig config;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSHFS_MOUNT_HANDLER_H

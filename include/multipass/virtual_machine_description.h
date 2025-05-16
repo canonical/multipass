@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
-#define MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H
+#pragma once
 
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
@@ -54,4 +53,3 @@ public:
 
 Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)
 
-#endif // MULTIPASS_VIRTUAL_MACHINE_DESCRIPTION_H

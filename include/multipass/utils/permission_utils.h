@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PERMISSION_UTILS_H
-#define MULTIPASS_PERMISSION_UTILS_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -38,4 +37,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_PERMISSION_UTILS_H

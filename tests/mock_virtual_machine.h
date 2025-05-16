@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_VIRTUAL_MACHINE_H
-#define MULTIPASS_MOCK_VIRTUAL_MACHINE_H
+#pragma once
 
 #include "common.h"
 #include "temp_dir.h"
@@ -108,4 +107,3 @@ struct MockVirtualMachineT : public T
 using MockVirtualMachine = MockVirtualMachineT<>;
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_VIRTUAL_MACHINE_H
