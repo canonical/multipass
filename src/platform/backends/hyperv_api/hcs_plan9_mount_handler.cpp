@@ -53,15 +53,19 @@ Plan9MountHandler::~Plan9MountHandler() = default;
 
 void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
-    const auto params = [this] {
-        hcs::Plan9ShareParameters params{};
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/plan9.go#L13
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#System_PropertyType
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/hcs/schema2/plan9_share.go#L12
+    // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/builder.go#L53
+    const auto req = [this] {
+        hcs::HcsAddPlan9ShareParameters params{};
         params.access_name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
         params.name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
         params.host_path = mount_spec.get_source_path();
-        return params;
+        return hcs::HcsRequest{hcs::HcsResourcePath::Plan9Shares(), hcs::HcsRequestType::Add(), params};
     }();
 
-    const auto result = hcs->add_plan9_share(vm->vm_name, params);
+    const auto result = hcs->modify_compute_system(vm->vm_name, req);
 
     if (!result)
     {
@@ -94,13 +98,15 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
         constexpr std::string_view mount_command_fmtstr =
             "sudo mount -t 9p -o trans=virtio,version=9p2000.L,port={} {} {}";
 
-        const auto mount_command = fmt::format(mount_command_fmtstr, params.port, params.access_name, target);
+        const auto& add_settings = std::get<hcs::HcsAddPlan9ShareParameters>(req.settings);
+        const auto mount_command =
+            fmt::format(mount_command_fmtstr, add_settings.port, add_settings.access_name, target);
 
         auto mount_command_result = session.exec(mount_command);
 
         if (mount_command_result.exit_code() == 0)
         {
-            mpl::info(kLogCategory, "Successfully mounted 9P share `{}` to VM `{}`", params, vm->vm_name);
+            mpl::info(kLogCategory, "Successfully mounted 9P share `{}` to VM `{}`", req, vm->vm_name);
         }
         else
         {
@@ -113,7 +119,13 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
     }
     catch (...)
     {
-        if (!hcs->remove_plan9_share(vm->vm_name, params))
+        const auto req = [this] {
+            hcs::HcsRemovePlan9ShareParameters params{};
+            params.name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
+            params.access_name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
+            return hcs::HcsRequest{hcs::HcsResourcePath::Plan9Shares(), hcs::HcsRequestType::Remove(), params};
+        }();
+        if (!hcs->modify_compute_system(vm->vm_name, req))
         {
             // TODO: Warn here
         }
@@ -136,15 +148,14 @@ void Plan9MountHandler::deactivate_impl(bool force)
         }
     }
 
-    const auto params = [this] {
-        hcs::Plan9ShareParameters params{};
-        params.access_name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
+    const auto req = [this] {
+        hcs::HcsRemovePlan9ShareParameters params{};
         params.name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
-        params.host_path = mount_spec.get_source_path();
-        return params;
+        params.access_name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
+        return hcs::HcsRequest{hcs::HcsResourcePath::Plan9Shares(), hcs::HcsRequestType::Remove(), params};
     }();
 
-    if (!hcs->remove_plan9_share(vm->vm_name, params))
+    if (!hcs->modify_compute_system(vm->vm_name, req))
     {
         mpl::warn(kLogCategory, "Plan9 share removal failed.");
     }
