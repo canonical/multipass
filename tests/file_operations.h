@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_READER_H
-#define MULTIPASS_FILE_READER_H
+#pragma once
 
 #include <QByteArray>
 #include <QString>
@@ -33,4 +32,3 @@ QByteArray load_test_file(const char* file_name);
 void make_file_with_content(const QString& file_name, const std::string& content = "this is a test file");
 }
 }
-#endif // MULTIPASS_FILE_READER_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WINDOWS_CONSOLE_H
-#define MULTIPASS_WINDOWS_CONSOLE_H
+#pragma once
 
 #include <multipass/console.h>
 
@@ -57,4 +56,3 @@ private:
     mutable std::mutex ssh_mutex;
 };
 } // namespace multipass
-#endif // MULTIPASS_WINDOWS_CONSOLE_H

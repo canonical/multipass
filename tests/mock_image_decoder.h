@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_IMAGE_DECODER_H
-#define MULTIPASS_MOCK_IMAGE_DECODER_H
+#pragma once
 
 #include "common.h"
 
@@ -34,4 +33,3 @@ public:
 
 } // namespace multipass::test
 
-#endif // MULTIPASS_MOCK_IMAGE_DECODER_H

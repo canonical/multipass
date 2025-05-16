@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UNSUPPORTED_IMAGE_EXCEPTION_H
-#define MULTIPASS_UNSUPPORTED_IMAGE_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 
@@ -33,4 +32,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_UNSUPPORTED_IMAGE_EXCEPTION_H

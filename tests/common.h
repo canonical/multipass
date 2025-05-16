@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_COMMON_H
-#define MULTIPASS_COMMON_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -124,4 +123,3 @@ auto match_qstring(StrMatcher&& matcher)
 }
 } // namespace multipass::test
 
-#endif // MULTIPASS_COMMON_H

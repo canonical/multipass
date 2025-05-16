@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_START_H
-#define MULTIPASS_START_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -44,4 +43,3 @@ private:
 };
 }
 }
-#endif // MULTIPASS_START_H

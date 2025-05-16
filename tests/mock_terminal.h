@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_TERMINAL_H
-#define MULTIPASS_MOCK_TERMINAL_H
+#pragma once
 
 #include "common.h"
 
@@ -38,4 +37,3 @@ struct MockTerminal : public Terminal
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_TERMINAL_H

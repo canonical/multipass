@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FAKE_KEY_DATA_H
-#define MULTIPASS_FAKE_KEY_DATA_H
+#pragma once
 
 namespace multipass
 {
@@ -52,4 +51,3 @@ constexpr auto fake_key_data = "-----BEGIN RSA PRIVATE KEY-----\n"
 } // namespace test
 } // namespace multipass
 
-#endif // MULTIPASS_FAKE_KEY_DATA_H

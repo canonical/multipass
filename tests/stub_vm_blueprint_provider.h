@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_STUB_WORKFLOW_PROVIDER
-#define MULTIPASS_STUB_WORKFLOW_PROVIDER
+#pragma once
 
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/vm_blueprint_provider.h>
@@ -60,4 +59,3 @@ struct StubVMBlueprintProvider final : public VMBlueprintProvider
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_WORKFLOW_PROVIDER

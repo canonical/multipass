@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CMD_EXCEPTIONS_H
-#define MULTIPASS_CMD_EXCEPTIONS_H
+#pragma once
 
 #include <stdexcept>
 
@@ -30,4 +29,3 @@ public:
 
 } // namespace multipass
 
-#endif // MULTIPASS_CMD_EXCEPTIONS_H

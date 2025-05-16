@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_SERVER_H
-#define MULTIPASS_DNSMASQ_SERVER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/ip_address.h>
@@ -71,4 +70,3 @@ public:
                                                     const std::string& subnet) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_DNSMASQ_SERVER_H

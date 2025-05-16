@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_H
-#define MULTIPASS_SSH_H
+#pragma once
 
 #include <multipass/ssh/ssh_process.h>
 
@@ -61,4 +60,3 @@ private:
     mutable std::mutex mut;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSH_H

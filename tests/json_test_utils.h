@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_TEST_UTILS_H
-#define MULTIPASS_JSON_TEST_UTILS_H
+#pragma once
 
 #include "temp_dir.h"
 
@@ -50,4 +49,3 @@ void check_mounts_in_json(const QString& file, const std::unordered_map<std::str
 
 void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_map<std::string, mp::VMMount>& mounts);
 
-#endif // MULTIPASS_JSON_TEST_UTILS_H

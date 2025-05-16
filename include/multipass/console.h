@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CONSOLE_H
-#define MULTIPASS_CONSOLE_H
+#pragma once
 
 #include "disabled_copy_move.h"
 
@@ -49,4 +48,3 @@ protected:
     explicit Console() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_CONSOLE_H

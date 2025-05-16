@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAPSHOT_H
-#define MULTIPASS_SNAPSHOT_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "virtual_machine.h"
@@ -72,4 +71,3 @@ public:
 };
 } // namespace multipass
 
-#endif // MULTIPASS_SNAPSHOT_H

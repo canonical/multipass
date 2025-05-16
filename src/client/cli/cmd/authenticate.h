@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_AUTHENTICATE_H
-#define MULTIPASS_AUTHENTICATE_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -43,4 +42,3 @@ private:
 } // namespace cmd
 } // namespace multipass
 
-#endif // MULTIPASS_AUTHENTICATE_H

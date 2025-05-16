@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_MOUNT_HANDLER_H
-#define MULTIPASS_QEMU_MOUNT_HANDLER_H
+#pragma once
 
 #include "qemu_virtual_machine.h"
 
@@ -43,4 +42,3 @@ private:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_QEMU_MOUNT_HANDLER_H

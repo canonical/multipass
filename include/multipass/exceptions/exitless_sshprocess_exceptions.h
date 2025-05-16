@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTIONS_H
-#define MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTIONS_H
+#pragma once
 
 #include "ssh_exception.h"
 
@@ -55,4 +54,3 @@ public:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTIONS_H

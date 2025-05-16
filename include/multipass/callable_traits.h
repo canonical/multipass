@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_CALLABLE_TRAITS_H
-#define MULTIPASS_CALLABLE_TRAITS_H
+#pragma once
 
 #include <tuple>
 
@@ -69,4 +68,3 @@ struct callable_traits<ReturnType(Args...)>
     };
 };
 }
-#endif // MULTIPASS_CALLABLE_TRAITS_H

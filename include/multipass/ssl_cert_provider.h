@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSL_CERT_PROVIDER_H
-#define MULTIPASS_SSL_CERT_PROVIDER_H
+#pragma once
 
 #include <multipass/cert_provider.h>
 #include <multipass/path.h>
@@ -44,4 +43,3 @@ private:
     KeyCertificatePair key_cert_pair;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSL_CERT_PROVIDER_H

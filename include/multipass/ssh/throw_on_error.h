@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_THROW_ON_ERROR_H
-#define MULTIPASS_SSH_THROW_ON_ERROR_H
+#pragma once
 
 #include <libssh/libssh.h>
 
@@ -53,4 +52,3 @@ void throw_on_error(Handle&& h, const char* error_msg, Callable&& f, Args&&... a
 }
 } // namespace SSH
 } // namespace multipass
-#endif // MULTIPASS_SSH_THROW_ON_ERROR_H

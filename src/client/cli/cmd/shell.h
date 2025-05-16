@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CONNECT_H
-#define MULTIPASS_CONNECT_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -45,4 +44,3 @@ private:
 };
 }
 }
-#endif // MULTIPASS_CONNECT_H

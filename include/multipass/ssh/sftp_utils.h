@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_UTILS_H
-#define MULTIPASS_SFTP_UTILS_H
+#pragma once
 
 #include "sftp_client.h"
 #include "sftp_dir_iterator.h"
@@ -68,5 +67,3 @@ struct SFTPUtils : public Singleton<SFTPUtils>
                                                         const std::string& priv_key_blob);
 };
 } // namespace multipass
-
-#endif

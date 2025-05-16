@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_DUMMY_SSH_KEY_PROVIDER_H
-#define MULTIPASS_DUMMY_SSH_KEY_PROVIDER_H
+#pragma once
 
 #include "stub_ssh_key_provider.h"
 
@@ -42,4 +41,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_DUMMY_SSH_KEY_PROVIDER_H
