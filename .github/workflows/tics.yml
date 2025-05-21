@@ -9,10 +9,6 @@ jobs:
   build:
     runs-on: [self-hosted, reactive, amd64, 2xlarge, noble]
 
-    outputs:
-      label: ${{ steps.build-params.outputs.label }}
-      channel: ${{ steps.build-params.outputs.channel }}
-
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
       BUILD_DIR: ${{ github.workspace }}/build
@@ -27,10 +23,6 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - name: Determine build parameters
-      id: build-params
-      uses: ./.github/actions/build-params
-
     - name: Install build dependencies
       run: |
         sudo apt-get update
@@ -40,8 +32,7 @@ jobs:
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
-              -DCMAKE_BUILD_TYPE=Coverage \
-              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+              -DCMAKE_BUILD_TYPE=Coverage
 
     - name: BuildAndTest
       run: |
