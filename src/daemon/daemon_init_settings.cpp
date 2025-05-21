@@ -45,8 +45,11 @@ constexpr const int settings_changed_code = 42;
 QString persistent_settings_filename()
 {
     static const auto file_pattern = QStringLiteral("%2%1").arg(mp::settings_extension);
-    static const auto daemon_dir_path =
-        QDir{MP_PLATFORM.daemon_config_home()}; // temporary, replace w/ AppConfigLoc
+
+    // TODO: we should be able to use AppConfigLocation, since no client needs to access this file
+    // directly any longer. We could then drop daemon_config_home(). However, we'd need to ensure
+    // tht we ended up in the same place or moved existing files.
+    static const auto daemon_dir_path = QDir{MP_PLATFORM.daemon_config_home()};
     static const auto path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
     return path;
