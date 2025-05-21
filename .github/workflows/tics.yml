@@ -1,9 +1,9 @@
 name: TICS
 
 on:
-    schedule:
-    # 0:00 UTC every Sunday
-    - cron: 11 4 * * 0
+  schedule:
+  # 0:00 UTC every Sunday
+  - cron: 11 4 * * 0
 
 jobs:
   build:
