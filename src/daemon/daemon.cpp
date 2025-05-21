@@ -1657,8 +1657,8 @@ void mp::Daemon::shutdown_grpc_server()
 
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
-                        std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                        std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<CreateReply, CreateRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -1673,8 +1673,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::launch(const LaunchRequest* request,
                         grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>* server,
-                        std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                        std::promise<grpc::Status>* status_promise)
+try
 {
     lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<LaunchReply, LaunchRequest> logger{
@@ -1701,8 +1701,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::purge(const PurgeRequest* request,
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
-                       std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                       std::promise<grpc::Status>* status_promise)
+try
 {
     PurgeReply response;
 
@@ -1727,8 +1727,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::find(const FindRequest* request,
                       grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                      std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()),
                                                      *config->logger,
@@ -1879,8 +1879,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::info(const InfoRequest* request,
                       grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,
-                      std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                      std::promise<grpc::Status>* status_promise)
+try
 {
     lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()),
@@ -1981,8 +1981,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::list(const ListRequest* request,
                       grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
-                      std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                      std::promise<grpc::Status>* status_promise)
+try
 {
     lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()),
@@ -2094,8 +2094,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::networks(const NetworksRequest* request,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
-                          std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                          std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<NetworksReply, NetworksRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -2127,8 +2127,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::mount(const MountRequest* request,
                        grpc::ServerReaderWriterInterface<MountReply, MountRequest>* server,
-                       std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                       std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<MountReply, MountRequest> logger{mpl::level_from(request->verbosity_level()),
                                                        *config->logger,
@@ -2219,8 +2219,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::recover(const RecoverRequest* request,
                          grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
-                         std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                         std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<RecoverReply, RecoverRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -2262,8 +2262,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
-                          std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                          std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -2297,8 +2297,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::start(const StartRequest* request,
                        grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
-                       std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                       std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<StartReply, StartRequest> logger{mpl::level_from(request->verbosity_level()),
                                                        *config->logger,
@@ -2394,8 +2394,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::stop(const StopRequest* request,
                       grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
-                      std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                      std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()),
                                                      *config->logger,
@@ -2438,8 +2438,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::suspend(const SuspendRequest* request,
                          grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
-                         std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                         std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<SuspendReply, SuspendRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -2473,8 +2473,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::restart(const RestartRequest* request,
                          grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>* server,
-                         std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                         std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<RestartReply, RestartRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -2526,8 +2526,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::delet(const DeleteRequest* request,
                        grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>* server,
-                       std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                       std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<DeleteReply, DeleteRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -2611,8 +2611,8 @@ catch (const std::exception& e)
 
 void mp::Daemon::umount(const UmountRequest* request,
                         grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
-                        std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+                        std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<UmountReply, UmountRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -3103,8 +3103,8 @@ catch (const std::exception& e)
 void mp::Daemon::daemon_info(
     const DaemonInfoRequest* request,
     grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
-    std::promise<grpc::Status>* status_promise) // clang-format off
-try // clang-format on
+    std::promise<grpc::Status>* status_promise)
+try
 {
     mpl::ClientLogger<DaemonInfoReply, DaemonInfoRequest> logger{
         mpl::level_from(request->verbosity_level()),
