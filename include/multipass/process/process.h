@@ -27,20 +27,20 @@
 namespace multipass
 {
 
-/***
+/*
  * ProcessState - encapsulates info on an process
  *
  * Possible states this encapsulates are:
- * +--------------------------------+------------------------+-----------+--------------------------+
- * |             state              | completed_successfully | exit_code |          error |
- * +--------------------------------+------------------------+-----------+--------------------------+
- * | running                        | false                  | N/A       | N/A. | | normal exit
- * (returns 0)        | true                   | set       | N/A.                     | | normal
- * exit (returns non-zero) | false                  | set       | N/A.                     | |
- * failed to start                | false                  | N/A       | FailedToStart            |
- * | crash exit                     | false                  | N/A       | Crashed | | timeout |
- * false                  | N/A       | Timedout (still running) |
- * +--------------------------------+------------------------+-----------+--------------------------+
+ * +--------------------------------+------------------------+-----------+-------------------------+
+ * |             state              | completed_successfully | exit_code |          error          |
+ * +--------------------------------+------------------------+-----------+-------------------------+
+ * | running                        | false                  | N/A       | N/A.                    |
+ * | normal exit (returns 0)        | true                   | set       | N/A.                    |
+ * | normal exit (returns non-zero) | false                  | set       | N/A.                    |
+ * | failed to start                | false                  | N/A       | FailedToStart           |
+ * | crash exit                     | false                  | N/A       | Crashed                 |
+ * | timeout                        | false                  | N/A       | Timeout (still running) |
+ * +--------------------------------+------------------------+-----------+-------------------------+
  */
 struct ProcessState
 {
