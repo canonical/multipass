@@ -160,8 +160,7 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     // TODO: Parse out stderr so as not to log noisy warnings from iptables-nft when legacy iptables
     // are in use
     auto process =
-        MP_PROCFACTORY.create_process(firewall,
-                                      QStringList() << wait << dash_t << table << list_rules);
+        MP_PROCFACTORY.create_process(firewall, QStringList{wait, dash_t, table, list_rules});
 
     auto exit_state = process->execute();
 
