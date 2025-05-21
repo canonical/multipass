@@ -123,11 +123,6 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
         {
             return log_and_retry(e, virtual_machine);
         }
-        catch (
-            const std::runtime_error& e) // transitioning away from catching generic runtime errors
-        {                                // TODO remove once we're confident this is an anomaly
-            return log_and_retry(e, virtual_machine, mpl::Level::warning);
-        }
     };
 
     auto on_timeout = [virtual_machine] {

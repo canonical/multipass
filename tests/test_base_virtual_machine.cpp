@@ -1311,7 +1311,9 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
 {
     vm.simulate_waiting_for_ssh();
-    EXPECT_CALL(vm, ssh_hostname(_)).WillOnce(Throw(std::runtime_error{"intentional"}));
+    constexpr auto action = "determine IP address";
+    EXPECT_CALL(vm, ssh_hostname(_))
+        .WillOnce(Throw(mp::InternalTimeoutException{action, std::chrono::milliseconds{0}}));
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
     auto& mock_utils = *mock_utils_ptr;
