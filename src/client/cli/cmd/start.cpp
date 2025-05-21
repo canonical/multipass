@@ -100,11 +100,8 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                 if (parser->isSet("timeout"))
                     launch_args.append({"--timeout", parser->value("timeout")});
 
-                return run_cmd_and_retry(launch_args,
-                                         parser,
-                                         cout,
-                                         cerr); /*
-  TODO replace with create, so that all instances are started in a single go */
+                // might want to replace with a create RPC, to start all instances in a single go
+                return run_cmd_and_retry(launch_args, parser, cout, cerr);
             }
         }
 

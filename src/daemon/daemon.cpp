@@ -4081,8 +4081,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     }
     catch (const NotImplementedOnThisBackendException& e)
     {
-        assert(std::string{e.what()}.find("snapshots") !=
-               std::string::npos); // TODO per-feature exception type instead
+        // TODO find a better way to identify the missing feature
+        assert(std::string{e.what()}.find("snapshots") != std::string::npos);
     }
     instance_info->set_image_release(original_release);
     instance_info->set_id(vm_image.id);
