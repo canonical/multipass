@@ -56,14 +56,14 @@ constexpr auto bridged_network_name = "bridged";
 constexpr auto settings_extension = ".conf";
 constexpr auto daemon_settings_root = "local";
 
-constexpr auto petenv_key =
-    "client.primary-name"; // This will eventually be moved to some dynamic settings schema
-constexpr auto driver_key = "local.driver";                           // idem
-constexpr auto passphrase_key = "local.passphrase";                   // idem
-constexpr auto bridged_interface_key = "local.bridged-network";       // idem
-constexpr auto mounts_key = "local.privileged-mounts";                // idem
-constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
-constexpr auto mirror_key = "local.image.mirror"; // idem; this defines the mirror of simple streams
+// Settings keys (might eventually be moved to some dynamic settings schema)
+constexpr auto petenv_key = "client.primary-name";
+constexpr auto driver_key = "local.driver";
+constexpr auto passphrase_key = "local.passphrase";
+constexpr auto bridged_interface_key = "local.bridged-network";
+constexpr auto mounts_key = "local.privileged-mounts";
+constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
+constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 
