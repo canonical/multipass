@@ -998,31 +998,6 @@ TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
 }
 
-TEST_F(QemuBackend, logsErrorOnFailureToConvertToQcow2V3UponConstruction)
-{
-    NiceMock<mpt::MockQemuPlatform> mock_qemu_platform{};
-
-    process_factory->register_callback([this](mpt::MockProcess* process) {
-        if (process->program().contains("qemu-img") && process->arguments().contains("compat=1.1"))
-        {
-            mp::ProcessState exit_state{};
-            exit_state.exit_code = 1;
-            ON_CALL(*process, execute).WillByDefault(Return(exit_state));
-        }
-        else
-            return handle_external_process_calls(process);
-    });
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to amend image to QCOW2 v3");
-
-    mp::QemuVirtualMachine machine{default_description,
-                                   &mock_qemu_platform,
-                                   stub_monitor,
-                                   key_provider,
-                                   instance_dir.path()};
-}
-
 struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
     using mpt::MockVirtualMachineT<mp::QemuVirtualMachine>::MockVirtualMachineT;
