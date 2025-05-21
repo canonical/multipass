@@ -743,7 +743,7 @@ const SelectionReaction require_operative_instances_reaction{
     {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
 const SelectionReaction require_existing_instances_reaction{
-    {grpc::StatusCode::OK}, // hands off clang-format
+    {grpc::StatusCode::OK},
     {grpc::StatusCode::OK},
     {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
@@ -1489,8 +1489,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
         instance->load_snapshots();
 
-        allocated_mac_addrs =
-            std::move(new_macs); // Add the new macs to the daemon's list only if we got this far
+        // Add the new macs to the daemon's list only if we got this far
+        allocated_mac_addrs = std::move(new_macs);
 
         // FIXME: somehow we're writing contradictory state to disk.
         if (spec.deleted && spec.state != e_state::stopped && spec.state != e_state::off)

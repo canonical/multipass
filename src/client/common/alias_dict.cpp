@@ -194,8 +194,9 @@ std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(
 
 // The argument is an alias name, which can have the forms (i) "alias" or (ii) "context.alias".
 // (i): returns <active context name, alias name> if the alias exists in the current context;
-// std::nullopt otherwise. (ii): returns <context name, alias name> if the alias exists in the given
-// context; std::nullopt otherwise.
+//   std::nullopt otherwise.
+// (ii): returns <context name, alias name> if the alias exists in the given
+//   context; std::nullopt otherwise.
 std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(
     const std::string& alias) const
 {
