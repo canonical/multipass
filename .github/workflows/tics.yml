@@ -1,4 +1,4 @@
-name: Linux
+name: TICS
 
 on:
     schedule:
