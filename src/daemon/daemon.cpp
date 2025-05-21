@@ -3249,8 +3249,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     }
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and
-    // timeout below) will
-    //       need a refactoring to do so.
+    // timeout below) will need a refactoring to do so.
     const std::string blueprint_name =
         config->blueprint_provider->name_from_blueprint(request->image());
     // if the launch target is a blueprint instead of an image, issues a deprecation warning
@@ -3293,8 +3292,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         config->factory->hypervisor_health_check();
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and
-    // name above) will
-    //       need a refactoring to do so.
+    // name above) will need a refactoring to do so.
     auto timeout = timeout_for(request->timeout(),
                                config->blueprint_provider->blueprint_timeout(blueprint_name));
 
