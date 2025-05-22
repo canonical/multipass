@@ -95,6 +95,23 @@ void simulate_qemuimg_convert(const mpt::MockProcess* process, const QString& im
     EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
 }
 
+void simulate_qemuimg_amend(const mpt::MockProcess* process,
+                            const QString& expect_img,
+                            const mp::ProcessState& produce_result)
+{
+    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+    const auto args = process->arguments();
+    ASSERT_EQ(args.size(), 4);
+
+    EXPECT_EQ(args.at(0), "amend");
+    EXPECT_EQ(args.at(1), "-o");
+    EXPECT_EQ(args.at(2), "compat=1.1");
+    EXPECT_EQ(args.at(3), expect_img);
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+}
+
 template <class Matcher>
 void test_image_resizing(const char* img, const mp::MemorySize& img_virtual_size, const mp::MemorySize& requested_size,
                          const mp::ProcessState& qemuimg_resize_result, std::optional<Matcher> throw_msg_matcher)
@@ -146,6 +163,29 @@ void test_image_conversion(const char* img_path, const char* expected_img_path, 
         EXPECT_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), Eq(expected_img_path));
 
     EXPECT_EQ(process_count, expected_final_process_count);
+}
+
+template <class Matcher>
+void test_image_amendment(const char* img_path,
+                          const mp::ProcessState& qemuimg_amend_result,
+                          std::optional<Matcher> throw_msg_matcher)
+{
+    auto process_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++process_count, 1);
+        simulate_qemuimg_amend(process, img_path, qemuimg_amend_result);
+    });
+
+    if (throw_msg_matcher)
+        MP_EXPECT_THROW_THAT(mp::backend::amend_to_qcow2_v3(img_path),
+                             std::runtime_error,
+                             mpt::match_what(*throw_msg_matcher));
+    else
+        mp::backend::amend_to_qcow2_v3(img_path);
+
+    EXPECT_EQ(process_count, 1);
 }
 
 struct ImageConversionTestSuite : public TestWithParam<ImageConversionParamType>
@@ -204,6 +244,24 @@ TEST(QemuImgUtils, image_resize_detects_resizing_crash_failure_and_throws)
         std::make_optional(AllOf(HasSubstr("qemu-img failed"), HasSubstr(crash.failure_message().toStdString())));
 
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
+}
+
+TEST(QemuImgUtils, amendsQCow2Version)
+{
+    constexpr auto img_path = "/fake/img/path.qcow2";
+    const auto qemuimg_amend_result = success;
+    const auto throw_msg_matcher = null_string_matcher;
+
+    test_image_amendment(img_path, qemuimg_amend_result, throw_msg_matcher);
+}
+
+TEST(QemuImgUtils, amend_detects_failure_and_throws)
+{
+    constexpr auto img_path = "/fake/img/path.qcow2";
+    const auto qemuimg_amend_result = failure;
+    const auto throw_msg_matcher = std::make_optional(HasSubstr("Failed to amend image to QCOW2 v3"));
+
+    test_image_amendment(img_path, qemuimg_amend_result, throw_msg_matcher);
 }
 
 TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
