@@ -37,4 +37,3 @@ struct RuntimeInstanceInfoHelper
 };
 
 } // namespace multipass
-

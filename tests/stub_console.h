@@ -25,11 +25,11 @@ namespace test
 {
 struct StubConsole final : public multipass::Console
 {
-    void read_console() override {};
+    void read_console() override{};
 
-    void write_console() override {};
+    void write_console() override{};
 
-    void exit_console() override {};
+    void exit_console() override{};
 };
 } // namespace test
 } // namespace multipass

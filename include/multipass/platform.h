@@ -112,4 +112,3 @@ std::string host_version();
 inline multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
 }
-

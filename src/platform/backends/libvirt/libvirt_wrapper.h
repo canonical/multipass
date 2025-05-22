@@ -132,4 +132,3 @@ public:
     virGetLastErrorMessage_t virGetLastErrorMessage;
 };
 } // namespace multipass
-

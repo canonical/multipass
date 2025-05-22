@@ -143,4 +143,3 @@ inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clo
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }
-

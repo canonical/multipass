@@ -66,4 +66,3 @@ private:
     qt_delete_later_unique_ptr<LatestReleaseChecker> worker_thread;
 };
 } // namespace multipass
-

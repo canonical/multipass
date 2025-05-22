@@ -57,4 +57,3 @@ bool operator<=(const MemorySize& a, const MemorySize& b) noexcept;
 bool operator>=(const MemorySize& a, const MemorySize& b) noexcept;
 
 } // namespace multipass
-

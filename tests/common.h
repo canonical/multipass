@@ -128,4 +128,3 @@ auto match_qstring(StrMatcher&& matcher)
     return testing::Property(&QString::toStdString, std::forward<StrMatcher>(matcher));
 }
 } // namespace multipass::test
-

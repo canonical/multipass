@@ -39,4 +39,3 @@ private:
     std::string detail;
 };
 } // namespace multipass
-

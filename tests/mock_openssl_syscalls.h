@@ -22,4 +22,3 @@
 #include <openssl/evp.h>
 
 DECL_MOCK(EVP_PBE_scrypt);
-

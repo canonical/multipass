@@ -76,4 +76,3 @@ struct formatter<QProcess::ExitStatus>
 };
 
 } // namespace fmt
-

@@ -52,4 +52,3 @@ void check_mounts_in_json(const QString& file,
 
 void check_mounts_in_json(const QJsonObject& doc_object,
                           const std::unordered_map<std::string, mp::VMMount>& mounts);
-

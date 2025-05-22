@@ -76,4 +76,3 @@ QString ImageVaultUtils::extract_file(const QString& file,
 }
 
 } // namespace multipass
-

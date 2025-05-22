@@ -25,13 +25,13 @@ namespace test
 {
 struct StubVMStatusMonitor : public multipass::VMStatusMonitor
 {
-    void on_resume() override {};
+    void on_resume() override{};
     ;
-    void on_shutdown() override {};
-    void on_suspend() override {};
-    void on_restart(const std::string& name) override {};
-    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override {};
-    void update_metadata_for(const std::string& name, const QJsonObject& metadata) override {};
+    void on_shutdown() override{};
+    void on_suspend() override{};
+    void on_restart(const std::string& name) override{};
+    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override{};
+    void update_metadata_for(const std::string& name, const QJsonObject& metadata) override{};
     QJsonObject retrieve_metadata_for(const std::string& name) override
     {
         return QJsonObject();

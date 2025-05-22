@@ -48,4 +48,3 @@ private:
 template <typename T>
 constexpr const typename multipass::PrivatePassProvider<T>::PrivatePass
     multipass::PrivatePassProvider<T>::pass;
-

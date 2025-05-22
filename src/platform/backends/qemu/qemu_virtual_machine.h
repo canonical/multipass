@@ -122,4 +122,3 @@ private:
 inline void multipass::QemuVirtualMachine::require_snapshots_support() const
 {
 }
-

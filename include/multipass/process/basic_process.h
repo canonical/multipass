@@ -82,4 +82,3 @@ private:
 };
 
 } // namespace multipass
-

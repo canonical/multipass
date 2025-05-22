@@ -40,4 +40,3 @@ DECL_MOCK(sftp_unlink);
 DECL_MOCK(sftp_setstat);
 DECL_MOCK(sftp_dir_eof);
 DECL_MOCK(sftp_chmod);
-

@@ -59,4 +59,3 @@ struct MockSnapshot : public mp::Snapshot
     MOCK_METHOD(void, apply, (), (override));
 };
 } // namespace multipass::test
-

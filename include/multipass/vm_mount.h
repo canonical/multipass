@@ -109,4 +109,3 @@ struct formatter<multipass::VMMount::MountType>
     }
 };
 } // namespace fmt
-

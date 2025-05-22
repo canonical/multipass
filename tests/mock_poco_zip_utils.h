@@ -34,4 +34,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockPocoZipUtils, PocoZipUtils);
 };
 } // namespace multipass::test
-

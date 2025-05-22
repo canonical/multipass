@@ -187,4 +187,3 @@ inline void multipass::BaseVirtualMachine::require_snapshots_support() const
 {
     throw NotImplementedOnThisBackendException{"snapshots"};
 }
-

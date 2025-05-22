@@ -36,4 +36,3 @@ public:
     virtual void restrict_permissions(const fs::path& path) const;
 };
 } // namespace multipass
-

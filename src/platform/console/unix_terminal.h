@@ -35,4 +35,3 @@ public:
     ConsolePtr make_console(ssh_channel channel) override;
 };
 } // namespace multipass
-

@@ -39,4 +39,3 @@ protected:
                                  QIODevice* outgoingData = nullptr) override;
 };
 } // namespace multipass
-

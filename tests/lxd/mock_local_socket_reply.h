@@ -40,4 +40,3 @@ struct MockLocalSocketReply : public LocalSocketReply
 };
 } // namespace test
 } // namespace multipass
-

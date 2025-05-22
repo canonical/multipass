@@ -104,4 +104,3 @@ private:
     Terminal* term;
 };
 } // namespace multipass
-

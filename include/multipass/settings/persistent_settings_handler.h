@@ -46,4 +46,3 @@ private:
     mutable std::mutex mutex;
 };
 } // namespace multipass
-

@@ -74,4 +74,3 @@ private:
     bool update_suspend_status{true};
 };
 } // namespace multipass
-

@@ -98,4 +98,3 @@ private:
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
 } // namespace multipass
-

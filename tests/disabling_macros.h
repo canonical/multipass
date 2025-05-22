@@ -41,4 +41,3 @@
 #define DISABLE_ON_MACOS(test_name) test_name
 
 #endif
-

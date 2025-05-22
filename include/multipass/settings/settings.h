@@ -101,4 +101,3 @@ T multipass::Settings::get_as(const QString& key) const
         return var.value<T>();
     throw UnsupportedSettingValueType<T>(key);
 }
-

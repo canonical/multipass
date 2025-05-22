@@ -59,4 +59,3 @@ inline bool multipass::SettingSpec::LessByKey::operator()(const SettingSpec::UPt
 {
     return a && b ? (*this)(*a, *b) : bool{b}; // nullptr is the lowest, otherwise lexicographical
 }
-

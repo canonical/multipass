@@ -101,4 +101,3 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 };
 } // namespace test
 } // namespace multipass
-

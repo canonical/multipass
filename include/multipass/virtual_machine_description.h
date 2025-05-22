@@ -52,4 +52,3 @@ public:
 } // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)
-

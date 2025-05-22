@@ -80,4 +80,3 @@ const QJsonObject lxd_wait(NetworkAccessManager* manager,
                            const QJsonObject& task_data,
                            int timeout /* in milliseconds */);
 } // namespace multipass
-

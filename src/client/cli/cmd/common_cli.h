@@ -71,4 +71,3 @@ std::unique_ptr<multipass::utils::Timer> make_timer(int timeout,
 
 } // namespace cmd
 } // namespace multipass
-

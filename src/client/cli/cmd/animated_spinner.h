@@ -44,4 +44,3 @@ private:
     std::thread t;
 };
 } // namespace multipass
-

@@ -46,4 +46,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-

@@ -51,4 +51,3 @@ public:
     virtual ConsolePtr make_console(ssh_channel channel) = 0;
 };
 } // namespace multipass
-

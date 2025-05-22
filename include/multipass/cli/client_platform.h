@@ -59,4 +59,3 @@ inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noe
     : Singleton(pass)
 {
 }
-

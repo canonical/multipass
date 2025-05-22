@@ -63,4 +63,3 @@ private:
     bool chunked_transfer_encoding{false};
 };
 } // namespace multipass
-

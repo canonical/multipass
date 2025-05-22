@@ -63,4 +63,3 @@ struct TrackingURLDownloader : public URLDownloader
 };
 } // namespace test
 } // namespace multipass
-

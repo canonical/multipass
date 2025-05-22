@@ -33,4 +33,3 @@ protected:
     std::function<QString(const QString&)> interpreter;
 };
 } // namespace multipass
-

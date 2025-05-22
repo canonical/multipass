@@ -46,4 +46,3 @@ private:
     const UINT output_code_page;
 };
 } // namespace multipass
-

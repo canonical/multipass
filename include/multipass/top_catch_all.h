@@ -134,4 +134,3 @@ inline void multipass::top_catch_all(std::string_view log_category,
         detail::error(log_category);
     }
 }
-

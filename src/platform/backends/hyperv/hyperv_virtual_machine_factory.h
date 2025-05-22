@@ -69,4 +69,3 @@ private:
 inline void multipass::HyperVVirtualMachineFactory::require_snapshots_support() const
 {
 }
-

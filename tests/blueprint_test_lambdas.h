@@ -68,4 +68,3 @@ fetch_blueprint_for_lambda(
 
 } // namespace test
 } // namespace multipass
-

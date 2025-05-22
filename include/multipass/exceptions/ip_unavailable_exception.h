@@ -29,4 +29,3 @@ class IPUnavailableException : public std::runtime_error
 };
 
 } // namespace multipass
-

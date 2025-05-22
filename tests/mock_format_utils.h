@@ -36,4 +36,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockFormatUtils, FormatUtils);
 };
 } // namespace multipass::test
-

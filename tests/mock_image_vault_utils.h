@@ -43,4 +43,3 @@ public:
 };
 
 } // namespace multipass::test
-

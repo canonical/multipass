@@ -95,4 +95,3 @@ inline void multipass::Singleton<T>::init() noexcept(noexcept(U(Base::pass)))
 {
     std::call_once(*once, [] { single = std::make_unique<U>(Base::pass); });
 }
-

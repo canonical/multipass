@@ -36,4 +36,3 @@ private:
     SnapshotRequest request;
 };
 } // namespace multipass::cmd
-

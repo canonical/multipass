@@ -76,4 +76,3 @@ public:
                           std::function<bool()>) const;
 };
 } // namespace multipass::utils
-

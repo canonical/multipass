@@ -43,4 +43,3 @@ private:
     std::chrono::system_clock::time_point last_shown;
 };
 } // namespace multipass
-

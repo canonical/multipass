@@ -134,4 +134,3 @@ struct StubSnapshot : public Snapshot
     QJsonObject metadata;
 };
 } // namespace multipass::test
-

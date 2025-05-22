@@ -78,4 +78,3 @@ void ensure_vm_is_running_for(VirtualMachine* virtual_machine,
 }
 } // namespace backend
 } // namespace multipass
-

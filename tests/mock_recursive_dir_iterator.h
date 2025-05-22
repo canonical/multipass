@@ -79,4 +79,3 @@ struct MockDirIterator : public DirIterator
     MOCK_METHOD(const DirectoryEntry&, next, (), (override));
 };
 } // namespace multipass::test
-

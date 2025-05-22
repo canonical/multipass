@@ -76,4 +76,3 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
     return std::make_pair(dup_id_map, dup_rev_id_map);
 }
 } // namespace multipass
-

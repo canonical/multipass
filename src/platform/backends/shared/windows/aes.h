@@ -41,4 +41,3 @@ public:
                                 const std::string& data) const;
 };
 } // namespace multipass
-

@@ -33,4 +33,3 @@ private:
     BoolSettingSpec(std::pair<QString, QString> params);
 };
 } // namespace multipass
-

@@ -142,4 +142,3 @@ struct formatter<multipass::FindReply_AliasInfo>
     }
 };
 } // namespace fmt
-

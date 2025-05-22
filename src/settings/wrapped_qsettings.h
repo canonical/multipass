@@ -103,4 +103,3 @@ call private ctors, so we call it ourselves; but the ctor is noexcept, so no lea
     }
 };
 } // namespace multipass
-

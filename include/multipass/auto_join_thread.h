@@ -41,4 +41,3 @@ struct AutoJoinThread
 };
 
 } // namespace multipass
-
