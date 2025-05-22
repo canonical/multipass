@@ -66,4 +66,3 @@ inline int multipass::RemoteSettingsHandler::get_verbosity() const
 }
 
 #pragma once
-

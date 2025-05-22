@@ -39,4 +39,3 @@ protected:
     ~DisabledCopyMove() = default; // non-virtual, but needs protected - see Core Guidelines C.35
 };
 } // namespace multipass
-

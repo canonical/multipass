@@ -38,4 +38,4 @@ public:
 protected:
     SSHKeyProvider() = default;
 };
-}
+} // namespace multipass

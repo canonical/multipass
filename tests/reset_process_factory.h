@@ -33,4 +33,3 @@ struct ResetProcessFactory
 
 } // namespace test
 } // namespace multipass
-

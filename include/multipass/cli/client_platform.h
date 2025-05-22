@@ -57,4 +57,3 @@ void open_multipass_shell(const QString& instance_name); // precondition: requir
 inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
 }
-

@@ -32,4 +32,4 @@ public:
     const QString manifest_path;
     const QString updated_at;
 };
-}
+} // namespace multipass

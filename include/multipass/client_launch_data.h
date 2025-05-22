@@ -30,4 +30,3 @@ struct ClientLaunchData
     std::vector<std::string> workspaces_to_be_created;
 };
 } // namespace multipass
-

@@ -58,4 +58,3 @@ std::unique_ptr<multipass::utils::Timer> make_timer(int timeout, AnimatedSpinner
 
 } // namespace cmd
 } // namespace multipass
-

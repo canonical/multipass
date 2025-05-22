@@ -77,4 +77,3 @@ inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20
 }
 
 } // namespace multipass
-

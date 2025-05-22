@@ -41,4 +41,4 @@ public:
 private:
     KeyUPtr priv_key;
 };
-}
+} // namespace multipass

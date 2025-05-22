@@ -43,4 +43,3 @@ private:
     std::streambuf* cin_backup;
     std::stringstream fake_cin;
 };
-

@@ -123,4 +123,3 @@ public:
     virtual fs::path remove_extension(const fs::path& path) const;
 };
 } // namespace multipass
-

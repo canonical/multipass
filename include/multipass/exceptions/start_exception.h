@@ -38,4 +38,4 @@ public:
 private:
     const std::string instance_name;
 };
-}
+} // namespace multipass

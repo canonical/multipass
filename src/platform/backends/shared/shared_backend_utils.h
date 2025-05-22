@@ -74,4 +74,3 @@ void ensure_vm_is_running_for(VirtualMachine* virtual_machine, Callable&& is_vm_
 }
 } // namespace backend
 } // namespace multipass
-

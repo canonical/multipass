@@ -73,4 +73,3 @@ const QJsonObject lxd_request(NetworkAccessManager* manager, const std::string& 
 const QJsonObject lxd_wait(NetworkAccessManager* manager, const QUrl& base_url, const QJsonObject& task_data,
                            int timeout /* in milliseconds */);
 } // namespace multipass
-

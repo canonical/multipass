@@ -30,4 +30,3 @@ QByteArray snap_real_home_dir();
 QByteArray snap_user_common_dir();
 } // namespace utils
 } // namespace multipass
-

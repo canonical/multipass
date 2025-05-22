@@ -41,4 +41,4 @@ public:
 protected:
     VMStatusMonitor() = default;
 };
-}
+} // namespace multipass

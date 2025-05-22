@@ -54,4 +54,3 @@ private:
     const std::string libvirt_object_path;
 };
 } // namespace multipass
-

@@ -94,4 +94,3 @@ auto make_confirmation_callback(Terminal& term, QString key)
     };
 }
 } // namespace multipass
-

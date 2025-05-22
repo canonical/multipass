@@ -89,4 +89,3 @@ constexpr bool operator>=(Level a, Level b) noexcept
 }
 } // namespace logging
 } // namespace multipass
-

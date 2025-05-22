@@ -62,4 +62,3 @@ private:
     inline static const QString output_end_marker = "cmdlet status is";
 };
 } // namespace multipass
-

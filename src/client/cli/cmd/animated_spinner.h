@@ -43,5 +43,4 @@ private:
     std::condition_variable cv;
     std::thread t;
 };
-}
-
+} // namespace multipass

@@ -38,4 +38,4 @@ protected:
 };
 
 NameGenerator::UPtr make_default_name_generator();
-}
+} // namespace multipass

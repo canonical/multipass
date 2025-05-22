@@ -35,4 +35,3 @@ public:
     virtual Poco::Zip::ZipArchive zip_archive_for(std::ifstream& zip_stream) const;
 };
 } // namespace multipass
-

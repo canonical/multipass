@@ -38,4 +38,4 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
     };
 };
 }
-}
+} // namespace multipass

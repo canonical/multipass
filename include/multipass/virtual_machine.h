@@ -143,4 +143,3 @@ inline QDir multipass::VirtualMachine::instance_directory() const
 {
     return instance_dir; // TODO this should probably only be known at the level of the base VM
 }
-

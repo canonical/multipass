@@ -135,4 +135,3 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::Accounta
 {
     ::testing::Mock::VerifyAndClearExpectations(&ConcreteMock::mock_instance());
 }
-

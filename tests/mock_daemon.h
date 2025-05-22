@@ -171,4 +171,3 @@ struct MockDaemon : public Daemon
 };
 } // namespace test
 } // namespace multipass
-

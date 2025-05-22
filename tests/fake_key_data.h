@@ -50,4 +50,3 @@ constexpr auto fake_key_data = "-----BEGIN RSA PRIVATE KEY-----\n"
                                "-----END RSA PRIVATE KEY-----\n";
 } // namespace test
 } // namespace multipass
-

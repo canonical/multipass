@@ -43,4 +43,4 @@ private:
     Formatter* chosen_formatter;
 };
 }
-}
+} // namespace multipass

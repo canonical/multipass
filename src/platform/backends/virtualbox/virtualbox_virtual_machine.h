@@ -94,4 +94,3 @@ private:
 inline void multipass::VirtualBoxVirtualMachine::require_snapshots_support() const
 {
 }
-

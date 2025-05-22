@@ -49,4 +49,4 @@ protected:
         return std::map<typename D::key_type, typename D::mapped_type>(unsorted_dict.cbegin(), unsorted_dict.cend());
     }
 };
-}
+} // namespace multipass

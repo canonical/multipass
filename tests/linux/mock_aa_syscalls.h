@@ -22,4 +22,3 @@
 #include <sys/apparmor.h>
 
 DECL_MOCK(aa_is_enabled);
-

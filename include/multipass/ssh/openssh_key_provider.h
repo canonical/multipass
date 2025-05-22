@@ -43,4 +43,4 @@ private:
     QDir ssh_key_dir;
     KeyUPtr priv_key;
 };
-}
+} // namespace multipass

@@ -24,4 +24,3 @@
 DECL_MOCK(ssh_channel_request_shell);
 DECL_MOCK(ssh_channel_request_pty);
 DECL_MOCK(ssh_channel_change_pty_size);
-

@@ -33,4 +33,3 @@ class StubLogger : public logging::Logger
 };
 } // namespace test
 } // namespace multipass
-

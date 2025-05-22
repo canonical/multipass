@@ -48,4 +48,3 @@ void check_interfaces_in_json(const QJsonObject& doc_object,
 void check_mounts_in_json(const QString& file, const std::unordered_map<std::string, mp::VMMount>& mounts);
 
 void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_map<std::string, mp::VMMount>& mounts);
-

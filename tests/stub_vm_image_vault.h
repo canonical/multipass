@@ -69,4 +69,4 @@ struct StubVMImageVault final : public multipass::VMImageVault
     TempFile dummy_image;
 };
 }
-}
+} // namespace multipass

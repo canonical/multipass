@@ -96,4 +96,3 @@ public:
 };
 
 } // namespace multipass
-

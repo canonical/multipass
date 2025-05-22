@@ -42,4 +42,4 @@ private:
     ParseCode parse_args(ArgParser* parser);
 };
 }
-}
+} // namespace multipass

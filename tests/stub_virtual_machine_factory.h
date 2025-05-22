@@ -98,5 +98,4 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     std::unique_ptr<TempDir> tmp_dir;
 };
 }
-}
-
+} // namespace multipass

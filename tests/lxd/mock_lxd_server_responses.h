@@ -1559,4 +1559,3 @@ const QByteArray networks_faulty_data{R"(
 
 } // namespace test
 } // namespace multipass
-

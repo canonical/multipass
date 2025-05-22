@@ -267,4 +267,3 @@ inline const QString& multipass::BaseSnapshot::get_id() const noexcept
 {
     return id;
 }
-

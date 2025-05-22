@@ -59,4 +59,3 @@ std::function<Query(const std::string&, VirtualMachineDescription&, ClientLaunch
 
 } // namespace test
 } // namespace multipass
-

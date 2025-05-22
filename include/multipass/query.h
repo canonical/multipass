@@ -38,4 +38,4 @@ public:
     Type query_type;
     bool allow_unsupported{false};
 };
-}
+} // namespace multipass

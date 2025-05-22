@@ -31,4 +31,3 @@ ReturnCode create_alias(AliasDict& aliases, const std::string& alias_name, const
                         const std::optional<std::string>& context = std::nullopt);
 } // namespace cmd
 } // namespace multipass
-

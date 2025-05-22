@@ -37,4 +37,3 @@ private:
     RestoreRequest request;
 };
 } // namespace multipass::cmd
-

@@ -124,4 +124,3 @@ inline void multipass::top_catch_all(std::string_view log_category, Fun&& f, Arg
         detail::error(log_category);
     }
 }
-

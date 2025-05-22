@@ -66,4 +66,3 @@ inline void multipass::LXDVirtualMachineFactory::require_suspend_support() const
 {
     throw NotImplementedOnThisBackendException{"suspend"};
 }
-

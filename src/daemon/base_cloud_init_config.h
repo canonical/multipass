@@ -26,4 +26,3 @@ constexpr auto base_cloud_init_config = "growpart:\n"
                                         "    - default\n"
                                         "manage_etc_hosts: true\n";
 }
-

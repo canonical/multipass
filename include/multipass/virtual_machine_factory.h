@@ -86,4 +86,4 @@ protected:
 
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) = 0;
 };
-}
+} // namespace multipass

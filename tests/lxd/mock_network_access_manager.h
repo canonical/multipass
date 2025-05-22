@@ -40,4 +40,3 @@ struct MockNetworkAccessManager : public NetworkAccessManager
 };
 } // namespace test
 } // namespace multipass
-

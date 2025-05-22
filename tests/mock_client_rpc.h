@@ -237,4 +237,3 @@ public:
                 (override));
 };
 } // namespace multipass::test
-

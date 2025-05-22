@@ -87,4 +87,3 @@ struct DaemonConfigBuilder
     std::unique_ptr<const DaemonConfig> build();
 };
 } // namespace multipass
-

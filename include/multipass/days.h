@@ -22,4 +22,3 @@ namespace multipass
 {
 using days = std::chrono::duration<int, std::ratio_multiply<std::ratio<24>, std::chrono::hours::period>>;
 }
-

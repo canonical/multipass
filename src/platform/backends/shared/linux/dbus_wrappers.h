@@ -154,4 +154,3 @@ private:
     DBusConnection system_bus;
 };
 } // namespace multipass::backend::dbus
-

@@ -102,4 +102,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
 } // namespace multipass::test
-

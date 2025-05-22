@@ -72,4 +72,3 @@ constexpr auto timeout_exit_code = 5;
 
 constexpr auto authenticated_certs_dir = "authenticated-certs";
 } // namespace multipass
-

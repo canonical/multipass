@@ -34,4 +34,3 @@ struct NewReleaseInfo
 } // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::NewReleaseInfo)
-

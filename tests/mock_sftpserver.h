@@ -37,4 +37,3 @@ DECL_MOCK(sftp_client_message_get_filename);
 DECL_MOCK(sftp_handle);
 DECL_MOCK(sftp_handle_alloc);
 DECL_MOCK(sftp_handle_remove);
-

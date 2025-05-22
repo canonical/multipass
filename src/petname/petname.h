@@ -57,4 +57,4 @@ private:
     std::uniform_int_distribution<std::size_t> adjective_dist;
     std::uniform_int_distribution<std::size_t> adverb_dist;
 };
-}
+} // namespace multipass

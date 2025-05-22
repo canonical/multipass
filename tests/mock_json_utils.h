@@ -35,4 +35,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockJsonUtils, JsonUtils);
 };
 } // namespace multipass::test
-

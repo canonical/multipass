@@ -30,4 +30,3 @@ public:
     void populate_if_time_to_show(UpdateInfo *) override {}
 };
 } // namespace multipass
-

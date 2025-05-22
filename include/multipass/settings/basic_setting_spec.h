@@ -34,4 +34,3 @@ protected:
     QString default_;
 };
 } // namespace multipass
-

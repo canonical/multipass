@@ -67,4 +67,4 @@ struct callable_traits<ReturnType(Args...)>
         using type = typename std::tuple_element<N, std::tuple<Args...>>::type;
     };
 };
-}
+} // namespace multipass

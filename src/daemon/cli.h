@@ -28,4 +28,3 @@ namespace cli
 DaemonConfigBuilder parse(const QCoreApplication& app);
 }
 } // namespace multipass
-

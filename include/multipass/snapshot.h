@@ -70,4 +70,3 @@ public:
     virtual void apply() = 0;
 };
 } // namespace multipass
-

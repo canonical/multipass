@@ -64,4 +64,3 @@ void multipass::Client::add_command(Ts&&... params)
     auto cmd = std::make_unique<T>(*stub, term, std::forward<Ts>(params)...);
     commands.push_back(std::move(cmd));
 }
-

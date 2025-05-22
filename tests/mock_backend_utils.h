@@ -49,4 +49,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockLinuxSysCalls, LinuxSysCalls);
 };
 } // namespace multipass::test
-

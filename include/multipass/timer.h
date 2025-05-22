@@ -71,4 +71,3 @@ public:
                           const std::chrono::duration<int, std::milli>& rel_time, std::function<bool()>) const;
 };
 } // namespace multipass::utils
-

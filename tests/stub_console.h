@@ -32,4 +32,4 @@ struct StubConsole final : public multipass::Console
     void exit_console() override{};
 };
 }
-}
+} // namespace multipass

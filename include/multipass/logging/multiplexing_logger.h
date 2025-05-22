@@ -42,4 +42,3 @@ private:
 };
 } // namespace logging
 } // namespace multipass
-

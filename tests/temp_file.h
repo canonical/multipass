@@ -39,5 +39,4 @@ private:
     QString the_url;
 };
 }
-}
-
+} // namespace multipass
