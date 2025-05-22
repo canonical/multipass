@@ -48,7 +48,7 @@ struct AliasDictionary : public FakeAliasConfig, public Test
 {
 };
 
-TEST_F(AliasDictionary, works_with_empty_file)
+TEST_F(AliasDictionary, worksWithEmptyFile)
 {
     QFile db(QString::fromStdString(db_filename()));
 
@@ -62,7 +62,7 @@ TEST_F(AliasDictionary, works_with_empty_file)
     ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
-TEST_F(AliasDictionary, works_with_empty_database)
+TEST_F(AliasDictionary, worksWithEmptyDatabase)
 {
     mpt::make_file_with_content(QString::fromStdString(db_filename()), "{\n}\n");
 
@@ -74,7 +74,7 @@ TEST_F(AliasDictionary, works_with_empty_database)
     ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
-TEST_F(AliasDictionary, works_with_unexisting_file)
+TEST_F(AliasDictionary, worksWithUnexistingFile)
 {
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
@@ -84,7 +84,7 @@ TEST_F(AliasDictionary, works_with_unexisting_file)
     ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
-TEST_F(AliasDictionary, works_with_broken_file)
+TEST_F(AliasDictionary, worksWithBrokenFile)
 {
     mpt::make_file_with_content(QString::fromStdString(db_filename()), "broken file {]");
 
@@ -256,7 +256,7 @@ struct WriteReadTestsuite : public AliasDictionary, public WithParamInterface<Al
 {
 };
 
-TEST_P(WriteReadTestsuite, writes_and_reads_files)
+TEST_P(WriteReadTestsuite, writesAndReadsFiles)
 {
     auto aliases_vector = GetParam();
 
@@ -325,7 +325,7 @@ TEST_F(AliasDictionary, existsAliasWorksWithUnexistingAlias)
     ASSERT_FALSE(dict.exists_alias("unexisting"));
 }
 
-TEST_F(AliasDictionary, correctly_removes_alias)
+TEST_F(AliasDictionary, correctlyRemovesAlias)
 {
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
@@ -340,7 +340,7 @@ TEST_F(AliasDictionary, correctly_removes_alias)
     ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
-TEST_F(AliasDictionary, works_when_removing_unexisting_alias)
+TEST_F(AliasDictionary, worksWhenRemovingUnexistingAlias)
 {
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
@@ -422,7 +422,7 @@ TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
     ASSERT_FALSE(dict.empty());
 }
 
-TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
+TEST_F(AliasDictionary, getUnexistingAliasReturnsNullopt)
 {
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
@@ -431,7 +431,7 @@ TEST_F(AliasDictionary, get_unexisting_alias_returns_nullopt)
     ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
 }
 
-TEST_F(AliasDictionary, throws_when_open_alias_file_fails)
+TEST_F(AliasDictionary, throwsWhenOpenAliasFileFails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
@@ -576,7 +576,7 @@ struct RemoveInstanceTestsuite
 {
 };
 
-TEST_P(RemoveInstanceTestsuite, removes_instance_aliases)
+TEST_P(RemoveInstanceTestsuite, removesInstanceAliases)
 {
     auto [original_aliases, remaining_aliases] = GetParam();
 
@@ -634,7 +634,7 @@ struct DaemonAliasTestsuite
         mpt::MockPermissionUtils::inject<NiceMock>();
 };
 
-TEST_P(DaemonAliasTestsuite, purge_removes_purged_instance_aliases_and_scripts)
+TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
 {
     auto [commands, expected_output, expected_removed_aliases, expected_failed_removal] =
         GetParam();

@@ -49,7 +49,7 @@ public:
     }
 };
 
-TEST(PrivatePass, friend_can_call_function_requiring_pass)
+TEST(PrivatePass, friendCanCallFunctionRequiringPass)
 {
     const auto str = "proof";
     const FriendExample fex{};

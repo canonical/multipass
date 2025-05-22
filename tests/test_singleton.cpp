@@ -58,7 +58,7 @@ public:
     }
 };
 
-TEST(Singleton, singleton_can_be_mocked_and_reset)
+TEST(Singleton, singletonCanBeMockedAndReset)
 {
     const auto mock_matcher = HasSubstr("mock");
     ASSERT_THAT(TestSingleton::instance().foo(), Not(mock_matcher));

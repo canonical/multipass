@@ -193,7 +193,7 @@ struct ImageVault : public testing::Test
 };
 } // namespace
 
-TEST_F(ImageVault, downloads_image)
+TEST_F(ImageVault, downloadsImage)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -211,7 +211,7 @@ TEST_F(ImageVault, downloads_image)
     EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.image.url()));
 }
 
-TEST_F(ImageVault, returned_image_contains_instance_name)
+TEST_F(ImageVault, returnedImageContainsInstanceName)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -286,7 +286,7 @@ TEST_F(ImageVault, imageCloneFailOnAlreadyExistDestImage)
     EXPECT_THROW(vault.clone(instance_name, dest_name), std::runtime_error);
 }
 
-TEST_F(ImageVault, calls_prepare)
+TEST_F(ImageVault, callsPrepare)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -309,7 +309,7 @@ TEST_F(ImageVault, calls_prepare)
     EXPECT_TRUE(prepare_called);
 }
 
-TEST_F(ImageVault, records_instanced_images)
+TEST_F(ImageVault, recordsInstancedImages)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -340,7 +340,7 @@ TEST_F(ImageVault, records_instanced_images)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
-TEST_F(ImageVault, caches_prepared_images)
+TEST_F(ImageVault, cachesPreparedImages)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -376,7 +376,7 @@ TEST_F(ImageVault, caches_prepared_images)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
-TEST_F(ImageVault, remembers_instance_images)
+TEST_F(ImageVault, remembersInstanceImages)
 {
     int prepare_called_count{0};
     auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
@@ -418,7 +418,7 @@ TEST_F(ImageVault, remembers_instance_images)
     EXPECT_THAT(vm_image1.image_path, Eq(vm_image2.image_path));
 }
 
-TEST_F(ImageVault, remembers_prepared_images)
+TEST_F(ImageVault, remembersPreparedImages)
 {
     int prepare_called_count{0};
     auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
@@ -464,7 +464,7 @@ TEST_F(ImageVault, remembers_prepared_images)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
-TEST_F(ImageVault, uses_image_from_prepare)
+TEST_F(ImageVault, usesImageFromPrepare)
 {
     constexpr auto expected_data = "12345-pied-piper-rats";
 
@@ -493,7 +493,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
     EXPECT_THAT(vm_image.id, Eq(mpt::default_id));
 }
 
-TEST_F(ImageVault, image_purged_expired)
+TEST_F(ImageVault, imagePurgedExpired)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -522,7 +522,7 @@ TEST_F(ImageVault, image_purged_expired)
     EXPECT_FALSE(QFileInfo::exists(file_name));
 }
 
-TEST_F(ImageVault, image_exists_not_expired)
+TEST_F(ImageVault, imageExistsNotExpired)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -551,7 +551,7 @@ TEST_F(ImageVault, image_exists_not_expired)
     EXPECT_TRUE(QFileInfo::exists(file_name));
 }
 
-TEST_F(ImageVault, invalid_image_dir_is_removed)
+TEST_F(ImageVault, invalidImageDirIsRemoved)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -597,7 +597,7 @@ TEST_F(ImageVault,
     EXPECT_EQ(vm_image.id, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 }
 
-TEST_F(ImageVault, invalid_custom_image_file_throws)
+TEST_F(ImageVault, invalidCustomImageFileThrows)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -641,7 +641,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(custom_image_url_downloads))
     EXPECT_TRUE(url_downloader.downloaded_urls.contains(QString::fromStdString(query.release)));
 }
 
-TEST_F(ImageVault, missing_downloaded_image_throws)
+TEST_F(ImageVault, missingDownloadedImageThrows)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -658,7 +658,7 @@ TEST_F(ImageVault, missing_downloaded_image_throws)
                  mp::CreateImageException);
 }
 
-TEST_F(ImageVault, hash_mismatch_throws)
+TEST_F(ImageVault, hashMismatchThrows)
 {
     BadURLDownloader bad_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -675,7 +675,7 @@ TEST_F(ImageVault, hash_mismatch_throws)
                  mp::CreateImageException);
 }
 
-TEST_F(ImageVault, invalid_remote_throws)
+TEST_F(ImageVault, invalidRemoteThrows)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -717,7 +717,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalid_image_alias_throw))
                  mp::CreateImageException);
 }
 
-TEST_F(ImageVault, valid_remote_and_alias_returns_valid_image_info)
+TEST_F(ImageVault, validRemoteAndAliasReturnsValidImageInfo)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -766,7 +766,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(http_download_returns_expected_i
     EXPECT_THAT(image.release_date, Eq(default_last_modified.toString().toStdString()));
 }
 
-TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)
+TEST_F(ImageVault, imageUpdateCreatesNewDirAndRemovesOld)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -803,7 +803,7 @@ TEST_F(ImageVault, image_update_creates_new_dir_and_removes_old)
     EXPECT_FALSE(QFileInfo::exists(original_absolute_path));
 }
 
-TEST_F(ImageVault, aborted_download_throws)
+TEST_F(ImageVault, abortedDownloadThrows)
 {
     RunningURLDownloader running_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -823,7 +823,7 @@ TEST_F(ImageVault, aborted_download_throws)
                  mp::AbortedDownloadException);
 }
 
-TEST_F(ImageVault, minimum_image_size_returns_expected_size)
+TEST_F(ImageVault, minimumImageSizeReturnsExpectedSize)
 {
     const mp::MemorySize image_size{"1048576"};
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
@@ -877,7 +877,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_
     EXPECT_EQ(image_size, size);
 }
 
-TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
+TEST_F(ImageVault, minimumImageSizeThrowsWhenNotCached)
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -893,7 +893,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_not_cached)
             StrEq(fmt::format("Cannot determine minimum image size for id \'{}\'", id))));
 }
 
-TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
+TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoCrashes)
 {
     const mp::ProcessState qemuimg_exit_status{
         std::nullopt,
@@ -919,7 +919,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_crashes)
         mpt::match_what(AllOf(HasSubstr("qemu-img failed"), HasSubstr("with output"))));
 }
 
-TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_image)
+TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoCannotFindTheImage)
 {
     const mp::ProcessState qemuimg_exit_status{1, std::nullopt};
     const QByteArray qemuimg_output("Could not find");
@@ -943,7 +943,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_cannot_find_the_i
         mpt::match_what(AllOf(HasSubstr("qemu-img failed"), HasSubstr("Could not find"))));
 }
 
-TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understand_the_image_size)
+TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImageSize)
 {
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
     const QByteArray qemuimg_output("virtual size: an unintelligible string");
@@ -966,7 +966,7 @@ TEST_F(ImageVault, minimum_image_size_throws_when_qemuimg_info_does_not_understa
                          mpt::match_what(HasSubstr("Could not obtain image's virtual size")));
 }
 
-TEST_F(ImageVault, all_info_for_no_remote_given_returns_expected_data)
+TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -996,7 +996,7 @@ TEST_F(ImageVault, all_info_for_no_remote_given_returns_expected_data)
     EXPECT_EQ(second_image_info.version.toStdString(), mpt::another_image_version);
 }
 
-TEST_F(ImageVault, all_info_for_remote_given_returns_expected_data)
+TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,

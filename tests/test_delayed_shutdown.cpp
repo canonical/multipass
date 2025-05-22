@@ -47,7 +47,7 @@ struct DelayedShutdown : public Test
     ssh_channel_callbacks callbacks{nullptr};
 };
 
-TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
+TEST_F(DelayedShutdown, emitsFinishedAfterTimerExpires)
 {
     mp::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
@@ -110,7 +110,7 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
     EXPECT_TRUE(finished.wait_for(std::chrono::milliseconds(1)));
 }
 
-TEST_F(DelayedShutdown, emits_finished_with_no_timer)
+TEST_F(DelayedShutdown, emitsFinishedWithNoTimer)
 {
     mp::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
@@ -124,7 +124,7 @@ TEST_F(DelayedShutdown, emits_finished_with_no_timer)
     EXPECT_TRUE(finish_invoked);
 }
 
-TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
+TEST_F(DelayedShutdown, vmStateDelayedShutdownWhenTimerRunning)
 {
     auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
         callbacks = cb;
@@ -147,7 +147,7 @@ TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
 }
 
-TEST_F(DelayedShutdown, vm_state_running_after_cancel)
+TEST_F(DelayedShutdown, vmStateRunningAfterCancel)
 {
     auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
         callbacks = cb;

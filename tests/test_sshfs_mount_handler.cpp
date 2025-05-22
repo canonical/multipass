@@ -117,7 +117,7 @@ struct SSHFSMountHandlerTest : public ::Test
     };
 };
 
-TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
+TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
 {
     factory->register_callback(sshfs_server_callback(sshfs_prints_connected));
 
@@ -149,7 +149,7 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
     EXPECT_EQ(sshfs_command.arguments[7], log_level_as_string);
 }
 
-TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_exception)
+TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingWithReturnCode9CausesException)
 {
     factory->register_callback(sshfs_server_callback([](mpt::MockProcess* process) {
         mp::ProcessState exit_state;
@@ -167,7 +167,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_ex
     EXPECT_TRUE(sshfs_command.command.endsWith("sshfs_server"));
 }
 
-TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
+TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingCausesRuntimeException)
 {
     factory->register_callback(sshfs_server_callback([](mpt::MockProcess* process) {
         mp::ProcessState exit_state;
@@ -186,7 +186,7 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
                          mpt::match_what(StrEq("Process returned exit code: 1: Whoopsie")));
 }
 
-TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
+TEST_F(SSHFSMountHandlerTest, stopTerminatesSshfsProcess)
 {
     factory->register_callback(sshfs_server_callback([this](mpt::MockProcess* process) {
         sshfs_prints_connected(process);
@@ -199,7 +199,7 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
     sshfs_mount_handler.deactivate();
 }
 
-TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
+TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsWhichSnapFails)
 {
     auto invoked = false;
     REPLACE(ssh_channel_request_exec, make_exec_that_fails_for({"which snap"}, invoked));
@@ -209,7 +209,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
+TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsNoSnapDirFails)
 {
     auto invoked = false;
     REPLACE(ssh_channel_request_exec,
@@ -220,7 +220,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_snap_install_fails)
+TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsSnapInstallFails)
 {
     auto invoked = false;
     REPLACE(ssh_channel_request_exec,
@@ -233,7 +233,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_snap_install_fails)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
+TEST_F(SSHFSMountHandlerTest, installSshfsTimeoutLogsInfo)
 {
     ssh_channel_callbacks callbacks{nullptr};
     auto sleep = false;

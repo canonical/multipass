@@ -446,7 +446,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can
                              err))));
 }
 
-TEST_F(SFTPUtils, mkdir_success)
+TEST_F(SFTPUtils, mkdirSuccess)
 {
     REPLACE(sftp_lstat, [](auto...) { return nullptr; });
     REPLACE(sftp_mkdir, [](auto...) { return SSH_FX_OK; });
@@ -454,7 +454,7 @@ TEST_F(SFTPUtils, mkdir_success)
     EXPECT_NO_THROW(MP_SFTPUTILS.mkdir_recursive(nullptr, "some/nested/path"));
 }
 
-TEST_F(SFTPUtils, mkdir_cannot_overwrite_non_directory)
+TEST_F(SFTPUtils, mkdirCannotOverwriteNonDirectory)
 {
     REPLACE(sftp_lstat, [](auto...) { return get_dummy_attr("", SSH_FILEXFER_TYPE_REGULAR); });
 
@@ -464,7 +464,7 @@ TEST_F(SFTPUtils, mkdir_cannot_overwrite_non_directory)
         mpt::match_what(StrEq("cannot overwrite remote non-directory \"some\" with directory")));
 }
 
-TEST_F(SFTPUtils, mkdir_cannot_create_dir)
+TEST_F(SFTPUtils, mkdirCannotCreateDir)
 {
     REPLACE(sftp_lstat, [](auto...) { return nullptr; });
     REPLACE(sftp_mkdir, [](auto...) { return -1; });

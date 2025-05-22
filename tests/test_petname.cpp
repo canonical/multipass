@@ -39,7 +39,7 @@ std::vector<std::string> split(const std::string& string, const std::string& del
             std::sregex_token_iterator{}};
 }
 } // namespace
-TEST(Petname, generates_the_requested_num_words)
+TEST(Petname, generatesTheRequestedNumWords)
 {
     std::string separator{"-"};
     mp::Petname gen1{mp::Petname::NumWords::ONE, separator};
@@ -59,7 +59,7 @@ TEST(Petname, generates_the_requested_num_words)
     EXPECT_THAT(tokens.size(), Eq(3u));
 }
 
-TEST(Petname, uses_default_separator)
+TEST(Petname, usesDefaultSeparator)
 {
     std::string expected_separator{"-"};
     mp::Petname name_generator{mp::Petname::NumWords::THREE};
@@ -68,7 +68,7 @@ TEST(Petname, uses_default_separator)
     EXPECT_THAT(tokens.size(), Eq(3u));
 }
 
-TEST(Petname, generates_two_tokens_by_default)
+TEST(Petname, generatesTwoTokensByDefault)
 {
     std::string separator{"-"};
     mp::Petname name_generator{separator};
@@ -81,7 +81,7 @@ TEST(Petname, generates_two_tokens_by_default)
     EXPECT_THAT(set.size(), Eq(tokens.size()));
 }
 
-TEST(Petname, can_generate_at_least_hundred_unique_names)
+TEST(Petname, canGenerateAtLeastHundredUniqueNames)
 {
     std::string separator{"-"};
     mp::Petname name_generator{mp::Petname::NumWords::THREE, separator};

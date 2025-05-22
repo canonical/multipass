@@ -35,14 +35,14 @@ struct SSHKeyProvider : public testing::Test
     mpt::TempDir key_dir;
 };
 
-TEST_F(SSHKeyProvider, creates_key)
+TEST_F(SSHKeyProvider, createsKey)
 {
     mp::OpenSSHKeyProvider key_provider{key_dir.path()};
 
     EXPECT_THAT(key_provider.public_key_as_base64(), StrNe(""));
 }
 
-TEST_F(SSHKeyProvider, imports_existing_key)
+TEST_F(SSHKeyProvider, importsExistingKey)
 {
     constexpr auto key_data = "-----BEGIN RSA PRIVATE KEY-----\n"
                               "MIIEpAIBAAKCAQEAv3lEFtxT3kd2OrWQ8k3v1SHILNDwwm9U7awNbLDqVEresZNd\n"
@@ -89,7 +89,7 @@ TEST_F(SSHKeyProvider, imports_existing_key)
     EXPECT_THAT(key_provider.public_key_as_base64(), StrEq(expected_pub_key_data));
 }
 
-TEST_F(SSHKeyProvider, public_key_is_stable)
+TEST_F(SSHKeyProvider, publicKeyIsStable)
 {
     mp::OpenSSHKeyProvider key_provider{key_dir.path()};
 

@@ -164,7 +164,7 @@ a few more tests for `false`, since there are different portions of code dependi
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
 };
 
-TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
+TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
 {
     mpt::MockDaemon daemon{config_builder.build()};
 
@@ -278,7 +278,7 @@ TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
                    {"clone", "foo"}});
 }
 
-TEST_F(Daemon, provides_version)
+TEST_F(Daemon, providesVersion)
 {
     mp::Daemon daemon{config_builder.build()};
     StrictMock<mpt::MockServerReaderWriter<mp::VersionReply, mp::VersionRequest>> mock_server;
@@ -290,7 +290,7 @@ TEST_F(Daemon, provides_version)
         call_daemon_slot(daemon, &mp::Daemon::version, mp::VersionRequest{}, mock_server).ok());
 }
 
-TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
+TEST_F(Daemon, failedRestartCommandReturnsFulfilledPromise)
 {
     mp::Daemon daemon{config_builder.build()};
 
@@ -304,7 +304,7 @@ TEST_F(Daemon, failed_restart_command_returns_fulfilled_promise)
     EXPECT_TRUE(is_ready(status_promise.get_future()));
 }
 
-TEST_F(Daemon, proxy_contains_valid_info)
+TEST_F(Daemon, proxyContainsValidInfo)
 {
     auto guard = sg::make_scope_guard([]() noexcept { // std::terminate ok if this throws
         QNetworkProxyFactory::setUseSystemConfiguration(
@@ -327,7 +327,7 @@ TEST_F(Daemon, proxy_contains_valid_info)
     EXPECT_THAT(config->network_proxy->port(), port);
 }
 
-TEST_F(Daemon, data_path_valid)
+TEST_F(Daemon, dataPathValid)
 {
     QTemporaryDir data_dir, cache_dir;
 
@@ -348,7 +348,7 @@ TEST_F(Daemon, data_path_valid)
     EXPECT_EQ(config->cache_directory, cache_dir.path());
 }
 
-TEST_F(Daemon, data_path_with_storage_valid)
+TEST_F(Daemon, dataPathWithStorageValid)
 {
     QTemporaryDir storage_dir;
 
@@ -411,7 +411,7 @@ TEST_F(Daemon, blueprintsURLOverrideIsCorrect)
               QUrl::fromLocalFile(test_blueprints_zip).toString());
 }
 
-TEST_F(Daemon, ensure_that_on_restart_future_completes)
+TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
 {
     auto mock_factory = use_a_mock_vm_factory();
 
@@ -455,7 +455,7 @@ TEST_F(Daemon, ensure_that_on_restart_future_completes)
     }
 }
 
-TEST_F(Daemon, starts_previously_running_vms_back)
+TEST_F(Daemon, startsPreviouslyRunningVmsBack)
 {
     auto mock_factory = use_a_mock_vm_factory();
     multipass::test::fake_vm_properties vm_props{};
@@ -476,7 +476,7 @@ TEST_F(Daemon, starts_previously_running_vms_back)
     mp::Daemon daemon{config_builder.build()};
 }
 
-TEST_F(Daemon, calls_on_restart_for_already_running_vms_on_construction)
+TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
 {
     auto mock_factory = use_a_mock_vm_factory();
     multipass::test::fake_vm_properties vm_props{};
@@ -497,7 +497,7 @@ TEST_F(Daemon, calls_on_restart_for_already_running_vms_on_construction)
     mp::Daemon daemon{config_builder.build()};
 }
 
-TEST_F(Daemon, calls_on_restart_for_already_starting_vms_on_construction)
+TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
 {
     auto mock_factory = use_a_mock_vm_factory();
     multipass::test::fake_vm_properties vm_props{};
@@ -518,7 +518,7 @@ TEST_F(Daemon, calls_on_restart_for_already_starting_vms_on_construction)
     mp::Daemon daemon{config_builder.build()};
 }
 
-TEST_F(Daemon, updates_the_deleted_but_non_stopped_vm_state)
+TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
 {
     auto mock_factory = use_a_mock_vm_factory();
     multipass::test::fake_vm_properties vm_props{};
@@ -626,7 +626,7 @@ struct DaemonLaunchTimeoutValueTestSuite : public Daemon,
 {
 };
 
-TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
+TEST_P(DaemonCreateLaunchTestSuite, createsVirtualMachines)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -635,7 +635,7 @@ TEST_P(DaemonCreateLaunchTestSuite, creates_virtual_machines)
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_source_image)
+TEST_P(DaemonCreateLaunchTestSuite, onCreationHooksUpPlatformPrepareSourceImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -644,7 +644,7 @@ TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_source
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_instance_image)
+TEST_P(DaemonCreateLaunchTestSuite, onCreationHooksUpPlatformPrepareInstanceImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -653,7 +653,7 @@ TEST_P(DaemonCreateLaunchTestSuite, on_creation_hooks_up_platform_prepare_instan
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, on_creation_handles_instance_image_preparation_failure)
+TEST_P(DaemonCreateLaunchTestSuite, onCreationHandlesInstanceImagePreparationFailure)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -669,7 +669,7 @@ TEST_P(DaemonCreateLaunchTestSuite, on_creation_handles_instance_image_preparati
     EXPECT_THAT(err_stream.str(), AllOf(HasSubstr("failed"), HasSubstr(cause)));
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, generates_name_on_creation_when_client_does_not_provide_one)
+TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProvideOne)
 {
     const std::string expected_name{"pied-piper-valley"};
 
@@ -801,7 +801,7 @@ MATCHER_P(YAMLSequenceContainsStringMap, values, "")
     return false;
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
+TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -826,7 +826,7 @@ TEST_P(DaemonCreateLaunchTestSuite, default_cloud_init_grows_root_fs)
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
+TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
 {
     auto mock_factory = use_a_mock_vm_factory();
     std::string expected_key{"thisitnotansshkeyactually"};
@@ -844,7 +844,7 @@ TEST_P(DaemonCreateLaunchTestSuite, adds_ssh_keys_to_cloud_init_config)
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchPollinateDataTestSuite, adds_pollinate_user_agent_to_cloud_init_config)
+TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudInitConfig)
 {
     const auto [command, alias] = GetParam();
     auto mock_factory = use_a_mock_vm_factory();
@@ -1340,7 +1340,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotOverwriteAliasesIf
     EXPECT_EQ(cout_stream.str(), expected_csv_string);
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
+TEST_P(DaemonCreateLaunchTestSuite, blueprintFoundPassesExpectedData)
 {
     auto mock_factory = use_a_mock_vm_factory();
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1371,7 +1371,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_found_passes_expected_data)
     send_command({GetParam()});
 }
 
-TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
+TEST_P(DaemonCreateLaunchTestSuite, blueprintNotFoundPassesExpectedData)
 {
     auto mock_factory = use_a_mock_vm_factory();
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1393,7 +1393,7 @@ TEST_P(DaemonCreateLaunchTestSuite, blueprint_not_found_passes_expected_data)
     send_command({GetParam()});
 }
 
-TEST_P(LaunchWithNoExtraNetworkCloudInit, no_extra_network_cloud_init)
+TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1437,7 +1437,7 @@ INSTANTIATE_TEST_SUITE_P(
            make_args({"snapcraft:core18", "--network", "name=eth0,mode=manual"}),
            make_args({"snapcraft:core20"})));
 
-TEST_P(LaunchWithBridges, creates_network_cloud_init_iso)
+TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1517,7 +1517,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                                    {"name=wlan0", "extra1", "52:54:00:"}},
                                                   {"extra0", "extra2"})));
 
-TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
+TEST_P(MinSpaceRespectedSuite, acceptsLaunchWithEnoughExplicitMemory)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1531,7 +1531,7 @@ TEST_P(MinSpaceRespectedSuite, accepts_launch_with_enough_explicit_memory)
     send_command({cmd, opt_name, opt_value});
 }
 
-TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
+TEST_P(MinSpaceViolatedSuite, refusesLaunchWithMemoryBelowThreshold)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1548,7 +1548,7 @@ TEST_P(MinSpaceViolatedSuite, refuses_launch_with_memory_below_threshold)
                 AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk"))));
 }
 
-TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
+TEST_P(LaunchImgSizeSuite, launchesWithCorrectDiskSize)
 {
     auto mock_factory = use_a_mock_vm_factory();
     const auto param = GetParam();
@@ -1587,7 +1587,7 @@ TEST_P(LaunchImgSizeSuite, launches_with_correct_disk_size)
     }
 }
 
-TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
+TEST_P(LaunchStorageCheckSuite, launchWarnsWhenOvercommittingDisk)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1605,7 +1605,7 @@ TEST_P(LaunchStorageCheckSuite, launch_warns_when_overcommitting_disk)
     send_command({GetParam()});
 }
 
-TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
+TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
 
@@ -1626,7 +1626,7 @@ TEST_P(LaunchStorageCheckSuite, launch_fails_when_space_less_than_image)
                 HasSubstr("Available disk (0 bytes) below minimum for this image (1 bytes)"));
 }
 
-TEST_P(LaunchStorageCheckSuite, launch_fails_with_invalid_data_directory)
+TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
 {
     auto mock_factory = use_a_mock_vm_factory();
     config_builder.data_directory = QString("invalid_data_directory");
@@ -1721,7 +1721,7 @@ void check_maps_in_json(const QJsonObject& doc_object,
     }
 }
 
-TEST_F(Daemon, reads_mac_addresses_from_json)
+TEST_F(Daemon, readsMacAddressesFromJson)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -1844,7 +1844,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
     daemon.persist_instances();
 }
 
-TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
+TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -1881,7 +1881,7 @@ TEST_F(Daemon, writes_and_reads_ordered_maps_in_json)
     send_command({"purge"});
 }
 
-TEST_F(Daemon, launches_with_valid_network_interface)
+TEST_F(Daemon, launchesWithValidNetworkInterface)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
 
@@ -1892,7 +1892,7 @@ TEST_F(Daemon, launches_with_valid_network_interface)
     ASSERT_NO_THROW(send_command({"launch", "--network", "eth0"}));
 }
 
-TEST_F(Daemon, refuses_launch_with_invalid_network_interface)
+TEST_F(Daemon, refusesLaunchWithInvalidNetworkInterface)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
 
@@ -1905,7 +1905,7 @@ TEST_F(Daemon, refuses_launch_with_invalid_network_interface)
     EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options supplied"));
 }
 
-TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
+TEST_F(Daemon, refusesLaunchBecauseBridgingIsNotImplemented)
 {
     // Use the stub factory, which throws when networks() is called.
     mp::Daemon daemon{config_builder.build()};
@@ -1916,7 +1916,7 @@ TEST_F(Daemon, refuses_launch_because_bridging_is_not_implemented)
                 HasSubstr("The networks feature is not implemented on this backend"));
 }
 
-TEST_P(RefuseBridging, old_image)
+TEST_P(RefuseBridging, oldImage)
 {
     const auto [remote, image] = GetParam();
     std::string full_image_name = remote.empty() ? image : remote + ":" + image;
@@ -1946,7 +1946,7 @@ INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless,
                          RefuseBridging,
                          Combine(Values(""), ValuesIn(old_remoteless_rels)));
 
-TEST_F(Daemon, fails_with_image_not_found_also_if_image_is_also_non_bridgeable)
+TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
     auto mock_image_host_ptr = mock_image_host.get();
@@ -2020,7 +2020,7 @@ constexpr auto deleted_template = R"(
 
 TEST_F(
     Daemon,
-    skips_over_instance_ghosts_in_db) // which will have been sometimes written for purged instances
+    skipsOverInstanceGhostsInDb) // which will have been sometimes written for purged instances
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -2050,7 +2050,7 @@ TEST_F(
     mp::Daemon daemon{config_builder.build()};
 }
 
-TEST_F(Daemon, ctor_lets_exceptions_arising_from_vm_creation_through)
+TEST_F(Daemon, ctorLetsExceptionsArisingFromVmCreationThrough)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     const auto [temp_dir, filename] =
@@ -2066,7 +2066,7 @@ TEST_F(Daemon, ctor_lets_exceptions_arising_from_vm_creation_through)
                          mpt::match_what(msg));
 }
 
-TEST_F(Daemon, ctor_drops_removed_instances)
+TEST_F(Daemon, ctorDropsRemovedInstances)
 {
     const std::string stayed{"foo"}, gone{"fighters"};
     auto stayed_json = fmt::format(valid_template, stayed, "12");
@@ -2117,7 +2117,7 @@ TEST_F(Daemon, ctor_drops_removed_instances)
     EXPECT_THAT(list_reply.instance_list().instances(), stayed_matcher);
 }
 
-TEST_P(ListIP, lists_with_ip)
+TEST_P(ListIP, listsWithIp)
 {
     auto mock_factory = use_a_mock_vm_factory();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -2162,7 +2162,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Stopped", "--"})));
 
-TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
+TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -2182,7 +2182,7 @@ TEST_F(Daemon, prevents_repetition_of_loaded_mac_addresses)
                 AllOf(HasSubstr("fail"), HasSubstr("Repeated MAC"), HasSubstr(repeated_mac)));
 }
 
-TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
+TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -2201,7 +2201,7 @@ TEST_F(Daemon, does_not_hold_on_to_repeated_mac_addresses_when_loading)
     send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac_addr)});
 }
 
-TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
+TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 {
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
@@ -2228,7 +2228,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_loading_fails)
         send_command({"launch", "--network", fmt::format("name=eth0,mac={}", *mac)});
 }
 
-TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
+TEST_F(Daemon, doesNotHoldOnToMacsWhenImagePreparationFails)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -2245,7 +2245,7 @@ TEST_F(Daemon, does_not_hold_on_to_macs_when_image_preparation_fails)
     send_command(cmd); // and confirm we can repeat the same mac
 }
 
-TEST_F(Daemon, releases_macs_when_launch_fails)
+TEST_F(Daemon, releasesMacsWhenLaunchFails)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -2259,7 +2259,7 @@ TEST_F(Daemon, releases_macs_when_launch_fails)
     send_command(cmd); // and confirm we can repeat the same mac
 }
 
-TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
+TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -2290,7 +2290,7 @@ TEST_F(Daemon, releases_macs_of_purged_instances_but_keeps_the_rest)
                   fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
-TEST_P(DaemonLaunchTimeoutValueTestSuite, uses_correct_launch_timeout)
+TEST_P(DaemonLaunchTimeoutValueTestSuite, usesCorrectLaunchTimeout)
 {
     auto mock_factory = use_a_mock_vm_factory();
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
@@ -2335,7 +2335,7 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_tuple(1000, 0, 1000),
            std::make_tuple(0, 0, 300)));
 
-TEST_F(Daemon, launches_with_bridged)
+TEST_F(Daemon, launchesWithBridged)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
 
@@ -2347,7 +2347,7 @@ TEST_F(Daemon, launches_with_bridged)
     ASSERT_NO_THROW(send_command({"launch", "--network", "bridged"}));
 }
 
-TEST_F(Daemon, refuses_launch_bridged_without_setting)
+TEST_F(Daemon, refusesLaunchBridgedWithoutSetting)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
 
@@ -2363,7 +2363,7 @@ TEST_F(Daemon, refuses_launch_bridged_without_setting)
                           "\"bridged\" shortcut."));
 }
 
-TEST_F(Daemon, refuses_launch_with_invalid_bridged_interface)
+TEST_F(Daemon, refusesLaunchWithInvalidBridgedInterface)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
 
@@ -2595,7 +2595,7 @@ TEST_F(Daemon, setWorksIfUserAuthorizes)
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
-TEST_F(Daemon, set_works_if_bridged_interface_is_empty)
+TEST_F(Daemon, setWorksIfBridgedInterfaceIsEmpty)
 {
     const auto key = "local.instance.cpus";
     const auto value = "8";
@@ -2657,7 +2657,7 @@ TEST_F(Daemon, setDoesNotSetIfUserDeniesAuthorization)
     EXPECT_FALSE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
-TEST_F(Daemon, add_bridged_interface_works)
+TEST_F(Daemon, addBridgedInterfaceWorks)
 {
     std::string instance_name{"willy"};
 
@@ -2678,7 +2678,7 @@ TEST_F(Daemon, add_bridged_interface_works)
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
 
-TEST_F(Daemon, add_bridged_interface_warns_and_noop_if_already_bridged)
+TEST_F(Daemon, addBridgedInterfaceWarnsAndNoopIfAlreadyBridged)
 {
     std::string instance_name{"foo"};
     std::string if_name{"eth8"};
@@ -2701,7 +2701,7 @@ TEST_F(Daemon, add_bridged_interface_warns_and_noop_if_already_bridged)
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr, specs));
 }
 
-TEST_F(Daemon, add_bridged_interface_honors_prepared_bridge)
+TEST_F(Daemon, addBridgedInterfaceHonorsPreparedBridge)
 {
     std::string instance_name{"asdf"};
     std::string if_name{"eth8"};
@@ -2723,7 +2723,7 @@ TEST_F(Daemon, add_bridged_interface_honors_prepared_bridge)
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
 
-TEST_F(Daemon, add_bridged_interface_throws_if_backend_throws)
+TEST_F(Daemon, addBridgedInterfaceThrowsIfBackendThrows)
 {
     std::string instance_name{"wonka"};
 
@@ -2750,7 +2750,7 @@ TEST_F(Daemon, add_bridged_interface_throws_if_backend_throws)
                          mpt::match_what(msg));
 }
 
-TEST_F(Daemon, add_bridged_interface_throws_on_bad_bridged_network_setting)
+TEST_F(Daemon, addBridgedInterfaceThrowsOnBadBridgedNetworkSetting)
 {
     std::string instance_name{"bucket"};
 
@@ -2772,7 +2772,7 @@ TEST_F(Daemon, add_bridged_interface_throws_on_bad_bridged_network_setting)
                          mpt::match_what(msg));
 }
 
-TEST_F(Daemon, add_bridged_interface_throws_if_needs_authorization)
+TEST_F(Daemon, addBridgedInterfaceThrowsIfNeedsAuthorization)
 {
     std::string instance_name{"glass-elevator"};
 
@@ -2806,7 +2806,7 @@ struct DaemonIsBridged : public Daemon,
     }
 };
 
-TEST_P(DaemonIsBridged, is_bridged_works)
+TEST_P(DaemonIsBridged, isBridgedWorks)
 {
     const auto [host_nets, extra_interfaces, result] = GetParam();
 
@@ -2846,7 +2846,7 @@ INSTANTIATE_TEST_SUITE_P(
                std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:18:19:20", true}},
                false)));
 
-TEST_F(Daemon, requests_networks)
+TEST_F(Daemon, requestsNetworks)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -2875,7 +2875,7 @@ TEST_F(Daemon, requests_networks)
         call_daemon_slot(daemon, &mp::Daemon::networks, mp::NetworksRequest{}, mock_server).ok());
 }
 
-TEST_F(Daemon, performs_health_check_on_networks)
+TEST_F(Daemon, performsHealthCheckOnNetworks)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -2915,7 +2915,7 @@ TEST_F(Daemon, purgePersistsInstances)
                      NiceMock<mpt::MockServerReaderWriter<mp::PurgeReply, mp::PurgeRequest>>{});
 }
 
-TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
+TEST_F(Daemon, launchFailsWithIncompatibleBlueprint)
 {
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
     EXPECT_CALL(*mock_blueprint_provider, info_for(_))
@@ -2931,7 +2931,7 @@ TEST_F(Daemon, launch_fails_with_incompatible_blueprint)
                 HasSubstr("The \"foo\" Blueprint is not compatible with this host."));
 }
 
-TEST_F(Daemon, info_all_returns_all_instances)
+TEST_F(Daemon, infoAllReturnsAllInstances)
 {
     const std::string good_instance_name{"good-instance"},
         deleted_instance_name{"deleted-instance"};
@@ -2960,7 +2960,7 @@ TEST_F(Daemon, info_all_returns_all_instances)
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
 }
 
-TEST_F(Daemon, sets_permissions_on_provided_storage_path)
+TEST_F(Daemon, setsPermissionsOnProvidedStoragePath)
 {
     const QString path{"Where all the secrets go"};
     const std::filesystem::path std_path{path.toStdU16String()};
@@ -2971,7 +2971,7 @@ TEST_F(Daemon, sets_permissions_on_provided_storage_path)
     config_builder.build();
 }
 
-TEST_F(Daemon, sets_permissions_on_storage_dirs)
+TEST_F(Daemon, setsPermissionsOnStorageDirs)
 {
 
     config_builder.data_directory = "Sensitive data location";
@@ -2986,7 +2986,7 @@ TEST_F(Daemon, sets_permissions_on_storage_dirs)
     config_builder.build();
 }
 
-TEST_F(Daemon, sets_up_permission_inheritance)
+TEST_F(Daemon, setsUpPermissionInheritance)
 {
     EXPECT_CALL(mock_platform, setup_permission_inheritance(true));
 

@@ -40,7 +40,7 @@ struct TestVerbosity : public TestWithParam<int>
 {
 };
 
-TEST_P(TestVerbosity, test_various_vs)
+TEST_P(TestVerbosity, testVariousVs)
 {
     std::ostringstream oss;
     const auto cmds = std::vector<mp::cmd::Command::UPtr>{};
@@ -69,7 +69,7 @@ struct TestAliasArguments
 {
 };
 
-TEST_P(TestAliasArguments, test_alias_arguments)
+TEST_P(TestAliasArguments, testAliasArguments)
 {
     std::ostringstream oss;
     std::istringstream cin;

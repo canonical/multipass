@@ -282,13 +282,13 @@ bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permiss
 }
 } // namespace
 
-TEST_F(SftpServer, throws_when_failed_to_init)
+TEST_F(SftpServer, throwsWhenFailedToInit)
 {
     REPLACE(sftp_server_init, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
 }
 
-TEST_F(SftpServer, throws_when_sshfs_errors_on_start)
+TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
 {
     bool invoked{false};
     auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
@@ -307,7 +307,7 @@ TEST_F(SftpServer, throws_when_sshfs_errors_on_start)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SftpServer, throws_on_ssh_failure_read_exit)
+TEST_F(SftpServer, throwsOnSshFailureReadExit)
 {
     bool invoked{false};
     auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
@@ -328,7 +328,7 @@ TEST_F(SftpServer, throws_on_ssh_failure_read_exit)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SftpServer, sshfs_restarts_on_timeout)
+TEST_F(SftpServer, sshfsRestartsOnTimeout)
 {
     int num_calls{0};
     auto request_exec = [this, &num_calls](ssh_channel, const char* raw_cmd) {
@@ -363,7 +363,7 @@ TEST_F(SftpServer, sshfs_restarts_on_timeout)
     EXPECT_EQ(num_calls, 2);
 }
 
-TEST_F(SftpServer, stops_after_a_null_message)
+TEST_F(SftpServer, stopsAfterANullMessage)
 {
     auto sftp = make_sftpserver();
 
@@ -371,7 +371,7 @@ TEST_F(SftpServer, stops_after_a_null_message)
     sftp.run();
 }
 
-TEST_F(SftpServer, frees_message)
+TEST_F(SftpServer, freesMessage)
 {
     auto sftp = make_sftpserver();
 
@@ -384,7 +384,7 @@ TEST_F(SftpServer, frees_message)
     msg_free.expectCalled(1).withValues(msg.get());
 }
 
-TEST_F(SftpServer, handles_realpath)
+TEST_F(SftpServer, handlesRealpath)
 {
     mpt::TempFile file;
     auto file_name = name_as_char_array(file.name().toStdString());
@@ -430,7 +430,7 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_opendir)
+TEST_F(SftpServer, handlesOpendir)
 {
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
 
@@ -447,7 +447,7 @@ TEST_F(SftpServer, handles_opendir)
     sftp.run();
 }
 
-TEST_F(SftpServer, opendir_not_existing_fails)
+TEST_F(SftpServer, opendirNotExistingFails)
 {
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
@@ -470,7 +470,7 @@ TEST_F(SftpServer, opendir_not_existing_fails)
     EXPECT_EQ(no_such_file_calls, 1);
 }
 
-TEST_F(SftpServer, opendir_not_readable_fails)
+TEST_F(SftpServer, opendirNotReadableFails)
 {
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
@@ -500,7 +500,7 @@ TEST_F(SftpServer, opendir_not_readable_fails)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, opendir_no_handle_allocated_fails)
+TEST_F(SftpServer, opendirNoHandleAllocatedFails)
 {
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
 
@@ -557,7 +557,7 @@ TEST_F(SftpServer, opendirFailsWhenIdsAreNotMapped)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_mkdir)
+TEST_F(SftpServer, handlesMkdir)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -592,7 +592,7 @@ TEST_F(SftpServer, handles_mkdir)
     EXPECT_EQ(num_calls, 1);
 }
 
-TEST_F(SftpServer, mkdir_on_existing_dir_fails)
+TEST_F(SftpServer, mkdirOnExistingDirFails)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -626,7 +626,7 @@ TEST_F(SftpServer, mkdir_on_existing_dir_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, mkdir_set_permissions_fails)
+TEST_F(SftpServer, mkdirSetPermissionsFails)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -664,7 +664,7 @@ TEST_F(SftpServer, mkdir_set_permissions_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, mkdir_chown_failure_fails)
+TEST_F(SftpServer, mkdirChownFailureFails)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -723,7 +723,7 @@ TEST_F(SftpServer, mkdirFailsInDirThatsMissingMappedIds)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_rmdir)
+TEST_F(SftpServer, handlesRmdir)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -748,7 +748,7 @@ TEST_F(SftpServer, handles_rmdir)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, rmdir_non_existing_fails)
+TEST_F(SftpServer, rmdirNonExistingFails)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -775,7 +775,7 @@ TEST_F(SftpServer, rmdir_non_existing_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, rmdir_unable_to_remove_fails)
+TEST_F(SftpServer, rmdirUnableToRemoveFails)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -832,7 +832,7 @@ TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_readlink)
+TEST_F(SftpServer, handlesReadlink)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -898,7 +898,7 @@ TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_symlink)
+TEST_F(SftpServer, handlesSymlink)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -933,7 +933,7 @@ TEST_F(SftpServer, handles_symlink)
     EXPECT_THAT(info.symLinkTarget(), Eq(file_name));
 }
 
-TEST_F(SftpServer, symlink_in_invalid_dir_fails)
+TEST_F(SftpServer, symlinkInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
 
@@ -957,7 +957,7 @@ TEST_F(SftpServer, symlink_in_invalid_dir_fails)
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, broken_symlink_does_not_fail)
+TEST_F(SftpServer, brokenSymlinkDoesNotFail)
 {
     mpt::TempDir temp_dir;
     auto missing_file_name = temp_dir.path() + "/test-file";
@@ -991,7 +991,7 @@ TEST_F(SftpServer, broken_symlink_does_not_fail)
     EXPECT_FALSE(QFile::exists(missing_file_name));
 }
 
-TEST_F(SftpServer, symlink_failure_fails)
+TEST_F(SftpServer, symlinkFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1064,7 +1064,7 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     EXPECT_FALSE(info.isSymLink());
 }
 
-TEST_F(SftpServer, handles_rename)
+TEST_F(SftpServer, handlesRename)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -1091,7 +1091,7 @@ TEST_F(SftpServer, handles_rename)
     EXPECT_FALSE(QFile::exists(old_name));
 }
 
-TEST_F(SftpServer, rename_cannot_remove_target_fails)
+TEST_F(SftpServer, renameCannotRemoveTargetFails)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -1137,7 +1137,7 @@ TEST_F(SftpServer, rename_cannot_remove_target_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, rename_failure_fails)
+TEST_F(SftpServer, renameFailureFails)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -1183,7 +1183,7 @@ TEST_F(SftpServer, rename_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, rename_invalid_target_fails)
+TEST_F(SftpServer, renameInvalidTargetFails)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -1287,7 +1287,7 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     EXPECT_TRUE(QFile::exists(new_name));
 }
 
-TEST_F(SftpServer, handles_remove)
+TEST_F(SftpServer, handlesRemove)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1311,7 +1311,7 @@ TEST_F(SftpServer, handles_remove)
     EXPECT_FALSE(QFile::exists(file_name));
 }
 
-TEST_F(SftpServer, remove_non_existing_fails)
+TEST_F(SftpServer, removeNonExistingFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1366,7 +1366,7 @@ TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
     EXPECT_TRUE(QFile::exists(file_name));
 }
 
-TEST_F(SftpServer, open_in_write_mode_creates_file)
+TEST_F(SftpServer, openInWriteModeCreatesFile)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1400,7 +1400,7 @@ TEST_F(SftpServer, open_in_write_mode_creates_file)
     EXPECT_TRUE(QFile::exists(file_name));
 }
 
-TEST_F(SftpServer, open_in_truncate_mode_truncates_file)
+TEST_F(SftpServer, openInTruncateModeTruncatesFile)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1429,7 +1429,7 @@ TEST_F(SftpServer, open_in_truncate_mode_truncates_file)
     EXPECT_EQ(file.size(), 0);
 }
 
-TEST_F(SftpServer, open_unable_to_open_fails)
+TEST_F(SftpServer, openUnableToOpenFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1477,7 +1477,7 @@ TEST_F(SftpServer, open_unable_to_open_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, open_unable_to_get_status_fails)
+TEST_F(SftpServer, openUnableToGetStatusFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1517,7 +1517,7 @@ TEST_F(SftpServer, open_unable_to_get_status_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, open_chown_failure_fails)
+TEST_F(SftpServer, openChownFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1552,7 +1552,7 @@ TEST_F(SftpServer, open_chown_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, open_no_handle_allocated_fails)
+TEST_F(SftpServer, openNoHandleAllocatedFails)
 {
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
@@ -1636,7 +1636,7 @@ TEST_F(SftpServer, openNonExistingFileFailsWhenDirIdsAreNotMapped)
     EXPECT_FALSE(file.exists());
 }
 
-TEST_F(SftpServer, handles_readdir)
+TEST_F(SftpServer, handlesReaddir)
 {
     mpt::TempDir temp_dir;
     QDir dir_entry(temp_dir.path());
@@ -1698,7 +1698,7 @@ TEST_F(SftpServer, handles_readdir)
     EXPECT_THAT(given_entries, ContainerEq(expected_entries));
 }
 
-TEST_F(SftpServer, handles_readdir_attributes_preserved)
+TEST_F(SftpServer, handlesReaddirAttributesPreserved)
 {
     mpt::TempDir temp_dir;
     QDir dir_entry(temp_dir.path());
@@ -1767,7 +1767,7 @@ TEST_F(SftpServer, handles_readdir_attributes_preserved)
     EXPECT_TRUE(compare_permission(test_file_attrs.permissions, test_file_info, Permission::Other));
 }
 
-TEST_F(SftpServer, handles_close)
+TEST_F(SftpServer, handlesClose)
 {
     mpt::TempDir temp_dir;
 
@@ -1800,7 +1800,7 @@ TEST_F(SftpServer, handles_close)
     EXPECT_THAT(ok_num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, handles_fstat)
+TEST_F(SftpServer, handlesFstat)
 {
     mpt::TempDir temp_dir;
     const auto content = std::string{"whatever just some content bla bla"};
@@ -1842,7 +1842,7 @@ TEST_F(SftpServer, handles_fstat)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, handles_fsetstat)
+TEST_F(SftpServer, handlesFsetstat)
 {
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
@@ -1889,7 +1889,7 @@ TEST_F(SftpServer, handles_fsetstat)
     EXPECT_THAT(file.size(), Eq(expected_size));
 }
 
-TEST_F(SftpServer, handles_setstat)
+TEST_F(SftpServer, handlesSetstat)
 {
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
@@ -1924,7 +1924,7 @@ TEST_F(SftpServer, handles_setstat)
     EXPECT_THAT(file.size(), Eq(expected_size));
 }
 
-TEST_F(SftpServer, setstat_correctly_modifies_file_timestamp)
+TEST_F(SftpServer, setstatCorrectlyModifiesFileTimestamp)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1958,7 +1958,7 @@ TEST_F(SftpServer, setstat_correctly_modifies_file_timestamp)
     EXPECT_EQ(new_time, original_time + 1);
 }
 
-TEST_F(SftpServer, setstat_resize_failure_fails)
+TEST_F(SftpServer, setstatResizeFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2005,7 +2005,7 @@ TEST_F(SftpServer, setstat_resize_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, setstat_set_permissions_failure_fails)
+TEST_F(SftpServer, setstatSetPermissionsFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2053,7 +2053,7 @@ TEST_F(SftpServer, setstat_set_permissions_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, setstat_chown_failure_fails)
+TEST_F(SftpServer, setstatChownFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2098,7 +2098,7 @@ TEST_F(SftpServer, setstat_chown_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, setstat_utime_failure_fails)
+TEST_F(SftpServer, setstatUtimeFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2205,7 +2205,7 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
     EXPECT_EQ(perm_denied_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_writes)
+TEST_F(SftpServer, handlesWrites)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2251,7 +2251,7 @@ TEST_F(SftpServer, handles_writes)
     EXPECT_EQ(stream.str(), "The answer is always 42");
 }
 
-TEST_F(SftpServer, write_cannot_seek_fails)
+TEST_F(SftpServer, writeCannotSeekFails)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2279,7 +2279,7 @@ TEST_F(SftpServer, write_cannot_seek_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, write_failure_fails)
+TEST_F(SftpServer, writeFailureFails)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2308,7 +2308,7 @@ TEST_F(SftpServer, write_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, handles_reads)
+TEST_F(SftpServer, handlesReads)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2352,7 +2352,7 @@ TEST_F(SftpServer, handles_reads)
     ASSERT_EQ(num_calls, 1);
 }
 
-TEST_F(SftpServer, read_cannot_seek_fails)
+TEST_F(SftpServer, readCannotSeekFails)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2388,7 +2388,7 @@ TEST_F(SftpServer, read_cannot_seek_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, read_returns_failure_fails)
+TEST_F(SftpServer, readReturnsFailureFails)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2423,7 +2423,7 @@ TEST_F(SftpServer, read_returns_failure_fails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
-TEST_F(SftpServer, read_returns_zero_end_of_file)
+TEST_F(SftpServer, readReturnsZeroEndOfFile)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
@@ -2450,7 +2450,7 @@ TEST_F(SftpServer, read_returns_zero_end_of_file)
     EXPECT_EQ(eof_num_calls, 1);
 }
 
-TEST_F(SftpServer, handle_extended_link)
+TEST_F(SftpServer, handleExtendedLink)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2481,7 +2481,7 @@ TEST_F(SftpServer, handle_extended_link)
     EXPECT_TRUE(content_match(link_name, "this is a test file"));
 }
 
-TEST_F(SftpServer, extended_link_in_invalid_dir_fails)
+TEST_F(SftpServer, extendedLinkInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
 
@@ -2507,7 +2507,7 @@ TEST_F(SftpServer, extended_link_in_invalid_dir_fails)
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, extended_link_failure_fails)
+TEST_F(SftpServer, extendedLinkFailureFails)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -2579,7 +2579,7 @@ TEST_F(SftpServer, extendedLinkFailureFailsWhenSourceFileIdsAreNotMapped)
     EXPECT_FALSE(QFile::exists(link_name));
 }
 
-TEST_F(SftpServer, handle_extended_rename)
+TEST_F(SftpServer, handleExtendedRename)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -2638,7 +2638,7 @@ TEST_F(SftpServer, extendedRenameFailsWhenMissingMappedIds)
     EXPECT_TRUE(QFile::exists(old_name));
 }
 
-TEST_F(SftpServer, extended_rename_in_invalid_dir_fails)
+TEST_F(SftpServer, extendedRenameInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
 
@@ -2661,7 +2661,7 @@ TEST_F(SftpServer, extended_rename_in_invalid_dir_fails)
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, invalid_extended_fails)
+TEST_F(SftpServer, invalidExtendedFails)
 {
     auto sftp = make_sftpserver();
 
@@ -2763,7 +2763,7 @@ INSTANTIATE_TEST_SUITE_P(SftpServer,
                                            SFTP_STAT),
                          string_for_message);
 
-TEST_P(WhenInvalidMessageReceived, replies_failure)
+TEST_P(WhenInvalidMessageReceived, repliesFailure)
 {
     mpt::TempDir temp_dir;
     auto sftp = make_sftpserver(temp_dir.path().toStdString());

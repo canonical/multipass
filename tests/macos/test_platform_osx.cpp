@@ -239,46 +239,46 @@ void simulate_environment(const mpt::MockProcess* process,
         throw std::runtime_error(fmt::format("Program {} not mocked.", program));
 }
 
-TEST(PlatformOSX, test_no_extra_client_settings)
+TEST(PlatformOSX, testNoExtraClientSettings)
 {
     EXPECT_THAT(MP_PLATFORM.extra_client_settings(), IsEmpty());
 }
 
-TEST(PlatformOSX, test_no_extra_daemon_settings)
+TEST(PlatformOSX, testNoExtraDaemonSettings)
 {
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
-TEST(PlatformOSX, test_interpretation_of_winterm_setting_not_supported)
+TEST(PlatformOSX, testInterpretationOfWintermSettingNotSupported)
 {
     for (const auto x : {"no", "matter", "what"})
         EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x),
                      mp::InvalidSettingException);
 }
 
-TEST(PlatformOSX, test_interpretation_of_unknown_settings_not_supported)
+TEST(PlatformOSX, testInterpretationOfUnknownSettingsNotSupported)
 {
     for (const auto k : {"unimaginable", "katxama", "katxatxa"})
         for (const auto v : {"no", "matter", "what"})
             EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingException);
 }
 
-TEST(PlatformOSX, test_empty_sync_winterm_profiles)
+TEST(PlatformOSX, testEmptySyncWintermProfiles)
 {
     EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
 }
 
-TEST(PlatformOSX, test_default_driver)
+TEST(PlatformOSX, testDefaultDriver)
 {
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "virtualbox"));
 }
 
-TEST(PlatformOSX, test_default_privileged_mounts)
+TEST(PlatformOSX, testDefaultPrivilegedMounts)
 {
     EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "true");
 }
 
-TEST(PlatformOSX, test_network_interfaces)
+TEST(PlatformOSX, testNetworkInterfaces)
 {
     std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope =
         mpt::MockProcessFactory::Inject();
@@ -300,7 +300,7 @@ TEST(PlatformOSX, test_network_interfaces)
         });
 }
 
-TEST(PlatformOSX, create_alias_script_works)
+TEST(PlatformOSX, createAliasScriptWorks)
 {
     const mpt::TempDir tmp_dir;
 
@@ -325,7 +325,7 @@ TEST(PlatformOSX, create_alias_script_works)
     EXPECT_TRUE(script_permissions & QFileDevice::ExeOther);
 }
 
-TEST(PlatformOSX, create_alias_script_overwrites)
+TEST(PlatformOSX, createAliasScriptOverwrites)
 {
     auto [mock_utils, guard1] = mpt::MockUtils::inject();
     auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
@@ -341,7 +341,7 @@ TEST(PlatformOSX, create_alias_script_overwrites)
         mp::AliasDefinition{"instance", "other_command"}));
 }
 
-TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
+TEST(PlatformOSX, createAliasScriptThrowsIfCannotCreatePath)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
@@ -353,7 +353,7 @@ TEST(PlatformOSX, create_alias_script_throws_if_cannot_create_path)
         mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
-TEST(PlatformOSX, create_alias_script_throws_if_cannot_write_script)
+TEST(PlatformOSX, createAliasScriptThrowsIfCannotWriteScript)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
@@ -367,7 +367,7 @@ TEST(PlatformOSX, create_alias_script_throws_if_cannot_write_script)
         mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
-TEST(PlatformOSX, remove_alias_script_works)
+TEST(PlatformOSX, removeAliasScriptWorks)
 {
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
@@ -383,7 +383,7 @@ TEST(PlatformOSX, remove_alias_script_works)
     EXPECT_FALSE(script_file.exists());
 }
 
-TEST(PlatformOSX, remove_alias_script_throws_if_cannot_remove_script)
+TEST(PlatformOSX, removeAliasScriptThrowsIfCannotRemoveScript)
 {
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");

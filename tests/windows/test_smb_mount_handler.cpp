@@ -214,7 +214,7 @@ TEST_F(SmbMountHandlerTest, success)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, generate_key)
+TEST_F(SmbMountHandlerTest, generateKey)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -236,7 +236,7 @@ TEST_F(SmbMountHandlerTest, generate_key)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, installs_cifs)
+TEST_F(SmbMountHandlerTest, installsCifs)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -264,7 +264,7 @@ TEST_F(SmbMountHandlerTest, installs_cifs)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, fail_install_cifs)
+TEST_F(SmbMountHandlerTest, failInstallCifs)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -291,7 +291,7 @@ TEST_F(SmbMountHandlerTest, fail_install_cifs)
                          mpt::match_what(StrEq("Failed to install cifs-utils")));
 }
 
-TEST_F(SmbMountHandlerTest, request_and_receive_creds)
+TEST_F(SmbMountHandlerTest, requestAndReceiveCreds)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -317,7 +317,7 @@ TEST_F(SmbMountHandlerTest, request_and_receive_creds)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, fail_without_client)
+TEST_F(SmbMountHandlerTest, failWithoutClient)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -334,7 +334,7 @@ TEST_F(SmbMountHandlerTest, fail_without_client)
                          mpt::match_what(StrEq("Cannot get password without client connection")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_request_creds)
+TEST_F(SmbMountHandlerTest, failRequestCreds)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -355,7 +355,7 @@ TEST_F(SmbMountHandlerTest, fail_request_creds)
         mpt::match_what(StrEq("Cannot request password from client. Aborting...")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_receive_creds)
+TEST_F(SmbMountHandlerTest, failReceiveCreds)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -376,7 +376,7 @@ TEST_F(SmbMountHandlerTest, fail_receive_creds)
                          mpt::match_what(StrEq("Cannot get password from client. Aborting...")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_empty_password)
+TEST_F(SmbMountHandlerTest, failEmptyPassword)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -398,7 +398,7 @@ TEST_F(SmbMountHandlerTest, fail_empty_password)
                          mpt::match_what(StrEq("A password is required for SMB mounts.")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_create_smb_share)
+TEST_F(SmbMountHandlerTest, failCreateSmbShare)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -416,7 +416,7 @@ TEST_F(SmbMountHandlerTest, fail_create_smb_share)
     MP_EXPECT_THROW_THAT(handler.activate(&server), std::runtime_error, mpt::match_what(error));
 }
 
-TEST_F(SmbMountHandlerTest, fail_mkdir_target)
+TEST_F(SmbMountHandlerTest, failMkdirTarget)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -441,7 +441,7 @@ TEST_F(SmbMountHandlerTest, fail_mkdir_target)
                                                      mkdir_error)));
 }
 
-TEST_F(SmbMountHandlerTest, fail_mount_command)
+TEST_F(SmbMountHandlerTest, failMountCommand)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -468,7 +468,7 @@ TEST_F(SmbMountHandlerTest, fail_mount_command)
                          mpt::match_what(fmt::format("Error: {}", mount_error)));
 }
 
-TEST_F(SmbMountHandlerTest, fail_remove_creds_file)
+TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -495,7 +495,7 @@ TEST_F(SmbMountHandlerTest, fail_remove_creds_file)
     EXPECT_NO_THROW(handler.activate(&server));
 }
 
-TEST_F(SmbMountHandlerTest, stop_force_fail_umount_command)
+TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -525,7 +525,7 @@ TEST_F(SmbMountHandlerTest, stop_force_fail_umount_command)
     EXPECT_NO_THROW(handler.deactivate(/*force=*/true));
 }
 
-TEST_F(SmbMountHandlerTest, stop_non_force_fail_umount_command)
+TEST_F(SmbMountHandlerTest, stopNonForceFailUmountCommand)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));

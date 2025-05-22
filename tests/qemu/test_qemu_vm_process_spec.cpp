@@ -54,7 +54,7 @@ struct TestQemuVMProcessSpec : public Test
            "target,mount_tag=m810e457178f448d9afffc9d950d726"}}}};
 };
 
-TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
+TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
@@ -86,7 +86,7 @@ TEST_F(TestQemuVMProcessSpec, default_arguments_correct)
                            "path=path/to/target,mount_tag=m810e457178f448d9afffc9d950d726"}));
 }
 
-TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)
+TEST_F(TestQemuVMProcessSpec, resumeArgumentsTakenFromResumedata)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
                                                         "machine_type",
@@ -100,7 +100,7 @@ TEST_F(TestQemuVMProcessSpec, resume_arguments_taken_from_resumedata)
                   << mount_args.begin()->second.second);
 }
 
-TEST_F(TestQemuVMProcessSpec, resume_with_missing_machine_type_guesses_correctly)
+TEST_F(TestQemuVMProcessSpec, resumeWithMissingMachineTypeGuessesCorrectly)
 {
     mp::QemuVMProcessSpec::ResumeData resume_data_missing_machine_info;
     resume_data_missing_machine_info.suspend_tag = "suspend_tag";
@@ -136,14 +136,14 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)
     EXPECT_TRUE(spec.apparmor_profile().contains("path/to/source/** rwlk"));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_has_correct_name)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileHasCorrectName)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.vm_name.qemu-system-"));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesDiskImages)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
@@ -151,14 +151,14 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_includes_disk_images)
     EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/cloud_init.iso rk,"));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_identifier)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileIdentifier)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
     EXPECT_EQ(spec.identifier(), "vm_name");
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
@@ -174,7 +174,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_snap_correct)
         spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, link_dir;
@@ -191,7 +191,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_running_as_symlinked_snap_correct
         spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
 
@@ -205,7 +205,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_not_running_as_snap_correct)
     EXPECT_TRUE(spec.apparmor_profile().contains(" /usr/bin/qemu-system-")); // space wanted
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_lets_bridge_helper_run_in_snap)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
@@ -218,7 +218,7 @@ TEST_F(TestQemuVMProcessSpec, apparmor_profile_lets_bridge_helper_run_in_snap)
         spec.apparmor_profile().contains(QString(" %1/bin/bridge_helper").arg(snap_dir.path())));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmor_profile_lets_bridge_helper_run_outside_snap)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunOutsideSnap)
 {
     const QByteArray snap_name{"multipass"};
 

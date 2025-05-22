@@ -70,7 +70,7 @@ struct ClientCertStore : public testing::Test
 };
 } // namespace
 
-TEST_F(ClientCertStore, returns_empty_chain_if_no_certificate_found)
+TEST_F(ClientCertStore, returnsEmptyChainIfNoCertificateFound)
 {
     mp::ClientCertStore cert_store{temp_dir.path()};
 
@@ -78,7 +78,7 @@ TEST_F(ClientCertStore, returns_empty_chain_if_no_certificate_found)
     EXPECT_TRUE(cert_chain.empty());
 }
 
-TEST_F(ClientCertStore, returns_persisted_certificate_chain)
+TEST_F(ClientCertStore, returnsPersistedCertificateChain)
 {
     mp::ClientCertStore cert_store{temp_dir.path()};
 
@@ -90,7 +90,7 @@ TEST_F(ClientCertStore, returns_persisted_certificate_chain)
     EXPECT_THAT(cert_chain, StrEq(cert_data));
 }
 
-TEST_F(ClientCertStore, add_cert_throws_on_invalid_data)
+TEST_F(ClientCertStore, addCertThrowsOnInvalidData)
 {
     mp::ClientCertStore cert_store{temp_dir.path()};
 
@@ -99,7 +99,7 @@ TEST_F(ClientCertStore, add_cert_throws_on_invalid_data)
                          mpt::match_what(StrEq("invalid certificate data")));
 }
 
-TEST_F(ClientCertStore, add_cert_stores_certificate)
+TEST_F(ClientCertStore, addCertStoresCertificate)
 {
     mp::ClientCertStore cert_store{temp_dir.path()};
     EXPECT_NO_THROW(cert_store.add_cert(cert_data));

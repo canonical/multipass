@@ -71,12 +71,12 @@ struct LibVirtBackend : public Test
     mpt::MockBackend* mock_backend = backend_attr.first;
 };
 
-TEST_F(LibVirtBackend, libvirt_wrapper_missing_libvirt_throws)
+TEST_F(LibVirtBackend, libvirtWrapperMissingLibvirtThrows)
 {
     EXPECT_THROW(mp::LibvirtWrapper{"missing_libvirt"}, mp::LibvirtOpenException);
 }
 
-TEST_F(LibVirtBackend, health_check_good_does_not_throw)
+TEST_F(LibVirtBackend, healthCheckGoodDoesNotThrow)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
     EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
@@ -86,7 +86,7 @@ TEST_F(LibVirtBackend, health_check_good_does_not_throw)
     EXPECT_NO_THROW(backend.hypervisor_health_check());
 }
 
-TEST_F(LibVirtBackend, health_check_failed_connection_throws)
+TEST_F(LibVirtBackend, healthCheckFailedConnectionThrows)
 {
     const std::string error_msg{"Not working"};
 
@@ -110,7 +110,7 @@ TEST_F(LibVirtBackend, health_check_failed_connection_throws)
             error_msg))));
 }
 
-TEST_F(LibVirtBackend, creates_in_off_state)
+TEST_F(LibVirtBackend, createsInOffState)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     mpt::StubVMStatusMonitor stub_monitor;
@@ -120,7 +120,7 @@ TEST_F(LibVirtBackend, creates_in_off_state)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
-TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
+TEST_F(LibVirtBackend, createsInSuspendedStateWithManagedSave)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virDomainHasManagedSaveImage = [](auto...) { return 1; };
@@ -131,7 +131,7 @@ TEST_F(LibVirtBackend, creates_in_suspended_state_with_managed_save)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }
 
-TEST_F(LibVirtBackend, machine_sends_monitoring_events)
+TEST_F(LibVirtBackend, machineSendsMonitoringEvents)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
@@ -167,7 +167,7 @@ TEST_F(LibVirtBackend, machine_sends_monitoring_events)
     machine->suspend();
 }
 
-TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
+TEST_F(LibVirtBackend, machinePersistsAndSetsStateOnStart)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
@@ -184,7 +184,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_start)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::starting));
 }
 
-TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
+TEST_F(LibVirtBackend, machinePersistsAndSetsStateOnShutdown)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
@@ -205,7 +205,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_shutdown)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
-TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
+TEST_F(LibVirtBackend, machinePersistsAndSetsStateOnSuspend)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
@@ -228,7 +228,7 @@ TEST_F(LibVirtBackend, machine_persists_and_sets_state_on_suspend)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::suspended));
 }
 
-TEST_F(LibVirtBackend, start_with_broken_libvirt_connection_throws)
+TEST_F(LibVirtBackend, startWithBrokenLibvirtConnectionThrows)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
@@ -241,7 +241,7 @@ TEST_F(LibVirtBackend, start_with_broken_libvirt_connection_throws)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::unknown));
 }
 
-TEST_F(LibVirtBackend, shutdown_with_broken_libvirt_connection_throws)
+TEST_F(LibVirtBackend, shutdownWithBrokenLibvirtConnectionThrows)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
@@ -254,7 +254,7 @@ TEST_F(LibVirtBackend, shutdown_with_broken_libvirt_connection_throws)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::unknown));
 }
 
-TEST_F(LibVirtBackend, suspend_with_broken_libvirt_connection_throws)
+TEST_F(LibVirtBackend, suspendWithBrokenLibvirtConnectionThrows)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
@@ -267,7 +267,7 @@ TEST_F(LibVirtBackend, suspend_with_broken_libvirt_connection_throws)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::unknown));
 }
 
-TEST_F(LibVirtBackend, current_state_with_broken_libvirt_unknown)
+TEST_F(LibVirtBackend, currentStateWithBrokenLibvirtUnknown)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectOpen = [](auto...) -> virConnectPtr { return nullptr; };
@@ -278,7 +278,7 @@ TEST_F(LibVirtBackend, current_state_with_broken_libvirt_unknown)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::unknown));
 }
 
-TEST_F(LibVirtBackend, current_state_delayed_shutdown_domain_running)
+TEST_F(LibVirtBackend, currentStateDelayedShutdownDomainRunning)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virDomainGetState = [](auto, auto state, auto, auto) {
@@ -293,7 +293,7 @@ TEST_F(LibVirtBackend, current_state_delayed_shutdown_domain_running)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::delayed_shutdown));
 }
 
-TEST_F(LibVirtBackend, current_state_delayed_shutdown_domain_off)
+TEST_F(LibVirtBackend, currentStateDelayedShutdownDomainOff)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
@@ -303,7 +303,7 @@ TEST_F(LibVirtBackend, current_state_delayed_shutdown_domain_off)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
-TEST_F(LibVirtBackend, current_state_off_domain_starts_running)
+TEST_F(LibVirtBackend, currentStateOffDomainStartsRunning)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
@@ -319,7 +319,7 @@ TEST_F(LibVirtBackend, current_state_off_domain_starts_running)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::running));
 }
 
-TEST_F(LibVirtBackend, returns_version_string)
+TEST_F(LibVirtBackend, returnsVersionString)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectGetVersion = [](virConnectPtr, unsigned long* hvVer) {
@@ -330,7 +330,7 @@ TEST_F(LibVirtBackend, returns_version_string)
     EXPECT_EQ(backend.get_backend_version_string(), "libvirt-1.2.3");
 }
 
-TEST_F(LibVirtBackend, returns_version_string_when_error)
+TEST_F(LibVirtBackend, returnsVersionStringWhenError)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
     backend.libvirt_wrapper->virConnectGetVersion = [](auto...) { return -1; };
@@ -338,14 +338,14 @@ TEST_F(LibVirtBackend, returns_version_string_when_error)
     EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
 }
 
-TEST_F(LibVirtBackend, returns_version_string_when_lacking_capabilities)
+TEST_F(LibVirtBackend, returnsVersionStringWhenLackingCapabilities)
 {
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
 
     EXPECT_EQ(backend.get_backend_version_string(), "libvirt-unknown");
 }
 
-TEST_F(LibVirtBackend, returns_version_string_when_failed_connecting)
+TEST_F(LibVirtBackend, returnsVersionStringWhenFailedConnecting)
 {
     auto called{0};
     auto virConnectGetVersion = [&called](auto...) {
@@ -368,7 +368,7 @@ TEST_F(LibVirtBackend, returns_version_string_when_failed_connecting)
     EXPECT_EQ(called, 0);
 }
 
-TEST_F(LibVirtBackend, ssh_hostname_returns_expected_value)
+TEST_F(LibVirtBackend, sshHostnameReturnsExpectedValue)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
@@ -404,7 +404,7 @@ TEST_F(LibVirtBackend, ssh_hostname_returns_expected_value)
     EXPECT_EQ(machine->VirtualMachine::ssh_hostname(), expected_ip);
 }
 
-TEST_F(LibVirtBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
+TEST_F(LibVirtBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
@@ -423,7 +423,7 @@ TEST_F(LibVirtBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
     EXPECT_EQ(machine->state, mp::VirtualMachine::State::unknown);
 }
 
-TEST_F(LibVirtBackend, shutdown_while_starting_throws_and_sets_correct_state)
+TEST_F(LibVirtBackend, shutdownWhileStartingThrowsAndSetsCorrectState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     mp::LibVirtVirtualMachineFactory backend{data_dir.path(), fake_libvirt_path};
@@ -524,7 +524,7 @@ TEST_F(LibVirtBackend, machineNoForceCannotShutdownLogsAndThrows)
         mpt::match_what(AllOf(HasSubstr("pied-piper-valley"), HasSubstr(error_msg))));
 }
 
-TEST_F(LibVirtBackend, lists_no_networks)
+TEST_F(LibVirtBackend, listsNoNetworks)
 {
     mp::LibVirtVirtualMachineFactory backend(data_dir.path(), fake_libvirt_path);
 

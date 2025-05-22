@@ -22,7 +22,7 @@
 namespace mp = multipass;
 using namespace testing;
 
-TEST(IPAddress, can_initialize_from_string)
+TEST(IPAddress, canInitializeFromString)
 {
     mp::IPAddress ip{"192.168.1.3"};
 
@@ -32,14 +32,14 @@ TEST(IPAddress, can_initialize_from_string)
     EXPECT_THAT(ip.octets[3], Eq(3));
 }
 
-TEST(IPAddress, can_convert_to_string)
+TEST(IPAddress, canConvertToString)
 {
     mp::IPAddress ip{std::array<uint8_t, 4>{{192, 168, 1, 3}}};
 
     EXPECT_THAT(ip.as_string(), StrEq("192.168.1.3"));
 }
 
-TEST(IPAddress, throws_on_invalid_ip_string)
+TEST(IPAddress, throwsOnInvalidIpString)
 {
     EXPECT_THROW(mp::IPAddress ip{"100111.3434.3"}, std::invalid_argument);
     EXPECT_THROW(mp::IPAddress ip{"256.256.256.256"}, std::invalid_argument);
@@ -47,14 +47,14 @@ TEST(IPAddress, throws_on_invalid_ip_string)
     EXPECT_THROW(mp::IPAddress ip{"a.b.c.d"}, std::invalid_argument);
 }
 
-TEST(IPAddress, can_be_converted_to_integer)
+TEST(IPAddress, canBeConvertedToInteger)
 {
     mp::IPAddress ip{std::array<uint8_t, 4>{{0xC0, 0xA8, 0x1, 0x3}}};
 
     EXPECT_THAT(ip.as_uint32(), Eq(0xC0A80103));
 }
 
-TEST(IPAddress, can_use_comparison_operators)
+TEST(IPAddress, canUseComparisonOperators)
 {
     mp::IPAddress low{"10.120.0.0"};
     mp::IPAddress high{"10.120.2.255"};
@@ -67,7 +67,7 @@ TEST(IPAddress, can_use_comparison_operators)
     EXPECT_TRUE(high >= high);
 }
 
-TEST(IPAddress, supports_addition_operator)
+TEST(IPAddress, supportsAdditionOperator)
 {
     mp::IPAddress an_ip{"10.120.0.255"};
     mp::IPAddress expected_ip{"10.120.1.3"};

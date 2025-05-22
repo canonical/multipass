@@ -57,7 +57,7 @@ struct TestQemuPlatformDetail : public Test
 };
 } // namespace
 
-TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
+TEST_F(TestQemuPlatformDetail, vmPlatformArgsReturnsExpectedArguments)
 {
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
@@ -76,7 +76,7 @@ TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
     check_expected_args(expected_args, qemu_platform_detail.vm_platform_args(vm_desc));
 }
 
-TEST_F(TestQemuPlatformDetail, vmstate_platform_args_returns_expected_arguments)
+TEST_F(TestQemuPlatformDetail, vmstatePlatformArgsReturnsExpectedArguments)
 {
     std::vector<QStringList> expected_args;
 
@@ -88,7 +88,7 @@ TEST_F(TestQemuPlatformDetail, vmstate_platform_args_returns_expected_arguments)
     check_expected_args(expected_args, qemu_platform_detail.vmstate_platform_args());
 }
 
-TEST_F(TestQemuPlatformDetail, get_directory_name_returns_expected_string)
+TEST_F(TestQemuPlatformDetail, getDirectoryNameReturnsExpectedString)
 {
     EXPECT_EQ(qemu_platform_detail.get_directory_name(), "qemu");
 }

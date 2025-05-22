@@ -77,26 +77,26 @@ struct CloudInitIso : public Test
     QString iso_path;
 };
 
-TEST_F(CloudInitIso, check_contains_false)
+TEST_F(CloudInitIso, checkContainsFalse)
 {
     mp::CloudInitIso iso;
     EXPECT_FALSE(iso.contains("non_exist_file"));
 }
 
-TEST_F(CloudInitIso, check_contains_true)
+TEST_F(CloudInitIso, checkContainsTrue)
 {
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
     EXPECT_TRUE(iso.contains("test"));
 }
 
-TEST_F(CloudInitIso, check_erase_false)
+TEST_F(CloudInitIso, checkEraseFalse)
 {
     mp::CloudInitIso iso;
     EXPECT_FALSE(iso.erase("non_exist_file"));
 }
 
-TEST_F(CloudInitIso, check_erase_true)
+TEST_F(CloudInitIso, checkEraseTrue)
 {
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
@@ -105,7 +105,7 @@ TEST_F(CloudInitIso, check_erase_true)
     EXPECT_FALSE(iso.contains("test"));
 }
 
-TEST_F(CloudInitIso, check_at_operator_throw)
+TEST_F(CloudInitIso, checkAtOperatorThrow)
 {
     mp::CloudInitIso iso;
     MP_EXPECT_THROW_THAT(
@@ -115,27 +115,27 @@ TEST_F(CloudInitIso, check_at_operator_throw)
             StrEq("Did not find the target file non_exist_file in the CloudInitIso instance.")));
 }
 
-TEST_F(CloudInitIso, check_at_operator_found_key)
+TEST_F(CloudInitIso, checkAtOperatorFoundKey)
 {
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
     EXPECT_EQ(iso.at("test"), "test data");
 }
 
-TEST_F(CloudInitIso, check_index_operator_not_exist_default_return)
+TEST_F(CloudInitIso, checkIndexOperatorNotExistDefaultReturn)
 {
     mp::CloudInitIso iso;
     EXPECT_EQ(iso["test"], std::string());
 }
 
-TEST_F(CloudInitIso, check_index_operator_found_key)
+TEST_F(CloudInitIso, checkIndexOperatorFoundKey)
 {
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
     EXPECT_EQ(iso["test"], "test data");
 }
 
-TEST_F(CloudInitIso, creates_iso_file)
+TEST_F(CloudInitIso, createsIsoFile)
 {
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
@@ -146,7 +146,7 @@ TEST_F(CloudInitIso, creates_iso_file)
     EXPECT_THAT(file.size(), Ge(0));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
+TEST_F(CloudInitIso, readsIsoFileFailedToOpenFile)
 {
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
@@ -159,7 +159,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)
                          mpt::match_what(HasSubstr("Failed to open file")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
+TEST_F(CloudInitIso, readsIsoFileFailedToReadSingleBytes)
 {
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
@@ -178,7 +178,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_single_bytes)
         mpt::match_what(HasSubstr("Can not read the next byte data from file at")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descriptor)
+TEST_F(CloudInitIso, readsIsoFileFailedToCheckItHasJolietVolumeDescriptor)
 {
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
@@ -202,7 +202,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_it_has_Joliet_volume_descrip
                          mpt::match_what(StrEq("The Joliet volume descriptor is not in place.")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
+TEST_F(CloudInitIso, readsIsoFileJolietVolumeDescriptorMalformed)
 {
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
@@ -228,7 +228,7 @@ TEST_F(CloudInitIso, reads_iso_file_Joliet_volume_descriptor_malformed)
                          mpt::match_what(StrEq("The Joliet descriptor is malformed.")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_read_array)
+TEST_F(CloudInitIso, readsIsoFileFailedToReadArray)
 {
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
@@ -249,7 +249,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_array)
                          mpt::match_what(HasSubstr("bytes data from file at")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
+TEST_F(CloudInitIso, readsIsoFileFailedToCheckRootDirRecordData)
 {
     mp::CloudInitIso original_iso;
     original_iso.write_to(iso_path);
@@ -276,7 +276,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_check_root_dir_record_data)
                          mpt::match_what(StrEq("The root directory record data is malformed.")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
+TEST_F(CloudInitIso, readsIsoFileFailedToReadVec)
 {
     mp::CloudInitIso original_iso;
     // At least one actual file entry is need to reach the read_bytes_to_vec call
@@ -301,7 +301,7 @@ TEST_F(CloudInitIso, reads_iso_file_failed_to_read_vec)
                          mpt::match_what(HasSubstr("bytes data from file at")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_encoded_file_name_is_not_even_length)
+TEST_F(CloudInitIso, readsIsoFileEncodedFileNameIsNotEvenLength)
 {
     mp::CloudInitIso original_iso;
     // At least one actual file entry is need to reach the convert_u16_name_back call
@@ -337,7 +337,7 @@ TEST_F(CloudInitIso, reads_iso_file_encoded_file_name_is_not_even_length)
         mpt::match_what(HasSubstr("is not even, which does not conform to u16 name format")));
 }
 
-TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
+TEST_F(CloudInitIso, readsIsoFileWithRandomStringData)
 {
     mp::CloudInitIso original_iso;
 
@@ -354,7 +354,7 @@ TEST_F(CloudInitIso, reads_iso_file_with_random_string_data)
     EXPECT_EQ(original_iso, new_iso);
 }
 
-TEST_F(CloudInitIso, reads_iso_file_with_mocked_real_file_data)
+TEST_F(CloudInitIso, readsIsoFileWithMockedRealFileData)
 {
     constexpr auto* user_data_content = R"(#cloud-config
 {})";

@@ -179,7 +179,7 @@ struct QemuMountHandlerFailCommand : public QemuMountHandlerTest,
 };
 } // namespace
 
-TEST_F(QemuMountHandlerTest, mount_fails_when_vm_not_stopped)
+TEST_F(QemuMountHandlerTest, mountFailsWhenVmNotStopped)
 {
     EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
     MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, &key_provider, default_target, mount),
@@ -188,7 +188,7 @@ TEST_F(QemuMountHandlerTest, mount_fails_when_vm_not_stopped)
                                                HasSubstr("before attempting native mounts."))));
 }
 
-TEST_F(QemuMountHandlerTest, mount_fails_on_multiple_id_mappings)
+TEST_F(QemuMountHandlerTest, mountFailsOnMultipleIdMappings)
 {
     const mp::VMMount mount{default_source,
                             {{1, 2}, {3, 4}},
@@ -199,7 +199,7 @@ TEST_F(QemuMountHandlerTest, mount_fails_on_multiple_id_mappings)
                          mpt::match_what(StrEq("Only one mapping per native mount allowed.")));
 }
 
-TEST_F(QemuMountHandlerTest, mount_handles_mount_args)
+TEST_F(QemuMountHandlerTest, mountHandlesMountArgs)
 {
     {
         mp::MountHandler::UPtr mount_handler;
@@ -224,7 +224,7 @@ TEST_F(QemuMountHandlerTest, mount_handles_mount_args)
     EXPECT_EQ(mount_args.size(), 0);
 }
 
-TEST_F(QemuMountHandlerTest, mount_logs_init)
+TEST_F(QemuMountHandlerTest, mountLogsInit)
 {
     logger_scope.mock_logger->expect_log(mpl::Level::info,
                                          fmt::format("initializing native mount {} => {} in '{}'",
@@ -234,7 +234,7 @@ TEST_F(QemuMountHandlerTest, mount_logs_init)
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 
-TEST_F(QemuMountHandlerTest, recover_from_suspended)
+TEST_F(QemuMountHandlerTest, recoverFromSuspended)
 {
     mount_args[tag_from_target(default_target)] = {};
     EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::suspended));
@@ -247,7 +247,7 @@ TEST_F(QemuMountHandlerTest, recover_from_suspended)
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 
-TEST_F(QemuMountHandlerTest, start_success_stop_success)
+TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -258,7 +258,7 @@ TEST_F(QemuMountHandlerTest, start_success_stop_success)
     EXPECT_NO_THROW(handler.deactivate());
 }
 
-TEST_F(QemuMountHandlerTest, stop_fail_nonforce_throws)
+TEST_F(QemuMountHandlerTest, stopFailNonforceThrows)
 {
     auto error = "device is busy";
     command_outputs.at(command_umount(default_target)) = {error, 1};
@@ -272,7 +272,7 @@ TEST_F(QemuMountHandlerTest, stop_fail_nonforce_throws)
     MP_EXPECT_THROW_THAT(handler.deactivate(), std::runtime_error, mpt::match_what(StrEq(error)));
 }
 
-TEST_F(QemuMountHandlerTest, stop_fail_force_logs)
+TEST_F(QemuMountHandlerTest, stopFailForceLogs)
 {
     auto error = "device is busy";
     command_outputs.at(command_umount(default_target)) = {error, 1};
@@ -291,7 +291,7 @@ TEST_F(QemuMountHandlerTest, stop_fail_force_logs)
                     error));
 }
 
-TEST_F(QemuMountHandlerTest, target_directory_missing)
+TEST_F(QemuMountHandlerTest, targetDirectoryMissing)
 {
     const std::string parent = "/home/ubuntu";
     const std::string missing = "target";
@@ -317,7 +317,7 @@ INSTANTIATE_TEST_SUITE_P(QemuMountHandlerFailCommand,
                                          command_mount("target"),
                                          command_get_existing_parent("/home/ubuntu/target")));
 
-TEST_P(QemuMountHandlerFailCommand, throw_on_fail)
+TEST_P(QemuMountHandlerFailCommand, throwOnFail)
 {
     const auto cmd = GetParam();
     const auto error = "failed: " + cmd;

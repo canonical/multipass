@@ -37,7 +37,7 @@ struct TestDnsmasqProcessSpec : public Test
     const QString conf_file_path{"/path/to/file.conf"};
 };
 
-TEST_F(TestDnsmasqProcessSpec, default_arguments_correct)
+TEST_F(TestDnsmasqProcessSpec, defaultArgumentsCorrect)
 {
     const QByteArray snap_name{"multipass"};
 
@@ -64,14 +64,14 @@ TEST_F(TestDnsmasqProcessSpec, default_arguments_correct)
                            "--conf-file=/path/to/file.conf"}));
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmor_profile_has_correct_name)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfileHasCorrectName)
 {
     mp::DNSMasqProcessSpec spec(data_dir, bridge_name, subnet, conf_file_path);
 
     EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.dnsmasq"));
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmor_profile_permits_data_dirs)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfilePermitsDataDirs)
 {
     mp::DNSMasqProcessSpec spec(data_dir, bridge_name, subnet, conf_file_path);
 
@@ -80,14 +80,14 @@ TEST_F(TestDnsmasqProcessSpec, apparmor_profile_permits_data_dirs)
     EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/file.conf r,"));
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmor_profile_identifier)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfileIdentifier)
 {
     mp::DNSMasqProcessSpec spec(data_dir, bridge_name, subnet, conf_file_path);
 
     EXPECT_EQ(spec.identifier(), "");
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmor_profile_running_as_snap_correct)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfileRunningAsSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
@@ -102,7 +102,7 @@ TEST_F(TestDnsmasqProcessSpec, apparmor_profile_running_as_snap_correct)
         spec.apparmor_profile().contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmor_profile_running_as_symlinked_snap_correct)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, link_dir;
@@ -118,7 +118,7 @@ TEST_F(TestDnsmasqProcessSpec, apparmor_profile_running_as_symlinked_snap_correc
         spec.apparmor_profile().contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmor_profile_not_running_as_snap_correct)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
 

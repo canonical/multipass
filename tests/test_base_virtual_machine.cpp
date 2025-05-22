@@ -283,7 +283,7 @@ struct BaseVM : public Test
     static constexpr auto digit_char_class = on_windows ? "\\d" : "[[:digit:]]";
 };
 
-TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
+TEST_F(BaseVM, getAllIpv4WorksWhenSshThrowsOpeningASession)
 {
     vm.simulate_state(St::running);
     vm.simulate_ssh_exec();
@@ -293,7 +293,7 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_opening_a_session)
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
-TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
+TEST_F(BaseVM, getAllIpv4WorksWhenSshThrowsExecuting)
 {
     vm.simulate_state(St::running);
     vm.simulate_ssh_exec();
@@ -305,14 +305,14 @@ TEST_F(BaseVM, get_all_ipv4_works_when_ssh_throws_executing)
     EXPECT_EQ(ip_list.size(), 0u);
 }
 
-TEST_F(BaseVM, get_all_ipv4_works_when_instance_is_off)
+TEST_F(BaseVM, getAllIpv4WorksWhenInstanceIsOff)
 {
     vm.simulate_state(St::off);
 
     EXPECT_EQ(vm.get_all_ipv4().size(), 0u);
 }
 
-TEST_F(BaseVM, add_network_interface_throws)
+TEST_F(BaseVM, addNetworkInterfaceThrows)
 {
     StubBaseVirtualMachine base_vm(St::off);
 
@@ -332,7 +332,7 @@ struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
 {
 };
 
-TEST_P(IpExecution, get_all_ipv4_works_when_ssh_works)
+TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
 {
     vm.simulate_state(St::running);
     vm.simulate_ssh_exec();

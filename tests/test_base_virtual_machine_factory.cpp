@@ -88,14 +88,14 @@ struct BaseFactory : public Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
-TEST_F(BaseFactory, returns_image_only_fetch_type)
+TEST_F(BaseFactory, returnsImageOnlyFetchType)
 {
     MockBaseFactory factory;
 
     EXPECT_EQ(factory.fetch_type(), mp::FetchType::ImageOnly);
 }
 
-TEST_F(BaseFactory, dir_name_returns_empty_string)
+TEST_F(BaseFactory, dirNameReturnsEmptyString)
 {
     MockBaseFactory factory;
 
@@ -104,7 +104,7 @@ TEST_F(BaseFactory, dir_name_returns_empty_string)
     EXPECT_TRUE(dir_name.isEmpty());
 }
 
-TEST_F(BaseFactory, create_image_vault_returns_default_vault)
+TEST_F(BaseFactory, createImageVaultReturnsDefaultVault)
 {
     mpt::StubURLDownloader stub_downloader;
     mpt::TempDir cache_dir;
@@ -121,7 +121,7 @@ TEST_F(BaseFactory, create_image_vault_returns_default_vault)
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
 }
 
-TEST_F(BaseFactory, networks_throws)
+TEST_F(BaseFactory, networksThrows)
 {
     StrictMock<MockBaseFactory> factory;
 
@@ -132,7 +132,7 @@ TEST_F(BaseFactory, networks_throws)
 // Ideally, we'd define some unique YAML for each node and test the contents of the ISO image,
 // but we'd need a cross-platform library to read files in an ISO image and that is beyond scope
 // at this time.  Instead, just make sure an ISO image is created and has the expected path.
-TEST_F(BaseFactory, creates_cloud_init_iso_image)
+TEST_F(BaseFactory, createsCloudInitIsoImage)
 {
     MockBaseFactory factory;
     const std::string name{"foo"};
@@ -164,7 +164,7 @@ TEST_F(BaseFactory, creates_cloud_init_iso_image)
     EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
 }
 
-TEST_F(BaseFactory, create_bridge_not_implemented)
+TEST_F(BaseFactory, createBridgeNotImplemented)
 {
     StrictMock<MockBaseFactory> factory;
 
