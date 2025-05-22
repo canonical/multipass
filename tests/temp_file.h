@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEMP_FILE_H
-#define MULTIPASS_TEMP_FILE_H
+#pragma once
 
 #include <QString>
 #include <QTemporaryFile>
@@ -40,6 +39,4 @@ private:
     QString the_url;
 };
 }
-}
-
-#endif // MULTIPASS_TEMP_FILE_H
+} // namespace multipass

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_FACTORY_H
-#define MULTIPASS_PROCESS_FACTORY_H
+#pragma once
 
 #include <memory>
 
@@ -39,5 +38,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_PROCESS_FACTORY_H

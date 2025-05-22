@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_SIMPLE_STREAMS_INDEX_H
-#define MULTIPASS_SIMPLE_STREAMS_INDEX_H
+#pragma once
 
 #include <QByteArray>
 #include <QString>
@@ -33,5 +32,4 @@ public:
     const QString manifest_path;
     const QString updated_at;
 };
-}
-#endif // MULTIPASS_SIMPLE_STREAMS_INDEX_H
+} // namespace multipass

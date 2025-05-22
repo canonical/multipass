@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BLUEPRINT_TEST_LAMBDAS_H
-#define MULTIPASS_BLUEPRINT_TEST_LAMBDAS_H
+#pragma once
 
 #include <multipass/alias_definition.h>
 #include <multipass/fetch_type.h>
@@ -60,5 +59,3 @@ std::function<Query(const std::string&, VirtualMachineDescription&, ClientLaunch
 
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_BLUEPRINT_TEST_LAMBDAS_H

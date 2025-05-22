@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERVSNAPSHOT_H
-#define MULTIPASS_HYPERVSNAPSHOT_H
+#pragma once
 
 #include <shared/base_snapshot.h>
 
@@ -55,5 +54,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_HYPERVSNAPSHOT_H

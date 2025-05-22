@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_EXCEPTIONS_H
-#define MULTIPASS_SETTINGS_EXCEPTIONS_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -73,5 +72,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_SETTINGS_EXCEPTIONS_H

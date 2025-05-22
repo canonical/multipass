@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_URL_DOWNLOADER_H
-#define MULTIPASS_URL_DOWNLOADER_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "path.h"
@@ -67,4 +66,3 @@ private:
     std::chrono::milliseconds timeout;
 };
 } // namespace multipass
-#endif // MULTIPASS_URL_DOWNLOADER_H

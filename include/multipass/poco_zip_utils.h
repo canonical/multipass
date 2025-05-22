@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_POCO_ZIP_UTILS_H
-#define MULTIPASS_POCO_ZIP_UTILS_H
+#pragma once
 
 #include "singleton.h"
 
@@ -36,5 +35,3 @@ public:
     virtual Poco::Zip::ZipArchive zip_archive_for(std::ifstream& zip_stream) const;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_POCO_ZIP_UTILS_H

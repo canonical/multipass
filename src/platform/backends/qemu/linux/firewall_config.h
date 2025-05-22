@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FIREWALL_CONFIG_H
-#define MULTIPASS_FIREWALL_CONFIG_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -62,4 +61,3 @@ public:
     virtual FirewallConfig::UPtr make_firewall_config(const QString& bridge_name, const std::string& subnet) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_FIREWALL_CONFIG_H

@@ -65,7 +65,4 @@ inline int multipass::RemoteSettingsHandler::get_verbosity() const
     return verbosity;
 }
 
-#ifndef MULTIPASS_REMOTE_SETTINGS_HANDLER_H
-#define MULTIPASS_REMOTE_SETTINGS_HANDLER_H
-
-#endif // MULTIPASS_REMOTE_SETTINGS_HANDLER_H
+#pragma once

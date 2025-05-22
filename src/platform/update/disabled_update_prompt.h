@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DISABLED_UPDATE_PROMPT_H
-#define MULTIPASS_DISABLED_UPDATE_PROMPT_H
+#pragma once
 
 #include <multipass/update_prompt.h>
 
@@ -31,5 +30,3 @@ public:
     void populate_if_time_to_show(UpdateInfo *) override {}
 };
 } // namespace multipass
-
-#endif // MULTIPASS_DISABLED_UPDATE_PROMPT_H

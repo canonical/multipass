@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
-#define MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -39,5 +38,3 @@ private:
     std::string detail;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H

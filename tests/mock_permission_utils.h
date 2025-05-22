@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_PERMISSION_UTILS_H
-#define MULTIPASS_MOCK_PERMISSION_UTILS_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -38,5 +37,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockPermissionUtils, PermissionUtils);
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_PERMISSION_UTILS_H

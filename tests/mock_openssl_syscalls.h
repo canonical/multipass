@@ -15,13 +15,10 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_OPENSSL_SYSCALLS_H
-#define MULTIPASS_MOCK_OPENSSL_SYSCALLS_H
+#pragma once
 
 #include <premock.hpp>
 
 #include <openssl/evp.h>
 
 DECL_MOCK(EVP_PBE_scrypt);
-
-#endif // MULTIPASS_MOCK_OPENSSL_SYSCALLS_H

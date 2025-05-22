@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "days.h"
 #include "disabled_copy_move.h"
@@ -87,5 +86,4 @@ protected:
 
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) = 0;
 };
-}
-#endif // MULTIPASS_VIRTUAL_MACHINE_FACTORY_H
+} // namespace multipass

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_CLIENT_KEY_PROVIDER_H
-#define MULTIPASS_SSH_CLIENT_KEY_PROVIDER_H
+#pragma once
 
 #include <multipass/ssh/ssh_key_provider.h>
 
@@ -42,5 +41,4 @@ public:
 private:
     KeyUPtr priv_key;
 };
-}
-#endif // MULTIPASS_SSH_CLIENT_KEY_PROVIDER_H
+} // namespace multipass

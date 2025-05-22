@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_EXEC_H
-#define MULTIPASS_EXEC_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -53,4 +52,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_EXEC_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PLATFORM_DETAIL_H
-#define MULTIPASS_QEMU_PLATFORM_DETAIL_H
+#pragma once
 
 #include <qemu_platform.h>
 
@@ -46,4 +45,3 @@ private:
     const QStringList common_args;
 };
 } // namespace multipass
-#endif // MULTIPASS_QEMU_PLATFORM_DETAIL_H

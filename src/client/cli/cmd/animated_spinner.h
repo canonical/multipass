@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MULTIPASS_ANIMATED_SPINNER_H
-#define MULTIPASS_ANIMATED_SPINNER_H
+#pragma once
 
 #include <future>
 #include <string>
@@ -44,6 +43,4 @@ private:
     std::condition_variable cv;
     std::thread t;
 };
-}
-
-#endif // MULTIPASS_ANIMATED_SPINNER_H
+} // namespace multipass

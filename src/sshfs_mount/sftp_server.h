@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_SERVER_H
-#define MULTIPASS_SFTP_SERVER_H
+#pragma once
 
 #include <multipass/file_ops.h>
 #include <multipass/id_mappings.h>
@@ -101,4 +100,3 @@ private:
     bool stop_invoked{false};
 };
 } // namespace multipass
-#endif // MULTIPASS_SFTP_SERVER_H

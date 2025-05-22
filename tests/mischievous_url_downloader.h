@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H
-#define MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H
+#pragma once
 
 #include <multipass/url_downloader.h>
 
@@ -47,5 +46,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif /* MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H */

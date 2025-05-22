@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FORMATTER_H
-#define MULTIPASS_FORMATTER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
@@ -50,5 +49,4 @@ protected:
         return std::map<typename D::key_type, typename D::mapped_type>(unsorted_dict.cbegin(), unsorted_dict.cend());
     }
 };
-}
-#endif // MULTIPASS_FORMATTER_H
+} // namespace multipass

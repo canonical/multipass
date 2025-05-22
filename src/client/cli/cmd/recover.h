@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_RECOVER_H
-#define MULTIPASS_RECOVER_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -42,5 +41,4 @@ private:
     ParseCode parse_args(ArgParser* parser);
 };
 }
-}
-#endif // MULTIPASS_RECOVER_H
+} // namespace multipass

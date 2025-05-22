@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FORMAT_H
-#define MULTIPASS_FORMAT_H
+#pragma once
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -77,5 +76,3 @@ struct formatter<QProcess::ExitStatus>
 };
 
 } // namespace fmt
-
-#endif // MULTIPASS_FORMAT_H

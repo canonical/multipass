@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_BLUEPRINT_PROVIDER_H
-#define MULTIPASS_VM_BLUEPRINT_PROVIDER_H
+#pragma once
 
 #include "client_launch_data.h"
 #include "disabled_copy_move.h"
@@ -48,4 +47,3 @@ protected:
     VMBlueprintProvider() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_VM_BLUEPRINT_PROVIDER_H

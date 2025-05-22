@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_PROCESS_SPEC_H
-#define MULTIPASS_DNSMASQ_PROCESS_SPEC_H
+#pragma once
 
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
@@ -47,5 +46,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_DNSMASQ_PROCESS_SPEC_H

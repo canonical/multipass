@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOUNT_H
-#define MULTIPASS_MOUNT_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -40,5 +39,4 @@ private:
     ParseCode parse_args(ArgParser* parser);
 };
 }
-}
-#endif // MULTIPASS_MOUNT_H
+} // namespace multipass

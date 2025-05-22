@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_CONSOLE_H
-#define MULTIPASS_STUB_CONSOLE_H
+#pragma once
 
 #include <multipass/console.h>
 
@@ -33,5 +32,4 @@ struct StubConsole final : public multipass::Console
     void exit_console() override{};
 };
 }
-}
-#endif // MULTIPASS_STUB_CONSOLE_H
+} // namespace multipass

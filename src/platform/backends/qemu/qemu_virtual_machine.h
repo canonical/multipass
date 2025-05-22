@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_H
-#define MULTIPASS_QEMU_VIRTUAL_MACHINE_H
+#pragma once
 
 #include "qemu_platform.h"
 
@@ -120,5 +119,3 @@ private:
 inline void multipass::QemuVirtualMachine::require_snapshots_support() const
 {
 }
-
-#endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_H

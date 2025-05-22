@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_SERVER_TEST_FIXTURE_H
-#define MULTIPASS_SFTP_SERVER_TEST_FIXTURE_H
+#pragma once
 
 #include "common.h"
 #include "mock_sftp.h"
@@ -52,4 +51,3 @@ struct SftpServerTest : public testing::Test
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_SFTP_SERVER_TEST_FIXTURE_H

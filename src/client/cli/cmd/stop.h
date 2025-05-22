@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_STOP_H
-#define MULTIPASS_STOP_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -42,5 +41,4 @@ private:
     ParseCode parse_args(ArgParser* parser);
 };
 }
-}
-#endif // MULTIPASS_STOP_H
+} // namespace multipass

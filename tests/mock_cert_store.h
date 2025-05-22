@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_CERT_STORE_H
-#define MULTIPASS_MOCK_CERT_STORE_H
+#pragma once
 
 #include <multipass/cert_store.h>
 
@@ -30,4 +29,3 @@ struct MockCertStore : public CertStore
     MOCK_METHOD(bool, empty, (), (override));
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_CERT_STORE_H

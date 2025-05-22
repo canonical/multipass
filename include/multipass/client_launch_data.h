@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_LAUNCH_DATA_H
-#define MULTIPASS_CLIENT_LAUNCH_DATA_H
+#pragma once
 
 #include "alias_definition.h"
 
@@ -31,5 +30,3 @@ struct ClientLaunchData
     std::vector<std::string> workspaces_to_be_created;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_CLIENT_LAUNCH_DATA_H

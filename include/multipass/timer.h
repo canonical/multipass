@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TIMER_H
-#define MULTIPASS_TIMER_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "singleton.h"
@@ -72,5 +71,3 @@ public:
                           const std::chrono::duration<int, std::milli>& rel_time, std::function<bool()>) const;
 };
 } // namespace multipass::utils
-
-#endif // MULTIPASS_TIMER_H

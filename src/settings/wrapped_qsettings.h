@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WRAPPED_QSETTINGS_H
-#define MULTIPASS_WRAPPED_QSETTINGS_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/singleton.h>
@@ -102,5 +101,3 @@ public:
     }
 };
 } // namespace multipass
-
-#endif // MULTIPASS_WRAPPED_QSETTINGS_H

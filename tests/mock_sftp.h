@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SFTP_H
-#define MULTIPASS_MOCK_SFTP_H
+#pragma once
 
 #include <premock.hpp>
 
@@ -41,5 +40,3 @@ DECL_MOCK(sftp_unlink);
 DECL_MOCK(sftp_setstat);
 DECL_MOCK(sftp_dir_eof);
 DECL_MOCK(sftp_chmod);
-
-#endif // MULTIPASS_MOCK_SFTP_H

@@ -16,8 +16,7 @@
  * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  */
 
-#ifndef MULTIPASS_AUTO_JOIN_THREAD_H
-#define MULTIPASS_AUTO_JOIN_THREAD_H
+#pragma once
 
 #include <memory>
 #include <thread>
@@ -41,5 +40,3 @@ struct AutoJoinThread
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_AUTO_JOIN_THREAD_H

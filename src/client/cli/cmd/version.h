@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_VERSION_H
-#define MULTIPASS_VERSION_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -44,5 +43,4 @@ private:
     Formatter* chosen_formatter;
 };
 }
-}
-#endif // MULTIPASS_VERSION_H
+} // namespace multipass

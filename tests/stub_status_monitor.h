@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_STATUS_MONITOR_H
-#define MULTIPASS_STUB_STATUS_MONITOR_H
+#pragma once
 
 #include <multipass/vm_status_monitor.h>
 
@@ -39,5 +38,4 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
     };
 };
 }
-}
-#endif // MULTIPASS_STUB_STATUS_MONITOR_H
+} // namespace multipass

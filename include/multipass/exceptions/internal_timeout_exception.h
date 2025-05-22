@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_INTERNAL_TIMEOUT_EXCEPTION_H
-#define MULTIPASS_INTERNAL_TIMEOUT_EXCEPTION_H
+#pragma once
 
 #include <chrono>
 #include <stdexcept>
@@ -37,5 +36,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_INTERNAL_TIMEOUT_EXCEPTION_H

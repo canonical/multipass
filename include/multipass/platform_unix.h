@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PLATFORM_UNIX_H
-#define MULTIPASS_PLATFORM_UNIX_H
+#pragma once
 
 #include <csignal>
 #include <vector>
@@ -42,4 +41,3 @@ sigset_t make_sigset(const std::vector<int>& sigs);
 sigset_t make_and_block_signals(const std::vector<int>& sigs);
 
 } // namespace multipass::platform
-#endif // MULTIPASS_PLATFORM_UNIX_H

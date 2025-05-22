@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_SNAPSHOT_H
-#define MULTIPASS_QEMU_SNAPSHOT_H
+#pragma once
 
 #include "qemu_virtual_machine.h"
 
@@ -52,5 +51,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_QEMU_SNAPSHOT_H

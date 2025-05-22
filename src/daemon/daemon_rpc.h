@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DAEMON_RPC_H
-#define MULTIPASS_DAEMON_RPC_H
+#pragma once
 
 #include "daemon_config.h"
 
@@ -169,4 +168,3 @@ protected:
                              grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server) override;
 };
 } // namespace multipass
-#endif // MULTIPASS_DAEMON_RPC_H

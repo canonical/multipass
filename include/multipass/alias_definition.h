@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ALIAS_DEFINITION_H
-#define MULTIPASS_ALIAS_DEFINITION_H
+#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -38,4 +37,3 @@ inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
 typedef typename std::unordered_map<std::string, AliasDefinition> AliasContext;
 
 } // namespace multipass
-#endif // MULTIPASS_ALIAS_DEFINITION_H

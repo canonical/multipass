@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TRACKING_URL_DOWNLOADER_H
-#define MULTIPASS_TRACKING_URL_DOWNLOADER_H
+#pragma once
 
 #include "file_operations.h"
 
@@ -60,5 +59,3 @@ struct TrackingURLDownloader : public URLDownloader
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_TRACKING_URL_DOWNLOADER_H

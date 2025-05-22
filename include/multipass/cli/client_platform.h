@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -58,5 +57,3 @@ void open_multipass_shell(const QString& instance_name); // precondition: requir
 inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
 }
-
-#endif // MULTIPASS_CLIENT_PLATFORM_H

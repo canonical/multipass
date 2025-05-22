@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CREATE_ALIAS_H
-#define MULTIPASS_CREATE_ALIAS_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/return_codes.h>
@@ -32,5 +31,3 @@ ReturnCode create_alias(AliasDict& aliases, const std::string& alias_name, const
                         const std::optional<std::string>& context = std::nullopt);
 } // namespace cmd
 } // namespace multipass
-
-#endif // MULTIPASS_CREATE_ALIAS_H

@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEST_DATA_PATH_H
-#define MULTIPASS_TEST_DATA_PATH_H
+#pragma once
 
 #include <QString>
 
@@ -32,4 +31,3 @@ QString test_data_sub_dir_path(const char* dir_name);
 std::string mock_bin_path();
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_TEST_DATA_PATH_H

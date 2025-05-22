@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef RECURSIVE_DIR_ITERATOR_H
-#define RECURSIVE_DIR_ITERATOR_H
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -293,5 +292,3 @@ private:
     DirectoryEntry current;
 };
 } // namespace multipass
-
-#endif // RECURSIVE_DIR_ITERATOR_H

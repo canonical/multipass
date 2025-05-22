@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_INTERFACE_H
-#define MULTIPASS_NETWORK_INTERFACE_H
+#pragma once
 
 #include <string>
 #include <tuple>
@@ -35,5 +34,3 @@ inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
     return std::tie(a.id, a.auto_mode, a.mac_address) == std::tie(b.id, b.auto_mode, b.mac_address);
 }
 } // namespace multipass
-
-#endif // MULTIPASS_NETWORK_INTERFACE_H

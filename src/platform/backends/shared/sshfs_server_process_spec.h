@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
-#define MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
+#pragma once
 
 #include <multipass/process/process_spec.h>
 #include <multipass/sshfs_server_config.h>
@@ -44,5 +43,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_SSHFS_SERVER_PROCESS_SPEC_H
