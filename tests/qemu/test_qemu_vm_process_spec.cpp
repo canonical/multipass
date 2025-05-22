@@ -113,7 +113,7 @@ TEST_F(TestQemuVMProcessSpec, resumeWithMissingMachineTypeGuessesCorrectly)
                   << mount_args.begin()->second.second);
 }
 
-TEST_F(TestQemuVMProcessSpec, ResumeFixesVmnetFormat)
+TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
                                                         "machine_type",

@@ -3351,7 +3351,7 @@ TEST_P(TestBasicGetSetOptions, setCmdAllowsEmptyVal)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_P(TestBasicGetSetOptions, InteractiveSetWritesSettings)
+TEST_P(TestBasicGetSetOptions, interactiveSetWritesSettings)
 {
     const auto& key = GetParam();
     const auto val = "blah";
@@ -3418,7 +3418,7 @@ TEST_F(Client, setCmdFailsWithBadKeyValFormat)
     EXPECT_THAT(send_command({"set", "x=x=x"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, InteractiveSetFailsWithEOF)
+TEST_F(Client, interactiveSetFailsWithEOF)
 {
     std::ostringstream cerr;
     std::istringstream cin;
@@ -3444,7 +3444,7 @@ TEST_F(Client, setCmdFailsWithUnknownKey)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, InteractiveSetFailsWithUnknownKey)
+TEST_F(Client, interactiveSetFailsWithUnknownKey)
 {
     const auto key = "wrong.key";
     const auto val = "blah";

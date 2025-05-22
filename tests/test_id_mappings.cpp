@@ -29,7 +29,7 @@ struct UniqueIdMappingsTestSuite
 {
 };
 
-TEST_P(UniqueIdMappingsTestSuite, UniqueIdMappingsWorks)
+TEST_P(UniqueIdMappingsTestSuite, uniqueIdMappingsWorks)
 {
     auto [input_mappings, expected_mappings] = GetParam();
 

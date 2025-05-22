@@ -141,7 +141,7 @@ TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
     }
 }
 
-TEST_F(TestSimpleStreamsManifest, LXDDriverReturnsExpectedData)
+TEST_F(TestSimpleStreamsManifest, lXDDriverReturnsExpectedData)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
 

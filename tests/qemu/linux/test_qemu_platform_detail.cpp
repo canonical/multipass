@@ -266,7 +266,7 @@ TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
     EXPECT_TRUE(non_bridged_network.needs_authorization);
 }
 
-TEST_F(QemuPlatformDetail, CreateBridgeWithCallsExpectedMethods)
+TEST_F(QemuPlatformDetail, createBridgeWithCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
 

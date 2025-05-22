@@ -300,7 +300,7 @@ struct CheckFineSuite : public HyperVBackend,
 {
 };
 
-TEST_P(CheckFineSuite, CheckDoesntThrow)
+TEST_P(CheckFineSuite, checkDoesntThrow)
 {
     ps_helper.setup_mocked_run_sequence(GetParam());
     EXPECT_NO_THROW(backend.hypervisor_health_check());
@@ -345,7 +345,7 @@ struct CheckBadSuite : public HyperVBackend,
 {
 };
 
-TEST_P(CheckBadSuite, CheckThrows)
+TEST_P(CheckBadSuite, checkThrows)
 {
     ps_helper.setup_mocked_run_sequence(GetParam());
     EXPECT_THROW(backend.hypervisor_health_check(), std::runtime_error);

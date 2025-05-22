@@ -96,7 +96,7 @@ TEST_F(AliasDictionary, worksWithBrokenFile)
     ASSERT_EQ(dict.get_active_context().size(), 0u);
 }
 
-TEST_F(AliasDictionary, SkipsCorrectlyBrokenEntriesOldFormat)
+TEST_F(AliasDictionary, skipsCorrectlyBrokenEntriesOldFormat)
 {
     std::string file_contents{"{\n"
                               "    \"alias1\": {\n"
@@ -136,7 +136,7 @@ TEST_F(AliasDictionary, SkipsCorrectlyBrokenEntriesOldFormat)
     ASSERT_EQ(a2->working_directory, "default");
 }
 
-TEST_F(AliasDictionary, SkipsCorrectlyBrokenEntries)
+TEST_F(AliasDictionary, skipsCorrectlyBrokenEntries)
 {
     std::string file_contents{"{\n"
                               "    \"active-context\": \"default\",\n"
