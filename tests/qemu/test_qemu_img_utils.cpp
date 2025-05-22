@@ -109,6 +109,23 @@ void simulate_qemuimg_convert(const mpt::MockProcess* process,
     EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
 }
 
+void simulate_qemuimg_amend(const mpt::MockProcess* process,
+                            const QString& expect_img,
+                            const mp::ProcessState& produce_result)
+{
+    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+    const auto args = process->arguments();
+    ASSERT_EQ(args.size(), 4);
+
+    EXPECT_EQ(args.at(0), "amend");
+    EXPECT_EQ(args.at(1), "-o");
+    EXPECT_EQ(args.at(2), "compat=1.1");
+    EXPECT_EQ(args.at(3), expect_img);
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+}
+
 template <class Matcher>
 void test_image_resizing(const char* img,
                          const mp::MemorySize& img_virtual_size,
@@ -247,7 +264,41 @@ TEST(QemuImgUtils, imageResizeDetectsResizingCrashFailureAndThrows)
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
-TEST_P(ImageConversionTestSuite, properlyHandlesImageConversion)
+TEST(QemuImgUtils, amendsQCow2Version)
+{
+    constexpr auto img_path = "/fake/img/path.qcow2";
+    auto process_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++process_count, 1);
+        simulate_qemuimg_amend(process, img_path, success);
+    });
+
+    mp::backend::amend_to_qcow2_v3(img_path);
+
+    EXPECT_EQ(process_count, 1);
+}
+
+TEST(QemuImgUtils, amend_detects_failure_and_throws)
+{
+    constexpr auto img_path = "/fake/img/path.qcow2";
+    auto process_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++process_count, 1);
+        simulate_qemuimg_amend(process, img_path, failure);
+    });
+
+    MP_EXPECT_THROW_THAT(mp::backend::amend_to_qcow2_v3(img_path),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Failed to amend image to QCOW2 v3")));
+
+    EXPECT_EQ(process_count, 1);
+}
+
+TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
 {
     const auto img_path = "/fake/img/path";
     const auto& [expected_img_path,
