@@ -756,15 +756,14 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
                                 "(Guybrush): Can I call you Bob?\n"
                                 "\n"
                                 "(Murray): You may call me Murray! I am a powerful demonic force! "
-                                "I'm the harbinger of your doom, and the "
-                                "forces of darkness will applaude me as I stride through the gates "
-                                "of hell, carrying your head on a pike!\n"
+                                "I'm the harbinger of your doom, and the forces of darkness will "
+                                "applaude me as I stride through the gates of hell, carrying your "
+                                "head on a pike!\n"
                                 "\n"
                                 "(Guybrush): \"Stride\"?\n"
                                 "\n"
                                 "(Murray): Alright, then. ROLL! I shall ROLL through the gates of "
-                                "hell! Must you take the fun out of "
-                                "everything?");
+                                "hell! Must you take the fun out of everything?");
 
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
                          std::runtime_error,

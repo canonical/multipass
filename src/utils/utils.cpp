@@ -367,9 +367,9 @@ QString mp::utils::make_uuid(const std::optional<std::string>& seed)
     return uuid.toString(QUuid::WithoutBraces);
 }
 
-std::string mp::utils::contents_of(
-    const multipass::Path& file_path) // TODO this should protect against long contents
+std::string mp::utils::contents_of(const multipass::Path& file_path)
 {
+    // TODO this should protect against long contents
     const std::string name{file_path.toStdString()};
     std::ifstream in(name, std::ios::in | std::ios::binary);
     if (!in)

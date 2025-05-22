@@ -37,9 +37,8 @@ struct TestSimpleStreamsManifest : public Test
 {
     void SetUp() override
     {
-        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-            .WillRepeatedly(Return("emu")); /* TODO parameterize driver
-                                               (code branches for lxd) */
+        // TODO parameterize driver (code branches for lxd)
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu"));
     }
 
     mpt::MockSettings::GuardedMock mock_settings_injection =

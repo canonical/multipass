@@ -249,19 +249,22 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     auto rollback_guard = // rollback unless we succeed
         make_bridge_rollback_guard(log_category_rollback, system_bus, parent_path, child_path);
 
-    // The following DBus calls are roughly equivalent to:
-    //   `nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1`
-    //   `nmcli connection add type bridge-slave ifname <if> master <br>
-    //   connection.autoconnect-priority 10` `nmcli connection up <child_connection>`
+    /* The following DBus calls are roughly equivalent to:
+    ```sh
+    nmcli connection add type bridge ifname <br> connection.autoconnect-slaves 1
+    nmcli connection add type bridge-slave ifname <if> master <br> \
+        connection.autoconnect-priority 10
+    nmcli connection up <child_connection>
+    ```
+    */
     parent_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg1);
     child_path = checked_dbus_call<QDBusObjectPath>(*nm_settings, "AddConnection", arg2);
     checked_dbus_call<QDBusObjectPath>(*nm_root,
                                        "ActivateConnection",
                                        child_path,
                                        root_path,
-                                       root_path); /* Inspiration
-for '/' to signal null `device` and `specific-object` derived from nmcli and libnm. See
-https://bit.ly/3dMA3QB */
+                                       root_path); /* Inspiration for '/' to signal null `device`
+                and `specific-object` derived from nmcli and libnm. See https://bit.ly/3dMA3QB */
 
     rollback_guard.dismiss(); // we succeeded!
 

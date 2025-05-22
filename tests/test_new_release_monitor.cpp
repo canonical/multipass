@@ -67,10 +67,9 @@ auto check_for_new_release(QString currentVersion, QString newVersion, QString n
     StubUpdateJson json(newVersion, newVersionUrl);
 
     mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
-    QTimer::singleShot(
-        timeout,
-        &e,
-        &QEventLoop::quit); // TODO replace with a thread sync mechanism (e.g. condition)
+
+    // TODO replace with a thread sync mechanism (e.g. condition)
+    QTimer::singleShot(timeout, &e, &QEventLoop::quit);
     e.exec();
 
     return monitor.get_new_release();

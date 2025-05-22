@@ -49,9 +49,8 @@ struct UbuntuImageHost : public testing::Test
 {
     UbuntuImageHost()
     {
-        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-            .WillRepeatedly(Return("emu")); /* TODO parameterize driver
-                                               (code branches for lxd) */
+        // TODO parameterize driver (code branches for lxd)
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu"));
         EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(""));
     }
 

@@ -40,10 +40,11 @@ bool exists_but_unreadable(const QString& filename)
     std::fstream in_stream;
     MP_FILEOPS.open(in_stream, qPrintable(filename), std::ios_base::in);
     return in_stream.fail() && errno && errno != ENOENT; /*
-        Note: QFile::error() not enough for us: it would not distinguish the actual cause of
-        failure; Note: errno is only set on some platforms, but those were experimentally verified
-        to be the only ones that do not set a bad QSettings status on permission denied; to make
-        this code portable, we need to account for a zero errno on the remaining platforms */
+        Note: QFile::error() is not enough for us: it would not distinguish the actual cause of
+            failure;
+        Note: errno is only set on some platforms, but those were experimentally verified to be the
+            only ones that do not set a bad QSettings status on permission denied; to make this code
+            portable, we need to account for a zero errno on the remaining platforms */
 }
 
 void check_status(const mp::WrappedQSettings& qsettings, const QString& attempted_operation)
