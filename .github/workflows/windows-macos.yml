@@ -77,8 +77,8 @@ jobs:
 
     outputs:
       build-label:     ${{ steps.build-params.outputs.label }}
-      mac-x86-package: ${{ steps.publish-data.outputs.macOS-x86_64-package }}
-      mac-arm-package: ${{ steps.publish-data.outputs.macOS-arm64-package }}
+      mac-x86-package: ${{ steps.publish-data.outputs.multipass-macos-12-x64-x86_64-package }}
+      mac-arm-package: ${{ steps.publish-data.outputs.multipass-macos-12-arm-arm64-package }}
 
     runs-on: ${{ matrix.runs-on }}
     continue-on-error: ${{ contains(matrix.runs-on, 'macos-13') || contains(matrix.runs-on, 'macos-14') || contains(matrix.runs-on, 'macos-15') }}
@@ -293,7 +293,7 @@ jobs:
       if: always()
       id: publish-data
       run: >
-        echo "${{ runner.os }}-${{ matrix.arch }}-package=${{ steps.cmake-package.outputs.name }}" >>
+        echo "${{ matrix.runs-on }}-${{ matrix.arch }}-package=${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}" >>
         ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
 
   CombineAndPublishMacOSPackage:
