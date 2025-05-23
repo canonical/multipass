@@ -1241,13 +1241,13 @@ TEST_F(Client, launchCmdCpuOptionFailsNoValue)
     EXPECT_THAT(send_command({"launch", "-c"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_file_ok))
+TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageFileOk))
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
     EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_http_ok))
+TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageHttpOk))
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));

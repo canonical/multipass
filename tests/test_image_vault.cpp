@@ -572,8 +572,7 @@ TEST_F(ImageVault, invalidImageDirIsRemoved)
     EXPECT_FALSE(QFileInfo::exists(invalid_image_dir.absolutePath()));
 }
 
-TEST_F(ImageVault,
-       DISABLE_ON_WINDOWS_AND_MACOS(file_based_fetch_copies_image_and_returns_expected_info))
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(fileBasedFetchCopiesImageAndReturnsExpectedInfo))
 {
     mpt::TempFile file;
     mp::DefaultVMImageVault vault{hosts,
@@ -618,7 +617,7 @@ TEST_F(ImageVault, invalidCustomImageFileThrows)
                  std::runtime_error);
 }
 
-TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(custom_image_url_downloads))
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(customImageUrlDownloads))
 {
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
@@ -696,7 +695,7 @@ TEST_F(ImageVault, invalidRemoteThrows)
                  std::runtime_error);
 }
 
-TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalid_image_alias_throw))
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalidImageAliasThrow))
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -741,7 +740,7 @@ TEST_F(ImageVault, validRemoteAndAliasReturnsValidImageInfo)
     EXPECT_THAT(image.id, Eq("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
 }
 
-TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(http_download_returns_expected_image_info))
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(httpDownloadReturnsExpectedImageInfo))
 {
     HttpURLDownloader http_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -847,7 +846,7 @@ TEST_F(ImageVault, minimumImageSizeReturnsExpectedSize)
     EXPECT_EQ(image_size, size);
 }
 
-TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(file_based_minimum_size_returns_expected_size))
+TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(fileBasedMinimumSizeReturnsExpectedSize))
 {
     const mp::MemorySize image_size{"2097152"};
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
