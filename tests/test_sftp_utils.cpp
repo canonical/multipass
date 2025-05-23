@@ -50,7 +50,7 @@ struct SFTPUtils : testing::Test
     fs::path target_path = "target/path";
 };
 
-TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_not)
+TEST_F(SFTPUtils, get_full_local_file_target_target_is_dir_child_is_not)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(true));
@@ -61,7 +61,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_not)
               target_path / source_path.filename());
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__target_exists_not_dir)
+TEST_F(SFTPUtils, get_full_local_file_target_target_exists_not_dir)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(false));
@@ -69,7 +69,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_exists_not_dir)
     EXPECT_EQ(MP_SFTPUTILS.get_local_file_target(source_path, target_path, false), target_path);
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_does)
+TEST_F(SFTPUtils, get_full_local_file_target_target_not_exists_parent_does)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, exists(target_path.parent_path(), _)).WillOnce(Return(true));
@@ -77,7 +77,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_does)
     EXPECT_EQ(MP_SFTPUTILS.get_local_file_target(source_path, target_path, false), target_path);
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_does_recursive_fail)
+TEST_F(SFTPUtils, get_full_local_file_target_target_not_exists_parent_does_recursive_fail)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(false));
     auto err = std::make_error_code(std::errc::permission_denied);
@@ -94,7 +94,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_does_recu
                                                            err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_neither)
+TEST_F(SFTPUtils, get_full_local_file_target_target_not_exists_parent_neither)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, exists(target_path.parent_path(), _)).WillOnce(Return(false));
@@ -104,7 +104,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_not_exists_parent_neither)
                          mpt::match_what(StrEq("local target does not exist")));
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_too)
+TEST_F(SFTPUtils, get_full_local_file_target_target_is_dir_child_is_too)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(true));
@@ -118,7 +118,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__target_is_dir_child_is_too)
                                           target_path / source_path.filename()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_target)
+TEST_F(SFTPUtils, get_full_local_file_target_cannot_access_target)
 {
     auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce([&](auto, std::error_code& e) {
@@ -132,7 +132,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_target)
         mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path, err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_parent)
+TEST_F(SFTPUtils, get_full_local_file_target_cannot_access_parent)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(false));
     auto err = std::make_error_code(std::errc::permission_denied);
@@ -149,7 +149,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_parent)
             StrEq(fmt::format("cannot access {}: {}", target_path.parent_path(), err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_child)
+TEST_F(SFTPUtils, get_full_local_file_target_cannot_access_child)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(true));
@@ -167,7 +167,7 @@ TEST_F(SFTPUtils, get_full_local_file_target__cannot_access_child)
                                                            err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_not)
+TEST_F(SFTPUtils, get_full_remote_file_target_target_is_dir_child_is_not)
 {
     REPLACE(sftp_stat, [&](auto, auto path) -> sftp_attributes {
         if (target_path == path)
@@ -181,7 +181,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_not)
               target_path / source_path.filename());
 }
 
-TEST_F(SFTPUtils, get_full_remote_file_target__target_exists_not_dir)
+TEST_F(SFTPUtils, get_full_remote_file_target_target_exists_not_dir)
 {
     REPLACE(sftp_stat, [&](auto, auto path) {
         return target_path == path ? get_dummy_attr(path, SSH_FILEXFER_TYPE_REGULAR) : nullptr;
@@ -191,7 +191,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_exists_not_dir)
               target_path);
 }
 
-TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_does)
+TEST_F(SFTPUtils, get_full_remote_file_target_target_not_exists_parent_does)
 {
     REPLACE(sftp_stat, [&](auto, auto path) {
         return target_path == path ? nullptr : get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY);
@@ -201,7 +201,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_does)
               target_path);
 }
 
-TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_does_recursive)
+TEST_F(SFTPUtils, get_full_remote_file_target_target_not_exists_parent_does_recursive)
 {
     REPLACE(sftp_stat, [&](auto, auto path) {
         return target_path == path ? nullptr : get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY);
@@ -212,7 +212,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_does_rec
               target_path);
 }
 
-TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_neither)
+TEST_F(SFTPUtils, get_full_remote_file_target_target_not_exists_parent_neither)
 {
     REPLACE(sftp_stat, [](auto...) { return nullptr; });
 
@@ -222,7 +222,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_not_exists_parent_neither)
         mpt::match_what(StrEq("remote target does not exist")));
 }
 
-TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_too)
+TEST_F(SFTPUtils, get_full_remote_file_target_target_is_dir_child_is_too)
 {
     REPLACE(sftp_stat,
             [](auto, auto path) { return get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -235,7 +235,7 @@ TEST_F(SFTPUtils, get_full_remote_file_target__target_is_dir_child_is_too)
                               target_path.u8string() + '/' + source_path.filename().u8string()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_exists_not_dir)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_exists_not_dir)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillOnce(Return(false));
@@ -247,7 +247,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_exists_not_dir)
             fmt::format("cannot overwrite local non-directory {} with directory", target_path))));
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__cannot_access_target)
+TEST_F(SFTPUtils, get_full_local_dir_target_cannot_access_target)
 {
     auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce([&](auto, std::error_code& e) {
@@ -261,7 +261,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__cannot_access_target)
         mpt::match_what(StrEq(fmt::format("cannot access {}: {}", target_path, err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_can_create)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_not_exists_can_create)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(false));
     EXPECT_CALL(*mock_file_ops, create_directory(target_path, _)).WillOnce(Return(true));
@@ -269,7 +269,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_can_create)
     EXPECT_EQ(MP_SFTPUTILS.get_local_dir_target(source_path, target_path, false), target_path);
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_cannot_create)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_not_exists_cannot_create)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(false));
     auto err = std::make_error_code(std::errc::permission_denied);
@@ -286,7 +286,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_not_exists_cannot_create)
             fmt::format("cannot create local directory {}: {}", target_path, err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_is_not)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_is_dir_child_is_not)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillRepeatedly(Return(true));
@@ -302,7 +302,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_is_not)
                                           target_path / source_path.filename()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_can_create)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_is_dir_child_not_exists_can_create)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillRepeatedly(Return(true));
@@ -315,7 +315,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_can_
               target_path / source_path.filename());
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_cannot_create)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_is_dir_child_not_exists_cannot_create)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillRepeatedly(Return(true));
@@ -335,7 +335,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_child_not_exists_cann
                                                            err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_cannot_access_child)
+TEST_F(SFTPUtils, get_full_local_dir_target_target_is_dir_cannot_access_child)
 {
     EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, is_directory(target_path, _)).WillRepeatedly(Return(true));
@@ -353,7 +353,7 @@ TEST_F(SFTPUtils, get_full_local_dir_target__target_is_dir_cannot_access_child)
                                                            err.message()))));
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_exists_not_dir)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_exists_not_dir)
 {
     REPLACE(sftp_stat,
             [](auto, auto path) { return get_dummy_attr(path, SSH_FILEXFER_TYPE_REGULAR); });
@@ -365,7 +365,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_exists_not_dir)
             fmt::format("cannot overwrite remote non-directory {} with directory", target_path))));
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_can_create)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_not_exists_can_create)
 {
     REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_mkdir, [](auto...) { return SSH_FX_OK; });
@@ -374,7 +374,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_can_create)
               target_path);
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_can_create_recursive)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_not_exists_can_create_recursive)
 {
     REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_mkdir, [](auto...) { return SSH_FX_OK; });
@@ -383,7 +383,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_can_create_recur
               target_path);
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_cannot_create)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_not_exists_cannot_create)
 {
     REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_mkdir, [](auto...) { return -1; });
@@ -398,7 +398,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_not_exists_cannot_create)
             StrEq(fmt::format("cannot create remote directory {}: {}", target_path, err))));
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_is_not)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_is_dir_child_is_not)
 {
     auto target_child_path = target_path.u8string() + '/' + source_path.filename().u8string();
     REPLACE(sftp_stat, [&](auto, auto path) -> sftp_attributes {
@@ -417,7 +417,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_is_not)
                               target_child_path))));
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can_create)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_is_dir_child_not_exists_can_create)
 {
     REPLACE(sftp_stat, [&](auto, auto path) {
         return target_path == path ? get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY) : nullptr;
@@ -428,7 +428,7 @@ TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_can
               target_path / source_path.filename());
 }
 
-TEST_F(SFTPUtils, get_full_remote_dir_target__target_is_dir_child_not_exists_cannot_create)
+TEST_F(SFTPUtils, get_full_remote_dir_target_target_is_dir_child_not_exists_cannot_create)
 {
     REPLACE(sftp_stat, [&](auto, auto path) {
         return target_path == path ? get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY) : nullptr;

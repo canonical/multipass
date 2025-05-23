@@ -2233,7 +2233,7 @@ struct LXDNetworksBadFields : LXDBackend, WithParamInterface<QByteArray>
 {
 };
 
-TEST_P(LXDNetworksBadFields, ignores_network_without_expected_fields)
+TEST_P(LXDNetworksBadFields, ignoresNetworkWithoutExpectedFields)
 {
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
