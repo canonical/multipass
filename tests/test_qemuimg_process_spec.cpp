@@ -112,8 +112,8 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithOnlyTargetCorrect)
 
 TEST(TestQemuImgProcessSpec,
      DISABLE_ON_WINDOWS(
-         apparmor_profile_running_as_symlinked_snap_correct)) // TODO tests involving apparmor
-                                                              // should probably be moved elsewhere
+         apparmorProfileRunningAsSymlinkedSnapCorrect)) // TODO tests involving apparmor should
+                                                        // probably be moved elsewhere
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, snap_link_dir, common_dir, common_link_dir;
