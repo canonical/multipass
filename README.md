@@ -1,16 +1,19 @@
 # What is Multipass?
 
-Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who want to spin up a fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on Windows and QEMU on macOS to run virtual machines with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch Ubuntu images for you and keep them up to date.
+Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who want to spin up a
+fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on Windows and QEMU on macOS to run
+virtual machines with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch Ubuntu
+images for you and keep them up to date.
 
 Since it supports metadata for cloud-init, you can simulate a small cloud deployment on your laptop or workstation.
 
 ## Project status
 
-| Service | Status |
-|-----|:---|
-| [CI](https://github.com/canonical/multipass/actions) |  [![Build Status][gha-image]][gha-url]  |
-| [Snap](https://snapcraft.io/) |  [![Build Status][snap-image]][snap-url]  |
-| [Codecov](https://codecov.io/) |  [![Codecov Status][codecov-image]][codecov-url]  |
+| Service                                              | Status                                          |
+|------------------------------------------------------|:------------------------------------------------|
+| [CI](https://github.com/canonical/multipass/actions) | [![Build Status][gha-image]][gha-url]           |
+| [Snap](https://snapcraft.io/)                        | [![Build Status][snap-image]][snap-url]         |
+| [Codecov](https://codecov.io/)                       | [![Codecov Status][codecov-image]][codecov-url] |
 
 # Installation
 
@@ -22,13 +25,16 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 * On **macOS**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
-  Alternatively, you can use [Homebrew](https://github.com/Homebrew/brew). Please note that this method is **not officially supported**, as it is not maintained by the Multipass team, but by the community. Multipass is available as a cask:
+  Alternatively, you can use [Homebrew](https://github.com/Homebrew/brew). Please note that this method is **not
+  officially supported**, as it is not maintained by the Multipass team, but by the community. Multipass is available as
+  a cask:
 
   ```
   brew install --cask multipass
   ```
-  
-  Please note that you may be required to enter your password for some sudo operations during installation. You may also need to disable the firewall to launch a multipass instance successfully on macOS.
+
+  Please note that you may be required to enter your password for some sudo operations during installation. You may also
+  need to disable the firewall to launch a multipass instance successfully on macOS.
 
 * On **Windows**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
@@ -36,7 +42,8 @@ For more information, see [How to install Multipass](https://canonical.com/multi
 
 # Usage
 
-Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
+Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the
+Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
 
 ## Find available images
 
@@ -158,7 +165,8 @@ multipass help <command>
 
 # Contributing
 
-The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21).
+The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions
+on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21).
 
 For build instructions, please refer to the following files:
 
@@ -177,23 +185,31 @@ When contributing, you must adhere to the [Code of Conduct](https://ubuntu.com/c
 
 ## Copyright
 
-The code in this repository is licensed under GNU General Public License v3.0. See [LICENSE](https://github.com/canonical/multipass/blob/main/LICENSE) for more information.
+The code in this repository is licensed under GNU General Public License v3.0.
+See [LICENSE](https://github.com/canonical/multipass/blob/main/LICENSE) for more information.
 
 ## License agreement
 
-All contributors must sign the [Canonical contributor license agreement (CLA)](https://ubuntu.com/legal/contributors), which gives Canonical permission to use the contributions. Without the CLA, contributions cannot be accepted.
+All contributors must sign the [Canonical contributor license agreement (CLA)](https://ubuntu.com/legal/contributors),
+which gives Canonical permission to use the contributions. Without the CLA, contributions cannot be accepted.
 
 ## Pull requests
 
-Changes to this project should be proposed as pull requests. Proposed changes will then go through review and once approved, be merged into the main branch.
+Changes to this project should be proposed as pull requests. Proposed changes will then go through review and once
+approved, be merged into the main branch.
 
 # Additional information
 
 [Multipass documentation](https://canonical.com/multipass/docs)
 
 [gha-image]: https://github.com/canonical/multipass/workflows/Linux/badge.svg?branch=main
+
 [gha-url]: https://github.com/canonical/multipass/actions?query=branch%3Amain+workflow%3ALinux
+
 [snap-image]: https://snapcraft.io/multipass/badge.svg
+
 [snap-url]: https://snapcraft.io/multipass
+
 [codecov-image]: https://codecov.io/gh/canonical/multipass/branch/main/graph/badge.svg
+
 [codecov-url]: https://codecov.io/gh/canonical/multipass
