@@ -37,7 +37,8 @@ constexpr auto root_cert = "-----BEGIN CERTIFICATE-----\n"
                            "xgvZMY2ColjLunUiNG8H096n\n"
                            "-----END CERTIFICATE-----\n";
 
-// cert and key are used as both server certificate and client certificate in the unit test environment
+// cert and key are used as both server certificate and client certificate in the unit test
+// environment
 constexpr auto cert = "-----BEGIN CERTIFICATE-----\n"
                       "MIIByjCCAXCgAwIBAgIENvdePTAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzES\n"
                       "MBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAe\n"

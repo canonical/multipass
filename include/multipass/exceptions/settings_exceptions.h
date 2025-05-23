@@ -67,7 +67,8 @@ class UnsupportedSettingValueType : public SettingsException
 {
 public:
     explicit UnsupportedSettingValueType(const QString& key)
-        : SettingsException{fmt::format("Invalid value type for key {}. Type hint: {}", key, typeid(T).name())}
+        : SettingsException{
+              fmt::format("Invalid value type for key {}. Type hint: {}", key, typeid(T).name())}
     {
     }
 };

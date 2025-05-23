@@ -45,7 +45,11 @@ constexpr const int settings_changed_code = 42;
 QString persistent_settings_filename()
 {
     static const auto file_pattern = QStringLiteral("%2%1").arg(mp::settings_extension);
-    static const auto daemon_dir_path = QDir{MP_PLATFORM.daemon_config_home()}; // temporary, replace w/ AppConfigLoc
+
+    // TODO: we should be able to use AppConfigLocation, since no client needs to access this file
+    // directly any longer. We could then drop daemon_config_home(). However, we'd need to ensure
+    // tht we ended up in the same place or moved existing files.
+    static const auto daemon_dir_path = QDir{MP_PLATFORM.daemon_config_home()};
     static const auto path = daemon_dir_path.absoluteFilePath(file_pattern.arg(mp::daemon_name));
 
     return path;
@@ -75,8 +79,10 @@ QString image_mirror_interpreter(QString val)
 
     if (!val.startsWith("https://"))
     {
-        throw mp::InvalidSettingException(mp::mirror_key, val,
-                                          "The hostname of mirror must contain protocol name: https");
+        throw mp::InvalidSettingException(
+            mp::mirror_key,
+            val,
+            "The hostname of mirror must contain protocol name: https");
     }
 
     if (!val.endsWith("/"))
@@ -94,20 +100,29 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
     mp::utils::check_and_create_config_file(filename); // create if not there
 
     static QFileSystemWatcher monitor{{filename}};
-    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] { QCoreApplication::exit(settings_changed_code); });
+    QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] {
+        QCoreApplication::exit(settings_changed_code);
+    });
 }
 
 void mp::daemon::register_global_settings_handlers()
 {
-    auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with the same key below
+    auto settings =
+        MP_PLATFORM
+            .extra_daemon_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
-    settings.insert(std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
-    settings.insert(std::make_unique<CustomSettingSpec>(driver_key, MP_PLATFORM.default_driver(), driver_interpreter));
+    settings.insert(
+        std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
+    settings.insert(std::make_unique<CustomSettingSpec>(driver_key,
+                                                        MP_PLATFORM.default_driver(),
+                                                        driver_interpreter));
     settings.insert(std::make_unique<CustomSettingSpec>(mp::passphrase_key, "", [](QString val) {
         return val.isEmpty() ? val : MP_UTILS.generate_scrypt_hash_for(val);
     }));
-    settings.insert(std::make_unique<CustomSettingSpec>(mp::mirror_key, "", image_mirror_interpreter));
+    settings.insert(
+        std::make_unique<CustomSettingSpec>(mp::mirror_key, "", image_mirror_interpreter));
 
     MP_SETTINGS.register_handler(
-        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(), std::move(settings)));
+        std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(),
+                                                    std::move(settings)));
 }

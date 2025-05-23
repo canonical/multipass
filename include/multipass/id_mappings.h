@@ -42,8 +42,8 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
 
     for (auto it = xid_mappings.begin(); it != xid_mappings.end();)
     {
-        bool duplicate =
-            dup_id_map.find(it->first) != dup_id_map.end() || dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
+        bool duplicate = dup_id_map.find(it->first) != dup_id_map.end() ||
+                         dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
 
         dup_id_map[it->first].insert(it->second);
         dup_rev_id_map[it->second].insert(it->first);

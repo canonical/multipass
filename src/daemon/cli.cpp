@@ -60,8 +60,9 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
     auto version_option = parser.addVersionOption();
 
     QCommandLineOption logger_option{"logger", "specifies which logger to use", "platform|stderr"};
-    QCommandLineOption verbosity_option{
-        {"V", "verbosity"}, "specifies the logging verbosity level", "error|warning|info|debug|trace"};
+    QCommandLineOption verbosity_option{{"V", "verbosity"},
+                                        "specifies the logging verbosity level",
+                                        "error|warning|info|debug|trace"};
     QCommandLineOption address_option{"address",
                                       "specifies which address to use for the multipassd service;"
                                       " a socket can be specified using unix:<socket_file>",

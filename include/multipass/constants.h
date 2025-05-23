@@ -38,7 +38,8 @@ constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto default_timeout = std::chrono::seconds(300);
-constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
+constexpr auto image_resize_timeout =
+    std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
 
 constexpr auto home_automount_dir = "Home";
 
@@ -47,20 +48,22 @@ constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
 constexpr auto blueprints_url_env_var = "MULTIPASS_BLUEPRINTS_URL";
 
 constexpr auto winterm_profile_guid =
-    "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows Terminal
+    "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows
+                                              // Terminal
 
 constexpr auto bridged_network_name = "bridged";
 
 constexpr auto settings_extension = ".conf";
 constexpr auto daemon_settings_root = "local";
 
-constexpr auto petenv_key = "client.primary-name";  // This will eventually be moved to some dynamic settings schema
-constexpr auto driver_key = "local.driver";         // idem
-constexpr auto passphrase_key = "local.passphrase"; // idem
-constexpr auto bridged_interface_key = "local.bridged-network";       // idem
-constexpr auto mounts_key = "local.privileged-mounts";                // idem
-constexpr auto winterm_key = "client.apps.windows-terminal.profiles"; // idem
-constexpr auto mirror_key = "local.image.mirror";                     // idem; this defines the mirror of simple streams
+// Settings keys (might eventually be moved to some dynamic settings schema)
+constexpr auto petenv_key = "client.primary-name";
+constexpr auto driver_key = "local.driver";
+constexpr auto passphrase_key = "local.passphrase";
+constexpr auto bridged_interface_key = "local.bridged-network";
+constexpr auto mounts_key = "local.privileged-mounts";
+constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
+constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 

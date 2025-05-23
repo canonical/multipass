@@ -32,8 +32,12 @@ namespace mp = multipass;
 
 namespace
 {
-const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"}, {"arm", "armhf"},     {"arm64", "arm64"},
-                                               {"i386", "i386"},    {"power", "powerpc"}, {"power64", "ppc64el"},
+const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"},
+                                               {"arm", "armhf"},
+                                               {"arm64", "arm64"},
+                                               {"i386", "i386"},
+                                               {"power", "powerpc"},
+                                               {"power64", "ppc64el"},
                                                {"s390x", "s390x"}};
 
 QJsonObject parse_manifest(const QByteArray& json)
@@ -61,7 +65,8 @@ QString latest_version_in(const QJsonObject& versions)
     return max_version;
 }
 
-QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
+QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(
+    const std::vector<mp::VMImageInfo>& images)
 {
     QMap<QString, const mp::VMImageInfo*> map;
 
@@ -79,14 +84,18 @@ QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(const std::vec
 
 } // namespace
 
-mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images)
-    : updated_at{updated_at}, products{std::move(images)}, image_records{qmap_aliases_to_vm_info_for(products)}
+mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at,
+                                                 std::vector<VMImageInfo>&& images)
+    : updated_at{updated_at},
+      products{std::move(images)},
+      image_records{qmap_aliases_to_vm_info_for(products)}
 {
 }
 
-std::unique_ptr<mp::SimpleStreamsManifest>
-mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
-                                    const std::optional<QByteArray>& json_from_mirror, const QString& host_url)
+std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
+    const QByteArray& json_from_official,
+    const std::optional<QByteArray>& json_from_mirror,
+    const QString& host_url)
 {
     const auto manifest_from_official = parse_manifest(json_from_official);
     const auto updated = manifest_from_official["updated"].toString();
@@ -108,7 +117,8 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
         manifest_products_from_mirror = std::make_optional(products_from_mirror);
     }
 
-    const QJsonObject manifest_products = manifest_products_from_mirror.value_or(manifest_products_from_official);
+    const QJsonObject manifest_products =
+        manifest_products_from_mirror.value_or(manifest_products_from_official);
 
     std::vector<VMImageInfo> products;
     for (auto it = manifest_products.constBegin(); it != manifest_products.constEnd(); ++it)
@@ -177,7 +187,8 @@ mp::SimpleStreamsManifest::fromJson(const QByteArray& json_from_official,
             }
 
             // Aliases always alias to the latest version
-            const QStringList& aliases = version_string == latest_version ? product_aliases : QStringList();
+            const QStringList& aliases =
+                version_string == latest_version ? product_aliases : QStringList();
             products.push_back({aliases,
                                 "Ubuntu",
                                 release,

@@ -47,7 +47,8 @@ public:
 
     void TearDown() override
     {
-        SettingsResetter::reset(); // expectations on MockHandlers verified here (unless manually unregistered earlier)
+        SettingsResetter::reset(); // expectations on MockHandlers verified here (unless manually
+                                   // unregistered earlier)
     }
 
     std::pair<QString, QString> make_setting(unsigned index)
@@ -57,7 +58,8 @@ public:
 
     std::pair<unsigned, bool> half_and_is_odd(unsigned i)
     {
-        auto half_i_div = std::div(i, 2); // can't use structured bindings directly: quot/rem order unspecified
+        auto half_i_div =
+            std::div(i, 2); // can't use structured bindings directly: quot/rem order unspecified
         return std::pair(static_cast<unsigned>(half_i_div.quot), static_cast<bool>(half_i_div.rem));
     }
 };
@@ -89,20 +91,23 @@ TEST_F(TestSettings, keysReturnsKeysFromSingleHandler)
 
 TEST_F(TestSettings, keysReturnsKeysFromMultipleHandlers)
 {
-    auto some_keychains =
-        std::array{std::set({QStringLiteral("asdf.fdsa"), QStringLiteral("blah.bleh")}),
-                   std::set({QStringLiteral("qwerty.ytrewq"), QStringLiteral("foo"), QStringLiteral("bar")}),
-                   std::set({QStringLiteral("a.b.c.d")})};
+    auto some_keychains = std::array{
+        std::set({QStringLiteral("asdf.fdsa"), QStringLiteral("blah.bleh")}),
+        std::set({QStringLiteral("qwerty.ytrewq"), QStringLiteral("foo"), QStringLiteral("bar")}),
+        std::set({QStringLiteral("a.b.c.d")})};
 
     for (auto i = 0u; i < some_keychains.size(); ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        EXPECT_CALL(*mock_handler, keys).WillOnce(Return(some_keychains[i])); // copies, so ok to modify below
+        EXPECT_CALL(*mock_handler, keys)
+            .WillOnce(Return(some_keychains[i])); // copies, so ok to modify below
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    auto all_keys = std::reduce(std::begin(some_keychains), std::end(some_keychains), // hands-off clang-format
-                                std::set<QString>{}, [](auto&& a, auto&& b) {
+    auto all_keys = std::reduce(std::begin(some_keychains),
+                                std::end(some_keychains),
+                                std::set<QString>{},
+                                [](auto&& a, auto&& b) {
                                     a.merge(std::forward<decltype(b)>(b));
                                     return std::forward<decltype(a)>(a);
                                 });
@@ -112,7 +117,9 @@ TEST_F(TestSettings, keysReturnsKeysFromMultipleHandlers)
 TEST_F(TestSettings, getThrowsUnrecognizedWhenNoHandler)
 {
     auto key = "qwer";
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestSettings, getThrowsUnrecognizedFromSingleHandler)
@@ -122,7 +129,9 @@ TEST_F(TestSettings, getThrowsUnrecognizedFromSingleHandler)
     EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestSettings, getThrowsUnrecognizedAfterTryingAllHandlers)
@@ -131,11 +140,14 @@ TEST_F(TestSettings, getThrowsUnrecognizedAfterTryingAllHandlers)
     for (auto i = 0; i < 10; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+        EXPECT_CALL(*mock_handler, get(Eq(key)))
+            .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(key),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestSettings, getReturnsSettingFromSingleHandler)
@@ -149,7 +161,8 @@ TEST_F(TestSettings, getReturnsSettingFromSingleHandler)
 }
 
 using NumHandlersAndHitIndex = std::tuple<unsigned, unsigned>;
-class TestSettingsGetMultipleHandlers : public TestSettings, public WithParamInterface<NumHandlersAndHitIndex>
+class TestSettingsGetMultipleHandlers : public TestSettings,
+                                        public WithParamInterface<NumHandlersAndHitIndex>
 {
 };
 
@@ -165,7 +178,8 @@ TEST_P(TestSettingsGetMultipleHandlers, getReturnsSettingFromFirstHandlerHit)
         auto mock_handler = std::make_unique<MockSettingsHandler>();
         if (i < hit_index)
         {
-            EXPECT_CALL(*mock_handler, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+            EXPECT_CALL(*mock_handler, get(Eq(key)))
+                .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
         }
         else if (i == hit_index)
         {
@@ -182,7 +196,9 @@ TEST_P(TestSettingsGetMultipleHandlers, getReturnsSettingFromFirstHandlerHit)
     EXPECT_EQ(MP_SETTINGS.get(key), val);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsGetMultipleHandlers, Combine(Values(30u), Range(0u, 30u, 3u)));
+INSTANTIATE_TEST_SUITE_P(TestSettings,
+                         TestSettingsGetMultipleHandlers,
+                         Combine(Values(30u), Range(0u, 30u, 3u)));
 
 TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
 {
@@ -208,7 +224,8 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
                 expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
         }
 
-        EXPECT_CALL(*mock_handler, get(Eq(unknown_key))).WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
+        EXPECT_CALL(*mock_handler, get(Eq(unknown_key)))
+            .WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
@@ -218,14 +235,16 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
         EXPECT_EQ(MP_SETTINGS.get(key), val);
     }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(unknown_key), mp::UnrecognizedSettingException,
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.get(unknown_key),
+                         mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(unknown_key)));
 }
 
 TEST_F(TestSettings, setThrowsUnrecognizedWhenNoHandler)
 {
     auto key = "poiu";
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, "qwer"), mp::UnrecognizedSettingException,
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, "qwer"),
+                         mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
 
@@ -233,10 +252,13 @@ TEST_F(TestSettings, setThrowsUnrecognizedFromSingleHandler)
 {
     auto key = "lkjh", val = "asdf";
     auto mock_handler = std::make_unique<MockSettingsHandler>();
-    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)))
+        .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
@@ -246,11 +268,14 @@ TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
     for (auto i = 0u; i < 10; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val))).WillRepeatedly(Throw(mp::UnrecognizedSettingException{key}));
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)))
+            .WillRepeatedly(Throw(mp::UnrecognizedSettingException{key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestSettings, setDelegatesOnSingleHandler)
@@ -279,7 +304,8 @@ TEST_F(TestSettings, setDelegatesOnAllHandlers)
 
 using Indices = std::initializer_list<unsigned>;
 using NumHandlersAndHitIndices = std::tuple<unsigned, Indices>;
-class TestSettingsSetMultipleHandlers : public TestSettings, public WithParamInterface<NumHandlersAndHitIndices>
+class TestSettingsSetMultipleHandlers : public TestSettings,
+                                        public WithParamInterface<NumHandlersAndHitIndices>
 {
 };
 
@@ -314,7 +340,9 @@ const auto test_indices = std::initializer_list<Indices>{{0u},
                                                          {5u, 6u, 7u, 8u},
                                                          {1u, 3u, 5u, 7u},
                                                          {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u}};
-INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingsSetMultipleHandlers, Combine(Values(10u), ValuesIn(test_indices)));
+INSTANTIATE_TEST_SUITE_P(TestSettings,
+                         TestSettingsSetMultipleHandlers,
+                         Combine(Values(10u), ValuesIn(test_indices)));
 
 TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
 {
@@ -348,16 +376,19 @@ TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
         EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
     }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(unknown_key, "asdf"), mp::UnrecognizedSettingException,
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(unknown_key, "asdf"),
+                         mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(unknown_key)));
 }
 
-using SetException = std::variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
-  We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid slicing and enter the
-  right catch block). Therefore, we can't just use a base exception type. Parameterized and typed tests don't mix in
-  gtest, so we use a variant parameter. */
+using SetException = std::
+    variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
+We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid
+slicing and enter the right catch block). Therefore, we can't just use a base exception type.
+Parameterized and typed tests don't mix in gtest, so we use a variant parameter. */
 using SetExceptNumHandlersAndThrowerIdx = std::tuple<SetException, unsigned, unsigned>;
-class TestSettingSetOtherExceptions : public TestSettings, public WithParamInterface<SetExceptNumHandlersAndThrowerIdx>
+class TestSettingSetOtherExceptions : public TestSettings,
+                                      public WithParamInterface<SetExceptNumHandlersAndThrowerIdx>
 {
 };
 
@@ -375,8 +406,9 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
         auto mock_handler = std::make_unique<MockSettingsHandler>();
         auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
         if (i == thrower_idx)
-            expectation.WillOnce(WithoutArgs([&thrower, e = &except] { std::visit(thrower, *e); })); /* lambda capture
-                                                with initializer works around forbidden capture of structured binding */
+            expectation.WillOnce(WithoutArgs(
+                [&thrower, e = &except] { std::visit(thrower, *e); })); /* lambda capture
+                   with initializer works around forbidden capture of structured binding */
         else if (i > thrower_idx)
             expectation.Times(0);
 
@@ -384,14 +416,17 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
     }
 
     auto get_what = [](const auto& e) { return e.what(); };
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val), std::exception,
+    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val),
+                         std::exception,
                          mpt::match_what(StrEq(std::visit(get_what, except))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettings, TestSettingSetOtherExceptions,
+INSTANTIATE_TEST_SUITE_P(TestSettings,
+                         TestSettingSetOtherExceptions,
                          Combine(Values(mp::InvalidSettingException{"foo", "bar", "err"},
                                         std::runtime_error{"something else"}),
-                                 Values(8u), Range(0u, 8u, 2u)));
+                                 Values(8u),
+                                 Range(0u, 8u, 2u)));
 
 struct TestSettingsGetAs : public Test
 {
@@ -412,13 +447,17 @@ std::vector<SettingValueRepresentation<T>> setting_val_reprs();
 template <>
 std::vector<SettingValueRepresentation<bool>> setting_val_reprs()
 {
-    return {{false, {"False", "false", "0", ""}}, {true, {"True", "true", "1", "no", "off", "anything else"}}};
+    return {{false, {"False", "false", "0", ""}},
+            {true, {"True", "true", "1", "no", "off", "anything else"}}};
 }
 
 template <>
 std::vector<SettingValueRepresentation<int>> setting_val_reprs()
 {
-    return {{0, {"0", "+0", "-0000"}}, {42, {"42", "+42"}}, {-2, {"-2"}}, {23, {"023"}}}; // no hex or octal
+    return {{0, {"0", "+0", "-0000"}},
+            {42, {"42", "+42"}},
+            {-2, {"-2"}},
+            {23, {"023"}}}; // no hex or octal
 }
 
 template <typename T>
@@ -426,7 +465,8 @@ struct TestSuccessfulSettingsGetAs : public TestSettingsGetAs
 {
 };
 
-using GetAsTestTypes = ::testing::Types<bool, int>; // to add more, specialize setting_val_reprs above
+using GetAsTestTypes =
+    ::testing::Types<bool, int>; // to add more, specialize setting_val_reprs above
 MP_TYPED_TEST_SUITE(TestSuccessfulSettingsGetAs, GetAsTestTypes);
 
 TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
@@ -437,7 +477,8 @@ TYPED_TEST(TestSuccessfulSettingsGetAs, getAsConvertsValues)
     {
         for (const auto& repr : reprs)
         {
-            EXPECT_CALL(this->mock_settings, get(Eq(key))).WillOnce(Return(repr)); // needs `this` ¯\_(ツ)_/¯
+            EXPECT_CALL(this->mock_settings, get(Eq(key)))
+                .WillOnce(Return(repr)); // needs `this` ¯\_(ツ)_/¯
             EXPECT_EQ(MP_SETTINGS.get_as<TypeParam>(key), val);
         }
     }
@@ -448,7 +489,8 @@ TEST_F(TestSettingsGetAs, getAsThrowsOnUnsupportedTypeConversion)
     const auto key = "the.key";
     const auto bad_repr = "#$%!@";
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Return(bad_repr));
-    MP_ASSERT_THROW_THAT(MP_SETTINGS.get_as<QVariant>(key), mp::UnsupportedSettingValueType<QVariant>,
+    MP_ASSERT_THROW_THAT(MP_SETTINGS.get_as<QVariant>(key),
+                         mp::UnsupportedSettingValueType<QVariant>,
                          mpt::match_what(HasSubstr(key)));
 }
 

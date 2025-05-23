@@ -41,7 +41,8 @@ mp::ReturnCode cmd::Clone::run(ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto action_on_failure = [this, &spinner](grpc::Status& status, CloneReply& reply) -> ReturnCode {
+    auto action_on_failure = [this, &spinner](grpc::Status& status,
+                                              CloneReply& reply) -> ReturnCode {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status, reply.reply_message());
     };
@@ -67,12 +68,16 @@ QString cmd::Clone::description() const
 
 mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 {
-    parser->addPositionalArgument("source_name", "The name of the source instance to be cloned", "<source_name>");
+    parser->addPositionalArgument("source_name",
+                                  "The name of the source instance to be cloned",
+                                  "<source_name>");
 
     const QCommandLineOption destination_name_option{
         {"n", "name"},
-        "An optional custom name for the cloned instance. The name must follow the usual validity rules "
-        "(see \"help launch\"). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance.",
+        "An optional custom name for the cloned instance. The name must follow the usual validity "
+        "rules "
+        "(see \"help launch\"). Default: \"<source_name>-cloneN\", where N is the Nth cloned "
+        "instance.",
         "destination-name"};
 
     parser->addOption(destination_name_option);

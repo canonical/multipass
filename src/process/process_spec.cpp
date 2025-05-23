@@ -22,7 +22,8 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-// Create Process with these fixed arguments. Other optional arguments can be appended in Process::start()
+// Create Process with these fixed arguments. Other optional arguments can be appended in
+// Process::start()
 QStringList mp::ProcessSpec::arguments() const
 {
     return QStringList();
@@ -56,7 +57,8 @@ QString multipass::ProcessSpec::identifier() const
 // String used to register this profile with AppArmor
 const QString mp::ProcessSpec::apparmor_profile_name() const
 {
-    const QString executable_name = QFileInfo(program()).fileName(); // in case full path is specified
+    const QString executable_name =
+        QFileInfo(program()).fileName(); // in case full path is specified
 
     if (!identifier().isNull())
     {

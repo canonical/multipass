@@ -84,7 +84,8 @@ private:
                              bool is_internal);
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
+    // TODO we should probably keep the VMDescription in the base VM class instead
+    VirtualMachineDescription desc;
     const QString name;
     std::optional<int> port;
     VMStatusMonitor* monitor;

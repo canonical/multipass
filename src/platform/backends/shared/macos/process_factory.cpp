@@ -31,13 +31,16 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
     : Singleton<ProcessFactory>::Singleton{pass}
 {
     [[maybe_unused]] static bool run_once = []() {
-        ::setpgid(0, 0); // create own process group. On MacOS, children of the parent are reaped if it dies.
+        ::setpgid(
+            0,
+            0); // create own process group. On MacOS, children of the parent are reaped if it dies.
         return true;
     }();
 }
 
 // This is the default ProcessFactory that creates a Process with no security mechanisms enabled
-std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(std::unique_ptr<mp::ProcessSpec>&& process_spec) const
+std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(
+    std::unique_ptr<mp::ProcessSpec>&& process_spec) const
 {
     return std::make_unique<BasicProcess>(std::move(process_spec));
 }

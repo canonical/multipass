@@ -56,9 +56,10 @@ TEST_F(TestImageVaultUtils, copy_to_dir_throws_on_nonexistant_file)
 {
     EXPECT_CALL(mock_file_ops, exists(test_info)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("not found"))));
+    MP_EXPECT_THROW_THAT(
+        MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("not found"))));
 }
 
 TEST_F(TestImageVaultUtils, copy_to_dir_throws_on_fail_to_copy)
@@ -103,14 +104,15 @@ TEST_F(TestImageVaultUtils, compute_hash_computes_sha256)
 
 TEST_F(TestImageVaultUtils, compute_file_hash_throws_when_cant_open)
 {
-    EXPECT_CALL(mock_file_ops, open(Property(&QFileDevice::fileName, test_path), Truly([](const auto& mode) {
-                                        return (mode & QFile::ReadOnly) > 0;
-                                    })))
+    EXPECT_CALL(mock_file_ops,
+                open(Property(&QFileDevice::fileName, test_path),
+                     Truly([](const auto& mode) { return (mode & QFile::ReadOnly) > 0; })))
         .WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(std::ignore = MP_IMAGE_VAULT_UTILS.compute_file_hash(test_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("Failed to open"))));
+    MP_EXPECT_THROW_THAT(
+        std::ignore = MP_IMAGE_VAULT_UTILS.compute_file_hash(test_path),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("Failed to open"))));
 }
 
 TEST_F(TestImageVaultUtils, verify_file_hash_throws_on_bad_hash)
@@ -118,10 +120,11 @@ TEST_F(TestImageVaultUtils, verify_file_hash_throws_on_bad_hash)
     auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
     EXPECT_CALL(*mock_utils, compute_file_hash(test_path)).WillOnce(Return(":("));
 
-    MP_EXPECT_THROW_THAT(
-        mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr(":)"), HasSubstr("does not match"))));
+    MP_EXPECT_THROW_THAT(mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()),
+                                               HasSubstr(":)"),
+                                               HasSubstr("does not match"))));
 }
 
 TEST_F(TestImageVaultUtils, verify_file_hash_doesnt_throw_on_good_hash)
@@ -189,7 +192,9 @@ TEST_F(TestImageVaultUtils, extract_file_with_decoder_binds_monitor)
     };
 
     mpt::MockImageDecoder decoder{};
-    EXPECT_CALL(decoder, decode_to(test_path, test_output, Truly([&](const auto& m) { return m(type, progress); })));
+    EXPECT_CALL(decoder, decode_to(test_path, test_output, Truly([&](const auto& m) {
+                                       return m(type, progress);
+                                   })));
 
     MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, false, decoder);
 

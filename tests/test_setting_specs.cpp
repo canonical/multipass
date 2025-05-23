@@ -33,7 +33,8 @@ struct TestPlainKeyAndDefault : public Test
 {
 };
 
-using PlainKeyAndDefaultTypes = Types<mp::BasicSettingSpec, mp::BoolSettingSpec, mp::CustomSettingSpec>;
+using PlainKeyAndDefaultTypes =
+    Types<mp::BasicSettingSpec, mp::BoolSettingSpec, mp::CustomSettingSpec>;
 MP_TYPED_TEST_SUITE(TestPlainKeyAndDefault, PlainKeyAndDefaultTypes);
 
 TYPED_TEST(TestPlainKeyAndDefault, basicSettingSpecReturnsProvidedKeyAndDefault)
@@ -86,7 +87,8 @@ TEST_P(TestBadBoolSettingSpec, boolSettingSpecRejectsBadDefaults)
 {
     const auto key = "asdf";
     const auto bad = GetParam();
-    MP_ASSERT_THROW_THAT((mp::BoolSettingSpec{key, bad}), mp::InvalidSettingException,
+    MP_ASSERT_THROW_THAT((mp::BoolSettingSpec{key, bad}),
+                         mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(bad))));
 }
 
@@ -95,12 +97,15 @@ TEST_P(TestBadBoolSettingSpec, boolSettingSpecRejectsOtherValues)
     const auto key = "key";
     const auto bad = GetParam();
     mp::BoolSettingSpec setting{key, "true"};
-    MP_ASSERT_THROW_THAT(setting.interpret(bad), mp::InvalidSettingException,
+    MP_ASSERT_THROW_THAT(setting.interpret(bad),
+                         mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(bad))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestBadBoolSettingSpec, TestBadBoolSettingSpec,
-                         Values("nonsense", "invalid", "", "bool", "representations", "-", "null", "4"));
+INSTANTIATE_TEST_SUITE_P(
+    TestBadBoolSettingSpec,
+    TestBadBoolSettingSpec,
+    Values("nonsense", "invalid", "", "bool", "representations", "-", "null", "4"));
 
 using ReprVal = std::tuple<QString, QString>;
 struct TestGoodBoolSettingSpec : public TestWithParam<ReprVal>
@@ -115,8 +120,10 @@ TEST_P(TestGoodBoolSettingSpec, interpretsBools)
     EXPECT_EQ(setting.interpret(repr), val);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestTrueBoolSettingSpec, TestGoodBoolSettingSpec,
+INSTANTIATE_TEST_SUITE_P(TestTrueBoolSettingSpec,
+                         TestGoodBoolSettingSpec,
                          Combine(Values("yes", "on", "1", "true"), Values("true")));
-INSTANTIATE_TEST_SUITE_P(TestFalseBoolSettingSpec, TestGoodBoolSettingSpec,
+INSTANTIATE_TEST_SUITE_P(TestFalseBoolSettingSpec,
+                         TestGoodBoolSettingSpec,
                          Combine(Values("no", "off", "0", "false"), Values("false")));
 } // namespace

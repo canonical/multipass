@@ -36,7 +36,8 @@ void error(std::string_view log_category); // not noexcept because logging isn't
 /**
  * Call a non-void function within a try-catch, catching and logging anything that it throws.
  *
- * @tparam T The type of the value that is used to initialize the return value when an exception is caught
+ * @tparam T The type of the value that is used to initialize the return value when an exception is
+ * caught
  * @tparam Fun The type of the callable f. It must be callable and return non-void.
  * @tparam Args The types of f's arguments
  * @param log_category The category to use when logging exceptions
@@ -44,12 +45,16 @@ void error(std::string_view log_category); // not noexcept because logging isn't
  * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
  * @return The result of f when no exception is thrown, fallback_return otherwise
- * @note This function will call `terminate()` if logging itself throws (all bets are off at that point). That
- * corresponds to the usual `noexcept` guarantees (no exception or program terminated).
+ * @note This function will call `terminate()` if logging itself throws (all bets are off at that
+ * point). That corresponds to the usual `noexcept` guarantees (no exception or program terminated).
  */
 template <typename T, typename Fun, typename... Args> // Fun needs to return non-void
-auto top_catch_all(std::string_view log_category, T&& fallback_return, Fun&& f, Args&&... args) noexcept
-    -> std::invoke_result_t<Fun, Args...>; // logging can throw, but we want to std::terminate in that case
+auto top_catch_all(std::string_view log_category,
+                   T&& fallback_return,
+                   Fun&& f,
+                   Args&&... args) noexcept
+    -> std::invoke_result_t<Fun, Args...>; // logging can throw, but we want to std::terminate in
+                                           // that case
 
 /**
  * Call a void function within a try-catch, catching and logging anything that it throws.
@@ -59,19 +64,22 @@ auto top_catch_all(std::string_view log_category, T&& fallback_return, Fun&& f, 
  * @param log_category The category to use when logging exceptions
  * @param f The non-void function to protect with a catch-all
  * @param args The arguments to pass to the function f
- * @note This function will call `terminate()` if logging itself throws (all bets are off at that point). That
- * corresponds to the usual `noexcept` guarantees (no exception or program terminated).
+ * @note This function will call `terminate()` if logging itself throws (all bets are off at that
+ * point). That corresponds to the usual `noexcept` guarantees (no exception or program terminated).
  */
 template <typename Fun, typename... Args> // Fun needs to return void
-void top_catch_all(std::string_view log_category,
-                   Fun&& f,
-                   Args&&... args) noexcept; // logging can throw, but we want to std::terminate in that case
+void top_catch_all(
+    std::string_view log_category,
+    Fun&& f,
+    Args&&... args) noexcept; // logging can throw, but we want to std::terminate in that case
 } // namespace multipass
 
 inline void multipass::detail::error(std::string_view log_category, const std::exception& e)
 {
     namespace mpl = multipass::logging;
-    mpl::log(mpl::Level::error, log_category, fmt::format("Caught an unhandled exception: {}", e.what()));
+    mpl::log(mpl::Level::error,
+             log_category,
+             fmt::format("Caught an unhandled exception: {}", e.what()));
 }
 
 inline void multipass::detail::error(std::string_view log_category)
@@ -110,7 +118,9 @@ inline auto multipass::top_catch_all(std::string_view log_category,
 }
 
 template <typename Fun, typename... Args>
-inline void multipass::top_catch_all(std::string_view log_category, Fun&& f, Args&&... args) noexcept
+inline void multipass::top_catch_all(std::string_view log_category,
+                                     Fun&& f,
+                                     Args&&... args) noexcept
 {
     try
     {

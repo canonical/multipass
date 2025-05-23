@@ -28,7 +28,8 @@ namespace multipass
 struct AutoJoinThread
 {
     template <typename Callable, typename... Args>
-    AutoJoinThread(Callable&& f, Args&&... args) : thread{std::forward<Callable>(f), std::forward<Args>(args)...}
+    AutoJoinThread(Callable&& f, Args&&... args)
+        : thread{std::forward<Callable>(f), std::forward<Args>(args)...}
     {
     }
     ~AutoJoinThread()

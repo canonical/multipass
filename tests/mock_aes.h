@@ -31,7 +31,8 @@ public:
     MockAES(const Singleton<AES>::PrivatePass& pass) noexcept : AES{pass}
     {
         ON_CALL(*this, aes_256_key_size).WillByDefault(testing::Return(AES::aes_256_key_size()));
-        ON_CALL(*this, aes_256_block_size).WillByDefault(testing::Return(AES::aes_256_block_size()));
+        ON_CALL(*this, aes_256_block_size)
+            .WillByDefault(testing::Return(AES::aes_256_block_size()));
     }
 
     MOCK_METHOD(int, aes_256_key_size, (), (const, override));

@@ -57,7 +57,8 @@ struct DaemonFind : public mpt::DaemonTestFixture
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
@@ -99,16 +100,22 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
     std::stringstream stream;
     send_command({"find"}, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info),
-                                    HasSubstr(mpt::another_alias), HasSubstr(mpt::another_release_info),
-                                    HasSubstr(fmt::format("{}:{}", mpt::custom_remote, mpt::custom_alias)),
-                                    HasSubstr(mpt::custom_release_info), HasSubstr(blueprint1_name),
-                                    HasSubstr(blueprint_description_for(blueprint1_name)), HasSubstr(blueprint2_name),
-                                    HasSubstr(blueprint_description_for(blueprint2_name))));
-
     EXPECT_THAT(stream.str(),
-                Not(AllOf(HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
-                          HasSubstr(mpt::snapcraft_release_info))));
+                AllOf(HasSubstr(mpt::default_alias),
+                      HasSubstr(mpt::default_release_info),
+                      HasSubstr(mpt::another_alias),
+                      HasSubstr(mpt::another_release_info),
+                      HasSubstr(fmt::format("{}:{}", mpt::custom_remote, mpt::custom_alias)),
+                      HasSubstr(mpt::custom_release_info),
+                      HasSubstr(blueprint1_name),
+                      HasSubstr(blueprint_description_for(blueprint1_name)),
+                      HasSubstr(blueprint2_name),
+                      HasSubstr(blueprint_description_for(blueprint2_name))));
+
+    EXPECT_THAT(
+        stream.str(),
+        Not(AllOf(HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
+                  HasSubstr(mpt::snapcraft_release_info))));
 
     EXPECT_EQ(total_lines_of_output(stream), 9);
 }
@@ -133,7 +140,8 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     std::stringstream stream;
     send_command({"find", "default", "--only-images"}, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
     EXPECT_THAT(stream.str(), Not(HasSubstr("No blueprints found.")));
 
     EXPECT_EQ(total_lines_of_output(stream), 3);
@@ -153,7 +161,9 @@ TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
     std::stringstream stream;
     send_command({"find", blueprint_name, "--only-blueprints"}, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(blueprint_name), HasSubstr(blueprint_description_for(blueprint_name))));
+    EXPECT_THAT(
+        stream.str(),
+        AllOf(HasSubstr(blueprint_name), HasSubstr(blueprint_description_for(blueprint_name))));
     EXPECT_THAT(stream.str(), Not(HasSubstr("No images found.")));
 
     EXPECT_EQ(total_lines_of_output(stream), 3);
@@ -204,10 +214,11 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
     std::stringstream stream;
     send_command({"find", remote_name}, stream);
 
-    EXPECT_THAT(stream.str(), AllOf(HasSubstr(fmt::format("{}{}", remote_name, mpt::default_alias)),
-                                    HasSubstr(mpt::default_release_info),
-                                    HasSubstr(fmt::format("{}{}", remote_name, mpt::another_alias)),
-                                    HasSubstr(mpt::another_release_info)));
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr(fmt::format("{}{}", remote_name, mpt::default_alias)),
+                      HasSubstr(mpt::default_release_info),
+                      HasSubstr(fmt::format("{}{}", remote_name, mpt::another_alias)),
+                      HasSubstr(mpt::another_release_info)));
 
     EXPECT_EQ(total_lines_of_output(stream), 4);
 }
@@ -218,7 +229,8 @@ TEST_F(DaemonFind, invalidRemoteNameAndEmptySearchString)
 
     constexpr std::string_view remote_name = "nonsense";
     const std::string error_msg = fmt::format(
-        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.", remote_name);
+        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.",
+        remote_name);
 
     EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
         throw std::runtime_error(error_msg);
@@ -243,7 +255,8 @@ TEST_F(DaemonFind, invalidRemoteNameAndNonEmptySearchString)
 
     constexpr std::string_view remote_name = "nonsense";
     const std::string error_msg = fmt::format(
-        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.", remote_name);
+        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.",
+        remote_name);
 
     EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
         throw std::runtime_error(error_msg);
@@ -289,8 +302,9 @@ TEST_F(DaemonFind, UpdateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncP
     config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
 
-    // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not wait the async task to
-    // finish. As a consequence, the event handler is not guaranteed to be called without send_command({"find"});
+    // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not
+    // wait the async task to finish. As a consequence, the event handler is not guaranteed to be
+    // called without send_command({"find"});
     send_command({"find"});
 }
 
@@ -298,7 +312,8 @@ TEST_F(DaemonFind, findForceUpdateCheckUpdateManifestsCalls)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
-    // daemon constructor invoke it first and find --force-update invoke it with force flag true after
+    // daemon constructor invoke it first and find --force-update invoke it with force flag true
+    // after
     const testing::InSequence sequence; // Force the following expectations to occur in order
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
     EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
@@ -318,9 +333,8 @@ TEST_F(DaemonFind, findForceUpdateRemoteCheckUpdateManifestsCalls)
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce([image_host_ptr = mock_image_host.get()](auto...) {
-        return image_host_ptr;
-    });
+    EXPECT_CALL(*mock_image_vault, image_host_for(_))
+        .WillOnce([image_host_ptr = mock_image_host.get()](auto...) { return image_host_ptr; });
 
     const testing::InSequence sequence;
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);

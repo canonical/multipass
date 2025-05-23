@@ -46,7 +46,8 @@ void check_working_directory_string(const std::string& dir)
 mp::AliasDict::AliasDict(mp::Terminal* term) : cout(term->cout()), cerr(term->cerr())
 {
     const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
-    const auto user_config_path = QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    const auto user_config_path =
+        QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
     const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
 
     aliases_file = cli_client_dir_path.absoluteFilePath(file_name).toStdString();
@@ -77,7 +78,8 @@ void mp::AliasDict::set_active_context(const std::string& new_active_context)
         active_context = new_active_context;
     }
 
-    // When switching active context, make sure that a context associated with the new active context exists.
+    // When switching active context, make sure that a context associated with the new active
+    // context exists.
     if (aliases.try_emplace(active_context, mp::AliasContext{}).second)
         modified = true;
 }
@@ -95,7 +97,8 @@ const mp::AliasContext& mp::AliasDict::get_active_context() const
     }
     catch (const std::out_of_range&)
     {
-        throw std::runtime_error(fmt::format("active context \"{}\" does not exist in dictionary", active_context));
+        throw std::runtime_error(
+            fmt::format("active context \"{}\" does not exist in dictionary", active_context));
     }
 }
 
@@ -155,9 +158,10 @@ bool mp::AliasDict::remove_context(const std::string& context)
     return false;
 }
 
-// This function removes the context called as the instance, and then it iterates through all the remaining contexts
-// to see if there are aliases defined for the instance.
-std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(const std::string& instance)
+// This function removes the context called as the instance, and then it iterates through all the
+// remaining contexts to see if there are aliases defined for the instance.
+std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(
+    const std::string& instance)
 {
     std::vector<mp::ContextAliasPair> removed_aliases;
 
@@ -167,7 +171,8 @@ std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(con
 
     for (auto dict_it = begin(); dict_it != end(); ++dict_it)
     {
-        for (auto context_it = dict_it->second.begin(); context_it != dict_it->second.end(); ++context_it)
+        for (auto context_it = dict_it->second.begin(); context_it != dict_it->second.end();
+             ++context_it)
         {
             if (context_it->second.instance == instance)
             {
@@ -188,9 +193,12 @@ std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(con
 }
 
 // The argument is an alias name, which can have the forms (i) "alias" or (ii) "context.alias".
-// (i): returns <active context name, alias name> if the alias exists in the current context; std::nullopt otherwise.
-// (ii): returns <context name, alias name> if the alias exists in the given context; std::nullopt otherwise.
-std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(const std::string& alias) const
+// (i): returns <active context name, alias name> if the alias exists in the current context;
+//   std::nullopt otherwise.
+// (ii): returns <context name, alias name> if the alias exists in the given
+//   context; std::nullopt otherwise.
+std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(
+    const std::string& alias) const
 {
     // This will never throw because we already checked that the active context exists.
     if (aliases.at(active_context).count(alias) > 0)
@@ -208,11 +216,13 @@ std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(const s
 
     std::string alias_only = alias.substr(dot_pos + 1);
 
-    return (aliases.at(context).count(alias_only) == 0 ? std::nullopt
-                                                       : std::make_optional(std::make_pair(context, alias_only)));
+    return (aliases.at(context).count(alias_only) == 0
+                ? std::nullopt
+                : std::make_optional(std::make_pair(context, alias_only)));
 }
 
-std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context(const std::string& alias) const
+std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context(
+    const std::string& alias) const
 {
     try
     {
@@ -231,20 +241,22 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context
 // The given alias can be fully qualified or not.
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
 {
-    std::optional<mp::AliasDefinition> alias_in_current_context = get_alias_from_current_context(alias);
+    std::optional<mp::AliasDefinition> alias_in_current_context =
+        get_alias_from_current_context(alias);
 
     if (alias_in_current_context)
         return alias_in_current_context;
 
-    // If the alias is not on the current context, look for it in the rest of the contexts. But make sure there is only
-    // one existing alias with that name.
+    // If the alias is not on the current context, look for it in the rest of the contexts. But make
+    // sure there is only one existing alias with that name.
 
     auto unique_alias_in_all_contexts = get_alias_from_all_contexts(alias);
 
     if (unique_alias_in_all_contexts)
         return unique_alias_in_all_contexts;
 
-    // If the alias given was not found, then it is in the form "context.alias": the input string must be split.
+    // If the alias given was not found, then it is in the form "context.alias": the input string
+    // must be split.
 
     // No dot, no alias.
     std::string::size_type dot_pos;
@@ -287,7 +299,8 @@ QJsonObject mp::AliasDict::to_json() const
 
         for (const auto& [alias_name, alias_definition] : context_contents)
         {
-            context_json.insert(QString::fromStdString(alias_name), alias_to_json(alias_definition));
+            context_json.insert(QString::fromStdString(alias_name),
+                                alias_to_json(alias_definition));
         }
 
         all_contexts_json.insert(QString::fromStdString(context_name), context_json);
@@ -361,8 +374,8 @@ void mp::AliasDict::load_dict()
         }
     };
 
-    // If the JSON does not contain the active-context field, then the file was written by a version of Multipass
-    // previous than the introduction of alias contexts.
+    // If the JSON does not contain the active-context field, then the file was written by a version
+    // of Multipass previous than the introduction of alias contexts.
     if (records.contains("active-context"))
     {
         active_context = records["active-context"].toString().toStdString();
@@ -379,8 +392,8 @@ void mp::AliasDict::load_dict()
     }
     else
     {
-        // The file with the old format does not contain information about contexts. For that reason, everything
-        // defined goes into the default context.
+        // The file with the old format does not contain information about contexts. For that
+        // reason, everything defined goes into the default context.
         active_context = default_context_name;
 
         AliasContext default_context;
@@ -400,8 +413,8 @@ void mp::AliasDict::save_dict()
 // This function removes the contexts which do not contain aliases, except the active context.
 void mp::AliasDict::sanitize_contexts()
 {
-    // To avoid invalidating iterators, the function works in two stages. First, the aliases which need to be
-    // removed are determined and, second, they are effectively removed.
+    // To avoid invalidating iterators, the function works in two stages. First, the aliases which
+    // need to be removed are determined and, second, they are effectively removed.
     std::vector<std::string> empty_contexts;
 
     for (auto& context : aliases)
@@ -422,9 +435,10 @@ void mp::AliasDict::sanitize_contexts()
     }
 }
 
-// Returns an alias definition iff the given alias name is unique across all the contexts. The given alias name cannot
-// be fully qualified, that is, it must not be prepended by a context name.
-std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(const std::string& alias) const
+// Returns an alias definition iff the given alias name is unique across all the contexts. The given
+// alias name cannot be fully qualified, that is, it must not be prepended by a context name.
+std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(
+    const std::string& alias) const
 {
     const AliasDefinition* ret;
     bool found{false};

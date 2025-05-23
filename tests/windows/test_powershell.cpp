@@ -74,7 +74,8 @@ TEST_F(PowerShellTest, handles_failure_to_write_on_exit)
 
     ps_helper.setup(
         [](auto* process) {
-            EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit))).WillOnce(Return(-1));
+            EXPECT_CALL(*process, write(Eq(mpt::PowerShellTestHelper::psexit)))
+                .WillOnce(Return(-1));
             EXPECT_CALL(*process, kill);
         },
         /* auto_exit = */ false);
@@ -119,7 +120,9 @@ TEST_F(PowerShellTest, uses_name_in_logs)
 TEST_F(PowerShellTest, write_silent_on_success)
 {
     static constexpr auto data = "Abbenay";
-    ps_helper.setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data))); });
+    ps_helper.setup([](auto* process) {
+        EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(std::strlen(data)));
+    });
 
     mp::PowerShell ps{"Bedap"};
 
@@ -130,7 +133,8 @@ TEST_F(PowerShellTest, write_silent_on_success)
 TEST_F(PowerShellTest, write_logs_on_failure)
 {
     static constexpr auto data = "Nio Esseia";
-    ps_helper.setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1)); });
+    ps_helper.setup(
+        [](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(-1)); });
 
     mp::PowerShell ps{"Takver"};
 
@@ -144,7 +148,8 @@ TEST_F(PowerShellTest, write_logs_writen_bytes_on_failure)
 {
     static constexpr auto data = "Anarres";
     static constexpr auto part = 3;
-    ps_helper.setup([](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(part)); });
+    ps_helper.setup(
+        [](auto* process) { EXPECT_CALL(*process, write(Eq(data))).WillOnce(Return(part)); });
 
     mp::PowerShell ps{"Palat"};
 
@@ -209,7 +214,8 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
 
     ps_helper.setup([this](auto* process) {
         expect_writes(process);
-        EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(QByteArray{data}.append(end_marker())));
+        EXPECT_CALL(*process, read_all_standard_output)
+            .WillOnce(Return(QByteArray{data}.append(end_marker())));
     });
 
     auto [out, err] = run();
@@ -302,7 +308,8 @@ TEST_F(PowerShellTest, exec_succeeds_when_no_timeout_and_process_successful)
             InSequence seq;
             EXPECT_CALL(*process, start);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-            EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+            EXPECT_CALL(*process, process_state)
+                .WillOnce(Return(mp::ProcessState{0, std::nullopt}));
         },
         /* auto_exit = */ false);
 
@@ -341,7 +348,8 @@ TEST_F(PowerShellTest, exec_fails_when_cmd_returns_bad_exit_code)
 
             EXPECT_CALL(*process, start);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
-            EXPECT_CALL(*process, process_state).WillOnce(Return(mp::ProcessState{-1, std::nullopt}));
+            EXPECT_CALL(*process, process_state)
+                .WillOnce(Return(mp::ProcessState{-1, std::nullopt}));
         },
         /* auto_exit = */ false);
 
@@ -363,7 +371,8 @@ TEST_F(PowerShellTest, exec_returns_cmd_output)
 
             EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
             EXPECT_CALL(*process, read_all_standard_output)
-                .WillOnce(DoAll(Invoke(emit_ready_read), Return(datum2))) // the invoke needs to be 1st
+                .WillOnce(
+                    DoAll(Invoke(emit_ready_read), Return(datum2))) // the invoke needs to be 1st
                 .WillOnce(Return(datum1)); // which results in the last return happening 1st
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
         },

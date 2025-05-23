@@ -50,10 +50,14 @@ auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::str
                        "    </dhcp>\n"
                        "  </ip>\n"
                        "</network>",
-                       bridge_name, subnet, subnet, subnet);
+                       bridge_name,
+                       subnet,
+                       subnet,
+                       subnet);
 }
 
-std::string enable_libvirt_network(const mp::Path& data_dir, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
+std::string enable_libvirt_network(const mp::Path& data_dir,
+                                   const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
     try
@@ -65,16 +69,18 @@ std::string enable_libvirt_network(const mp::Path& data_dir, const mp::LibvirtWr
         return {};
     }
 
-    mp::LibVirtVirtualMachine::NetworkUPtr network{libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"),
-                                                   libvirt_wrapper->virNetworkFree};
+    mp::LibVirtVirtualMachine::NetworkUPtr network{
+        libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"),
+        libvirt_wrapper->virNetworkFree};
     std::string bridge_name;
 
     if (network == nullptr)
     {
         bridge_name = multipass_bridge_name;
         network = mp::LibVirtVirtualMachine::NetworkUPtr{
-            libvirt_wrapper->virNetworkCreateXML(connection.get(),
-                                                 generate_libvirt_bridge_xml_config(data_dir, bridge_name).c_str()),
+            libvirt_wrapper->virNetworkCreateXML(
+                connection.get(),
+                generate_libvirt_bridge_xml_config(data_dir, bridge_name).c_str()),
             libvirt_wrapper->virNetworkFree};
     }
     else
@@ -106,8 +112,9 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 }
 } // namespace
 
-mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
-                                                               const std::string& libvirt_object_path)
+mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(
+    const mp::Path& data_dir,
+    const std::string& libvirt_object_path)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
       libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
@@ -122,9 +129,10 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 {
 }
 
-mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                                                  const SSHKeyProvider& key_provider,
-                                                                                  VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(
+    const VirtualMachineDescription& desc,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
 {
     if (bridge_name.empty())
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);
@@ -143,7 +151,8 @@ mp::LibVirtVirtualMachineFactory::~LibVirtVirtualMachineFactory()
     {
         auto connection = LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
         mp::LibVirtVirtualMachine::NetworkUPtr network{
-            libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"), libvirt_wrapper->virNetworkFree};
+            libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"),
+            libvirt_wrapper->virNetworkFree};
 
         libvirt_wrapper->virNetworkDestroy(network.get());
     }
@@ -153,7 +162,8 @@ void mp::LibVirtVirtualMachineFactory::remove_resources_for_impl(const std::stri
 {
     auto connection = LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
 
-    libvirt_wrapper->virDomainUndefine(libvirt_wrapper->virDomainLookupByName(connection.get(), name.c_str()));
+    libvirt_wrapper->virDomainUndefine(
+        libvirt_wrapper->virDomainLookupByName(connection.get(), name.c_str()));
 }
 
 mp::VMImage mp::LibVirtVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
@@ -190,7 +200,8 @@ QString mp::LibVirtVirtualMachineFactory::get_backend_version_string() const
         unsigned long libvirt_version;
         auto connection = LibVirtVirtualMachine::open_libvirt_connection(libvirt_wrapper);
 
-        if (libvirt_wrapper->virConnectGetVersion(connection.get(), &libvirt_version) == 0 && libvirt_version != 0)
+        if (libvirt_wrapper->virConnectGetVersion(connection.get(), &libvirt_version) == 0 &&
+            libvirt_version != 0)
         {
             return QString("libvirt-%1.%2.%3")
                 .arg(libvirt_version / 1000000)

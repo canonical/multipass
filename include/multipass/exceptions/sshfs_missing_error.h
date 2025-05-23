@@ -28,7 +28,6 @@ public:
     SSHFSMissingError() : runtime_error{"sshfs missing"}
     {
     }
-
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_SSHFS_MISSING_ERROR_H

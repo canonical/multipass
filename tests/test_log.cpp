@@ -68,7 +68,8 @@ TEST_F(log_tests, test_format_overload_multiple_args_missing)
 {
     // Missing arguments are runtime error in C++17. This should be a compile
     // time error with the C++20
-    EXPECT_THROW({ mpl::log(mpl::Level::error, "test_category", "with formatting {} {}", 1); }, fmt::format_error);
+    EXPECT_THROW({ mpl::log(mpl::Level::error, "test_category", "with formatting {} {}", 1); },
+                 fmt::format_error);
 }
 
 // ------------------------------------------------------------------------------

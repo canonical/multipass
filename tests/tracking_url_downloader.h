@@ -28,7 +28,8 @@ namespace test
 {
 struct TrackingURLDownloader : public URLDownloader
 {
-    TrackingURLDownloader(const std::string& content) : URLDownloader{std::chrono::seconds(10)}, content{content}
+    TrackingURLDownloader(const std::string& content)
+        : URLDownloader{std::chrono::seconds(10)}, content{content}
     {
     }
 
@@ -36,7 +37,10 @@ struct TrackingURLDownloader : public URLDownloader
     {
     }
 
-    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+    void download_to(const QUrl& url,
+                     const QString& file_name,
+                     int64_t size,
+                     const int download_type,
                      const ProgressMonitor&) override
     {
         make_file_with_content(file_name, content);

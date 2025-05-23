@@ -72,22 +72,24 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     qemu_args << common_args << "-accel"
               << "hvf"
               << "-drive"
-              << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
+              << QString(
+                     "file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
                      .arg(QCoreApplication::applicationDirPath())
                      .arg(host_arch)
               << "-cpu"
               << "host"
               // Set up the network related args
               << "-nic"
-              << QString::fromStdString(
-                     fmt::format("vmnet-shared,model=virtio-net-pci,mac={}", vm_desc.default_mac_address));
+              << QString::fromStdString(fmt::format("vmnet-shared,model=virtio-net-pci,mac={}",
+                                                    vm_desc.default_mac_address));
 
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
         qemu_args << "-nic"
-                  << QString::fromStdString(fmt::format("vmnet-bridged,ifname={},model=virtio-net-pci,mac={}",
-                                                        extra_interface.id,
-                                                        extra_interface.mac_address));
+                  << QString::fromStdString(
+                         fmt::format("vmnet-bridged,ifname={},model=virtio-net-pci,mac={}",
+                                     extra_interface.id,
+                                     extra_interface.mac_address));
     }
 
     return qemu_args;

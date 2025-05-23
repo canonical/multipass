@@ -33,7 +33,9 @@ template <typename T, typename U>
 class ClientLogger : public Logger
 {
 public:
-    ClientLogger(Level level, MultiplexingLogger& mpx, grpc::ServerReaderWriterInterface<T, U>* server)
+    ClientLogger(Level level,
+                 MultiplexingLogger& mpx,
+                 grpc::ServerReaderWriterInterface<T, U>* server)
         : logging_level{level}, server{server}, mpx_logger{mpx}
     {
         mpx_logger.add_logger(this);
@@ -49,7 +51,11 @@ public:
         if (level <= logging_level && server != nullptr)
         {
             T reply;
-            reply.set_log_line(fmt::format("[{}] [{}] [{}] {}\n", timestamp(), as_string(level), category, message));
+            reply.set_log_line(fmt::format("[{}] [{}] [{}] {}\n",
+                                           timestamp(),
+                                           as_string(level),
+                                           category,
+                                           message));
             server->Write(reply);
         }
     }

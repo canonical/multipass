@@ -48,7 +48,8 @@ private:
 };
 } // namespace
 
-std::unique_ptr<mp::ProcessSpec> mp::simple_process_spec(const QString& cmd, const QStringList& args)
+std::unique_ptr<mp::ProcessSpec> mp::simple_process_spec(const QString& cmd,
+                                                         const QStringList& args)
 {
     return std::make_unique<::SimpleProcessSpec>(cmd, args);
 }

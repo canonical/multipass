@@ -94,9 +94,11 @@ TEST_F(SSLCertProviderFixture, persists_cert_and_key)
 TEST_F(SSLCertProviderFixture, creates_different_certs_per_server_name)
 {
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
-    // move the multipass_root_cert.pem into the temporary directory so it will be deleted automatically later
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
     EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+        .WillRepeatedly(
+            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
 
     mp::SSLCertProvider cert_provider1{cert_dir, "test_server1"};
     mp::SSLCertProvider cert_provider2{cert_dir, "test_server2"};

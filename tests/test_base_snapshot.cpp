@@ -60,8 +60,9 @@ struct TestBaseSnapshot : public Test
         ret.num_cores = 3;
         ret.mem_size = mp::MemorySize{"1.5G"};
         ret.disk_space = mp::MemorySize{"10G"};
-        ret.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
-                                                                 {"eth14", "14:14:14:14:14:14", true}};
+        ret.extra_interfaces =
+            std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
+                                              {"eth14", "14:14:14:14:14:14", true}};
         ret.default_mac_address = "12:12:12:12:12:12";
 
         return ret;
@@ -70,9 +71,10 @@ struct TestBaseSnapshot : public Test
     static mp::VirtualMachineDescription stub_desc()
     {
         mp::VirtualMachineDescription desc{};
-        desc.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
-                                                                  {"eth14", "14:14:14:14:14:14", true},
-                                                                  {"eth15", "15:15:15:15:15:15", true}};
+        desc.extra_interfaces =
+            std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
+                                              {"eth14", "14:14:14:14:14:14", true},
+                                              {"eth15", "15:15:15:15:15:15", true}};
 
         return desc;
     }
@@ -81,10 +83,12 @@ struct TestBaseSnapshot : public Test
     {
         static auto json_doc = [] {
             QJsonParseError parse_error{};
-            const auto ret = QJsonDocument::fromJson(mpt::load_test_file(test_json_filename), &parse_error);
+            const auto ret =
+                QJsonDocument::fromJson(mpt::load_test_file(test_json_filename), &parse_error);
             if (parse_error.error)
-                throw std::runtime_error{
-                    fmt::format("Bad JSON test data in {}; error: {}", test_json_filename, parse_error.errorString())};
+                throw std::runtime_error{fmt::format("Bad JSON test data in {}; error: {}",
+                                                     test_json_filename,
+                                                     parse_error.errorString())};
             return ret;
         }();
 
@@ -103,7 +107,9 @@ struct TestBaseSnapshot : public Test
         return json;
     }
 
-    static void mod_snapshot_json(QJsonObject& json, const QString& key, const QJsonValue& new_value)
+    static void mod_snapshot_json(QJsonObject& json,
+                                  const QString& key,
+                                  const QJsonValue& new_value)
     {
         const auto snapshot_key = QStringLiteral("snapshot");
         auto snapshot_json_ref = json[snapshot_key];
@@ -112,7 +118,8 @@ struct TestBaseSnapshot : public Test
         snapshot_json_ref = snapshot_json_copy;
     }
 
-    QString plant_snapshot_json(const QJsonObject& object, const QString& filename = "snapshot.json") const
+    QString plant_snapshot_json(const QJsonObject& object,
+                                const QString& filename = "snapshot.json") const
     {
         const auto file_path = vm.tmp_dir->filePath(filename);
 
@@ -124,7 +131,8 @@ struct TestBaseSnapshot : public Test
 
     QString derive_persisted_snapshot_file_path(int index)
     {
-        return vm.tmp_dir->filePath(QString{"%1"}.arg(index, 4, 10, QLatin1Char('0')) + ".snapshot.json");
+        return vm.tmp_dir->filePath(QString{"%1"}.arg(index, 4, 10, QLatin1Char('0')) +
+                                    ".snapshot.json");
     }
 
     static constexpr auto* test_json_filename = "test_snapshot.json";
@@ -133,7 +141,8 @@ struct TestBaseSnapshot : public Test
     NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
+    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
+        mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
@@ -163,7 +172,8 @@ TEST_F(TestBaseSnapshot, adoptsGivenComment)
 TEST_F(TestBaseSnapshot, adoptsGivenInstanceId)
 {
     constexpr std::string_view instance_id{"vm2"};
-    const auto snapshot = MockBaseSnapshot{"whatever", "some comment", std::string{instance_id}, nullptr, specs, vm};
+    const auto snapshot =
+        MockBaseSnapshot{"whatever", "some comment", std::string{instance_id}, nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_cloud_init_instance_id(), instance_id);
 }
 
@@ -194,10 +204,14 @@ TEST_F(TestBaseSnapshot, adoptsGivenSpecs)
 
 TEST_F(TestBaseSnapshot, adoptsCustomMounts)
 {
-    specs.mounts["toto"] =
-        mp::VMMount{"src", {{123, 234}, {567, 678}}, {{19, 91}}, multipass::VMMount::MountType::Classic};
-    specs.mounts["tata"] =
-        mp::VMMount{"fountain", {{234, 123}}, {{81, 18}, {9, 10}}, multipass::VMMount::MountType::Native};
+    specs.mounts["toto"] = mp::VMMount{"src",
+                                       {{123, 234}, {567, 678}},
+                                       {{19, 91}},
+                                       multipass::VMMount::MountType::Classic};
+    specs.mounts["tata"] = mp::VMMount{"fountain",
+                                       {{234, 123}},
+                                       {{81, 18}, {9, 10}},
+                                       multipass::VMMount::MountType::Native};
 
     auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
@@ -249,7 +263,8 @@ TEST_F(TestBaseSnapshot, adoptsCurrentTimestamp)
     EXPECT_LE(snapshot.get_creation_timestamp(), after);
 }
 
-class TestSnapshotRejectedStates : public TestBaseSnapshot, public WithParamInterface<mp::VirtualMachine::State>
+class TestSnapshotRejectedStates : public TestBaseSnapshot,
+                                   public WithParamInterface<mp::VirtualMachine::State>
 {
 };
 
@@ -334,8 +349,12 @@ TEST_F(TestBaseSnapshot, linksToParentFromJson)
     mod_snapshot_json(json, "parent", parent_idx);
 
     EXPECT_CALL(vm, get_snapshot(TypedEq<int>(parent_idx)))
-        .WillOnce(
-            Return(std::make_shared<MockBaseSnapshot>(parent_name, "mock parent snapshot", "", nullptr, specs, vm)));
+        .WillOnce(Return(std::make_shared<MockBaseSnapshot>(parent_name,
+                                                            "mock parent snapshot",
+                                                            "",
+                                                            nullptr,
+                                                            specs,
+                                                            vm)));
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_parents_name(), parent_name);
@@ -497,19 +516,22 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     EXPECT_EQ(snapshot_mount.get_mount_type(), mount_type);
 
     ASSERT_THAT(snapshot_mount.get_uid_mappings(), SizeIs(uid_mappings.size()));
-    const auto [snapshot_host_uid, snapshot_instance_uid] = snapshot_mount.get_uid_mappings().front();
+    const auto [snapshot_host_uid, snapshot_instance_uid] =
+        snapshot_mount.get_uid_mappings().front();
 
     EXPECT_EQ(snapshot_host_uid, host_uid);
     EXPECT_EQ(snapshot_instance_uid, instance_uid);
 
     ASSERT_THAT(snapshot_mount.get_gid_mappings(), SizeIs(gid_mappings.size()));
-    const auto [snapshot_host_gid, snapshot_instance_gid] = snapshot_mount.get_gid_mappings().front();
+    const auto [snapshot_host_gid, snapshot_instance_gid] =
+        snapshot_mount.get_gid_mappings().front();
 
     EXPECT_EQ(snapshot_host_gid, host_gid);
     EXPECT_EQ(snapshot_instance_gid, instance_gid);
 }
 
-class TestSnapshotRejectedNonPositiveIndices : public TestBaseSnapshot, public WithParamInterface<int>
+class TestSnapshotRejectedNonPositiveIndices : public TestBaseSnapshot,
+                                               public WithParamInterface<int>
 {
 };
 
@@ -519,12 +541,15 @@ TEST_P(TestSnapshotRejectedNonPositiveIndices, refusesNonPositiveIndexFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm, desc}),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("not positive"), HasSubstr(std::to_string(index)))));
+    MP_EXPECT_THROW_THAT(
+        (MockBaseSnapshot{plant_snapshot_json(json), vm, desc}),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("not positive"), HasSubstr(std::to_string(index)))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotRejectedNonPositiveIndices, Values(0, -1, -31));
+INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
+                         TestSnapshotRejectedNonPositiveIndices,
+                         Values(0, -1, -31));
 
 TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
 {
@@ -532,9 +557,10 @@ TEST_F(TestBaseSnapshot, refusesIndexAboveMax)
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "index", index);
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{plant_snapshot_json(json), vm, desc}),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Maximum"), HasSubstr(std::to_string(index)))));
+    MP_EXPECT_THROW_THAT(
+        (MockBaseSnapshot{plant_snapshot_json(json), vm, desc}),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Maximum"), HasSubstr(std::to_string(index)))));
 }
 
 TEST_F(TestBaseSnapshot, setsName)
@@ -646,7 +672,8 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+    EXPECT_CALL(*mock_file_ops,
+                rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
         .WillOnce(Return(true));
 
     snapshot.erase();
@@ -654,13 +681,20 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
 
 TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 {
-    NiceMock<MockBaseSnapshot> snapshot{"voodoo-sword", "Cursed Cutlass of Kaflu", "", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"voodoo-sword",
+                                        "Cursed Cutlass of Kaflu",
+                                        "",
+                                        nullptr,
+                                        specs,
+                                        vm};
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), _)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, exists(Matcher<const QFile&>(Property(&QFile::fileName, Eq(expected_file_path)))))
+    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), _))
+        .WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops,
+                exists(Matcher<const QFile&>(Property(&QFile::fileName, Eq(expected_file_path)))))
         .WillOnce(Return(true));
 
     MP_EXPECT_THROW_THAT(snapshot.erase(),
@@ -670,21 +704,24 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 
 TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
 {
-    NiceMock<MockBaseSnapshot> snapshot{"ultimate-insult",
-                                        "A powerful weapon capable of crippling even the toughest pirate's ego.",
-                                        "",
-                                        nullptr,
-                                        specs,
-                                        vm};
+    NiceMock<MockBaseSnapshot> snapshot{
+        "ultimate-insult",
+        "A powerful weapon capable of crippling even the toughest pirate's ego.",
+        "",
+        nullptr,
+        specs,
+        vm};
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
 
     EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file_path)));
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+    EXPECT_CALL(*mock_file_ops,
+                rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Ne(expected_file_path)), Eq(expected_file_path)));
+    EXPECT_CALL(*mock_file_ops,
+                rename(Property(&QFile::fileName, Ne(expected_file_path)), Eq(expected_file_path)));
 
     EXPECT_CALL(snapshot, erase_impl).WillOnce([]() { throw std::runtime_error{"test"}; });
 
@@ -698,10 +735,10 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
     EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(test_json_file_path)), _))
         .WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(
-        (MockBaseSnapshot{test_json_file_path, vm, desc}),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(test_json_file_path.toStdString()))));
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm, desc}),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Could not open"),
+                                               HasSubstr(test_json_file_path.toStdString()))));
 }
 
 TEST_F(TestBaseSnapshot, throwsOnEmptyJson)
@@ -715,17 +752,18 @@ TEST_F(TestBaseSnapshot, throwsOnEmptyJson)
 TEST_F(TestBaseSnapshot, throwsOnBadFormat)
 {
     const auto snapshot_file_path = vm.tmp_dir->filePath("wrong");
-    mpt::make_file_with_content(
-        snapshot_file_path,
-        "(Guybrush): Can I call you Bob?\n"
-        "\n"
-        "(Murray): You may call me Murray! I am a powerful demonic force! I'm the harbinger of your doom, and the "
-        "forces of darkness will applaude me as I stride through the gates of hell, carrying your head on a pike!\n"
-        "\n"
-        "(Guybrush): \"Stride\"?\n"
-        "\n"
-        "(Murray): Alright, then. ROLL! I shall ROLL through the gates of hell! Must you take the fun out of "
-        "everything?");
+    mpt::make_file_with_content(snapshot_file_path,
+                                "(Guybrush): Can I call you Bob?\n"
+                                "\n"
+                                "(Murray): You may call me Murray! I am a powerful demonic force! "
+                                "I'm the harbinger of your doom, and the forces of darkness will "
+                                "applaude me as I stride through the gates of hell, carrying your "
+                                "head on a pike!\n"
+                                "\n"
+                                "(Guybrush): \"Stride\"?\n"
+                                "\n"
+                                "(Murray): Alright, then. ROLL! I shall ROLL through the gates of "
+                                "hell! Must you take the fun out of everything?");
 
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
                          std::runtime_error,

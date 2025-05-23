@@ -46,7 +46,8 @@ QString mpt::test_data_sub_dir_path(const char* dir_name)
 {
     QDir dir{test_data_path()};
     if (!dir.cd(dir_name))
-        throw std::runtime_error(fmt::format("could not find sub dir '{}' under test_data directory", dir_name));
+        throw std::runtime_error(
+            fmt::format("could not find sub dir '{}' under test_data directory", dir_name));
     return QDir::toNativeSeparators(dir.path()) + QDir::separator();
 }
 

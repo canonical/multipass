@@ -61,7 +61,9 @@ struct ClientCertStore : public testing::Test
 {
     ClientCertStore()
     {
-        cert_dir = MP_UTILS.make_dir(temp_dir.path(), mp::authenticated_certs_dir, std::filesystem::perms::owner_all);
+        cert_dir = MP_UTILS.make_dir(temp_dir.path(),
+                                     mp::authenticated_certs_dir,
+                                     std::filesystem::perms::owner_all);
     }
     mpt::TempDir temp_dir;
     mp::Path cert_dir;
@@ -92,7 +94,8 @@ TEST_F(ClientCertStore, add_cert_throws_on_invalid_data)
 {
     mp::ClientCertStore cert_store{temp_dir.path()};
 
-    MP_EXPECT_THROW_THAT(cert_store.add_cert("not a certificate"), std::runtime_error,
+    MP_EXPECT_THROW_THAT(cert_store.add_cert("not a certificate"),
+                         std::runtime_error,
                          mpt::match_what(StrEq("invalid certificate data")));
 }
 
@@ -192,21 +195,22 @@ TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
 
     mp::ClientCertStore cert_store{temp_dir.path()};
 
-    MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
+    MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data),
+                         std::runtime_error,
                          mpt::match_what(StrEq("failed to create file to store certificate")));
 }
 
 TEST_F(ClientCertStore, writingFileFailsAndThrows)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QFileDevice& file, QIODevice::OpenMode mode) {
-        return file.open(mode);
-    });
+    EXPECT_CALL(*mock_file_ops, open(_, _))
+        .WillOnce([](QFileDevice& file, QIODevice::OpenMode mode) { return file.open(mode); });
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_file_ops, commit).WillOnce(Return(false));
 
     mp::ClientCertStore cert_store{temp_dir.path()};
 
-    MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data), std::runtime_error,
+    MP_EXPECT_THROW_THAT(cert_store.add_cert(cert_data),
+                         std::runtime_error,
                          mpt::match_what(StrEq("failed to write certificate")));
 }

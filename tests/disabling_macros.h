@@ -20,7 +20,8 @@
 
 // Macros to disable tests - prepend to test or test suite names
 // Use like this: TEST_F(TestSuite, DISABLE_ON_XXX(test_name))
-// See https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#temporarily-disabling-tests
+// See
+// https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#temporarily-disabling-tests
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
 

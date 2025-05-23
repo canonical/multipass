@@ -80,8 +80,11 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
         const auto host = proxy_url.host();
         const auto port = proxy_url.port();
 
-        auto network_proxy = QNetworkProxy(QNetworkProxy::HttpProxy, host, static_cast<quint16>(port),
-                                           proxy_url.userName(), proxy_url.password());
+        auto network_proxy = QNetworkProxy(QNetworkProxy::HttpProxy,
+                                           host,
+                                           static_cast<quint16>(port),
+                                           proxy_url.userName(),
+                                           proxy_url.password());
 
         QNetworkProxy::setApplicationProxy(network_proxy);
 
@@ -106,9 +109,10 @@ bool admits_snapcraft_image(const mp::VMImageInfo& info)
     };
 
     const auto& aliases = info.aliases;
-    return aliases.empty() || std::any_of(supported_snapcraft_aliases.begin(),
-                                          supported_snapcraft_aliases.end(),
-                                          [&aliases](const auto& alias) { return aliases.contains(alias); });
+    return aliases.empty() ||
+           std::any_of(supported_snapcraft_aliases.begin(),
+                       supported_snapcraft_aliases.end(),
+                       [&aliases](const auto& alias) { return aliases.contains(alias); });
 }
 } // namespace
 
@@ -159,7 +163,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (image_hosts.empty())
     {
         image_hosts.push_back(
-            std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(), url_downloader.get()));
+            std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(),
+                                                    url_downloader.get()));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
                 {mp::release_remote,
@@ -175,7 +180,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                      "buildd/daily/",
                                      &admits_snapcraft_image,
                                      std::make_optional<QString>(mp::mirror_key)}},
-                {mp::appliance_remote, UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
+                {mp::appliance_remote,
+                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
             url_downloader.get()));
     }
     if (vault == nullptr)
@@ -187,8 +193,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         }
 
         vault = factory->create_image_vault(
-            hosts, url_downloader.get(), MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name()),
-            mp::utils::backend_directory_path(data_directory, factory->get_backend_directory_name()), days_to_expire);
+            hosts,
+            url_downloader.get(),
+            MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name()),
+            mp::utils::backend_directory_path(data_directory,
+                                              factory->get_backend_directory_name()),
+            days_to_expire);
     }
     if (name_generator == nullptr)
         name_generator = mp::make_default_name_generator();
@@ -208,11 +218,15 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     {
         auto blueprint_provider_url = qEnvironmentVariable(blueprints_url_env_var);
         if (!blueprint_provider_url.isEmpty())
-            blueprint_provider = std::make_unique<DefaultVMBlueprintProvider>(
-                QUrl(blueprint_provider_url), url_downloader.get(), cache_directory, manifest_ttl);
-        else
             blueprint_provider =
-                std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(), cache_directory, manifest_ttl);
+                std::make_unique<DefaultVMBlueprintProvider>(QUrl(blueprint_provider_url),
+                                                             url_downloader.get(),
+                                                             cache_directory,
+                                                             manifest_ttl);
+        else
+            blueprint_provider = std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(),
+                                                                              cache_directory,
+                                                                              manifest_ttl);
     }
 
     // tighten permissions for cache and data
@@ -220,13 +234,15 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     {
         MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
         MP_PLATFORM.set_permissions(storage_path.toStdU16String(),
-                                    fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
+                                    fs::perms::owner_all | fs::perms::group_exec |
+                                        fs::perms::others_exec);
     }
     else
     {
         MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
         MP_PLATFORM.set_permissions(data_directory.toStdU16String(),
-                                    fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
+                                    fs::perms::owner_all | fs::perms::group_exec |
+                                        fs::perms::others_exec);
         MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
     }
 
@@ -234,12 +250,25 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         cert_provider = std::make_unique<mp::SSLCertProvider>(
             MP_UTILS.make_dir(data_directory,
                               "certificates",
-                              fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec),
+                              fs::perms::owner_all | fs::perms::group_exec |
+                                  fs::perms::others_exec),
             server_name_from(server_address));
 
-    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{
-        std::move(url_downloader), std::move(factory), std::move(image_hosts), std::move(vault),
-        std::move(name_generator), std::move(ssh_key_provider), std::move(cert_provider), std::move(client_cert_store),
-        std::move(update_prompt), multiplexing_logger, std::move(network_proxy), std::move(blueprint_provider),
-        cache_directory, data_directory, server_address, ssh_username, image_refresh_timer});
+    return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
+                                                                std::move(factory),
+                                                                std::move(image_hosts),
+                                                                std::move(vault),
+                                                                std::move(name_generator),
+                                                                std::move(ssh_key_provider),
+                                                                std::move(cert_provider),
+                                                                std::move(client_cert_store),
+                                                                std::move(update_prompt),
+                                                                multiplexing_logger,
+                                                                std::move(network_proxy),
+                                                                std::move(blueprint_provider),
+                                                                cache_directory,
+                                                                data_directory,
+                                                                server_address,
+                                                                ssh_username,
+                                                                image_refresh_timer});
 }

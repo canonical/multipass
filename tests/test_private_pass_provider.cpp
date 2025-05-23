@@ -63,8 +63,10 @@ struct TryBreakInExample : public mp::PrivatePassProvider<TryBreakInExample>,
     static void trybreakin()
     {
         // PassExample::speak_friend_and_enter(pass, "asdf"); // error: which one?
-        // PassExample::speak_friend_and_enter(PrivatePassProvider<TryBreakInExample>::pass, "fdsa"); // error: wrong
-        // type PassExample::speak_friend_and_enter(PrivatePassProvider<PassExample>::pass, "x"); // error: not friends
+        // PassExample::speak_friend_and_enter(PrivatePassProvider<TryBreakInExample>::pass,
+        // "fdsa"); // error: wrong type
+        // PassExample::speak_friend_and_enter(PrivatePassProvider<PassExample>::pass, "x"); //
+        // error: not friends
     }
 };
 

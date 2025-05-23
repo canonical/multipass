@@ -38,11 +38,16 @@ struct MockTimerSyncFuncs : public mpu::TimerSyncFuncs
     using TimerSyncFuncs::TimerSyncFuncs;
 
     MOCK_METHOD(void, notify_all, (std::condition_variable&), (const, override));
-    MOCK_METHOD(void, wait, (std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>),
+    MOCK_METHOD(void,
+                wait,
+                (std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>),
                 (const, override));
-    MOCK_METHOD(bool, wait_for,
-                (std::condition_variable&, std::unique_lock<std::mutex>&,
-                 (const std::chrono::duration<int, std::milli>&), std::function<bool()>),
+    MOCK_METHOD(bool,
+                wait_for,
+                (std::condition_variable&,
+                 std::unique_lock<std::mutex>&,
+                 (const std::chrono::duration<int, std::milli>&),
+                 std::function<bool()>),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockTimerSyncFuncs, TimerSyncFuncs);
@@ -189,7 +194,8 @@ TEST_F(TestTimer, resumes)
         .WillOnce(WithArg<1>(make_mock_wait_for(true)));
 
     // After resume() is called, there should be less time left than the default timeout
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout), _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout), _))
+        .WillOnce(Return(false));
     EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();

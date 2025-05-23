@@ -40,7 +40,9 @@ void attempt_ssh_exec(mp::VirtualMachine& vm, const std::string& cmd)
     }
     catch (const mp::SSHException& e)
     {
-        mpl::log(mpl::Level::info, vm.vm_name, fmt::format("Could not broadcast shutdown message in VM: {}", e.what()));
+        mpl::log(mpl::Level::info,
+                 vm.vm_name,
+                 fmt::format("Could not broadcast shutdown message in VM: {}", e.what()));
     }
 }
 
@@ -50,12 +52,14 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseco
     {
         auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(time_left).count();
 
-        attempt_ssh_exec(vm,
-                         fmt::format("wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
-                                     "--cancel {}' to cancel the shutdown.\"",
-                                     minutes_left,
-                                     num_plural(minutes_left) ? "s" : "",
-                                     vm.vm_name));
+        attempt_ssh_exec(
+            vm,
+            fmt::format(
+                "wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
+                "--cancel {}' to cancel the shutdown.\"",
+                minutes_left,
+                num_plural(minutes_left) ? "s" : "",
+                vm.vm_name));
     }
     else
     {
@@ -64,7 +68,8 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseco
 }
 } // namespace
 
-mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine, const StopMounts& stop_mounts)
+mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine,
+                                               const StopMounts& stop_mounts)
     : virtual_machine{virtual_machine}, stop_mounts{stop_mounts}, time_remaining{0}
 {
 }
@@ -93,7 +98,8 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
         auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(delay).count();
         mpl::log(mpl::Level::info,
                  virtual_machine->vm_name,
-                 fmt::format("Shutdown request delayed for {} minute{}", // TODO say "under a minute" if < 1 minute
+                 fmt::format("Shutdown request delayed for {} minute{}", // TODO say "under a
+                                                                         // minute" if < 1 minute
                              minutes_left,
                              num_plural(minutes_left) ? "s" : ""));
         write_shutdown_message(*virtual_machine, delay);

@@ -84,10 +84,15 @@ public:
     struct lockpick
     {
     } pick{};
+
     // TryMultipleton()
-    //     : Singleton<TryMultipleton>{reinterpret_cast<Singleton<TryMultipleton>::PrivatePass>(pick)} // bad cast
-    //     : Singleton<TryMultipleton>{(Singleton<TryMultipleton>::PrivatePass)(pick)} // no way to convert
+    // : Singleton<TryMultipleton>{
+    //     reinterpret_cast<Singleton<TryMultipleton>::PrivatePass>(pick)} // bad cast
+    // {}
+    //
+    // TryMultipleton()
+    // : Singleton<TryMultipleton>{
+    //     (Singleton<TryMultipleton>::PrivatePass)(pick)} // no way to convert
     // {}
 };
-
 } // namespace

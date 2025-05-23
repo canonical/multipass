@@ -54,7 +54,10 @@ void setup_lxd_url(QUrl& inout_url)
 }
 
 template <typename Callable>
-const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int timeout, Callable&& handle_request)
+const QJsonObject lxd_request_common(const std::string& method,
+                                     QUrl& url,
+                                     int timeout,
+                                     Callable&& handle_request)
 {
     QEventLoop event_loop;
     QTimer download_timeout;
@@ -62,10 +65,13 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
 
     setup_lxd_url(url);
 
-    mpl::log(mpl::Level::trace, request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
+    mpl::log(mpl::Level::trace,
+             request_category,
+             fmt::format("Requesting LXD: {} {}", method, url.toString()));
     QNetworkRequest request{url};
 
-    request.setHeader(QNetworkRequest::UserAgentHeader, QString("Multipass/%1").arg(mp::version_string));
+    request.setHeader(QNetworkRequest::UserAgentHeader,
+                      QString("Multipass/%1").arg(mp::version_string));
 
     auto verb = QByteArray::fromStdString(method);
 
@@ -94,17 +100,21 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     reply->deleteLater();
 
     if (bytearray_reply.isEmpty())
-        throw mp::LXDRuntimeError(fmt::format("Empty reply received for {} operation on {}", method, url.toString()));
+        throw mp::LXDRuntimeError(
+            fmt::format("Empty reply received for {} operation on {}", method, url.toString()));
 
     QJsonParseError json_error;
     auto json_reply = QJsonDocument::fromJson(bytearray_reply, &json_error);
 
     if (json_error.error != QJsonParseError::NoError)
     {
-        std::string error_string{
-            fmt::format("Error parsing JSON response for {}: {}", url.toString(), json_error.errorString())};
+        std::string error_string{fmt::format("Error parsing JSON response for {}: {}",
+                                             url.toString(),
+                                             json_error.errorString())};
 
-        mpl::log(mpl::Level::debug, request_category, fmt::format("{}\n{}", error_string, bytearray_reply));
+        mpl::log(mpl::Level::debug,
+                 request_category,
+                 fmt::format("{}\n{}", error_string, bytearray_reply));
         throw mp::LXDJsonParseError(error_string);
     }
 
@@ -112,11 +122,15 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
     {
         std::string error_string{fmt::format("Invalid LXD response for {}", url.toString())};
 
-        mpl::log(mpl::Level::debug, request_category, fmt::format("{}\n{}", error_string, bytearray_reply));
+        mpl::log(mpl::Level::debug,
+                 request_category,
+                 fmt::format("{}\n{}", error_string, bytearray_reply));
         throw mp::LXDJsonParseError(error_string);
     }
 
-    mpl::log(mpl::Level::trace, request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
+    mpl::log(mpl::Level::trace,
+             request_category,
+             fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
     if (reply->error() != QNetworkReply::NoError)
         throw mp::LXDNetworkError(fmt::format("Network error for {}: {} - {}",
@@ -128,8 +142,11 @@ const QJsonObject lxd_request_common(const std::string& method, QUrl& url, int t
 }
 } // namespace
 
-const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, QUrl url,
-                                  const std::optional<QJsonObject>& json_data, int timeout)
+const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager,
+                                  const std::string& method,
+                                  QUrl url,
+                                  const std::optional<QJsonObject>& json_data,
+                                  int timeout)
 try
 {
     auto handle_request = [manager, &json_data](QNetworkRequest& request, const QByteArray& verb) {
@@ -139,7 +156,8 @@ try
             data = QJsonDocument(*json_data).toJson(QJsonDocument::Compact);
 
             request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-            request.setHeader(QNetworkRequest::ContentLengthHeader, QByteArray::number(data.size()));
+            request.setHeader(QNetworkRequest::ContentLengthHeader,
+                              QByteArray::number(data.size()));
 
             mpl::log(mpl::Level::trace, request_category, fmt::format("Sending data: {}", data));
         }
@@ -162,8 +180,11 @@ catch (const LXDRuntimeError& e)
     throw;
 }
 
-const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager, const std::string& method, QUrl url,
-                                  QHttpMultiPart& multi_part, int timeout)
+const QJsonObject mp::lxd_request(mp::NetworkAccessManager* manager,
+                                  const std::string& method,
+                                  QUrl url,
+                                  QHttpMultiPart& multi_part,
+                                  int timeout)
 try
 {
     auto handle_request = [manager, &multi_part](QNetworkRequest& request, const QByteArray& verb) {
@@ -181,7 +202,9 @@ catch (const LXDRuntimeError& e)
     throw;
 }
 
-const QJsonObject mp::lxd_wait(mp::NetworkAccessManager* manager, const QUrl& base_url, const QJsonObject& task_data,
+const QJsonObject mp::lxd_wait(mp::NetworkAccessManager* manager,
+                               const QUrl& base_url,
+                               const QJsonObject& task_data,
                                int timeout)
 try
 {
@@ -199,18 +222,21 @@ try
         if (task_reply["error_code"].toInt() >= 400)
         {
             throw mp::LXDRuntimeError(fmt::format("Error waiting on operation: ({}) {}",
-                                                  task_reply["error_code"].toInt(), task_reply["error"].toString()));
+                                                  task_reply["error_code"].toInt(),
+                                                  task_reply["error"].toString()));
         }
         else if (task_reply["status_code"].toInt() >= 400)
         {
             throw mp::LXDRuntimeError(fmt::format("Failure waiting on operation: ({}) {}",
-                                                  task_reply["status_code"].toInt(), task_reply["status"].toString()));
+                                                  task_reply["status_code"].toInt(),
+                                                  task_reply["status"].toString()));
         }
         else if (task_reply["metadata"].toObject()["status_code"].toInt() >= 400)
         {
-            throw mp::LXDRuntimeError(fmt::format("Operation completed with error: ({}) {}",
-                                                  task_reply["metadata"].toObject()["status_code"].toInt(),
-                                                  task_reply["metadata"].toObject()["err"].toString()));
+            throw mp::LXDRuntimeError(
+                fmt::format("Operation completed with error: ({}) {}",
+                            task_reply["metadata"].toObject()["status_code"].toInt(),
+                            task_reply["metadata"].toObject()["err"].toString()));
         }
     }
 

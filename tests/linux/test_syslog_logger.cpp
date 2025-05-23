@@ -32,7 +32,10 @@ struct MockSyslogWrapper : public mpl::SyslogWrapper
 {
     using SyslogWrapper::SyslogWrapper;
 
-    MOCK_METHOD(void, write_syslog, (int, std::string_view, std::string_view, std::string_view), (const, override));
+    MOCK_METHOD(void,
+                write_syslog,
+                (int, std::string_view, std::string_view, std::string_view),
+                (const, override));
     MP_MOCK_SINGLETON_BOILERPLATE(MockSyslogWrapper, mpl::SyslogWrapper);
 };
 
@@ -50,7 +53,10 @@ TEST_F(syslog_logger_test, call_log)
     constexpr static std::string_view expected_fmtstr = "[%.*s] %.*s";
     constexpr static int expected_level = LOG_DEBUG;
     EXPECT_CALL(mock_syslog,
-                write_syslog(Eq(expected_level), Eq(expected_fmtstr), Eq(expected_category), Eq(expected_message)));
+                write_syslog(Eq(expected_level),
+                             Eq(expected_fmtstr),
+                             Eq(expected_category),
+                             Eq(expected_message)));
     uut_t uut{mpl::Level::debug};
     // This should log
     uut.log(mpl::Level::debug, expected_category, expected_message);
@@ -78,7 +84,10 @@ TEST_P(syslog_logger_priority_test, validate_level_to_priority)
     constexpr static std::string_view expected_message = "message";
     constexpr static std::string_view expected_fmtstr = "[%.*s] %.*s";
     EXPECT_CALL(mock_syslog,
-                write_syslog(Eq(syslog_level), Eq(expected_fmtstr), Eq(expected_category), Eq(expected_message)));
+                write_syslog(Eq(syslog_level),
+                             Eq(expected_fmtstr),
+                             Eq(expected_category),
+                             Eq(expected_message)));
 
     uut_t uut{mpl_level};
     // This should log

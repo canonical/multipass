@@ -31,8 +31,8 @@ public:
     virtual ~UpdatePrompt() = default;
 
     virtual bool is_time_to_show() = 0;
-    virtual void populate(UpdateInfo *update_info) = 0;
-    virtual void populate_if_time_to_show(UpdateInfo *update_info) = 0;
+    virtual void populate(UpdateInfo* update_info) = 0;
+    virtual void populate_if_time_to_show(UpdateInfo* update_info) = 0;
 };
 } // namespace multipass
 

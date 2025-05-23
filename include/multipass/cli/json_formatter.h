@@ -32,5 +32,5 @@ public:
     std::string format(const VersionReply& list, const std::string& client_version) const override;
     std::string format(const AliasDict& aliases) const override;
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_JSON_FORMATTER

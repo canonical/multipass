@@ -85,10 +85,15 @@ void wait_for_reply(QNetworkReply* reply, QTimer& download_timeout)
 }
 
 template <typename ProgressAction, typename DownloadAction, typename ErrorAction, typename Time>
-QByteArray
-download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, ProgressAction&& on_progress,
-         DownloadAction&& on_download, ErrorAction&& on_error, const std::atomic_bool& abort_download,
-         const QNetworkRequest::CacheLoadControl cache_load_control = QNetworkRequest::CacheLoadControl::PreferNetwork)
+QByteArray download(QNetworkAccessManager* manager,
+                    const Time& timeout,
+                    QUrl const& url,
+                    ProgressAction&& on_progress,
+                    DownloadAction&& on_download,
+                    ErrorAction&& on_error,
+                    const std::atomic_bool& abort_download,
+                    const QNetworkRequest::CacheLoadControl cache_load_control =
+                        QNetworkRequest::CacheLoadControl::PreferNetwork)
 {
     QTimer download_timeout;
     download_timeout.setInterval(timeout);
@@ -99,17 +104,22 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
     request.setRawHeader("Connection", "Keep-Alive");
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, cache_load_control);
-    request.setHeader(
-        QNetworkRequest::UserAgentHeader,
-        QString::fromStdString(fmt::format("Multipass/{} ({}; {})", multipass::version_string,
-                                           mp::platform::host_version(), QSysInfo::currentCpuArchitecture())));
+    request.setHeader(QNetworkRequest::UserAgentHeader,
+                      QString::fromStdString(fmt::format("Multipass/{} ({}; {})",
+                                                         multipass::version_string,
+                                                         mp::platform::host_version(),
+                                                         QSysInfo::currentCpuArchitecture())));
 
     NetworkReplyUPtr reply{manager->get(request)};
 
-    QObject::connect(reply.get(), &QNetworkReply::downloadProgress, [&](qint64 bytes_received, qint64 bytes_total) {
-        on_progress(reply.get(), bytes_received, bytes_total);
+    QObject::connect(reply.get(),
+                     &QNetworkReply::downloadProgress,
+                     [&](qint64 bytes_received, qint64 bytes_total) {
+                         on_progress(reply.get(), bytes_received, bytes_total);
+                     });
+    QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() {
+        on_download(reply.get(), download_timeout);
     });
-    QObject::connect(reply.get(), &QNetworkReply::readyRead, [&]() { on_download(reply.get(), download_timeout); });
 
     wait_for_reply(reply.get(), download_timeout);
 
@@ -119,13 +129,15 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
         const auto error_string = reply->errorString().toStdString();
 
         // Log the original error message at debug level
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
+        mpl::log(
+            mpl::Level::debug,
+            category,
+            fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
 
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
+        mpl::log(
+            mpl::Level::debug,
+            category,
+            fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
 
         if (reply->error() == QNetworkReply::ProxyAuthenticationRequiredError || abort_download)
         {
@@ -144,7 +156,9 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
         // Log at warning level when we are going to retry
         mpl::log(mpl::Level::warning,
                  category,
-                 fmt::format("Failed to get {}: {} - trying cache.", adjusted_url.toString(), error_string));
+                 fmt::format("Failed to get {}: {} - trying cache.",
+                             adjusted_url.toString(),
+                             error_string));
         return ::download(manager,
                           timeout,
                           adjusted_url,
@@ -155,15 +169,19 @@ download(QNetworkAccessManager* manager, const Time& timeout, QUrl const& url, P
                           QNetworkRequest::CacheLoadControl::AlwaysCache);
     }
 
-    mpl::log(mpl::Level::trace, category,
-             fmt::format("Found {} in cache: {}", url.toString(),
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("Found {} in cache: {}",
+                         url.toString(),
                          reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()));
 
     return reply->readAll();
 }
 
 template <typename Time>
-auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkRequest::KnownHeaders header,
+auto get_header(QNetworkAccessManager* manager,
+                const QUrl& url,
+                const QNetworkRequest::KnownHeaders header,
                 const Time& timeout)
 {
     QTimer download_timeout;
@@ -182,18 +200,22 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
         const auto error_string = reply->errorString().toStdString();
 
         // Log the original error message at debug level
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
+        mpl::log(
+            mpl::Level::debug,
+            category,
+            fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
 
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
+        mpl::log(
+            mpl::Level::debug,
+            category,
+            fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
 
         // Log at error level when we give up on getting headers
         mpl::log(mpl::Level::error,
                  category,
-                 fmt::format("Cannot retrieve headers for {}: {}", adjusted_url.toString(), error_string));
+                 fmt::format("Cannot retrieve headers for {}: {}",
+                             adjusted_url.toString(),
+                             error_string));
 
         throw mp::DownloadException{adjusted_url.toString().toStdString(), error_string};
     }
@@ -202,13 +224,14 @@ auto get_header(QNetworkAccessManager* manager, const QUrl& url, const QNetworkR
 }
 } // namespace
 
-mp::NetworkManagerFactory::NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass& pass) noexcept
+mp::NetworkManagerFactory::NetworkManagerFactory(
+    const Singleton<NetworkManagerFactory>::PrivatePass& pass) noexcept
     : Singleton<NetworkManagerFactory>::Singleton{pass}
 {
 }
 
-std::unique_ptr<QNetworkAccessManager>
-mp::NetworkManagerFactory::make_network_manager(const mp::Path& cache_dir_path) const
+std::unique_ptr<QNetworkAccessManager> mp::NetworkManagerFactory::make_network_manager(
+    const mp::Path& cache_dir_path) const
 {
     return ::make_network_manager(cache_dir_path);
 }
@@ -222,7 +245,10 @@ mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::millise
 {
 }
 
-void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+void mp::URLDownloader::download_to(const QUrl& url,
+                                    const QString& file_name,
+                                    int64_t size,
+                                    const int download_type,
                                     const mp::ProgressMonitor& monitor)
 {
     std::atomic_bool abort_download{false};
@@ -231,8 +257,10 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
     QFile file{file_name};
     file.open(QIODevice::ReadWrite | QIODevice::Truncate);
 
-    auto progress_monitor = [this, &abort_download, &monitor, download_type,
-                             size](QNetworkReply* reply, qint64 bytes_received, qint64 bytes_total) {
+    auto progress_monitor = [this, &abort_download, &monitor, download_type, size](
+                                QNetworkReply* reply,
+                                qint64 bytes_received,
+                                qint64 bytes_total) {
         static int last_progress_printed = -1;
         if (bytes_received == 0)
             return;
@@ -242,7 +270,8 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
 
-        abort_download = abort_downloads || (last_progress_printed != progress && !monitor(download_type, progress));
+        abort_download = abort_downloads ||
+                         (last_progress_printed != progress && !monitor(download_type, progress));
         last_progress_printed = progress;
 
         if (abort_download)
@@ -251,7 +280,8 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
         }
     };
 
-    auto on_download = [this, &abort_download, &file](QNetworkReply* reply, QTimer& download_timeout) {
+    auto on_download = [this, &abort_download, &file](QNetworkReply* reply,
+                                                      QTimer& download_timeout) {
         abort_download = abort_download || abort_downloads;
 
         if (abort_download)
@@ -267,7 +297,9 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
         if (MP_FILEOPS.write(file, reply->readAll()) < 0)
         {
-            mpl::log(mpl::Level::error, category, fmt::format("error writing image: {}", file.errorString()));
+            mpl::log(mpl::Level::error,
+                     category,
+                     fmt::format("error writing image: {}", file.errorString()));
             abort_download = true;
             reply->abort();
         }
@@ -276,7 +308,13 @@ void mp::URLDownloader::download_to(const QUrl& url, const QString& file_name, i
 
     auto on_error = [&file]() { file.remove(); };
 
-    ::download(manager.get(), timeout, url, progress_monitor, on_download, on_error, abort_download);
+    ::download(manager.get(),
+               timeout,
+               url,
+               progress_monitor,
+               on_download,
+               on_error,
+               abort_download);
 }
 
 QByteArray mp::URLDownloader::download(const QUrl& url)
@@ -300,12 +338,18 @@ QByteArray mp::URLDownloader::download(const QUrl& url, const bool is_force_upda
         download_timeout.start();
     };
 
-    const QNetworkRequest::CacheLoadControl cache_load_control = is_force_update_from_network
-                                                                     ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
-                                                                     : QNetworkRequest::CacheLoadControl::PreferNetwork;
+    const QNetworkRequest::CacheLoadControl cache_load_control =
+        is_force_update_from_network ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
+                                     : QNetworkRequest::CacheLoadControl::PreferNetwork;
 
     return ::download(
-        manager.get(), timeout, url, [](QNetworkReply*, qint64, qint64) {}, on_download, [] {}, abort_downloads,
+        manager.get(),
+        timeout,
+        url,
+        [](QNetworkReply*, qint64, qint64) {},
+        on_download,
+        [] {},
+        abort_downloads,
         cache_load_control);
 }
 
@@ -313,7 +357,8 @@ QDateTime mp::URLDownloader::last_modified(const QUrl& url)
 {
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
-    return get_header(manager.get(), url, QNetworkRequest::LastModifiedHeader, timeout).toDateTime();
+    return get_header(manager.get(), url, QNetworkRequest::LastModifiedHeader, timeout)
+        .toDateTime();
 }
 
 void mp::URLDownloader::abort_all_downloads()

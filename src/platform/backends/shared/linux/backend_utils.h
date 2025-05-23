@@ -42,7 +42,9 @@ std::string generate_random_subnet();
 class CreateBridgeException : public std::runtime_error
 {
 public:
-    CreateBridgeException(const std::string& detail, const QDBusError& dbus_error, bool rollback = false);
+    CreateBridgeException(const std::string& detail,
+                          const QDBusError& dbus_error,
+                          bool rollback = false);
 };
 } // namespace backend
 

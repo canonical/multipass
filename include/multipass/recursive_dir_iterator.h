@@ -256,7 +256,8 @@ class DirIterator
 {
 public:
     DirIterator() = default;
-    DirIterator(const fs::path& path, std::error_code& err) : self{path / "."}, parent{path / ".."}, iter{path, err}
+    DirIterator(const fs::path& path, std::error_code& err)
+        : self{path / "."}, parent{path / ".."}, iter{path, err}
     {
     }
 

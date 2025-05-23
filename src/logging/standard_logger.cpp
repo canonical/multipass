@@ -27,7 +27,8 @@ StandardLogger::StandardLogger(Level level) : StandardLogger::StandardLogger(lev
 {
 }
 
-StandardLogger::StandardLogger(Level level, std::ostream& target_ostream) : Logger{level}, target(target_ostream)
+StandardLogger::StandardLogger(Level level, std::ostream& target_ostream)
+    : Logger{level}, target(target_ostream)
 {
 }
 

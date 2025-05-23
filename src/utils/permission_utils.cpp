@@ -37,13 +37,15 @@ void set_single_owner(const fs::path& path)
         throw std::runtime_error(fmt::format("Cannot set owner for '{}'", path.string()));
 }
 
-// only exists because MP_FILEOPS doesn't overload the throwing variations of std::filesystem functions
+// only exists because MP_FILEOPS doesn't overload the throwing variations of std::filesystem
+// functions
 void throw_if_error(const fs::path& path, const std::error_code& ec)
 {
     if (ec)
         throw std::system_error(
             ec,
-            fmt::format("System error occurred while handling permissions for '{}'", path.string()));
+            fmt::format("System error occurred while handling permissions for '{}'",
+                        path.string()));
 }
 
 // recursively iterates over all files in folder and applies a function that takes a path
@@ -52,7 +54,8 @@ void apply_on_files(const fs::path& path, Func&& func)
 {
     std::error_code ec{};
     if (!MP_FILEOPS.exists(path, ec) || ec)
-        throw std::runtime_error(fmt::format("Cannot handle permissions for nonexistent file '{}'", path.string()));
+        throw std::runtime_error(
+            fmt::format("Cannot handle permissions for nonexistent file '{}'", path.string()));
 
     func(path, true);
 
@@ -63,7 +66,8 @@ void apply_on_files(const fs::path& path, Func&& func)
         throw_if_error(path, ec);
 
         if (!dir_iterator)
-            throw std::runtime_error(fmt::format("Cannot iterate over directory '{}'", path.string()));
+            throw std::runtime_error(
+                fmt::format("Cannot iterate over directory '{}'", path.string()));
 
         while (dir_iterator->hasNext())
         {

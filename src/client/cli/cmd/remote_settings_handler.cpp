@@ -34,7 +34,8 @@ namespace
 {
 constexpr auto category = "remote settings";
 
-class InternalCmd : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
+class InternalCmd
+    : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
 {
 public:
     using mp::cmd::Command::Command;
@@ -100,7 +101,8 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
+        [[maybe_unused]] auto ret =
+            dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -127,7 +129,8 @@ public:
 
         mp::AnimatedSpinner spinner{cout};
 
-        auto streaming_confirmation_callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
+        auto streaming_confirmation_callback =
+            mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
                                              set_request,
@@ -141,14 +144,16 @@ public:
 class RemoteKeys : public RemoteSettingsCmd
 {
 public:
-    RemoteKeys(mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity) : RemoteSettingsCmd{stub, term}
+    RemoteKeys(mp::Rpc::StubInterface& stub, mp::Terminal* term, int verbosity)
+        : RemoteSettingsCmd{stub, term}
     {
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
 
         auto custom_on_success = [this](mp::KeysReply& reply) {
             for (auto& key : *reply.mutable_settings_keys())
-                keys.insert(QString::fromStdString(std::move(key))); // no actual move until QString supports it
+                keys.insert(QString::fromStdString(
+                    std::move(key))); // no actual move until QString supports it
 
             return mp::ReturnCode::Ok;
         };
@@ -163,7 +168,8 @@ public:
             return on_failure(status);
         };
 
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
+        [[maybe_unused]] auto ret =
+            dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -172,8 +178,10 @@ public:
 };
 } // namespace
 
-mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix, mp::Rpc::StubInterface& stub,
-                                                 multipass::Terminal* term, int verbosity)
+mp::RemoteSettingsHandler::RemoteSettingsHandler(QString key_prefix,
+                                                 mp::Rpc::StubInterface& stub,
+                                                 multipass::Terminal* term,
+                                                 int verbosity)
     : key_prefix{std::move(key_prefix)}, stub{stub}, term{term}, verbosity{verbosity}
 {
     assert(term);

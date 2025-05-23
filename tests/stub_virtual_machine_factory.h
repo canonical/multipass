@@ -84,8 +84,10 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return "stub-5678";
     }
 
-    multipass::VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                                     const Path& cache_dir_path, const Path& data_dir_path,
+    multipass::VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
+                                                     URLDownloader* downloader,
+                                                     const Path& cache_dir_path,
+                                                     const Path& data_dir_path,
                                                      const days& days_to_expire) override
     {
         return std::make_unique<StubVMImageVault>();
@@ -98,7 +100,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 
     std::unique_ptr<TempDir> tmp_dir;
 };
-}
-}
+} // namespace test
+} // namespace multipass
 
 #endif // MULTIPASS_STUB_VIRTUAL_MACHINE_FACTORY_H

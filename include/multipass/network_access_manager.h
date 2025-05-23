@@ -35,7 +35,8 @@ public:
     NetworkAccessManager(QObject* parent = nullptr);
 
 protected:
-    QNetworkReply* createRequest(Operation op, const QNetworkRequest& orig_request,
+    QNetworkReply* createRequest(Operation op,
+                                 const QNetworkRequest& orig_request,
                                  QIODevice* outgoingData = nullptr) override;
 };
 } // namespace multipass

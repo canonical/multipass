@@ -89,7 +89,8 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
         QStringList retry_args{};
 
-        if (status.error_code() == grpc::StatusCode::NOT_FOUND && instance_name == petenv_name.toStdString())
+        if (status.error_code() == grpc::StatusCode::NOT_FOUND &&
+            instance_name == petenv_name.toStdString())
             retry_args.append({"multipass", "launch", "--name", petenv_name});
         else if (status.error_code() == grpc::StatusCode::ABORTED)
             retry_args.append({"multipass", "start", QString::fromStdString(instance_name)});
@@ -104,7 +105,8 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
 
     request.set_verbosity_level(parser->verbosityLevel());
     ReturnCode return_code;
-    while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) == ReturnCode::Retry)
+    while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) ==
+           ReturnCode::Retry)
         ;
 
     return return_code;
@@ -127,8 +129,8 @@ QString cmd::Shell::short_help() const
 
 QString cmd::Shell::description() const
 {
-    return QStringLiteral(
-        "Open a shell prompt on the instance. If the instance is not running, it will be started automatically.");
+    return QStringLiteral("Open a shell prompt on the instance. If the instance is not running, it "
+                          "will be started automatically.");
 }
 
 mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
@@ -136,11 +138,13 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
     const auto& [description, syntax] =
         petenv_name.isEmpty()
             ? std::make_pair(QString{"Name of instance to open a shell on."}, QString{"<name>"})
-            : std::make_pair(QString{"Name of the instance to open a shell on. If omitted, '%1' (the configured "
-                                     "primary instance name) will be assumed. If the instance is not running, an "
-                                     "attempt is made to start it (see `start` for more info)."}
-                                 .arg(petenv_name),
-                             QString{"[<name>]"});
+            : std::make_pair(
+                  QString{
+                      "Name of the instance to open a shell on. If omitted, '%1' (the configured "
+                      "primary instance name) will be assumed. If the instance is not running, an "
+                      "attempt is made to start it (see `start` for more info)."}
+                      .arg(petenv_name),
+                  QString{"[<name>]"});
 
     parser->addPositionalArgument("name", description, syntax);
 

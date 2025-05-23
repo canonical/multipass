@@ -31,7 +31,8 @@ namespace multipass
 template <typename Request, typename Reply>
 auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
-    return [&spinner, &stream](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>*) {
+    return [&spinner, &stream](const Reply& reply,
+                               grpc::ClientReaderWriterInterface<Request, Reply>*) {
         if (!reply.log_line().empty())
             spinner.print(stream, reply.log_line());
     };
@@ -40,7 +41,8 @@ auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& strea
 template <typename Request, typename Reply>
 auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
-    return [&spinner, &stream](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>*) {
+    return [&spinner, &stream](const Reply& reply,
+                               grpc::ClientReaderWriterInterface<Request, Reply>*) {
         if (!reply.log_line().empty())
             spinner.print(stream, reply.log_line());
 
@@ -55,7 +57,8 @@ auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 template <typename Request, typename Reply>
 auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 {
-    return [&spinner, &term](const Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
+    return [&spinner, &term](const Reply& reply,
+                             grpc::ClientReaderWriterInterface<Request, Reply>* client) {
         if (!reply.log_line().empty())
             spinner.print(term.cerr(), reply.log_line());
 
@@ -77,8 +80,10 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 template <typename Request, typename Reply>
 auto make_confirmation_callback(Terminal& term, QString key)
 {
-    return [key = std::move(key), &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
-        if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) && reply.needs_authorization())
+    return [key = std::move(key),
+            &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
+        if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) &&
+            reply.needs_authorization())
         {
             auto bridged_network = reply.reply_message();
 

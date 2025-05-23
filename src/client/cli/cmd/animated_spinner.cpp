@@ -28,9 +28,10 @@ void clear_line(std::ostream& out)
     out << "\x1B[2K\x1B[0A";        // Delete current line
     out << "\x1B[0E" << std::flush; // Move cursor to leftmost position of current line
 }
-}
+} // namespace
 
-mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout) : spinner{'|', '/', '-', '\\'}, cout{cout}, running{false}
+mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout)
+    : spinner{'|', '/', '-', '\\'}, cout{cout}, running{false}
 {
 }
 

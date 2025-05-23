@@ -104,10 +104,12 @@ TEST_F(TestPassphrasePrompters, newPassPhraseCallsEchoAndReturnsExpectedPassphra
         EXPECT_CALL(mock_terminal, set_cin_echo(true)).Times(1);
     }
 
-    EXPECT_CALL(mock_terminal, cin()).Times(2).WillRepeatedly([this, &passphrase]() -> std::istream& {
-        cin.str(passphrase + "\n");
-        return cin;
-    });
+    EXPECT_CALL(mock_terminal, cin())
+        .Times(2)
+        .WillRepeatedly([this, &passphrase]() -> std::istream& {
+            cin.str(passphrase + "\n");
+            return cin;
+        });
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
 
@@ -141,16 +143,21 @@ TEST_F(TestPassphrasePrompters, newPassPhraseWrongPassphraseThrows)
         return cin;
     };
 
-    EXPECT_CALL(mock_terminal, cin()).WillOnce(Invoke(good_passphrase)).WillOnce(Invoke(bad_passphrase));
+    EXPECT_CALL(mock_terminal, cin())
+        .WillOnce(Invoke(good_passphrase))
+        .WillOnce(Invoke(bad_passphrase));
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
 
-    MP_EXPECT_THROW_THAT(prompter.prompt(), mp::PromptException, mpt::match_what(StrEq("Passphrases do not match")));
+    MP_EXPECT_THROW_THAT(prompter.prompt(),
+                         mp::PromptException,
+                         mpt::match_what(StrEq("Passphrases do not match")));
 
     EXPECT_EQ(cout.str(), expected_output);
 }
 
-class CLIPromptersBadCinState : public CLIPrompters, public WithParamInterface<std::ios_base::iostate>
+class CLIPromptersBadCinState : public CLIPrompters,
+                                public WithParamInterface<std::ios_base::iostate>
 {
 };
 
@@ -159,14 +166,18 @@ TEST_P(CLIPromptersBadCinState, PlainThrows)
     auto prompt = mp::PlainPrompter{&term};
 
     cin.clear(GetParam());
-    MP_EXPECT_THROW_THAT(prompt.prompt(""), mp::PromptException, mpt::match_what(HasSubstr("Failed to read value")));
+    MP_EXPECT_THROW_THAT(prompt.prompt(""),
+                         mp::PromptException,
+                         mpt::match_what(HasSubstr("Failed to read value")));
 }
 
-INSTANTIATE_TEST_SUITE_P(CLIPrompters, CLIPromptersBadCinState,
+INSTANTIATE_TEST_SUITE_P(CLIPrompters,
+                         CLIPromptersBadCinState,
                          Values(std::ios::eofbit, std::ios::failbit, std::ios::badbit));
 
-class BridgePrompterTests : public CLIPrompters,
-                            public WithParamInterface<std::tuple<std::vector<std::string>, std::string, bool>>
+class BridgePrompterTests
+    : public CLIPrompters,
+      public WithParamInterface<std::tuple<std::vector<std::string>, std::string, bool>>
 {
 };
 
@@ -201,12 +212,13 @@ TEST_P(BridgePrompterTests, correctlyReturns)
     EXPECT_EQ(prompter.bridge_prompt(nets), ret);
 }
 
-INSTANTIATE_TEST_SUITE_P(CLIPrompters,
-                         BridgePrompterTests,
-                         Values(std::make_tuple(std::vector<std::string>{"eth1"}, "yes", true),
-                                std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "y", true),
-                                std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "no", false),
-                                std::make_tuple(std::vector<std::string>{"eth1"}, "n", false)));
+INSTANTIATE_TEST_SUITE_P(
+    CLIPrompters,
+    BridgePrompterTests,
+    Values(std::make_tuple(std::vector<std::string>{"eth1"}, "yes", true),
+           std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "y", true),
+           std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "no", false),
+           std::make_tuple(std::vector<std::string>{"eth1"}, "n", false)));
 
 TEST_F(CLIPrompters, handlesWrongAnswer)
 {

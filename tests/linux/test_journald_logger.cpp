@@ -34,7 +34,12 @@ struct MockJournaldWrapper : public mpl::JournaldWrapper
 
     MOCK_METHOD(void,
                 write_journal,
-                (std::string_view, std::string_view, std::string_view, int, std::string_view, std::string_view),
+                (std::string_view,
+                 std::string_view,
+                 std::string_view,
+                 int,
+                 std::string_view,
+                 std::string_view),
                 (const, override));
     MP_MOCK_SINGLETON_BOILERPLATE(MockJournaldWrapper, mpl::JournaldWrapper);
 };

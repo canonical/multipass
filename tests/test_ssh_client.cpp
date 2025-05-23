@@ -44,7 +44,7 @@ struct SSHClient : public testing::Test
         return std::make_unique<mpt::StubConsole>();
     };
 };
-}
+} // namespace
 
 TEST_F(SSHClient, standardCtorDoesNotThrow)
 {

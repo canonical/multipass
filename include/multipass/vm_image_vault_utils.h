@@ -46,7 +46,9 @@ public:
 
     virtual void verify_file_hash(const QString& file, const QString& hash) const;
 
-    virtual QString extract_file(const QString& file, const Decoder& decoder, bool delete_original = false) const;
+    virtual QString extract_file(const QString& file,
+                                 const Decoder& decoder,
+                                 bool delete_original = false) const;
 
     template <class DecoderT = DefaultDecoderT>
     QString extract_file(const QString& file,
@@ -66,7 +68,8 @@ QString ImageVaultUtils::extract_file(const QString& file,
                                       bool delete_original,
                                       const DecoderT& decoder) const
 {
-    auto decoder_fn = [&monitor, &decoder](const QString& encoded_file, const QString& destination) {
+    auto decoder_fn = [&monitor, &decoder](const QString& encoded_file,
+                                           const QString& destination) {
         return decoder.decode_to(encoded_file, destination, monitor);
     };
 

@@ -27,7 +27,8 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc, const QStringList& platform_args,
+mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
+                                         const QStringList& platform_args,
                                          const mp::QemuVirtualMachine::MountArgs& mount_args,
                                          const std::optional<ResumeData>& resume_data)
     : desc{desc}, platform_args{platform_args}, mount_args{mount_args}, resume_data{resume_data}
@@ -52,8 +53,10 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         }
         else
         {
-            mpl::log(mpl::Level::info, desc.vm_name,
-                     fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
+            mpl::log(
+                mpl::Level::info,
+                desc.vm_name,
+                fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
         }
 
         // need to fix old-style vmnet arguments
@@ -62,14 +65,17 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     }
     else
     {
-        auto mem_size = QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented in
-    `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
+        auto mem_size =
+            QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
+in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
         args << platform_args;
         // The VM image itself
         args << "-device"
              << "virtio-scsi-pci,id=scsi0"
-             << "-drive" << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda").arg(desc.image.image_path)
+             << "-drive"
+             << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda")
+                    .arg(desc.image.image_path)
              << "-device"
              << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
@@ -213,8 +219,14 @@ profile %1 flags=(attach_disconnected) {
         firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
     }
 
-    return profile_template.arg(apparmor_profile_name(), signal_peer, firmware, root_dir, program(),
-                                desc.image.image_path, desc.cloud_init_iso, mount_dirs);
+    return profile_template.arg(apparmor_profile_name(),
+                                signal_peer,
+                                firmware,
+                                root_dir,
+                                program(),
+                                desc.image.image_path,
+                                desc.cloud_init_iso,
+                                mount_dirs);
 }
 
 QString mp::QemuVMProcessSpec::identifier() const

@@ -30,7 +30,7 @@ mp::SSHClientKeyProvider::KeyUPtr import_priv_key(const std::string& priv_key_bl
 
     return mp::SSHClientKeyProvider::KeyUPtr{priv_key};
 }
-}
+} // namespace
 
 void mp::SSHClientKeyProvider::KeyDeleter::operator()(ssh_key key)
 {

@@ -79,7 +79,8 @@ TEST_F(SSHKeyProvider, imports_existing_key)
     EXPECT_THAT(key_provider.private_key_as_base64(), StrEq(key_data));
 
     constexpr auto expected_pub_key_data =
-        "AAAAB3NzaC1yc2EAAAADAQABAAABAQC/eUQW3FPeR3Y6tZDyTe/VIcgs0PDCb1TtrA1ssOpUSt6xk12ZEaYffzV87y0ek115D5cQx9/"
+        "AAAAB3NzaC1yc2EAAAADAQABAAABAQC/eUQW3FPeR3Y6tZDyTe/"
+        "VIcgs0PDCb1TtrA1ssOpUSt6xk12ZEaYffzV87y0ek115D5cQx9/"
         "XoVmIwpFBbHk6UdNDfdxLtf+G5nkZ7lhUqwEyarK8kAMrtR3fyY1oqLeGp6kPzuVptWZjUBFM0dIsMbrxzlsjKq6/"
         "NtrDDCQzuo9NvDlkc4Skp6HA9n/Tfig+eY9XcEBtfUfJKL/"
         "Os5kT8PUlbe4e+EXXKmsNaEm6Y5UFJgHMOWglKwV8UQRg7OR2YDBnSrfJ8xXEuLBOU/YeF/6LyQ7ONB/"

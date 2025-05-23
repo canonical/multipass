@@ -35,9 +35,10 @@ namespace
 std::vector<std::string> split(const std::string& string, const std::string& delimiter)
 {
     std::regex regex(delimiter);
-    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1}, std::sregex_token_iterator{}};
+    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1},
+            std::sregex_token_iterator{}};
 }
-}
+} // namespace
 TEST(Petname, generates_the_requested_num_words)
 {
     std::string separator{"-"};
@@ -87,9 +88,9 @@ TEST(Petname, can_generate_at_least_hundred_unique_names)
     std::unordered_set<std::string> name_set;
     const std::size_t expected_num_unique_names{100};
 
-    //TODO: fixme, randomness is involved in name generation hence there's a non-zero probability
-    // we will fail to generate the number of expected unique names.
-    for (std::size_t i = 0; i < 10*expected_num_unique_names; i++)
+    // TODO: fixme, randomness is involved in name generation hence there's a non-zero probability
+    //  we will fail to generate the number of expected unique names.
+    for (std::size_t i = 0; i < 10 * expected_num_unique_names; i++)
     {
         name_set.insert(name_generator.make_name());
     }

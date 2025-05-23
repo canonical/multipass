@@ -34,7 +34,8 @@ TEST(StandardPaths, provides_regular_locate_by_default)
 {
     const auto location_type = mp::StandardPaths::TempLocation;
     const auto find = QStringLiteral("o_o");
-    const auto locate_options = mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateDirectory};
+    const auto locate_options =
+        mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateDirectory};
 
     // Create a subdir in the standard temp dir, for locate to find
     QDir aux{QStandardPaths::writableLocation(location_type)};
