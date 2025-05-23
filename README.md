@@ -163,7 +163,7 @@ The Multipass team appreciates contributions to the project, through pull reques
 For build instructions, please refer to the following files:
 
 - [BUILD.linux.md](BUILD.linux.md) for Linux
-- [BUILD.osx.md](BUILD.osx.md) for macOS
+- [BUILD.macOS.md](BUILD.macOS.md) for macOS
 - [BUILD.windows.md](BUILD.windows.md) for Windows
 
 Please report any outdated information or inconsistencies in these files. Or, even better, submit a pull request with
