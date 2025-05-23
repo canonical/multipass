@@ -2018,9 +2018,8 @@ constexpr auto deleted_template = R"(
     "state": 1
 }})";
 
-TEST_F(
-    Daemon,
-    skipsOverInstanceGhostsInDb) // which will have been sometimes written for purged instances
+TEST_F(Daemon, skipsOverInstanceGhostsInDb)
+// which will have been sometimes written for purged instances
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
