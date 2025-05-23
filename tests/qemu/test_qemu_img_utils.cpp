@@ -202,7 +202,7 @@ const std::vector<ImageConversionParamType> image_conversion_inputs{
      std::make_optional(HasSubstr("qemu-img failed"))}};
 } // namespace
 
-TEST(QemuImgUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
+TEST(QemuImgUtils, imageResizingChecksMinimumSizeAndProceedsWhenLarger)
 {
     const auto img = "/fake/img/path";
     const auto min_size = mp::MemorySize{"1G"};
@@ -213,7 +213,7 @@ TEST(QemuImgUtils, image_resizing_checks_minimum_size_and_proceeds_when_larger)
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
-TEST(QemuImgUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
+TEST(QemuImgUtils, imageResizingChecksMinimumSizeAndProceedsWhenEqual)
 {
     const auto img = "/fake/img/path";
     const auto min_size = mp::MemorySize{"1234554321"};
@@ -224,7 +224,7 @@ TEST(QemuImgUtils, image_resizing_checks_minimum_size_and_proceeds_when_equal)
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
-TEST(QemuImgUtils, image_resize_detects_resizing_exit_failure_and_throws)
+TEST(QemuImgUtils, imageResizeDetectsResizingExitFailureAndThrows)
 {
     const auto img = "imagine";
     const auto min_size = mp::MemorySize{"100M"};
@@ -235,7 +235,7 @@ TEST(QemuImgUtils, image_resize_detects_resizing_exit_failure_and_throws)
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
-TEST(QemuImgUtils, image_resize_detects_resizing_crash_failure_and_throws)
+TEST(QemuImgUtils, imageResizeDetectsResizingCrashFailureAndThrows)
 {
     const auto img = "ubuntu";
     const auto min_size = mp::MemorySize{"100M"};
@@ -247,7 +247,7 @@ TEST(QemuImgUtils, image_resize_detects_resizing_crash_failure_and_throws)
     test_image_resizing(img, min_size, request_size, qemuimg_resize_result, throw_msg_matcher);
 }
 
-TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
+TEST_P(ImageConversionTestSuite, properlyHandlesImageConversion)
 {
     const auto img_path = "/fake/img/path";
     const auto& [expected_img_path,

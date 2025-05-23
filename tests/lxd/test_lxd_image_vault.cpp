@@ -77,7 +77,7 @@ struct LXDImageVault : public Test
 };
 } // namespace
 
-TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
+TEST_F(LXDImageVault, instanceExistsFetchReturnsExpectedImageInfo)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -115,7 +115,7 @@ TEST_F(LXDImageVault, instance_exists_fetch_returns_expected_image_info)
     EXPECT_EQ(image.original_release, "18.04 LTS");
 }
 
-TEST_F(LXDImageVault, instance_exists_custom_image_returns_expected_image_info)
+TEST_F(LXDImageVault, instanceExistsCustomImageReturnsExpectedImageInfo)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -154,7 +154,7 @@ TEST_F(LXDImageVault, instance_exists_custom_image_returns_expected_image_info)
     EXPECT_EQ(image.release_date, "20200923");
 }
 
-TEST_F(LXDImageVault, instance_exists_uses_cached_release_title)
+TEST_F(LXDImageVault, instanceExistsUsesCachedReleaseTitle)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -192,7 +192,7 @@ TEST_F(LXDImageVault, instance_exists_uses_cached_release_title)
     EXPECT_EQ(image.original_release, "Fake Title");
 }
 
-TEST_F(LXDImageVault, instance_exists_no_cached_release_title_info_for_fails)
+TEST_F(LXDImageVault, instanceExistsNoCachedReleaseTitleInfoForFails)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -232,7 +232,7 @@ TEST_F(LXDImageVault, instance_exists_no_cached_release_title_info_for_fails)
     EXPECT_EQ(image.original_release, "");
 }
 
-TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
+TEST_F(LXDImageVault, returnsExpectedInfoWithValidRemote)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -275,7 +275,7 @@ TEST_F(LXDImageVault, returns_expected_info_with_valid_remote)
     EXPECT_EQ(image.release_date, mpt::default_version);
 }
 
-TEST_F(LXDImageVault, throws_with_invalid_alias)
+TEST_F(LXDImageVault, throwsWithInvalidAlias)
 {
     ON_CALL(host, info_for(_)).WillByDefault([this](auto query) -> std::optional<mp::VMImageInfo> {
         if (query.release != "bionic")
@@ -314,7 +314,7 @@ TEST_F(LXDImageVault, throws_with_invalid_alias)
                              "release"))));
 }
 
-TEST_F(LXDImageVault, throws_with_invalid_remote)
+TEST_F(LXDImageVault, throwsWithInvalidRemote)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
         return new mpt::MockLocalSocketReply(mpt::not_found_data,
@@ -342,7 +342,7 @@ TEST_F(LXDImageVault, throws_with_invalid_remote)
         mpt::match_what(HasSubstr(fmt::format("Remote \'{}\' is not found.", remote))));
 }
 
-TEST_F(LXDImageVault, does_not_download_if_image_exists)
+TEST_F(LXDImageVault, doesNotDownloadIfImageExists)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -382,7 +382,7 @@ TEST_F(LXDImageVault, does_not_download_if_image_exists)
                                             save_dir.path()));
 }
 
-TEST_F(LXDImageVault, instance_exists_missing_image_does_not_download_image)
+TEST_F(LXDImageVault, instanceExistsMissingImageDoesNotDownloadImage)
 {
     bool download_requested{false};
 
@@ -432,7 +432,7 @@ TEST_F(LXDImageVault, instance_exists_missing_image_does_not_download_image)
     EXPECT_EQ(image.original_release, mpt::default_release_info);
 }
 
-TEST_F(LXDImageVault, requests_download_if_image_does_not_exist)
+TEST_F(LXDImageVault, requestsDownloadIfImageDoesNotExist)
 {
     bool download_requested{false};
 
@@ -467,7 +467,7 @@ TEST_F(LXDImageVault, requests_download_if_image_does_not_exist)
     EXPECT_TRUE(download_requested);
 }
 
-TEST_F(LXDImageVault, sets_fingerprint_with_hash_query)
+TEST_F(LXDImageVault, setsFingerprintWithHashQuery)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto outgoingData) {
@@ -503,7 +503,7 @@ TEST_F(LXDImageVault, sets_fingerprint_with_hash_query)
                                             save_dir.path()));
 }
 
-TEST_F(LXDImageVault, download_deletes_and_throws_on_cancel)
+TEST_F(LXDImageVault, downloadDeletesAndThrowsOnCancel)
 {
     bool delete_requested{false};
 
@@ -556,7 +556,7 @@ TEST_F(LXDImageVault, download_deletes_and_throws_on_cancel)
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, percent_complete_returns_negative_on_metadata_download)
+TEST_F(LXDImageVault, percentCompleteReturnsNegativeOnMetadataDownload)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -604,7 +604,7 @@ TEST_F(LXDImageVault, percent_complete_returns_negative_on_metadata_download)
                  mp::AbortedDownloadException);
 }
 
-TEST_F(LXDImageVault, delete_requested_on_instance_remove)
+TEST_F(LXDImageVault, deleteRequestedOnInstanceRemove)
 {
     bool delete_requested{false}, wait_requested{false};
 
@@ -641,7 +641,7 @@ TEST_F(LXDImageVault, delete_requested_on_instance_remove)
     EXPECT_TRUE(wait_requested);
 }
 
-TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)
+TEST_F(LXDImageVault, logsWarningWhenRemovingNonexistentInstance)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -673,7 +673,7 @@ TEST_F(LXDImageVault, logs_warning_when_removing_nonexistent_instance)
     EXPECT_NO_THROW(image_vault.remove(name));
 }
 
-TEST_F(LXDImageVault, has_record_for_returns_expected_values)
+TEST_F(LXDImageVault, hasRecordForReturnsExpectedValues)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -703,7 +703,7 @@ TEST_F(LXDImageVault, has_record_for_returns_expected_values)
     EXPECT_FALSE(image_vault.has_record_for("foo"));
 }
 
-TEST_F(LXDImageVault, has_record_for_error_logs_message_and_returns_true)
+TEST_F(LXDImageVault, hasRecordForErrorLogsMessageAndReturnsTrue)
 {
     const std::string exception_message{"Cannot connect to socket"};
     const std::string instance_name{"foo"};
@@ -730,7 +730,7 @@ TEST_F(LXDImageVault, has_record_for_error_logs_message_and_returns_true)
     EXPECT_TRUE(image_vault.has_record_for(instance_name));
 }
 
-TEST_F(LXDImageVault, update_image_downloads_new_and_deletes_old_and_logs_expected_message)
+TEST_F(LXDImageVault, updateImageDownloadsNewAndDeletesOldAndLogsExpectedMessage)
 {
     bool download_requested{false}, delete_requested{false};
 
@@ -783,7 +783,7 @@ TEST_F(LXDImageVault, update_image_downloads_new_and_deletes_old_and_logs_expect
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, update_image_not_downloaded_when_no_new_image)
+TEST_F(LXDImageVault, updateImageNotDownloadedWhenNoNewImage)
 {
     bool download_requested{false};
 
@@ -818,7 +818,7 @@ TEST_F(LXDImageVault, update_image_not_downloaded_when_no_new_image)
     EXPECT_FALSE(download_requested);
 }
 
-TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
+TEST_F(LXDImageVault, updateImageNoProjectDoesNotThrow)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -840,7 +840,7 @@ TEST_F(LXDImageVault, update_image_no_project_does_not_throw)
         image_vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
 }
 
-TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
+TEST_F(LXDImageVault, imageUpdateSourceDeleteRequestedOnExpiration)
 {
     bool delete_requested{false};
 
@@ -883,7 +883,7 @@ TEST_F(LXDImageVault, image_update_source_delete_requested_on_expiration)
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
+TEST_F(LXDImageVault, imageHashDeleteRequestedOnExpiration)
 {
     bool delete_requested{false};
 
@@ -921,7 +921,7 @@ TEST_F(LXDImageVault, image_hash_delete_requested_on_expiration)
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, prune_uses_last_update_property_on_new_unused_image)
+TEST_F(LXDImageVault, pruneUsesLastUpdatePropertyOnNewUnusedImage)
 {
     bool delete_requested{false};
 
@@ -959,7 +959,7 @@ TEST_F(LXDImageVault, prune_uses_last_update_property_on_new_unused_image)
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, prune_expired_image_no_project_does_not_throw)
+TEST_F(LXDImageVault, pruneExpiredImageNoProjectDoesNotThrow)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -980,7 +980,7 @@ TEST_F(LXDImageVault, prune_expired_image_no_project_does_not_throw)
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 }
 
-TEST_F(LXDImageVault, prune_expired_error_logs_warning_does_not_throw)
+TEST_F(LXDImageVault, pruneExpiredErrorLogsWarningDoesNotThrow)
 {
     const std::string exception_message{"Cannot connect to socket"};
 
@@ -1002,7 +1002,7 @@ TEST_F(LXDImageVault, prune_expired_error_logs_warning_does_not_throw)
     EXPECT_NO_THROW(image_vault.prune_expired_images());
 }
 
-TEST_F(LXDImageVault, prune_expired_image_delete_fails_does_no_throw)
+TEST_F(LXDImageVault, pruneExpiredImageDeleteFailsDoesNoThrow)
 {
     bool delete_requested{false};
 
@@ -1039,7 +1039,7 @@ TEST_F(LXDImageVault, prune_expired_image_delete_fails_does_no_throw)
     EXPECT_TRUE(delete_requested);
 }
 
-TEST_F(LXDImageVault, custom_image_found_returns_expected_info)
+TEST_F(LXDImageVault, customImageFoundReturnsExpectedInfo)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -1075,7 +1075,7 @@ TEST_F(LXDImageVault, custom_image_found_returns_expected_info)
     EXPECT_EQ(image.release_date, mpt::snapcraft_image_version);
 }
 
-TEST_F(LXDImageVault, custom_image_downloads_and_creates_correct_upload)
+TEST_F(LXDImageVault, customImageDownloadsAndCreatesCorrectUpload)
 {
     const std::string content{"This is a fake image!"};
     mpt::TrackingURLDownloader url_downloader{content};
@@ -1143,7 +1143,7 @@ TEST_F(LXDImageVault, custom_image_downloads_and_creates_correct_upload)
     EXPECT_EQ(image.release_date, mpt::custom_image_version);
 }
 
-TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank_vmimage)
+TEST_F(LXDImageVault, fetchImageUnableToConnectLogsErrorAndReturnsBlankVmimage)
 {
     const std::string exception_message{"Cannot connect to socket"};
 
@@ -1176,7 +1176,7 @@ TEST_F(LXDImageVault, fetch_image_unable_to_connect_logs_error_and_returns_blank
     EXPECT_TRUE(image.release_date.empty());
 }
 
-TEST_F(LXDImageVault, minimum_image_size_returns_expected_size)
+TEST_F(LXDImageVault, minimumImageSizeReturnsExpectedSize)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -1210,7 +1210,7 @@ TEST_F(LXDImageVault, minimum_image_size_returns_expected_size)
     EXPECT_EQ(image_size, mp::MemorySize{"10G"});
 }
 
-TEST_F(LXDImageVault, minimum_image_size_large_returns_expected_size)
+TEST_F(LXDImageVault, minimumImageSizeLargeReturnsExpectedSize)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
         .WillByDefault([](auto, auto request, auto) {
@@ -1244,7 +1244,7 @@ TEST_F(LXDImageVault, minimum_image_size_large_returns_expected_size)
     EXPECT_EQ(image_size, mp::MemorySize{"33345572108"});
 }
 
-TEST_F(LXDImageVault, minimum_image_size_throws_when_not_found)
+TEST_F(LXDImageVault, minimumImageSizeThrowsWhenNotFound)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _)).WillByDefault([](auto...) {
         return new mpt::MockLocalSocketReply(mpt::not_found_data,
@@ -1265,7 +1265,7 @@ TEST_F(LXDImageVault, minimum_image_size_throws_when_not_found)
                              fmt::format("Cannot retrieve info for image with id \'{}\'", id)))));
 }
 
-TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
+TEST_F(LXDImageVault, httpBasedImageDownloadsAndCreatesCorrectUpload)
 {
     const std::string content{"This is a fake image!"};
     mpt::TrackingURLDownloader url_downloader{content};
@@ -1343,7 +1343,7 @@ TEST_F(LXDImageVault, http_based_image_downloads_and_creates_correct_upload)
     EXPECT_EQ(url_downloader.downloaded_urls.front().toStdString(), download_url);
 }
 
-TEST_F(LXDImageVault, file_based_fetch_copies_image_and_returns_expected_info)
+TEST_F(LXDImageVault, fileBasedFetchCopiesImageAndReturnsExpectedInfo)
 {
     mpt::TempFile file;
 
@@ -1416,7 +1416,7 @@ TEST_F(LXDImageVault, file_based_fetch_copies_image_and_returns_expected_info)
     EXPECT_TRUE(image_time >= current_time);
 }
 
-TEST_F(LXDImageVault, invalid_local_file_image_throws)
+TEST_F(LXDImageVault, invalidLocalFileImageThrows)
 {
     ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault([](auto...) {
         return new mpt::MockLocalSocketReply(mpt::not_found_data,

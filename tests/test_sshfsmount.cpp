@@ -264,7 +264,7 @@ struct SshfsMountExecuteThrowRuntErr : public SshfsMount,
 // Define some parameterized test fixtures.
 //
 
-TEST_P(SshfsMountFail, test_failed_invocation)
+TEST_P(SshfsMountFail, testFailedInvocation)
 {
     bool invoked_cmd{false};
     std::string output;
@@ -290,7 +290,7 @@ TEST_P(SshfsMountFail, test_failed_invocation)
     EXPECT_TRUE(*invoked_fail);
 }
 
-TEST_P(SshfsMountExecute, test_successful_invocation)
+TEST_P(SshfsMountExecute, testSuccessfulInvocation)
 {
     std::string target = GetParam().first;
     CommandVector commands = GetParam().second;
@@ -298,7 +298,7 @@ TEST_P(SshfsMountExecute, test_successful_invocation)
     test_command_execution(commands, target);
 }
 
-TEST_P(SshfsMountExecuteAndNoFail, test_successful_invocation_and_fail)
+TEST_P(SshfsMountExecuteAndNoFail, testSuccessfulInvocationAndFail)
 {
     std::string target = std::get<0>(GetParam());
     CommandVector commands = std::get<1>(GetParam());
@@ -307,12 +307,12 @@ TEST_P(SshfsMountExecuteAndNoFail, test_successful_invocation_and_fail)
     ASSERT_NO_THROW(test_command_execution(commands, target, fail_command));
 }
 
-TEST_P(SshfsMountExecuteThrowInvArg, test_invalid_arg_when_executing)
+TEST_P(SshfsMountExecuteThrowInvArg, testInvalidArgWhenExecuting)
 {
     EXPECT_THROW(test_command_execution(GetParam()), std::invalid_argument);
 }
 
-TEST_P(SshfsMountExecuteThrowRuntErr, test_runtime_error_when_executing)
+TEST_P(SshfsMountExecuteThrowRuntErr, testRuntimeErrorWhenExecuting)
 {
     EXPECT_THROW(test_command_execution(GetParam()), std::runtime_error);
 }
@@ -425,7 +425,7 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountThrowRuntErr,
 // Finally, individual test fixtures.
 //
 
-TEST_F(SshfsMount, throws_when_sshfs_does_not_exist)
+TEST_F(SshfsMount, throwsWhenSshfsDoesNotExist)
 {
     bool invoked{false};
     auto request_exec =
@@ -436,7 +436,7 @@ TEST_F(SshfsMount, throws_when_sshfs_does_not_exist)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
+TEST_F(SshfsMount, unblocksWhenSftpserverExits)
 {
     mp::Signal client_message;
     auto get_client_msg = [&client_message](sftp_session) {
@@ -457,7 +457,7 @@ TEST_F(SshfsMount, unblocks_when_sftpserver_exits)
     EXPECT_TRUE(stopped_ok);
 }
 
-TEST_F(SshfsMount, blank_fuse_version_logs_error)
+TEST_F(SshfsMount, blankFuseVersionLogsError)
 {
     CommandVector commands = {
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:\n"}};

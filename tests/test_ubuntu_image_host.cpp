@@ -97,7 +97,7 @@ struct UbuntuImageHost : public testing::Test
 };
 } // namespace
 
-TEST_F(UbuntuImageHost, returns_expected_info)
+TEST_F(UbuntuImageHost, returnsExpectedInfo)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
     host.update_manifests(false);
@@ -108,7 +108,7 @@ TEST_F(UbuntuImageHost, returns_expected_info)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST_F(UbuntuImageHost, returns_expected_mirror_info)
+TEST_F(UbuntuImageHost, returnsExpectedMirrorInfo)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key)))
         .WillRepeatedly(Return(test_valid_mirror_host));
@@ -124,7 +124,7 @@ TEST_F(UbuntuImageHost, returns_expected_mirror_info)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST_F(UbuntuImageHost, returns_expected_mirror_info_with_most_recent_image)
+TEST_F(UbuntuImageHost, returnsExpectedMirrorInfoWithMostRecentImage)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key)))
         .WillRepeatedly(Return(test_valid_outdated_mirror_host));
@@ -141,7 +141,7 @@ TEST_F(UbuntuImageHost, returns_expected_mirror_info_with_most_recent_image)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST_F(UbuntuImageHost, throw_if_mirror_is_invalid)
+TEST_F(UbuntuImageHost, throwIfMirrorIsInvalid)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key)))
         .WillRepeatedly(Return(test_invalid_mirror_host));
@@ -153,7 +153,7 @@ TEST_F(UbuntuImageHost, throw_if_mirror_is_invalid)
                  std::runtime_error);
 }
 
-TEST_F(UbuntuImageHost, uses_default_on_unspecified_release)
+TEST_F(UbuntuImageHost, usesDefaultOnUnspecifiedRelease)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
     host.update_manifests(false);
@@ -165,7 +165,7 @@ TEST_F(UbuntuImageHost, uses_default_on_unspecified_release)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST_F(UbuntuImageHost, iterates_over_all_entries)
+TEST_F(UbuntuImageHost, iteratesOverAllEntries)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
     host.update_manifests(false);
@@ -191,7 +191,7 @@ TEST_F(UbuntuImageHost, iterates_over_all_entries)
                 Eq(1u));
 }
 
-TEST_F(UbuntuImageHost, can_query_by_hash)
+TEST_F(UbuntuImageHost, canQueryByHash)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
     host.update_manifests(false);
@@ -202,7 +202,7 @@ TEST_F(UbuntuImageHost, can_query_by_hash)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST_F(UbuntuImageHost, can_query_by_partial_hash)
+TEST_F(UbuntuImageHost, canQueryByPartialHash)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
     host.update_manifests(false);
@@ -224,7 +224,7 @@ TEST_F(UbuntuImageHost, can_query_by_partial_hash)
     EXPECT_FALSE(host.info_for(make_query("abcde", release_remote_spec.first)));
 }
 
-TEST_F(UbuntuImageHost, supports_multiple_manifests)
+TEST_F(UbuntuImageHost, supportsMultipleManifests)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -245,7 +245,7 @@ TEST_F(UbuntuImageHost, supports_multiple_manifests)
     EXPECT_THAT(xenial_info->id, Eq(expected_id));
 }
 
-TEST_F(UbuntuImageHost, looks_for_aliases_before_hashes)
+TEST_F(UbuntuImageHost, looksForAliasesBeforeHashes)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -260,7 +260,7 @@ TEST_F(UbuntuImageHost, looks_for_aliases_before_hashes)
     EXPECT_THAT(info->id, Eq(daily_expected_id));
 }
 
-TEST_F(UbuntuImageHost, all_info_release_returns_multiple_hash_matches)
+TEST_F(UbuntuImageHost, allInfoReleaseReturnsMultipleHashMatches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -271,7 +271,7 @@ TEST_F(UbuntuImageHost, all_info_release_returns_multiple_hash_matches)
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, all_info_daily_no_matches_returns_empty_vector)
+TEST_F(UbuntuImageHost, allInfoDailyNoMatchesReturnsEmptyVector)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -281,7 +281,7 @@ TEST_F(UbuntuImageHost, all_info_daily_no_matches_returns_empty_vector)
     EXPECT_TRUE(images.empty());
 }
 
-TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
+TEST_F(UbuntuImageHost, allInfoReleaseReturnsOneAliasMatch)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -292,7 +292,7 @@ TEST_F(UbuntuImageHost, all_info_release_returns_one_alias_match)
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
+TEST_F(UbuntuImageHost, allImagesForReleaseReturnsFourMatches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -303,7 +303,7 @@ TEST_F(UbuntuImageHost, all_images_for_release_returns_four_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, all_images_for_release_unsupported_returns_five_matches)
+TEST_F(UbuntuImageHost, allImagesForReleaseUnsupportedReturnsFiveMatches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -314,7 +314,7 @@ TEST_F(UbuntuImageHost, all_images_for_release_unsupported_returns_five_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, all_images_for_daily_returns_all_matches)
+TEST_F(UbuntuImageHost, allImagesForDailyReturnsAllMatches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -325,7 +325,7 @@ TEST_F(UbuntuImageHost, all_images_for_daily_returns_all_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
-TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
+TEST_F(UbuntuImageHost, supportedRemotesReturnsExpectedValues)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -343,7 +343,7 @@ TEST_F(UbuntuImageHost, supported_remotes_returns_expected_values)
                           daily_remote_spec.first) != supported_remotes.end());
 }
 
-TEST_F(UbuntuImageHost, invalid_remote_throws_error)
+TEST_F(UbuntuImageHost, invalidRemoteThrowsError)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -351,7 +351,7 @@ TEST_F(UbuntuImageHost, invalid_remote_throws_error)
     EXPECT_THROW(host.info_for(make_query("xenial", "foo")), std::runtime_error);
 }
 
-TEST_F(UbuntuImageHost, handles_and_recovers_from_initial_network_failure)
+TEST_F(UbuntuImageHost, handlesAndRecoversFromInitialNetworkFailure)
 {
     url_downloader.mischiefs = 1000;
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
@@ -365,7 +365,7 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_initial_network_failure)
     EXPECT_TRUE(host.info_for(query));
 }
 
-TEST_F(UbuntuImageHost, handles_and_recovers_from_later_network_failure)
+TEST_F(UbuntuImageHost, handlesAndRecoversFromLaterNetworkFailure)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
 
@@ -382,7 +382,7 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_later_network_failure)
     EXPECT_TRUE(host.info_for(query));
 }
 
-TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
+TEST_F(UbuntuImageHost, handlesAndRecoversFromIndependentServerFailures)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -400,7 +400,7 @@ TEST_F(UbuntuImageHost, handles_and_recovers_from_independent_server_failures)
     }
 }
 
-TEST_F(UbuntuImageHost, throws_unsupported_image_when_image_not_supported)
+TEST_F(UbuntuImageHost, throwsUnsupportedImageWhenImageNotSupported)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -409,7 +409,7 @@ TEST_F(UbuntuImageHost, throws_unsupported_image_when_image_not_supported)
                  mp::UnsupportedImageException);
 }
 
-TEST_F(UbuntuImageHost, devel_request_with_no_remote_returns_expected_info)
+TEST_F(UbuntuImageHost, develRequestWithNoRemoteReturnsExpectedInfo)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -424,7 +424,7 @@ TEST_F(UbuntuImageHost, devel_request_with_no_remote_returns_expected_info)
     EXPECT_EQ(info->id, daily_expected_id);
 }
 
-TEST_F(UbuntuImageHost, info_for_too_many_hash_matches_throws)
+TEST_F(UbuntuImageHost, infoForTooManyHashMatchesThrows)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
     host.update_manifests(false);
@@ -437,7 +437,7 @@ TEST_F(UbuntuImageHost, info_for_too_many_hash_matches_throws)
         mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", release))));
 }
 
-TEST_F(UbuntuImageHost, info_for_same_full_hash_in_both_remotes_does_not_throw)
+TEST_F(UbuntuImageHost, infoForSameFullHashInBothRemotesDoesNotThrow)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -447,7 +447,7 @@ TEST_F(UbuntuImageHost, info_for_same_full_hash_in_both_remotes_does_not_throw)
     EXPECT_NO_THROW(host.info_for(make_query(hash_query, "")));
 }
 
-TEST_F(UbuntuImageHost, info_for_partial_hash_in_both_remotes_throws)
+TEST_F(UbuntuImageHost, infoForPartialHashInBothRemotesThrows)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -460,7 +460,7 @@ TEST_F(UbuntuImageHost, info_for_partial_hash_in_both_remotes_throws)
         mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", hash_query))));
 }
 
-TEST_F(UbuntuImageHost, all_info_for_no_remote_query_defaults_to_release)
+TEST_F(UbuntuImageHost, allInfoForNoRemoteQueryDefaultsToRelease)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
@@ -471,7 +471,7 @@ TEST_F(UbuntuImageHost, all_info_for_no_remote_query_defaults_to_release)
     EXPECT_EQ(images_info.size(), expected_matches);
 }
 
-TEST_F(UbuntuImageHost, all_info_for_unsupported_image_throw)
+TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);

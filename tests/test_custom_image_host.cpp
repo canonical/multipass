@@ -88,7 +88,7 @@ struct ExpectedDataSuite : CustomImageHost, WithParamInterface<CustomData>
 {
 };
 
-TEST_P(ExpectedDataSuite, returns_expected_data)
+TEST_P(ExpectedDataSuite, returnsExpectedData)
 {
     const auto [aliases, remote, url, id, release, release_title] = GetParam();
 
@@ -127,7 +127,7 @@ INSTANTIATE_TEST_SUITE_P(
             "core-18",
             "Core 18"}));
 
-TEST_F(CustomImageHost, iterates_over_all_entries)
+TEST_F(CustomImageHost, iteratesOverAllEntries)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -146,7 +146,7 @@ TEST_F(CustomImageHost, iterates_over_all_entries)
                              "192c40c8f3361f4f9da2757d87e409ac5abb2df393145983d3696e21f486b552"));
 }
 
-TEST_F(CustomImageHost, all_images_for_no_remote_returns_appropriate_matches)
+TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -156,7 +156,7 @@ TEST_F(CustomImageHost, all_images_for_no_remote_returns_appropriate_matches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
-TEST_F(CustomImageHost, all_info_for_no_remote_returns_one_alias_match)
+TEST_F(CustomImageHost, allInfoForNoRemoteReturnsOneAliasMatch)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -166,7 +166,7 @@ TEST_F(CustomImageHost, all_info_for_no_remote_returns_one_alias_match)
     EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
-TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
+TEST_F(CustomImageHost, supportedRemotesReturnsExpectedValues)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -180,7 +180,7 @@ TEST_F(CustomImageHost, supported_remotes_returns_expected_values)
                 supported_remotes.end());
 }
 
-TEST_F(CustomImageHost, invalid_image_returns_false)
+TEST_F(CustomImageHost, invalidImageReturnsFalse)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -188,7 +188,7 @@ TEST_F(CustomImageHost, invalid_image_returns_false)
     EXPECT_FALSE(host.info_for(make_query("foo", "")));
 }
 
-TEST_F(CustomImageHost, invalid_remote_throws_error)
+TEST_F(CustomImageHost, invalidRemoteThrowsError)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -196,7 +196,7 @@ TEST_F(CustomImageHost, invalid_remote_throws_error)
     EXPECT_THROW(host.info_for(make_query("core", "foo")), std::runtime_error);
 }
 
-TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
+TEST_F(CustomImageHost, handlesAndRecoversFromInitialNetworkFailure)
 {
     EXPECT_CALL(mock_url_downloader, last_modified(_))
         .WillOnce(Throw(mp::DownloadException{"", ""}))
@@ -212,7 +212,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_initial_network_failure)
     EXPECT_TRUE(host.info_for(query));
 }
 
-TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
+TEST_F(CustomImageHost, handlesAndRecoversFromLaterNetworkFailure)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
 
@@ -230,7 +230,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_later_network_failure)
     EXPECT_TRUE(host.info_for(query));
 }
 
-TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
+TEST_F(CustomImageHost, handlesAndRecoversFromIndependentServerFailures)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -255,7 +255,7 @@ TEST_F(CustomImageHost, handles_and_recovers_from_independent_server_failures)
     }
 }
 
-TEST_F(CustomImageHost, info_for_full_hash_returns_empty_image_info)
+TEST_F(CustomImageHost, infoForFullHashReturnsEmptyImageInfo)
 {
     mp::CustomVMImageHost host{"x86_64", &mock_url_downloader};
     host.update_manifests(false);
@@ -270,7 +270,7 @@ struct EmptyArchSuite : CustomImageHost, WithParamInterface<QString>
 {
 };
 
-TEST_P(EmptyArchSuite, empty_for_other_arches)
+TEST_P(EmptyArchSuite, emptyForOtherArches)
 {
     auto arch = GetParam();
     mp::CustomVMImageHost host{arch, &mock_url_downloader};

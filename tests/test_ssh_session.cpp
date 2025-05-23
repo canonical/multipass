@@ -37,32 +37,32 @@ struct SSHSession : public Test
 };
 } // namespace
 
-TEST_F(SSHSession, throws_when_unable_to_allocate_session)
+TEST_F(SSHSession, throwsWhenUnableToAllocateSession)
 {
     REPLACE(ssh_new, []() { return nullptr; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, throws_when_unable_to_set_option)
+TEST_F(SSHSession, throwsWhenUnableToSetOption)
 {
     REPLACE(ssh_options_set, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, throws_when_unable_to_connect)
+TEST_F(SSHSession, throwsWhenUnableToConnect)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, throws_when_unable_to_auth)
+TEST_F(SSHSession, throwsWhenUnableToAuth)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, exec_throws_on_a_dead_session)
+TEST_F(SSHSession, execThrowsOnADeadSession)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
@@ -72,7 +72,7 @@ TEST_F(SSHSession, exec_throws_on_a_dead_session)
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, exec_throws_if_ssh_is_dead)
+TEST_F(SSHSession, execThrowsIfSshIsDead)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
@@ -82,7 +82,7 @@ TEST_F(SSHSession, exec_throws_if_ssh_is_dead)
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, exec_throws_when_unable_to_open_a_channel_session)
+TEST_F(SSHSession, execThrowsWhenUnableToOpenAChannelSession)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
@@ -93,7 +93,7 @@ TEST_F(SSHSession, exec_throws_when_unable_to_open_a_channel_session)
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, exec_throws_when_unable_to_request_channel_exec)
+TEST_F(SSHSession, execThrowsWhenUnableToRequestChannelExec)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
@@ -105,7 +105,7 @@ TEST_F(SSHSession, exec_throws_when_unable_to_request_channel_exec)
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, exec_succeeds)
+TEST_F(SSHSession, execSucceeds)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });

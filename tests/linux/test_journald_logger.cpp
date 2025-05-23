@@ -51,7 +51,7 @@ struct journald_logger_test : ::testing::Test
     MockJournaldWrapper& mock_journald = *mock_journald_guardedmock.first;
 };
 
-TEST_F(journald_logger_test, call_log)
+TEST_F(journald_logger_test, callLog)
 {
     constexpr static std::string_view expected_message_fmtstr = "MESSAGE=%.*s";
     constexpr static std::string_view expected_priority_fmtstr = "PRIORITY=%i";
@@ -73,7 +73,7 @@ TEST_F(journald_logger_test, call_log)
     uut.log(mpl::Level::debug, expected_category, expected_message);
 }
 
-TEST_F(journald_logger_test, call_log_filtered)
+TEST_F(journald_logger_test, callLogFiltered)
 {
     EXPECT_CALL(mock_journald, write_journal).Times(0);
     uut_t uut{mpl::Level::debug};

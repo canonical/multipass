@@ -44,7 +44,7 @@ struct PowerShellTest : public Test
     mpt::PowerShellTestHelper ps_helper;
 };
 
-TEST_F(PowerShellTest, creates_ps_process)
+TEST_F(PowerShellTest, createsPsProcess)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     ps_helper.setup([](auto* process) { EXPECT_CALL(*process, start()).Times(1); });
@@ -52,7 +52,7 @@ TEST_F(PowerShellTest, creates_ps_process)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShellTest, exits_ps_process)
+TEST_F(PowerShellTest, exitsPsProcess)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
     ps_helper.setup(
@@ -66,7 +66,7 @@ TEST_F(PowerShellTest, exits_ps_process)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShellTest, handles_failure_to_write_on_exit)
+TEST_F(PowerShellTest, handlesFailureToWriteOnExit)
 {
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::error);
@@ -83,7 +83,7 @@ TEST_F(PowerShellTest, handles_failure_to_write_on_exit)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShellTest, handles_failure_to_finish_on_exit)
+TEST_F(PowerShellTest, handlesFailureToFinishOnExit)
 {
     static constexpr auto err = "timeout";
     auto& logger = *logger_scope.mock_logger;
@@ -105,7 +105,7 @@ TEST_F(PowerShellTest, handles_failure_to_finish_on_exit)
     mp::PowerShell ps{"test"};
 }
 
-TEST_F(PowerShellTest, uses_name_in_logs)
+TEST_F(PowerShellTest, usesNameInLogs)
 {
     auto& logger = *logger_scope.mock_logger;
     static constexpr auto name = "Shevek";
@@ -117,7 +117,7 @@ TEST_F(PowerShellTest, uses_name_in_logs)
     mp::PowerShell ps{name};
 }
 
-TEST_F(PowerShellTest, write_silent_on_success)
+TEST_F(PowerShellTest, writeSilentOnSuccess)
 {
     static constexpr auto data = "Abbenay";
     ps_helper.setup([](auto* process) {
@@ -130,7 +130,7 @@ TEST_F(PowerShellTest, write_silent_on_success)
     ASSERT_TRUE(ps_helper.ps_write(ps, data));
 }
 
-TEST_F(PowerShellTest, write_logs_on_failure)
+TEST_F(PowerShellTest, writeLogsOnFailure)
 {
     static constexpr auto data = "Nio Esseia";
     ps_helper.setup(
@@ -144,7 +144,7 @@ TEST_F(PowerShellTest, write_logs_on_failure)
     ASSERT_FALSE(ps_helper.ps_write(ps, data));
 }
 
-TEST_F(PowerShellTest, write_logs_writen_bytes_on_failure)
+TEST_F(PowerShellTest, writeLogsWritenBytesOnFailure)
 {
     static constexpr auto data = "Anarres";
     static constexpr auto part = 3;
@@ -159,7 +159,7 @@ TEST_F(PowerShellTest, write_logs_writen_bytes_on_failure)
     ASSERT_FALSE(ps_helper.ps_write(ps, data));
 }
 
-TEST_F(PowerShellTest, run_writes_and_logs_cmd)
+TEST_F(PowerShellTest, runWritesAndLogsCmd)
 {
     static constexpr auto cmdlet = "some cmd and args";
     auto& logger = *logger_scope.mock_logger;
@@ -205,7 +205,7 @@ struct TestPSStatusAndOutput : public PowerShellTest, public WithParamInterface<
     inline static constexpr auto cmdlet = "gimme data";
 };
 
-TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
+TEST_P(TestPSStatusAndOutput, runReturnsCmdletStatusAndOutput)
 {
     static constexpr auto data = "here's data";
     auto& logger = *logger_scope.mock_logger;
@@ -223,7 +223,7 @@ TEST_P(TestPSStatusAndOutput, run_returns_cmdlet_status_and_output)
     ASSERT_EQ(out, data);
 }
 
-TEST_P(TestPSStatusAndOutput, run_handles_trickling_output)
+TEST_P(TestPSStatusAndOutput, runHandlesTricklingOutput)
 {
     static constexpr auto datum1 = "blah";
     static constexpr auto datum2 = "bleh";
@@ -256,7 +256,7 @@ auto halves(const QString& str)
     return std::make_pair(str.left(half).toUtf8(), str.right(total - half).toUtf8());
 };
 
-TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
+TEST_P(TestPSStatusAndOutput, runHandlesSplitEndMarker)
 {
     static constexpr auto data = "lots of info";
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
@@ -281,7 +281,7 @@ TEST_P(TestPSStatusAndOutput, run_handles_split_end_marker)
 
 INSTANTIATE_TEST_SUITE_P(PowerShellTest, TestPSStatusAndOutput, Values(true, false));
 
-TEST_F(PowerShellTest, exec_runs_given_cmd)
+TEST_F(PowerShellTest, execRunsGivenCmd)
 {
     static constexpr auto cmdlet = "make me a sandwich";
     const auto args = QString{cmdlet}.split(' ');
@@ -300,7 +300,7 @@ TEST_F(PowerShellTest, exec_runs_given_cmd)
     mp::PowerShell::exec(args, "Mitis");
 }
 
-TEST_F(PowerShellTest, exec_succeeds_when_no_timeout_and_process_successful)
+TEST_F(PowerShellTest, execSucceedsWhenNoTimeoutAndProcessSuccessful)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
     ps_helper.setup(
@@ -316,7 +316,7 @@ TEST_F(PowerShellTest, exec_succeeds_when_no_timeout_and_process_successful)
     EXPECT_TRUE(mp::PowerShell::exec({}, "Efor"));
 }
 
-TEST_F(PowerShellTest, exec_fails_when_timeout)
+TEST_F(PowerShellTest, execFailsWhenTimeout)
 {
     auto& logger = *logger_scope.mock_logger;
     logger.screen_logs(mpl::Level::warning);
@@ -338,7 +338,7 @@ TEST_F(PowerShellTest, exec_fails_when_timeout)
     EXPECT_FALSE(mp::PowerShell::exec({}, "Sabul"));
 }
 
-TEST_F(PowerShellTest, exec_fails_when_cmd_returns_bad_exit_code)
+TEST_F(PowerShellTest, execFailsWhenCmdReturnsBadExitCode)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
@@ -356,7 +356,7 @@ TEST_F(PowerShellTest, exec_fails_when_cmd_returns_bad_exit_code)
     EXPECT_FALSE(mp::PowerShell::exec({}, "Rulag"));
 }
 
-TEST_F(PowerShellTest, exec_returns_cmd_output)
+TEST_F(PowerShellTest, execReturnsCmdOutput)
 {
     static constexpr auto datum1 = "bloh";
     static constexpr auto datum2 = "bluh";
@@ -385,7 +385,7 @@ TEST_F(PowerShellTest, exec_returns_cmd_output)
     EXPECT_EQ(output, QString{datum1} + datum2);
 }
 
-TEST_F(PowerShellTest, exec_returns_cmd_error_output)
+TEST_F(PowerShellTest, execReturnsCmdErrorOutput)
 {
     static constexpr auto msg = "A horrible chill runs down your spine...";
     const auto cmdlet = QStringList{"sudo", "make", "me", "an", "error"};

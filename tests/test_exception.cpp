@@ -74,21 +74,21 @@ struct fmt::formatter<AngryTypeThatThrowsUnexpectedThings, Char>
     }
 };
 
-TEST_F(exception_tests, throw_default)
+TEST_F(exception_tests, throwDefault)
 {
     MP_EXPECT_THROW_THAT(throw multipass::FormattedExceptionBase<>("message {}", 1),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("message 1")));
 }
 
-TEST_F(exception_tests, throw_non_default_std)
+TEST_F(exception_tests, throwNonDefaultStd)
 {
     MP_EXPECT_THROW_THAT(throw MockException<std::overflow_error>("message {}", 1),
                          std::overflow_error,
                          mpt::match_what(HasSubstr("message 1")));
 }
 
-TEST_F(exception_tests, throw_std_system_error)
+TEST_F(exception_tests, throwStdSystemError)
 {
     MP_EXPECT_THROW_THAT(
         throw MockException<std::system_error>(std::make_error_code(std::errc::operation_canceled),
@@ -98,14 +98,14 @@ TEST_F(exception_tests, throw_std_system_error)
         mpt::match_what(HasSubstr("message 1")));
 }
 
-TEST_F(exception_tests, throw_user_defined_exception)
+TEST_F(exception_tests, throwUserDefinedException)
 {
     MP_EXPECT_THROW_THAT(throw MockException<custom_exception_type>("message {}", 1),
                          custom_exception_type,
                          mpt::match_what(HasSubstr("message 1")));
 }
 
-TEST_F(exception_tests, throw_format_error)
+TEST_F(exception_tests, throwFormatError)
 {
     constexpr auto expected_error_msg = R"([Error while formatting the exception string]
 Format string: `message {}`
@@ -116,7 +116,7 @@ Format error: `argument not found`)";
                          mpt::match_what(HasSubstr(expected_error_msg)));
 }
 
-TEST_F(exception_tests, throw_unexpected_error)
+TEST_F(exception_tests, throwUnexpectedError)
 {
     constexpr auto expected_error_msg = R"([Error while formatting the exception string]
 Format string: `message {}`)";

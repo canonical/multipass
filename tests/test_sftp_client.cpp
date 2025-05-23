@@ -109,21 +109,21 @@ struct SFTPClient : public testing::Test
 
 // testing sftp_session
 
-TEST_F(SFTPClient, throws_when_unable_to_allocate_sftp_session)
+TEST_F(SFTPClient, throwsWhenUnableToAllocateSftpSession)
 {
     REPLACE(sftp_new, [](auto...) { return nullptr; });
 
     EXPECT_THROW(make_sftp_client(), std::runtime_error);
 }
 
-TEST_F(SFTPClient, throws_when_failed_to_init)
+TEST_F(SFTPClient, throwsWhenFailedToInit)
 {
     REPLACE(sftp_init, [](auto...) { return SSH_ERROR; });
 
     EXPECT_THROW(make_sftp_client(), std::runtime_error);
 }
 
-TEST_F(SFTPClient, is_dir)
+TEST_F(SFTPClient, isDir)
 {
     REPLACE_SFTP_INIT();
 
@@ -138,7 +138,7 @@ TEST_F(SFTPClient, is_dir)
     EXPECT_FALSE(sftp_client.is_remote_dir("not/a/directory"));
 }
 
-TEST_F(SFTPClient, push_file_success)
+TEST_F(SFTPClient, pushFileSuccess)
 {
     std::string test_data = "test_data";
 
@@ -170,7 +170,7 @@ TEST_F(SFTPClient, push_file_success)
     EXPECT_EQ(static_cast<mode_t>(status.permissions()), written_perms);
 }
 
-TEST_F(SFTPClient, push_file_cannot_open_source)
+TEST_F(SFTPClient, pushFileCannotOpenSource)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(false));
@@ -192,7 +192,7 @@ TEST_F(SFTPClient, push_file_cannot_open_source)
     EXPECT_FALSE(sftp_client.push(source_path, target_path));
 }
 
-TEST_F(SFTPClient, push_file_cannot_open_target)
+TEST_F(SFTPClient, pushFileCannotOpenTarget)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(false));
@@ -211,7 +211,7 @@ TEST_F(SFTPClient, push_file_cannot_open_target)
     EXPECT_FALSE(sftp_client.push(source_path, target_path));
 }
 
-TEST_F(SFTPClient, push_file_cannot_write_target)
+TEST_F(SFTPClient, pushFileCannotWriteTarget)
 {
     std::string test_data = "test_data";
 
@@ -234,7 +234,7 @@ TEST_F(SFTPClient, push_file_cannot_write_target)
     EXPECT_FALSE(sftp_client.push(source_path, target_path));
 }
 
-TEST_F(SFTPClient, push_file_cannot_read_source)
+TEST_F(SFTPClient, pushFileCannotReadSource)
 {
     std::string test_data = "test_data";
 
@@ -266,7 +266,7 @@ TEST_F(SFTPClient, push_file_cannot_read_source)
     EXPECT_FALSE(sftp_client.push(source_path, target_path));
 }
 
-TEST_F(SFTPClient, push_file_cannot_set_perms)
+TEST_F(SFTPClient, pushFileCannotSetPerms)
 {
     std::string test_data = "test_data";
 
@@ -294,7 +294,7 @@ TEST_F(SFTPClient, push_file_cannot_set_perms)
     EXPECT_FALSE(sftp_client.push(source_path, target_path));
 }
 
-TEST_F(SFTPClient, pull_file_success)
+TEST_F(SFTPClient, pullFileSuccess)
 {
     std::string test_data = "test_data";
 
@@ -331,7 +331,7 @@ TEST_F(SFTPClient, pull_file_success)
     EXPECT_EQ(static_cast<std::filesystem::perms>(perms), written_perms);
 }
 
-TEST_F(SFTPClient, pull_file_cannot_open_source)
+TEST_F(SFTPClient, pullFileCannotOpenSource)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(); });
@@ -350,7 +350,7 @@ TEST_F(SFTPClient, pull_file_cannot_open_source)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path));
 }
 
-TEST_F(SFTPClient, pull_file_cannot_open_target)
+TEST_F(SFTPClient, pullFileCannotOpenTarget)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(); });
@@ -372,7 +372,7 @@ TEST_F(SFTPClient, pull_file_cannot_open_target)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path));
 }
 
-TEST_F(SFTPClient, pull_file_cannot_write_target)
+TEST_F(SFTPClient, pullFileCannotWriteTarget)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_sftp_utils, get_local_file_target(source_path, target_path, _))
@@ -403,7 +403,7 @@ TEST_F(SFTPClient, pull_file_cannot_write_target)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path));
 }
 
-TEST_F(SFTPClient, pull_file_cannot_read_source)
+TEST_F(SFTPClient, pullFileCannotReadSource)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(); });
@@ -424,7 +424,7 @@ TEST_F(SFTPClient, pull_file_cannot_read_source)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path));
 }
 
-TEST_F(SFTPClient, pull_file_cannot_set_perms)
+TEST_F(SFTPClient, pullFileCannotSetPerms)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_sftp_utils, get_local_file_target(source_path, target_path, _))
@@ -449,7 +449,7 @@ TEST_F(SFTPClient, pull_file_cannot_set_perms)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path));
 }
 
-TEST_F(SFTPClient, push_dir_success_regular)
+TEST_F(SFTPClient, pushDirSuccessRegular)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -492,7 +492,7 @@ TEST_F(SFTPClient, push_dir_success_regular)
     EXPECT_EQ(test_data, written_data);
 }
 
-TEST_F(SFTPClient, push_dir_success_dir)
+TEST_F(SFTPClient, pushDirSuccessDir)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -525,7 +525,7 @@ TEST_F(SFTPClient, push_dir_success_dir)
     EXPECT_EQ(set_perms, static_cast<mode_t>(status.permissions()));
 }
 
-TEST_F(SFTPClient, push_dir_fail_dir)
+TEST_F(SFTPClient, pushDirFailDir)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -563,7 +563,7 @@ TEST_F(SFTPClient, push_dir_fail_dir)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_success_symlink)
+TEST_F(SFTPClient, pushDirSuccessSymlink)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -595,7 +595,7 @@ TEST_F(SFTPClient, push_dir_success_symlink)
     EXPECT_TRUE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_cannot_read_symlink)
+TEST_F(SFTPClient, pushDirCannotReadSymlink)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -631,7 +631,7 @@ TEST_F(SFTPClient, push_dir_cannot_read_symlink)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_cannot_create_symlink)
+TEST_F(SFTPClient, pushDirCannotCreateSymlink)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -669,7 +669,7 @@ TEST_F(SFTPClient, push_dir_cannot_create_symlink)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_symlink_over_dir)
+TEST_F(SFTPClient, pushDirSymlinkOverDir)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -703,7 +703,7 @@ TEST_F(SFTPClient, push_dir_symlink_over_dir)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_unknown_file_type)
+TEST_F(SFTPClient, pushDirUnknownFileType)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -733,7 +733,7 @@ TEST_F(SFTPClient, push_dir_unknown_file_type)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_open_iter_fail)
+TEST_F(SFTPClient, pushDirOpenIterFail)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -755,7 +755,7 @@ TEST_F(SFTPClient, push_dir_open_iter_fail)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_cannot_access_target)
+TEST_F(SFTPClient, pushDirCannotAccessTarget)
 {
     REPLACE_SFTP_INIT();
 
@@ -773,7 +773,7 @@ TEST_F(SFTPClient, push_dir_cannot_access_target)
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, push_dir_r_not_specified)
+TEST_F(SFTPClient, pushDirRNotSpecified)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_file_ops, is_directory(source_path, _)).WillOnce(Return(true));
@@ -786,7 +786,7 @@ TEST_F(SFTPClient, push_dir_r_not_specified)
     EXPECT_FALSE(sftp_client.push(source_path, target_path));
 }
 
-TEST_F(SFTPClient, pull_dir_success_regular)
+TEST_F(SFTPClient, pullDirSuccessRegular)
 {
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_sftp_utils, get_local_dir_target(source_path, target_path, _))
@@ -841,7 +841,7 @@ TEST_F(SFTPClient, pull_dir_success_regular)
     EXPECT_EQ(static_cast<std::filesystem::perms>(perms), dir_written_perms);
 }
 
-TEST_F(SFTPClient, pull_dir_success_dir)
+TEST_F(SFTPClient, pullDirSuccessDir)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -864,7 +864,7 @@ TEST_F(SFTPClient, pull_dir_success_dir)
     EXPECT_TRUE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_fail_dir)
+TEST_F(SFTPClient, pullDirFailDir)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -899,7 +899,7 @@ TEST_F(SFTPClient, pull_dir_fail_dir)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_success_symlink)
+TEST_F(SFTPClient, pullDirSuccessSymlink)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -926,7 +926,7 @@ TEST_F(SFTPClient, pull_dir_success_symlink)
     EXPECT_TRUE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_cannot_read_symlink)
+TEST_F(SFTPClient, pullDirCannotReadSymlink)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -956,7 +956,7 @@ TEST_F(SFTPClient, pull_dir_cannot_read_symlink)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_cannot_create_symlink)
+TEST_F(SFTPClient, pullDirCannotCreateSymlink)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -988,7 +988,7 @@ TEST_F(SFTPClient, pull_dir_cannot_create_symlink)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_symlink_over_dir)
+TEST_F(SFTPClient, pullDirSymlinkOverDir)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -1016,7 +1016,7 @@ TEST_F(SFTPClient, pull_dir_symlink_over_dir)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_unknown_file_type)
+TEST_F(SFTPClient, pullDirUnknownFileType)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });
@@ -1041,7 +1041,7 @@ TEST_F(SFTPClient, pull_dir_unknown_file_type)
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
-TEST_F(SFTPClient, pull_dir_r_not_specified)
+TEST_F(SFTPClient, pullDirRNotSpecified)
 {
     REPLACE_SFTP_INIT();
     REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY); });

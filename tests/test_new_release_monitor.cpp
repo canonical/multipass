@@ -77,7 +77,7 @@ auto check_for_new_release(QString currentVersion, QString newVersion, QString n
 
 } // namespace
 
-TEST(NewReleaseMonitor, checks_new_release)
+TEST(NewReleaseMonitor, checksNewRelease)
 {
     auto new_release = check_for_new_release("0.1.0", "0.2.0", "https://something_unique.com");
 
@@ -86,21 +86,21 @@ TEST(NewReleaseMonitor, checks_new_release)
     EXPECT_EQ("https://something_unique.com", new_release->url.toString().toStdString());
 }
 
-TEST(NewReleaseMonitor, checks_new_release_when_nothing_new)
+TEST(NewReleaseMonitor, checksNewReleaseWhenNothingNew)
 {
     auto new_release = check_for_new_release("0.2.1", "0.2.1");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, checks_new_release_when_newer_than_available)
+TEST(NewReleaseMonitor, checksNewReleaseWhenNewerThanAvailable)
 {
     auto new_release = check_for_new_release("0.3.0", "0.2.0");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, checks_new_release_when_download_fails)
+TEST(NewReleaseMonitor, checksNewReleaseWhenDownloadFails)
 {
     QEventLoop e;
     StubUpdateJson json("0.2.0", "https://something_unique.com");
@@ -115,14 +115,14 @@ TEST(NewReleaseMonitor, checks_new_release_when_download_fails)
 
 // Just double-checking that the SemVer library applies the ordering we expect for prerelease
 // strings.
-TEST(NewReleaseMonitor, dev_prerelease_ordering_correct)
+TEST(NewReleaseMonitor, devPrereleaseOrderingCorrect)
 {
     auto new_release = check_for_new_release("0.6.0", "0.6.0-dev.238+g5c642f4");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, dev_prerelease_ordering_correct1)
+TEST(NewReleaseMonitor, devPrereleaseOrderingCorrect1)
 {
     auto new_release = check_for_new_release("0.6.0-dev.238+g5c642f4", "0.6.0");
 
@@ -130,28 +130,28 @@ TEST(NewReleaseMonitor, dev_prerelease_ordering_correct1)
     EXPECT_EQ("0.6.0", new_release->version.toStdString());
 }
 
-TEST(NewReleaseMonitor, rc_prerelease_ordering_correct)
+TEST(NewReleaseMonitor, rcPrereleaseOrderingCorrect)
 {
     auto new_release = check_for_new_release("0.6.0", "0.6.0-rc.238+g5c642f4");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, rc_prerelease_ordering_correct1)
+TEST(NewReleaseMonitor, rcPrereleaseOrderingCorrect1)
 {
     auto new_release = check_for_new_release("0.6.0-rc.238+g5c642f4", "0.6.0");
 
     EXPECT_TRUE(new_release);
 }
 
-TEST(NewReleaseMonitor, dev_rc_release_ordering_correct)
+TEST(NewReleaseMonitor, devRcReleaseOrderingCorrect)
 {
     auto new_release = check_for_new_release("0.6.0-rc.238+g3245235.win", "0.6.0-dev.238+g5c642f4");
 
     EXPECT_FALSE(new_release);
 }
 
-TEST(NewReleaseMonitor, dev_rc_release_ordering_correct1)
+TEST(NewReleaseMonitor, devRcReleaseOrderingCorrect1)
 {
     auto new_release = check_for_new_release("0.6.0-dev.238+g3245235.win", "0.6.0-rc.238+g5c642f4");
 

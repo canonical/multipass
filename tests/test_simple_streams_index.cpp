@@ -25,7 +25,7 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
-TEST(SimpleStreamsIndex, parses_manifest_location)
+TEST(SimpleStreamsIndex, parsesManifestLocation)
 {
     auto json = mpt::load_test_file("good_index.json");
     auto index = mp::SimpleStreamsIndex::fromJson(json);
@@ -33,7 +33,7 @@ TEST(SimpleStreamsIndex, parses_manifest_location)
     EXPECT_THAT(index.manifest_path, Eq("multiple_versions_manifest.json"));
 }
 
-TEST(SimpleStreamsIndex, parses_update_stamp)
+TEST(SimpleStreamsIndex, parsesUpdateStamp)
 {
     auto json = mpt::load_test_file("good_index.json");
     auto index = mp::SimpleStreamsIndex::fromJson(json);
@@ -41,31 +41,31 @@ TEST(SimpleStreamsIndex, parses_update_stamp)
     EXPECT_THAT(index.updated_at, Eq("Thu, 18 May 2017 09:18:01 +0000"));
 }
 
-TEST(SimpleStreamsIndex, throws_if_invalid_data_type)
+TEST(SimpleStreamsIndex, throwsIfInvalidDataType)
 {
     auto json = mpt::load_test_file("bad_datatype_index.json");
     EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
 }
 
-TEST(SimpleStreamsIndex, throws_if_missing_index)
+TEST(SimpleStreamsIndex, throwsIfMissingIndex)
 {
     auto json = mpt::load_test_file("missing_index.json");
     EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
 }
 
-TEST(SimpleStreamsIndex, throws_if_index_is_not_object_type)
+TEST(SimpleStreamsIndex, throwsIfIndexIsNotObjectType)
 {
     auto json = mpt::load_test_file("bad_index.json");
     EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
 }
 
-TEST(SimpleStreamsIndex, throws_on_invalid_json)
+TEST(SimpleStreamsIndex, throwsOnInvalidJson)
 {
     QByteArray json;
     EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
 }
 
-TEST(SimpleStreamsIndex, throws_on_invalid_top_level_type)
+TEST(SimpleStreamsIndex, throwsOnInvalidTopLevelType)
 {
     auto json = mpt::load_test_file("invalid_top_level.json");
     EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);

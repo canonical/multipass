@@ -28,21 +28,21 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
-TEST(TestQemuImgProcessSpec, program_correct)
+TEST(TestQemuImgProcessSpec, programCorrect)
 {
     mp::QemuImgProcessSpec spec({}, "");
 
     EXPECT_EQ(spec.program(), "qemu-img");
 }
 
-TEST(TestQemuImgProcessSpec, default_arguments_correct)
+TEST(TestQemuImgProcessSpec, defaultArgumentsCorrect)
 {
     mp::QemuImgProcessSpec spec({}, "");
 
     EXPECT_EQ(spec.arguments(), QStringList());
 }
 
-TEST(TestQemuImgProcessSpec, arguments_set_correctly)
+TEST(TestQemuImgProcessSpec, argumentsSetCorrectly)
 {
     QStringList args{"-one", "--two"};
     mp::QemuImgProcessSpec spec(args, "");
@@ -50,21 +50,21 @@ TEST(TestQemuImgProcessSpec, arguments_set_correctly)
     EXPECT_EQ(spec.arguments(), args);
 }
 
-TEST(TestQemuImgProcessSpec, apparmor_profile_has_correct_name)
+TEST(TestQemuImgProcessSpec, apparmorProfileHasCorrectName)
 {
     mp::QemuImgProcessSpec spec({}, "");
 
     EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.qemu-img"));
 }
 
-TEST(TestQemuImgProcessSpec, no_apparmor_profile_identifier)
+TEST(TestQemuImgProcessSpec, noApparmorProfileIdentifier)
 {
     mp::QemuImgProcessSpec spec({}, "");
 
     EXPECT_EQ(spec.identifier(), "");
 }
 
-TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
+TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
@@ -79,7 +79,7 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_correct)
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
-TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correct)
+TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithTargetCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
@@ -95,7 +95,7 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_target_correc
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
 
-TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_only_target_correct)
+TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithOnlyTargetCorrect)
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir;
@@ -112,8 +112,8 @@ TEST(TestQemuImgProcessSpec, apparmor_profile_running_as_snap_with_only_target_c
 
 TEST(TestQemuImgProcessSpec,
      DISABLE_ON_WINDOWS(
-         apparmor_profile_running_as_symlinked_snap_correct)) // TODO tests involving apparmor
-                                                              // should probably be moved elsewhere
+         apparmorProfileRunningAsSymlinkedSnapCorrect)) // TODO tests involving apparmor should
+                                                        // probably be moved elsewhere
 {
     const QByteArray snap_name{"multipass"};
     QTemporaryDir snap_dir, snap_link_dir, common_dir, common_link_dir;
@@ -133,7 +133,7 @@ TEST(TestQemuImgProcessSpec,
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
-TEST(TestQemuImgProcessSpec, apparmor_profile_not_running_as_snap_correct)
+TEST(TestQemuImgProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
 {
     const QByteArray snap_name{"multipass"};
 

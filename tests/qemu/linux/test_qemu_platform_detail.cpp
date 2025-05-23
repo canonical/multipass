@@ -96,7 +96,7 @@ struct QemuPlatformDetail : public Test
 };
 } // namespace
 
-TEST_F(QemuPlatformDetail, ctor_sets_up_expected_virtual_switch)
+TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitch)
 {
     const QString qstring_subnet{QString::fromStdString(subnet)};
 
@@ -133,7 +133,7 @@ TEST_F(QemuPlatformDetail, ctor_sets_up_expected_virtual_switch)
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
+TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
 {
     const mp::IPAddress ip_address{fmt::format("{}.5", subnet)};
 
@@ -148,7 +148,7 @@ TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
     EXPECT_EQ(*addr, ip_address);
 }
 
-TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as_expected)
+TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpected)
 {
     mp::VirtualMachineDescription vm_desc;
     mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
@@ -212,7 +212,7 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
     qemu_platform_detail.remove_resources_for(name);
 }
 
-TEST_F(QemuPlatformDetail, platform_health_check_calls_expected_methods)
+TEST_F(QemuPlatformDetail, platformHealthCheckCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
     EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
@@ -224,7 +224,7 @@ TEST_F(QemuPlatformDetail, platform_health_check_calls_expected_methods)
     qemu_platform_detail.platform_health_check();
 }
 
-TEST_F(QemuPlatformDetail, opening_ipforward_file_failure_logs_expected_message)
+TEST_F(QemuPlatformDetail, openingIpforwardFileFailureLogsExpectedMessage)
 {
     logger_scope.mock_logger->screen_logs(
         mpl::Level::warning); // warning and above expected explicitly in tests
@@ -236,7 +236,7 @@ TEST_F(QemuPlatformDetail, opening_ipforward_file_failure_logs_expected_message)
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, writing_ipforward_file_failure_logs_expected_message)
+TEST_F(QemuPlatformDetail, writingIpforwardFileFailureLogsExpectedMessage)
 {
     logger_scope.mock_logger->screen_logs(
         mpl::Level::warning); // warning and above expected explicitly in tests
@@ -266,7 +266,7 @@ TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
     EXPECT_TRUE(non_bridged_network.needs_authorization);
 }
 
-TEST_F(QemuPlatformDetail, CreateBridgeWithCallsExpectedMethods)
+TEST_F(QemuPlatformDetail, createBridgeWithCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
 

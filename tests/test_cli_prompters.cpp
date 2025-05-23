@@ -47,7 +47,7 @@ struct TestPassphrasePrompters : Test
     mpt::MockTerminal mock_terminal;
 };
 
-TEST_F(CLIPrompters, PlainPromptsText)
+TEST_F(CLIPrompters, plainPromptsText)
 {
     auto prompt = mp::PlainPrompter{&term};
     cin.str("\n");
@@ -56,7 +56,7 @@ TEST_F(CLIPrompters, PlainPromptsText)
     EXPECT_EQ(cout.str(), "foo: ");
 }
 
-TEST_F(CLIPrompters, PlainReturnsText)
+TEST_F(CLIPrompters, plainReturnsText)
 {
     auto prompt = mp::PlainPrompter{&term};
     cin.str("value\n");
@@ -161,7 +161,7 @@ class CLIPromptersBadCinState : public CLIPrompters,
 {
 };
 
-TEST_P(CLIPromptersBadCinState, PlainThrows)
+TEST_P(CLIPromptersBadCinState, plainThrows)
 {
     auto prompt = mp::PlainPrompter{&term};
 

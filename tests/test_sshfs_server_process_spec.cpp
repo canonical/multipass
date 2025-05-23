@@ -42,13 +42,13 @@ struct TestSSHFSServerProcessSpec : public Test
                                  {{5, -1}, {6, 10}}};
 };
 
-TEST_F(TestSSHFSServerProcessSpec, program_correct)
+TEST_F(TestSSHFSServerProcessSpec, programCorrect)
 {
     mp::SSHFSServerProcessSpec spec(config);
     EXPECT_TRUE(spec.program().endsWith("sshfs_server"));
 }
 
-TEST_F(TestSSHFSServerProcessSpec, arguments_correct)
+TEST_F(TestSSHFSServerProcessSpec, argumentsCorrect)
 {
     mp::SSHFSServerProcessSpec spec(config);
     ASSERT_EQ(spec.arguments().size(), 8);
@@ -63,7 +63,7 @@ TEST_F(TestSSHFSServerProcessSpec, arguments_correct)
     EXPECT_EQ(spec.arguments()[7], "0");
 }
 
-TEST_F(TestSSHFSServerProcessSpec, environment_correct)
+TEST_F(TestSSHFSServerProcessSpec, environmentCorrect)
 {
     mp::SSHFSServerProcessSpec spec(config);
 
@@ -71,7 +71,7 @@ TEST_F(TestSSHFSServerProcessSpec, environment_correct)
     EXPECT_EQ(spec.environment().value("KEY"), "private_key");
 }
 
-TEST_F(TestSSHFSServerProcessSpec, snap_confined_apparmor_profile_returns_expected_data)
+TEST_F(TestSSHFSServerProcessSpec, snapConfinedApparmorProfileReturnsExpectedData)
 {
     mpt::TempDir bin_dir;
     const QByteArray snap_name{"multipass"};
@@ -87,7 +87,7 @@ TEST_F(TestSSHFSServerProcessSpec, snap_confined_apparmor_profile_returns_expect
     EXPECT_TRUE(apparmor_profile.contains("signal (receive) peer=snap.multipass.multipassd"));
 }
 
-TEST_F(TestSSHFSServerProcessSpec, unconfined_apparmor_profile_returns_expected_data)
+TEST_F(TestSSHFSServerProcessSpec, unconfinedApparmorProfileReturnsExpectedData)
 {
     const QByteArray snap_name{"multipass"};
 

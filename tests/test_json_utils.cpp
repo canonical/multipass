@@ -114,7 +114,7 @@ struct ExtraInterfacesRead : public TestJsonUtils,
 {
 };
 
-TEST_P(ExtraInterfacesRead, write_and_read_extra_interfaces)
+TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
 {
     std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
 
@@ -135,7 +135,7 @@ INSTANTIATE_TEST_SUITE_P(
                                              {"eth2", "52:54:00:00:00:02", false}},
            std::vector<mp::NetworkInterface>{}));
 
-TEST_F(TestJsonUtils, gives_nullopt_on_empty_extra_interfaces)
+TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
 {
     QJsonObject doc;
     doc.insert("some_data", "nothing to see here");
@@ -143,7 +143,7 @@ TEST_F(TestJsonUtils, gives_nullopt_on_empty_extra_interfaces)
     ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
 }
 
-TEST_F(TestJsonUtils, throws_on_wrong_mac)
+TEST_F(TestJsonUtils, throwsOnWrongMac)
 {
     std::vector<mp::NetworkInterface> extra_ifaces{
         mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};

@@ -41,7 +41,7 @@ const mp::VMMount TestVMMount::a_mount{"asdf",
                                        {{8, 4}, {6, 3}},
                                        mp::VMMount::MountType::Classic};
 
-TEST_P(TestUnequalVMMountsTestSuite, CompareMountsUnequal)
+TEST_P(TestUnequalVMMountsTestSuite, compareMountsUnequal)
 {
     auto [mount_a, mount_b] = GetParam();
 

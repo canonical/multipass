@@ -44,13 +44,13 @@ struct FileOps : public Test
     }
 };
 
-TEST_F(FileOps, open_write)
+TEST_F(FileOps, openWrite)
 {
     auto file = MP_FILEOPS.open_write(temp_file);
     EXPECT_NE(dynamic_cast<std::ofstream*>(file.get()), nullptr);
 }
 
-TEST_F(FileOps, open_read)
+TEST_F(FileOps, openRead)
 {
     auto file = MP_FILEOPS.open_read(temp_file);
     EXPECT_NE(dynamic_cast<std::ifstream*>(file.get()), nullptr);
@@ -74,7 +74,7 @@ TEST_F(FileOps, copy)
     EXPECT_TRUE(MP_FILEOPS.exists(dest_dir, err));
 }
 
-TEST_F(FileOps, is_directory)
+TEST_F(FileOps, isDirectory)
 {
     EXPECT_TRUE(MP_FILEOPS.is_directory(temp_dir, err));
     EXPECT_FALSE(err);
@@ -82,7 +82,7 @@ TEST_F(FileOps, is_directory)
     EXPECT_FALSE(err);
 }
 
-TEST_F(FileOps, create_directory)
+TEST_F(FileOps, createDirectory)
 {
     EXPECT_TRUE(MP_FILEOPS.create_directory(temp_dir / "subdir", err));
     EXPECT_FALSE(err);
@@ -116,7 +116,7 @@ TEST_F(FileOps, status)
     EXPECT_FALSE(err);
 }
 
-TEST_F(FileOps, recurisve_dir_iter)
+TEST_F(FileOps, recurisveDirIter)
 {
     auto iter = MP_FILEOPS.recursive_dir_iterator(temp_dir, err);
     EXPECT_FALSE(err);
@@ -126,7 +126,7 @@ TEST_F(FileOps, recurisve_dir_iter)
     EXPECT_TRUE(err);
 }
 
-TEST_F(FileOps, create_directories)
+TEST_F(FileOps, createDirectories)
 {
     EXPECT_TRUE(MP_FILEOPS.create_directories(temp_dir / "subdir/nested", err));
     EXPECT_FALSE(err);
@@ -134,7 +134,7 @@ TEST_F(FileOps, create_directories)
     EXPECT_FALSE(err);
 }
 
-TEST_F(FileOps, dir_iter)
+TEST_F(FileOps, dirIter)
 {
     auto iter = MP_FILEOPS.dir_iterator(temp_dir, err);
     EXPECT_FALSE(err);
@@ -146,7 +146,7 @@ TEST_F(FileOps, dir_iter)
     EXPECT_TRUE(err);
 }
 
-TEST_F(FileOps, posix_open)
+TEST_F(FileOps, posixOpen)
 {
     const auto named_fd1 = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
     EXPECT_NE(named_fd1->fd, -1);
@@ -154,7 +154,7 @@ TEST_F(FileOps, posix_open)
     EXPECT_EQ(named_fd2->fd, -1);
 }
 
-TEST_F(FileOps, posix_read)
+TEST_F(FileOps, posixRead)
 {
     const auto named_fd = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
     std::array<char, 100> buffer{};
@@ -163,7 +163,7 @@ TEST_F(FileOps, posix_read)
     EXPECT_EQ(buffer.data(), file_content);
 }
 
-TEST_F(FileOps, posix_write)
+TEST_F(FileOps, posixWrite)
 {
     const auto named_fd = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
     const char data[] = "abcdef";
@@ -174,7 +174,7 @@ TEST_F(FileOps, posix_write)
     EXPECT_STREQ(string.c_str(), data);
 }
 
-TEST_F(FileOps, posix_lseek)
+TEST_F(FileOps, posixLseek)
 {
     const auto named_fd = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
     const auto seek = 3;
@@ -185,7 +185,7 @@ TEST_F(FileOps, posix_lseek)
     EXPECT_STREQ(buffer.data(), file_content.c_str() + seek);
 }
 
-TEST_F(FileOps, remove_extension)
+TEST_F(FileOps, removeExtension)
 {
     EXPECT_EQ(MP_FILEOPS.remove_extension(""), "");
     EXPECT_EQ(MP_FILEOPS.remove_extension("test"), "test");

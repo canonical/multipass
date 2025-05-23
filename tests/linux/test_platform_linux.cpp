@@ -102,82 +102,82 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
 };
 
-TEST_F(PlatformLinux, test_interpretation_of_winterm_setting_not_supported)
+TEST_F(PlatformLinux, testInterpretationOfWintermSettingNotSupported)
 {
     for (const auto* x : {"no", "matter", "what"})
         EXPECT_THROW(mp::platform::interpret_setting(mp::winterm_key, x),
                      mp::InvalidSettingException);
 }
 
-TEST_F(PlatformLinux, test_interpretation_of_unknown_settings_not_supported)
+TEST_F(PlatformLinux, testInterpretationOfUnknownSettingsNotSupported)
 {
     for (const auto* k : {"unimaginable", "katxama", "katxatxa"})
         for (const auto* v : {"no", "matter", "what"})
             EXPECT_THROW(mp::platform::interpret_setting(k, v), mp::InvalidSettingException);
 }
 
-TEST_F(PlatformLinux, test_no_extra_client_settings)
+TEST_F(PlatformLinux, testNoExtraClientSettings)
 {
     EXPECT_THAT(MP_PLATFORM.extra_client_settings(), IsEmpty());
 }
 
-TEST_F(PlatformLinux, test_no_extra_daemon_settings)
+TEST_F(PlatformLinux, testNoExtraDaemonSettings)
 {
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
-TEST_F(PlatformLinux, test_empty_sync_winterm_profiles)
+TEST_F(PlatformLinux, testEmptySyncWintermProfiles)
 {
     EXPECT_NO_THROW(mp::platform::sync_winterm_profiles());
 }
 
-TEST_F(PlatformLinux, test_default_driver)
+TEST_F(PlatformLinux, testDefaultDriver)
 {
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "lxd"));
 }
 
-TEST_F(PlatformLinux, test_default_privileged_mounts)
+TEST_F(PlatformLinux, testDefaultPrivilegedMounts)
 {
     EXPECT_EQ(MP_PLATFORM.default_privileged_mounts(), "true");
 }
 
-TEST_F(PlatformLinux, test_default_driver_produces_correct_factory)
+TEST_F(PlatformLinux, testDefaultDriverProducesCorrectFactory)
 {
     aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
 }
 
 #ifdef QEMU_ENABLED
-TEST_F(PlatformLinux, test_explicit_qemu_driver_produces_correct_factory)
+TEST_F(PlatformLinux, testExplicitQemuDriverProducesCorrectFactory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 #endif
 
-TEST_F(PlatformLinux, test_libvirt_driver_produces_correct_factory)
+TEST_F(PlatformLinux, testLibvirtDriverProducesCorrectFactory)
 {
     auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
     with_minimally_mocked_libvirt(test);
 }
 
-TEST_F(PlatformLinux, test_lxd_driver_produces_correct_factory)
+TEST_F(PlatformLinux, testLxdDriverProducesCorrectFactory)
 {
     aux_test_driver_factory<mp::LXDVirtualMachineFactory>("lxd");
 }
 
-TEST_F(PlatformLinux, test_qemu_in_env_var_is_ignored)
+TEST_F(PlatformLinux, testQemuInEnvVarIsIgnored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "QEMU");
     auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
     with_minimally_mocked_libvirt(test);
 }
 
-TEST_F(PlatformLinux, test_libvirt_in_env_var_is_ignored)
+TEST_F(PlatformLinux, testLibvirtInEnvVarIsIgnored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
     aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
 }
 
-TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
+TEST_F(PlatformLinux, testSnapReturnsExpectedDefaultAddress)
 {
     const QByteArray base_dir{"/tmp"};
     const QByteArray snap_name{"multipass"};
@@ -189,7 +189,7 @@ TEST_F(PlatformLinux, test_snap_returns_expected_default_address)
               fmt::format("unix:{}/multipass_socket", base_dir.toStdString()));
 }
 
-TEST_F(PlatformLinux, test_not_snap_returns_expected_default_address)
+TEST_F(PlatformLinux, testNotSnapReturnsExpectedDefaultAddress)
 {
     const QByteArray snap_name{"multipass"};
 
@@ -203,7 +203,7 @@ struct TestUnsupportedDrivers : public PlatformLinux, WithParamInterface<QString
 {
 };
 
-TEST_P(TestUnsupportedDrivers, test_unsupported_driver)
+TEST_P(TestUnsupportedDrivers, testUnsupportedDriver)
 {
     ASSERT_FALSE(MP_PLATFORM.is_backend_supported(GetParam()));
 
@@ -215,7 +215,7 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux,
                          TestUnsupportedDrivers,
                          Values(QStringLiteral("hyper-v"), QStringLiteral("other")));
 
-TEST_F(PlatformLinux, retrieves_empty_bridges)
+TEST_F(PlatformLinux, retrievesEmptyBridges)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_bridge = "somebridge";
@@ -238,7 +238,7 @@ TEST_F(PlatformLinux, retrieves_empty_bridges)
                                       Field(&Net::description, StrEq("Network bridge")))))));
 }
 
-TEST_F(PlatformLinux, retrieves_ethernet_devices)
+TEST_F(PlatformLinux, retrievesEthernetDevices)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_eth = "someth";
@@ -257,7 +257,7 @@ TEST_F(PlatformLinux, retrieves_ethernet_devices)
     EXPECT_EQ(it->second.description, "Ethernet device");
 }
 
-TEST_F(PlatformLinux, does_not_retrieve_unknown_networks)
+TEST_F(PlatformLinux, doesNotRetrieveUnknownNetworks)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_nets = {"eth0", "foo", "kkkkk"};
@@ -270,7 +270,7 @@ TEST_F(PlatformLinux, does_not_retrieve_unknown_networks)
                 IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_retrieve_other_virtual)
+TEST_F(PlatformLinux, doesNotRetrieveOtherVirtual)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_virt = "somevirt";
@@ -282,7 +282,7 @@ TEST_F(PlatformLinux, does_not_retrieve_other_virtual)
                 IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_retrieve_wireless)
+TEST_F(PlatformLinux, doesNotRetrieveWireless)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_wifi = "somewifi";
@@ -296,7 +296,7 @@ TEST_F(PlatformLinux, does_not_retrieve_wireless)
                 IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_retrieve_protocols)
+TEST_F(PlatformLinux, doesNotRetrieveProtocols)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_net = "somenet";
@@ -308,7 +308,7 @@ TEST_F(PlatformLinux, does_not_retrieve_protocols)
                 IsEmpty());
 }
 
-TEST_F(PlatformLinux, does_not_retrieve_other_specified_device_types)
+TEST_F(PlatformLinux, doesNotRetrieveOtherSpecifiedDeviceTypes)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_net = "somenet";
@@ -330,7 +330,7 @@ struct BridgeMemberTest : public PlatformLinux,
 {
 };
 
-TEST_P(BridgeMemberTest, retrieves_bridges_with_members)
+TEST_P(BridgeMemberTest, retrievesBridgesWithMembers)
 {
     const mpt::TempDir tmp_dir;
     const auto fake_bridge = "aeiou";
@@ -454,7 +454,7 @@ OSReleaseTestParam parse_os_release_ubuntu2104lts_rotation = {
      {"UBUNTU_CODENAME=hirsute"}},
     {"Ubuntu", "21.04"}};
 
-TEST_P(OSReleaseTest, test_parse_os_release)
+TEST_P(OSReleaseTest, testParseOsRelease)
 {
     const auto& [input, expected] = GetParam();
 
@@ -472,7 +472,7 @@ INSTANTIATE_TEST_SUITE_P(PlatformLinux,
                                 parse_os_release_ubuntu2104lts,
                                 parse_os_release_ubuntu2104lts_rotation));
 
-TEST_F(PlatformLinux, find_os_release_none_found)
+TEST_F(PlatformLinux, findOsReleaseNoneFound)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(false));
@@ -481,7 +481,7 @@ TEST_F(PlatformLinux, find_os_release_none_found)
     EXPECT_EQ(output->fileName(), "");
 }
 
-TEST_F(PlatformLinux, find_os_release_etc)
+TEST_F(PlatformLinux, findOsReleaseEtc)
 {
     const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/etc/os-release");
 
@@ -499,7 +499,7 @@ TEST_F(PlatformLinux, find_os_release_etc)
     EXPECT_EQ(output->fileName(), expected_filename);
 }
 
-TEST_F(PlatformLinux, find_os_release_usr_lib)
+TEST_F(PlatformLinux, findOsReleaseUsrLib)
 {
     const auto expected_filename = QStringLiteral("/var/lib/snapd/hostfs/usr/lib/os-release");
 
@@ -520,7 +520,7 @@ TEST_F(PlatformLinux, find_os_release_usr_lib)
     EXPECT_EQ(output->fileName(), expected_filename);
 }
 
-TEST_F(PlatformLinux, read_os_release_from_file_not_found)
+TEST_F(PlatformLinux, readOsReleaseFromFileNotFound)
 {
     const std::string expected = "unknown-unknown";
 
@@ -533,7 +533,7 @@ TEST_F(PlatformLinux, read_os_release_from_file_not_found)
     EXPECT_EQ(expected, output);
 }
 
-TEST_F(PlatformLinux, read_os_release_from_file)
+TEST_F(PlatformLinux, readOsReleaseFromFile)
 {
     const auto& [input, expected_pair] = parse_os_release_ubuntu2104lts;
     auto expected = fmt::format("{}-{}", expected_pair.first, expected_pair.second);
@@ -553,7 +553,7 @@ TEST_F(PlatformLinux, read_os_release_from_file)
     EXPECT_EQ(expected, output);
 }
 
-TEST_F(PlatformLinux, host_version_from_os)
+TEST_F(PlatformLinux, hostVersionFromOs)
 {
     const std::string expected =
         fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
@@ -563,7 +563,7 @@ TEST_F(PlatformLinux, host_version_from_os)
     EXPECT_EQ(expected, output);
 }
 
-TEST_F(PlatformLinux, create_alias_script_works_unconfined)
+TEST_F(PlatformLinux, createAliasScriptWorksUnconfined)
 {
     const mpt::TempDir tmp_dir;
 
@@ -589,7 +589,7 @@ TEST_F(PlatformLinux, create_alias_script_works_unconfined)
     EXPECT_TRUE(script_permissions & QFileDevice::ExeOther);
 }
 
-TEST_F(PlatformLinux, create_alias_script_works_confined)
+TEST_F(PlatformLinux, createAliasScriptWorksConfined)
 {
     const mpt::TempDir tmp_dir;
 
@@ -621,7 +621,7 @@ TEST_F(PlatformLinux, create_alias_script_works_confined)
     qunsetenv("SNAP_USER_COMMON");
 }
 
-TEST_F(PlatformLinux, create_alias_script_overwrites)
+TEST_F(PlatformLinux, createAliasScriptOverwrites)
 {
     auto [mock_utils, guard1] = mpt::MockUtils::inject();
     auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
@@ -638,7 +638,7 @@ TEST_F(PlatformLinux, create_alias_script_overwrites)
         mp::AliasDefinition{"instance", "other_command", "map"}));
 }
 
-TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
+TEST_F(PlatformLinux, createAliasScriptThrowsIfCannotCreatePath)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
@@ -651,7 +651,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_create_path)
         mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
-TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
+TEST_F(PlatformLinux, createAliasScriptThrowsIfCannotWriteScript)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
@@ -666,7 +666,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_write_script)
         mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
-TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
+TEST_F(PlatformLinux, createAliasScriptThrowsIfCannotSetPermissions)
 {
     auto [mock_utils, guard1] = mpt::MockUtils::inject();
     auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
@@ -684,7 +684,7 @@ TEST_F(PlatformLinux, create_alias_script_throws_if_cannot_set_permissions)
                          mpt::match_what(HasSubstr("cannot set permissions to alias script '")));
 }
 
-TEST_F(PlatformLinux, remove_alias_script_works)
+TEST_F(PlatformLinux, removeAliasScriptWorks)
 {
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
@@ -700,7 +700,7 @@ TEST_F(PlatformLinux, remove_alias_script_works)
     EXPECT_FALSE(script_file.exists());
 }
 
-TEST_F(PlatformLinux, remove_alias_script_throws_if_cannot_remove_script)
+TEST_F(PlatformLinux, removeAliasScriptThrowsIfCannotRemoveScript)
 {
     const mpt::TempDir tmp_dir;
     QFile script_file(tmp_dir.path() + "/bin/alias_name");
@@ -714,7 +714,7 @@ TEST_F(PlatformLinux, remove_alias_script_throws_if_cannot_remove_script)
                          mpt::match_what(StrEq("No such file or directory")));
 }
 
-TEST_F(PlatformLinux, test_snap_multipass_storage_location)
+TEST_F(PlatformLinux, testSnapMultipassStorageLocation)
 {
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
     mpt::SetEnvScope env2("SNAP_COMMON", "common");
