@@ -2,12 +2,6 @@
 
 ## Environment Setup
 
-Note: if building on arm, s390x, ppc64le, or riscv, environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must be set:
-
-```
-export VCPKG_FORCE_SYSTEM_BINARIES=1
-```
-
 ### Build dependencies
 
 ```
@@ -18,12 +12,34 @@ mk-build-deps -s sudo -i
 
 ## Building
 
+First, go into the repository root and get all the submodules:
+
 ```
 cd <multipass>
 git submodule update --init --recursive
+```
+
+If building on arm, s390x, ppc64le, or riscv, you will need to set the `VCPKG_FORCE_SYSTEM_BINARIES`  environment
+variable:
+
+```
+export VCPKG_FORCE_SYSTEM_BINARIES=1
+```
+
+Then create a build directory and run CMake.
+
+```
 mkdir build
 cd build
 cmake ../
+```
+
+This will fetch all necessary content, build vcpkg dependencies, and initialize the build system. You can also specify
+the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`, `Release`, etc.).
+
+Finally, to build the project, run:
+
+```
 cmake --build . --parallel
 ```
 
