@@ -47,7 +47,7 @@ public:
 
     int exec(const std::vector<std::string>& args);
     int exec(const std::vector<std::vector<std::string>>& args_list);
-    void connect();
+    int connect();
 
 private:
     void handle_ssh_events();
