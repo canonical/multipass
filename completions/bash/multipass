@@ -348,7 +348,21 @@ _multipass_complete()
 
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
-            "exec"|"stop"|"suspend"|"restart")
+            "exec"|"suspend"|"restart")
+                _multipass_instances "Running"
+            ;;
+            "stop")
+                _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
+                for ((i=2; i<CWORD; i++)); do
+                    if [[ "${WORDS[i]}" == "--force" ]]; then
+                        _multipass_instances "Starting"
+                        _multipass_instances "Restarting"
+                        _multipass_instances "Suspending"
+                        _multipass_instances "Suspended"
+                        break
+                    fi
+                done
+
                 _multipass_instances "Running"
             ;;
             "connect"|"sh"|"shell")
