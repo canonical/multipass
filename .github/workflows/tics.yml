@@ -2,8 +2,8 @@ name: TICS
 
 on:
   schedule:
-  # 0:00 UTC every Sunday
-  - cron: 11 4 * * 0
+  # 04:11 UTC every Tuesday
+  - cron: 11 4 * * 2
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get --preserve-env install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
+        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
         mk-build-deps -s sudo -i
 
     - name: Configure
