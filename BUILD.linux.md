@@ -35,7 +35,7 @@ cmake ../
 ```
 
 This will fetch all necessary content, build vcpkg dependencies, and initialize the build system. You can also specify
-the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`, `Release`, etc.).
+the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`, `Release`, `Coverage`, etc.).
 
 Finally, to build the project, run:
 
