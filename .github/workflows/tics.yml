@@ -2,7 +2,7 @@ name: TICS
 
 on:
   schedule:
-  # 0:00 UTC every Sunday
+  # 04:11 UTC every Sunday
   - cron: 11 4 * * 0
 
 jobs:
