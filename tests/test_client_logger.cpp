@@ -46,7 +46,7 @@ struct client_logger_tests : ::testing::Test
     mpt::MockServerReaderWriter<StubReply, StubReply> mock_srw;
 };
 
-TEST_F(client_logger_tests, callLog)
+TEST_F(ClientLoggerTests, callLog)
 {
     EXPECT_CALL(mock_srw,
                 Write(Field(&StubReply::stored_msg, HasSubstr("[debug] [cat] msg")), testing::_))
@@ -55,7 +55,7 @@ TEST_F(client_logger_tests, callLog)
     logger.log(mpl::Level::debug, "cat", "msg");
 }
 
-TEST_F(client_logger_tests, callLogFiltered)
+TEST_F(ClientLoggerTests, callLogFiltered)
 {
     EXPECT_CALL(mock_srw, Write(testing::_, testing::_)).Times(0);
     uut_t logger{mpl::Level::debug, stub_multiplexing_logger, &mock_srw};

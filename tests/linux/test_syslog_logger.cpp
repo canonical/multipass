@@ -46,7 +46,7 @@ struct syslog_logger_test : ::testing::Test
     MockSyslogWrapper& mock_syslog = *mock_syslog_guardedmock.first;
 };
 
-TEST_F(syslog_logger_test, callLog)
+TEST_F(SyslogLoggerTest, callLog)
 {
     constexpr static std::string_view expected_category = "category";
     constexpr static std::string_view expected_message = "message";
@@ -62,7 +62,7 @@ TEST_F(syslog_logger_test, callLog)
     uut.log(mpl::Level::debug, expected_category, expected_message);
 }
 
-TEST_F(syslog_logger_test, callLogFiltered)
+TEST_F(SyslogLoggerTest, callLogFiltered)
 {
     EXPECT_CALL(mock_syslog, write_syslog).Times(0);
     uut_t uut{mpl::Level::debug};
@@ -77,7 +77,7 @@ struct syslog_logger_priority_test : public testing::TestWithParam<std::tuple<in
     MockSyslogWrapper& mock_syslog = *mock_syslog_guardedmock.first;
 };
 
-TEST_P(syslog_logger_priority_test, validateLevelToPriority)
+TEST_P(SyslogLoggerPriorityTest, validateLevelToPriority)
 {
     const auto& [syslog_level, mpl_level] = GetParam();
     constexpr static std::string_view expected_category = "category";
