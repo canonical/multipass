@@ -545,14 +545,14 @@ bool mp::CloudInitIso::erase(const std::string& name)
     return false;
 }
 
-void mp::CloudInitIso::write_to(const Path& path)
+void mp::CloudInitIso::write_to(const std::filesystem& path)
 {
-    QFile f{path};
+    QFile f{QString::fromStdString(path.string())};
     if (!f.open(QIODevice::WriteOnly))
         throw std::runtime_error{fmt::format(
             "Failed to open file for writing during cloud-init generation: {}; path: {}",
             f.errorString(),
-            path)};
+            path.string())};
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
@@ -750,7 +750,7 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     // overwrite the whole network-config file content
     iso_file["network-config"] = mpu::emit_cloud_config(
         mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_addr,
@@ -771,7 +771,7 @@ void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_add
                                                                    extra_interfaces,
                                                                    network_config_file_content));
 
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(
@@ -789,7 +789,7 @@ void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(
         mpu::add_extra_interface_to_network_config(default_mac_addr,
                                                    extra_interface,
                                                    iso_file["network-config"]));
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(
