@@ -3,7 +3,7 @@ name: TICS
 on:
   schedule:
   # 04:11 UTC every Tuesday
-  - cron: 11 4 * * 2
+  - cron: 11 4 * * 3
 
 jobs:
   build:
