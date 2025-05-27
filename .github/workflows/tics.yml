@@ -27,7 +27,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
-        mk-build-deps -s sudo -i
+        sudo --preserve-env apt-get build-dep --yes ./
 
     - name: Configure
       run: |
