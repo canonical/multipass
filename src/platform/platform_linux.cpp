@@ -32,10 +32,7 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/lxd/lxd_virtual_machine_factory.h"
-
-#ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#endif
 
 #ifdef VIRTUALBOX_ENABLED
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
@@ -276,14 +273,11 @@ mp::platform::Platform::get_network_interfaces_info() const
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return
-#ifdef QEMU_ENABLED
-        backend == "qemu" ||
-#endif
+    return backend == "qemu" ||
 #ifdef VIRTUALBOX_ENABLED
-        backend == "virtualbox" ||
+           backend == "virtualbox" ||
 #endif
-        backend == "libvirt" || backend == "lxd";
+           backend == "libvirt" || backend == "lxd";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -361,13 +355,7 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
 
 QString mp::platform::Platform::default_driver() const
 {
-    return QStringLiteral(
-#ifdef QEMU_ENABLED
-        "qemu"
-#else
-        "lxd"
-#endif
-    );
+    return QStringLiteral("qemu");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -428,10 +416,8 @@ std::string mp::platform::default_server_address()
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = MP_SETTINGS.get(mp::driver_key);
-#ifdef QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
-#endif
 
     if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
