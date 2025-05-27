@@ -220,12 +220,6 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                         default_memory_size)),
         "memory",
         QString::fromUtf8(default_memory_size)); // In MB's
-    QCommandLineOption memOptionDeprecated(
-        "mem",
-        QString::fromStdString("Deprecated memory allocation long option. See \"--memory\"."),
-        "memory",
-        QString::fromUtf8(default_memory_size));
-    memOptionDeprecated.setFlags(QCommandLineOption::HiddenFromHelp);
 
     const auto valid_name_desc =
         QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
@@ -265,7 +259,6 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     parser->addOptions({cpusOption,
                         diskOption,
                         memOption,
-                        memOptionDeprecated,
                         nameOption,
                         cloudInitOption,
                         networkOption,
@@ -348,24 +341,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         request.set_num_cores(cpu_count);
     }
 
-    if (parser->isSet(memOption) || parser->isSet(memOptionDeprecated))
+    if (parser->isSet(memOption))
     {
-        if (parser->isSet(memOption) && parser->isSet(memOptionDeprecated))
-        {
-            cerr << "Error: invalid option(s) used for memory allocation. Please use \"--memory\" "
-                    "to specify amount of "
-                    "memory to allocate.\n";
-            return ParseCode::CommandLineError;
-        }
-
-        if (parser->isSet(memOptionDeprecated))
-            cerr << "Warning: the \"--mem\" long option is deprecated in favour of \"--memory\". "
-                    "Please update any "
-                    "scripts, etc.\n";
-
-        auto arg_mem_size = parser->isSet(memOption)
-                                ? parser->value(memOption).toStdString()
-                                : parser->value(memOptionDeprecated).toStdString();
+        auto arg_mem_size = parser->value(memOption).toStdString();
 
         mp::MemorySize{arg_mem_size}; // throw if bad
 
