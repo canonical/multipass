@@ -33,9 +33,6 @@
 
 #include "tests/qemu/linux/mock_dnsmasq_server.h"
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
-#define DEFAULT_FACTORY mp::QemuVirtualMachineFactory
-#define DEFAULT_DRIVER "qemu"
-
 #include <src/platform/platform_linux_detail.h>
 
 #include <multipass/constants.h>
@@ -136,11 +133,6 @@ TEST_F(PlatformLinux, testDefaultPrivilegedMounts)
 
 TEST_F(PlatformLinux, testDefaultDriverProducesCorrectFactory)
 {
-    aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
-}
-
-TEST_F(PlatformLinux, testExplicitQemuDriverProducesCorrectFactory)
-{
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
@@ -165,7 +157,7 @@ TEST_F(PlatformLinux, testQemuInEnvVarIsIgnored)
 TEST_F(PlatformLinux, testLibvirtInEnvVarIsIgnored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
-    aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
+    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
 TEST_F(PlatformLinux, testSnapReturnsExpectedDefaultAddress)
