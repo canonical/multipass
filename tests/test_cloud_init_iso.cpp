@@ -74,7 +74,7 @@ struct CloudInitIso : public Test
         iso_path = QDir{temp_dir.path()}.filePath("test.iso").toStdString();
     }
     mpt::TempDir temp_dir;
-    std::filesystem iso_path;
+    std::filesystem::path iso_path;
 };
 
 TEST_F(CloudInitIso, check_contains_false)
@@ -143,7 +143,7 @@ TEST_F(CloudInitIso, creates_iso_file)
 
     std::ofstream file{iso_path, std::ios::binary};
     EXPECT_TRUE(file.is_open());
-    EXPECT_THAT(fs::file_size(iso_path), Ge(0));
+    EXPECT_THAT(std::filesystem::file_size(iso_path), Ge(0));
 }
 
 TEST_F(CloudInitIso, reads_iso_file_failed_to_open_file)

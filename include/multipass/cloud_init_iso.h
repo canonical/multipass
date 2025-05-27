@@ -41,7 +41,7 @@ public:
     std::string& operator[](const std::string& name);
     bool erase(const std::string& name);
 
-    void write_to(const std::filesystem& path);
+    void write_to(const std::filesystem::path& path);
     void read_from(const std::filesystem::path& path);
 
     friend bool operator==(const CloudInitIso& lhs, const CloudInitIso& rhs)
