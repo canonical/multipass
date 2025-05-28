@@ -76,7 +76,12 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         {
             auto console_creator = [this](auto channel) { return term->make_console(channel); };
             mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
-            ssh_client.connect();
+            const int exit_code = ssh_client.connect();
+
+            // checking whether the 'exit_code' is in the range of 'ReturnCode'
+            // the value should not be equal to 'ReturnCode::Retry' to avoid an endless loop below
+            if (exit_code >= ReturnCode::Ok && exit_code < ReturnCode::Retry)
+                return static_cast<ReturnCode>(exit_code);
         }
         catch (const std::exception& e)
         {
