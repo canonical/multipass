@@ -18,11 +18,11 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H
 #define MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H
 
+#include <hyperv_api/hcs/hyperv_hcs_path.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device_type.h>
 
 #include <fmt/xchar.h>
 
-#include <filesystem>
 #include <string>
 
 namespace multipass::hyperv::hcs
@@ -32,7 +32,7 @@ struct HcsScsiDevice
 {
     HcsScsiDeviceType type;
     std::string name;
-    std::filesystem::path path;
+    HcsPath path;
     bool read_only;
 };
 
