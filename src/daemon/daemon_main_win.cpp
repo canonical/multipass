@@ -155,8 +155,8 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     return ret;
 }
 
-void service_main(DWORD argc, char* argv[]) // clang-format off
-try // clang-format on
+void service_main(DWORD argc, char* argv[])
+try
 {
     auto logger = mp::platform::make_logger(mpl::Level::info);
     auto daemon_argv(service_argv);
@@ -198,8 +198,8 @@ catch (...)
 }
 } // namespace
 
-int main(int argc, char* argv[]) // clang-format off
-try // clang-format on
+int main(int argc, char* argv[])
+try
 {
     service_argv.assign(argv, argv + argc);
 
