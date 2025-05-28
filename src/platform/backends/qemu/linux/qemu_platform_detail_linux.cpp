@@ -189,7 +189,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
              << "OVMF.fd";
 #elif defined Q_PROCESSOR_ARM
         opts << "-bios"
-             << "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"
+             << "QEMU_EFI.fd"
              << "-machine"
              << "virt,gic-version=3";
 #endif
