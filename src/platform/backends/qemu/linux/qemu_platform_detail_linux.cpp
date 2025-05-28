@@ -191,7 +191,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
         opts << "-bios"
              << "QEMU_EFI.fd"
              << "-machine"
-             << "virt,gic-version=3";
+             << "virt";
 #endif
     }
 
