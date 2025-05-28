@@ -20,13 +20,11 @@
 #ifndef MULTIPASS_CLOUD_INIT_ISO_H
 #define MULTIPASS_CLOUD_INIT_ISO_H
 
-#include <multipass/path.h>
+#include <multipass/singleton.h>
 
 #include <filesystem>
 #include <string>
 #include <vector>
-
-#include <multipass/singleton.h>
 
 #define MP_CLOUD_INIT_FILE_OPS multipass::CloudInitFileOps::instance()
 
@@ -42,7 +40,7 @@ public:
     std::string& operator[](const std::string& name);
     bool erase(const std::string& name);
 
-    void write_to(const Path& path);
+    void write_to(const std::filesystem::path& path);
     void read_from(const std::filesystem::path& path);
 
     friend bool operator==(const CloudInitIso& lhs, const CloudInitIso& rhs)
