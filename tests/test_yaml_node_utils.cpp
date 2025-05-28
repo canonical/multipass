@@ -23,7 +23,7 @@
 namespace mp = multipass;
 namespace mpu = mp::utils;
 
-TEST(UtilsTests, makeCloudInitMetaConfig)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfig)
 {
     const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1");
     EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1");
@@ -31,7 +31,7 @@ TEST(UtilsTests, makeCloudInitMetaConfig)
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
-TEST(UtilsTests, makeCloudInitMetaConfigWithYAMLStr)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfigWithYAMLStr)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm2_e_e
@@ -44,7 +44,7 @@ cloud-name: multipass)";
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
-TEST(UtilsTests, addOneExtraInterfaceNonEmptyNetworkFileContent)
+TEST(YAMLNodeUtilsTests, addOneExtraInterfaceNonEmptyNetworkFileContent)
 {
     constexpr std::string_view original_network_config_file_content = R"(#cloud-config
 version: 2
@@ -101,7 +101,7 @@ ethernets:
     EXPECT_EQ(mpu::emit_cloud_config(new_network_node), expected_new_network_config_file_content);
 }
 
-TEST(UtilsTests, addOneExtraInterfaceEmptyNetworkFileContent)
+TEST(YAMLNodeUtilsTests, addOneExtraInterfaceEmptyNetworkFileContent)
 {
     constexpr std::string_view expected_new_network_config_file_content = R"(#cloud-config
 version: 2
@@ -132,7 +132,7 @@ ethernets:
     EXPECT_EQ(mpu::emit_cloud_config(new_network_node), expected_new_network_config_file_content);
 }
 
-TEST(UtilsTests, addOneExtraInterfaceFalseExtraInterface)
+TEST(YAMLNodeUtilsTests, addOneExtraInterfaceFalseExtraInterface)
 {
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", false};
     const auto new_network_node =
@@ -140,7 +140,7 @@ TEST(UtilsTests, addOneExtraInterfaceFalseExtraInterface)
     EXPECT_TRUE(new_network_node.IsNull());
 }
 
-TEST(UtilsTests, makeCloudInitMetaConfigWithIdTweakGeneratedId)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfigWithIdTweakGeneratedId)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm1
@@ -154,7 +154,7 @@ cloud-name: multipass)";
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
-TEST(UtilsTests, makeCloudInitMetaConfigWithIdTweakNewId)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfigWithIdTweakNewId)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm1
