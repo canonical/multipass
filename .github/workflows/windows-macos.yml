@@ -295,11 +295,14 @@ jobs:
     - name: Store publishing outputs
       if: always()
       id: publish-data
-      run: >
-        echo "${{ matrix.runs-on }}-${{ matrix.arch }}-package-artifact-name=${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}" >>
-        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-        echo "${{ matrix.runs-on }}-${{ matrix.arch }}-package-file-name=${{ steps.cmake-package.outputs.name }}" >>
-        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+      shell: bash
+      run: |
+        NAME="${{ steps.cmake-package.outputs.name }}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}-${{ matrix.arch }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        FILE_NAME="${{ matrix.runs-on }}-${{ matrix.arch }}-package-file-name=${NAME}"
+
+        echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+        echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
