@@ -15,9 +15,6 @@
  *
  */
 
-#ifndef MULTIPASS_BLUEPRINTS_TEST_LAMBDAS_H
-#define MULTIPASS_BLUEPRINTS_TEST_LAMBDAS_H
-
 #include <multipass/client_launch_data.h>
 #include <multipass/memory_size.h>
 #include <multipass/query.h>
@@ -122,5 +119,3 @@ mpt::fetch_blueprint_for_lambda(const int& num_cores,
         return {"", release, false, remote, mp::Query::Type::Alias};
     };
 }
-
-#endif // MULTIPASS_BLUEPRINTS_TEST_LAMBDAS_H
