@@ -472,8 +472,7 @@ void pad_to_end(std::ofstream& f)
 {
     seek_to_next_block(f);
     f.seekp(-1, std::ios::cur);
-    char end = 0;
-    f.write(&end, 1);
+    f.put('\0');
 }
 } // namespace
 
