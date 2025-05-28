@@ -55,8 +55,8 @@ QString quoted(const QString& str)
 std::optional<mp::IPAddress> remote_ip(const std::string& host,
                                        int port,
                                        const std::string& username,
-                                       const mp::SSHKeyProvider& key_provider) // clang-format off
-try // clang-format on
+                                       const mp::SSHKeyProvider& key_provider)
+try
 {
     mp::SSHSession session{host, port, username, key_provider};
 
