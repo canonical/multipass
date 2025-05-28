@@ -216,19 +216,6 @@ auto generate_metadata(const QStringList& platform_args,
     return metadata;
 }
 
-void convert_to_qcow2_v3_if_necessary(const mp::Path& image_path, const std::string& vm_name)
-{
-    try
-    {
-        // convert existing VMs to v3 too (doesn't affect images that are already v3)
-        mp::backend::amend_to_qcow2_v3(image_path);
-    }
-    catch (const mp::backend::QemuImgException& e)
-    {
-        mpl::log(mpl::Level::error, vm_name, e.what());
-    }
-}
-
 QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
 {
     QStringList lines = QString{snapshot_list_output_stream}.split('\n');
@@ -275,10 +262,6 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
-    convert_to_qcow2_v3_if_necessary(
-        desc.image.image_path,
-        vm_name); // TODO drop in a couple of releases (went in on v1.13)
-
     connect_vm_signals();
 
     // only for clone case where the vm recreation purges the snapshot data
