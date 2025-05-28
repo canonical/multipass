@@ -166,7 +166,8 @@ multipass help <command>
 # Contributing
 
 The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions
-on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21).
+on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21). Please read the policy sections below carefully
+before contributing to the project. <!-- TODO: link to guidelines -->
 
 ## Building Multipass
 
@@ -187,8 +188,6 @@ To accelerate the build, the build system will attempt to locate and utilize `mo
 the default linker of the toolchain. To override, set
 [CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake
 configure step.
-
-Finally, please read the following guidelines carefully before contributing to the project.
 
 ## Code of Conduct
 
