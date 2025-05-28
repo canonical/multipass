@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STANDARD_PATHS_H
-#define MULTIPASS_STANDARD_PATHS_H
+#pragma once
 
 #include "singleton.h"
 
@@ -65,4 +64,3 @@ public:
     virtual QString writableLocation(StandardLocation type) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_STANDARD_PATHS_H

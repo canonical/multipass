@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUALBOX_SNAPSHOT_H
-#define MULTIPASS_VIRTUALBOX_SNAPSHOT_H
+#pragma once
 
 #include <shared/base_snapshot.h>
 
@@ -49,4 +48,3 @@ private:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_VIRTUALBOX_SNAPSHOT_H

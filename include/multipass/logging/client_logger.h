@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_LOGGER_H
-#define MULTIPASS_CLIENT_LOGGER_H
+#pragma once
 
 #include <multipass/logging/logger.h>
 #include <multipass/logging/multiplexing_logger.h>
@@ -67,5 +66,3 @@ private:
 };
 } // namespace logging
 } // namespace multipass
-
-#endif // MULTIPASS_CLIENT_LOGGER_H

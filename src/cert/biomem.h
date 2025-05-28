@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BIOMEM_H
-#define MULTIPASS_BIOMEM_H
+#pragma once
 
 #include <openssl/bio.h>
 
@@ -37,4 +36,3 @@ private:
     const std::unique_ptr<BIO, decltype(BIO_free)*> bio;
 };
 } // namespace multipass
-#endif // MULTIPASS_BIOMEM_H

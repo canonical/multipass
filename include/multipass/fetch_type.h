@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_FETCH_TYPE_H
-#define MULTIPASS_FETCH_TYPE_H
+#pragma once
 namespace multipass
 {
 enum class FetchType
@@ -26,4 +25,3 @@ enum class FetchType
     ImageOnly
 };
 }
-#endif // MULTIPASS_FETCH_TYPE_H

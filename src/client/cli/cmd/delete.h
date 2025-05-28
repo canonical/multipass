@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DELETE_H
-#define MULTIPASS_DELETE_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -54,4 +53,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_DELETE_H

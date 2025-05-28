@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SHARED_BACKEND_UTILS_H
-#define MULTIPASS_SHARED_BACKEND_UTILS_H
+#pragma once
 
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/start_exception.h>
@@ -79,5 +78,3 @@ void ensure_vm_is_running_for(VirtualMachine* virtual_machine,
 }
 } // namespace backend
 } // namespace multipass
-
-#endif // MULTIPASS_SHARED_BACKEND_UTILS_H

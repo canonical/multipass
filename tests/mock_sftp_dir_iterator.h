@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MOCK_SFTP_DIR_ITERATOR_H
-#define MOCK_SFTP_DIR_ITERATOR_H
+#pragma once
 
 #include "common.h"
 #include <multipass/ssh/sftp_dir_iterator.h>
@@ -29,4 +28,3 @@ struct MockSFTPDirIterator : public SFTPDirIterator
     MOCK_METHOD(SFTPAttributesUPtr, next, (), (override));
 };
 } // namespace multipass::test
-#endif // MOCK_SFTP_DIR_ITERATOR_H

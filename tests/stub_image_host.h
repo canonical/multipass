@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_STUB_IMAGE_HOST_H
-#define MULTIPASS_STUB_IMAGE_HOST_H
+#pragma once
 
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_host.h>
@@ -64,4 +63,3 @@ struct StubVMImageHost final : public multipass::VMImageHost
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_IMAGE_HOST_H

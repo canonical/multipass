@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H
-#define MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H
+#pragma once
 
 #include "qemu_base_process_spec.h"
 
@@ -37,5 +36,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H

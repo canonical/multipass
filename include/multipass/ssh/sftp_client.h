@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_CLIENT_H
-#define MULTIPASS_SFTP_CLIENT_H
+#pragma once
 
 #include "ssh_session.h"
 
@@ -76,4 +75,3 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(SFTPClient::Flags)
 } // namespace multipass
-#endif // MULTIPASS_SFTP_CLIENT_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NETWORK_ACCESS_MANAGER_H
-#define MULTIPASS_NETWORK_ACCESS_MANAGER_H
+#pragma once
 
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
@@ -40,5 +39,3 @@ protected:
                                  QIODevice* outgoingData = nullptr) override;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_NETWORK_ACCESS_MANAGER_H

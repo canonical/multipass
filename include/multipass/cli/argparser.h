@@ -14,8 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef ARGPARSER_H
-#define ARGPARSER_H
+
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 
@@ -102,4 +102,3 @@ private:
     std::ostream& cerr;
 };
 } // namespace multipass
-#endif // ARGPARSER_H

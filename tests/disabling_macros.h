@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DISABLING_MACROS_H
-#define MULTIPASS_DISABLING_MACROS_H
+#pragma once
 
 // Macros to disable tests - prepend to test or test suite names
 // Use like this: TEST_F(TestSuite, DISABLE_ON_XXX(testName))
@@ -42,5 +41,3 @@
 #define DISABLE_ON_MACOS(testName) testName
 
 #endif
-
-#endif // MULTIPASS_DISABLING_MACROS_H

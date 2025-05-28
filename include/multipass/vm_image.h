@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_IMAGE_H
-#define MULTIPASS_VIRTUAL_MACHINE_IMAGE_H
+#pragma once
 
 #include <multipass/path.h>
 
@@ -35,4 +34,3 @@ public:
     std::vector<std::string> aliases;
 };
 } // namespace multipass
-#endif // MULTIPASS_VIRTUAL_MACHINE_IMAGE_H

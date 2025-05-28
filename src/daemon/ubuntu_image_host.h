@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UBUNTU_IMAGE_HOST_H
-#define MULTIPASS_UBUNTU_IMAGE_HOST_H
+#pragma once
 
 #include "common_image_host.h"
 
@@ -88,4 +87,3 @@ private:
     const std::optional<QString> mirror_key;
 };
 } // namespace multipass
-#endif // MULTIPASS_UBUNTU_IMAGE_HOST_H

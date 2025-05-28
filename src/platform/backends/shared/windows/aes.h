@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_AES_H
-#define MULTIPASS_AES_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -42,5 +41,3 @@ public:
                                 const std::string& data) const;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_AES_H

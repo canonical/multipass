@@ -1,5 +1,4 @@
-#ifndef MULTIPASS_DART_FFI_H
-#define MULTIPASS_DART_FFI_H
+#pragma once
 
 // clang-format off
 extern "C"
@@ -47,5 +46,3 @@ long long get_total_disk_size();
 
 char* default_mount_target(char* source);
 }
-
-#endif // MULTIPASS_DART_FFI_H

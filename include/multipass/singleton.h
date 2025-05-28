@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SINGLETON_H
-#define MULTIPASS_SINGLETON_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "private_pass_provider.h"
@@ -96,5 +95,3 @@ inline void multipass::Singleton<T>::init() noexcept(noexcept(U(Base::pass)))
 {
     std::call_once(*once, [] { single = std::make_unique<U>(Base::pass); });
 }
-
-#endif // MULTIPASS_SINGLETON_H

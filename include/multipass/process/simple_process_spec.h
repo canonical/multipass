@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef SIMPLE_PROCESS_SPEC_H
-#define SIMPLE_PROCESS_SPEC_H
+#pragma once
 
 #include <memory>
 #include <multipass/process/process_spec.h>
@@ -26,4 +25,3 @@ namespace multipass
 std::unique_ptr<ProcessSpec> simple_process_spec(const QString& cmd,
                                                  const QStringList& args = QStringList());
 }
-#endif // SIMPLE_PROCESS_SPEC_H

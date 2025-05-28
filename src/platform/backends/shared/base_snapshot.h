@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_SNAPSHOT_H
-#define MULTIPASS_BASE_SNAPSHOT_H
+#pragma once
 
 #include <multipass/snapshot.h>
 
@@ -278,5 +277,3 @@ inline const QString& multipass::BaseSnapshot::get_id() const noexcept
 {
     return id;
 }
-
-#endif // MULTIPASS_BASE_SNAPSHOT_H

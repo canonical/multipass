@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
-#define MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <shared/base_virtual_machine.h>
 
@@ -96,5 +95,3 @@ private:
 inline void multipass::VirtualBoxVirtualMachine::require_snapshots_support() const
 {
 }
-
-#endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H

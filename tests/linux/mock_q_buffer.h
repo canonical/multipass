@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_Q_BUFFER_H
-#define MULTIPASS_MOCK_Q_BUFFER_H
+#pragma once
 
 #include <QBuffer>
 
@@ -46,5 +45,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_MOCK_Q_BUFFER_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_NETWORK_H
-#define MULTIPASS_MOCK_NETWORK_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -88,4 +87,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetworkManagerFactory, NetworkManagerFactory);
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_NETWORK_H

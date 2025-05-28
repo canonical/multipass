@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UTILS_H
-#define MULTIPASS_UTILS_H
+#pragma once
 
 #include <multipass/logging/level.h>
 #include <multipass/network_interface_info.h>
@@ -347,4 +346,3 @@ std::string multipass::utils::qenum_to_string(RegisteredQtEnum val)
 
 std::string deprecation_warning_message_driver_concatenated(
     const QString driver_name); // TODO lxd and libvirt migration, remove
-#endif                          // MULTIPASS_UTILS_H

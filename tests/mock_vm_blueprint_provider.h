@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_VM_BLUEPRINT_PROVIDER_H
-#define MULTIPASS_MOCK_VM_BLUEPRINT_PROVIDER_H
+#pragma once
 
 #include "common.h"
 
@@ -59,4 +58,3 @@ public:
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_VM_BLUEPRINT_PROVIDER_H

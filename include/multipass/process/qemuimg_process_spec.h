@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#pragma once
 
 #include <multipass/process/process_spec.h>
 
@@ -45,5 +44,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H

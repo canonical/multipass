@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_MOUNT
-#define MULTIPASS_SSHFS_MOUNT
+#pragma once
 
 #include <multipass/id_mappings.h>
 
@@ -58,4 +57,3 @@ private:
     std::thread sftp_thread;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSHFS_MOUNT

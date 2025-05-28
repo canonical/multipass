@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LOG_H
-#define MULTIPASS_LOG_H
+#pragma once
 
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
@@ -172,4 +171,3 @@ constexpr void trace(std::string_view category, fmt::format_string<Args...> fmt,
 
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_LOG_H

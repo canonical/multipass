@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLONE_H
-#define MULTIPASS_CLONE_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -38,4 +37,3 @@ private:
     CloneRequest rpc_request;
 };
 } // namespace multipass::cmd
-#endif // MULTIPASS_CLONE_H

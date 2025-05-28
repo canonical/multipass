@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "common.h"
 
@@ -73,4 +72,3 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_VIRTUAL_MACHINE_FACTORY_H

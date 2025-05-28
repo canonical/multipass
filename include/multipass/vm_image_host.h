@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_IMAGE_HOST_H
-#define MULTIPASS_VM_IMAGE_HOST_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "vm_image_info.h"
@@ -50,4 +49,3 @@ protected:
     VMImageHost() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_VM_IMAGE_HOST_H

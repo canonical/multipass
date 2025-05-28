@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NOT_IMPLEMENTED_ON_THIS_BACKEND_EXCEPTION_H
-#define MULTIPASS_NOT_IMPLEMENTED_ON_THIS_BACKEND_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 
@@ -33,5 +32,3 @@ public:
     }
 };
 } // namespace multipass
-
-#endif // MULTIPASS_NOT_IMPLEMENTED_ON_THIS_BACKEND_EXCEPTION_H

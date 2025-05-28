@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_VM_IMAGE_VAULT_H
-#define MULTIPASS_LXD_VM_IMAGE_VAULT_H
+#pragma once
 
 #include <multipass/days.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -84,4 +83,3 @@ private:
     const days days_to_expire;
 };
 } // namespace multipass
-#endif // MULTIPASS_LXD_VM_IMAGE_VAULT_H

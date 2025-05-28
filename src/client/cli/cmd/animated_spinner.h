@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MULTIPASS_ANIMATED_SPINNER_H
-#define MULTIPASS_ANIMATED_SPINNER_H
+#pragma once
 
 #include <future>
 #include <string>
@@ -45,5 +44,3 @@ private:
     std::thread t;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_ANIMATED_SPINNER_H

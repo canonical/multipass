@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEMP_DIR_H
-#define MULTIPASS_TEMP_DIR_H
+#pragma once
 
 #include <QString>
 #include <QTemporaryDir>
@@ -45,5 +44,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_TEMP_DIR_H

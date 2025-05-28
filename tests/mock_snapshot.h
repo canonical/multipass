@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SNAPSHOT_H
-#define MULTIPASS_MOCK_SNAPSHOT_H
+#pragma once
 
 #include "common.h"
 
@@ -60,5 +59,3 @@ struct MockSnapshot : public mp::Snapshot
     MOCK_METHOD(void, apply, (), (override));
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_SNAPSHOT_H

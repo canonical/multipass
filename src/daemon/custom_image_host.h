@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CUSTOM_IMAGE_HOST
-#define MULTIPASS_CUSTOM_IMAGE_HOST
+#pragma once
 
 #include "common_image_host.h"
 
@@ -64,4 +63,3 @@ private:
     std::vector<std::string> remotes;
 };
 } // namespace multipass
-#endif // MULTIPASS_CUSTOM_IMAGE_HOST

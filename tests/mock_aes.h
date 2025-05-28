@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_AES_H
-#define MULTIPASS_MOCK_AES_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -49,5 +48,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockAES, AES);
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_AES_H

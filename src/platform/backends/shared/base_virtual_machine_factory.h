@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/format.h>
@@ -144,5 +143,3 @@ inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clo
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }
-
-#endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H

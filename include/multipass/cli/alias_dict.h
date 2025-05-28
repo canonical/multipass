@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ALIAS_DICT_H
-#define MULTIPASS_ALIAS_DICT_H
+#pragma once
 
 #include <multipass/alias_definition.h>
 #include <multipass/terminal.h>
@@ -111,4 +110,3 @@ private:
     std::ostream& cerr;
 }; // class AliasDict
 } // namespace multipass
-#endif // MULTIPASS_ALIAS_DICT_H

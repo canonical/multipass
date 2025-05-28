@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BACKEND_UTILS_H
-#define MULTIPASS_BACKEND_UTILS_H
+#pragma once
 
 #include <multipass/path.h>
 #include <multipass/singleton.h>
@@ -71,4 +70,3 @@ public:
     virtual int open(const char* path, mode_t mode) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_BACKEND_UTILS_H

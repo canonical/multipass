@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_FACTORY_H
-#define MULTIPASS_PROCESS_FACTORY_H
+#pragma once
 
 #include "apparmor.h"
 #include <multipass/process/process_spec.h>
@@ -46,5 +45,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_PROCESS_FACTORY_H

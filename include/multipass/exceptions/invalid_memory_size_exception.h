@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H
-#define MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -37,4 +36,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H

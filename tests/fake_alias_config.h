@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FAKE_ALIAS_CONFIG_H
-#define MULTIPASS_FAKE_ALIAS_CONFIG_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
@@ -61,4 +60,3 @@ struct FakeAliasConfig
     mpt::TempDir fake_alias_dir;
 };
 } // namespace
-#endif // MULTIPASS_FAKE_ALIAS_CONFIG_H

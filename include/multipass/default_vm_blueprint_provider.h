@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DEFAULT_VM_BLUEPRINT_PROVIDER_H
-#define MULTIPASS_DEFAULT_VM_BLUEPRINT_PROVIDER_H
+#pragma once
 
 #include <multipass/path.h>
 #include <multipass/vm_blueprint_provider.h>
@@ -77,4 +76,3 @@ private:
     const QString arch;
 };
 } // namespace multipass
-#endif // MULTIPASS_DEFAULT_VM_BLUEPRINT_PROVIDER_H

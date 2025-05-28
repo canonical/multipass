@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TABLE_FORMATTER
-#define MULTIPASS_TABLE_FORMATTER
+#pragma once
 
 #include <multipass/cli/formatter.h>
 
@@ -33,4 +32,3 @@ public:
     std::string format(const AliasDict& aliases) const override;
 };
 } // namespace multipass
-#endif // MULTIPASS_TABLE_FORMATTER

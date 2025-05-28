@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_IMAGE_VAULT_EXCEPTIONS_H
-#define MULTIPASS_IMAGE_VAULT_EXCEPTIONS_H
+#pragma once
 
 #include <stdexcept>
 
@@ -35,4 +34,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_IMAGE_VAULT_EXCEPTIONS_H

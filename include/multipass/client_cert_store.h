@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_CERT_STORE_H
-#define MULTIPASS_CLIENT_CERT_STORE_H
+#pragma once
 
 #include <multipass/cert_store.h>
 #include <multipass/path.h>
@@ -43,4 +42,3 @@ private:
     QList<QSslCertificate> authenticated_client_certs;
 };
 } // namespace multipass
-#endif // MULTIPASS_CLIENT_CERT_STORE_H

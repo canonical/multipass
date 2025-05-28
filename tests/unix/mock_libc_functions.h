@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_LIBC_FUNCTIONS_H
-#define MULTIPASS_MOCK_LIBC_FUNCTIONS_H
+#pragma once
 
 #include <premock.hpp>
 
@@ -35,4 +34,3 @@ extern "C" std::function<int(int)> mock_isatty;
 extern "C" std::function<int(FILE*)> mock_fileno;
 extern "C" std::function<int(int, struct termios*)> mock_tcgetattr;
 extern "C" std::function<int(int, int, const struct termios*)> mock_tcsetattr;
-#endif // MULTIPASS_MOCK_LIBC_FUNCTIONS_H

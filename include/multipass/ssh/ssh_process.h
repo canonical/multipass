@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_PROCESS_H
-#define MULTIPASS_SSH_PROCESS_H
+#pragma once
 
 #include <libssh/libssh.h>
 
@@ -87,4 +86,3 @@ private:
     friend class SftpServer;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSH_PROCESS_H

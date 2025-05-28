@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TIMER_H
-#define MULTIPASS_TIMER_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "singleton.h"
@@ -77,5 +76,3 @@ public:
                           std::function<bool()>) const;
 };
 } // namespace multipass::utils
-
-#endif // MULTIPASS_TIMER_H

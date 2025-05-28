@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VM_IMAGE_VAULT_H
-#define MULTIPASS_BASE_VM_IMAGE_VAULT_H
+#pragma once
 
 #include <multipass/format.h>
 #include <multipass/query.h>
@@ -99,5 +98,3 @@ private:
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_BASE_VM_IMAGE_VAULT_H

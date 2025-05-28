@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_UTILS_H
-#define MULTIPASS_JSON_UTILS_H
+#pragma once
 
 #include "singleton.h"
 
@@ -57,4 +56,3 @@ public:
         const QJsonObject& record) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_JSON_UTILS_H

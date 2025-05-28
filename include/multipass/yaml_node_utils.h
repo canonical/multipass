@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_YAML_NODE_UTILS_H
-#define MULTIPASS_YAML_NODE_UTILS_H
+#pragma once
 
 #include <yaml-cpp/yaml.h>
 
@@ -53,4 +52,3 @@ YAML::Node add_extra_interface_to_network_config(const std::string& default_mac_
                                                  const std::string& network_config_file_content);
 } // namespace utils
 } // namespace multipass
-#endif // MULTIPASS_YAML_NODE_UTILS_H

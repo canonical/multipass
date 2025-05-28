@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PURGE_H
-#define MULTIPASS_PURGE_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -47,4 +46,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_PURGE_H

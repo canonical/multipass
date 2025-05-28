@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PLATFORM_H
-#define MULTIPASS_QEMU_PLATFORM_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -74,4 +73,3 @@ public:
     virtual QemuPlatform::UPtr make_qemu_platform(const Path& data_dir) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_QEMU_PLATFORM_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_CLIENT_H
-#define MULTIPASS_SSH_CLIENT_H
+#pragma once
 
 #include <multipass/console.h>
 #include <multipass/ssh/ssh_session.h>
@@ -58,4 +57,3 @@ private:
     Console::UPtr console;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSH_CLIENT_H

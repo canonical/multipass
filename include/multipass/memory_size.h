@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MEMORY_SIZE_H
-#define MULTIPASS_MEMORY_SIZE_H
+#pragma once
 
 #include <string>
 
@@ -58,5 +57,3 @@ bool operator<=(const MemorySize& a, const MemorySize& b) noexcept;
 bool operator>=(const MemorySize& a, const MemorySize& b) noexcept;
 
 } // namespace multipass
-
-#endif // MULTIPASS_MEMORY_SIZE_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_POWERSHELL_H
-#define MULTIPASS_POWERSHELL_H
+#pragma once
 
 #include <multipass/process/process.h>
 
@@ -67,5 +66,3 @@ private:
     inline static const QString output_end_marker = "cmdlet status is";
 };
 } // namespace multipass
-
-#endif // MULTIPASS_POWERSHELL_H

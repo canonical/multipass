@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_PROCESS_EXIT_STATUS
-#define MULTIPASS_MOCK_SSH_PROCESS_EXIT_STATUS
+#pragma once
 
 #include "mock_ssh.h"
 
@@ -84,4 +83,3 @@ private:
     ssh_channel_callbacks channel_cbs{nullptr};
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_SSH_PROCESS_EXIT_STATUS

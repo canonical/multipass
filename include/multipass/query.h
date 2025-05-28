@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QUERY_H
-#define MULTIPASS_QUERY_H
+#pragma once
 
 #include <string>
 
@@ -40,4 +39,3 @@ public:
     bool allow_unsupported{false};
 };
 } // namespace multipass
-#endif // MULTIPASS_QUERY_H

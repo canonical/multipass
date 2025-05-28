@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_URL_DOWNLOADER_H
-#define MULTIPASS_MOCK_URL_DOWNLOADER_H
+#pragma once
 
 #include <multipass/url_downloader.h>
 
@@ -38,4 +37,3 @@ struct MockURLDownloader : public multipass::URLDownloader
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_URL_DOWNLOADER_H

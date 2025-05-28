@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "lxd_request.h"
 
@@ -71,5 +70,3 @@ inline void multipass::LXDVirtualMachineFactory::require_suspend_support() const
 {
     throw NotImplementedOnThisBackendException{"suspend"};
 }
-
-#endif // MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H

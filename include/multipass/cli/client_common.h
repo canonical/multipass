@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_COMMON_H
-#define MULTIPASS_CLIENT_COMMON_H
+#pragma once
 
 #include <grpcpp/grpcpp.h>
 
@@ -80,4 +79,3 @@ const std::regex yes_answer{"y|yes", std::regex::icase | std::regex::optimize};
 const std::regex no_answer{"n|no", std::regex::icase | std::regex::optimize};
 } // namespace client
 } // namespace multipass
-#endif // MULTIPASS_CLIENT_COMMON_H
