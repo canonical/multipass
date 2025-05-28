@@ -168,6 +168,8 @@ multipass help <command>
 The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions
 on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21).
 
+## Building Multipass
+
 For build instructions, please refer to the following files:
 
 - [BUILD.linux.md](BUILD.linux.md) for Linux
@@ -176,6 +178,15 @@ For build instructions, please refer to the following files:
 
 Please report any outdated information or inconsistencies in these files. Or, even better, submit a pull request with
 the changes! Our CI setup is also a good reference for building and testing Multipass.
+
+### Automatic linker selection
+
+***Requires (>= CMake 3.29)***
+
+To accelerate the build, the build system will attempt to locate and utilize `mold` or `lld` (respectively) in place of
+the default linker of the toolchain. To override, set
+[CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake
+configure step.
 
 Finally, please read the following guidelines carefully before contributing to the project.
 
