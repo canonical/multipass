@@ -20,7 +20,6 @@
 #ifndef MULTIPASS_CLOUD_INIT_ISO_H
 #define MULTIPASS_CLOUD_INIT_ISO_H
 
-#include <multipass/path.h>
 #include <multipass/singleton.h>
 
 #include <filesystem>
