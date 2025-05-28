@@ -70,3 +70,9 @@ TEST(SimpleStreamsIndex, throws_on_invalid_top_level_type)
     auto json = mpt::load_test_file("invalid_top_level.json");
     EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
 }
+
+TEST(SimpleStreamsIndex, throws_on_no_image_with_image_downloads)
+{
+    auto json = mpt::load_test_file("no_image_downloads_in_datatype.json");
+    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+}
