@@ -1402,8 +1402,9 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
         .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_FALSE(desc.network_data_config["ethernets"]["primary"].IsNull());
-            EXPECT_FALSE(desc.network_data_config["ethernets"]["extra0"].IsDefined());
+            ASSERT_TRUE(desc.network_data_config["ethernets"]);
+            EXPECT_TRUE(desc.network_data_config["ethernets"]["eth0"]);
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["eth1"].IsDefined());
         });
 
     send_command(launch_args);
