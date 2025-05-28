@@ -18,8 +18,11 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_PLAN9_SHARE_PARAMS_H
 #define MULTIPASS_HYPERV_API_HCS_PLAN9_SHARE_PARAMS_H
 
-#include <filesystem>
+#include <hyperv_api/hcs/hyperv_hcs_path.h>
+
 #include <fmt/format.h>
+
+#include <filesystem>
 #include <string>
 
 namespace multipass::hyperv::hcs
@@ -71,7 +74,7 @@ struct HcsAddPlan9ShareParameters : public detail::HcsPlan9Base
     /**
      * Host directory to share
      */
-    std::filesystem::path host_path{};
+    HcsPath host_path{};
 
     /**
      * ReadOnly      0x00000001
