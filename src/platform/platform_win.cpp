@@ -62,7 +62,10 @@
 #include <netioapi.h>
 #include <objbase.h>
 #include <sddl.h>
+#include <secext.h>
+#include <security.h>
 #include <windows.h>
+
 
 #include <algorithm>
 #include <cerrno>
@@ -528,7 +531,9 @@ mp::platform::wsa_init_wrapper::wsa_init_wrapper()
 
     if (!operator bool())
     {
-        mpl::error(category, " WSAStartup failed with `{}`: {}", std::system_category().message(wsa_init_result));
+        mpl::error(category,
+                   " WSAStartup failed with `{}`: {}",
+                   std::system_category().message(wsa_init_result));
     }
 }
 
@@ -616,8 +621,9 @@ static const auto& ip_utils()
             {
                 throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
             }
-            const auto mask =
-                (prefix_length == 0) ? 0 : std::numeric_limits<std::uint32_t>::max() << (32 - prefix_length);
+            const auto mask = (prefix_length == 0) ? 0
+                                                   : std::numeric_limits<std::uint32_t>::max()
+                                                         << (32 - prefix_length);
             const auto network_hbo = htonl(ip_hbo & mask);
 
             return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
@@ -657,7 +663,8 @@ static const auto& ip_utils()
     return helper;
 }
 
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+std::map<std::string, mp::NetworkInterfaceInfo>
+mp::platform::Platform::get_network_interfaces_info() const
 {
     std::map<std::string, mp::NetworkInterfaceInfo> ret{};
 
@@ -688,8 +695,14 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
         if (input.empty())
             return {};
 
-        const auto size_needed =
-            WideCharToMultiByte(CP_UTF8, 0, input.data(), static_cast<int>(input.size()), nullptr, 0, nullptr, nullptr);
+        const auto size_needed = WideCharToMultiByte(CP_UTF8,
+                                                     0,
+                                                     input.data(),
+                                                     static_cast<int>(input.size()),
+                                                     nullptr,
+                                                     0,
+                                                     nullptr,
+                                                     nullptr);
         std::string result(size_needed, 0);
         WideCharToMultiByte(CP_UTF8,
                             0,
@@ -705,19 +718,22 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
     auto unicast_addr_to_network = [](PIP_ADAPTER_UNICAST_ADDRESS_LH first_unicast_addr) {
         std::vector<std::string> result;
-        for (const auto* unicast_addr = first_unicast_addr; unicast_addr; unicast_addr = unicast_addr->Next)
+        for (const auto* unicast_addr = first_unicast_addr; unicast_addr;
+             unicast_addr = unicast_addr->Next)
         {
             const auto& sa = *unicast_addr->Address.lpSockaddr;
             std::optional<std::string> network_addr{};
             switch (sa.sa_family)
             {
             case AF_INET:
-                network_addr = ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
-                                                     unicast_addr->OnLinkPrefixLength);
+                network_addr =
+                    ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                                          unicast_addr->OnLinkPrefixLength);
                 break;
             case AF_INET6:
-                network_addr = ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
-                                                     unicast_addr->OnLinkPrefixLength);
+                network_addr =
+                    ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                                          unicast_addr->OnLinkPrefixLength);
                 break;
             }
 
@@ -730,8 +746,9 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     };
 
     ULONG needed_size{0};
-    constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER |
-                           GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+                           GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_PREFIX |
+                           GAA_FLAG_INCLUDE_ALL_INTERFACES;
     // Learn how much space we need to allocate.
     GetAdaptersAddresses(AF_UNSPEC, flags, NULL, nullptr, &needed_size);
 
@@ -739,7 +756,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
     auto adapter_info = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(adapters_info_raw_storage.get());
 
-    if (const auto result = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_info, &needed_size);
+    if (const auto result =
+            GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_info, &needed_size);
         result == NO_ERROR)
     {
         // Retrieval was successful. The API returns a linked list, so walk over it.
@@ -773,7 +791,8 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
         {
             if (netinfo.links.empty())
             {
-                const std::wstring search = fmt::format(L"vEthernet ({})", hyperv::maybe_widen{netinfo.id});
+                const std::wstring search =
+                    fmt::format(L"vEthernet ({})", hyperv::maybe_widen{netinfo.id});
                 for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
                 {
                     const auto& adapter = *pitr;
@@ -790,8 +809,9 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     }
     else
     {
-        throw GetNetworkInterfacesInfoException{"Failed to retrieve network interface information. Error code: {}",
-                                                result};
+        throw GetNetworkInterfacesInfoException{
+            "Failed to retrieve network interface information. Error code: {}",
+            result};
     }
     return ret;
 }
@@ -1138,12 +1158,14 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 
 QString mp::platform::Platform::get_username() const
 {
-    QString username;
-    mp::PowerShell::exec(
-        {"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-        "get-username",
-        &username);
-    return username.section('\\', 1);
+    DWORD needed_size = 0;
+    GetUserNameEx(EXTENDED_NAME_FORMAT::NameSamCompatible, nullptr, &needed_size);
+    std::unique_ptr<wchar_t[]> buff(new wchar_t[needed_size]);
+    if (GetUserNameExW(EXTENDED_NAME_FORMAT::NameSamCompatible, buff.get(), &needed_size))
+    {
+        return QString::fromWCharArray(buff.get(), needed_size);
+    }
+    throw std::runtime_error("Failed retrieving user name!");
 }
 
 QDir mp::platform::Platform::get_alias_scripts_folder() const
