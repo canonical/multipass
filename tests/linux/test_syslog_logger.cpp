@@ -39,7 +39,7 @@ struct MockSyslogWrapper : public mpl::SyslogWrapper
     MP_MOCK_SINGLETON_BOILERPLATE(MockSyslogWrapper, mpl::SyslogWrapper);
 };
 
-struct syslog_logger_test : ::testing::Test
+struct SyslogLoggerTest : ::testing::Test
 {
     using uut_t = mpl::SyslogLogger;
     MockSyslogWrapper::GuardedMock mock_syslog_guardedmock{MockSyslogWrapper::inject()};
@@ -70,7 +70,7 @@ TEST_F(SyslogLoggerTest, callLogFiltered)
     uut.log(mpl::Level::trace, "category", "message");
 }
 
-struct syslog_logger_priority_test : public testing::TestWithParam<std::tuple<int, mpl::Level>>
+struct SyslogLoggerPriorityTest : public testing::TestWithParam<std::tuple<int, mpl::Level>>
 {
     using uut_t = mpl::SyslogLogger;
     MockSyslogWrapper::GuardedMock mock_syslog_guardedmock{MockSyslogWrapper::inject()};
@@ -95,7 +95,7 @@ TEST_P(SyslogLoggerPriorityTest, validateLevelToPriority)
 }
 
 INSTANTIATE_TEST_SUITE_P(SyslogLevels,
-                         syslog_logger_priority_test,
+                         SyslogLoggerPriorityTest,
                          ::testing::Values(std::make_tuple(LOG_DEBUG, mpl::Level::trace),
                                            std::make_tuple(LOG_DEBUG, mpl::Level::debug),
                                            std::make_tuple(LOG_ERR, mpl::Level::error),

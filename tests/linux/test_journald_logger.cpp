@@ -44,7 +44,7 @@ struct MockJournaldWrapper : public mpl::JournaldWrapper
     MP_MOCK_SINGLETON_BOILERPLATE(MockJournaldWrapper, mpl::JournaldWrapper);
 };
 
-struct journald_logger_test : ::testing::Test
+struct JournaldLoggerTest : ::testing::Test
 {
     using uut_t = mpl::JournaldLogger;
     MockJournaldWrapper::GuardedMock mock_journald_guardedmock{MockJournaldWrapper::inject()};

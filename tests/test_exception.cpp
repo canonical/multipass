@@ -23,7 +23,7 @@
 
 namespace mpt = multipass::test;
 
-struct exception_tests : ::testing::Test
+struct ExceptionTests : ::testing::Test
 {
 };
 

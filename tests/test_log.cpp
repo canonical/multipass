@@ -23,7 +23,7 @@
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
-struct log_tests : ::testing::Test
+struct LogTests : ::testing::Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };

@@ -40,7 +40,7 @@ using uut_t = mpl::ClientLogger<StubReply, StubReply>;
 using testing::HasSubstr;
 using testing::Return;
 
-struct client_logger_tests : ::testing::Test
+struct ClientLoggerTests : ::testing::Test
 {
     mpl::MultiplexingLogger stub_multiplexing_logger{std::make_unique<mpt::StubLogger>()};
     mpt::MockServerReaderWriter<StubReply, StubReply> mock_srw;
