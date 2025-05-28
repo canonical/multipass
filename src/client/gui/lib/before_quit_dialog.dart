@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart' hide Switch;
+import 'package:flutter/material.dart';
 
 import 'confirmation_dialog.dart';
-import 'switch.dart';
 
 class BeforeQuitDialog extends StatefulWidget {
   final Function(bool remember) onStop;
@@ -24,22 +23,29 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
   Widget build(BuildContext context) {
     return ConfirmationDialog(
       title: 'Before quitting',
-      body: Column(children: [
-        const Text(
-          'When quitting this application you can leave instances running in the background or choose to stop them completely.',
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: const Text(
+            'When quitting this application you can leave instances running in the background or choose to stop them completely.',
+          ),
         ),
-        const SizedBox(height: 12),
-        Switch(
-          value: remember,
-          label: 'Remember this setting',
-          onChanged: (value) => setState(() => remember = value),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Checkbox(
+              value: remember,
+              onChanged: (value) => setState(() => remember = value!),
+            ),
+            const SizedBox(width: 8),
+            const Text('Remember this setting'),
+          ],
         ),
       ]),
       actionText: 'Stop instances',
       onAction: () => widget.onStop(remember),
       inactionText: 'Leave instances running',
       onInaction: () => widget.onKeep(remember),
-      width: 500,
     );
   }
 }

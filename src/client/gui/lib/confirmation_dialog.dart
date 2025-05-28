@@ -17,14 +17,14 @@ class ConfirmationDialog extends StatelessWidget {
     required this.onAction,
     required this.inactionText,
     required this.onInaction,
-    this.width = 350,
+    this.width = 520,
   });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: const Border(),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       titlePadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
       buttonPadding: const EdgeInsets.symmetric(horizontal: 16),
       title: Row(children: [
@@ -51,16 +51,16 @@ class ConfirmationDialog extends StatelessWidget {
         ],
       ),
       actions: [
+        OutlinedButton(
+          onPressed: onInaction,
+          child: Text(inactionText),
+        ),
         TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(
             backgroundColor: const Color(0xffC7162B),
           ),
           child: Text(actionText),
-        ),
-        OutlinedButton(
-          onPressed: onInaction,
-          child: Text(inactionText),
         ),
       ],
     );

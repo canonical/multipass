@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart' hide Switch;
+import 'package:flutter/material.dart';
 
 import 'confirmation_dialog.dart';
-import 'switch.dart';
 
 class CloseTerminalDialog extends StatefulWidget {
   final Function() onYes;
@@ -25,25 +24,34 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
   @override
   Widget build(BuildContext context) {
     return ConfirmationDialog(
-      title: 'Are you sure you want to close this terminal?',
+      title: 'Close tab?',
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Its current state will be lost.'),
-        const SizedBox(height: 12),
-        Switch(
-          value: doNotAsk,
-          label: 'Do not ask me again.',
-          onChanged: (value) => setState(() => doNotAsk = value),
+        Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: const Text(
+              'Are you sure you want to close this tab? Its current state will be lost.'),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Checkbox(
+              value: doNotAsk,
+              onChanged: (value) => setState(() => doNotAsk = value!),
+            ),
+            const SizedBox(width: 8),
+            const Text('Do not ask me again'),
+          ],
         ),
       ]),
-      actionText: 'Yes',
+      actionText: 'Close tab',
       onAction: () {
+        widget.onDoNotAsk(
+            doNotAsk); // Apply "do not ask" setting only when closing
         widget.onYes();
-        widget.onDoNotAsk(doNotAsk);
       },
-      inactionText: 'No',
+      inactionText: 'Cancel',
       onInaction: () {
-        widget.onNo();
-        widget.onDoNotAsk(doNotAsk);
+        widget.onNo(); // Don't apply "do not ask" setting when canceling
       },
     );
   }
