@@ -1324,10 +1324,8 @@ TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
                          mpt::match_what(HasSubstr("timed out waiting for response")));
 }
 
-using ExceptionParam = std::variant<std::runtime_error,
-                                    mp::IPUnavailableException,
-                                    mp::SSHException,
-                                    mp::InternalTimeoutException>;
+using ExceptionParam =
+    std::variant<mp::IPUnavailableException, mp::SSHException, mp::InternalTimeoutException>;
 class TestWaitForSSHExceptions : public BaseVM, public WithParamInterface<ExceptionParam>
 {
 };
@@ -1356,8 +1354,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
 
 INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
                          TestWaitForSSHExceptions,
-                         Values(std::runtime_error{"todo-remove-eventually"},
-                                mp::IPUnavailableException{"noip"},
+                         Values(mp::IPUnavailableException{"noip"},
                                 mp::SSHException{"nossh"},
                                 mp::InternalTimeoutException{"notime", std::chrono::seconds{1}}));
 
