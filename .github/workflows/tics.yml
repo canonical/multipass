@@ -1,6 +1,7 @@
 name: TICS
 
 on:
+  workflow_dispatch:
   schedule:
   # 04:11 UTC every Sunday
   - cron: 11 4 * * 0
