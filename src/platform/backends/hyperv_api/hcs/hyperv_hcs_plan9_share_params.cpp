@@ -39,11 +39,10 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(const HcsAddPlan9S
             "Flags": {4}
         }}
     )json");
-    const auto path_str = params.host_path.generic_string();
     return format_to(ctx.out(),
                      json_template.as<Char>(),
                      maybe_widen{params.name},
-                     maybe_widen{path_str},
+                     params.host_path,
                      params.port,
                      maybe_widen{params.access_name},
                      fmt::underlying(params.flags));
