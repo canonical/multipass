@@ -25,33 +25,38 @@ namespace mp = multipass;
 
 namespace
 {
+/**
+ * Index for the default interface
+ */
+constexpr std::size_t kDefaultInterfaceIndex = 0;
+
+/**
+ * The start index for the extra interfaces
+ */
+constexpr std::size_t kExtraInterfaceIndexStart = kDefaultInterfaceIndex + 1;
+
 struct interface_details
 {
     std::string name;
     std::string mac_addr;
     std::optional<int> route_metric{std::nullopt};
     bool optional{false};
+
+    interface_details(const std::string& mac_addr,
+                      std::size_t index = kDefaultInterfaceIndex,
+                      bool optional = false)
+    {
+        constexpr std::string_view kInterfaceNamePattern = "eth{}";
+        this->name = fmt::format(kInterfaceNamePattern, index);
+        this->mac_addr = mac_addr;
+        if (optional)
+        {
+            this->optional = true;
+            this->route_metric = 200;
+        }
+    }
 };
 
-auto make_default_interface(const std::string& mac_addr)
-{
-    constexpr std::string_view kDefaultInterfaceName = "primary";
-    interface_details iface{};
-    iface.name = kDefaultInterfaceName;
-    iface.mac_addr = mac_addr;
-    return iface;
-}
-
-auto make_extra_interface(const std::string& mac_addr, std::uint32_t extra_interface_idx = 0)
-{
-    constexpr std::string_view kExtraInterfaceNamePattern = "extra{}";
-    interface_details iface{};
-    iface.name = fmt::format(kExtraInterfaceNamePattern, extra_interface_idx);
-    iface.mac_addr = mac_addr;
-    iface.optional = true;
-    iface.route_metric = 200;
-    return iface;
-}
 } // namespace
 
 namespace YAML
@@ -202,18 +207,23 @@ YAML::Node mp::utils::make_cloud_init_network_config(
     YAML::Node network_data = file_content.empty() ? YAML::Node{} : YAML::Load(file_content);
     network_data["version"] = "2";
 
-    const auto default_interface = make_default_interface(default_mac_addr);
+    const auto default_interface = interface_details{default_mac_addr};
     network_data["ethernets"][default_interface.name] = default_interface;
 
-    for (size_t extra_idx = 0; extra_idx < extra_interfaces.size(); ++extra_idx)
+    auto extra_idx = kExtraInterfaceIndexStart;
+    // FIXME: C++20 range-for init statement:
+    // https://en.cppreference.com/w/cpp/language/range-for.html
+    // C++23: https://en.cppreference.com/w/cpp/ranges/enumerate_view.html
+    for (const auto& extra : extra_interfaces)
     {
-        const auto& current = extra_interfaces[extra_idx];
-
-        if (!current.auto_mode)
+        if (!extra.auto_mode)
             continue;
 
-        const auto extra_interface = make_extra_interface(current.mac_address, extra_idx);
+        const auto extra_interface = interface_details{/*mac_addr=*/extra.mac_address,
+                                                       /*interface_idx=*/extra_idx,
+                                                       /*optional=*/true};
         network_data["ethernets"][extra_interface.name] = extra_interface;
+        ++extra_idx;
     }
 
     return network_data;
@@ -237,10 +247,12 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
         YAML::Node network_data{};
         network_data["version"] = "2";
 
-        const auto default_interface = make_default_interface(default_mac_addr);
+        const interface_details default_interface{default_mac_addr};
         network_data["ethernets"][default_interface.name] = default_interface;
 
-        const auto extra = make_extra_interface(extra_interface.mac_address);
+        const interface_details extra{/*mac_addr=*/extra_interface.mac_address,
+                                      /*index=*/kExtraInterfaceIndexStart,
+                                      /*optional=*/true};
         network_data["ethernets"][extra.name] = extra;
 
         return network_data;
@@ -249,9 +261,11 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
     YAML::Node network_data = YAML::Load(network_config_file_content);
 
     // Iterate over possible extra interface names and find a vacant one.
-    for (int current_index = 0;; current_index++)
+    for (std::size_t current_index = kExtraInterfaceIndexStart;; current_index++)
     {
-        const auto extra = make_extra_interface(extra_interface.mac_address, current_index);
+        const interface_details extra{/*mac_addr=*/extra_interface.mac_address,
+                                      /*index=*/current_index,
+                                      /*optional=*/true};
         if (!network_data["ethernets"][extra.name].IsDefined())
         {
             network_data["ethernets"][extra.name] = extra;

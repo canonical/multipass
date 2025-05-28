@@ -49,12 +49,12 @@ TEST(UtilsTests, addOneExtraInterfaceNonEmptyNetworkFileContent)
     constexpr std::string_view original_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  eth0:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
     dhcp-identifier: mac
-  extra0:
+  eth1:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
@@ -66,12 +66,12 @@ ethernets:
     constexpr std::string_view expected_new_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  eth0:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
     dhcp-identifier: mac
-  extra0:
+  eth1:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
@@ -79,7 +79,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
-  extra1:
+  eth2:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
@@ -87,7 +87,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
-    set-name: extra1
+    set-name: eth2
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
@@ -106,13 +106,13 @@ TEST(UtilsTests, addOneExtraInterfaceEmptyNetworkFileContent)
     constexpr std::string_view expected_new_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  primary:
+  eth0:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
     dhcp-identifier: mac
-    set-name: primary
-  extra0:
+    set-name: eth0
+  eth1:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
@@ -120,7 +120,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
-    set-name: extra0
+    set-name: eth1
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
