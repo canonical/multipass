@@ -13,6 +13,14 @@ import 'vm_action_buttons.dart';
 import 'vm_details.dart';
 import 'vm_status_icon.dart';
 
+extension InstanceDetailsExtensions on InstanceDetails {
+  String formattedCreationTime({required bool isLaunching}) {
+    final ts = creationTimestamp;
+    if (isLaunching && ts.seconds == 0 && ts.nanos == 0) return '-';
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(ts.toDateTime());
+  }
+}
+
 class VmDetailsHeader extends ConsumerWidget {
   final String name;
 
@@ -172,13 +180,7 @@ class GeneralDetails extends ConsumerWidget {
       height: baseVmStatHeight,
       label: 'CREATED',
       child: CopyableText(
-        // Show a dash when VM is still launching and timestamp is therefore 0
-        isLaunching &&
-                info.instanceInfo.creationTimestamp.seconds == 0 &&
-                info.instanceInfo.creationTimestamp.nanos == 0
-            ? '-'
-            : DateFormat('yyyy-MM-dd HH:mm:ss')
-                .format(info.instanceInfo.creationTimestamp.toDateTime()),
+        info.instanceInfo.formattedCreationTime(isLaunching: isLaunching),
       ),
     );
 
