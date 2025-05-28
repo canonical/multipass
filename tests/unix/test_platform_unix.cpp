@@ -168,13 +168,13 @@ TEST_F(TestPlatformUnix, multipassStorageLocationNotSetReturnsEmpty)
     EXPECT_TRUE(storage_path.isEmpty());
 }
 
-TEST_F(TestPlatformUnix, get_cpus_returns_greater_than_zero)
+TEST_F(TestPlatformUnix, getCpusReturnsGreaterThanZero)
 {
     // On any real system, there should be at least 1 CPU
     EXPECT_GT(MP_PLATFORM.get_cpus(), 0);
 }
 
-TEST_F(TestPlatformUnix, get_total_ram_returns_greater_than_zero)
+TEST_F(TestPlatformUnix, getTotalRamReturnsGreaterThanZero)
 {
     // On any real system, there should be some RAM
     EXPECT_GT(MP_PLATFORM.get_total_ram(), 0LL);
@@ -210,13 +210,13 @@ bool test_sigset_has(const sigset_t& set, const std::vector<int>& sigs)
     return good;
 }
 
-TEST_F(TestPlatformUnix, make_sigset_returns_emptyset)
+TEST_F(TestPlatformUnix, makeSigsetReturnsEmptyset)
 {
     auto set = mp::platform::make_sigset({});
     test_sigset_empty(set);
 }
 
-TEST_F(TestPlatformUnix, make_sigset_makes_sigset)
+TEST_F(TestPlatformUnix, makeSigsetMakesSigset)
 {
     auto set = mp::platform::make_sigset({SIGINT, SIGUSR2});
 
@@ -231,7 +231,7 @@ TEST_F(TestPlatformUnix, make_sigset_makes_sigset)
     test_sigset_empty(set);
 }
 
-TEST_F(TestPlatformUnix, make_and_block_signals_works)
+TEST_F(TestPlatformUnix, makeAndBlockSignalsWorks)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
@@ -249,7 +249,7 @@ TEST_F(TestPlatformUnix, make_and_block_signals_works)
     test_sigset_empty(set);
 }
 
-TEST_F(TestPlatformUnix, make_and_block_signals_throws_on_error)
+TEST_F(TestPlatformUnix, makeAndBlockSignalsThrowsOnError)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
@@ -261,7 +261,7 @@ TEST_F(TestPlatformUnix, make_and_block_signals_throws_on_error)
         mpt::match_what(StrEq("Failed to block signals: Operation not permitted")));
 }
 
-TEST_F(TestPlatformUnix, make_quit_watchdog_blocks_signals)
+TEST_F(TestPlatformUnix, makeQuitWatchdogBlocksSignals)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
@@ -276,7 +276,7 @@ TEST_F(TestPlatformUnix, make_quit_watchdog_blocks_signals)
     mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
 }
 
-TEST_F(TestPlatformUnix, quit_watchdog_quits_on_condition)
+TEST_F(TestPlatformUnix, quitWatchdogQuitsOnCondition)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
@@ -289,7 +289,7 @@ TEST_F(TestPlatformUnix, quit_watchdog_quits_on_condition)
     EXPECT_EQ(watchdog([] { return false; }), std::nullopt);
 }
 
-TEST_F(TestPlatformUnix, quit_watchdog_quits_on_signal)
+TEST_F(TestPlatformUnix, quitWatchdogQuitsOnSignal)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
@@ -303,7 +303,7 @@ TEST_F(TestPlatformUnix, quit_watchdog_quits_on_signal)
     EXPECT_EQ(watchdog([] { return true; }), SIGTERM);
 }
 
-TEST_F(TestPlatformUnix, quit_watchdog_signals_itself_asynchronously)
+TEST_F(TestPlatformUnix, quitWatchdogSignalsItselfAsynchronously)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 

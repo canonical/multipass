@@ -2499,7 +2499,7 @@ const std::vector<FormatterParamType> version_formatter_outputs{
 
 } // namespace
 
-TEST_P(FormatterSuite, properly_formats_output)
+TEST_P(FormatterSuite, properlyFormatsOutput)
 {
     const auto& [formatter, reply, expected_output, test_name] = GetParam();
     Q_UNUSED(test_name); // gcc 7.4 can't do [[maybe_unused]] for structured bindings
@@ -2544,7 +2544,7 @@ INSTANTIATE_TEST_SUITE_P(VersionInfoOutputFormatter,
                          print_param_name);
 
 #if GTEST_HAS_POSIX_RE
-TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
+TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
 {
     const auto& [petenv_nname, prepend, param] = GetParam();
     const auto& [formatter, reply, expected_output, test_name] = param;

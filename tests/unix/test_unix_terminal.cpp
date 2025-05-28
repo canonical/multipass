@@ -112,7 +112,7 @@ TEST_F(TestUnixTerminal, unsetsEchoOnTerminal)
     unix_terminal.set_cin_echo(false);
 }
 
-TEST_F(TestUnixTerminal, make_console_makes_unix_console)
+TEST_F(TestUnixTerminal, makeConsoleMakesUnixConsole)
 {
     // force is_live() to return false so UnixConsole ctor doesn't break
     REPLACE(fileno, [this](auto) { return fake_fd; });

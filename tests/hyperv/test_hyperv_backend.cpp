@@ -138,7 +138,7 @@ struct HyperVBackend : public Test
     mpt::StubSSHKeyProvider stub_key_provider;
 };
 
-TEST_F(HyperVBackend, creates_in_off_state)
+TEST_F(HyperVBackend, createsInOffState)
 {
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
 
@@ -148,7 +148,7 @@ TEST_F(HyperVBackend, creates_in_off_state)
     EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
 }
 
-TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
+TEST_F(HyperVBackend, setsMacAddressOnDefaultNetworkAdapter)
 {
     auto network_run =
         RunSpec{fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"",
@@ -159,7 +159,7 @@ TEST_F(HyperVBackend, sets_mac_address_on_default_network_adapter)
     backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
 }
 
-TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
+TEST_F(HyperVBackend, throwsOnFailureToSetupDefaultNetworkAdapter)
 {
     auto default_tweaked_run = default_network_run;
     default_tweaked_run.will_return = false;
@@ -173,7 +173,7 @@ TEST_F(HyperVBackend, throws_on_failure_to_setup_default_network_adapter)
         Property(&std::runtime_error::what, HasSubstr("default adapter")));
 }
 
-TEST_F(HyperVBackend, adds_extra_network_adapters)
+TEST_F(HyperVBackend, addsExtraNetworkAdapters)
 {
     default_description.extra_interfaces = {{"switchA", "55:66:44:77:33:88"},
                                             {"switchB", "15:16:14:17:13:18"},
@@ -195,7 +195,7 @@ TEST_F(HyperVBackend, adds_extra_network_adapters)
     backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
 }
 
-TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
+TEST_F(HyperVBackend, throwsOnFailureToDetectSwitchFromExtraInterface)
 {
     auto extra_iface = mp::NetworkInterface{"MissingSwitch", "55:66:44:77:33:88"};
     default_description.extra_interfaces.push_back(extra_iface);
@@ -211,7 +211,7 @@ TEST_F(HyperVBackend, throws_on_failure_to_detect_switch_from_extra_interface)
                  AllOf(HasSubstr("Could not find"), HasSubstr(extra_iface.id))));
 }
 
-TEST_F(HyperVBackend, throws_on_failure_to_add_extra_interface)
+TEST_F(HyperVBackend, throwsOnFailureToAddExtraInterface)
 {
     auto extra_iface = mp::NetworkInterface{"SuperPriviledgedSwitch", "55:66:44:77:33:88"};
     default_description.extra_interfaces.push_back(extra_iface);
@@ -300,7 +300,7 @@ struct CheckFineSuite : public HyperVBackend,
 {
 };
 
-TEST_P(CheckFineSuite, CheckDoesntThrow)
+TEST_P(CheckFineSuite, checkDoesntThrow)
 {
     ps_helper.setup_mocked_run_sequence(GetParam());
     EXPECT_NO_THROW(backend.hypervisor_health_check());
@@ -345,7 +345,7 @@ struct CheckBadSuite : public HyperVBackend,
 {
 };
 
-TEST_P(CheckBadSuite, CheckThrows)
+TEST_P(CheckBadSuite, checkThrows)
 {
     ps_helper.setup_mocked_run_sequence(GetParam());
     EXPECT_THROW(backend.hypervisor_health_check(), std::runtime_error);
@@ -542,7 +542,7 @@ struct TestNonExternalSwitchTypes : public HyperVNetworksPS, public WithParamInt
 {
 };
 
-TEST_P(TestNonExternalSwitchTypes, recognizes_switch_type)
+TEST_P(TestNonExternalSwitchTypes, recognizesSwitchType)
 {
     const auto& type = GetParam();
     const auto matcher = adapt_to_single_description_matcher(

@@ -378,7 +378,7 @@ TEST_F(LXDBackend, usesMultipassPoolWhenDefaultPoolExists)
     backend.hypervisor_health_check();
 }
 
-TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
+TEST_F(LXDBackend, factoryCreatesValidVirtualMachinePtr)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -412,7 +412,7 @@ TEST_F(LXDBackend, factory_creates_valid_virtual_machine_ptr)
     EXPECT_NE(nullptr, machine);
 }
 
-TEST_F(LXDBackend, factory_creates_expected_image_vault)
+TEST_F(LXDBackend, factoryCreatesExpectedImageVault)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     mpt::StubURLDownloader stub_downloader;
@@ -433,7 +433,7 @@ TEST_F(LXDBackend, factory_creates_expected_image_vault)
     EXPECT_TRUE(dynamic_cast<mp::LXDVMImageVault*>(vault.get()));
 }
 
-TEST_F(LXDBackend, factory_does_nothing_on_configure)
+TEST_F(LXDBackend, factoryDoesNothingOnConfigure)
 {
     mpt::TempDir data_dir;
     mp::VirtualMachineDescription vm_desc{default_description};
@@ -447,7 +447,7 @@ TEST_F(LXDBackend, factory_does_nothing_on_configure)
     EXPECT_TRUE(vm_desc.cloud_init_iso.isEmpty());
 }
 
-TEST_F(LXDBackend, creates_in_stopped_state)
+TEST_F(LXDBackend, createsInStoppedState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -495,7 +495,7 @@ TEST_F(LXDBackend, creates_in_stopped_state)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
+TEST_F(LXDBackend, machinePersistsAndSetsStateOnStart)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -552,7 +552,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_start)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::starting);
 }
 
-TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
+TEST_F(LXDBackend, machinePersistsAndSetsStateOnShutdown)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -610,7 +610,7 @@ TEST_F(LXDBackend, machine_persists_and_sets_state_on_shutdown)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, machine_persists_internal_stopped_state_on_destruction)
+TEST_F(LXDBackend, machinePersistsInternalStoppedStateOnDestruction)
 {
     mpt::MockVMStatusMonitor mock_monitor;
 
@@ -661,7 +661,7 @@ TEST_F(LXDBackend, machine_persists_internal_stopped_state_on_destruction)
     EXPECT_EQ(vm_instance_state, mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, machine_does_not_update_state_in_dtor)
+TEST_F(LXDBackend, machineDoesNotUpdateStateInDtor)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -787,7 +787,7 @@ TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
     EXPECT_TRUE(stop_requested);
 }
 
-TEST_F(LXDBackend, does_not_call_stop_when_snap_refresh_is_detected)
+TEST_F(LXDBackend, doesNotCallStopWhenSnapRefreshIsDetected)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -841,7 +841,7 @@ TEST_F(LXDBackend, does_not_call_stop_when_snap_refresh_is_detected)
     EXPECT_FALSE(stop_requested);
 }
 
-TEST_F(LXDBackend, calls_stop_when_snap_refresh_does_not_exist)
+TEST_F(LXDBackend, callsStopWhenSnapRefreshDoesNotExist)
 {
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
@@ -893,7 +893,7 @@ TEST_F(LXDBackend, calls_stop_when_snap_refresh_does_not_exist)
     EXPECT_TRUE(stop_requested);
 }
 
-TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
+TEST_F(LXDBackend, postsExpectedDataWhenCreatingInstance)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -982,7 +982,7 @@ TEST_F(LXDBackend, posts_expected_data_when_creating_instance)
                                   instance_dir.path()};
 }
 
-TEST_F(LXDBackend, prepare_source_image_does_not_modify)
+TEST_F(LXDBackend, prepareSourceImageDoesNotModify)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager),
                                          data_dir.path(),
@@ -1004,7 +1004,7 @@ TEST_F(LXDBackend, prepare_source_image_does_not_modify)
     EXPECT_EQ(source_image.aliases, original_image.aliases);
 }
 
-TEST_F(LXDBackend, returns_expected_backend_string)
+TEST_F(LXDBackend, returnsExpectedBackendString)
 {
     const QByteArray server_data{"{"
                                  "\"type\": \"sync\","
@@ -1051,7 +1051,7 @@ TEST_F(LXDBackend, returns_expected_backend_string)
     EXPECT_EQ(backend.get_backend_version_string(), backend_string);
 }
 
-TEST_F(LXDBackend, unimplemented_functions_logs_trace_message)
+TEST_F(LXDBackend, unimplementedFunctionsLogsTraceMessage)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager),
                                          data_dir.path(),
@@ -1086,7 +1086,7 @@ TEST_F(LXDBackend, factoryDoesNotSupportSuspend)
                          mpt::match_what(HasSubstr("suspend")));
 }
 
-TEST_F(LXDBackend, image_fetch_type_returns_expected_type)
+TEST_F(LXDBackend, imageFetchTypeReturnsExpectedType)
 {
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager),
                                          data_dir.path(),
@@ -1095,7 +1095,7 @@ TEST_F(LXDBackend, image_fetch_type_returns_expected_type)
     EXPECT_EQ(backend.fetch_type(), mp::FetchType::ImageOnly);
 }
 
-TEST_F(LXDBackend, healthcheck_throws_when_untrusted)
+TEST_F(LXDBackend, healthcheckThrowsWhenUntrusted)
 {
     const QByteArray untrusted_data{"{"
                                     "\"type\": \"sync\","
@@ -1139,7 +1139,7 @@ TEST_F(LXDBackend, healthcheck_throws_when_untrusted)
                          mpt::match_what(StrEq("Failed to authenticate to LXD.")));
 }
 
-TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_message)
+TEST_F(LXDBackend, healthcheckConnectionRefusedErrorThrowsWithExpectedMessage)
 {
     const std::string exception_message{"Connection refused"};
 
@@ -1159,7 +1159,7 @@ TEST_F(LXDBackend, healthcheck_connection_refused_error_throws_with_expected_mes
                              exception_message))));
 }
 
-TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message)
+TEST_F(LXDBackend, healthcheckUnknownServerErrorThrowsWithExpectedMessage)
 {
     const std::string exception_message{"Unknown server"};
 
@@ -1179,7 +1179,7 @@ TEST_F(LXDBackend, healthcheck_unknown_server_error_throws_with_expected_message
                              exception_message))));
 }
 
-TEST_F(LXDBackend, healthcheck_error_advises_snap_connections_when_in_snap)
+TEST_F(LXDBackend, healthcheckErrorAdvisesSnapConnectionsWhenInSnap)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest)
         .WillOnce(Throw(mp::LocalSocketConnectionException("")));
@@ -1198,7 +1198,7 @@ struct LXDNetworkInfoSuite : LXDBackend, WithParamInterface<QByteArray>
 {
 };
 
-TEST_P(LXDNetworkInfoSuite, returns_expected_network_info)
+TEST_P(LXDNetworkInfoSuite, returnsExpectedNetworkInfo)
 {
     const auto leases_data = GetParam();
 
@@ -1254,7 +1254,7 @@ INSTANTIATE_TEST_SUITE_P(LXDBackend,
                                 mpt::network_leases_data_with_ipv6,
                                 mpt::network_leases_data_with_others));
 
-TEST_F(LXDBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
+TEST_F(LXDBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -1299,7 +1299,7 @@ TEST_F(LXDBackend, ssh_hostname_timeout_throws_and_sets_unknown_state)
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
 }
 
-TEST_F(LXDBackend, no_ip_address_returns_unknown)
+TEST_F(LXDBackend, noIpAddressReturnsUnknown)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -1343,7 +1343,7 @@ TEST_F(LXDBackend, no_ip_address_returns_unknown)
     EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
 }
 
-TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
+TEST_F(LXDBackend, lxdRequestTimeoutAbortsAndThrows)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
         QByteArray data;
@@ -1369,7 +1369,7 @@ TEST_F(LXDBackend, lxd_request_timeout_aborts_and_throws)
         mpt::match_what(HasSubstr(error_string)));
 }
 
-TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
+TEST_F(LXDBackend, lxdRequestEmptyDataReturnedThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
         QByteArray data;
@@ -1393,7 +1393,7 @@ TEST_F(LXDBackend, lxd_request_empty_data_returned_throws_and_logs)
                          mpt::match_what(HasSubstr(error_string)));
 }
 
-TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
+TEST_F(LXDBackend, lxdRequestInvalidJsonThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce([](auto, auto request, auto) {
@@ -1418,7 +1418,7 @@ TEST_F(LXDBackend, lxd_request_invalid_json_throws_and_logs)
                                                HasSubstr("illegal value"))));
 }
 
-TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
+TEST_F(LXDBackend, lxdRequestWrongJsonThrowsAndLogs)
 {
     QByteArray invalid_json{"[]\r\n"};
 
@@ -1443,7 +1443,7 @@ TEST_F(LXDBackend, lxd_request_wrong_json_throws_and_logs)
                          mpt::match_what(AllOf(HasSubstr(base_url.toString().toStdString()))));
 }
 
-TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
+TEST_F(LXDBackend, lxdRequestBadRequestThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
         const QByteArray error_data{"{"
@@ -1470,7 +1470,7 @@ TEST_F(LXDBackend, lxd_request_bad_request_throws_and_logs)
                          mpt::match_what(error_matcher));
 }
 
-TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
+TEST_F(LXDBackend, lxdRequestMultipartBbadRequestThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([](auto...) {
         const QByteArray error_data{"{"
@@ -1500,7 +1500,7 @@ TEST_F(LXDBackend, lxd_request_multipart_bbad_request_throws_and_logs)
         mpt::match_what(error_matcher));
 }
 
-TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
+TEST_F(LXDBackend, lxdWaitErrorReturnedThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce([](auto, auto request, auto) {
@@ -1561,7 +1561,7 @@ TEST_F(LXDBackend, lxd_wait_error_returned_throws_and_logs)
         mpt::match_what(error_matcher));
 }
 
-TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
+TEST_F(LXDBackend, lxdWaitStatusCodeFailureReturnedThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce([](auto, auto request, auto) {
@@ -1622,7 +1622,7 @@ TEST_F(LXDBackend, lxd_wait_status_code_failure_returned_throws_and_logs)
         mpt::match_what(error_matcher));
 }
 
-TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_logs)
+TEST_F(LXDBackend, lxdWaitMetadataStatusCodeFailureReturnedThrowsAndLogs)
 {
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce([](auto, auto request, auto) {
@@ -1683,7 +1683,7 @@ TEST_F(LXDBackend, lxd_wait_metadata_status_code_failure_returned_throws_and_log
         mpt::match_what(error_matcher));
 }
 
-TEST_F(LXDBackend, unsupported_suspend_throws)
+TEST_F(LXDBackend, unsupportedSuspendThrows)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -1722,7 +1722,7 @@ TEST_F(LXDBackend, unsupported_suspend_throws)
                          mpt::match_what(HasSubstr("suspend")));
 }
 
-TEST_F(LXDBackend, start_while_frozen_unfreezes)
+TEST_F(LXDBackend, startWhileFrozenUnfreezes)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     bool unfreeze_called{false};
@@ -1768,7 +1768,7 @@ TEST_F(LXDBackend, start_while_frozen_unfreezes)
     EXPECT_TRUE(unfreeze_called);
 }
 
-TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
+TEST_F(LXDBackend, shutdownWhileStoppedDoesNothingAndLogsDebug)
 {
     mpt::MockVMStatusMonitor mock_monitor;
 
@@ -1808,7 +1808,7 @@ TEST_F(LXDBackend, shutdown_while_stopped_does_nothing_and_logs_debug)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
+TEST_F(LXDBackend, shutdownWhileFrozenThrowsAndLogsInfo)
 {
     const std::string sub_error_msg{"Cannot shut down suspended instance"};
     mpt::MockVMStatusMonitor mock_monitor;
@@ -1847,7 +1847,7 @@ TEST_F(LXDBackend, shutdown_while_frozen_throws_and_logs_info)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::suspended);
 }
 
-TEST_F(LXDBackend, ensure_vm_running_does_not_throw_starting)
+TEST_F(LXDBackend, ensureVmRunningDoesNotThrowStarting)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -1902,7 +1902,7 @@ TEST_F(LXDBackend, ensure_vm_running_does_not_throw_starting)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::starting);
 }
 
-TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
+TEST_F(LXDBackend, shutdownWhileStartingThrowsAndSetsCorrectState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -1973,7 +1973,7 @@ TEST_F(LXDBackend, shutdown_while_starting_throws_and_sets_correct_state)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, start_failure_while_starting_throws_and_sets_correct_state)
+TEST_F(LXDBackend, startFailureWhileStartingThrowsAndSetsCorrectState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     bool start_called{false};
@@ -2031,7 +2031,7 @@ TEST_F(LXDBackend, start_failure_while_starting_throws_and_sets_correct_state)
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(LXDBackend, reboots_while_starting_does_not_throw_and_sets_correct_state)
+TEST_F(LXDBackend, rebootsWhileStartingDoesNotThrowAndSetsCorrectState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     bool start_called{false}, reboot_simulated{false};
@@ -2090,7 +2090,7 @@ TEST_F(LXDBackend, reboots_while_starting_does_not_throw_and_sets_correct_state)
     EXPECT_TRUE(reboot_simulated);
 }
 
-TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_state)
+TEST_F(LXDBackend, currentStateConnectionErrorLogsWarningAndSetsUnknownState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
     const std::string exception_message{"Cannot connect to socket"};
@@ -2116,7 +2116,7 @@ TEST_F(LXDBackend, current_state_connection_error_logs_warning_and_sets_unknown_
     EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::unknown);
 }
 
-TEST_P(LXDInstanceStatusTestSuite, lxd_state_returns_expected_VirtualMachine_state)
+TEST_P(LXDInstanceStatusTestSuite, lxdStateReturnsExpectedVirtualmachineState)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -2193,7 +2193,7 @@ auto custom_request_matcher(const QString& verb, const std::string& url_sub_str)
 const auto network_request_matcher = custom_request_matcher("GET", "1.0/networks?recursion=1");
 } // namespace
 
-TEST_F(LXDBackend, requests_networks)
+TEST_F(LXDBackend, requestsNetworks)
 {
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
@@ -2209,7 +2209,7 @@ struct LXDNetworksBadJson : LXDBackend, WithParamInterface<QByteArray>
 {
 };
 
-TEST_P(LXDNetworksBadJson, handles_gibberish_networks_reply)
+TEST_P(LXDNetworksBadJson, handlesGibberishNetworksReply)
 {
     auto log_matcher = AnyOf(HasSubstr("Error parsing JSON"), HasSubstr("Empty reply"));
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::debug), _, log_matcher));
@@ -2233,7 +2233,7 @@ struct LXDNetworksBadFields : LXDBackend, WithParamInterface<QByteArray>
 {
 };
 
-TEST_P(LXDNetworksBadFields, ignores_network_without_expected_fields)
+TEST_P(LXDNetworksBadFields, ignoresNetworkWithoutExpectedFields)
 {
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
@@ -2262,7 +2262,7 @@ struct LXDNetworksOnlySupportedTypes : LXDBackend, WithParamInterface<QByteArray
 {
 };
 
-TEST_P(LXDNetworksOnlySupportedTypes, reports_only_bridge_and_ethernet_networks)
+TEST_P(LXDNetworksOnlySupportedTypes, reportsOnlyBridgeAndEthernetNetworks)
 {
     EXPECT_CALL(*mock_network_access_manager,
                 createRequest(QNetworkAccessManager::CustomOperation, network_request_matcher, _))
@@ -2297,7 +2297,7 @@ INSTANTIATE_TEST_SUITE_P(LXDBackend,
                          LXDNetworksOnlySupportedTypes,
                          Values(mpt::networks_realistic_data, mpt::networks_faulty_data));
 
-TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
+TEST_F(LXDBackend, honorsBridgeDescriptionFromLxdWhenAvailable)
 {
     auto description = "Australopithecus";
     auto data_template =
@@ -2320,7 +2320,7 @@ TEST_F(LXDBackend, honors_bridge_description_from_lxd_when_available)
                 ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(description))));
 }
 
-TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform)
+TEST_F(LXDBackend, fallsBackToBridgeDescriptionFromPlatform)
 {
     auto data = QByteArrayLiteral(
         R"({"metadata": [{"type": "bridge", "name": "br0", "description": ""}]})");
@@ -2343,7 +2343,7 @@ TEST_F(LXDBackend, falls_back_to_bridge_description_from_platform)
                 ElementsAre(Field(&mp::NetworkInterfaceInfo::description, Eq(fallback_desc))));
 }
 
-TEST_F(LXDBackend, skips_platform_network_inspection_when_lxd_reports_no_networks)
+TEST_F(LXDBackend, skipsPlatformNetworkInspectionWhenLxdReportsNoNetworks)
 {
     auto data = QByteArrayLiteral(R"({"metadata": []})");
 
@@ -2430,7 +2430,7 @@ void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_
 }
 } // namespace
 
-TEST_F(LXDBackend, posts_extra_network_devices)
+TEST_F(LXDBackend, postsExtraNetworkDevices)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -2454,7 +2454,7 @@ TEST_F(LXDBackend, posts_extra_network_devices)
                                   instance_dir.path()};
 }
 
-TEST_F(LXDBackend, posts_network_data_config_if_available)
+TEST_F(LXDBackend, postsNetworkDataConfigIfAvailable)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 
@@ -2576,7 +2576,7 @@ TEST_F(LXDBackend, addsNetworkInterface)
     EXPECT_EQ(patch_times_called, 1u);
 }
 
-TEST_F(LXDBackend, converts_http_to_https)
+TEST_F(LXDBackend, convertsHttpToHttps)
 {
     mpt::StubVMStatusMonitor stub_monitor;
 

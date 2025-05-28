@@ -30,7 +30,7 @@ struct TestQemuVmStateProcessSpec : public Test
     QString file_name{"foo"};
 };
 
-TEST_F(TestQemuVmStateProcessSpec, default_arguments_correct)
+TEST_F(TestQemuVmStateProcessSpec, defaultArgumentsCorrect)
 {
     mp::QemuVmStateProcessSpec spec{file_name};
 

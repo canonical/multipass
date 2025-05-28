@@ -199,7 +199,7 @@ struct CreateBridgeTest : public Test
     const QVariant empty{};
 };
 
-TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
+TEST_F(CreateBridgeTest, createsAndActivatesConnections) // success case
 {
     static constexpr auto network = "eth1234567890a";
     static constexpr auto child_obj_path = "/an/obj/path/for/child";
@@ -238,7 +238,7 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
     EXPECT_EQ(MP_BACKEND.create_bridge_with(network), get_bridge_name(network).toStdString());
 }
 
-TEST_F(CreateBridgeTest, throws_if_bus_disconnected)
+TEST_F(CreateBridgeTest, throwsIfBusDisconnected)
 {
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(false));
@@ -255,7 +255,7 @@ struct CreateBridgeInvalidInterfaceTest : public CreateBridgeTest, WithParamInte
 {
 };
 
-TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
+TEST_P(CreateBridgeInvalidInterfaceTest, throwsIfInterfaceInvalid)
 {
     bool invalid_root_interface = GetParam(); // otherwise, invalid settings interface
     auto& mock_nm_interface = invalid_root_interface ? mock_nm_root : mock_nm_settings;
@@ -276,7 +276,7 @@ TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
 
-TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
+TEST_F(CreateBridgeTest, throwsOnFailureToCreateFirstConnection)
 {
     auto msg = QStringLiteral("Nope");
     auto ifc = QStringLiteral("An interface");
@@ -298,7 +298,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
                                                HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
+TEST_F(CreateBridgeTest, throwsOnFailureToCreateSecondConnection)
 {
     const auto msg = QStringLiteral("Still not");
     const auto ifc = QStringLiteral("the interface");
@@ -331,7 +331,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
                                                HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
+TEST_F(CreateBridgeTest, throwsOnFailureToActivateSecondConnection)
 {
     const auto msg = QStringLiteral("Refusing");
     const auto ifc = QStringLiteral("interface");
@@ -375,7 +375,7 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
                                                HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, logs_on_failure_to_rollback)
+TEST_F(CreateBridgeTest, logsOnFailureToRollback)
 {
     const auto child_path = QStringLiteral("/child");
     const auto original_error = 255;
@@ -406,7 +406,7 @@ struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<b
 {
 };
 
-TEST_P(CreateBridgeExceptionTest, create_bridge_exception_info)
+TEST_P(CreateBridgeExceptionTest, createBridgeExceptionInfo)
 {
     auto rollback = GetParam();
     static constexpr auto specific_info = "specific error details";
@@ -415,7 +415,7 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_info)
                 mpt::match_what(AllOf(HasSubstr(generic_msg), HasSubstr(specific_info))));
 }
 
-TEST_P(CreateBridgeExceptionTest, create_bridge_exception_includes_dbus_cause_when_available)
+TEST_P(CreateBridgeExceptionTest, createBridgeExceptionIncludesDbusCauseWhenAvailable)
 {
     auto msg = QStringLiteral("DBus error msg");
     QDBusError dbus_error = {QDBusError::Other, msg};
@@ -424,7 +424,7 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_includes_dbus_cause_wh
                 mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
-TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause_when_unavailable)
+TEST_P(CreateBridgeExceptionTest, createBridgeExceptionMentionsUnknownCauseWhenUnavailable)
 {
     QDBusError dbus_error{};
     ASSERT_FALSE(dbus_error.isValid());
@@ -435,7 +435,7 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeExceptionTest, Values(true, false));
 } // namespace
 
-TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
+TEST(LinuxBackendUtils, checkForKvmSupportNoErrorDoesNotThrow)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
@@ -444,7 +444,7 @@ TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
     EXPECT_NO_THROW(MP_BACKEND.check_for_kvm_support());
 }
 
-TEST(LinuxBackendUtils, check_for_kvm_support_does_not_exist_throws_expected_error)
+TEST(LinuxBackendUtils, checkForKvmSupportDoesNotExistThrowsExpectedError)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
@@ -456,7 +456,7 @@ TEST(LinuxBackendUtils, check_for_kvm_support_does_not_exist_throws_expected_err
                               HasSubstr("Please ensure the following:"))));
 }
 
-TEST(LinuxBackendUtils, check_for_kvm_support_no_read_write_throws_expected_error)
+TEST(LinuxBackendUtils, checkForKvmSupportNoReadWriteThrowsExpectedError)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
@@ -470,7 +470,7 @@ TEST(LinuxBackendUtils, check_for_kvm_support_no_read_write_throws_expected_erro
                               "connect multipass:kvm")));
 }
 
-TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)
+TEST(LinuxBackendUtils, checkKvmInUseNoFailureDoesNotThrow)
 {
     auto [mock_linux_syscalls, guard] = mpt::MockLinuxSysCalls::inject();
 
@@ -481,7 +481,7 @@ TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)
     EXPECT_NO_THROW(MP_BACKEND.check_if_kvm_is_in_use());
 }
 
-TEST(LinuxBackendUtils, check_kvm_in_use_fails_throws_expected_message)
+TEST(LinuxBackendUtils, checkKvmInUseFailsThrowsExpectedMessage)
 {
     auto [mock_linux_syscalls, guard] = mpt::MockLinuxSysCalls::inject();
 
@@ -500,7 +500,7 @@ TEST(LinuxBackendUtils, check_kvm_in_use_fails_throws_expected_message)
             "starting a Multipass instance.")));
 }
 
-TEST(LinuxBackendUtils, linux_syscalls_return_expected_values)
+TEST(LinuxBackendUtils, linuxSyscallsReturnExpectedValues)
 {
     const std::string null_path{"/dev/null"};
 
@@ -514,7 +514,7 @@ TEST(LinuxBackendUtils, linux_syscalls_return_expected_values)
     EXPECT_EQ(MP_LINUX_SYSCALLS.close(null_fd), 0);
 }
 
-TEST(LinuxBackendUtils, get_subnet_bridge_exists_returns_expected_data)
+TEST(LinuxBackendUtils, getSubnetBridgeExistsReturnsExpectedData)
 {
     const std::string test_subnet{"10.102.12"};
     const QString bridge_name{"test-bridge"};
@@ -528,7 +528,7 @@ TEST(LinuxBackendUtils, get_subnet_bridge_exists_returns_expected_data)
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), test_subnet);
 }
 
-TEST(LinuxBackendUtils, get_subnet_in_file_returns_expected_data)
+TEST(LinuxBackendUtils, getSubnetInFileReturnsExpectedData)
 {
     const std::string test_subnet{"10.102.12"};
     const QString bridge_name{"test-bridge"};
@@ -547,7 +547,7 @@ TEST(LinuxBackendUtils, get_subnet_in_file_returns_expected_data)
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), test_subnet);
 }
 
-TEST(LinuxBackendUtils, get_subnet_not_in_file_writes_new_subnet_returns_expected_data)
+TEST(LinuxBackendUtils, getSubnetNotInFileWritesNewSubnetReturnsExpectedData)
 {
     const QString bridge_name{"test-bridge"};
     std::string generated_subnet;

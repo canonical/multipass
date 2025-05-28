@@ -314,7 +314,7 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
                 StrEq("The native mounts feature is not implemented on this backend."));
 }
 
-TEST_F(TestDaemonMount, mount_uses_resolved_source)
+TEST_F(TestDaemonMount, mountUsesResolvedSource)
 {
     // can't use _ since _ is needed for gmock matching later.
     const auto [temp_dir, ignored_filename] =

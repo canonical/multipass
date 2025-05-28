@@ -40,13 +40,13 @@ using uut_t = mpl::ClientLogger<StubReply, StubReply>;
 using testing::HasSubstr;
 using testing::Return;
 
-struct client_logger_tests : ::testing::Test
+struct ClientLoggerTests : ::testing::Test
 {
     mpl::MultiplexingLogger stub_multiplexing_logger{std::make_unique<mpt::StubLogger>()};
     mpt::MockServerReaderWriter<StubReply, StubReply> mock_srw;
 };
 
-TEST_F(client_logger_tests, call_log)
+TEST_F(ClientLoggerTests, callLog)
 {
     EXPECT_CALL(mock_srw,
                 Write(Field(&StubReply::stored_msg, HasSubstr("[debug] [cat] msg")), testing::_))
@@ -55,7 +55,7 @@ TEST_F(client_logger_tests, call_log)
     logger.log(mpl::Level::debug, "cat", "msg");
 }
 
-TEST_F(client_logger_tests, call_log_filtered)
+TEST_F(ClientLoggerTests, callLogFiltered)
 {
     EXPECT_CALL(mock_srw, Write(testing::_, testing::_)).Times(0);
     uut_t logger{mpl::Level::debug, stub_multiplexing_logger, &mock_srw};

@@ -101,7 +101,7 @@ TEST(SFTPDirIterator, success)
                                      "dir/dir3/file6"));
 }
 
-TEST(SFTPDirIterator, fail_opendir)
+TEST(SFTPDirIterator, failOpendir)
 {
     REPLACE(sftp_opendir, [](auto...) { return nullptr; });
     REPLACE(ssh_get_error, [](auto...) { return "SFTP server: No such file"; });
@@ -113,7 +113,7 @@ TEST(SFTPDirIterator, fail_opendir)
         mpt::match_what(StrEq("cannot open remote directory 'dir': SFTP server: No such file")));
 }
 
-TEST(SFTPDirIterator, fail_readdir)
+TEST(SFTPDirIterator, failReaddir)
 {
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_dir(path); });
     REPLACE(sftp_readdir, [](auto...) { return nullptr; });

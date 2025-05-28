@@ -289,7 +289,7 @@ TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
     send_command({"find"});
 }
 
-TEST_F(DaemonFind, UpdateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
+TEST_F(DaemonFind, updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 

@@ -95,14 +95,14 @@ TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
     EXPECT_EQ(poll_count, 1);
 }
 
-TEST_F(SSHClient, throws_when_unable_to_open_session)
+TEST_F(SSHClient, throwsWhenUnableToOpenSession)
 {
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
 
     EXPECT_THROW(make_ssh_client(), std::runtime_error);
 }
 
-TEST_F(SSHClient, throw_when_request_shell_fails)
+TEST_F(SSHClient, throwWhenRequestShellFails)
 {
     auto client = make_ssh_client();
     REPLACE(ssh_channel_request_pty, [](auto...) { return SSH_OK; });
@@ -112,7 +112,7 @@ TEST_F(SSHClient, throw_when_request_shell_fails)
     EXPECT_THROW(client.connect(), std::runtime_error);
 }
 
-TEST_F(SSHClient, throw_when_request_exec_fails)
+TEST_F(SSHClient, throwWhenRequestExecFails)
 {
     auto client = make_ssh_client();
     REPLACE(ssh_channel_request_pty, [](auto...) { return SSH_OK; });
