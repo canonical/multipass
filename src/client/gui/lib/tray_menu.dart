@@ -95,7 +95,7 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
   await TrayMenu.instance.addLabel(
     'quit',
     label: 'Quit',
-    callback: (_, __) => windowManager.destroy(),
+    callback: (_, __) => windowManager.close(),
   );
 
   await TrayMenu.instance.show(await _iconFilePath());
