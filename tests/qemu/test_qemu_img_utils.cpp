@@ -296,7 +296,7 @@ TEST(QemuImgUtils, amendsQCow2Version)
     test_image_amendment(img_path, qemuimg_amend_result, throw_msg_matcher);
 }
 
-TEST(QemuImgUtils, amend_detects_failure_and_throws)
+TEST(QemuImgUtils, amendDetectsFailureAndThrows)
 {
     constexpr auto img_path = "/fake/img/path.qcow2";
     const auto qemuimg_amend_result = failure;
