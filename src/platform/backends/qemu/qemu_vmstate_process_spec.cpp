@@ -36,7 +36,7 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
          << "-dump-vmstate" << file_name;
 #elif defined Q_PROCESSOR_ARM
     args << "-machine"
-         << "virt,gic-version=3"
+         << "virt"
          << "-nographic"
          << "-dump-vmstate" << file_name;
 #endif
