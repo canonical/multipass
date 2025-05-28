@@ -337,7 +337,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     // Grant access to the VHDX and the cloud-init ISO files.
     for (const auto& scsi : create_compute_system_params.scsi_devices)
     {
-        grant_access_to_paths({scsi.path});
+        grant_access_to_paths({scsi.path.get()});
     }
 
     return true;
