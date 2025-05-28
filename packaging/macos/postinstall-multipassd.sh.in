@@ -14,6 +14,9 @@ fi
 # Create log dir and ensure correct permissions
 mkdir -p "$3/Library/Logs/Multipass" -m 755
 
+# Ensure correct daemon permissions
+chown root:wheel "$3@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipassd"
+
 # Install launch agent
 cp -v "$LAUNCH_AGENT_SRC" "$LAUNCH_AGENT_DEST"
 launchctl load -w "$LAUNCH_AGENT_DEST"
