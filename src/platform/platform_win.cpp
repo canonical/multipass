@@ -60,6 +60,8 @@
 #include <netioapi.h>
 #include <objbase.h>
 #include <sddl.h>
+#include <security.h>
+#include <secext.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -1073,12 +1075,15 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 
 QString mp::platform::Platform::get_username() const
 {
-    QString username;
-    mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-                         "get-username",
-                         &username);
-    return username.section('\\', 1);
-}
+    DWORD needed_size = 0;
+    GetUserNameEx(EXTENDED_NAME_FORMAT::NameSamCompatible, nullptr, &needed_size);
+    std::unique_ptr<wchar_t[]> buff(new wchar_t[needed_size]);
+    if (GetUserNameExW(EXTENDED_NAME_FORMAT::NameSamCompatible, buff.get(), &needed_size))
+    {
+        return QString::fromWCharArray(buff.get(), needed_size);
+    }
+    throw std::runtime_error("Failed retrieving user name!");
+}+
 
 QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
