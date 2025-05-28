@@ -29,17 +29,13 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
     QStringList args;
 
-    args << platform_args;
-
-#if defined Q_PROCESSOR_X86
-    args << "-nographic"
-         << "-dump-vmstate" << file_name;
-#elif defined Q_PROCESSOR_ARM
-    args << "-machine"
+    args << platform_args
+#if defined Q_PROCESSOR_ARM
+         << "-machine"
          << "virt"
+#endif
          << "-nographic"
          << "-dump-vmstate" << file_name;
-#endif
 
     return args;
 }
