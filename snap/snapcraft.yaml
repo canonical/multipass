@@ -17,6 +17,26 @@ architectures:
   - build-on: amd64
   - build-on: arm64
 
+package-repositories:
+  # Use https:// endpoint by default
+  - type: apt
+    url: https://archive.ubuntu.com/ubuntu
+    formats: [deb]
+    architectures: [amd64, arm64]
+    key-server: keyserver.ubuntu.com
+    key-id: F6ECB3762474EDA9D21B7022871920D1991BC93C
+    components: [main, multiverse, universe, restricted]
+    suites: [jammy, jammy-updates]
+  # Use http:// as fallback
+  - type: apt
+    url: http://archive.ubuntu.com/ubuntu/
+    formats: [deb]
+    architectures: [amd64, arm64]
+    key-server: keyserver.ubuntu.com
+    key-id: F6ECB3762474EDA9D21B7022871920D1991BC93C
+    suites: [jammy, jammy-updates]
+    components: [main, multiverse, universe, restricted]
+
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
     bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu
