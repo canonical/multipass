@@ -30,7 +30,7 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
             'When quitting this application you can leave instances running in the background or choose to stop them completely.',
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         Row(
           children: [
             Checkbox(

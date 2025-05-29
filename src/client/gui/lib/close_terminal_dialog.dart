@@ -31,7 +31,7 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
           child: const Text(
               'Are you sure you want to close this tab? Its current state will be lost.'),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         Row(
           children: [
             Checkbox(
