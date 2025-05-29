@@ -170,6 +170,7 @@ jobs:
         fi
 
         # Build the `multipass` part.
+        /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
         /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
