@@ -27,6 +27,8 @@ class ConfirmationDialog extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       titlePadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
       buttonPadding: const EdgeInsets.symmetric(horizontal: 16),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16)
+          .copyWith(top: 4, bottom: 12),
       title: Row(children: [
         Expanded(child: Text(title)),
         IconButton(
