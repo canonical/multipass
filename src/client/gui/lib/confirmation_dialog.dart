@@ -25,7 +25,7 @@ class ConfirmationDialog extends StatelessWidget {
     return AlertDialog(
       shape: const Border(),
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-      titlePadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
+      titlePadding: const EdgeInsets.only(left: 16, right: 8, top: 8),
       buttonPadding: const EdgeInsets.symmetric(horizontal: 16),
       actionsPadding: const EdgeInsets.symmetric(horizontal: 16)
           .copyWith(top: 4, bottom: 12),
