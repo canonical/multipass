@@ -15,21 +15,30 @@
  *
  */
 
-#pragma once
+#ifndef MULTIPASS_BLOCK_DEVICE_EXCEPTIONS_H
+#define MULTIPASS_BLOCK_DEVICE_EXCEPTIONS_H
 
-#include <multipass/cli/formatter.h>
+#include <stdexcept>
+#include <string>
 
 namespace multipass
 {
-class CSVFormatter final : public Formatter
+class ValidationError : public std::runtime_error
 {
 public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const NetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
-    std::string format(const VersionReply& list, const std::string& client_version) const override;
-    std::string format(const AliasDict& aliases) const override;
-    std::string format(const ListBlocksReply& reply) const override;
+    explicit ValidationError(const std::string& msg) : runtime_error{msg}
+    {
+    }
 };
+
+class NotFoundError : public std::runtime_error
+{
+public:
+    explicit NotFoundError(const std::string& msg) : runtime_error{msg}
+    {
+    }
+};
+
 } // namespace multipass
+
+#endif // MULTIPASS_BLOCK_DEVICE_EXCEPTIONS_H

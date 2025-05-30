@@ -20,11 +20,13 @@
 #include <multipass/cli/format_utils.h>
 #include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 
 #include <regex>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -395,6 +397,80 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
 
     return fmt::to_string(buf);
 }
+std::string generate_block_devices_list(const mp::ListBlocksReply& reply)
+{
+    fmt::memory_buffer buf;
+
+    const auto& block_devices = reply.block_devices();
+    
+    // Debug logging
+    mpl::debug("client", "generate_block_devices_list called");
+    mpl::debug("client", "block_devices.size() = {}", block_devices.size());
+
+    if (block_devices.empty())
+    {
+        mpl::debug("client", "No block devices found, returning early");
+        return "No block devices found.\n";
+    }
+
+    const std::string name_col_header = "Name";
+    const std::string size_col_header = "Size";
+    const std::string path_col_header = "Path";
+    const std::string attached_col_header = "Attached to";
+    
+    const auto name_column_width = mp::format::column_width(
+        block_devices.begin(),
+        block_devices.end(),
+        [](const auto& block) -> int { return block.name().length(); },
+        name_col_header.length(),
+        24);
+    
+    const auto size_column_width = mp::format::column_width(
+        block_devices.begin(),
+        block_devices.end(),
+        [](const auto& block) -> int { return block.size().length(); },
+        size_col_header.length(),
+        10);
+    
+    const auto path_column_width = mp::format::column_width(
+        block_devices.begin(),
+        block_devices.end(),
+        [](const auto& block) -> int { return block.path().length(); },
+        path_col_header.length(),
+        30);
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   name_col_header,
+                   name_column_width,
+                   size_col_header,
+                   size_column_width,
+                   path_col_header,
+                   path_column_width,
+                   attached_col_header);
+
+    mpl::debug("client", "Starting to iterate through block devices");
+    for (const auto& block : block_devices)
+    {
+        mpl::debug("client", "Processing block device: name={}, size={}, path={}, attached_to={}",
+                   block.name(), block.size(), block.path(),
+                   block.attached_to().empty() ? "--" : block.attached_to());
+        
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       block.name(),
+                       name_column_width,
+                       block.size(),
+                       size_column_width,
+                       block.path(),
+                       path_column_width,
+                       block.attached_to().empty() ? "--" : block.attached_to());
+    }
+
+    mpl::debug("client", "Finished processing block devices, returning formatted string");
+    return fmt::to_string(buf);
+}
 } // namespace
 
 std::string mp::TableFormatter::format(const InfoReply& reply) const
@@ -547,6 +623,14 @@ std::string mp::TableFormatter::format(const VersionReply& reply,
         }
     }
     return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const ListBlocksReply& reply) const
+{
+    mpl::debug("client", "TableFormatter::format(ListBlocksReply) called");
+    auto result = generate_block_devices_list(reply);
+    mpl::debug("client", "TableFormatter::format(ListBlocksReply) returning: {}", result);
+    return result;
 }
 
 std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
