@@ -46,6 +46,7 @@
 #include "cmd/umount.h"
 #include "cmd/unalias.h"
 #include "cmd/version.h"
+#include "cmd/wait_ready.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
@@ -111,6 +112,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
+    add_command<cmd::WaitReady>();
 
     sort_commands();
 
