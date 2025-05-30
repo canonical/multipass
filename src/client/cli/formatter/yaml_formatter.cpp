@@ -350,3 +350,22 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 
     return mpu::emit_yaml(aliases_list);
 }
+
+std::string mp::YamlFormatter::format(const ListBlocksReply& reply) const
+{
+    YAML::Node blocks_node;
+
+    for (const auto& block : reply.block_devices())
+    {
+        YAML::Node block_node;
+        block_node["size"] = block.size();
+        block_node["path"] = block.path();
+        
+        if (!block.attached_to().empty())
+            block_node["attached_to"] = block.attached_to();
+
+        blocks_node[block.name()].push_back(block_node);
+    }
+
+    return mpu::emit_yaml(blocks_node);
+}

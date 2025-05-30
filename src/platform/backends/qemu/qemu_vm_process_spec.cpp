@@ -28,10 +28,12 @@ namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
-                                         const QStringList& platform_args,
-                                         const mp::QemuVirtualMachine::MountArgs& mount_args,
-                                         const std::optional<ResumeData>& resume_data)
-    : desc{desc}, platform_args{platform_args}, mount_args{mount_args}, resume_data{resume_data}
+                                          const QStringList& platform_args,
+                                          const mp::QemuVirtualMachine::MountArgs& mount_args,
+                                          const std::optional<ResumeData>& resume_data,
+                                          const QStringList& additional_args)
+    : desc{desc}, platform_args{platform_args}, mount_args{mount_args},
+      resume_data{resume_data}, additional_args{additional_args}
 {
 }
 
@@ -102,6 +104,9 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         const auto& [__, mount_args] = mount_data;
         args << mount_args;
     }
+
+    // Add any additional arguments (e.g., for block devices)
+    args << additional_args;
 
     return args;
 }

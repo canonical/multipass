@@ -47,10 +47,11 @@ service Rpc {
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
     
     // Block storage operations
-    rpc create_block (CreateBlockRequest) returns (CreateBlockReply);
-    rpc delete_block (DeleteBlockRequest) returns (DeleteBlockReply);
-    rpc attach_block (AttachBlockRequest) returns (AttachBlockReply);
-    rpc detach_block (DetachBlockRequest) returns (DetachBlockReply);
+    rpc create_block (stream CreateBlockRequest) returns (stream CreateBlockReply);
+    rpc delete_block (stream DeleteBlockRequest) returns (stream DeleteBlockReply);
+    rpc attach_block (stream AttachBlockRequest) returns (stream AttachBlockReply);
+    rpc detach_block (stream DetachBlockRequest) returns (stream DetachBlockReply);
+    rpc list_blocks (stream ListBlocksRequest) returns (stream ListBlocksReply);
 }
 
 // Block storage message definitions
@@ -91,6 +92,22 @@ message DetachBlockRequest {
 message DetachBlockReply {
     string log_line = 1;
     string error_message = 2;
+}
+
+message ListBlocksRequest {
+    int32 verbosity_level = 1;
+}
+
+message BlockInfo {
+    string name = 1;
+    string size = 2;
+    string path = 3;
+    string attached_to = 4;
+}
+
+message ListBlocksReply {
+    string log_line = 1;
+    repeated BlockInfo block_devices = 2;
 }
 
 message LaunchRequest {
