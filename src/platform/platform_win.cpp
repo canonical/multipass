@@ -1158,12 +1158,11 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 
 QString mp::platform::Platform::get_username() const
 {
-    DWORD needed_size = 0;
-    GetUserNameEx(EXTENDED_NAME_FORMAT::NameSamCompatible, nullptr, &needed_size);
-    std::unique_ptr<wchar_t[]> buff(new wchar_t[needed_size]);
-    if (GetUserNameExW(EXTENDED_NAME_FORMAT::NameSamCompatible, buff.get(), &needed_size))
+    wchar_t username_buf[UNLEN + 1] = {};
+    DWORD sz = sizeof(username_buf) / sizeof(wchar_t);
+    if (GetUserNameW(username_buf, &sz))
     {
-        return QString::fromWCharArray(buff.get(), needed_size);
+        return QString::fromWCharArray(username_buf, sz);
     }
     throw std::runtime_error("Failed retrieving user name!");
 }
