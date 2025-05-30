@@ -193,11 +193,9 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
     : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
       source{QString::fromStdString(get_mount_spec().get_source_path())},
       // share name must be unique and 80 chars max
-      share_name{QString("%1_%2:%3")
-                     .arg(MP_UTILS.make_uuid(target),
-                          QString::fromStdString(vm->vm_name),
-                          QString::fromStdString(target))
-                     .left(80)},
+      // UUIDS are 36 chars each, and +1 for dash: 73 characters.
+      share_name{QString::fromStdString(
+          fmt::format("{}-{}", MP_UTILS.make_uuid(vm->vm_name), MP_UTILS.make_uuid(target)))},
       cred_dir{cred_dir},
       smb_manager{&smb_manager}
 {
