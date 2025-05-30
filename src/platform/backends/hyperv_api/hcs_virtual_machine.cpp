@@ -31,6 +31,7 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/shared_backend_utils.h>
+#include <shared/windows/smb_mount_handler.h>
 
 #include <fmt/xchar.h>
 
@@ -561,10 +562,17 @@ std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const
                                                                            const VMMount& mount)
 {
     mpl::debug(kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name, target);
+    // throw NotImplementedOnThisBackendException{
+    //     "Plan9 mounts require an agent running on guest, which is not implemented yet."};
+    // FIXME: Replace with Plan9 mount handler once the guest agent is available.
 
-    throw NotImplementedOnThisBackendException{
-        "Plan9 mounts require an agent running on guest, which is not implemented yet."};
-    // return std::make_unique<hcs::Plan9MountHandler>(this, &key_provider, mount, target, hcs);
+    static const SmbManager smb_manager{};
+    return std::make_unique<SmbMountHandler>(this,
+                                             &key_provider,
+                                             target,
+                                             mount,
+                                             instance_dir.absolutePath(),
+                                             smb_manager);
 }
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
