@@ -21,9 +21,10 @@ _multipass_complete()
         local state=$1 cmd instances
 
         cmd="multipass list --format=csv --no-ipv4 | \tail -n +2"
-        [ -n "$state" ] && cmd="$cmd | \awk -F',' '\$2 == \"$state\"'"
+        instances=$( \eval $cmd )
 
-        instances=$( \eval $cmd | \cut -d',' -f 1  | \tr '\r\n' ' ')
+        [ -n "$state" ] && instances=$(awk -F',' "\$2 == \"$state\"" <<< "$instances")
+        instances=$(echo "$instances" | \cut -d',' -f 1  | \tr '\r\n' ' ')
 
         _add_nonrepeating_args "$instances"
     }
@@ -33,9 +34,10 @@ _multipass_complete()
         local instance=$1 cmd snapshots
 
         cmd="multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2"
-        [ -n "$instance" ] && cmd="$cmd | \awk -F',' '\$1 == \"$instance\"'"
+        snapshots=$( \eval $cmd )
 
-        snapshots=$( \eval $cmd | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ' )
+        [ -n "$instance" ] && snapshots=$(awk -F',' "\$1 == \"$instance\"" <<< "$snapshots")
+        snapshots=$(echo "$snapshots" | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ')
 
         _add_nonrepeating_args "$snapshots"
     }
