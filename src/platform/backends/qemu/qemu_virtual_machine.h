@@ -20,6 +20,7 @@
 #include "qemu_platform.h"
 
 #include <shared/base_virtual_machine.h>
+#include <multipass/block_device_info.h>
 
 #include <multipass/network_interface.h>
 #include <multipass/process/process.h>
@@ -69,7 +70,12 @@ public:
                                        const NetworkInterface& extra_interface) override;
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
-                                                            const VMMount& mount) override;
+                                                             const VMMount& mount) override;
+                                                             
+    // Block device operations
+    void attach_block_device(const std::string& name, const BlockDeviceInfo& info);
+    void detach_block_device(const std::string& name);
+    bool has_block_device(const std::string& name) const;
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();
@@ -116,6 +122,9 @@ private:
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;
+    
+    // Track attached block devices
+    std::unordered_map<std::string, BlockDeviceInfo> attached_block_devices;
 };
 } // namespace multipass
 
