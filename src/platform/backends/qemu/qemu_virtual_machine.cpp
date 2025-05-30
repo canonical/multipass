@@ -118,11 +118,6 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                         const QStringList& platform_args,
                         const std::unordered_map<std::string, BlockDeviceInfo>& block_devices)
 {
-    if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
-    {
-        throw std::runtime_error("cannot start VM without an image");
-    }
-
     std::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
     if (resume_metadata)
     {
@@ -136,17 +131,55 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     // Build base VM process spec
     QStringList additional_args;
     
-    // Add block devices if any are attached
+    // Check if the original primary disk is still attached
+    bool original_primary_attached = false;
     for (const auto& [name, info] : block_devices)
     {
+        if (info.image_path == desc.image.image_path)
+        {
+            original_primary_attached = true;
+            break;
+        }
+    }
+    
+    // If original primary disk is not attached, we need to use an attached disk as primary
+    QString primary_disk_path = desc.image.image_path;
+    if (!original_primary_attached && !block_devices.empty())
+    {
+        // Use the first attached block device as the new primary disk
+        primary_disk_path = block_devices.begin()->second.image_path;
+        mpl::log(mpl::Level::info, desc.vm_name,
+               fmt::format("Primary disk not attached, using '{}' as primary disk",
+                         primary_disk_path.toStdString()));
+    }
+    
+    // Check that we have a valid primary disk and cloud-init ISO
+    if (!QFile::exists(primary_disk_path) || !QFile::exists(desc.cloud_init_iso))
+    {
+        throw std::runtime_error("cannot start VM without an image");
+    }
+    
+    // Add block devices, but exclude whichever disk is serving as primary
+    for (const auto& [name, info] : block_devices)
+    {
+        // Skip the disk that's serving as primary
+        if (info.image_path == primary_disk_path)
+        {
+            continue;
+        }
+        
         additional_args << "-drive"
                        << QString("file=%1,format=%2,if=virtio")
                            .arg(info.image_path)
                            .arg(QString::fromStdString(info.format));
     }
     
+    // Create a modified desc for the case where primary disk has changed
+    auto modified_desc = desc;
+    modified_desc.image.image_path = primary_disk_path;
+    
     auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data, additional_args);
+        std::make_unique<mp::QemuVMProcessSpec>(modified_desc, platform_args, mount_args, resume_data, additional_args, block_devices);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug,
@@ -278,6 +311,12 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
+    convert_to_qcow2_v3_if_necessary(
+        desc.image.image_path,
+        vm_name); // TODO drop in a couple of releases (went in on v1.13)
+
+    // Load block devices from metadata
+    load_block_devices_from_metadata();
     connect_vm_signals();
 
     // only for clone case where the vm recreation purges the snapshot data
@@ -892,6 +931,31 @@ void mp::QemuVirtualMachine::detach_block_device(const std::string& name)
 bool mp::QemuVirtualMachine::has_block_device(const std::string& name) const
 {
     return attached_block_devices.find(name) != attached_block_devices.end();
+}
+
+void mp::QemuVirtualMachine::load_block_devices_from_metadata()
+{
+    auto metadata = monitor->retrieve_metadata_for(vm_name);
+    if (metadata.contains("block_devices"))
+    {
+        QJsonObject block_devices = metadata["block_devices"].toObject();
+        for (auto it = block_devices.begin(); it != block_devices.end(); ++it)
+        {
+            const std::string name = it.key().toStdString();
+            QJsonObject device = it.value().toObject();
+            
+            mp::BlockDeviceInfo info;
+            info.name = name;
+            info.image_path = device["path"].toString();
+            info.format = device["format"].toString().toStdString();
+            
+            // Don't call attach_block_device to avoid metadata update loops
+            attached_block_devices[name] = info;
+            
+            mpl::log(mpl::Level::debug, vm_name,
+                   fmt::format("Loaded block device '{}' from metadata", name));
+        }
+    }
 }
 
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const

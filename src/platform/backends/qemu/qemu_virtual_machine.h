@@ -109,6 +109,7 @@ private:
     void connect_vm_signals();
     void disconnect_vm_signals();
     void remove_snapshots_from_backend() const;
+    void load_block_devices_from_metadata();
 
     VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};

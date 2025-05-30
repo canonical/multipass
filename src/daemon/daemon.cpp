@@ -1577,7 +1577,7 @@ try
         block_device_manager->attach_block_device(block_name, instance_name);
         
         // Get the QemuVirtualMachine instance and attach the block device
-        auto qemu_vm = dynamic_cast<QemuVirtualMachine*>(vm.get());
+        auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(vm.get());
         if (qemu_vm)
         {
             const auto* block_info = block_device_manager->get_block_device(block_name);
@@ -1650,7 +1650,7 @@ try
         block_device_manager->detach_block_device(block_name, instance_name);
         
         // Get the QemuVirtualMachine instance and detach the block device
-        auto qemu_vm = dynamic_cast<QemuVirtualMachine*>(vm.get());
+        auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(vm.get());
         if (qemu_vm)
         {
             qemu_vm->detach_block_device(block_name);
@@ -1772,6 +1772,30 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto instance = instance_record[name] =
             config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
         instance->load_snapshots();
+
+        // Check if there's a primary disk block device for this instance and attach it
+        // This handles existing instances that were created before automatic disk attachment
+        try
+        {
+            std::string block_device_name = name + "-disk";
+            const auto* block_info = block_device_manager->get_block_device(block_device_name);
+            if (block_info)
+            {
+                auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(instance.get());
+                if (qemu_vm && !qemu_vm->has_block_device(block_device_name))
+                {
+                    qemu_vm->attach_block_device(block_device_name, *block_info);
+                    mpl::log(mpl::Level::debug, category,
+                           fmt::format("Attached existing primary disk '{}' to instance '{}'",
+                                     block_device_name, name));
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category,
+                   fmt::format("Failed to attach existing primary disk for instance '{}': {}", name, e.what()));
+        }
 
         // Add the new macs to the daemon's list only if we got this far
         allocated_mac_addrs = std::move(new_macs);
@@ -3660,6 +3684,65 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                             *this);
                 preparing_instances.erase(name);
 
+                // TODO: Consider integrating block device management directly into VM creation process
+                // instead of creating the VM first and then registering its disk as a block device.
+                // This would provide better consistency and reduce the need for post-creation registration.
+                
+                // Register the VM's primary disk as a block device
+                try
+                {
+                    std::string block_device_name = name + "-disk";
+                    
+                    mpl::log(mpl::Level::debug, category,
+                           fmt::format("Attempting to register primary disk for instance '{}'", name));
+                    
+                    // Use the image path from vm_desc
+                    QString disk_path = vm_desc.image.image_path;
+                    
+                    mpl::log(mpl::Level::debug, category,
+                           fmt::format("VM '{}' disk path: '{}'", name, disk_path.toStdString()));
+                    mpl::log(mpl::Level::debug, category,
+                           fmt::format("VM '{}' disk size: {}", name, vm_desc.disk_space.human_readable()));
+                    
+                    if (!disk_path.isEmpty())
+                    {
+                        mp::BlockDeviceInfo block_info;
+                        block_info.name = block_device_name;
+                        block_info.size = vm_desc.disk_space;
+                        block_info.image_path = disk_path;
+                        block_info.attached_vm = std::make_optional(name);
+                        
+                        mpl::log(mpl::Level::debug, category,
+                               fmt::format("About to register block device: name='{}', size={}, path='{}', attached_to='{}'",
+                                         block_device_name, vm_desc.disk_space.human_readable(),
+                                         disk_path.toStdString(), name));
+                        
+                        block_device_manager->register_block_device(block_info);
+                        
+                        // Also attach the primary disk to the VM instance
+                        auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(operative_instances[name].get());
+                        if (qemu_vm)
+                        {
+                            qemu_vm->attach_block_device(block_device_name, block_info);
+                        }
+                        
+                        mpl::log(mpl::Level::info, category,
+                               fmt::format("Successfully registered and attached primary disk '{}' for instance '{}' (size: {}, path: {})",
+                                         block_device_name, name, vm_desc.disk_space.human_readable(),
+                                         disk_path.toStdString()));
+                    }
+                    else
+                    {
+                        mpl::log(mpl::Level::warning, category,
+                               fmt::format("Empty disk path for instance '{}', cannot register primary disk", name));
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error, category,
+                           fmt::format("Failed to register primary disk for instance '{}': {}", name, e.what()));
+                }
+
                 persist_instances();
 
                 if (start)
@@ -3956,6 +4039,38 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
     {
         response.add_purged_instances(name);
         release_resources(name);
+
+        // TODO: Consider integrating block device cleanup directly into the VM deletion process
+        // ie. handling the VMs primary disk with the block-delete code
+        
+        // Unregister the instance's primary disk block device
+        try
+        {
+            std::string block_device_name = name + "-disk";
+            if (block_device_manager->has_block_device(block_device_name))
+            {
+                mpl::log(mpl::Level::debug, category,
+                       fmt::format("Unregistering primary disk '{}' for purged instance '{}'",
+                                 block_device_name, name));
+                
+                block_device_manager->unregister_block_device(block_device_name);
+                
+                mpl::log(mpl::Level::info, category,
+                       fmt::format("Successfully unregistered primary disk '{}' for purged instance '{}'",
+                                 block_device_name, name));
+            }
+            else
+            {
+                mpl::log(mpl::Level::debug, category,
+                       fmt::format("No primary disk block device '{}' found for instance '{}'",
+                                 block_device_name, name));
+            }
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::warning, category,
+                   fmt::format("Failed to unregister primary disk for purged instance '{}': {}", name, e.what()));
+        }
 
         instances_dirty = true;
         mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
