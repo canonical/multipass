@@ -31,9 +31,10 @@ mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& de
                                           const QStringList& platform_args,
                                           const mp::QemuVirtualMachine::MountArgs& mount_args,
                                           const std::optional<ResumeData>& resume_data,
-                                          const QStringList& additional_args)
+                                          const QStringList& additional_args,
+                                          const std::unordered_map<std::string, BlockDeviceInfo>& block_devices)
     : desc{desc}, platform_args{platform_args}, mount_args{mount_args},
-      resume_data{resume_data}, additional_args{additional_args}
+      resume_data{resume_data}, additional_args{additional_args}, block_devices{block_devices}
 {
 }
 
@@ -194,6 +195,9 @@ profile %1 flags=(attach_disconnected) {
   %6 rwk,  # QCow2 filesystem image
   %7 rk,   # cloud-init ISO
 
+  # Additional block devices
+  %9
+
   # allow full access just to user-specified mount directories on the host
   %8
 }
@@ -224,6 +228,15 @@ profile %1 flags=(attach_disconnected) {
         firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
     }
 
+    // Build block device permissions
+    QString block_device_perms;
+    for (const auto& [name, info] : block_devices)
+    {
+        if (!block_device_perms.isEmpty())
+            block_device_perms += "\n  ";
+        block_device_perms += info.image_path + " rwk,  # Block device: " + QString::fromStdString(name);
+    }
+    
     return profile_template.arg(apparmor_profile_name(),
                                 signal_peer,
                                 firmware,
@@ -231,7 +244,8 @@ profile %1 flags=(attach_disconnected) {
                                 program(),
                                 desc.image.image_path,
                                 desc.cloud_init_iso,
-                                mount_dirs);
+                                mount_dirs,
+                                block_device_perms);
 }
 
 QString mp::QemuVMProcessSpec::identifier() const
