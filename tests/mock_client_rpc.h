@@ -55,7 +55,35 @@ public:
                  multipass::PingReply* response),
                 (override));
 
-    // originally private
+   MOCK_METHOD(grpc::Status,
+               create_block,
+               (grpc::ClientContext * context,
+                const multipass::CreateBlockRequest& request,
+                multipass::CreateBlockReply* response),
+               (override));
+
+   MOCK_METHOD(grpc::Status,
+               delete_block,
+               (grpc::ClientContext * context,
+                const multipass::DeleteBlockRequest& request,
+                multipass::DeleteBlockReply* response),
+               (override));
+
+   MOCK_METHOD(grpc::Status,
+               attach_block,
+               (grpc::ClientContext * context,
+                const multipass::AttachBlockRequest& request,
+                multipass::AttachBlockReply* response),
+               (override));
+
+   MOCK_METHOD(grpc::Status,
+               detach_block,
+               (grpc::ClientContext * context,
+                const multipass::DetachBlockRequest& request,
+                multipass::DetachBlockReply* response),
+               (override));
+
+   // originally private
     // NB: we're sort of relying on gRPC implementation here... but it's only for tests and we can
     // update as needed
     MOCK_METHOD(
@@ -378,6 +406,54 @@ public:
                 PrepareAsyncauthenticateRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::CreateBlockReply>*,
+               Asynccreate_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::CreateBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::CreateBlockReply>*,
+               PrepareAsynccreate_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::CreateBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::DeleteBlockReply>*,
+               Asyncdelete_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::DeleteBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::DeleteBlockReply>*,
+               PrepareAsyncdelete_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::DeleteBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::AttachBlockReply>*,
+               Asyncattach_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::AttachBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::AttachBlockReply>*,
+               PrepareAsyncattach_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::AttachBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::DetachBlockReply>*,
+               Asyncdetach_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::DetachBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
+   MOCK_METHOD(grpc::ClientAsyncResponseReaderInterface<multipass::DetachBlockReply>*,
+               PrepareAsyncdetach_blockRaw,
+               (grpc::ClientContext * context,
+                const multipass::DetachBlockRequest& request,
+                grpc::CompletionQueue* cq),
+               (override));
     MOCK_METHOD(
         (grpc::ClientReaderWriterInterface<multipass::SnapshotRequest, multipass::SnapshotReply>*),
         snapshotRaw,

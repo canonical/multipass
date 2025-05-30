@@ -400,3 +400,26 @@ std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
     return MP_JSONUTILS.json_to_string(aliases.to_json());
 }
+
+std::string mp::JsonFormatter::format(const ListBlocksReply& reply) const
+{
+    QJsonObject list_json;
+    QJsonArray blocks;
+
+    for (const auto& block : reply.block_devices())
+    {
+        QJsonObject block_obj;
+        block_obj.insert("name", QString::fromStdString(block.name()));
+        block_obj.insert("size", QString::fromStdString(block.size()));
+        block_obj.insert("path", QString::fromStdString(block.path()));
+        
+        if (!block.attached_to().empty())
+            block_obj.insert("attached_to", QString::fromStdString(block.attached_to()));
+
+        blocks.append(block_obj);
+    }
+
+    list_json.insert("list", blocks);
+
+    return MP_JSONUTILS.json_to_string(list_json);
+}
