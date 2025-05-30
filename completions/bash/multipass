@@ -18,11 +18,9 @@ _multipass_complete()
 {
     _multipass_instances()
     {
-        local state=$1 cmd instances
+        local state=$1 instances
 
-        cmd="multipass list --format=csv --no-ipv4 | \tail -n +2"
-        instances=$( \eval "$cmd" )
-
+        instances=$(multipass list --format=csv --no-ipv4 | \tail -n +2)
         [ -n "$state" ] && instances=$(awk -F',' "\$2 == \"$state\"" <<< "$instances")
         instances=$(echo "$instances" | \cut -d',' -f 1  | \tr '\r\n' ' ')
 
@@ -31,11 +29,9 @@ _multipass_complete()
 
     _multipass_snapshots()
     {
-        local instance=$1 cmd snapshots
+        local instance=$1 snapshots
 
-        cmd="multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2"
-        snapshots=$( \eval "$cmd" )
-
+        snapshots=$(multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2)
         [ -n "$instance" ] && snapshots=$(awk -F',' "\$1 == \"$instance\"" <<< "$snapshots")
         snapshots=$(echo "$snapshots" | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ')
 
@@ -65,10 +61,7 @@ _multipass_complete()
     # Set $opts to the list of available networks.
     _multipass_networks()
     {
-        local cmd
-        cmd="multipass networks --format=csv 2>/dev/null"
-
-        opts=$( \eval "$cmd" | \tail -n +2 | \cut -d',' -f 1 )
+        opts=$( multipass networks --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
     }
 
     _multipass_instances_with_colon()
@@ -87,10 +80,9 @@ _multipass_complete()
 
     _multipass_settings_keys()
     {
-        local cmd keys
+        local keys
 
-        cmd="multipass get --keys"
-        keys=$( \eval "$cmd" | \tr '\r\n' ' ' )
+        keys=$( multipass get --keys | \tr '\r\n' ' ' )
 
         for key in ${keys}; do
             if [[ "${COMP_WORDS[*]}" == *"${key}"* ]]; then
@@ -125,10 +117,7 @@ _multipass_complete()
     # Set $multipass_aliases to the list of available aliases.
     _multipass_aliases()
     {
-        local cmd
-        cmd="multipass aliases --format=csv 2>/dev/null"
-
-        multipass_aliases=$( \eval "$cmd" | \tail -n +2 | \cut -d',' -f 1 )
+        multipass_aliases=$( multipass aliases --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
     }
 
     # Removes the comma or equals sign at the end of $cur.
