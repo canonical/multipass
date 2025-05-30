@@ -46,6 +46,8 @@ public:
     bool has_block_device(const std::string& name) const;
     const BlockDeviceInfo* get_block_device(const std::string& name) const;
     std::vector<BlockDeviceInfo> list_block_devices() const;
+    void register_block_device(const BlockDeviceInfo& info);
+    void unregister_block_device(const std::string& name);
 
 private:
     friend Singleton<BlockDeviceManager>;
