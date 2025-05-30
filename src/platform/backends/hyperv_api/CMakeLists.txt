@@ -41,14 +41,28 @@ if(WIN32)
   endif()
 
   add_library(hyperv_api_backend STATIC
-    hyperv_api_common.cpp
     hcn/hyperv_hcn_api_wrapper.cpp
+    hcn/hyperv_hcn_route.cpp
+    hcn/hyperv_hcn_subnet.cpp
+    hcn/hyperv_hcn_ipam.cpp
+    hcn/hyperv_hcn_network_policy.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
+    hcs/hyperv_hcs_scsi_device.cpp
+    hcs/hyperv_hcs_network_adapter.cpp
+    hcs/hyperv_hcs_plan9_share_params.cpp
+    hcs/hyperv_hcs_create_compute_system_params.cpp
+    hcs/hyperv_hcs_request.cpp
+    hcs/hyperv_hcs_path.cpp
     virtdisk/virtdisk_api_wrapper.cpp
+    virtdisk/virtdisk_snapshot.cpp
+    hcs_plan9_mount_handler.cpp
+    hcs_virtual_machine.cpp
+    hcs_virtual_machine_factory.cpp
   )
 
   target_link_libraries(hyperv_api_backend PRIVATE
     fmt::fmt-header-only
+    ztd::out_ptr
     utils
     computecore.lib
     computenetwork.lib

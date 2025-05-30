@@ -15,15 +15,41 @@
  *
  */
 
-#include <hyperv_api/hyperv_api_common.h>
-#include <multipass/exceptions/formatted_exception_base.h>
+#ifndef MULTIPASS_PLATFORM_WIN_H
+#define MULTIPASS_PLATFORM_WIN_H
 
-#include <fmt/xchar.h>
+#include <windows.h>
 
-#include <objbase.h> // for CLSIDFromString
+#include <fmt/format.h>
 
-#include <codecvt>
-#include <locale>
+#include <string>
+
+struct WSAData;
+
+namespace multipass::platform
+{
+struct wsa_init_wrapper
+{
+    wsa_init_wrapper();
+    ~wsa_init_wrapper();
+
+    /**
+     * Check whether WSA initialization has succeeded.
+     *
+     * @return true WSA is initialized successfully
+     * @return false WSA initialization failed
+     */
+    operator bool() const noexcept
+    {
+        return wsa_init_result == 0;
+    }
+
+private:
+    WSAData* wsa_data{nullptr};
+    const int wsa_init_result{-1};
+};
+
+} // namespace multipass::platform
 
 /**
  * Formatter for GUID type
@@ -63,77 +89,4 @@ struct fmt::formatter<::GUID, Char>
     }
 };
 
-namespace multipass::hyperv
-{
-
-struct GuidParseError : FormattedExceptionBase<>
-{
-    using FormattedExceptionBase<>::FormattedExceptionBase;
-};
-
-auto guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
-{
-    constexpr auto kGUIDLength = 36;
-    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
-
-    const auto input = [&guid_wstr]() {
-        switch (guid_wstr.length())
-        {
-        case kGUIDLength:
-            // CLSIDFromString requires GUIDs to be wrapped with braces.
-            return fmt::format(L"{{{}}}", guid_wstr);
-        case kGUIDLengthWithBraces:
-        {
-            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
-            {
-                throw GuidParseError{"GUID string either does not start or end with a brace."};
-            }
-            return guid_wstr;
-        }
-        }
-        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
-    }();
-
-    ::GUID guid = {};
-
-    const auto result = CLSIDFromString(input.c_str(), &guid);
-
-    if (FAILED(result))
-    {
-        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
-    }
-
-    return guid;
-}
-
-// ---------------------------------------------------------
-
-auto string_to_wstring(const std::string& str) -> std::wstring
-{
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(str);
-}
-
-// ---------------------------------------------------------
-
-auto guid_from_string(const std::string& guid_str) -> GUID
-{
-    // Just use the wide string overload.
-    return guid_from_wstring(string_to_wstring(guid_str));
-}
-
-// ---------------------------------------------------------
-
-auto guid_to_string(const ::GUID& guid) -> std::string
-{
-
-    return fmt::format("{}", guid);
-}
-
-// ---------------------------------------------------------
-
-auto guid_to_wstring(const ::GUID& guid) -> std::wstring
-{
-    return fmt::format(L"{}", guid);
-}
-
-} // namespace multipass::hyperv
+#endif // MULTIPASS_PLATFORM_WIN_H
