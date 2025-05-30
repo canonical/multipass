@@ -178,19 +178,6 @@ bool mp::utils::invalid_target_path(const QString& target_path)
     return matcher.match(sanitized_path).hasMatch();
 }
 
-QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
-{
-    auto temp_folder = QFileInfo(filename_template).absoluteDir();
-
-    if (!MP_FILEOPS.mkpath(temp_folder, temp_folder.absolutePath()))
-    {
-        throw std::runtime_error(
-            fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
-    }
-
-    return QTemporaryFile(filename_template);
-}
-
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
 {
     if (args.empty())
