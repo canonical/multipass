@@ -29,12 +29,20 @@
 #include <multipass/virtual_machine.h>
 
 #include <QHostInfo>
+#include <ztd/out_ptr.hpp>
 
+#include <Aclapi.h>
+#include <Windows.h>
 #include <lm.h>
+#include <sddl.h>
+
 #pragma comment(lib, "Netapi32.lib")
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+using ztd::out_ptr::out_ptr;
+
+using sid_buffer = std::vector<unsigned char>;
 
 namespace
 {
@@ -62,6 +70,83 @@ catch (const mp::ExitlessSSHProcessException&)
     mpl::info(category, "Timeout while installing 'cifs-utils' in '{}'", name);
     throw std::runtime_error("Timeout installing cifs-utils");
 }
+
+/**
+ * Retrieve SID of given user name.
+ *
+ * @param [in] user_name The user name
+ * @return std::wstring User's SID as wide string
+ */
+sid_buffer get_user_sid(const std::wstring& user_name)
+{
+    DWORD sid_size = 0, domain_size = 0;
+    SID_NAME_USE sid_use{};
+    LookupAccountNameW(nullptr,
+                       user_name.c_str(),
+                       nullptr,
+                       &sid_size,
+                       nullptr,
+                       &domain_size,
+                       &sid_use);
+
+    std::vector<unsigned char> sid(sid_size);
+    std::wstring domain(domain_size, wchar_t('\0'));
+    if (!LookupAccountNameW(nullptr,
+                            user_name.c_str(),
+                            sid.data(),
+                            &sid_size,
+                            domain.data(),
+                            &domain_size,
+                            &sid_use))
+        throw std::runtime_error("LookupAccountName failed");
+    return sid;
+}
+
+/**
+ * Check whether given user has full control over the path.
+ *
+ * @param [in] path The target path
+ * @param [in] user_sid User's SID
+ *
+ * @return true if user @p user_sid has full control, false otherwise.
+ */
+bool has_full_control(const std::filesystem::path& path, sid_buffer& user_sid)
+{
+    std::unique_ptr<SECURITY_DESCRIPTOR, decltype(&LocalFree)> pSD{nullptr, LocalFree};
+    PACL pDACL = nullptr;
+
+    DWORD result = GetNamedSecurityInfoW(path.c_str(),
+                                         SE_FILE_OBJECT,
+                                         DACL_SECURITY_INFORMATION,
+                                         nullptr,
+                                         nullptr,
+                                         &pDACL,
+                                         nullptr,
+                                         out_ptr(pSD));
+
+    if (result != ERROR_SUCCESS)
+        throw std::runtime_error("Failed to get security info");
+
+    for (DWORD i = 0; i < pDACL->AceCount; ++i)
+    {
+        LPVOID pAce = nullptr;
+        if (!GetAce(pDACL, i, &pAce))
+            continue;
+
+        auto ace = reinterpret_cast<ACCESS_ALLOWED_ACE*>(pAce);
+        if (ace->Header.AceType != ACCESS_ALLOWED_ACE_TYPE)
+            continue;
+
+        if (!EqualSid(reinterpret_cast<PSID>(&ace->SidStart),
+                      reinterpret_cast<PSID>(user_sid.data())))
+            continue;
+
+        if ((ace->Mask & FILE_ALL_ACCESS) == FILE_ALL_ACCESS)
+            return true;
+    }
+    return false;
+}
+
 } // namespace
 
 namespace multipass
@@ -82,19 +167,8 @@ void SmbManager::create_share(const QString& share_name,
     if (share_exists(share_name))
         return;
 
-    // TODO: I tried to use the proper Windows API to get ACL permissions for the user being passed
-    // in, but alas, the API is very convoluted. At some point, another attempt should be made to
-    // use the proper API though...
-    QString user_access_output;
-    const auto user_access_res =
-        PowerShell::exec({QString{"(Get-Acl '%1').Access | ?{($_.IdentityReference -match '%2') "
-                                  "-and ($_.FileSystemRights "
-                                  "-eq 'FullControl')}"}
-                              .arg(source, user)},
-                         "Get ACLs",
-                         &user_access_output);
-
-    if (!user_access_res || user_access_output.isEmpty())
+    auto user_sid = get_user_sid(user.toStdWString());
+    if (!has_full_control(source.toStdString(), user_sid))
         throw std::runtime_error{fmt::format("cannot access \"{}\"", source)};
 
     std::wstring remark = L"Multipass mount share";
@@ -102,7 +176,7 @@ void SmbManager::create_share(const QString& share_name,
     auto wide_source = source.toStdWString();
 
     DWORD parm_err = 0;
-    SHARE_INFO_2 share_info;
+    SHARE_INFO_2 share_info = {};
     share_info.shi2_netname = wide_share_name.data();
     share_info.shi2_remark = remark.data();
     share_info.shi2_type = STYPE_DISKTREE;
