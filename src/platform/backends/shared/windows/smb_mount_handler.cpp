@@ -239,9 +239,8 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
       source{QString::fromStdString(get_mount_spec().get_source_path())},
       // share name must be unique and 80 chars max
       share_name{
-          QString("%1_%2:%3")
-              .arg(MP_UTILS.make_uuid(target), QString::fromStdString(vm->vm_name), QString::fromStdString(target))
-              .left(80)},
+          // 73 chars in total. Less than < 80 chars for max SMB share name length.
+          QString::fromStdString(fmt::format("{}-{}", MP_UTILS.make_uuid(vm->vm_name), MP_UTILS.make_uuid(target)))},
       cred_dir{cred_dir},
       smb_manager{&smb_manager}
 {
