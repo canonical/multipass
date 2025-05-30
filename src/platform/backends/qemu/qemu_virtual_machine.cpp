@@ -20,6 +20,8 @@
 #include "qemu_snapshot.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
+#include "block_device_manager.h"
+#include <multipass/block_device_info.h>
 
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
@@ -52,6 +54,7 @@ using namespace std::chrono_literals;
 
 namespace
 {
+using BlockDeviceInfo = multipass::BlockDeviceInfo;
 constexpr auto suspend_tag = "suspend";
 constexpr auto machine_type_key = "machine_type";
 constexpr auto arguments_key = "arguments";
@@ -110,9 +113,10 @@ auto mount_args_from_json(const QJsonObject& object)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc,
-                       const std::optional<QJsonObject>& resume_metadata,
-                       const mp::QemuVirtualMachine::MountArgs& mount_args,
-                       const QStringList& platform_args)
+                        const std::optional<QJsonObject>& resume_metadata,
+                        const mp::QemuVirtualMachine::MountArgs& mount_args,
+                        const QStringList& platform_args,
+                        const std::unordered_map<std::string, BlockDeviceInfo>& block_devices)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -129,8 +133,20 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                                                         get_arguments(data)};
     }
 
+    // Build base VM process spec
+    QStringList additional_args;
+    
+    // Add block devices if any are attached
+    for (const auto& [name, info] : block_devices)
+    {
+        additional_args << "-drive"
+                       << QString("file=%1,format=%2,if=virtio")
+                           .arg(info.image_path)
+                           .arg(QString::fromStdString(info.format));
+    }
+    
     auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
+        std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data, additional_args);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::log(mpl::Level::debug,
@@ -311,9 +327,20 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        monitor->update_metadata_for(
-            vm_name,
-            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
+        // Store both mount and block device metadata
+        QJsonObject metadata = generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args);
+        
+        QJsonObject block_devices;
+        for (const auto& [name, info] : attached_block_devices)
+        {
+            QJsonObject device;
+            device["path"] = info.image_path;
+            device["format"] = QString::fromStdString(info.format);
+            block_devices[QString::fromStdString(name)] = device;
+        }
+        metadata["block_devices"] = block_devices;
+        
+        monitor->update_metadata_for(vm_name, metadata);
     }
 
     vm_process->start();
@@ -591,7 +618,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name))
                                      : std::nullopt),
         mount_args,
-        qemu_platform->vm_platform_args(desc));
+        qemu_platform->vm_platform_args(desc),
+        attached_block_devices);
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::log(mpl::Level::info, vm_name, "process started");
@@ -809,6 +837,61 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
                                                                          const VMMount& mount)
 {
     return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
+}
+void mp::QemuVirtualMachine::attach_block_device(const std::string& name, const BlockDeviceInfo& info)
+{
+    if (current_state() != State::off && current_state() != State::stopped)
+        throw mp::VMStateInvalidException(fmt::format("Cannot attach block device to instance {} while in current state",
+                                                     vm_name));
+
+    if (has_block_device(name))
+        throw std::runtime_error(fmt::format("Block device '{}' is already attached to this VM", name));
+
+    attached_block_devices[name] = info;
+    
+    // Update metadata
+    auto metadata = monitor->retrieve_metadata_for(vm_name);
+    QJsonObject block_devices = metadata.contains("block_devices") ? 
+                               metadata["block_devices"].toObject() : QJsonObject();
+    
+    QJsonObject device;
+    device["path"] = info.image_path;
+    device["format"] = QString::fromStdString(info.format);
+    block_devices[QString::fromStdString(name)] = device;
+    
+    metadata["block_devices"] = block_devices;
+    monitor->update_metadata_for(vm_name, metadata);
+    
+    mpl::log(mpl::Level::info, vm_name, fmt::format("Attached block device '{}'", name));
+}
+
+void mp::QemuVirtualMachine::detach_block_device(const std::string& name)
+{
+    if (current_state() != State::off && current_state() != State::stopped)
+        throw mp::VMStateInvalidException(fmt::format("Cannot detach block device from instance {} while in current state",
+                                                     vm_name));
+
+    if (!has_block_device(name))
+        throw std::runtime_error(fmt::format("Block device '{}' is not attached to this VM", name));
+
+    attached_block_devices.erase(name);
+    
+    // Update metadata
+    auto metadata = monitor->retrieve_metadata_for(vm_name);
+    if (metadata.contains("block_devices"))
+    {
+        QJsonObject block_devices = metadata["block_devices"].toObject();
+        block_devices.remove(QString::fromStdString(name));
+        metadata["block_devices"] = block_devices;
+        monitor->update_metadata_for(vm_name, metadata);
+    }
+    
+    mpl::log(mpl::Level::info, vm_name, fmt::format("Detached block device '{}'", name));
+}
+
+bool mp::QemuVirtualMachine::has_block_device(const std::string& name) const
+{
+    return attached_block_devices.find(name) != attached_block_devices.end();
 }
 
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const

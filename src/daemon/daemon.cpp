@@ -21,6 +21,8 @@
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
+#include "../platform/backends/qemu/qemu_virtual_machine.h"
+
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
@@ -620,6 +622,11 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
     QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_wait_ready, &daemon, &mp::Daemon::wait_ready);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_create_block, &daemon, &mp::Daemon::create_block);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_delete_block, &daemon, &mp::Daemon::delete_block);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_attach_block, &daemon, &mp::Daemon::attach_block);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_detach_block, &daemon, &mp::Daemon::detach_block);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_list_blocks, &daemon, &mp::Daemon::list_blocks);
 }
 
 enum class InstanceGroup
@@ -1393,6 +1400,281 @@ void lxd_and_libvirt_deprecation_warning(grpc::ServerReaderWriterInterface<Reply
 }
 } // namespace
 
+void mp::Daemon::create_block(const CreateBlockRequest* request,
+                           grpc::ServerReaderWriterInterface<CreateBlockReply, CreateBlockRequest>* server,
+                           std::promise<grpc::Status>* status_promise)
+try
+{
+    CreateBlockReply response;
+    const auto& name = request->name();
+    const auto size = mp::MemorySize{request->size()};
+    
+    if (name.empty())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Block device name cannot be empty", ""));
+        return;
+    }
+    
+    if (size.in_bytes() == 0)
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Block device size must be greater than 0", ""));
+        return;
+    }
+    
+    try
+    {
+        block_device_manager->create_block_device(name, size);
+        mpl::log(mpl::Level::info, category, fmt::format("Created block device '{}'", name));
+        
+        response.set_log_line(fmt::format("Created block device '{}'\n", name));
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        response.set_error_message(e.what());
+        server->Write(response);
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::delete_block(const DeleteBlockRequest* request,
+                           grpc::ServerReaderWriterInterface<DeleteBlockReply, DeleteBlockRequest>* server,
+                           std::promise<grpc::Status>* status_promise)
+try
+{
+    DeleteBlockReply response;
+    const auto& name = request->name();
+    
+    if (name.empty())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Block device name cannot be empty", ""));
+        return;
+    }
+    
+    try
+    {
+        block_device_manager->delete_block_device(name);
+        mpl::log(mpl::Level::info, category, fmt::format("Deleted block device '{}'", name));
+        
+        response.set_log_line(fmt::format("Deleted block device '{}'\n", name));
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        response.set_error_message(e.what());
+        server->Write(response);
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::list_blocks(const ListBlocksRequest* request,
+                          grpc::ServerReaderWriterInterface<ListBlocksReply, ListBlocksRequest>* server,
+                          std::promise<grpc::Status>* status_promise)
+try
+{
+    ListBlocksReply response;
+    
+    try
+    {
+        mpl::log(mpl::Level::debug, category, "Calling block_device_manager->list_block_devices()");
+        auto block_devices = block_device_manager->list_block_devices();
+        mpl::log(mpl::Level::debug, category, fmt::format("Retrieved {} block devices", block_devices.size()));
+        
+        for (const auto& info : block_devices)
+        {
+            auto block_info = response.add_block_devices();
+            block_info->set_name(info.name);
+            block_info->set_size(info.size.human_readable());
+            block_info->set_path(info.image_path.toStdString());
+            
+            if (info.attached_vm && !info.attached_vm->empty())
+            {
+                block_info->set_attached_to(*info.attached_vm);
+            }
+        }
+        
+        mpl::log(mpl::Level::info, category, fmt::format("Listed {} block devices", block_devices.size()));
+        
+        // Debug: Verify the response contains the block devices
+        mpl::log(mpl::Level::debug, category, "Response.block_devices().size() = {}", response.block_devices().size());
+        for (int i = 0; i < response.block_devices().size(); ++i) {
+            const auto& block = response.block_devices(i);
+            mpl::log(mpl::Level::debug, category, "Response block device {}: name={}, size={}, path={}, attached_to={}",
+                     i, block.name(), block.size(), block.path(), block.attached_to());
+        }
+        
+        mpl::log(mpl::Level::debug, category, "Writing response to server");
+        server->Write(response);
+        mpl::log(mpl::Level::debug, category, "Response written to server");
+        mpl::log(mpl::Level::debug, category, "Setting status_promise to OK");
+        status_promise->set_value(grpc::Status::OK);
+        mpl::log(mpl::Level::debug, category, "list_blocks operation completed successfully");
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error, category, fmt::format("Error in list_blocks: {}", e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::error, category, fmt::format("Outer exception in list_blocks: {}", e.what()));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+
+void mp::Daemon::attach_block(const AttachBlockRequest* request,
+                           grpc::ServerReaderWriterInterface<AttachBlockReply, AttachBlockRequest>* server,
+                           std::promise<grpc::Status>* status_promise)
+try
+{
+    AttachBlockReply response;
+    const auto& block_name = request->block_name();
+    const auto& instance_name = request->instance_name();
+    
+    if (block_name.empty())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Block device name cannot be empty", ""));
+        return;
+    }
+    
+    if (instance_name.empty())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Instance name cannot be empty", ""));
+        return;
+    }
+    
+    // Find the instance
+    auto it = operative_instances.find(instance_name);
+    if (it == operative_instances.end())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::NOT_FOUND,
+                                              fmt::format("Instance '{}' does not exist", instance_name), ""));
+        return;
+    }
+    
+    auto& vm = it->second;
+    
+    if (vm->current_state() != VirtualMachine::State::off && vm->current_state() != VirtualMachine::State::stopped)
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                              fmt::format("Instance '{}' must be stopped to attach a block device", instance_name), ""));
+        return;
+    }
+    
+    try
+    {
+        block_device_manager->attach_block_device(block_name, instance_name);
+        
+        // Get the QemuVirtualMachine instance and attach the block device
+        auto qemu_vm = dynamic_cast<QemuVirtualMachine*>(vm.get());
+        if (qemu_vm)
+        {
+            const auto* block_info = block_device_manager->get_block_device(block_name);
+            if (block_info)
+            {
+                qemu_vm->attach_block_device(block_name, *block_info);
+            }
+        }
+        
+        mpl::log(mpl::Level::info, category,
+                fmt::format("Attached block device '{}' to instance '{}'", block_name, instance_name));
+        
+        response.set_log_line(fmt::format("Attached block device '{}' to instance '{}'\n", block_name, instance_name));
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        response.set_error_message(e.what());
+        server->Write(response);
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::detach_block(const DetachBlockRequest* request,
+                           grpc::ServerReaderWriterInterface<DetachBlockReply, DetachBlockRequest>* server,
+                           std::promise<grpc::Status>* status_promise)
+try
+{
+    DetachBlockReply response;
+    const auto& block_name = request->block_name();
+    const auto& instance_name = request->instance_name();
+    
+    if (block_name.empty())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Block device name cannot be empty", ""));
+        return;
+    }
+    
+    if (instance_name.empty())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Instance name cannot be empty", ""));
+        return;
+    }
+    
+    // Find the instance
+    auto it = operative_instances.find(instance_name);
+    if (it == operative_instances.end())
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::NOT_FOUND,
+                                              fmt::format("Instance '{}' does not exist", instance_name), ""));
+        return;
+    }
+    
+    auto& vm = it->second;
+    
+    if (vm->current_state() != VirtualMachine::State::off && vm->current_state() != VirtualMachine::State::stopped)
+    {
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                              fmt::format("Instance '{}' must be stopped to detach a block device", instance_name), ""));
+        return;
+    }
+    
+    try
+    {
+        block_device_manager->detach_block_device(block_name, instance_name);
+        
+        // Get the QemuVirtualMachine instance and detach the block device
+        auto qemu_vm = dynamic_cast<QemuVirtualMachine*>(vm.get());
+        if (qemu_vm)
+        {
+            qemu_vm->detach_block_device(block_name);
+        }
+        
+        mpl::log(mpl::Level::info, category,
+                fmt::format("Detached block device '{}' from instance '{}'", block_name, instance_name));
+        
+        response.set_log_line(fmt::format("Detached block device '{}' from instance '{}'\n", block_name, instance_name));
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        response.set_error_message(e.what());
+        server->Write(response);
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(
@@ -1401,6 +1683,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->cache_directory,
                                             config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
+      block_device_manager{std::shared_ptr<BlockDeviceManager>(&BlockDeviceManager::instance(), [](BlockDeviceManager*){})},
       instance_mod_handler{register_instance_mod(
           vm_instance_specs,
           operative_instances,
