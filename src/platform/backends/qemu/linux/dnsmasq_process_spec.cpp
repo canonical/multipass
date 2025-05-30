@@ -107,6 +107,41 @@ profile %1 flags=(attach_disconnected) {
 
   %6 r,     # conf file
 }
+
+profile %1-dhcp flags=(attach_disconnected) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+  capability chown,
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  capability dac_override,
+  capability dac_read_search,
+  capability net_admin,         # for DHCP server
+  capability net_raw,           # for DHCP server ping checks
+  network inet raw,
+  network inet6 raw,
+
+  # Allow multipassd send dnsmasq signals
+  signal (receive) peer=%2,
+
+  # access to iface mtu needed for Router Advertisement messages in IPv6
+  # Neighbor Discovery protocol (RFC 2461)
+  @{PROC}/sys/net/ipv6/conf/*/mtu r,
+
+  # binary and its libs
+  %3/usr/sbin/%4 ixr,
+  %3/{usr/,}lib/@{multiarch}/{,**/}*.so* rm,
+
+  # CLASSIC ONLY: need to specify required libs from core snap
+  /{,var/lib/snapd/}snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
+
+  %5/dnsmasq.leases rw,           # Leases file
+  %5/dnsmasq.hosts r,             # Hosts file
+
+  %6 r,     # conf file
+}
     )END");
 
     /* Customisations depending on if running inside snap or not */
