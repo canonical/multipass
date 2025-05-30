@@ -27,6 +27,8 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
+#include "../platform/backends/qemu/block_device_manager.h"
+
 
 #include <chrono>
 #include <future>
@@ -167,6 +169,22 @@ public slots:
         grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
         std::promise<grpc::Status>* status_promise);
 
+virtual void create_block(const CreateBlockRequest* request,
+        grpc::ServerReaderWriterInterface<CreateBlockReply, CreateBlockRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+virtual void delete_block(const DeleteBlockRequest* request,
+        grpc::ServerReaderWriterInterface<DeleteBlockReply, DeleteBlockRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+virtual void attach_block(const AttachBlockRequest* request,
+        grpc::ServerReaderWriterInterface<AttachBlockReply, AttachBlockRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+virtual void detach_block(const DetachBlockRequest* request,
+        grpc::ServerReaderWriterInterface<DetachBlockReply, DetachBlockRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+virtual void list_blocks(const ListBlocksRequest* request,
+        grpc::ServerReaderWriterInterface<ListBlocksReply, ListBlocksRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
 private:
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
@@ -259,6 +277,7 @@ private:
         delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
+    std::shared_ptr<BlockDeviceManager> block_device_manager;
     QTimer source_images_maintenance_task;
     multipass::utils::AsyncPeriodicDownloadTask<void> update_manifests_all_task{
         "fetch manifest periodically",

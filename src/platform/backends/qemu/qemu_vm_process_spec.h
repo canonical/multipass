@@ -42,9 +42,10 @@ public:
     static QString default_machine_type();
 
     explicit QemuVMProcessSpec(const VirtualMachineDescription& desc,
-                               const QStringList& platform_args,
-                               const QemuVirtualMachine::MountArgs& mount_args,
-                               const std::optional<ResumeData>& resume_data);
+                                const QStringList& platform_args,
+                                const QemuVirtualMachine::MountArgs& mount_args,
+                                const std::optional<ResumeData>& resume_data,
+                                const QStringList& additional_args = QStringList());
 
     QStringList arguments() const override;
 
@@ -56,6 +57,7 @@ private:
     const QStringList platform_args;
     const QemuVirtualMachine::MountArgs mount_args;
     const std::optional<ResumeData> resume_data;
+    const QStringList additional_args;
 };
 
 } // namespace multipass

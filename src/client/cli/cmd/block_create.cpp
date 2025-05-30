@@ -49,6 +49,7 @@ mp::ReturnCode cmd::BlockCreate::run(mp::ArgParser* parser)
 
     auto on_failure = [](grpc::Status& status) {
         throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+        return ReturnCode::CommandFail;
     };
 
     return dispatch(&RpcMethod::create_block, request, on_success, on_failure);

@@ -15,21 +15,23 @@
  *
  */
 
-#pragma once
+#ifndef MULTIPASS_BLOCK_DEVICE_INFO_H
+#define MULTIPASS_BLOCK_DEVICE_INFO_H
 
-#include <multipass/cli/formatter.h>
+#include <multipass/memory_size.h>
+#include <multipass/path.h>
+#include <optional>
+#include <string>
 
 namespace multipass
 {
-class CSVFormatter final : public Formatter
+struct BlockDeviceInfo
 {
-public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const NetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
-    std::string format(const VersionReply& list, const std::string& client_version) const override;
-    std::string format(const AliasDict& aliases) const override;
-    std::string format(const ListBlocksReply& reply) const override;
+    std::string name;
+    Path image_path;
+    MemorySize size;
+    std::optional<std::string> attached_vm;
+    std::string format{"qcow2"};
 };
-} // namespace multipass
+}
+#endif // MULTIPASS_BLOCK_DEVICE_INFO_H
