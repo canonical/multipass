@@ -229,7 +229,7 @@ _multipass_complete()
         COMP_WORDBREAKS="${COMP_WORDBREAKS}="
     fi
 
-    local cur cmd opts prev prev2 prev_opts multipass_aliases unused_aliases
+    local cur cmd opts prev prev2 prev_opts multipass_aliases
     _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
