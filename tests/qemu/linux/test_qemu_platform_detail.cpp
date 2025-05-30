@@ -181,7 +181,7 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
 #if defined Q_PROCESSOR_X86
         "-bios", "OVMF.fd",
 #elif defined Q_PROCESSOR_ARM
-        "-bios", "QEMU_EFI.fd",
+        "-bios", "QEMU_EFI.fd", "-machine", "virt",
 #endif
             "--enable-kvm", "-cpu", "host", "-nic",
             QString::fromStdString(
