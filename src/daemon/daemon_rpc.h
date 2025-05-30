@@ -133,6 +133,9 @@ signals:
     void on_daemon_info(const DaemonInfoRequest* request,
                         grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server,
                         std::promise<grpc::Status>* status_promise);
+    void on_wait_ready(const WaitReadyRequest* request,
+                       grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -202,5 +205,8 @@ protected:
     grpc::Status daemon_info(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server) override;
+    grpc::Status wait_ready(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server) override;
 };
 } // namespace multipass
