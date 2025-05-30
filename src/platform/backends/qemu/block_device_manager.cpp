@@ -185,6 +185,65 @@ mp::Path mp::BlockDeviceManager::get_block_device_path(const std::string& name) 
     return images_dir + "/" + QString::fromStdString(name) + ".qcow2";
 }
 
+void mp::BlockDeviceManager::register_block_device(const BlockDeviceInfo& info)
+{
+    mpl::log(mpl::Level::debug, "block-device",
+             fmt::format("register_block_device called with name='{}', size={}, path='{}', attached_vm='{}'",
+                       info.name, info.size.human_readable(), info.image_path.toStdString(),
+                       info.attached_vm ? *info.attached_vm : "none"));
+
+    if (block_devices.find(info.name) != block_devices.end())
+    {
+        mpl::log(mpl::Level::error, "block-device",
+                 fmt::format("Block device '{}' already exists, cannot register", info.name));
+        throw ValidationError(fmt::format("Block device '{}' already exists", info.name));
+    }
+
+    // Verify the image file exists
+    mpl::log(mpl::Level::debug, "block-device",
+             fmt::format("Checking if image file exists: '{}'", info.image_path.toStdString()));
+    
+    if (!QFile::exists(info.image_path))
+    {
+        mpl::log(mpl::Level::error, "block-device",
+                 fmt::format("Block device image file does not exist: {}", info.image_path.toStdString()));
+        throw std::runtime_error(fmt::format("Block device image file does not exist: {}", info.image_path.toStdString()));
+    }
+
+    mpl::log(mpl::Level::debug, "block-device",
+             fmt::format("Image file exists, registering block device '{}'", info.name));
+
+    // Register the block device
+    block_devices[info.name] = info;
+    save_metadata();
+    
+    mpl::log(mpl::Level::info, "block-device",
+             fmt::format("Successfully registered block device '{}' with {} registered devices total",
+                       info.name, block_devices.size()));
+}
+
+void mp::BlockDeviceManager::unregister_block_device(const std::string& name)
+{
+    mpl::log(mpl::Level::debug, "block-device",
+             fmt::format("unregister_block_device called for '{}'", name));
+
+    auto it = block_devices.find(name);
+    if (it == block_devices.end())
+    {
+        mpl::log(mpl::Level::warning, "block-device",
+                 fmt::format("Block device '{}' not found, cannot unregister", name));
+        throw NotFoundError(fmt::format("Block device '{}' does not exist", name));
+    }
+
+    // Remove from registry (but don't delete the actual image file)
+    block_devices.erase(it);
+    save_metadata();
+    
+    mpl::log(mpl::Level::info, "block-device",
+             fmt::format("Successfully unregistered block device '{}', {} devices remaining",
+                       name, block_devices.size()));
+}
+
 void mp::BlockDeviceManager::save_metadata() const
 {
     QJsonObject root;
