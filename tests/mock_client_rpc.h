@@ -438,5 +438,17 @@ public:
                 PrepareAsyncdaemon_infoRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::WaitReadyRequest, multipass::WaitReadyReply>*),
+                wait_readyRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::WaitReadyRequest, multipass::WaitReadyReply>*),
+                Asyncwait_readyRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::WaitReadyRequest, multipass::WaitReadyReply>*),  
+                PrepareAsyncwait_readyRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
 };
 } // namespace multipass::test

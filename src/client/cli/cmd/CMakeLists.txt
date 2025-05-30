@@ -46,6 +46,7 @@ add_library(commands STATIC
   umount.cpp
   unalias.cpp
   version.cpp
+  wait_ready.cpp
 )
 
 target_link_libraries(commands
