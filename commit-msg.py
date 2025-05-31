@@ -56,6 +56,9 @@ class CommitMsgRulesChecker:
         self.validate_all()
 
     def validate_all(self):
+        if self.msg.lstrip().startswith("Merge"):
+            return []
+
         return [rule.value for (rule, check) in self.rules if not self.enough and not check()]
 
     def validate_rule1(self):
@@ -126,16 +129,6 @@ def handle_errors(errors):
         return 1
 
     return 0
-
-
-def is_merge_commit(msg):
-    """
-    Check if this is a merge commit.
-
-    Commits are identified as merges iff they start with the word "Merge"
-    """
-
-    return msg.startswith("Merge")
 
 
 def validate_commit_message(msg):
