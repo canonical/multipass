@@ -22,12 +22,12 @@ def main():
     commit_msg_file = Path(sys.argv[1])
 
     try:
-        message = commit_msg_file.read_text(encoding="utf-8")
+        msg = commit_msg_file.read_text(encoding="utf-8")
     except Exception as e:
-        print(f"Error reading commit message file: {e}", file=sys.stderr)
+        print(f"Error reading commit msg file: {e}", file=sys.stderr)
         sys.exit(2)
 
-    sys.exit(handle_errors(validate_commit_message(message)))
+    sys.exit(handle_errors(validate_commit_message(msg)))
 
 
 def handle_errors(errors):
@@ -41,22 +41,23 @@ def handle_errors(errors):
     return 0
 
 
-def is_merge_commit(message):
+def is_merge_commit(msg):
     """
     Check if this is a merge commit.
 
     Commits are identified as merges iff they start with the word "Merge"
     """
-    return message.startswith("Merge")
+
+    return msg.startswith("Merge")
 
 
-def validate_commit_message(message):
+def validate_commit_message(msg):
     """Validate the entire commit message."""
 
-    if is_merge_commit(message):
+    if is_merge_commit(msg):
         return []
 
-    lines = message.rstrip().split("\n")
+    lines = msg.rstrip().split("\n")
     if not lines:
         return ["MSG1.\tBegin with a subject line."]
 
