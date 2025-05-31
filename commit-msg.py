@@ -27,15 +27,18 @@ def main():
         print(f"Error reading commit message file: {e}", file=sys.stderr)
         sys.exit(1)
 
-    errors = validate_commit_message(message)
+    sys.exit(handle_errors(validate_commit_message(message)))
 
+
+def handle_errors(errors):
     if errors:
         print("Commit message validation failed:", file=sys.stderr)
+
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
-    sys.exit(0)
+    return 0
 
 
 def is_merge_commit(message):
