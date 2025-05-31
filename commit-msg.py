@@ -27,6 +27,13 @@ def main():
         print(f"Error reading commit message file: {e}", file=sys.stderr)
         sys.exit(1)
 
+    errors = validate_commit_message(message)
+
+    if errors:
+        print("Commit message validation failed:", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        sys.exit(1)
 
     sys.exit(0)
 
@@ -38,6 +45,13 @@ def is_merge_commit(message):
     Commits are identified as merges iff they start with the word "Merge"
     """
     return message.startswith("Merge")
+
+
+def validate_commit_message(message):
+    """Validate the entire commit message."""
+
+    errors = []
+    return errors
 
 
 if __name__ == "__main__":
