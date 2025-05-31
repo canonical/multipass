@@ -50,7 +50,7 @@ class CommitMsgRulesChecker:
         self.msg = msg
 
         self.lines = self.msg.splitlines() if msg else []
-        self.subject = self.lines[0] if self.lines else ""
+        self.subject = self.lines[0].rstrip() if self.lines else ""
         self.body = self.lines[1:]
 
         self.validate_all()
@@ -76,7 +76,7 @@ class CommitMsgRulesChecker:
         return len(self.subject) <= 50
 
     def validate_rule6(self):
-        return False
+        return not self.subject.endswith(".")
 
     def validate_rule8(self):
         return False
