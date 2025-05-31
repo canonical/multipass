@@ -50,7 +50,9 @@ class CommitMsgRulesChecker:
         return [rule.value for (rule, check) in self.rules if not self.enough and not check()]
 
     def validate_rule1(self):
-        return False
+        good = bool(self.msg and self.msg.strip() and self.msg.splitlines()[0].strip())
+        self.enough = not good
+        return good
 
     def validate_rule2(self):
         return False
