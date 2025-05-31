@@ -25,7 +25,7 @@ def main():
         message = commit_msg_file.read_text(encoding="utf-8")
     except Exception as e:
         print(f"Error reading commit message file: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
 
     sys.exit(handle_errors(validate_commit_message(message)))
 
