@@ -2,11 +2,30 @@
 
 """
 Git commit-msg hook to validate commit messages according to team guidelines.
-"""
 
+Validates rules: 1-2, 4-6, 8-10, and 12.
+"""
 import sys
+from enum import Enum
 from pathlib import Path
 
+
+
+class CommitMsgRulesChecker:
+    class Rules(Enum):
+        # fmt: off
+        RULE1 =   "MSG1.  Begin with a subject line."
+        RULE2 =  ("MSG2.  Start the subject line with a lower-case, single-word category, within "
+                  "square brackets (hyphenated, composite words are acceptable).")
+        RULE4 =   "MSG4.  Capitalize the first word of the subject line after the category."
+        RULE5 =   "MSG5.  Limit the subject line to 50 characters (category included)."
+        RULE6 =   "MSG6.  Do not end the subject line with a period."
+        RULE8 =   "MSG8.  If adding a body, separate it from the subject with a blank line."
+        RULE9 =  ("MSG9.  Use multiple paragraphs in the body if needed. Separate them with a "
+                  "blank line.")
+        RULE10 =  "MSG10. Do not include more than 1 consecutive blank line."
+        RULE12 =  "MSG12. Wrap the body at 72 characters."
+        # fmt: on
 
 def main():
     """
