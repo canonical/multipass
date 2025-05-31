@@ -50,6 +50,8 @@ def is_merge_commit(message):
 def validate_commit_message(message):
     """Validate the entire commit message."""
 
+    if is_merge_commit(message):
+        return []
     errors = []
     return errors
 
