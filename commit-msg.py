@@ -5,6 +5,7 @@ Git commit-msg hook to validate commit messages according to team guidelines.
 """
 
 import sys
+from pathlib import Path
 
 
 def main():
@@ -17,6 +18,17 @@ def main():
     if len(sys.argv) != 2:
         print(f"Error: Expected a single argument, got {len(sys.argv) - 1}", file=sys.stderr)
         sys.exit(1)
+
+    commit_msg_file = Path(sys.argv[1])
+
+    try:
+        message = commit_msg_file.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"Error reading commit message file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+    sys.exit(0)
 
 
 def is_merge_commit(message):
