@@ -95,28 +95,6 @@ class CommitMsgRulesChecker:
         return all(len(line) <= 72 for line in self.body)
 
 
-def main():
-    """
-    Entry point for the commit-msg hook.
-
-    Expects a single argument beyond its own name: the path to the commit message file.
-    """
-
-    if len(sys.argv) != 2:
-        print(f"Error: Expected a single argument, got {len(sys.argv) - 1}", file=sys.stderr)
-        sys.exit(1)
-
-    commit_msg_file = Path(sys.argv[1])
-
-    try:
-        msg = commit_msg_file.read_text(encoding="utf-8")
-    except Exception as e:
-        print(f"Error reading commit msg file: {e}", file=sys.stderr)
-        sys.exit(2)
-
-    sys.exit(handle_errors(validate_commit_message(msg)))
-
-
 def handle_errors(errors):
     """
     Handle validation errors by printing and choosing a return: 1 if errors exist, 0 otherwise.
@@ -205,6 +183,28 @@ def validate_body_format(lines):
                 errors.append(f"Rule 12: Line {i+1} exceeds 72 characters ({len(line)} chars)")
 
     return errors
+
+
+def main():
+    """
+    Entry point for the commit-msg hook.
+
+    Expects a single argument beyond its own name: the path to the commit message file.
+    """
+
+    if len(sys.argv) != 2:
+        print(f"Error: Expected a single argument, got {len(sys.argv) - 1}", file=sys.stderr)
+        sys.exit(1)
+
+    commit_msg_file = Path(sys.argv[1])
+
+    try:
+        msg = commit_msg_file.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"Error reading commit msg file: {e}", file=sys.stderr)
+        sys.exit(2)
+
+    sys.exit(handle_errors(validate_commit_message(msg)))
 
 
 if __name__ == "__main__":
