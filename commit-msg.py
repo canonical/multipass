@@ -41,12 +41,13 @@ class CommitMsgRulesChecker:
         ]
 
         self.errors = []
+        self.enough = False
         self.msg = msg
 
         self.validate_all()
 
     def validate_all(self):
-        return False
+        return [rule.value for (rule, check) in self.rules if not self.enough and not check()]
 
     def validate_rule1(self):
         return False
