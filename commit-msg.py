@@ -73,7 +73,7 @@ class CommitMsgRulesChecker:
         return bool(re.match(SUBJECT_TAIL_REGEX, self.subject))
 
     def validate_rule5(self):
-        return False
+        return len(self.subject) <= 50
 
     def validate_rule6(self):
         return False
@@ -114,6 +114,9 @@ def main():
 
 
 def handle_errors(errors):
+    """
+    Handle validation errors by printing and choosing a return: 1 if errors exist, 0 otherwise.
+    """
     if errors:
         print("Commit message validation failed:", file=sys.stderr)
 
@@ -144,7 +147,69 @@ def validate_commit_message(msg):
     if not lines:
         return ["MSG1.\tBegin with a subject line."]
 
+
+def validate_subject_line(subject):
+    """Validate the subject line according to rules 1-2, 4-6."""
+
+    if not subject:
+        return [Rules.RULE1]
+
     errors = []
+
+    category_match = re.match(CATEGORY_REGEX, subject)
+    if not category_match:
+        errors.append(
+            "Rule 2: Subject must start with [category] where category is lowercase (hyphens allowed)"
+        )
+        return errors  # Can't check other rules without proper category
+
+    category = category_match.group(0)
+    rest_of_subject = subject[len(category) :].lstrip()
+
+    # Rule 4: Capitalize first word after category
+    if rest_of_subject and not rest_of_subject[0].isupper():
+        errors.append("Rule 4: First word after category must be capitalized")
+
+    # Rule 5: Limit subject to 50 characters
+    if len(subject) > 50:
+        errors.append(f"Rule 5: Subject line too long ({len(subject)}/50 characters)")
+
+    # Rule 6: Do not end subject with period
+    if subject.endswith("."):
+        errors.append("Rule 6: Subject line must not end with a period")
+
+    return errors
+
+
+def validate_body_format(lines):
+    """Validate body formatting according to rules 8, 10, and 12."""
+    errors = []
+
+    if len(lines) == 1:
+        # Only subject line, no body - this is valid
+        return errors
+
+    # Rule 8: If body exists, must be separated by blank line
+    if len(lines) > 1 and lines[1] != "":
+        errors.append("Rule 8: Subject and body must be separated by a blank line")
+
+    # Rule 10: No more than 1 consecutive blank line
+    prev_blank = False
+    for i, line in enumerate(lines[1:], 1):  # Skip subject line
+        if line == "":
+            if prev_blank:
+                errors.append(
+                    f"Rule 10: Line {i+1} - No more than 1 consecutive blank line allowed"
+                )
+                break  # Report once per msg
+            prev_blank = True
+        else:
+            prev_blank = False
+
+            # Rule 12: Wrap body at 72 characters
+            if len(line) > 72:
+                errors.append(f"Rule 12: Line {i+1} exceeds 72 characters ({len(line)} chars)")
+
     return errors
 
 
