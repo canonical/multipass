@@ -27,6 +27,55 @@ class CommitMsgRulesChecker:
         RULE12 =  "MSG12. Wrap the body at 72 characters."
         # fmt: on
 
+    def __init__(self, msg):
+        self.rules = [
+            (self.Rules.RULE1, self.validate_rule1),
+            (self.Rules.RULE2, self.validate_rule2),
+            (self.Rules.RULE4, self.validate_rule4),
+            (self.Rules.RULE5, self.validate_rule5),
+            (self.Rules.RULE6, self.validate_rule6),
+            (self.Rules.RULE8, self.validate_rule8),
+            (self.Rules.RULE9, self.validate_rule9),
+            (self.Rules.RULE10, self.validate_rule10),
+            (self.Rules.RULE12, self.validate_rule12),
+        ]
+
+        self.errors = []
+        self.msg = msg
+
+        self.validate_all()
+
+    def validate_all(self):
+        return False
+
+    def validate_rule1(self):
+        return False
+
+    def validate_rule2(self):
+        return False
+
+    def validate_rule4(self):
+        return False
+
+    def validate_rule5(self):
+        return False
+
+    def validate_rule6(self):
+        return False
+
+    def validate_rule8(self):
+        return False
+
+    def validate_rule9(self):
+        return False
+
+    def validate_rule10(self):
+        return False
+
+    def validate_rule12(self):
+        return False
+
+
 def main():
     """
     Entry point for the commit-msg hook.
