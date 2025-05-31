@@ -25,10 +25,7 @@ Different sets of drivers are available on different platforms:
 
 When Multipass is installed, the following drivers are selected by default:
 
-- On Linux, the default driver depends on the host's architecture:
-    + QEMU on AMD64
-    + LXD (deprecated) on other platforms.
-- On macOS, QEMU is used.
+- On Linux and macOS, QEMU is used.
 - On Windows, the default driver depends on the OS version:
   + Hyper-V on Windows Pro
   + VirtualBox on Windows Home
