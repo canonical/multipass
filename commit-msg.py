@@ -79,7 +79,7 @@ class CommitMsgRulesChecker:
         return not self.subject.endswith(".")
 
     def validate_rule8(self):
-        return False
+        return not self.body or self.body[0].isspace()
 
     def validate_rule9(self):
         return False
