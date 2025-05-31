@@ -5,10 +5,13 @@ Git commit-msg hook to validate commit messages according to team guidelines.
 
 Validates rules: 1-2, 4-6, 8-10, and 12.
 """
+import re
 import sys
 from enum import Enum
 from pathlib import Path
 
+# Regular expression to match the category in the subject line
+CATEGORY_REGEX = r"^\[[a-z0-9]+(?:-[a-z0-9]+)*]"  # lowercase in square brackets, hyphenated allowed
 
 
 class CommitMsgRulesChecker:
@@ -55,7 +58,7 @@ class CommitMsgRulesChecker:
         return good
 
     def validate_rule2(self):
-        return False
+        return bool(re.match(CATEGORY_REGEX, self.msg))
 
     def validate_rule4(self):
         return False
