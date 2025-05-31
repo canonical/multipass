@@ -47,18 +47,25 @@ class CommitMsgRulesChecker:
         self.enough = False
         self.msg = msg
 
+        self.lines = self.msg.splitlines() if msg else []
+        self.subject = self.lines[0] if self.lines else ""
+        self.body = self.lines[1:]
+
         self.validate_all()
 
     def validate_all(self):
         return [rule.value for (rule, check) in self.rules if not self.enough and not check()]
 
     def validate_rule1(self):
-        good = bool(self.msg and self.msg.strip() and self.msg.splitlines()[0].strip())
+        good = bool(
+            self.msg and self.msg.strip() and self.lines and self.subject and self.subject.strip()
+        )
+
         self.enough = not good
         return good
 
     def validate_rule2(self):
-        return bool(re.match(CATEGORY_REGEX, self.msg))
+        return bool(re.match(CATEGORY_REGEX, self.subject))
 
     def validate_rule4(self):
         return False
