@@ -45,7 +45,6 @@ class CommitMsgRulesChecker:
             (self.Rules.RULE12, self.validate_rule12),
         ]
 
-        self.errors = []
         self.enough = False
         self.msg = msg
 
@@ -53,7 +52,7 @@ class CommitMsgRulesChecker:
         self.subject = self.lines[0].rstrip() if self.lines else ""
         self.body = self.lines[1:]
 
-        self.validate_all()
+        self.errors = self.validate_all()
 
     def validate_all(self):
         if self.msg.lstrip().startswith("Merge"):
@@ -93,6 +92,16 @@ class CommitMsgRulesChecker:
 
     def validate_rule12(self):
         return all(len(line) <= 72 for line in self.body)
+
+
+def validate(msg):
+    """
+    Validate the commit message against the defined rules.
+
+    Returns a list of error messages for any rule violations.
+    """
+    return CommitMsgRulesChecker(msg).errors
+    # return [rule.value for rule in checker.errors] if checker.errors else []
 
 
 def handle_errors(errors):
@@ -204,7 +213,7 @@ def main():
         print(f"Error reading commit msg file: {e}", file=sys.stderr)
         sys.exit(2)
 
-    sys.exit(handle_errors(validate_commit_message(msg)))
+    sys.exit(handle_errors(validate(msg)))
 
 
 if __name__ == "__main__":
