@@ -52,6 +52,11 @@ def validate_commit_message(message):
 
     if is_merge_commit(message):
         return []
+
+    lines = message.rstrip().split("\n")
+    if not lines:
+        return ["MSG1.\tBegin with a subject line."]
+
     errors = []
     return errors
 
