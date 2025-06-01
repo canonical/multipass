@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_OPS_H
-#define MULTIPASS_FILE_OPS_H
+#pragma once
 
 #include "recursive_dir_iterator.h"
 #include "singleton.h"
@@ -131,5 +130,3 @@ public:
     virtual fs::path remove_extension(const fs::path& path) const;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_FILE_OPS_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DAEMON_H
-#define MULTIPASS_DAEMON_H
+#pragma once
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
@@ -280,4 +279,3 @@ private:
     std::unordered_set<std::string> user_authorized_bridges;
 };
 } // namespace multipass
-#endif // MULTIPASS_DAEMON_H

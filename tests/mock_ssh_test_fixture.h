@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_TEST_FIXTURE_H
-#define MULTIPASS_MOCK_SSH_TEST_FIXTURE_H
+#pragma once
 
 #include "mock_ssh.h"
 
@@ -57,4 +56,3 @@ struct MockSSHTestFixture
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_SSH_TEST_FIXTURE_H

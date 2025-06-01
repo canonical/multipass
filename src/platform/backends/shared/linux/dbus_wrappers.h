@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DBUS_WRAPPERS_H
-#define MULTIPASS_DBUS_WRAPPERS_H
+#pragma once
 
 #include "multipass/singleton.h"
 
@@ -170,5 +169,3 @@ private:
     DBusConnection system_bus;
 };
 } // namespace multipass::backend::dbus
-
-#endif // MULTIPASS_DBUS_WRAPPERS_H

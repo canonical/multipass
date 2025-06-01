@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_SIMPLE_STREAMS_INDEX_H
-#define MULTIPASS_SIMPLE_STREAMS_INDEX_H
+#pragma once
 
 #include <QByteArray>
 #include <QString>
@@ -34,4 +33,3 @@ public:
     const QString updated_at;
 };
 } // namespace multipass
-#endif // MULTIPASS_SIMPLE_STREAMS_INDEX_H

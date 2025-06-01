@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_IMAGE_VAULT_H
-#define MULTIPASS_MOCK_IMAGE_VAULT_H
+#pragma once
 
 #include "common.h"
 #include "temp_file.h"
@@ -71,5 +70,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_MOCK_IMAGE_VAULT_H

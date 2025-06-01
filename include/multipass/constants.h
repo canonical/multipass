@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CONSTANTS_H
-#define MULTIPASS_CONSTANTS_H
+#pragma once
 
 #include <chrono>
 #include <initializer_list>
@@ -76,5 +75,3 @@ constexpr auto timeout_exit_code = 5;
 
 constexpr auto authenticated_certs_dir = "authenticated-certs";
 } // namespace multipass
-
-#endif // MULTIPASS_CONSTANTS_H

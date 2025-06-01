@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_KEY_PROVIDER_H
-#define MULTIPASS_SSH_KEY_PROVIDER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 
@@ -40,4 +39,3 @@ protected:
     SSHKeyProvider() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSH_KEY_PROVIDER_H

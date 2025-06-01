@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "libvirt_wrapper.h"
 
@@ -57,5 +56,3 @@ private:
     const std::string libvirt_object_path;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_LIBVIRT_VIRTUAL_MACHINE_FACTORY_H

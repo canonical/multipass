@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -60,5 +59,3 @@ inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noe
     : Singleton(pass)
 {
 }
-
-#endif // MULTIPASS_CLIENT_PLATFORM_H

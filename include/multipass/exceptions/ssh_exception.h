@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_EXCEPTION_H
-#define MULTIPASS_SSH_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -48,4 +47,3 @@ private:
     int ec;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSH_EXCEPTION_H

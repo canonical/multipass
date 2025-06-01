@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SINGLETON_HELPERS_H
-#define MULTIPASS_MOCK_SINGLETON_HELPERS_H
+#pragma once
 
 #include "common.h"
 
@@ -140,5 +139,3 @@ void multipass::test::MockSingletonHelper<ConcreteMock, MockCharacter>::Accounta
 {
     ::testing::Mock::VerifyAndClearExpectations(&ConcreteMock::mock_instance());
 }
-
-#endif // MULTIPASS_MOCK_SINGLETON_HELPERS_H

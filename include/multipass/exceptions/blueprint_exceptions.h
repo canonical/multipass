@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BLUEPRINT_EXCEPTIONS_H
-#define MULTIPASS_BLUEPRINT_EXCEPTIONS_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -47,4 +46,3 @@ public:
     using std::runtime_error::runtime_error;
 };
 } // namespace multipass
-#endif // MULTIPASS_BLUEPRINT_EXCEPTIONS_H

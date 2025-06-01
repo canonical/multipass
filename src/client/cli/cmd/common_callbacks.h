@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MULTIPASS_COMMON_CALLBACKS_H
-#define MULTIPASS_COMMON_CALLBACKS_H
+#pragma once
 
 #include "animated_spinner.h"
 
@@ -100,5 +99,3 @@ auto make_confirmation_callback(Terminal& term, QString key)
     };
 }
 } // namespace multipass
-
-#endif // MULTIPASS_COMMON_CALLBACKS_H

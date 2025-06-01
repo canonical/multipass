@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_TERMINAL_H
-#define MULTIPASS_STUB_TERMINAL_H
+#pragma once
 
 #include <multipass/terminal.h>
 
@@ -77,5 +76,3 @@ private:
 
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_STUB_TERMINAL_H

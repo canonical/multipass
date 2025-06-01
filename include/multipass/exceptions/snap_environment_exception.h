@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAP_ENVIRONMENT_EXCEPTION_H
-#define MULTIPASS_SNAP_ENVIRONMENT_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 
@@ -40,4 +39,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_SNAP_ENVIRONMENT_EXCEPTION_H

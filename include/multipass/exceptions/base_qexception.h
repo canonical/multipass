@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_QEXCEPTION
-#define MULTIPASS_BASE_QEXCEPTION
+#pragma once
 
 #include <QException>
 
@@ -58,4 +57,3 @@ private:
     std::string error_string;
 };
 } // namespace multipass
-#endif // MULTIPASS_BASE_QEXCEPTION

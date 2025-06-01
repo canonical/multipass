@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_DAEMON_H
-#define MULTIPASS_MOCK_DAEMON_H
+#pragma once
 
 #include "common.h"
 
@@ -214,5 +213,3 @@ struct MockDaemon : public Daemon
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_TESTS_MOCK_DAEMON_H

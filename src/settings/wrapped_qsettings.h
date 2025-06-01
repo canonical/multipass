@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WRAPPED_QSETTINGS_H
-#define MULTIPASS_WRAPPED_QSETTINGS_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/singleton.h>
@@ -104,5 +103,3 @@ call private ctors, so we call it ourselves; but the ctor is noexcept, so no lea
     }
 };
 } // namespace multipass
-
-#endif // MULTIPASS_WRAPPED_QSETTINGS_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_FORMATTER
-#define MULTIPASS_JSON_FORMATTER
+#pragma once
 
 #include <multipass/cli/formatter.h>
 
@@ -33,4 +32,3 @@ public:
     std::string format(const AliasDict& aliases) const override;
 };
 } // namespace multipass
-#endif // MULTIPASS_JSON_FORMATTER

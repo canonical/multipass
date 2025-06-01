@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MOCK_SFTP_CLIENT_H
-#define MOCK_SFTP_CLIENT_H
+#pragma once
 
 #include "common.h"
 #include <multipass/ssh/sftp_client.h>
@@ -41,5 +40,3 @@ struct MockSFTPClient : public SFTPClient
     MOCK_METHOD(void, to_cout, (const fs::path& source_path, std::ostream& cout), (override));
 };
 } // namespace multipass::test
-
-#endif // MOCK_SFTP_CLIENT_H

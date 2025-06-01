@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_IP_ADDRESS_H
-#define MULTIPASS_IP_ADDRESS_H
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -47,5 +46,3 @@ struct IPAddress
     std::array<uint8_t, 4> octets;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_IP_ADDRESS_H

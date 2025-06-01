@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_POWERSHELL_TEST_HELPER_H
-#define MULTIPASS_POWERSHELL_TEST_HELPER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 
@@ -80,5 +79,3 @@ private:
 };
 
 } // namespace multipass::test
-
-#endif // MULTIPASS_POWERSHELL_TEST_HELPER_H

@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_LOGGER_H
-#define MULTIPASS_STUB_LOGGER_H
+#pragma once
 
 #include <multipass/logging/logger.h>
 
@@ -34,5 +33,3 @@ class StubLogger : public logging::Logger
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_STUB_LOGGER_H

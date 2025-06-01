@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_RUNTIME_INSTANCE_INFO_HELPER_H
-#define MULTIPASS_RUNTIME_INSTANCE_INFO_HELPER_H
+#pragma once
 
 #include <string>
 
@@ -38,5 +37,3 @@ struct RuntimeInstanceInfoHelper
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_RUNTIME_INSTANCE_INFO_HELPER_H

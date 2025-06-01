@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PERMISSION_UTILS_H
-#define MULTIPASS_PERMISSION_UTILS_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -37,5 +36,3 @@ public:
     virtual void restrict_permissions(const fs::path& path) const;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_PERMISSION_UTILS_H

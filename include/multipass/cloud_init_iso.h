@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLOUD_INIT_ISO_H
-#define MULTIPASS_CLOUD_INIT_ISO_H
+#pragma once
 
 #include <multipass/path.h>
 
@@ -88,4 +87,3 @@ public:
         const std::filesystem::path& cloud_init_path) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_CLOUD_INIT_ISO_H

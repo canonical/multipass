@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TERMINAL_H
-#define MULTIPASS_TERMINAL_H
+#pragma once
 
 #include <istream>
 #include <libssh/libssh.h>
@@ -52,5 +51,3 @@ public:
     virtual ConsolePtr make_console(ssh_channel channel) = 0;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_TERMINAL_H

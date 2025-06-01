@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAPSHOT_SETTINGS_HANDLER_H
-#define MULTIPASS_SNAPSHOT_SETTINGS_HANDLER_H
+#pragma once
 
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings/settings_handler.h>
@@ -68,5 +67,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_SNAPSHOT_SETTINGS_HANDLER_H

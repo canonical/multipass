@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_START_EXCEPTION_H
-#define MULTIPASS_START_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -40,4 +39,3 @@ private:
     const std::string instance_name;
 };
 } // namespace multipass
-#endif // MULTIPASS_START_EXCEPTION_H

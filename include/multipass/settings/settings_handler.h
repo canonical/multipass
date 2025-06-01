@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_HANDLER_H
-#define MULTIPASS_SETTINGS_HANDLER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 
@@ -66,5 +65,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_SETTINGS_HANDLER_H

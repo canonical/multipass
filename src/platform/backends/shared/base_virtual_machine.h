@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VIRTUAL_MACHINE_H
-#define MULTIPASS_BASE_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
@@ -188,5 +187,3 @@ inline void multipass::BaseVirtualMachine::require_snapshots_support() const
 {
     throw NotImplementedOnThisBackendException{"snapshots"};
 }
-
-#endif // MULTIPASS_BASE_VIRTUAL_MACHINE_H

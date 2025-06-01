@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TESTS_STUB_CERT_STORE_H
-#define MULTIPASS_TESTS_STUB_CERT_STORE_H
+#pragma once
 
 #include <multipass/cert_store.h>
 
@@ -48,4 +47,3 @@ public:
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_TESTS_STUB_CERT_STORE_H

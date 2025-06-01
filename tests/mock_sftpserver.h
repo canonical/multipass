@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SFTPSERVER_H
-#define MULTIPASS_MOCK_SFTPSERVER_H
+#pragma once
 
 #include <premock.hpp>
 
@@ -38,5 +37,3 @@ DECL_MOCK(sftp_client_message_get_filename);
 DECL_MOCK(sftp_handle);
 DECL_MOCK(sftp_handle_alloc);
 DECL_MOCK(sftp_handle_remove);
-
-#endif // MULTIPASS_MOCK_SFTPSERVER_H

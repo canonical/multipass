@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_PROCESS_FACTORY_H
-#define MULTIPASS_MOCK_PROCESS_FACTORY_H
+#pragma once
 
 #include "common.h"
 #include "process_factory.h" // rely on build system to include the right implementation
@@ -107,5 +106,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_MOCK_PROCESS_FACTORY_H

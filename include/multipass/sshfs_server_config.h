@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_SERVER_CONFIG_H
-#define MULTIPASS_SSHFS_SERVER_CONFIG_H
+#pragma once
 
 #include <multipass/id_mappings.h>
 
@@ -40,4 +39,3 @@ struct SSHFSServerConfig
 };
 
 } // namespace multipass
-#endif // MULTIPASS_SSHFS_SERVER_CONFIG_H

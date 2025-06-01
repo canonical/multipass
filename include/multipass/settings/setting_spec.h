@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SETTING_SPEC_H
-#define MULTIPASS_SETTING_SPEC_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 
@@ -60,5 +59,3 @@ inline bool multipass::SettingSpec::LessByKey::operator()(const SettingSpec::UPt
 {
     return a && b ? (*this)(*a, *b) : bool{b}; // nullptr is the lowest, otherwise lexicographical
 }
-
-#endif // MULTIPASS_SETTING_SPEC_H

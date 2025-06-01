@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef QT_DELETE_LATER_UNIQUE_PTR_H
-#define QT_DELETE_LATER_UNIQUE_PTR_H
+#pragma once
 
 #include <QObject>
 #include <memory>
@@ -46,5 +45,3 @@ template <typename T>
 using qt_delete_later_unique_ptr = std::unique_ptr<T, QtDeleteLater>;
 
 } // namespace multipass
-
-#endif // QT_DELETE_LATER_UNIQUE_PTR_H

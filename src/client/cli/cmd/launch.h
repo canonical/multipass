@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LAUNCH_H
-#define MULTIPASS_LAUNCH_H
+#pragma once
 
 #include "animated_spinner.h"
 
@@ -69,4 +68,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_LAUNCH_H

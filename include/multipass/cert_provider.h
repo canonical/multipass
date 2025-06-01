@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CERTPROVIDER_H
-#define MULTIPASS_CERTPROVIDER_H
+#pragma once
 
 #include "disabled_copy_move.h"
 
@@ -35,4 +34,3 @@ protected:
     CertProvider() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_CERTPROVIDER_H

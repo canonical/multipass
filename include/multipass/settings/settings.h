@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_H
-#define MULTIPASS_SETTINGS_H
+#pragma once
 
 #include "settings_handler.h"
 
@@ -102,5 +101,3 @@ T multipass::Settings::get_as(const QString& key) const
         return var.value<T>();
     throw UnsupportedSettingValueType<T>(key);
 }
-
-#endif // MULTIPASS_SETTINGS_H

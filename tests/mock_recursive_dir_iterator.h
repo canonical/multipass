@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H
-#define MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H
+#pragma once
 
 #include "common.h"
 #include <multipass/recursive_dir_iterator.h>
@@ -80,5 +79,3 @@ struct MockDirIterator : public DirIterator
     MOCK_METHOD(const DirectoryEntry&, next, (), (override));
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H

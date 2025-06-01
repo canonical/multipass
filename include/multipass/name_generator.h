@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_NAME_GENERATOR_H
-#define MULTIPASS_NAME_GENERATOR_H
+#pragma once
 
 #include "disabled_copy_move.h"
 
@@ -40,4 +39,3 @@ protected:
 
 NameGenerator::UPtr make_default_name_generator();
 } // namespace multipass
-#endif // MULTIPASS_NAME_GENERATOR_H

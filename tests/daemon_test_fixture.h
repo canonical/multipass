@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DAEMON_TEST_FIXTURE_H
-#define MULTIPASS_DAEMON_TEST_FIXTURE_H
+#pragma once
 
 // This include must go first because it comes from premock.
 #include "mock_ssh_test_fixture.h"
@@ -130,4 +129,3 @@ struct DaemonTestFixture : public ::Test
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_DAEMON_TEST_FIXTURE_H

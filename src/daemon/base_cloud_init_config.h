@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
-#define MULTIPASS_BASE_CLOUD_INIT_CONFIG_H
+#pragma once
 
 namespace multipass
 {
@@ -27,5 +26,3 @@ constexpr auto base_cloud_init_config = "growpart:\n"
                                         "    - default\n"
                                         "manage_etc_hosts: true\n";
 }
-
-#endif // MULTIPASS_BASE_CLOUD_INIT_CONFIG_H

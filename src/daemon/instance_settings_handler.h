@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
-#define MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
+#pragma once
 
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/network_interface_info.h>
@@ -106,5 +105,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_INSTANCE_SETTINGS_HANDLER_H

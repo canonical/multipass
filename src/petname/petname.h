@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_PETNAME_H
-#define MULTIPASS_PETNAME_H
+#pragma once
 
 #include <multipass/name_generator.h>
 
@@ -59,4 +58,3 @@ private:
     std::uniform_int_distribution<std::size_t> adverb_dist;
 };
 } // namespace multipass
-#endif // MULTIPASS_PETNAME_H

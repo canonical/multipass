@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEMP_FILE_H
-#define MULTIPASS_TEMP_FILE_H
+#pragma once
 
 #include <QString>
 #include <QTemporaryFile>
@@ -48,5 +47,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_TEMP_FILE_H

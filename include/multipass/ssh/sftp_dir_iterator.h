@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_DIR_ITERATOR_H
-#define MULTIPASS_SFTP_DIR_ITERATOR_H
+#pragma once
 
 #include <libssh/sftp.h>
 
@@ -52,5 +51,3 @@ private:
     void push_dir(const std::string& path);
 };
 } // namespace multipass
-
-#endif
