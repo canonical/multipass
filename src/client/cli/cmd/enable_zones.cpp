@@ -57,15 +57,16 @@ ReturnCode EnableZones::run(ArgParser* parser)
     }
 
     AnimatedSpinner spinner{cout};
-    const auto message = use_all_zones ? "Enabling all zones" : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
+    const auto message =
+        use_all_zones ? "Enabling all zones" : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
     spinner.start(message);
 
     const auto on_success = [&](const ZonesStateReply&) {
         spinner.stop();
-        const auto output_message = use_all_zones ? "All zones enabled" : 
-            fmt::format("Zone{} enabled: {}",
-                        request.zones_size() == 1 ? "" : "s",
-                        fmt::join(request.zones(), ", "));
+        const auto output_message = use_all_zones ? "All zones enabled"
+                                                  : fmt::format("Zone{} enabled: {}",
+                                                                request.zones_size() == 1 ? "" : "s",
+                                                                fmt::join(request.zones(), ", "));
         cout << output_message << std::endl;
         return Ok;
     };
