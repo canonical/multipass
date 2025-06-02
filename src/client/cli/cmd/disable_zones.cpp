@@ -110,7 +110,7 @@ QString DisableZones::short_help() const
 
 QString DisableZones::description() const
 {
-    return QStringLiteral("Makes the given availability zones unavailable.");
+    return QStringLiteral("Makes the given availability zones unavailable (all VMs are switched off immediately and forcefully and cannot be interacted with until the zone is available again, simulating a loss of availability on a cloud provider).");
 }
 
 ParseCode DisableZones::parse_args(ArgParser* parser)
