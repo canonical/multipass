@@ -32,6 +32,13 @@ ReturnCode DisableZones::run(ArgParser* parser)
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
+    // If no zones exist, just inform the user and exit successfully
+    if (request.zones_size() == 0)
+    {
+        cout << "No zones exist" << std::endl;
+        return ReturnCode::CommandFail;
+    }
+
     // If --all was specified, we need to fetch all zone names first
     if (use_all_zones)
     {
