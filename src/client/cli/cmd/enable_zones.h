@@ -33,6 +33,7 @@ public:
 
 private:
     ZonesStateRequest request{};
+    bool use_all_zones{false};
     ParseCode parse_args(ArgParser* parser);
 };
 } // namespace multipass::cmd
