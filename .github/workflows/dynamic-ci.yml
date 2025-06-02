@@ -1,0 +1,40 @@
+name: Dynamic CI
+
+on:
+  push:
+    branches:
+      - main
+      - release/[0-9]+.[0-9]+
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  filter:
+    name: Filter changed files
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+              - '.github/workflows/automatic-doc-checks.yml'
+
+  docs-check:
+    name: Documentation checks
+    needs: filter
+    if: needs.filter.outputs.docs == 'true'
+    uses: "./.github/workflows/automatic-doc-checks.yml"
