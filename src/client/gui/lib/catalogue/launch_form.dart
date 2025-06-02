@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart' hide Switch, ImageInfo;
+import 'package:flutter/material.dart' hide Switch, ImageInfo, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
@@ -12,6 +12,8 @@ import '../platform/platform.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
+import '../tooltip.dart';
+import 'zone_dropdown.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
@@ -49,7 +51,33 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   final launchRequest = LaunchRequest();
   final mountRequests = <MountRequest>[];
   var addingMount = false;
+  var selectedZoneAvailable = true; // Default to true for 'auto'
   final scrollController = ScrollController();
+
+  void updateZoneAvailability() {
+    final zones = ref.read(zonesProvider);
+    final hasAvailableZones = zones.any((z) => z.available);
+    final isCurrentZoneAvailable =
+        launchRequest.zone.isEmpty || launchRequest.zone == ''
+            ? hasAvailableZones // "auto" is available if any zone is available
+            : zones.any((z) => z.name == launchRequest.zone && z.available);
+
+    setState(() {
+      selectedZoneAvailable = isCurrentZoneAvailable;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    updateZoneAvailability();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    updateZoneAvailability();
+  }
 
   @override
   void dispose() {
@@ -67,6 +95,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final deletedVms = ref.watch(deletedVmsProvider);
     final networks = ref.watch(networksProvider);
     final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final zones = ref.watch(zonesProvider);
+
+    // Update availability whenever zones change
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final hasAvailableZones = zones.any((z) => z.available);
+      if (hasAvailableZones != selectedZoneAvailable ||
+          (hasAvailableZones &&
+              !zones.any((z) => z.name == launchRequest.zone && z.available))) {
+        updateZoneAvailability();
+      }
+    });
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -82,6 +122,24 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
+    );
+
+    final zoneDropdown = FormField<String>(
+      initialValue: 'auto',
+      onSaved: (value) =>
+          launchRequest.zone = value == 'auto' ? '' : value ?? '',
+      builder: (field) {
+        final hasAvailableZones = zones.any((z) => z.available);
+        return ZoneDropdown(
+          value: field.value!,
+          enabled: hasAvailableZones,
+          onChanged: (value) {
+            field.didChange(value);
+            launchRequest.zone = value == 'auto' ? '' : value ?? '';
+            updateZoneAvailability();
+          },
+        );
+      },
     );
 
     final chosenImageName = Text(
@@ -213,10 +271,89 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const SizedBox(height: 4),
         chosenImageName,
         const SizedBox(height: 16),
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          nameInput,
-          const Spacer(),
-        ]),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            nameInput,
+            const SizedBox(width: 32),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    zoneDropdown,
+                    if (!selectedZoneAvailable &&
+                        launchRequest.zone.isNotEmpty &&
+                        !zones.any(
+                            (z) => z.name == launchRequest.zone && z.available))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              final grpcClient = ref.read(grpcClientProvider);
+                              final zone = launchRequest.zone;
+                              grpcClient.zonesState([zone], true).then((_) {
+                                updateZoneAvailability();
+                                ref.read(notificationsProvider.notifier).add(
+                                      SuccessNotification(
+                                        child: Text('$zone enabled'),
+                                      ),
+                                    );
+                              });
+                            },
+                            child: Text(
+                              'Enable zone',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                decoration: TextDecoration.underline,
+                                fontSize: 14,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (!selectedZoneAvailable &&
+                        !zones.any((z) => z.available))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              final grpcClient = ref.read(grpcClientProvider);
+                              final allZones =
+                                  zones.map((z) => z.name).toList();
+                              grpcClient.zonesState(allZones, true).then((_) {
+                                updateZoneAvailability();
+                                ref.read(notificationsProvider.notifier).add(
+                                      SuccessNotification(
+                                        child: Text('All zones enabled'),
+                                      ),
+                                    );
+                              });
+                            },
+                            child: Text(
+                              'Enable all zones',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                decoration: TextDecoration.underline,
+                                fontSize: 14,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const Spacer(),
+          ],
+        ),
         const Divider(height: 60),
         const SizedBox(
           height: 50,
@@ -246,14 +383,32 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ],
     );
 
-    final launchButton = TextButton(
-      onPressed: () => launch(imageInfo),
-      child: const Text('Launch'),
+    String? tooltipMessage;
+    if (!selectedZoneAvailable) {
+      final zones = ref.read(zonesProvider);
+      tooltipMessage = !zones.any((z) => z.available)
+          ? 'All zones are unavailable'
+          : 'Enable selected pseudo zone to launch';
+    }
+
+    final launchButton = Tooltip(
+      message: tooltipMessage ?? '',
+      visible: !selectedZoneAvailable,
+      child: TextButton(
+        onPressed: selectedZoneAvailable ? () => launch(imageInfo) : null,
+        child: const Text('Launch'),
+      ),
     );
 
-    final launchAndConfigureNextButton = OutlinedButton(
-      onPressed: () => launch(imageInfo, configureNext: true),
-      child: const Text('Launch & Configure next'),
+    final launchAndConfigureNextButton = Tooltip(
+      message: tooltipMessage ?? '',
+      visible: !selectedZoneAvailable,
+      child: OutlinedButton(
+        onPressed: selectedZoneAvailable
+            ? () => launch(imageInfo, configureNext: true)
+            : null,
+        child: const Text('Launch & Configure next'),
+      ),
     );
 
     final cancelButton = OutlinedButton(
