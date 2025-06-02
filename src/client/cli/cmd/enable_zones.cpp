@@ -100,7 +100,8 @@ QString EnableZones::short_help() const
 
 QString EnableZones::description() const
 {
-    return QStringLiteral("Makes the given availability zones available.");
+    return QStringLiteral(
+        "Makes the given availability zones available (any previously running VMs are started again).");
 }
 
 ParseCode EnableZones::parse_args(ArgParser* parser)
