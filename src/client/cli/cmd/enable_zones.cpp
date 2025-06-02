@@ -32,14 +32,41 @@ ReturnCode EnableZones::run(ArgParser* parser)
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
+    // If --all was specified, we need to fetch all zone names first
+    if (use_all_zones)
+    {
+        ZonesRequest zones_request{};
+        zones_request.set_verbosity_level(parser->verbosityLevel());
+
+        auto zones_on_success = [this](const ZonesReply& reply) {
+            // Populate the request with all zone names
+            for (const auto& zone : reply.zones())
+            {
+                request.add_zones(zone.name());
+            }
+            return Ok;
+        };
+
+        auto zones_on_failure = [this](const grpc::Status& status) {
+            return standard_failure_handler_for(name(), cerr, status);
+        };
+
+        // First, get all zones
+        if (const auto ret = dispatch(&RpcMethod::zones, zones_request, zones_on_success, zones_on_failure); ret != Ok)
+            return ret;
+    }
+
     AnimatedSpinner spinner{cout};
-    spinner.start(format("Enabling {}", fmt::join(request.zones(), ", ")));
+    const auto message = use_all_zones ? "Enabling all zones" : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
+    spinner.start(message);
 
     const auto on_success = [&](const ZonesStateReply&) {
         spinner.stop();
-        cout << fmt::format("Zone{} enabled: {}",
-                            request.zones_size() == 1 ? "" : "s",
-                            fmt::join(request.zones(), ", "));
+        const auto output_message = use_all_zones ? "All zones enabled" : 
+            fmt::format("Zone{} enabled: {}",
+                        request.zones_size() == 1 ? "" : "s",
+                        fmt::join(request.zones(), ", "));
+        cout << output_message << std::endl;
         return Ok;
     };
 
@@ -72,19 +99,25 @@ ParseCode EnableZones::parse_args(ArgParser* parser)
 {
     parser->addPositionalArgument("zone", "Name of the zones to make available", "<zone> [<zone> ...]");
 
+    QCommandLineOption all_option(all_option_name, "Enable all zones");
+    parser->addOption(all_option);
+
     if (const auto status = parser->commandParse(this); status != ParseCode::Ok)
+        return status;
+
+    if (const auto status = check_for_name_and_all_option_conflict(parser, cerr); status != ParseCode::Ok)
         return status;
 
     request.set_available(true);
     request.set_verbosity_level(parser->verbosityLevel());
 
-    for (const auto& zone_name : parser->positionalArguments())
-        request.add_zones(zone_name.toStdString());
+    // Store whether --all was used for later processing in run()
+    use_all_zones = parser->isSet(all_option_name);
 
-    if (request.zones().empty())
+    if (!use_all_zones)
     {
-        cerr << "No zones supplied" << std::endl;
-        return ParseCode::CommandLineError;
+        for (const auto& zone_name : parser->positionalArguments())
+            request.add_zones(zone_name.toStdString());
     }
 
     return ParseCode::Ok;
