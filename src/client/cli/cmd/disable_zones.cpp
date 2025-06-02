@@ -67,7 +67,7 @@ ReturnCode DisableZones::run(ArgParser* parser)
     {
         if (!term->is_live())
             throw std::runtime_error{
-                "Unable to query client for confirmation. Use '--force' to avoid prompting for confirmation."};
+                "Unable to query client for confirmation. Use '--force' to forcefully make unavailable all instances in the specified zones."};
 
         if (!confirm())
             return ReturnCode::CommandFail;
