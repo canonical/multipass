@@ -33,6 +33,7 @@ public:
 
 private:
     bool ask_for_confirmation = true;
+    bool use_all_zones{false};
     ZonesStateRequest request{};
     ParseCode parse_args(ArgParser* parser);
     bool confirm();
