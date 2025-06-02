@@ -21,8 +21,8 @@ class CommitMsgRulesChecker:
         RULE1 =   "MSG1.  Begin with a subject line."
         RULE2 =  ("MSG2.  Start the subject line with a lower-case, single-word category, within "
                   "square brackets (hyphenated, composite words are acceptable).")
-        RULE4 =   ("MSG4.  Leave a single space after the category and capitalize the first "
-                   "ensuing word.")
+        RULE4 =  ("MSG4.  Leave a single space after the category and capitalize the first "
+                  "ensuing word.")
         RULE5 =   "MSG5.  Limit the subject line to 50 characters (category included)."
         RULE6 =   "MSG6.  Do not end the subject line with a period."
         RULE8 =   "MSG8.  If adding a body, separate it from the subject with a blank line."
