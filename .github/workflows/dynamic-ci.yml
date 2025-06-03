@@ -52,20 +52,20 @@ jobs:
               - "vcpkg-configuration.json"
               - "vcpkg.json"
 
-  docs-check:
-    name: Documentation checks
+  docs:
+    name: Docs
     needs: filter
     if: needs.filter.outputs.docs == 'true'
     uses: "./.github/workflows/automatic-doc-checks.yml"
 
-  build-linux:
-    name: Build & test Linux
+  linux:
+    name: Linux
     needs: filter
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/linux.yml"
 
-  build-windows-macos:
-    name: Build & test Windows/macOS
+  windows-macos:
+    name: Windows/macOS
     needs: filter
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/windows-macos.yml"
