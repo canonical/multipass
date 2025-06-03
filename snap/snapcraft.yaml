@@ -113,9 +113,9 @@ parts:
       echo "Injecting custom APT mirror priorities..."
 
       cat <<EOF > /etc/apt/apt-mirrors.txt
-      http://azure.archive.ubuntu.com/ubuntu/	priority:1
-      https://archive.ubuntu.com/ubuntu/	priority:2
-      https://security.ubuntu.com/ubuntu/	priority:3
+      https://archive.ubuntu.com/ubuntu/	priority:1
+      https://security.ubuntu.com/ubuntu/	priority:2
+      http://azure.archive.ubuntu.com/ubuntu/	priority:3
       EOF
 
       codename=jammy
