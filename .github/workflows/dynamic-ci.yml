@@ -58,6 +58,12 @@ jobs:
     if: needs.filter.outputs.docs == 'true'
     uses: "./.github/workflows/automatic-doc-checks.yml"
 
+  lint:
+    name: Lint
+    needs: filter
+    if: needs.filter.outputs.code == 'true'
+    uses: "./.github/workflows/lint.yml"
+
   linux:
     name: Linux
     needs: filter
