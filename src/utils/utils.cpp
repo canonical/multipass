@@ -326,14 +326,6 @@ mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions
     return make_dir(dir, QString(), permissions);
 }
 
-void mp::utils::remove_directories(const std::vector<QString>& dirs)
-{
-    for (const auto& dir : dirs)
-    {
-        QDir(dir).removeRecursively();
-    }
-}
-
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
 {
     if (subdirectory.isEmpty())
