@@ -29,6 +29,11 @@ jobs:
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          # 'base' and 'ref' are ignored for pull requests
+          # For merge group events, compare against the target branch (main)
+          base: ${{ github.event.merge_group.base_ref }}
+          # For merge group events, use the merge group head ref
+          ref: ${{ github.event.merge_group.head_ref }}
           filters: |
             docs:
               - '.github/workflows/automatic-doc-checks.yml'
