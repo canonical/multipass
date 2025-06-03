@@ -1,16 +1,29 @@
 diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index 3fdefb04..f2ebe7b8 100644
+index d1c4cc1..c0d268c 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -127,6 +127,7 @@ parts:
+@@ -113,9 +113,9 @@ parts:
+       echo "Injecting custom APT mirror priorities..."
+
+       cat <<EOF > /etc/apt/apt-mirrors.txt
+-      https://archive.ubuntu.com/ubuntu/	priority:1
+-      https://security.ubuntu.com/ubuntu/	priority:2
+-      http://azure.archive.ubuntu.com/ubuntu/	priority:3
++      https://archive.ubuntu.com/ubuntu/	priority:2
++      https://security.ubuntu.com/ubuntu/	priority:3
++      http://azure.archive.ubuntu.com/ubuntu/	priority:1
+       EOF
+
+       codename=jammy
+@@ -159,6 +159,7 @@ parts:
+     build-packages:
      - on arm64: [libgles2-mesa-dev]
-     - on armhf: [libgles2-mesa-dev]
      - build-essential
 +    - ccache
      - git
      - libapparmor-dev
-     - libqt5x11extras5-dev
-@@ -159,6 +160,8 @@ parts:
+     - libgl1-mesa-dev
+@@ -240,6 +241,8 @@ parts:
      - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
      - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
