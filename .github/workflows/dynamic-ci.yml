@@ -80,3 +80,10 @@ jobs:
     needs: filter
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/windows-macos.yml"
+
+  noop:
+    name: Finalize
+    runs-on: ubuntu-latest
+    needs: [docs, lint, linux, windows-macos]
+    steps:
+      - run: true
