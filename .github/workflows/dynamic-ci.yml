@@ -81,9 +81,15 @@ jobs:
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/windows-macos.yml"
 
-  noop:
+  finalize:
     name: Finalize
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     needs: [docs, lint, linux, windows-macos]
     steps:
-      - run: true
+      - name: Docs failure check
+        if: ${{ needs.docs.result == 'failure' }}
+        run: exit 1
+      - name: Compilation failure check
+        if: ${{ needs.lint.result == 'failure' || needs.linux.result == 'failure' || needs.windows-macos.result == 'failure' }}
+        run: exit 1
