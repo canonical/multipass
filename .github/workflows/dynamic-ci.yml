@@ -88,8 +88,15 @@ jobs:
     needs: [docs, lint, linux, windows-macos]
     steps:
       - name: Docs failure check
-        if: ${{ needs.docs.result == 'failure' }}
+        if: ${{
+            needs.docs.result == 'failure' || needs.docs.result == 'cancelled'
+          }}
         run: exit 1
+
       - name: Compilation failure check
-        if: ${{ needs.lint.result == 'failure' || needs.linux.result == 'failure' || needs.windows-macos.result == 'failure' }}
+        if: ${{
+          needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
+          needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
+          needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
+          }}
         run: exit 1
