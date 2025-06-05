@@ -15,9 +15,7 @@
  *
  */
 
-#include "block_device_manager.h"
-
-#include <shared/qemu_img_utils/qemu_img_utils.h>
+#include "base_block_device_manager.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/block_device_exceptions.h>
@@ -25,8 +23,6 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
-#include <multipass/platform.h>
-#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
@@ -34,6 +30,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -71,17 +68,15 @@ mp::BlockDeviceInfo json_to_block_info(const QJsonObject& json)
 }
 } // namespace
 
-mp::BlockDeviceManager::BlockDeviceManager(const typename Singleton<BlockDeviceManager>::PrivatePass& pass)
-    : Singleton<BlockDeviceManager>{pass},
-      data_dir{MP_UTILS.make_dir(QDir(MP_STDPATHS.writableLocation(mp::StandardPaths::GenericDataLocation)), block_devices_dir)},
-      images_dir{MP_UTILS.make_dir(QDir(data_dir), images_subdir)},
-      metadata_path{data_dir + "/" + metadata_file}
+mp::BaseBlockDeviceManager::BaseBlockDeviceManager(const Path& data_dir)
+    : data_dir{MP_UTILS.make_dir(QDir(data_dir), block_devices_dir)},
+      images_dir{MP_UTILS.make_dir(QDir(this->data_dir), images_subdir)},
+      metadata_path{this->data_dir + "/" + metadata_file}
 {
     load_metadata();
 }
 
-
-void mp::BlockDeviceManager::create_block_device(const std::string& name, const MemorySize& size)
+void mp::BaseBlockDeviceManager::create_block_device(const std::string& name, const MemorySize& size)
 {
     validate_name(name);
     
@@ -93,14 +88,8 @@ void mp::BlockDeviceManager::create_block_device(const std::string& name, const 
 
     auto image_path = get_block_device_path(name);
     
-    // Create QCOW2 image using qemu-img
-    auto process_spec = std::make_unique<QemuImgProcessSpec>(
-        QStringList{"create", "-f", "qcow2", image_path, QString::number(size.in_bytes())},
-        "",
-        image_path);
-    
-    mp::backend::checked_exec_qemu_img(std::move(process_spec),
-                                     fmt::format("Failed to create block device '{}'", name));
+    // Create the block device image using backend-specific implementation
+    create_block_device_image(name, size, image_path);
 
     // Store metadata
     BlockDeviceInfo info{name, image_path, size, std::nullopt, "qcow2"};
@@ -110,7 +99,7 @@ void mp::BlockDeviceManager::create_block_device(const std::string& name, const 
     mpl::log(mpl::Level::info, "block-device", fmt::format("Created block device '{}'", name));
 }
 
-void mp::BlockDeviceManager::delete_block_device(const std::string& name)
+void mp::BaseBlockDeviceManager::delete_block_device(const std::string& name)
 {
     validate_not_in_use(name);
 
@@ -118,14 +107,14 @@ void mp::BlockDeviceManager::delete_block_device(const std::string& name)
     if (!info)
         throw NotFoundError(fmt::format("Block device '{}' does not exist", name));
 
-    QFile::remove(info->image_path);
+    remove_block_device_image(info->image_path);
     block_devices.erase(name);
     save_metadata();
 
     mpl::log(mpl::Level::info, "block-device", fmt::format("Deleted block device '{}'", name));
 }
 
-void mp::BlockDeviceManager::attach_block_device(const std::string& name, const std::string& vm)
+void mp::BaseBlockDeviceManager::attach_block_device(const std::string& name, const std::string& vm)
 {
     auto info = get_block_device(name);
     if (!info)
@@ -140,7 +129,7 @@ void mp::BlockDeviceManager::attach_block_device(const std::string& name, const 
              fmt::format("Attached block device '{}' to VM '{}'", name, vm));
 }
 
-void mp::BlockDeviceManager::detach_block_device(const std::string& name, const std::string& vm)
+void mp::BaseBlockDeviceManager::detach_block_device(const std::string& name, const std::string& vm)
 {
     auto info = get_block_device(name);
     if (!info)
@@ -160,18 +149,18 @@ void mp::BlockDeviceManager::detach_block_device(const std::string& name, const 
              fmt::format("Detached block device '{}' from VM '{}'", name, vm));
 }
 
-bool mp::BlockDeviceManager::has_block_device(const std::string& name) const
+bool mp::BaseBlockDeviceManager::has_block_device(const std::string& name) const
 {
     return block_devices.find(name) != block_devices.end();
 }
 
-const mp::BlockDeviceInfo* mp::BlockDeviceManager::get_block_device(const std::string& name) const
+const mp::BlockDeviceInfo* mp::BaseBlockDeviceManager::get_block_device(const std::string& name) const
 {
     auto it = block_devices.find(name);
     return it != block_devices.end() ? &it->second : nullptr;
 }
 
-std::vector<mp::BlockDeviceInfo> mp::BlockDeviceManager::list_block_devices() const
+std::vector<mp::BlockDeviceInfo> mp::BaseBlockDeviceManager::list_block_devices() const
 {
     std::vector<BlockDeviceInfo> devices;
     devices.reserve(block_devices.size());
@@ -180,12 +169,24 @@ std::vector<mp::BlockDeviceInfo> mp::BlockDeviceManager::list_block_devices() co
     return devices;
 }
 
-mp::Path mp::BlockDeviceManager::get_block_device_path(const std::string& name) const
+mp::Path mp::BaseBlockDeviceManager::get_block_device_path(const std::string& name) const
 {
     return images_dir + "/" + QString::fromStdString(name) + ".qcow2";
 }
 
-void mp::BlockDeviceManager::register_block_device(const BlockDeviceInfo& info)
+void mp::BaseBlockDeviceManager::create_block_device_image(const std::string& name, const MemorySize& size, const Path& image_path)
+{
+    // Default implementation - subclasses should override this for backend-specific behavior
+    throw std::runtime_error("create_block_device_image not implemented by backend");
+}
+
+void mp::BaseBlockDeviceManager::remove_block_device_image(const Path& image_path)
+{
+    // Default implementation - simple file removal
+    QFile::remove(image_path);
+}
+
+void mp::BaseBlockDeviceManager::register_block_device(const BlockDeviceInfo& info)
 {
     mpl::log(mpl::Level::debug, "block-device",
              fmt::format("register_block_device called with name='{}', size={}, path='{}', attached_vm='{}'",
@@ -222,7 +223,7 @@ void mp::BlockDeviceManager::register_block_device(const BlockDeviceInfo& info)
                        info.name, block_devices.size()));
 }
 
-void mp::BlockDeviceManager::unregister_block_device(const std::string& name)
+void mp::BaseBlockDeviceManager::unregister_block_device(const std::string& name)
 {
     mpl::log(mpl::Level::debug, "block-device",
              fmt::format("unregister_block_device called for '{}'", name));
@@ -244,7 +245,7 @@ void mp::BlockDeviceManager::unregister_block_device(const std::string& name)
                        name, block_devices.size()));
 }
 
-void mp::BlockDeviceManager::save_metadata() const
+void mp::BaseBlockDeviceManager::save_metadata() const
 {
     QJsonObject root;
     QJsonObject devices;
@@ -262,7 +263,7 @@ void mp::BlockDeviceManager::save_metadata() const
     file.write(doc.toJson());
 }
 
-void mp::BlockDeviceManager::load_metadata()
+void mp::BaseBlockDeviceManager::load_metadata()
 {
     QFile file(metadata_path);
     if (!file.exists())
@@ -282,7 +283,7 @@ void mp::BlockDeviceManager::load_metadata()
     }
 }
 
-void mp::BlockDeviceManager::validate_name(const std::string& name) const
+void mp::BaseBlockDeviceManager::validate_name(const std::string& name) const
 {
     static const QRegularExpression name_regex("^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$");
 
@@ -293,14 +294,14 @@ void mp::BlockDeviceManager::validate_name(const std::string& name) const
                        name));
 }
 
-void mp::BlockDeviceManager::validate_not_attached(const std::string& name) const
+void mp::BaseBlockDeviceManager::validate_not_attached(const std::string& name) const
 {
     auto info = get_block_device(name);
     if (info && info->attached_vm)
         throw ValidationError(fmt::format("Block device '{}' is attached to VM '{}'", name, *info->attached_vm));
 }
 
-void mp::BlockDeviceManager::validate_not_in_use(const std::string& name) const
+void mp::BaseBlockDeviceManager::validate_not_in_use(const std::string& name) const
 {
     validate_not_attached(name);
 }

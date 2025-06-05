@@ -35,6 +35,7 @@
 
 #ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
+#include "backends/qemu/qemu_block_device_manager_factory.h"
 #endif
 
 #ifdef VIRTUALBOX_ENABLED
@@ -442,6 +443,17 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 #if VIRTUALBOX_ENABLED
     if (driver == QStringLiteral("virtualbox"))
         return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+#endif
+
+    throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+}
+
+mp::BlockDeviceManagerFactory::UPtr mp::platform::block_device_manager_backend()
+{
+    const auto& driver = MP_SETTINGS.get(mp::driver_key);
+#ifdef QEMU_ENABLED
+    if (driver == QStringLiteral("qemu"))
+        return std::make_unique<QemuBlockDeviceManagerFactory>();
 #endif
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
