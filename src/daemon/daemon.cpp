@@ -1682,7 +1682,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->cache_directory,
                                             config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      block_device_manager{std::shared_ptr<BlockDeviceManager>(&BlockDeviceManager::instance(), [](BlockDeviceManager*){})},
+      block_device_manager{config->block_device_manager_factory->create_block_device_manager(config->data_directory)},
       instance_mod_handler{register_instance_mod(
           vm_instance_specs,
           operative_instances,

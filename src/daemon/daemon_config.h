@@ -29,6 +29,7 @@
 #include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
+#include <multipass/block_device_manager_factory.h>
 #include <multipass/vm_blueprint_provider.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
@@ -45,6 +46,7 @@ struct DaemonConfig
     ~DaemonConfig();
     const std::unique_ptr<URLDownloader> url_downloader;
     const std::unique_ptr<VirtualMachineFactory> factory;
+    const std::unique_ptr<BlockDeviceManagerFactory> block_device_manager_factory;
     const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     const std::unique_ptr<VMImageVault> vault;
     const std::unique_ptr<NameGenerator> name_generator;
@@ -66,6 +68,7 @@ struct DaemonConfigBuilder
 {
     std::unique_ptr<URLDownloader> url_downloader;
     std::unique_ptr<VirtualMachineFactory> factory;
+    std::unique_ptr<BlockDeviceManagerFactory> block_device_manager_factory;
     std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     std::unique_ptr<VMImageVault> vault;
     std::unique_ptr<NameGenerator> name_generator;
