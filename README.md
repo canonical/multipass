@@ -5,6 +5,8 @@ fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on
 virtual machines with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch Ubuntu
 images for you and keep them up to date.
 
+Non docs and non src code changes.
+
 Since it supports metadata for cloud-init, you can simulate a small cloud deployment on your laptop or workstation.
 
 ## Project status
