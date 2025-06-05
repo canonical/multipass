@@ -31,16 +31,8 @@
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 
-#ifdef QEMU_ENABLED
 #include "tests/qemu/linux/mock_dnsmasq_server.h"
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
-#define DEFAULT_FACTORY mp::QemuVirtualMachineFactory
-#define DEFAULT_DRIVER "qemu"
-#else
-#define DEFAULT_FACTORY mp::LXDVirtualMachineFactory
-#define DEFAULT_DRIVER "lxd"
-#endif
-
 #include <src/platform/platform_linux_detail.h>
 
 #include <multipass/constants.h>
@@ -72,10 +64,8 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
     template <typename VMFactoryType>
     void aux_test_driver_factory(const QString& driver)
     {
-#ifdef QEMU_ENABLED
         const mpt::MockDNSMasqServerFactory::GuardedMock dnsmasq_server_factory_attr{
             mpt::MockDNSMasqServerFactory::inject<NiceMock>()};
-#endif
 
         auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
@@ -143,15 +133,8 @@ TEST_F(PlatformLinux, testDefaultPrivilegedMounts)
 
 TEST_F(PlatformLinux, testDefaultDriverProducesCorrectFactory)
 {
-    aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
-}
-
-#ifdef QEMU_ENABLED
-TEST_F(PlatformLinux, testExplicitQemuDriverProducesCorrectFactory)
-{
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
-#endif
 
 TEST_F(PlatformLinux, testLibvirtDriverProducesCorrectFactory)
 {
@@ -174,7 +157,7 @@ TEST_F(PlatformLinux, testQemuInEnvVarIsIgnored)
 TEST_F(PlatformLinux, testLibvirtInEnvVarIsIgnored)
 {
     mpt::SetEnvScope env(mp::driver_env_var, "LIBVIRT");
-    aux_test_driver_factory<DEFAULT_FACTORY>(DEFAULT_DRIVER);
+    aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
 TEST_F(PlatformLinux, testSnapReturnsExpectedDefaultAddress)

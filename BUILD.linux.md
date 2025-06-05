@@ -59,6 +59,20 @@ sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
     dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 \
     iptables iputils-ping libatm1 libxtables12 xterm
 ```
+On ARM64 architecture, you can do this by running:
+
+```
+sudo apt update
+sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
+    libqt6network6 libqt6widgets6 libxml2 libvirt0 dnsmasq-base \
+    dnsmasq-utils qemu-system-arm qemu-efi-aarch64 qemu-utils \
+    libslang2 iproute2 iptables iputils-ping libatm1 libxtables12 \
+    xterm
+```
+Additionally, on ARM64 architecture, there is an extra step to set up the `QEMU_EFI.fd` file:
+```
+sudo cp /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/qemu/QEMU_EFI.fd
+```
 
 Then run the Multipass daemon:
 
