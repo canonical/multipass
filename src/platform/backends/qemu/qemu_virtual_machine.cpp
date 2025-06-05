@@ -20,7 +20,7 @@
 #include "qemu_snapshot.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
-#include "block_device_manager.h"
+#include <multipass/block_device_manager.h>
 #include <multipass/block_device_info.h>
 
 #include <shared/qemu_img_utils/qemu_img_utils.h>
