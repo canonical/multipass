@@ -176,11 +176,6 @@ target_link_libraries(multipass_tests
   yaml
 )
 
-# need https://github.com/google/googletest/commit/a09ea700d32bab83325aff9ff34d0582e50e3997 before this can be removed
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  target_compile_options(multipass_tests PRIVATE -Wno-inconsistent-missing-override)
-endif()
-
 add_test(NAME multipass_tests
   COMMAND multipass_tests
 )
