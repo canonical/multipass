@@ -178,19 +178,6 @@ bool mp::utils::invalid_target_path(const QString& target_path)
     return matcher.match(sanitized_path).hasMatch();
 }
 
-QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
-{
-    auto temp_folder = QFileInfo(filename_template).absoluteDir();
-
-    if (!MP_FILEOPS.mkpath(temp_folder, temp_folder.absolutePath()))
-    {
-        throw std::runtime_error(
-            fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
-    }
-
-    return QTemporaryFile(filename_template);
-}
-
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
 {
     if (args.empty())
@@ -337,14 +324,6 @@ mp::Path mp::Utils::make_dir(const QDir& a_dir,
 mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions) const
 {
     return make_dir(dir, QString(), permissions);
-}
-
-void mp::utils::remove_directories(const std::vector<QString>& dirs)
-{
-    for (const auto& dir : dirs)
-    {
-        QDir(dir).removeRecursively();
-    }
 }
 
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
