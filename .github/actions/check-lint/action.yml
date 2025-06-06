@@ -20,7 +20,7 @@ runs:
       id: wait-lint
       with:
         token: ${{ github.token }}
-        checkName: Lint
+        checkName: Lint / Lint
         ref: ${{ inputs.sha }}
         timeoutSeconds: 120
         intervalSeconds: 5
