@@ -5,6 +5,8 @@
 
 <!-- Merged contributions by @bagustris on the Open Documentation Academy -->
 
+Example doc changes
+
 This guide explains how to install and manage Multipass on your system.
 
 ```{note}
