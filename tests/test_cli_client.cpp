@@ -1188,23 +1188,6 @@ TEST_F(Client, launchCmdMemoryOptionFailsNoValue)
     EXPECT_THAT(send_command({"launch", "-m"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, launchCmdMemoryFailsDuplicateOptions)
-{
-    EXPECT_THAT(send_command({"launch", "--memory", "2048M", "--mem", "2048M"}),
-                Eq(mp::ReturnCode::CommandLineError));
-}
-
-TEST_F(Client, launchCmdMemoryDeprecatedOptionWarning)
-{
-    std::stringstream cerr_stream;
-
-    EXPECT_CALL(mock_daemon, launch(_, _));
-    EXPECT_THAT(send_command({"launch", "--mem", "2048M"}, trash_stream, cerr_stream),
-                Eq(mp::ReturnCode::Ok));
-    EXPECT_NE(std::string::npos, cerr_stream.str().find("Warning: the \"--mem\""))
-        << "cout has: " << cerr_stream.str();
-}
-
 TEST_F(Client, launchCmdCpuOptionOk)
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
