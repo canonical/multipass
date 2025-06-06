@@ -74,12 +74,14 @@ jobs:
     needs: filter
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/linux.yml"
+    secrets: inherit
 
   windows-macos:
     name: Windows/macOS
     needs: filter
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/windows-macos.yml"
+    secrets: inherit
 
   finalize:
     name: Finalize
