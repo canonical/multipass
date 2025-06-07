@@ -104,8 +104,8 @@ auto net_digest(const QString& options)
     }
 
     if (net.id().empty())
-        throw mp::ValidationException{
-            fmt::format("Bad network definition, need at least a 'name' field")};
+        throw mp::ValidationException{fmt::format(
+            "Bad network definition, need at least a 'name' field; example code change")};
 
     return net;
 }
