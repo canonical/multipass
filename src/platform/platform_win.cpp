@@ -662,7 +662,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
-mp::BlockDeviceManagerFactory::UPtr mp::platform::block_device_manager_backend()
+mp::BlockDeviceFactory::UPtr mp::platform::block_device_factory_backend()
 {
     throw std::runtime_error("Block device management is not yet supported on Windows");
 }
