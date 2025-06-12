@@ -72,7 +72,8 @@ inline auto make_tempfile_path(std::string extension)
     std::uint32_t remaining_attempts = 10;
     do
     {
-        temp_path = std::filesystem::temp_directory_path() / fmt::format("temp-{:016x}{}", rng(), extension);
+        temp_path = std::filesystem::temp_directory_path() /
+                    fmt::format("temp-{:016x}{}", rng(), extension);
         // The generated path is vulnerable to TOCTOU, but it's highly unlikely we'll see a clash.
         // Better handling of this would require creation of a placeholder file, and an atomic swap
         // with the real file.
