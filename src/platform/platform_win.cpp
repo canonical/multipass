@@ -60,8 +60,10 @@
 #include <netioapi.h>
 #include <objbase.h>
 #include <sddl.h>
-#include <secext.h>
+// clang-format off
 #include <security.h>
+#include <secext.h>
+// clang-format on
 #include <windows.h>
 
 
