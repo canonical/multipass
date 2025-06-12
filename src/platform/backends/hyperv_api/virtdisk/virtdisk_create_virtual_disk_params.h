@@ -59,9 +59,13 @@ struct fmt::formatter<multipass::hyperv::virtdisk::CreateVirtualDiskParameters, 
     }
 
     template <typename FormatContext>
-    auto format(const multipass::hyperv::virtdisk::CreateVirtualDiskParameters& params, FormatContext& ctx) const
+    auto format(const multipass::hyperv::virtdisk::CreateVirtualDiskParameters& params,
+                FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "Size (in bytes): ({}) | Path: ({}) ", params.size_in_bytes, params.path.string());
+        return format_to(ctx.out(),
+                         "Size (in bytes): ({}) | Path: ({}) ",
+                         params.size_in_bytes,
+                         params.path.string());
     }
 };
 
