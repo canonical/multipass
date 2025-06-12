@@ -45,7 +45,8 @@ struct HcnIpam
  * Formatter type specialization for HcnIpam
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnIpam, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnIpam, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::HcnIpam& ipam, FormatContext& ctx) const ->

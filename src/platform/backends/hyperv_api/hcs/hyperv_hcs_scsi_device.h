@@ -42,7 +42,8 @@ struct HcsScsiDevice
  * Formatter type specialization for HcnNetworkPolicy
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcs::HcsScsiDevice, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcs::HcsScsiDevice, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::HcsScsiDevice& policy, FormatContext& ctx) const ->
