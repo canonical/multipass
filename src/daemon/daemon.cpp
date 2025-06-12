@@ -2853,10 +2853,11 @@ try
     {
         return status_promise->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
-            "No passphrase is set.\n\n"
-            "Please ask an authenticated user to set one and provide it to you. They can achieve "
-            "so with 'multipass set local.passphrase'. Note that only the user who installs "
-            "Multipass is automatically authenticated."));
+            "Incorrect passphrase. No passphrase is set.\n\n"
+            "To authenticate trusted users, first ask an authenticated user to set a passphrase "
+            "and share it with them. To set a passphrase, use the command "
+            "'multipass set local.passphrase'. Note that only the user who installs Multipass is "
+            "automatically authenticated."));
     }
 
     auto hashed_passphrase =

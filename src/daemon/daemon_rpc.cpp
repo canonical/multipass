@@ -480,7 +480,7 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
     {
         return grpc::Status{
             grpc::StatusCode::UNAUTHENTICATED,
-            "Your user is not authenticated with the Multipass service.\n\n"
+            "The user is not authenticated with the Multipass service.\n\n"
             "Please authenticate before proceeding (e.g. via 'multipass authenticate'). Note that "
             "you first need an authenticated user to set and provide you with a trusted passphrase "
             "(e.g. via 'multipass set local.passphrase')."};
