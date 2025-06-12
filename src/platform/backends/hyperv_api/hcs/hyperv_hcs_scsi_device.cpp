@@ -26,7 +26,8 @@ using multipass::hyperv::hcs::HcsScsiDeviceType;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_device, FormatContext& ctx) const ->
+auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_device,
+                                                 FormatContext& ctx) const ->
     typename FormatContext::iterator
 {
     constexpr static auto scsi_device_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
@@ -49,10 +50,10 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                      scsi_device.read_only);
 }
 
-template auto fmt::formatter<HcsScsiDevice, char>::format<fmt::format_context>(const HcsScsiDevice&,
-                                                                               fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcsScsiDevice, char>::format<fmt::format_context>(
+    const HcsScsiDevice&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcsScsiDevice, wchar_t>::format<fmt::wformat_context>(const HcsScsiDevice&,
-                                                                                   fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcsScsiDevice, wchar_t>::format<fmt::wformat_context>(
+    const HcsScsiDevice&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

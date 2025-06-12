@@ -47,7 +47,8 @@ struct HcnRoute
  * Formatter type specialization for HcnRoute
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnRoute, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnRoute, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::HcnRoute& route, FormatContext& ctx) const ->

@@ -81,7 +81,9 @@ auto resolve_ip_addresses(const std::string& hostname)
     const static mpp::wsa_init_wrapper wsa_context{};
 
     std::vector<std::string> ipv4{}, ipv6{};
-    mpl::trace(kLogCategory, "resolve_ip_addresses() -> resolve being called for hostname `{}`", hostname);
+    mpl::trace(kLogCategory,
+               "resolve_ip_addresses() -> resolve being called for hostname `{}`",
+               hostname);
 
     if (!wsa_context)
     {
@@ -96,7 +98,9 @@ auto resolve_ip_addresses(const std::string& hostname)
         {
         };
         const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
-        return std::make_pair(r, std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{result, freeaddrinfo});
+        return std::make_pair(
+            r,
+            std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{result, freeaddrinfo});
     }();
 
     if (result == 0)
@@ -118,11 +122,11 @@ auto resolve_ip_addresses(const std::string& hostname)
                     break;
                 }
 
-                mpl::error(
-                    kLogCategory,
-                    "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address data while expecting {}!",
-                    ptr->ai_addrlen,
-                    kSockaddrInSize);
+                mpl::error(kLogCategory,
+                           "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address "
+                           "data while expecting {}!",
+                           ptr->ai_addrlen,
+                           kSockaddrInSize);
             }
             break;
             case AF_INET6:
@@ -136,11 +140,11 @@ auto resolve_ip_addresses(const std::string& hostname)
                     ipv6.push_back(addr);
                     break;
                 }
-                mpl::error(
-                    kLogCategory,
-                    "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address data while expecting {}!",
-                    ptr->ai_addrlen,
-                    kSockaddrIn6Size);
+                mpl::error(kLogCategory,
+                           "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address "
+                           "data while expecting {}!",
+                           ptr->ai_addrlen,
+                           kSockaddrIn6Size);
             }
             break;
             default:
@@ -181,7 +185,9 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
     // Verify that the given API wrappers are not null
     {
         const std::array<void*, 3> api_ptrs = {hcs.get(), hcn.get(), virtdisk.get()};
-        if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) { return nullptr == ptr; }))
+        if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) {
+                return nullptr == ptr;
+            }))
         {
             throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.",
                                              fmt::join(api_ptrs, ",")};
@@ -205,7 +211,8 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
     const std::filesystem::path base_vhdx = description.image.image_path.toStdString();
-    const std::filesystem::path head_avhdx = base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
+    const std::filesystem::path head_avhdx =
+        base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
     return std::filesystem::exists(head_avhdx) ? head_avhdx : base_vhdx;
 }
 
@@ -217,7 +224,10 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
     for (auto itr = paths.begin(); itr != paths.end(); ++itr)
     {
         const auto& path = *itr;
-        mpl::debug(kLogCategory, "Granting access to path `{}`, exists? {}", path, std::filesystem::exists(path));
+        mpl::debug(kLogCategory,
+                   "Granting access to path `{}`, exists? {}",
+                   path,
+                   std::filesystem::exists(path));
         if (std::filesystem::is_symlink(path))
         {
             paths.push_back(std::filesystem::canonical(path));
@@ -329,10 +339,12 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         return params;
     }();
 
-    if (const auto create_result = hcs->create_compute_system(create_compute_system_params); !create_result)
+    if (const auto create_result = hcs->create_compute_system(create_compute_system_params);
+        !create_result)
     {
         fmt::print(L"Create compute system failed: {}", create_result.status_msg);
-        throw CreateComputeSystemException{"create_compute_system failed with {}", create_result.code};
+        throw CreateComputeSystemException{"create_compute_system failed with {}",
+                                           create_result.code};
     }
 
     // Grant access to the VHDX and the cloud-init ISO files.
@@ -346,7 +358,10 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
 void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 {
-    mpl::debug(kLogCategory, "set_state() -> VM `{}` HCS state `{}`", vm_name, compute_system_state);
+    mpl::debug(kLogCategory,
+               "set_state() -> VM `{}` HCS state `{}`",
+               vm_name,
+               compute_system_state);
 
     const auto prev_state = state;
     switch (compute_system_state)
@@ -372,7 +387,11 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
     if (state == prev_state)
         return;
 
-    mpl::info(kLogCategory, "set_state() > VM {} state changed from {} to {}", vm_name, prev_state, state);
+    mpl::info(kLogCategory,
+              "set_state() > VM {} state changed from {} to {}",
+              vm_name,
+              prev_state,
+              state);
 }
 
 void HCSVirtualMachine::start()
@@ -418,12 +437,17 @@ void HCSVirtualMachine::start()
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
-    mpl::debug(kLogCategory, "shutdown() -> Shutting down VM `{}`, current state {}", vm_name, state);
+    mpl::debug(kLogCategory,
+               "shutdown() -> Shutting down VM `{}`, current state {}",
+               vm_name,
+               state);
 
     switch (shutdown_policy)
     {
     case ShutdownPolicy::Powerdown:
-        mpl::debug(kLogCategory, "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`", vm_name);
+        mpl::debug(kLogCategory,
+                   "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`",
+                   vm_name);
 
         // If the guest has integration modules enabled, we can use graceful shutdown.
         if (!hcs->shutdown_compute_system(vm_name))
@@ -501,7 +525,9 @@ std::string HCSVirtualMachine::ipv6()
 void HCSVirtualMachine::ensure_vm_is_running()
 {
     auto is_vm_running = [this] { return state != State::off; };
-    multipass::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
+    multipass::backend::ensure_vm_is_running_for(this,
+                                                 is_vm_running,
+                                                 "Instance shutdown during start");
 }
 void HCSVirtualMachine::update_state()
 {
@@ -517,7 +543,10 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
 
 void HCSVirtualMachine::update_cpus(int num_cores)
 {
-    mpl::debug(kLogCategory, "update_cpus() -> called for VM `{}`, num_cores `{}`", vm_name, num_cores);
+    mpl::debug(kLogCategory,
+               "update_cpus() -> called for VM `{}`, num_cores `{}`",
+               vm_name,
+               num_cores);
     // This is a no-op since HCS creates the VM from scratch
     // every time in a cold boot.
 }
@@ -528,9 +557,10 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
                "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
                vm_name,
                new_size.in_megabytes());
-    hcs::HcsRequest req{hcs::HcsResourcePath::Memory(),
-                        hcs::HcsRequestType::Update(),
-                        hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
+    hcs::HcsRequest req{
+        hcs::HcsResourcePath::Memory(),
+        hcs::HcsRequestType::Update(),
+        hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
     hcs->modify_compute_system(vm_name, req);
     // FIXME: Log the result.
 }
@@ -549,7 +579,8 @@ void HCSVirtualMachine::add_network_interface(int index,
                                               const NetworkInterface& extra_interface)
 {
     mpl::debug(kLogCategory,
-               "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, extra_interface: (mac: {}, "
+               "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, "
+               "extra_interface: (mac: {}, "
                "mac_address: {}, id: {})",
                vm_name,
                index,
@@ -561,7 +592,8 @@ void HCSVirtualMachine::add_network_interface(int index,
     if (!(state == VirtualMachine::State::stopped))
     {
         // No need to do it for stopped machines
-        mpl::info(kLogCategory, "add_network_interface() -> Skipping hot-plug, VM is in a stopped state.");
+        mpl::info(kLogCategory,
+                  "add_network_interface() -> Skipping hot-plug, VM is in a stopped state.");
         return;
     }
 
@@ -577,7 +609,9 @@ void HCSVirtualMachine::add_network_interface(int index,
 
     if (const auto result = hcn->create_endpoint(endpoint); !result)
     {
-        mpl::error(kLogCategory, "add_network_interface() -> failed to create endpoint for `{}`", extra_interface.id);
+        mpl::error(kLogCategory,
+                   "add_network_interface() -> failed to create endpoint for `{}`",
+                   extra_interface.id);
         return;
     }
 
@@ -586,25 +620,30 @@ void HCSVirtualMachine::add_network_interface(int index,
         network_adapter.endpoint_guid = endpoint.endpoint_guid;
         network_adapter.mac_address = endpoint.mac_address.value();
 
-        hcs::HcsRequest add_network_adapter_req{hcs::HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
-                                                hcs::HcsRequestType::Add(),
-                                                network_adapter};
+        hcs::HcsRequest add_network_adapter_req{
+            hcs::HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
+            hcs::HcsRequestType::Add(),
+            network_adapter};
         return add_network_adapter_req;
     }();
 
     if (const auto result = hcs->modify_compute_system(vm_name, add_network_adapter_req); !result)
     {
         mpl::error(kLogCategory,
-                   "add_network_interface() -> failed to add endpoint for network `{}` to compute system `{}`",
+                   "add_network_interface() -> failed to add endpoint for network `{}` to compute "
+                   "system `{}`",
                    extra_interface.id,
                    vm_name);
         return;
     }
 }
-std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const std::string& target,
-                                                                           const VMMount& mount)
+std::unique_ptr<MountHandler>
+HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VMMount& mount)
 {
-    mpl::debug(kLogCategory, "make_native_mount_handler() -> called for VM `{}`, target: {}", vm_name, target);
+    mpl::debug(kLogCategory,
+               "make_native_mount_handler() -> called for VM `{}`, target: {}",
+               vm_name,
+               target);
     // throw NotImplementedOnThisBackendException{
     //     "Plan9 mounts require an agent running on guest, which is not implemented yet."};
     // FIXME: Replace with Plan9 mount handler once the guest agent is available.
@@ -618,11 +657,12 @@ std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const
                                              smb_manager);
 }
 
-std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
-                                                                    const std::string& comment,
-                                                                    const std::string& instance_id,
-                                                                    const VMSpecs& specs,
-                                                                    std::shared_ptr<Snapshot> parent)
+std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
+    const std::string& snapshot_name,
+    const std::string& comment,
+    const std::string& instance_id,
+    const VMSpecs& specs,
+    std::shared_ptr<Snapshot> parent)
 {
     return std::make_shared<virtdisk::VirtDiskSnapshot>(snapshot_name,
                                                         comment,
