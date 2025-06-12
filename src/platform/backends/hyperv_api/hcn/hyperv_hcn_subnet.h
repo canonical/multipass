@@ -40,7 +40,8 @@ struct HcnSubnet
  * Formatter type specialization for HcnSubnet
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::HcnSubnet& route, FormatContext& ctx) const ->

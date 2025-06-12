@@ -46,9 +46,10 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
                      maybe_widen{subnet.ip_address_prefix});
 }
 
-template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(const HcnSubnet&, fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(
+    const HcnSubnet&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcnSubnet, wchar_t>::format<fmt::wformat_context>(const HcnSubnet&,
-                                                                               fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcnSubnet, wchar_t>::format<fmt::wformat_context>(
+    const HcnSubnet&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

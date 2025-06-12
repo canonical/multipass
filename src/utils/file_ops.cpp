@@ -374,7 +374,9 @@ void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p) const
 {
     fs::rename(old_p, new_p);
 }
-void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p, std::error_code& ec) const noexcept
+void mp::FileOps::rename(const fs::path& old_p,
+                         const fs::path& new_p,
+                         std::error_code& ec) const noexcept
 {
     fs::rename(old_p, new_p, ec);
 }
