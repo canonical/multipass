@@ -101,7 +101,10 @@ struct MockVirtualMachineT : public T
                 make_native_mount_handler,
                 (const std::string&, const VMMount&),
                 (override));
-    MOCK_METHOD(VirtualMachine::SnapshotVista, view_snapshots, (VirtualMachine::SnapshotPredicate), (const, override));
+    MOCK_METHOD(VirtualMachine::SnapshotVista,
+                view_snapshots,
+                (VirtualMachine::SnapshotPredicate),
+                (const, override));
     MOCK_METHOD(int, get_num_snapshots, (), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>,
                 get_snapshot,

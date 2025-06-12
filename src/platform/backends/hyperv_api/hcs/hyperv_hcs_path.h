@@ -44,7 +44,11 @@ struct HcsPath
         value = std::forward<T>(v);
         return *this;
     }
-    const std::filesystem::path& get() const noexcept { return value; }
+    const std::filesystem::path& get() const noexcept
+    {
+        return value;
+    }
+
 private:
     std::filesystem::path value;
 };
@@ -54,10 +58,12 @@ private:
  * Formatter type specialization for Path
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcs::HcsPath, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcs::HcsPath, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsPath&, FormatContext&) const -> typename FormatContext::iterator;
+    auto format(const multipass::hyperv::hcs::HcsPath&, FormatContext&) const ->
+        typename FormatContext::iterator;
 };
 
 #endif

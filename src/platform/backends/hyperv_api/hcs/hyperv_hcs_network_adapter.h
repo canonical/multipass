@@ -38,11 +38,12 @@ struct HcsNetworkAdapter
  * Formatter type specialization for HcnNetworkPolicy
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcs::HcsNetworkAdapter, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcs::HcsNetworkAdapter, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsNetworkAdapter& policy, FormatContext& ctx) const ->
-        typename FormatContext::iterator;
+    auto format(const multipass::hyperv::hcs::HcsNetworkAdapter& policy, FormatContext& ctx) const
+        -> typename FormatContext::iterator;
 };
 
 #endif // MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H
