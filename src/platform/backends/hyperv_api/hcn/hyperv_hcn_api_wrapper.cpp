@@ -54,8 +54,10 @@ struct GuidParseError : multipass::FormattedExceptionBase<>
 namespace
 {
 
-using UniqueHcnNetwork = std::unique_ptr<std::remove_pointer_t<HCN_NETWORK>, decltype(HCNAPITable::CloseNetwork)>;
-using UniqueHcnEndpoint = std::unique_ptr<std::remove_pointer_t<HCN_ENDPOINT>, decltype(HCNAPITable::CloseEndpoint)>;
+using UniqueHcnNetwork =
+    std::unique_ptr<std::remove_pointer_t<HCN_NETWORK>, decltype(HCNAPITable::CloseNetwork)>;
+using UniqueHcnEndpoint =
+    std::unique_ptr<std::remove_pointer_t<HCN_ENDPOINT>, decltype(HCNAPITable::CloseEndpoint)>;
 using UniqueCotaskmemString = std::unique_ptr<wchar_t, decltype(HCNAPITable::CoTaskMemFree)>;
 
 namespace mpl = logging;
@@ -158,7 +160,8 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
     // the API describing the error happened. Therefore, we can streamline all API
     // calls through perform_operation to perform co
-    const auto result = ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
+    const auto result =
+        ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
     mpl::debug(kLogCategory,
                "perform_operation(...) > fn: {}, result: {}",
@@ -189,8 +192,10 @@ UniqueHcnNetwork open_network(const HCNAPITable& api, const std::string& network
     mpl::debug(kLogCategory, "open_network(...) > network_guid: {} ", network_guid);
 
     UniqueHcnNetwork network{};
-    const auto result =
-        perform_hcn_operation(api, api.OpenNetwork, guid_from_string(network_guid), out_ptr(network, api.CloseNetwork));
+    const auto result = perform_hcn_operation(api,
+                                              api.OpenNetwork,
+                                              guid_from_string(network_guid),
+                                              out_ptr(network, api.CloseNetwork));
     if (!result)
     {
         mpl::error(kLogCategory, "open_network() > HcnOpenNetwork failed with {}!", result.code);
@@ -257,12 +262,13 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
     )""";
 
     // Render the template
-    const auto network_settings = fmt::format(network_settings_template,
-                                              fmt::arg(L"Name", maybe_widen{params.name}),
-                                              fmt::arg(L"Type", maybe_widen{std::string{params.type}}),
-                                              fmt::arg(L"Flags", fmt::underlying(params.flags)),
-                                              fmt::arg(L"Ipams", fmt::join(params.ipams, L",")),
-                                              fmt::arg(L"Policies", fmt::join(params.policies, L",")));
+    const auto network_settings =
+        fmt::format(network_settings_template,
+                    fmt::arg(L"Name", maybe_widen{params.name}),
+                    fmt::arg(L"Type", maybe_widen{std::string{params.type}}),
+                    fmt::arg(L"Flags", fmt::underlying(params.flags)),
+                    fmt::arg(L"Ipams", fmt::join(params.ipams, L",")),
+                    fmt::arg(L"Policies", fmt::join(params.policies, L",")));
 
     UniqueHcnNetwork network{};
     const auto result = perform_hcn_operation(api,
@@ -319,11 +325,13 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
     }})";
 
     // Render the template
-    const auto endpoint_settings = fmt::format(
-        endpoint_settings_template,
-        fmt::arg(L"HostComputeNetwork", maybe_widen{params.network_guid}),
-        fmt::arg(L"MacAddress",
-                 params.mac_address ? fmt::format(L"\"{}\"", maybe_widen{params.mac_address.value()}) : L"null"));
+    const auto endpoint_settings =
+        fmt::format(endpoint_settings_template,
+                    fmt::arg(L"HostComputeNetwork", maybe_widen{params.network_guid}),
+                    fmt::arg(L"MacAddress",
+                             params.mac_address
+                                 ? fmt::format(L"\"{}\"", maybe_widen{params.mac_address.value()})
+                                 : L"null"));
     UniqueHcnEndpoint endpoint{};
     const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
@@ -338,7 +346,9 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
 
 OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) const
 {
-    mpl::debug(kLogCategory, "HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ", endpoint_guid);
+    mpl::debug(kLogCategory,
+               "HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ",
+               endpoint_guid);
     return perform_hcn_operation(api, api.DeleteEndpoint, guid_from_string(endpoint_guid));
 }
 

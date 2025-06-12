@@ -42,8 +42,10 @@ namespace multipass::hyperv::hcs
 namespace
 {
 
-using UniqueHcsSystem = std::unique_ptr<std::remove_pointer_t<HCS_SYSTEM>, decltype(HCSAPITable::CloseComputeSystem)>;
-using UniqueHcsOperation = std::unique_ptr<std::remove_pointer_t<HCS_OPERATION>, decltype(HCSAPITable::CloseOperation)>;
+using UniqueHcsSystem =
+    std::unique_ptr<std::remove_pointer_t<HCS_SYSTEM>, decltype(HCSAPITable::CloseComputeSystem)>;
+using UniqueHcsOperation =
+    std::unique_ptr<std::remove_pointer_t<HCS_OPERATION>, decltype(HCSAPITable::CloseOperation)>;
 using UniqueHlocalString = std::unique_ptr<wchar_t, decltype(HCSAPITable::LocalFree)>;
 
 namespace mpl = logging;
@@ -84,9 +86,10 @@ UniqueHcsOperation create_operation(const HCSAPITable& api)
  * @param timeout Maximum amount of time to wait
  * @return Operation result
  */
-OperationResult wait_for_operation_result(const HCSAPITable& api,
-                                          UniqueHcsOperation op,
-                                          std::chrono::milliseconds timeout = kDefaultOperationTimeout)
+OperationResult wait_for_operation_result(
+    const HCSAPITable& api,
+    UniqueHcsOperation op,
+    std::chrono::milliseconds timeout = kDefaultOperationTimeout)
 {
     mpl::debug(kLogCategory,
                "wait_for_operation_result(...) > ({}), timeout: {} ms",
@@ -94,8 +97,8 @@ OperationResult wait_for_operation_result(const HCSAPITable& api,
                timeout.count());
 
     UniqueHlocalString result_msg{};
-    const auto hresult_code =
-        ResultCode{api.WaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg, api.LocalFree))};
+    const auto hresult_code = ResultCode{
+        api.WaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg, api.LocalFree))};
     mpl::debug(kLogCategory,
                "wait_for_operation_result(...) > finished ({}), result_code: {}",
                fmt::ptr(op.get()),
@@ -129,8 +132,9 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
     constexpr auto kRequestedAccessLevel = GENERIC_ALL;
 
     UniqueHcsSystem system{};
-    const ResultCode result =
-        api.OpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, out_ptr(system, api.CloseComputeSystem));
+    const ResultCode result = api.OpenComputeSystem(name_w.c_str(),
+                                                    kRequestedAccessLevel,
+                                                    out_ptr(system, api.CloseComputeSystem));
     if (!result)
     {
         mpl::debug(kLogCategory,
@@ -144,7 +148,10 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
 // ---------------------------------------------------------
 
 template <typename FnType, typename... Args>
-OperationResult perform_hcs_operation(const HCSAPITable& api, const FnType& fn, UniqueHcsSystem system, Args&&... args)
+OperationResult perform_hcs_operation(const HCSAPITable& api,
+                                      const FnType& fn,
+                                      UniqueHcsSystem system,
+                                      Args&&... args)
 {
     auto operation = create_operation(api);
 
@@ -159,7 +166,9 @@ OperationResult perform_hcs_operation(const HCSAPITable& api, const FnType& fn, 
 
     if (!result)
     {
-        mpl::error(kLogCategory, "perform_hcs_operation(...) > Operation failed! Result code {}", result);
+        mpl::error(kLogCategory,
+                   "perform_hcs_operation(...) > Operation failed! Result code {}",
+                   result);
         return OperationResult{result, L"HCS operation failed!"};
     }
 
@@ -240,11 +249,12 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     const auto vm_settings = fmt::to_wstring(params);
 
     UniqueHcsSystem system{};
-    const auto result = ResultCode{api.CreateComputeSystem(name_w.c_str(),
-                                                           vm_settings.c_str(),
-                                                           operation.get(),
-                                                           nullptr,
-                                                           out_ptr(system, api.CloseComputeSystem))};
+    const auto result =
+        ResultCode{api.CreateComputeSystem(name_w.c_str(),
+                                           vm_settings.c_str(),
+                                           operation.get(),
+                                           nullptr,
+                                           out_ptr(system, api.CloseComputeSystem))};
 
     if (!result)
     {
@@ -274,7 +284,10 @@ OperationResult HCSWrapper::shutdown_compute_system(const std::string& compute_s
             "Type": "Shutdown"
         })";
 
-    return perform_hcs_operation(api, api.ShutDownComputeSystem, compute_system_name, c_shutdownOption);
+    return perform_hcs_operation(api,
+                                 api.ShutDownComputeSystem,
+                                 compute_system_name,
+                                 c_shutdownOption);
 }
 
 // ---------------------------------------------------------
@@ -310,10 +323,13 @@ OperationResult HCSWrapper::resume_compute_system(const std::string& compute_sys
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::get_compute_system_properties(const std::string& compute_system_name) const
+OperationResult HCSWrapper::get_compute_system_properties(
+    const std::string& compute_system_name) const
 {
 
-    mpl::debug(kLogCategory, "get_compute_system_properties(...) > name: ({})", compute_system_name);
+    mpl::debug(kLogCategory,
+               "get_compute_system_properties(...) > name: ({})",
+               compute_system_name);
 
     // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#System_PropertyType
     static constexpr wchar_t c_VmQuery[] = LR"(
@@ -321,7 +337,10 @@ OperationResult HCSWrapper::get_compute_system_properties(const std::string& com
             "PropertyTypes":[]
         })";
 
-    return perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, c_VmQuery);
+    return perform_hcs_operation(api,
+                                 api.GetComputeSystemProperties,
+                                 compute_system_name,
+                                 c_VmQuery);
 }
 
 // ---------------------------------------------------------
@@ -363,7 +382,8 @@ OperationResult HCSWrapper::get_compute_system_state(const std::string& compute_
 {
     mpl::debug(kLogCategory, "get_compute_system_state(...) > name: ({})", compute_system_name);
 
-    const auto result = perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, nullptr);
+    const auto result =
+        perform_hcs_operation(api, api.GetComputeSystemProperties, compute_system_name, nullptr);
 
     if (!result)
         return result;
@@ -397,7 +417,11 @@ OperationResult HCSWrapper::modify_compute_system(const std::string& compute_sys
     mpl::debug(kLogCategory, "modify_compute_system(...) > params: {}", params);
 
     const auto json = fmt::to_wstring(params);
-    return perform_hcs_operation(api, api.ModifyComputeSystem, compute_system_name, json.c_str(), nullptr);
+    return perform_hcs_operation(api,
+                                 api.ModifyComputeSystem,
+                                 compute_system_name,
+                                 json.c_str(),
+                                 nullptr);
 }
 
 } // namespace multipass::hyperv::hcs
