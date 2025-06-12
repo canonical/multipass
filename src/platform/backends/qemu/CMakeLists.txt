@@ -17,8 +17,8 @@ set (CMAKE_AUTOMOC ON)
 add_definitions(-DHOST_ARCH="${HOST_ARCH}")
 
 add_library(qemu_backend STATIC
-  qemu_block_device_manager.cpp
-  qemu_block_device_manager_factory.cpp
+  qemu_block_device.cpp
+  qemu_block_device_factory.cpp
   qemu_base_process_spec.cpp
   qemu_mount_handler.cpp
   qemu_snapshot.cpp

@@ -15,7 +15,7 @@
  *
  */
 
-#include "qemu_block_device_manager.h"
+#include "qemu_block_device.h"
 
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 
@@ -24,14 +24,16 @@
 
 namespace mp = multipass;
 
-using namespace multipass;
-
-mp::QemuBlockDeviceManager::QemuBlockDeviceManager(const Path& data_dir)
-    : BaseBlockDeviceManager(data_dir)
+mp::QemuBlockDevice::QemuBlockDevice(const std::string& name,
+                                      const Path& image_path,
+                                      const MemorySize& size,
+                                      const std::string& format,
+                                      const std::optional<std::string>& attached_vm)
+    : BaseBlockDevice(name, image_path, size, format, attached_vm)
 {
 }
 
-void mp::QemuBlockDeviceManager::create_block_device_image(const std::string& name, const MemorySize& size, const Path& image_path)
+void mp::QemuBlockDevice::create_image_file(const std::string& name, const MemorySize& size, const Path& image_path)
 {
     // Create QCOW2 image using qemu-img
     auto process_spec = std::make_unique<QemuImgProcessSpec>(

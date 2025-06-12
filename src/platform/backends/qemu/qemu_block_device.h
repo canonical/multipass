@@ -15,20 +15,28 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_BLOCK_DEVICE_MANAGER_FACTORY_H
-#define MULTIPASS_QEMU_BLOCK_DEVICE_MANAGER_FACTORY_H
+#ifndef MULTIPASS_QEMU_BLOCK_DEVICE_H
+#define MULTIPASS_QEMU_BLOCK_DEVICE_H
 
-#include <multipass/block_device_manager_factory.h>
+#include "../shared/base_block_device.h"
+
+#include <multipass/memory_size.h>
+#include <multipass/path.h>
 
 namespace multipass
 {
-
-class QemuBlockDeviceManagerFactory final : public BlockDeviceManagerFactory
+class QemuBlockDevice : public BaseBlockDevice
 {
 public:
-    BlockDeviceManager::UPtr create_block_device_manager(const Path& data_dir) override;
-};
+    QemuBlockDevice(const std::string& name,
+                    const Path& image_path,
+                    const MemorySize& size,
+                    const std::string& format = "qcow2",
+                    const std::optional<std::string>& attached_vm = std::nullopt);
 
+    // Create the device image file
+    static void create_image_file(const std::string& name, const MemorySize& size, const Path& image_path);
+};
 } // namespace multipass
 
-#endif // MULTIPASS_QEMU_BLOCK_DEVICE_MANAGER_FACTORY_H
+#endif // MULTIPASS_QEMU_BLOCK_DEVICE_H
