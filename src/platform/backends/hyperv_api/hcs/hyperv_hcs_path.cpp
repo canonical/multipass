@@ -34,9 +34,10 @@ auto fmt::formatter<HcsPath, Char>::format(const HcsPath& path, FormatContext& c
     }
 }
 
-template auto fmt::formatter<HcsPath, char>::format<fmt::format_context>(const HcsPath&, fmt::format_context&) const
+template auto fmt::formatter<HcsPath, char>::format<fmt::format_context>(const HcsPath&,
+                                                                         fmt::format_context&) const
     -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcsPath, wchar_t>::format<fmt::wformat_context>(const HcsPath&,
-                                                                             fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcsPath, wchar_t>::format<fmt::wformat_context>(
+    const HcsPath&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;
