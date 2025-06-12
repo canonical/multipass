@@ -53,7 +53,8 @@ struct HCNWrapper : public HCNWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult create_network(const CreateNetworkParameters& params) const override;
+    [[nodiscard]] OperationResult create_network(
+        const CreateNetworkParameters& params) const override;
 
     /**
      * Delete an existing Host Compute Network
@@ -73,7 +74,8 @@ struct HCNWrapper : public HCNWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult create_endpoint(const CreateEndpointParameters& params) const override;
+    [[nodiscard]] OperationResult create_endpoint(
+        const CreateEndpointParameters& params) const override;
 
     /**
      * Delete an existing Host Compute Network Endpoint

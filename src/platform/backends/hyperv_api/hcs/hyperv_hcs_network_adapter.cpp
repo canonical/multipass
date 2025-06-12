@@ -23,8 +23,9 @@ using multipass::hyperv::hcs::HcsNetworkAdapter;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& network_adapter, FormatContext& ctx) const
-    -> typename FormatContext::iterator
+auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& network_adapter,
+                                                     FormatContext& ctx) const ->
+    typename FormatContext::iterator
 {
     constexpr static auto network_adapter_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         "{0}": {{
@@ -40,10 +41,10 @@ auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& ne
                      maybe_widen{network_adapter.mac_address});
 }
 
-template auto fmt::formatter<HcsNetworkAdapter, char>::format<fmt::format_context>(const HcsNetworkAdapter&,
-                                                                                   fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcsNetworkAdapter, char>::format<fmt::format_context>(
+    const HcsNetworkAdapter&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcsNetworkAdapter, wchar_t>::format<fmt::wformat_context>(const HcsNetworkAdapter&,
-                                                                                       fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcsNetworkAdapter, wchar_t>::format<fmt::wformat_context>(
+    const HcsNetworkAdapter&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

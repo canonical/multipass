@@ -91,10 +91,10 @@ struct fmt::formatter<multipass::hyperv::maybe_widen, Char>
     }
 };
 
-#define MULTIPASS_UNIVERSAL_LITERAL(X)                                                                                 \
-    multipass::hyperv::universal_string_literal_helper                                                                 \
-    {                                                                                                                  \
-        "" X, L"" X                                                                                                    \
+#define MULTIPASS_UNIVERSAL_LITERAL(X)                                                             \
+    multipass::hyperv::universal_string_literal_helper                                             \
+    {                                                                                              \
+        "" X, L"" X                                                                                \
     }
 
 #endif // MULTIPASS_HYPERV_API_STRING_CONVERSION_H
