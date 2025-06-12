@@ -32,13 +32,15 @@ struct NetworkPolicySettingsFormatters
             "NetworkAdapterName": "{}"
         )json");
 
-        return fmt::format(netadaptername_settings_template.as<Char>(), maybe_widen{policy.net_adapter_name});
+        return fmt::format(netadaptername_settings_template.as<Char>(),
+                           maybe_widen{policy.net_adapter_name});
     }
 };
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& policy, FormatContext& ctx) const ->
+auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& policy,
+                                                    FormatContext& ctx) const ->
     typename FormatContext::iterator
 {
     constexpr static auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
@@ -56,10 +58,10 @@ auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& poli
                      std::visit(NetworkPolicySettingsFormatters<Char>{}, policy.settings));
 }
 
-template auto fmt::formatter<HcnNetworkPolicy, char>::format<fmt::format_context>(const HcnNetworkPolicy&,
-                                                                                  fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcnNetworkPolicy, char>::format<fmt::format_context>(
+    const HcnNetworkPolicy&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcnNetworkPolicy, wchar_t>::format<fmt::wformat_context>(const HcnNetworkPolicy&,
-                                                                                      fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcnNetworkPolicy, wchar_t>::format<fmt::wformat_context>(
+    const HcnNetworkPolicy&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

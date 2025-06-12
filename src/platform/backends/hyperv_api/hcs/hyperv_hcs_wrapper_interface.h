@@ -36,13 +36,17 @@ namespace multipass::hyperv::hcs
  */
 struct HCSWrapperInterface
 {
-    virtual OperationResult create_compute_system(const CreateComputeSystemParameters& params) const = 0;
+    virtual OperationResult create_compute_system(
+        const CreateComputeSystemParameters& params) const = 0;
     virtual OperationResult start_compute_system(const std::string& compute_system_name) const = 0;
-    virtual OperationResult shutdown_compute_system(const std::string& compute_system_name) const = 0;
+    virtual OperationResult shutdown_compute_system(
+        const std::string& compute_system_name) const = 0;
     virtual OperationResult pause_compute_system(const std::string& compute_system_name) const = 0;
     virtual OperationResult resume_compute_system(const std::string& compute_system_name) const = 0;
-    virtual OperationResult terminate_compute_system(const std::string& compute_system_name) const = 0;
-    virtual OperationResult get_compute_system_properties(const std::string& compute_system_name) const = 0;
+    virtual OperationResult terminate_compute_system(
+        const std::string& compute_system_name) const = 0;
+    virtual OperationResult get_compute_system_properties(
+        const std::string& compute_system_name) const = 0;
     virtual OperationResult grant_vm_access(const std::string& compute_system_name,
                                             const std::filesystem::path& file_path) const = 0;
     virtual OperationResult revoke_vm_access(const std::string& compute_system_name,

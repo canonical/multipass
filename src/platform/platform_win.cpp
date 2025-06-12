@@ -66,7 +66,6 @@
 // clang-format on
 #include <windows.h>
 
-
 #include <algorithm>
 #include <cerrno>
 #include <codecvt>
