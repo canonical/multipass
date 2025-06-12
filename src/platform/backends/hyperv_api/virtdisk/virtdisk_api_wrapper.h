@@ -56,7 +56,8 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult create_virtual_disk(const CreateVirtualDiskParameters& params) const override;
+    [[nodiscard]] OperationResult create_virtual_disk(
+        const CreateVirtualDiskParameters& params) const override;
 
     // ---------------------------------------------------------
 
@@ -69,8 +70,9 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] virtual OperationResult resize_virtual_disk(const std::filesystem::path& vhdx_path,
-                                                              std::uint64_t new_size_bytes) const override;
+    [[nodiscard]] virtual OperationResult resize_virtual_disk(
+        const std::filesystem::path& vhdx_path,
+        std::uint64_t new_size_bytes) const override;
 
     // ---------------------------------------------------------
 
@@ -82,7 +84,8 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult merge_virtual_disk_to_parent(const std::filesystem::path& child) const override;
+    [[nodiscard]] OperationResult merge_virtual_disk_to_parent(
+        const std::filesystem::path& child) const override;
 
     // ---------------------------------------------------------
 
@@ -95,8 +98,9 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] virtual OperationResult reparent_virtual_disk(const std::filesystem::path& child,
-                                                                const std::filesystem::path& parent) const override;
+    [[nodiscard]] virtual OperationResult reparent_virtual_disk(
+        const std::filesystem::path& child,
+        const std::filesystem::path& parent) const override;
 
     // ---------------------------------------------------------
 
