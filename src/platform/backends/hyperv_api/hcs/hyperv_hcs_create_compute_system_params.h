@@ -18,7 +18,12 @@
 #ifndef MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 #define MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H
 
+#include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
+#include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_scsi_device.h>
+
 #include <fmt/format.h>
+#include <fmt/std.h>
 #include <string>
 
 namespace multipass::hyperv::hcs
@@ -45,14 +50,21 @@ struct CreateComputeSystemParameters
     std::uint32_t processor_count{};
 
     /**
-     * Path to the cloud-init ISO file
+     * List of SCSI devices that are attached on boot
      */
-    std::string cloudinit_iso_path{};
+    std::vector<HcsScsiDevice> scsi_devices;
 
     /**
-     * Path to the Primary (boot) VHDX file
+     * List of endpoints that'll be added to the compute system
+     * by default at creation time.
      */
-    std::string vhdx_path{};
+    std::vector<HcsNetworkAdapter> network_adapters{};
+
+    /**
+     * List of Plan9 shares that'll be added to the compute system
+     * by default at creation time.
+     */
+    std::vector<HcsAddPlan9ShareParameters> shares{};
 };
 
 } // namespace multipass::hyperv::hcs
@@ -62,24 +74,11 @@ struct CreateComputeSystemParameters
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::hcs::CreateComputeSystemParameters, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::CreateComputeSystemParameters& params, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(),
-                         "Compute System name: ({}) | vCPU count: ({}) | Memory size: ({} MiB) | cloud-init ISO path: "
-                         "({}) | VHDX path: ({})",
-                         params.name,
-                         params.processor_count,
-                         params.memory_size_mb,
-                         params.cloudinit_iso_path,
-                         params.vhdx_path);
-    }
+    auto format(const multipass::hyperv::hcs::CreateComputeSystemParameters& policy,
+                FormatContext& ctx) const -> typename FormatContext::iterator;
 };
 
 #endif // MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_PARAMETERS_H

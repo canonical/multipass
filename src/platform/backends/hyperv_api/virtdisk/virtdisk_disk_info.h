@@ -29,7 +29,6 @@ namespace multipass::hyperv::virtdisk
 
 struct VirtualDiskInfo
 {
-
     struct size_info
     {
         std::uint64_t virtual_{};
@@ -57,7 +56,8 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo::size_info, C
     }
 
     template <typename FormatContext>
-    auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo::size_info& params, FormatContext& ctx) const
+    auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo::size_info& params,
+                FormatContext& ctx) const
     {
         return format_to(ctx.out(),
                          "Virtual: ({}) | Physical: ({}) | Block: ({}) | Sector: ({})",
@@ -80,14 +80,16 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>
     }
 
     template <typename FormatContext>
-    auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo& params, FormatContext& ctx) const
+    auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo& params,
+                FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
-                         "Storage type: {} | Size: {} | Smallest safe size: {} | Provider subtype: {}",
-                         params.virtual_storage_type,
-                         params.size,
-                         params.smallest_safe_virtual_size,
-                         params.provider_subtype);
+        return format_to(
+            ctx.out(),
+            "Storage type: {} | Size: {} | Smallest safe size: {} | Provider subtype: {}",
+            params.virtual_storage_type,
+            params.size,
+            params.smallest_safe_virtual_size,
+            params.provider_subtype);
     }
 };
 

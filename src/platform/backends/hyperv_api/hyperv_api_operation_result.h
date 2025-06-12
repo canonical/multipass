@@ -46,7 +46,7 @@ struct ResultCode
 
     [[nodiscard]] explicit operator bool() const noexcept
     {
-        return !FAILED(result);
+        return result == ERROR_SUCCESS;
     }
 
     [[nodiscard]] explicit operator HRESULT() const noexcept
@@ -57,6 +57,11 @@ struct ResultCode
     [[nodiscard]] explicit operator unsigned_hresult_t() const noexcept
     {
         return static_cast<unsigned_hresult_t>(result);
+    }
+
+    [[nodiscard]] operator std::error_code() const noexcept
+    {
+        return std::error_code{result, std::system_category()};
     }
 
 private:
@@ -87,6 +92,11 @@ struct OperationResult
     [[nodiscard]] explicit operator bool() const noexcept
     {
         return static_cast<bool>(code);
+    }
+
+    [[nodiscard]] operator std::error_code() const noexcept
+    {
+        return code;
     }
 };
 } // namespace multipass::hyperv
@@ -123,7 +133,7 @@ struct fmt::formatter<multipass::hyperv::OperationResult, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::OperationResult& opr, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{:#x}", opr.code);
+        return format_to(ctx.out(), "{}", opr.code);
     }
 };
 
