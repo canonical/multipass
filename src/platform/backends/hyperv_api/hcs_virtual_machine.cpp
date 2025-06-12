@@ -518,8 +518,8 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
 void HCSVirtualMachine::update_cpus(int num_cores)
 {
     mpl::debug(kLogCategory, "update_cpus() -> called for VM `{}`, num_cores `{}`", vm_name, num_cores);
-
-    throw std::runtime_error{"Not yet implemented"};
+    // This is a no-op since HCS creates the VM from scratch
+    // every time in a cold boot.
 }
 
 void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -543,6 +543,7 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
                new_size.in_megabytes());
     throw std::runtime_error{"Not yet implemented"};
 }
+
 void HCSVirtualMachine::add_network_interface(int index,
                                               const std::string& default_mac_addr,
                                               const NetworkInterface& extra_interface)
@@ -556,7 +557,49 @@ void HCSVirtualMachine::add_network_interface(int index,
                extra_interface.mac_address,
                extra_interface.auto_mode,
                extra_interface.id);
-    throw std::runtime_error{"Not yet implemented"};
+    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
+    if (!(state == VirtualMachine::State::stopped))
+    {
+        // No need to do it for stopped machines
+        mpl::info(kLogCategory, "add_network_interface() -> Skipping hot-plug, VM is in a stopped state.");
+        return;
+    }
+
+    // Hot-plug a network card.
+    const auto endpoint = [&extra_interface]() {
+        hcn::CreateEndpointParameters endpoint{};
+        endpoint.network_guid = multipass::utils::make_uuid(extra_interface.id).toStdString();
+        endpoint.endpoint_guid = mac2uuid(extra_interface.mac_address);
+        endpoint.mac_address = extra_interface.mac_address;
+        replace_colon_with_dash(endpoint.mac_address.value());
+        return endpoint;
+    }();
+
+    if (const auto result = hcn->create_endpoint(endpoint); !result)
+    {
+        mpl::error(kLogCategory, "add_network_interface() -> failed to create endpoint for `{}`", extra_interface.id);
+        return;
+    }
+
+    const auto add_network_adapter_req = [&endpoint]() {
+        hyperv::hcs::HcsNetworkAdapter network_adapter{};
+        network_adapter.endpoint_guid = endpoint.endpoint_guid;
+        network_adapter.mac_address = endpoint.mac_address.value();
+
+        hcs::HcsRequest add_network_adapter_req{hcs::HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
+                                                hcs::HcsRequestType::Add(),
+                                                network_adapter};
+        return add_network_adapter_req;
+    }();
+
+    if (const auto result = hcs->modify_compute_system(vm_name, add_network_adapter_req); !result)
+    {
+        mpl::error(kLogCategory,
+                   "add_network_interface() -> failed to add endpoint for network `{}` to compute system `{}`",
+                   extra_interface.id,
+                   vm_name);
+        return;
+    }
 }
 std::unique_ptr<MountHandler> HCSVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                            const VMMount& mount)
