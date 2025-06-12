@@ -2851,10 +2851,12 @@ try
 
     if (stored_hash.isNull() || stored_hash.isEmpty())
     {
-        return status_promise->set_value(
-            grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
-                         "Passphrase is not set. Please `multipass set local.passphrase` with a "
-                         "trusted client."));
+        return status_promise->set_value(grpc::Status(
+            grpc::StatusCode::FAILED_PRECONDITION,
+            "No passphrase is set.\n\n"
+            "Please ask an authenticated user to set one and provide it to you. They can achieve "
+            "so with 'multipass set local.passphrase'. Note that only the user who installs "
+            "Multipass is automatically authenticated."));
     }
 
     auto hashed_passphrase =
