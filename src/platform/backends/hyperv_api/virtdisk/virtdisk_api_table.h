@@ -37,18 +37,25 @@ namespace multipass::hyperv::virtdisk
  */
 struct VirtDiskAPITable
 {
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-createvirtualdisk
+    // @ref
+    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-createvirtualdisk
     std::function<decltype(::CreateVirtualDisk)> CreateVirtualDisk = &::CreateVirtualDisk;
     // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-openvirtualdisk
     std::function<decltype(::OpenVirtualDisk)> OpenVirtualDisk = &::OpenVirtualDisk;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-resizevirtualdisk
+    // @ref
+    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-resizevirtualdisk
     std::function<decltype(::ResizeVirtualDisk)> ResizeVirtualDisk = &::ResizeVirtualDisk;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-mergevirtualdisk
+    // @ref
+    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-mergevirtualdisk
     std::function<decltype(::MergeVirtualDisk)> MergeVirtualDisk = &::MergeVirtualDisk;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-getvirtualdiskinformation
-    std::function<decltype(::GetVirtualDiskInformation)> GetVirtualDiskInformation = &::GetVirtualDiskInformation;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-setvirtualdiskinformation
-    std::function<decltype(::SetVirtualDiskInformation)> SetVirtualDiskInformation = &::SetVirtualDiskInformation;
+    // @ref
+    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-getvirtualdiskinformation
+    std::function<decltype(::GetVirtualDiskInformation)> GetVirtualDiskInformation =
+        &::GetVirtualDiskInformation;
+    // @ref
+    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-setvirtualdiskinformation
+    std::function<decltype(::SetVirtualDiskInformation)> SetVirtualDiskInformation =
+        &::SetVirtualDiskInformation;
     // @ref https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
     std::function<decltype(::CloseHandle)> CloseHandle = &::CloseHandle;
 };
@@ -69,14 +76,15 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::virtdisk::VirtDiskAPITable& api, FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
-                         "CreateVirtualDisk: ({}) | OpenVirtualDisk ({}) | ResizeVirtualDisk: ({}) | "
-                         "GetVirtualDiskInformation: ({}) | CloseHandle: ({})",
-                         static_cast<bool>(api.CreateVirtualDisk),
-                         static_cast<bool>(api.OpenVirtualDisk),
-                         static_cast<bool>(api.ResizeVirtualDisk),
-                         static_cast<bool>(api.GetVirtualDiskInformation),
-                         static_cast<bool>(api.CloseHandle));
+        return format_to(
+            ctx.out(),
+            "CreateVirtualDisk: ({}) | OpenVirtualDisk ({}) | ResizeVirtualDisk: ({}) | "
+            "GetVirtualDiskInformation: ({}) | CloseHandle: ({})",
+            static_cast<bool>(api.CreateVirtualDisk),
+            static_cast<bool>(api.OpenVirtualDisk),
+            static_cast<bool>(api.ResizeVirtualDisk),
+            static_cast<bool>(api.GetVirtualDiskInformation),
+            static_cast<bool>(api.CloseHandle));
     }
 };
 

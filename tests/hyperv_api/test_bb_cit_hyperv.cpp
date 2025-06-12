@@ -55,7 +55,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         network_parameters.name = "multipass-hyperv-cit";
         network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
         network_parameters.ipams = {
-            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                 {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
         return network_parameters;
     }();
 
@@ -139,7 +140,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         network_parameters.name = "multipass-hyperv-cit";
         network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
         network_parameters.ipams = {
-            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                 {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
         return network_parameters;
     }();
 
@@ -232,17 +234,20 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Add network adapter
     {
-        const HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
-                                                 HcsRequestType::Add(),
-                                                 network_adapter};
+        const HcsRequest add_network_adapter_req{
+            HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
+            HcsRequestType::Add(),
+            network_adapter};
         const auto& [status, status_msg] =
             hcs.modify_compute_system(create_vm_parameters.name, add_network_adapter_req);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
 
-    EXPECT_TRUE(hcs.terminate_compute_system(create_vm_parameters.name)) << "Terminate system failed!";
-    EXPECT_TRUE(hcn.delete_endpoint(endpoint_parameters.endpoint_guid)) << "Delete endpoint failed!";
+    EXPECT_TRUE(hcs.terminate_compute_system(create_vm_parameters.name))
+        << "Terminate system failed!";
+    EXPECT_TRUE(hcn.delete_endpoint(endpoint_parameters.endpoint_guid))
+        << "Delete endpoint failed!";
     EXPECT_TRUE(hcn.delete_network(network_parameters.guid)) << "Delete network failed!";
 }
 

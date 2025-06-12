@@ -32,10 +32,12 @@ namespace multipass::hyperv::virtdisk
  */
 struct VirtDiskWrapperInterface
 {
-    virtual OperationResult create_virtual_disk(const CreateVirtualDiskParameters& params) const = 0;
+    virtual OperationResult create_virtual_disk(
+        const CreateVirtualDiskParameters& params) const = 0;
     virtual OperationResult resize_virtual_disk(const std::filesystem::path& vhdx_path,
                                                 std::uint64_t new_size_bytes) const = 0;
-    virtual OperationResult merge_virtual_disk_to_parent(const std::filesystem::path& child) const = 0;
+    virtual OperationResult merge_virtual_disk_to_parent(
+        const std::filesystem::path& child) const = 0;
     virtual OperationResult reparent_virtual_disk(const std::filesystem::path& child,
                                                   const std::filesystem::path& parent) const = 0;
     virtual OperationResult get_virtual_disk_info(const std::filesystem::path& vhdx_path,

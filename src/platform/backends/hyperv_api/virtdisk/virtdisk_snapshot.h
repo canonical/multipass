@@ -109,7 +109,8 @@ private:
      * @param [in] parent Parent of the new differencing child disk. Must already exist.
      * @param [in] child Where to create the child disk. Must be non-existent.
      */
-    void create_new_child_disk(const std::filesystem::path& parent, const std::filesystem::path& child) const;
+    void create_new_child_disk(const std::filesystem::path& parent,
+                               const std::filesystem::path& child) const;
 
     /**
      * Change the parent disk of the snapshot differencing disks

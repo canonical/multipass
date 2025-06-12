@@ -41,9 +41,10 @@ auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext
                      route.metric);
 }
 
-template auto fmt::formatter<HcnRoute, char>::format<fmt::format_context>(const HcnRoute&, fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcnRoute, char>::format<fmt::format_context>(
+    const HcnRoute&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcnRoute, wchar_t>::format<fmt::wformat_context>(const HcnRoute&,
-                                                                              fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcnRoute, wchar_t>::format<fmt::wformat_context>(
+    const HcnRoute&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

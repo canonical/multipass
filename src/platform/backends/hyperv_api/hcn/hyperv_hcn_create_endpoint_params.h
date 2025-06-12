@@ -68,7 +68,8 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
     }
 
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::CreateEndpointParameters& params, FormatContext& ctx) const
+    auto format(const multipass::hyperv::hcn::CreateEndpointParameters& params,
+                FormatContext& ctx) const
     {
         return format_to(ctx.out(),
                          "Endpoint GUID: ({}) | Network GUID: ({}) | MAC address: ({})",

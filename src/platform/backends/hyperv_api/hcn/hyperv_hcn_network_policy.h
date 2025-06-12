@@ -49,7 +49,8 @@ struct HcnNetworkPolicy
  * Formatter type specialization for HcnNetworkPolicy
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkPolicy, Char> : formatter<basic_string_view<Char>, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkPolicy, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::HcnNetworkPolicy& policy, FormatContext& ctx) const ->

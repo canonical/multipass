@@ -101,10 +101,10 @@ auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatCon
                      std::visit(HcsRequestSettingsFormatters<Char>{}, param.settings));
 }
 
-template auto fmt::formatter<HcsRequest, char>::format<fmt::format_context>(const HcsRequest&,
-                                                                            fmt::format_context&) const
-    -> fmt::format_context::iterator;
+template auto fmt::formatter<HcsRequest, char>::format<fmt::format_context>(
+    const HcsRequest&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcsRequest, wchar_t>::format<fmt::wformat_context>(const HcsRequest&,
-                                                                                fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcsRequest, wchar_t>::format<fmt::wformat_context>(
+    const HcsRequest&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

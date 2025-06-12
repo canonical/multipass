@@ -44,9 +44,10 @@ auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& c
                      fmt::join(ipam.subnets, comma.as<Char>()));
 }
 
-template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&, fmt::format_context&) const
+template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,
+                                                                         fmt::format_context&) const
     -> fmt::format_context::iterator;
 
-template auto fmt::formatter<HcnIpam, wchar_t>::format<fmt::wformat_context>(const HcnIpam&,
-                                                                             fmt::wformat_context&) const
-    -> fmt::wformat_context::iterator;
+template auto fmt::formatter<HcnIpam, wchar_t>::format<fmt::wformat_context>(
+    const HcnIpam&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

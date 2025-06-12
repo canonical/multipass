@@ -23,9 +23,9 @@ using multipass::hyperv::hcs::CreateComputeSystemParameters;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<CreateComputeSystemParameters, Char>::format(const CreateComputeSystemParameters& params,
-                                                                 FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
+    const CreateComputeSystemParameters& params,
+    FormatContext& ctx) const -> typename FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
     {{

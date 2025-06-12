@@ -71,15 +71,19 @@ HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
       virtdisk_sptr(virtdisk)
 {
     const std::array<void*, 3> api_ptrs = {hcs.get(), hcn.get(), virtdisk.get()};
-    if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) { return nullptr == ptr; }))
+    if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) {
+            return nullptr == ptr;
+        }))
     {
-        throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.", fmt::join(api_ptrs, ",")};
+        throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.",
+                                         fmt::join(api_ptrs, ",")};
     }
 }
 
-VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(const VirtualMachineDescription& desc,
-                                                                      const SSHKeyProvider& key_provider,
-                                                                      VMStatusMonitor& monitor)
+VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
+    const VirtualMachineDescription& desc,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
 {
     assert(hcs_sptr);
     assert(hcn_sptr);
@@ -136,7 +140,9 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
     const auto& [status, status_msg] = hcs_sptr->terminate_compute_system(name);
     if (status)
     {
-        mpl::warn(kLogCategory, "remove_resources_for_impl() -> Host compute system {} was still alive.", name);
+        mpl::warn(kLogCategory,
+                  "remove_resources_for_impl() -> Host compute system {} was still alive.",
+                  name);
     }
 }
 
@@ -175,9 +181,10 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
 
     if (qemu_img_process.exitCode() != 0)
     {
-        throw ImageConversionException{"Conversion of image {} to VHDX failed with following error: {}",
-                                       source_file,
-                                       qemu_img_process.readAllStandardError().toStdString()};
+        throw ImageConversionException{
+            "Conversion of image {} to VHDX failed with following error: {}",
+            source_file,
+            qemu_img_process.readAllStandardError().toStdString()};
     }
 
     if (!std::filesystem::exists(target_file))
@@ -196,7 +203,8 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
     // Resize the instance image to the desired size
     assert(virtdisk_sptr);
     const auto& [status, status_msg] =
-        virtdisk_sptr->resize_virtual_disk(instance_image.image_path.toStdString(), desc.disk_space.in_bytes());
+        virtdisk_sptr->resize_virtual_disk(instance_image.image_path.toStdString(),
+                                           desc.disk_space.in_bytes());
     if (!status)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",

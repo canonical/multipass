@@ -149,7 +149,8 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_child_disk)
     uut_t uut{};
     // Create parent
     auto parent_temp_path = make_tempfile_path(".vhdx");
-    std::wprintf(L"Parent Path: %s\n", static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    std::wprintf(L"Parent Path: %s\n",
+                 static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
         hyperv::virtdisk::CreateVirtualDiskParameters params{};
         params.path = parent_temp_path;
@@ -178,7 +179,8 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_virtual_disk)
     uut_t uut{};
     // Create parent
     auto parent_temp_path = make_tempfile_path(".vhdx");
-    std::wprintf(L"Parent Path: %s\n", static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    std::wprintf(L"Parent Path: %s\n",
+                 static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
         hyperv::virtdisk::CreateVirtualDiskParameters params{};
         params.path = parent_temp_path;
@@ -212,7 +214,8 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     uut_t uut{};
     // Create parent
     auto parent_temp_path = make_tempfile_path(".vhdx");
-    std::wprintf(L"Parent Path: %s\n", static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    std::wprintf(L"Parent Path: %s\n",
+                 static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
         hyperv::virtdisk::CreateVirtualDiskParameters params{};
         params.path = parent_temp_path;
@@ -237,7 +240,8 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
 
     // Create grandchild
     auto grandchild_temp_path = make_tempfile_path(".avhdx");
-    std::wprintf(L"Grandchild Path: %s\n", static_cast<std::filesystem::path>(grandchild_temp_path).c_str());
+    std::wprintf(L"Grandchild Path: %s\n",
+                 static_cast<std::filesystem::path>(grandchild_temp_path).c_str());
     {
         hyperv::virtdisk::CreateVirtualDiskParameters params{};
         params.predecessor = hyperv::virtdisk::ParentPathParameters{child_temp_path};

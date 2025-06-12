@@ -44,7 +44,8 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
 
     virtual void SetUp() override
     {
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "VirtDiskWrapper::VirtDiskWrapper(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "VirtDiskWrapper::VirtDiskWrapper(...)");
     }
 
     // Set of placeholder mocks in order to catch *unexpected* calls.
@@ -80,9 +81,11 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
          ******************************************************/
 
         EXPECT_CALL(mock_open_virtual_disk, Call).WillOnce(Return(ERROR_PATH_NOT_FOUND));
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path:");
-        logger_scope.mock_logger->expect_log(mpl::Level::error,
-                                             "open_virtual_disk(...) > OpenVirtualDisk failed with:");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "open_virtual_disk(...) > vhdx_path:");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::error,
+            "open_virtual_disk(...) > OpenVirtualDisk failed with:");
     }
 };
 
@@ -215,7 +218,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
 TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, exists(TypedEq<const fs::path&>(L"source.vhdx"))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, exists(TypedEq<const fs::path&>(L"source.vhdx")))
+        .WillOnce(Return(true));
 
     /******************************************************
      * Verify that the dependencies are called with right
@@ -246,9 +250,11 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                     ASSERT_NE(nullptr, Parameters);
                     ASSERT_EQ(Parameters->Version, CREATE_VIRTUAL_DISK_VERSION_2);
                     ASSERT_EQ(Parameters->Version2.MaximumSize, 0);
-                    ASSERT_EQ(Parameters->Version2.BlockSizeInBytes, CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_BLOCK_SIZE);
+                    ASSERT_EQ(Parameters->Version2.BlockSizeInBytes,
+                              CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_BLOCK_SIZE);
                     ASSERT_STREQ(Parameters->Version2.SourcePath, L"source.vhdx");
-                    ASSERT_EQ(Parameters->Version2.SourceVirtualStorageType.DeviceId, VIRTUAL_STORAGE_TYPE_DEVICE_VHDX);
+                    ASSERT_EQ(Parameters->Version2.SourceVirtualStorageType.DeviceId,
+                              VIRTUAL_STORAGE_TYPE_DEVICE_VHDX);
                     ASSERT_EQ(Parameters->Version2.SourceVirtualStorageType.VendorId,
                               VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN);
 
@@ -296,7 +302,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                     ASSERT_NE(nullptr, VirtualDiskInfo);
                     ASSERT_EQ(nullptr, SizeUsed);
                     VirtualDiskInfo->VirtualStorageType.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
-                    VirtualDiskInfo->VirtualStorageType.VendorId = VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
+                    VirtualDiskInfo->VirtualStorageType.VendorId =
+                        VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
                     VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
                     VirtualDiskInfo->Size.VirtualSize = 1111111;
                     VirtualDiskInfo->Size.BlockSize = 2222222;
@@ -306,16 +313,22 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).Times(2).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object)))
+            .Times(2)
+            .WillRepeatedly(Return(true));
 
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "create_virtual_disk(...) > params: Size (in bytes): (0) | Path: (test.vhdx)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: source.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_virtual_disk_info(...) > vhdx_path: source.vhdx");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "create_virtual_disk(...) > source disk info fetch result");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "create_virtual_disk(...) > cloning");
+                                             "open_virtual_disk(...) > vhdx_path: source.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "get_virtual_disk_info(...) > vhdx_path: source.vhdx");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::debug,
+            "create_virtual_disk(...) > source disk info fetch result");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "create_virtual_disk(...) > cloning");
     }
 
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
@@ -357,8 +370,9 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "create_virtual_disk(...) > params: Size (in bytes): (2097152) | Path: (test.vhd)");
-        logger_scope.mock_logger->expect_log(mpl::Level::error,
-                                             "create_virtual_disk(...) > CreateVirtualDisk failed with 3!");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::error,
+            "create_virtual_disk(...) > CreateVirtualDisk failed with 3!");
     }
 
     hyperv::virtdisk::CreateVirtualDiskParameters params{};
@@ -424,7 +438,8 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "open_virtual_disk(...) > vhdx_path: test.vhdx");
     }
 
     {
@@ -489,9 +504,11 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: test.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::error,
-                                             "resize_virtual_disk(...) > ResizeVirtualDisk failed with 87!");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::error,
+            "resize_virtual_disk(...) > ResizeVirtualDisk failed with 87!");
     }
 
     {
@@ -566,7 +583,8 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
                     ASSERT_EQ(nullptr, SizeUsed);
                     ASSERT_EQ(GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE, VirtualDiskInfo->Version);
                     VirtualDiskInfo->VirtualStorageType.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
-                    VirtualDiskInfo->VirtualStorageType.VendorId = VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
+                    VirtualDiskInfo->VirtualStorageType.VendorId =
+                        VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
                 },
                 Return(ERROR_SUCCESS)))
             .WillOnce(DoAll(
@@ -579,7 +597,8 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
                     ASSERT_EQ(sizeof(GET_VIRTUAL_DISK_INFO), *VirtualDiskInfoSize);
                     ASSERT_NE(nullptr, VirtualDiskInfo);
                     ASSERT_EQ(nullptr, SizeUsed);
-                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE, VirtualDiskInfo->Version);
+                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
+                              VirtualDiskInfo->Version);
                     VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
                 },
                 Return(ERROR_SUCCESS)))
@@ -599,8 +618,10 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
                 Return(ERROR_SUCCESS)));
 
         EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "open_virtual_disk(...) > vhdx_path: test.vhdx");
     }
 
     {
@@ -688,17 +709,22 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
                     ASSERT_EQ(sizeof(GET_VIRTUAL_DISK_INFO), *VirtualDiskInfoSize);
                     ASSERT_NE(nullptr, VirtualDiskInfo);
                     ASSERT_EQ(nullptr, SizeUsed);
-                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE, VirtualDiskInfo->Version);
+                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
+                              VirtualDiskInfo->Version);
                     VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
                 },
                 Return(ERROR_SUCCESS)))
             .WillOnce(Return(ERROR_INVALID_PARAMETER));
 
         EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: test.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::warning, "get_virtual_disk_info(...) > failed to get 6");
-        logger_scope.mock_logger->expect_log(mpl::Level::warning, "get_virtual_disk_info(...) > failed to get 7");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                             "get_virtual_disk_info(...) > failed to get 6");
+        logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                             "get_virtual_disk_info(...) > failed to get 7");
     }
 
     {
@@ -760,8 +786,10 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
                 [](HANDLE VirtualDiskHandle, PSET_VIRTUAL_DISK_INFO VirtualDiskInfo) {
                     ASSERT_EQ(VirtualDiskHandle, mock_handle_object);
                     ASSERT_NE(nullptr, VirtualDiskInfo);
-                    EXPECT_EQ(VirtualDiskInfo->Version, SET_VIRTUAL_DISK_INFO_PARENT_PATH_WITH_DEPTH);
-                    EXPECT_STREQ(VirtualDiskInfo->ParentPathWithDepthInfo.ParentFilePath, L"parent.vhdx");
+                    EXPECT_EQ(VirtualDiskInfo->Version,
+                              SET_VIRTUAL_DISK_INFO_PARENT_PATH_WITH_DEPTH);
+                    EXPECT_STREQ(VirtualDiskInfo->ParentPathWithDepthInfo.ParentFilePath,
+                                 L"parent.vhdx");
                     EXPECT_EQ(VirtualDiskInfo->ParentPathWithDepthInfo.ChildDepth, 1);
                 },
                 Return(ERROR_SUCCESS)));
@@ -770,7 +798,8 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "reparent_virtual_disk(...) > child: child.avhdx, new parent: parent.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: child.avhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "open_virtual_disk(...) > vhdx_path: child.avhdx");
     }
 
     {
@@ -827,7 +856,8 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
                     EXPECT_EQ(VirtualStorageType->DeviceId, VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN);
                     EXPECT_EQ(VirtualStorageType->VendorId, VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN);
                     EXPECT_STREQ(Path, L"child.avhdx");
-                    EXPECT_EQ(VIRTUAL_DISK_ACCESS_METAOPS | VIRTUAL_DISK_ACCESS_GET_INFO, VirtualDiskAccessMask);
+                    EXPECT_EQ(VIRTUAL_DISK_ACCESS_METAOPS | VIRTUAL_DISK_ACCESS_GET_INFO,
+                              VirtualDiskAccessMask);
                     EXPECT_EQ(OPEN_VIRTUAL_DISK_FLAG_NONE, Flags);
                     ASSERT_NE(nullptr, Parameters);
                     EXPECT_EQ(Parameters->Version, OPEN_VIRTUAL_DISK_VERSION_1);
@@ -848,15 +878,18 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
                     EXPECT_EQ(MERGE_VIRTUAL_DISK_FLAG_NONE, Flags);
                     ASSERT_NE(nullptr, Parameters);
                     EXPECT_EQ(MERGE_VIRTUAL_DISK_VERSION_1, Parameters->Version);
-                    EXPECT_EQ(MERGE_VIRTUAL_DISK_DEFAULT_MERGE_DEPTH, Parameters->Version1.MergeDepth);
+                    EXPECT_EQ(MERGE_VIRTUAL_DISK_DEFAULT_MERGE_DEPTH,
+                              Parameters->Version1.MergeDepth);
                     ASSERT_EQ(nullptr, Overlapped);
                 },
                 Return(ERROR_SUCCESS)));
 
         EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::debug,
+            "merge_virtual_disk_to_parent(...) > child: child.avhdx");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "merge_virtual_disk_to_parent(...) > child: child.avhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_virtual_disk(...) > vhdx_path: child.avhdx");
+                                             "open_virtual_disk(...) > vhdx_path: child.avhdx");
     }
 
     {
@@ -878,8 +911,9 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_open_disk_failure)
      ******************************************************/
     {
         open_vhd_expect_failure();
-        logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "merge_virtual_disk_to_parent(...) > child: child.avhdx");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::debug,
+            "merge_virtual_disk_to_parent(...) > child: child.avhdx");
     }
 
     {

@@ -39,36 +39,49 @@ struct HCSAPITable
 {
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreateoperation
     std::function<decltype(HcsCreateOperation)> CreateOperation = &HcsCreateOperation;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcswaitforoperationresult
-    std::function<decltype(HcsWaitForOperationResult)> WaitForOperationResult = &HcsWaitForOperationResult;
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcswaitforoperationresult
+    std::function<decltype(HcsWaitForOperationResult)> WaitForOperationResult =
+        &HcsWaitForOperationResult;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscloseoperation
     std::function<decltype(HcsCloseOperation)> CloseOperation = &HcsCloseOperation;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreatecomputesystem
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreatecomputesystem
     std::function<decltype(HcsCreateComputeSystem)> CreateComputeSystem = &HcsCreateComputeSystem;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsopencomputesystem
     std::function<decltype(HcsOpenComputeSystem)> OpenComputeSystem = &HcsOpenComputeSystem;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsstartcomputesystem
     std::function<decltype(HcsStartComputeSystem)> StartComputeSystem = &HcsStartComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsshutdowncomputesystem
-    std::function<decltype(HcsShutDownComputeSystem)> ShutDownComputeSystem = &HcsShutDownComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsterminatecomputesystem
-    std::function<decltype(HcsTerminateComputeSystem)> TerminateComputeSystem = &HcsTerminateComputeSystem;
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsshutdowncomputesystem
+    std::function<decltype(HcsShutDownComputeSystem)> ShutDownComputeSystem =
+        &HcsShutDownComputeSystem;
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsterminatecomputesystem
+    std::function<decltype(HcsTerminateComputeSystem)> TerminateComputeSystem =
+        &HcsTerminateComputeSystem;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsclosecomputesystem
     std::function<decltype(HcsCloseComputeSystem)> CloseComputeSystem = &HcsCloseComputeSystem;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcspausecomputesystem
     std::function<decltype(HcsPauseComputeSystem)> PauseComputeSystem = &HcsPauseComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsresumecomputesystem
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsresumecomputesystem
     std::function<decltype(HcsResumeComputeSystem)> ResumeComputeSystem = &HcsResumeComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsmodifycomputesystem
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsmodifycomputesystem
     std::function<decltype(HcsModifyComputeSystem)> ModifyComputeSystem = &HcsModifyComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsgetcomputesystemproperties
-    std::function<decltype(HcsGetComputeSystemProperties)> GetComputeSystemProperties = &HcsGetComputeSystemProperties;
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsgetcomputesystemproperties
+    std::function<decltype(HcsGetComputeSystemProperties)> GetComputeSystemProperties =
+        &HcsGetComputeSystemProperties;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsgrantvmaccess
     std::function<decltype(HcsGrantVmAccess)> GrantVmAccess = &HcsGrantVmAccess;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsrevokevmaccess
     std::function<decltype(HcsRevokeVmAccess)> RevokeVmAccess = &HcsRevokeVmAccess;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsenumeratecomputesystems
-    std::function<decltype(HcsEnumerateComputeSystems)> EnumerateComputeSystems = &HcsEnumerateComputeSystems;
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsenumeratecomputesystems
+    std::function<decltype(HcsEnumerateComputeSystems)> EnumerateComputeSystems =
+        &HcsEnumerateComputeSystems;
 
     /**
      * @brief LocalAlloc/LocalFree is used by the HCS API to manage memory for the status/error
@@ -96,26 +109,27 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::HCSAPITable& api, FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
-                         "CreateOperation: ({}) | WaitForOperationResult: ({}) | CreateComputeSystem: ({}) | "
-                         "OpenComputeSystem: ({}) | StartComputeSystem: ({}) | ShutDownComputeSystem: ({}) | "
-                         "PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
-                         "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
-                         "EnumerateComputeSystems: ({}) | LocalFree: ({})",
-                         static_cast<bool>(api.CreateOperation),
-                         static_cast<bool>(api.WaitForOperationResult),
-                         static_cast<bool>(api.CreateComputeSystem),
-                         static_cast<bool>(api.OpenComputeSystem),
-                         static_cast<bool>(api.StartComputeSystem),
-                         static_cast<bool>(api.ShutDownComputeSystem),
-                         static_cast<bool>(api.PauseComputeSystem),
-                         static_cast<bool>(api.ResumeComputeSystem),
-                         static_cast<bool>(api.ModifyComputeSystem),
-                         static_cast<bool>(api.GetComputeSystemProperties),
-                         static_cast<bool>(api.GrantVmAccess),
-                         static_cast<bool>(api.RevokeVmAccess),
-                         static_cast<bool>(api.EnumerateComputeSystems),
-                         static_cast<bool>(api.LocalFree));
+        return format_to(
+            ctx.out(),
+            "CreateOperation: ({}) | WaitForOperationResult: ({}) | CreateComputeSystem: ({}) | "
+            "OpenComputeSystem: ({}) | StartComputeSystem: ({}) | ShutDownComputeSystem: ({}) | "
+            "PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
+            "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
+            "EnumerateComputeSystems: ({}) | LocalFree: ({})",
+            static_cast<bool>(api.CreateOperation),
+            static_cast<bool>(api.WaitForOperationResult),
+            static_cast<bool>(api.CreateComputeSystem),
+            static_cast<bool>(api.OpenComputeSystem),
+            static_cast<bool>(api.StartComputeSystem),
+            static_cast<bool>(api.ShutDownComputeSystem),
+            static_cast<bool>(api.PauseComputeSystem),
+            static_cast<bool>(api.ResumeComputeSystem),
+            static_cast<bool>(api.ModifyComputeSystem),
+            static_cast<bool>(api.GetComputeSystemProperties),
+            static_cast<bool>(api.GrantVmAccess),
+            static_cast<bool>(api.RevokeVmAccess),
+            static_cast<bool>(api.EnumerateComputeSystems),
+            static_cast<bool>(api.LocalFree));
     }
 };
 

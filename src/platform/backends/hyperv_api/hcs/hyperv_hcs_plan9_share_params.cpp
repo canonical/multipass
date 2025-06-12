@@ -26,9 +26,9 @@ using multipass::hyperv::hcs::HcsRemovePlan9ShareParameters;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(const HcsAddPlan9ShareParameters& params,
-                                                              FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
+    const HcsAddPlan9ShareParameters& params,
+    FormatContext& ctx) const -> typename FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
@@ -50,9 +50,9 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(const HcsAddPlan9S
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(const HcsRemovePlan9ShareParameters& params,
-                                                                 FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(
+    const HcsRemovePlan9ShareParameters& params,
+    FormatContext& ctx) const -> typename FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
