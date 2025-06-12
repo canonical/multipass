@@ -48,7 +48,7 @@ public:
                                 const QemuVirtualMachine::MountArgs& mount_args,
                                 const std::optional<ResumeData>& resume_data,
                                 const QStringList& additional_args = QStringList(),
-                                const std::unordered_map<std::string, BlockDeviceInfo>& block_devices = {});
+                                const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice>& block_devices = {});
 
     QStringList arguments() const override;
 
@@ -61,7 +61,7 @@ private:
     const QemuVirtualMachine::MountArgs mount_args;
     const std::optional<ResumeData> resume_data;
     const QStringList additional_args;
-    const std::unordered_map<std::string, BlockDeviceInfo> block_devices;
+    const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice> block_devices;
 };
 
 } // namespace multipass
