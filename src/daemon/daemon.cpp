@@ -1495,16 +1495,16 @@ try
         auto block_devices = block_device_manager->list_block_devices();
         mpl::log(mpl::Level::debug, category, fmt::format("Retrieved {} block devices", block_devices.size()));
         
-        for (const auto& info : block_devices)
+        for (const auto* device : block_devices)
         {
             auto block_info = response.add_block_devices();
-            block_info->set_name(info.name);
-            block_info->set_size(info.size.human_readable());
-            block_info->set_path(info.image_path.toStdString());
+            block_info->set_name(device->name());
+            block_info->set_size(device->size().human_readable());
+            block_info->set_path(device->image_path().toStdString());
             
-            if (info.attached_vm && !info.attached_vm->empty())
+            if (device->attached_vm() && !device->attached_vm()->empty())
             {
-                block_info->set_attached_to(*info.attached_vm);
+                block_info->set_attached_to(*device->attached_vm());
             }
         }
         
@@ -1585,10 +1585,10 @@ try
         auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(vm.get());
         if (qemu_vm)
         {
-            const auto* block_info = block_device_manager->get_block_device(block_name);
-            if (block_info)
+            const auto* block_device = block_device_manager->get_block_device(block_name);
+            if (block_device)
             {
-                qemu_vm->attach_block_device(block_name, *block_info);
+                qemu_vm->attach_block_device(block_name, *block_device);
             }
         }
         
@@ -1688,7 +1688,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->cache_directory,
                                             config->factory->get_backend_directory_name()))},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
-      block_device_manager{config->block_device_manager_factory->create_block_device_manager(config->data_directory)},
+      block_device_manager{config->block_device_manager.get()},
       instance_mod_handler{register_instance_mod(
           vm_instance_specs,
           operative_instances,
@@ -1783,13 +1783,13 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         try
         {
             std::string block_device_name = name + "-disk";
-            const auto* block_info = block_device_manager->get_block_device(block_device_name);
-            if (block_info)
+            const auto* block_device = block_device_manager->get_block_device(block_device_name);
+            if (block_device)
             {
                 auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(instance.get());
                 if (qemu_vm && !qemu_vm->has_block_device(block_device_name))
                 {
-                    qemu_vm->attach_block_device(block_device_name, *block_info);
+                    qemu_vm->attach_block_device(block_device_name, *block_device);
                     mpl::log(mpl::Level::debug, category,
                            fmt::format("Attached existing primary disk '{}' to instance '{}'",
                                      block_device_name, name));
@@ -3708,25 +3708,29 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     
                     if (!disk_path.isEmpty())
                     {
-                        mp::BlockDeviceInfo block_info;
-                        block_info.name = block_device_name;
-                        block_info.size = vm_desc.disk_space;
-                        block_info.image_path = disk_path;
-                        block_info.attached_vm = std::make_optional(name);
-                        
                         mpl::log(mpl::Level::debug, category,
                                fmt::format("About to register block device: name='{}', size={}, path='{}', attached_to='{}'",
                                          block_device_name, vm_desc.disk_space.human_readable(),
                                          disk_path.toStdString(), name));
                         
-                        block_device_manager->register_block_device(block_info);
+                        // Create a block device from existing disk
+                        auto device_factory = platform::block_device_factory_backend();
+                        auto block_device = device_factory->load_block_device(
+                            block_device_name,
+                            disk_path,
+                            vm_desc.disk_space,
+                            "qcow2",
+                            std::make_optional(name)
+                        );
                         
                         // Also attach the primary disk to the VM instance
                         auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(operative_instances[name].get());
                         if (qemu_vm)
                         {
-                            qemu_vm->attach_block_device(block_device_name, block_info);
+                            qemu_vm->attach_block_device(block_device_name, *block_device);
                         }
+                        
+                        block_device_manager->register_block_device(std::move(block_device));
                         
                         mpl::log(mpl::Level::info, category,
                                fmt::format("Successfully registered and attached primary disk '{}' for instance '{}' (size: {}, path: {})",

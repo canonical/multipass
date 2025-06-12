@@ -160,8 +160,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
-    if (block_device_manager_factory == nullptr)
-        block_device_manager_factory = platform::block_device_manager_backend();
+    if (block_device_manager == nullptr)
+        block_device_manager = std::make_unique<BlockDeviceManager>(platform::block_device_factory_backend(), data_directory);
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -258,7 +258,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
                                                                 std::move(factory),
-                                                                std::move(block_device_manager_factory),
+                                                                std::move(block_device_manager),
                                                                 std::move(image_hosts),
                                                                 std::move(vault),
                                                                 std::move(ssh_key_provider),

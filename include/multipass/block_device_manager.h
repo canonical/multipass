@@ -18,12 +18,15 @@
 #ifndef MULTIPASS_BLOCK_DEVICE_MANAGER_H
 #define MULTIPASS_BLOCK_DEVICE_MANAGER_H
 
-#include "block_device_info.h"
+#include "block_device.h"
+#include "block_device_factory.h"
 #include "disabled_copy_move.h"
 #include "memory_size.h"
+#include "path.h"
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace multipass
@@ -32,21 +35,32 @@ class BlockDeviceManager : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<BlockDeviceManager>;
+    
+    explicit BlockDeviceManager(BlockDeviceFactory::UPtr factory, const Path& data_dir);
     virtual ~BlockDeviceManager() = default;
 
-    virtual void create_block_device(const std::string& name, const MemorySize& size) = 0;
-    virtual void delete_block_device(const std::string& name) = 0;
-    virtual void attach_block_device(const std::string& name, const std::string& vm) = 0;
-    virtual void detach_block_device(const std::string& name, const std::string& vm) = 0;
+    // Block device operations that manage the registry
+    BlockDevice::UPtr create_block_device(const std::string& name, const MemorySize& size);
+    void delete_block_device(const std::string& name);
+    void attach_block_device(const std::string& name, const std::string& vm);
+    void detach_block_device(const std::string& name, const std::string& vm);
     
-    virtual bool has_block_device(const std::string& name) const = 0;
-    virtual const BlockDeviceInfo* get_block_device(const std::string& name) const = 0;
-    virtual std::vector<BlockDeviceInfo> list_block_devices() const = 0;
-    virtual void register_block_device(const BlockDeviceInfo& info) = 0;
-    virtual void unregister_block_device(const std::string& name) = 0;
+    // Registry management
+    bool has_block_device(const std::string& name) const;
+    BlockDevice* get_block_device(const std::string& name) const;
+    std::vector<const BlockDevice*> list_block_devices() const;
+    void register_block_device(BlockDevice::UPtr device);
+    void unregister_block_device(const std::string& name);
 
 protected:
-    BlockDeviceManager() = default;
+    void save_metadata() const;
+    void load_metadata();
+
+private:
+    BlockDeviceFactory::UPtr device_factory;
+    std::unordered_map<std::string, BlockDevice::UPtr> block_devices;
+    const Path data_dir;
+    const Path metadata_path;
 };
 } // namespace multipass
 
