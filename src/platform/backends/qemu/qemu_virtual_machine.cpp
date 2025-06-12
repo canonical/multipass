@@ -21,7 +21,6 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 #include <multipass/block_device_manager.h>
-#include <multipass/block_device_info.h>
 
 #include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
@@ -54,7 +53,6 @@ using namespace std::chrono_literals;
 
 namespace
 {
-using BlockDeviceInfo = multipass::BlockDeviceInfo;
 constexpr auto suspend_tag = "suspend";
 constexpr auto machine_type_key = "machine_type";
 constexpr auto arguments_key = "arguments";
@@ -116,7 +114,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                         const std::optional<QJsonObject>& resume_metadata,
                         const mp::QemuVirtualMachine::MountArgs& mount_args,
                         const QStringList& platform_args,
-                        const std::unordered_map<std::string, BlockDeviceInfo>& block_devices)
+                        const std::unordered_map<std::string, mp::QemuVirtualMachine::AttachedBlockDevice>& block_devices)
 {
     std::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;
     if (resume_metadata)
@@ -135,7 +133,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     bool original_primary_attached = false;
     for (const auto& [name, info] : block_devices)
     {
-        if (info.image_path == desc.image.image_path)
+        if (info.path == desc.image.image_path.toStdString())
         {
             original_primary_attached = true;
             break;
@@ -147,7 +145,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     if (!original_primary_attached && !block_devices.empty())
     {
         // Use the first attached block device as the new primary disk
-        primary_disk_path = block_devices.begin()->second.image_path;
+        primary_disk_path = QString::fromStdString(block_devices.begin()->second.path);
         mpl::log(mpl::Level::info, desc.vm_name,
                fmt::format("Primary disk not attached, using '{}' as primary disk",
                          primary_disk_path.toStdString()));
@@ -163,14 +161,14 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     for (const auto& [name, info] : block_devices)
     {
         // Skip the disk that's serving as primary
-        if (info.image_path == primary_disk_path)
+        if (info.path == primary_disk_path.toStdString())
         {
             continue;
         }
         
         additional_args << "-drive"
                        << QString("file=%1,format=%2,if=virtio")
-                           .arg(info.image_path)
+                           .arg(QString::fromStdString(info.path))
                            .arg(QString::fromStdString(info.format));
     }
     
@@ -373,7 +371,7 @@ void mp::QemuVirtualMachine::start()
         for (const auto& [name, info] : attached_block_devices)
         {
             QJsonObject device;
-            device["path"] = info.image_path;
+            device["path"] = QString::fromStdString(info.path);
             device["format"] = QString::fromStdString(info.format);
             block_devices[QString::fromStdString(name)] = device;
         }
@@ -877,7 +875,7 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
 {
     return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
 }
-void mp::QemuVirtualMachine::attach_block_device(const std::string& name, const BlockDeviceInfo& info)
+void mp::QemuVirtualMachine::attach_block_device(const std::string& name, const BlockDevice& device)
 {
     if (current_state() != State::off && current_state() != State::stopped)
         throw mp::VMStateInvalidException(fmt::format("Cannot attach block device to instance {} while in current state",
@@ -886,17 +884,19 @@ void mp::QemuVirtualMachine::attach_block_device(const std::string& name, const 
     if (has_block_device(name))
         throw std::runtime_error(fmt::format("Block device '{}' is already attached to this VM", name));
 
+    // Store essential block device info
+    AttachedBlockDevice info{device.image_path().toStdString(), device.format()};
     attached_block_devices[name] = info;
     
     // Update metadata
     auto metadata = monitor->retrieve_metadata_for(vm_name);
-    QJsonObject block_devices = metadata.contains("block_devices") ? 
+    QJsonObject block_devices = metadata.contains("block_devices") ?
                                metadata["block_devices"].toObject() : QJsonObject();
     
-    QJsonObject device;
-    device["path"] = info.image_path;
-    device["format"] = QString::fromStdString(info.format);
-    block_devices[QString::fromStdString(name)] = device;
+    QJsonObject device_meta;
+    device_meta["path"] = device.image_path();
+    device_meta["format"] = QString::fromStdString(device.format());
+    block_devices[QString::fromStdString(name)] = device_meta;
     
     metadata["block_devices"] = block_devices;
     monitor->update_metadata_for(vm_name, metadata);
@@ -944,9 +944,8 @@ void mp::QemuVirtualMachine::load_block_devices_from_metadata()
             const std::string name = it.key().toStdString();
             QJsonObject device = it.value().toObject();
             
-            mp::BlockDeviceInfo info;
-            info.name = name;
-            info.image_path = device["path"].toString();
+            AttachedBlockDevice info;
+            info.path = device["path"].toString().toStdString();
             info.format = device["format"].toString().toStdString();
             
             // Don't call attach_block_device to avoid metadata update loops

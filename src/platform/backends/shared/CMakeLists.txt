@@ -13,6 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(shared STATIC
+  base_block_device.cpp
   base_block_device_manager.cpp
   base_snapshot.cpp
   base_virtual_machine.cpp

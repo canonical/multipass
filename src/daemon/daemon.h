@@ -277,7 +277,7 @@ private:
         delayed_shutdown_instances;
     std::unordered_set<std::string> allocated_mac_addrs;
     DaemonRpc daemon_rpc;
-    BlockDeviceManager::UPtr block_device_manager;
+    BlockDeviceManager* block_device_manager;
     QTimer source_images_maintenance_task;
     multipass::utils::AsyncPeriodicDownloadTask<void> update_manifests_all_task{
         "fetch manifest periodically",
