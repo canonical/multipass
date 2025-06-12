@@ -46,8 +46,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
     params.name = "test";
     params.memory_size_mb = 1024;
     params.processor_count = 1;
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
     const auto c_result = uut.create_compute_system(params);
     ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
@@ -71,8 +73,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
     params.name = "test";
     params.memory_size_mb = 1024;
     params.processor_count = 1;
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
     hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
     ASSERT_TRUE(uut.create_compute_system(params));
@@ -104,8 +108,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     params.name = "test";
     params.memory_size_mb = 1024;
     params.processor_count = 1;
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
     const auto c_result = uut.create_compute_system(params);
 
@@ -139,8 +145,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
     params.name = "test";
     params.memory_size_mb = 1024;
     params.processor_count = 1;
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
-    params.scsi_devices.push_back(hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
     const auto c_result = uut.create_compute_system(params);
 

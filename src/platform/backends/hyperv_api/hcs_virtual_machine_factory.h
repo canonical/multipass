@@ -32,14 +32,18 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 
     explicit HCSVirtualMachineFactory(const Path& data_dir);
-    explicit HCSVirtualMachineFactory(const Path& data_dir, hcs_sptr_t hcs, hcn_sptr_t hcn, virtdisk_sptr_t virtdisk);
+    explicit HCSVirtualMachineFactory(const Path& data_dir,
+                                      hcs_sptr_t hcs,
+                                      hcn_sptr_t hcn,
+                                      virtdisk_sptr_t virtdisk);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
 
     VMImage prepare_source_image(const VMImage& source_image) override;
-    void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
+    void prepare_instance_image(const VMImage& instance_image,
+                                const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override
     {
     }

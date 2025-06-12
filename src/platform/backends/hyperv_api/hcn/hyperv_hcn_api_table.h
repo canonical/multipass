@@ -52,7 +52,8 @@ struct HCNAPITable
     std::function<decltype(HcnDeleteEndpoint)> DeleteEndpoint = &HcnDeleteEndpoint;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcn/reference/hcndeleteendpoint
     std::function<decltype(HcnCloseEndpoint)> CloseEndpoint = &HcnCloseEndpoint;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
+    // @ref
+    // https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
     std::function<decltype(::CoTaskMemFree)> CoTaskMemFree = &::CoTaskMemFree;
 };
 
@@ -73,7 +74,8 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
     auto format(const multipass::hyperv::hcn::HCNAPITable& api, FormatContext& ctx) const
     {
         return format_to(ctx.out(),
-                         "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | CreateEndpoint: ({}) | "
+                         "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | "
+                         "CreateEndpoint: ({}) | "
                          "OpenEndpoint: ({}) | DeleteEndpoint: ({}) | CoTaskMemFree: ({})",
                          static_cast<bool>(api.CreateNetwork),
                          static_cast<bool>(api.OpenNetwork),
