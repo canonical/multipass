@@ -24,6 +24,7 @@ env:
   S3_BUCKET: multipass-ci
   USERNAME: ${{ github.repository_owner }}
   VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+  VCPKG_FORCE_DOWNLOADED_BINARIES: "TRUE"
 
 jobs:
   CheckLint:
