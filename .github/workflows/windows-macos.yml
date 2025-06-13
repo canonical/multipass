@@ -170,7 +170,7 @@ jobs:
     - name: 'Setup NuGet Credentials'
       shell: 'bash'
       run: >
-        "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         sources add
         -source "${{ env.FEED_URL }}"
         -storepasswordincleartext
@@ -238,6 +238,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
         -DCMAKE_PREFIX_PATH=${{ env.Qt6_Dir }}
+        -DVCPKG_INSTALL_OPTIONS="--debug"
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
