@@ -170,7 +170,7 @@ jobs:
     - name: 'Setup NuGet Credentials'
       shell: 'bash'
       run: >
-        ${{ matrix.mono }} `$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)`
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         sources add
         -source "${{ env.FEED_URL }}"
         -storepasswordincleartext
