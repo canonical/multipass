@@ -178,6 +178,9 @@ jobs:
         -username "${{ env.USERNAME }}"
         -password "${{ secrets.GITHUB_TOKEN }}"
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
@@ -243,9 +246,6 @@ jobs:
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.workspace }}
-
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
 
     - name: Throttle parallel build processes on arm64
       if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' }}
