@@ -244,6 +244,9 @@ jobs:
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.workspace }}
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Throttle parallel build processes on arm64
       if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' }}
       run: echo CMAKE_BUILD_PARALLEL_LEVEL=2 >> ${GITHUB_ENV}
