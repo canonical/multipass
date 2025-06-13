@@ -142,7 +142,6 @@ jobs:
           gnu-tar \
           libev \
           libffi \
-          mono \
           ninja \
           openssl@3 \
           pixman \
