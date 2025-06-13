@@ -1,21 +1,35 @@
 diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index d1c4cc1..c0d268c 100644
+index 07b85ba..157fbca 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -113,9 +113,9 @@ parts:
-       echo "Injecting custom APT mirror priorities..."
+@@ -106,6 +106,26 @@ apps:
+       - x11
 
-       cat <<EOF > /etc/apt/apt-mirrors.txt
--      https://archive.ubuntu.com/ubuntu/	priority:1
--      https://security.ubuntu.com/ubuntu/	priority:2
--      http://azure.archive.ubuntu.com/ubuntu/	priority:3
+ parts:
++  inject-apt-mirrors:
++    plugin: nil
++    override-pull: |
++      # Based on https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh
++      echo "Injecting custom APT mirror priorities..."
++
++      cat <<EOF > /etc/apt/apt-mirrors.txt
++      http://azure.archive.ubuntu.com/ubuntu/	priority:1
 +      https://archive.ubuntu.com/ubuntu/	priority:2
 +      https://security.ubuntu.com/ubuntu/	priority:3
-+      http://azure.archive.ubuntu.com/ubuntu/	priority:1
-       EOF
-
-       codename=jammy
-@@ -159,6 +159,7 @@ parts:
++      EOF
++
++      codename=jammy
++      cat <<EOF > /etc/apt/sources.list
++      deb mirror+file:/etc/apt/apt-mirrors.txt $codename main restricted universe multiverse
++      deb mirror+file:/etc/apt/apt-mirrors.txt $codename-updates main restricted universe multiverse
++      deb mirror+file:/etc/apt/apt-mirrors.txt $codename-security main restricted universe multiverse
++      EOF
++
++      apt-get update
+   libvirt:
+     plugin: nil
+     stage-packages:
+@@ -139,6 +159,7 @@ parts:
      build-packages:
      - on arm64: [libgles2-mesa-dev]
      - build-essential
@@ -23,7 +37,7 @@ index d1c4cc1..c0d268c 100644
      - git
      - libapparmor-dev
      - libgl1-mesa-dev
-@@ -240,6 +241,8 @@ parts:
+@@ -220,6 +241,8 @@ parts:
      - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
      - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
