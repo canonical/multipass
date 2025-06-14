@@ -67,11 +67,8 @@ enum class TimeoutAction
 QDir base_dir(const QString& path);
 bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
-std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
-QTemporaryFile create_temp_file_with_path(const QString& filename_template);
-void remove_directories(const std::vector<QString>& dirs);
 
 // filesystem mount helpers
 void make_target_dir(SSHSession& session,

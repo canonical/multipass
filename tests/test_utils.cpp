@@ -190,62 +190,6 @@ TEST(Utils, pathHomeUbuntuFooValid)
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/ubuntu/foo")));
 }
 
-TEST(Utils, createTempFileWithPathDoesNotThrowWhenFolderExists)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/test_temp_file";
-
-    EXPECT_NO_THROW(mp::utils::create_temp_file_with_path(file_template));
-}
-
-TEST(Utils, createTempFileWithPathDoesNotThrowWhenFolderDoesNotExist)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/new_folder/test_temp_file";
-
-    EXPECT_NO_THROW(mp::utils::create_temp_file_with_path(file_template));
-}
-
-TEST(Utils, createTempFileWithPathWorksWhenFolderExists)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/test_temp_file";
-
-    QTemporaryFile file{mp::utils::create_temp_file_with_path(file_template)};
-
-    file.open();
-    EXPECT_THAT(file.fileName().toStdString(), HasSubstr(file_template.toStdString()));
-    file.close();
-}
-
-TEST(Utils, createTempFileWithPathWorksWhenFolderDoesNotExist)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/new_folder/test_temp_file";
-
-    QTemporaryFile file{mp::utils::create_temp_file_with_path(file_template)};
-
-    EXPECT_TRUE(QFileInfo::exists(temp_dir.path() + "/new_folder/"));
-
-    file.open();
-    EXPECT_THAT(file.fileName().toStdString(), HasSubstr(file_template.toStdString()));
-    file.close();
-}
-
-TEST(Utils, createTempFileWithPathThrowsIfCannotCreatePath)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/new_folder/test_temp_file";
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(mp::utils::create_temp_file_with_path(file_template),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("Could not create path")));
-}
-
 TEST(Utils, makeFileWithContentWorks)
 {
     mpt::TempDir temp_dir;
