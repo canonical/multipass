@@ -27,7 +27,16 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
+        sudo --preserve-env apt-get install --yes \
+          devscripts \
+          equivs \
+          flake8 \
+          lcov \
+          ninja-build \
+          pylint \
+          python3-clang \
+          python3-venv \
+          python3-pip
         sudo --preserve-env apt-get build-dep --yes ./
 
     - name: Configure
