@@ -22,8 +22,6 @@
 #include <multipass/format.h>
 #include <multipass/yaml_node_utils.h>
 
-#include <QFile>
-
 #include <array>
 #include <cctype>
 #include <stdexcept>
@@ -130,7 +128,7 @@ void set_at(T& t, SizeType offset, const V& value)
 }
 
 template <typename T>
-void write(const T& t, QFile& f)
+void write(const T& t, std::ofstream& f)
 {
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
 }
@@ -459,24 +457,22 @@ struct RootPathTable
     std::array<uint8_t, 10> data{};
 };
 
-template <typename Size>
-Size num_blocks(Size num_bytes)
+std::size_t num_blocks(std::size_t num_bytes)
 {
     return ((num_bytes + logical_block_size - 1) / logical_block_size);
 }
 
-void seek_to_next_block(QFile& f)
+void seek_to_next_block(std::ofstream& f)
 {
-    const auto next_block_pos = num_blocks(f.pos()) * logical_block_size;
-    f.seek(next_block_pos);
+    const auto next_block_pos = num_blocks(f.tellp()) * logical_block_size;
+    f.seekp(next_block_pos);
 }
 
-void pad_to_end(QFile& f)
+void pad_to_end(std::ofstream& f)
 {
     seek_to_next_block(f);
-    f.seek(f.pos() - 1);
-    char end = 0;
-    f.write(&end, 1);
+    f.seekp(-1, std::ios::cur);
+    f.put('\0');
 }
 } // namespace
 
@@ -545,18 +541,17 @@ bool mp::CloudInitIso::erase(const std::string& name)
     return false;
 }
 
-void mp::CloudInitIso::write_to(const Path& path)
+void mp::CloudInitIso::write_to(const std::filesystem::path& path)
 {
-    QFile f{path};
-    if (!f.open(QIODevice::WriteOnly))
-        throw std::runtime_error{fmt::format(
-            "Failed to open file for writing during cloud-init generation: {}; path: {}",
-            f.errorString(),
-            path)};
+    std::ofstream f{path, std::ios::binary | std::ios::out};
+    if (!f.is_open())
+        throw std::runtime_error{
+            fmt::format("Failed to open file for writing during cloud-init generation; path: {}",
+                        path.string())};
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
-    f.seek(num_reserved_bytes);
+    f.seekp(num_reserved_bytes);
 
     PrimaryVolumeDescriptor prim_desc;
     JolietVolumeDescriptor joliet_desc;
@@ -750,7 +745,7 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     // overwrite the whole network-config file content
     iso_file["network-config"] = mpu::emit_cloud_config(
         mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_addr,
@@ -771,7 +766,7 @@ void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_add
                                                                    extra_interfaces,
                                                                    network_config_file_content));
 
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(
@@ -789,7 +784,7 @@ void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(
         mpu::add_extra_interface_to_network_config(default_mac_addr,
                                                    extra_interface,
                                                    iso_file["network-config"]));
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(
