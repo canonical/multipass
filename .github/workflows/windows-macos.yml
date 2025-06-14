@@ -20,7 +20,10 @@ env:
   HOMEBREW_NO_AUTO_UPDATE: 1
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
   S3_BUCKET: multipass-ci
+  USERNAME: ${{ github.repository_owner }}
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
 jobs:
   CheckLint:
@@ -52,12 +55,10 @@ jobs:
         set -euo pipefail
 
         MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-        MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14"},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15"}'
+        MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": "mono"}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -166,6 +167,20 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
+    - name: 'Setup NuGet Credentials'
+      shell: 'bash'
+      run: >
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        sources add
+        -source "${{ env.FEED_URL }}"
+        -storepasswordincleartext
+        -name "GitHubPackages"
+        -username "${{ env.USERNAME }}"
+        -password "${{ secrets.GITHUB_TOKEN }}"
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
@@ -226,6 +241,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
         -DCMAKE_PREFIX_PATH=${{ env.Qt6_Dir }}
+        -DVCPKG_INSTALL_OPTIONS="--debug"
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
