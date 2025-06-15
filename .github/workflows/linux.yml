@@ -74,7 +74,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
       SNAPCRAFT_BUILD_INFO: 1
+      USERNAME: ${{ github.repository_owner }}
+      VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
     timeout-minutes: 120
     steps:
@@ -116,6 +119,22 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
+    - name: Add NuGet sources
+      continue-on-error: true
+      shell: bash
+      run: |
+        sudo apt install -y mono-complete
+        mono "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+          sources add \
+          -source "${{ env.FEED_URL }}" \
+          -storePasswordInClearText \
+          -name GitHubPackages \
+          -username "${{ env.USERNAME }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+        mono "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "${{ env.FEED_URL }}"
 
     - name: Set up CCache
       id: setup-ccache
