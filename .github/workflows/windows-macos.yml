@@ -167,6 +167,11 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
+    - name: Install nuget
+      if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' }}
+      run: |
+        brew install nuget mono
+
     - name: 'Setup NuGet Credentials'
       id: setup_nuget
       continue-on-error: true
@@ -186,8 +191,6 @@ jobs:
     - name: Overwrite Homebrew nuget shim with nuget DLL
       if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' && matrix.arch == 'arm64' }}
       run: |
-        brew install nuget mono
-
         # Locate the real NuGet.exe in Homebrew’s Cellar
         REAL_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
 
