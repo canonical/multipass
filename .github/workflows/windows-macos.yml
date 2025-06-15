@@ -172,7 +172,7 @@ jobs:
       run: |
         brew install nuget mono
 
-    - name: 'Setup NuGet Credentials'
+    - name: Configure NuGet Source
       id: setup_nuget
       continue-on-error: true
       shell: 'bash'
