@@ -133,7 +133,7 @@ jobs:
           -password "${{ secrets.GITHUB_TOKEN }}"
         mono "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
-          -source "${{ env.FEED_URL }}"     
+          -source "${{ env.FEED_URL }}"
 
     - name: Set up CCache
       id: setup-ccache
