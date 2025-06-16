@@ -1,14 +1,13 @@
-(how-to-guides-customise-multipass-authenticate-clients-with-the-multipass-service)=
-# Authenticate clients with the Multipass service
+(how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)=
+# Authenticate users with the Multipass service
 
 > See also: [`authenticate`](reference-command-line-interface-authenticate), [local.passphrase](reference-settings-local-passphrase), [Service](explanation-service)
 
-Multipass requires clients to be authenticated with the service before allowing commands to
-complete. The installing user is automatically authenticated.
+Multipass requires users to be authenticated with the service before allowing commands to complete. The installing user is automatically authenticated.
 
 ## Setting the passphrase
 
-The administrator needs to set a passphrase for clients to authenticate with the Multipass service. The client setting the passphrase will need to already be authenticated.
+The administrator needs to set a passphrase for users to authenticate with the Multipass service. The client setting the passphrase will need to already be authenticated.
 
 There are two ways to proceed:
 
