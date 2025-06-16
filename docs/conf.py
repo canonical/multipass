@@ -26,7 +26,7 @@ import ast
 project = "Multipass"
 author = "Canonical Ltd."
 
-#root_doc = "src/index"
+# root_doc = "src/index"
 
 # Sidebar documentation title; best kept reasonably short
 #
@@ -72,6 +72,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 
 ogp_site_url = "https://documentation.ubuntu.com/multipass"
 
+html_baseurl = "https://documentation.ubuntu.com/multipass/en/latest/"  # for sitemap.xml, the trailing slash is important
 
 # Preview name of the documentation website
 #
@@ -162,7 +163,7 @@ html_theme_options = {
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-slug = 'multipass'
+slug = "multipass"
 
 
 # Template and asset locations
@@ -196,7 +197,7 @@ redirects = {}
 # TODO: Remove or adjust the ACME entry after you update the contributing guide
 
 linkcheck_ignore = [
-	"https://app.element.io/#/room/#Multipass:matrix.org",
+    "https://app.element.io/#/room/#Multipass:matrix.org",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:8001",
     "https://localhost:8080",
@@ -205,8 +206,8 @@ linkcheck_ignore = [
     "https://sourceforge.net/projects/vcxsrv/",
     "https://sourceforge.net/projects/xming/",
     "http://www.straightrunning.com/XmingNotes/",
-    "https://unix.stackexchange.com", # it seems stackexchange is now blocking bots
-    ]
+    "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
+]
 
 linkcheck_retries = 3
 
@@ -250,6 +251,7 @@ extensions = [
     "canonical_sphinx",
     "sphinxcontrib.cairosvgconverter",
     "sphinx_last_updated_by_git",
+    "sphinx_sitemap",
 ]
 
 # Excludes files or directories from processing
