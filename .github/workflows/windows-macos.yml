@@ -20,7 +20,10 @@ env:
   HOMEBREW_NO_AUTO_UPDATE: 1
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
   S3_BUCKET: multipass-ci
+  USERNAME: ${{ github.repository_owner }}
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
 jobs:
   CheckLint:
@@ -165,6 +168,21 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
+    - name: Configure NuGet Source
+      if: ${{ runner.os == 'Windows' }}
+      shell: 'bash'
+      run: |
+        "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+          sources add \
+          -source "${{ env.FEED_URL }}" \
+          -storepasswordincleartext \
+          -name "GitHubPackages" \
+          -username "${{ env.USERNAME }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+        "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "${{ env.FEED_URL }}"
 
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
