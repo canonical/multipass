@@ -12,7 +12,7 @@ from pathlib import Path
 
 # Regular expression to match the category in the subject line
 CATEGORY_REGEX = r"^\[[a-z0-9]+(?:-[a-z0-9]+)*]"  # lowercase in square brackets, hyphenated allowed
-SUBJECT_TAIL_REGEX = r"^\[.*]\s+[A-Z]\w+"  # a space and capitalized word follow the category
+SUBJECT_TAIL_REGEX = r"^\[.*]\s+[A-Z]\w*"  # a space and capitalized word follow the category
 
 
 class CommitMsgRulesChecker:
