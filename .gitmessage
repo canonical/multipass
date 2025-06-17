@@ -5,7 +5,6 @@
 
 
 # ------------   Wrap at 72 chars   ----------------------------------->|
-# Leave a blank line before the body. Use the body to explain *what* and
-# *why* (not *how*). Omit the body if the subject suffices.
-# Refer to the full commit message guidelines at CONTRIBUTING.md
+# Leave a blank line before the body. Explain *what*/*why*, not *how*.
+# Omit the body if the subject suffices. See CONTRIBUTING.md.
 # TODO: anchor proper section
