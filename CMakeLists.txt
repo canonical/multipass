@@ -59,6 +59,26 @@ if(NOT DEFINED VCPKG_BUILD_DEFAULT)
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 endif()
 
+set(VCPKG_DOWNLOADS "/bad/directory/for/vcpkg/downloads")
+message(STATUS "Bootstrapping vcpkg...")
+
+execute_process(
+  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.sh"
+  RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT
+)
+
+if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
+  message(STATUS "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
+  if(EXISTS "${CMAKE_BINARY_DIR}/vcpkg-bootstrap.log")
+    file(READ "${CMAKE_BINARY_DIR}/vcpkg-bootstrap.log" VCPKG_BOOTSTRAP_LOG)
+    message(FATAL_ERROR "Bootstrap log dump:\n${VCPKG_BOOTSTRAP_LOG}")
+  else()
+    message(FATAL_ERROR "No bootstrap log found.")
+  endif()
+else()
+  message(STATUS "Bootstrapping vcpkg completed successfully.")
+endif()
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
