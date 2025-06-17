@@ -55,12 +55,12 @@ jobs:
         set -euo pipefail
 
         MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
+        MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
         MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
         MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14"},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15"}'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -171,17 +171,16 @@ jobs:
 
     - name: Configure NuGet Source
       continue-on-error: true
-      if: ${{ runner.os == 'Windows' }}
       shell: 'bash'
       run: |
-        "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
           sources add \
           -source "${{ env.FEED_URL }}" \
           -storepasswordincleartext \
           -name "GitHubPackages" \
           -username "${{ env.USERNAME }}" \
           -password "${{ secrets.GITHUB_TOKEN }}"
-        "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -source "${{ env.FEED_URL }}"
 
