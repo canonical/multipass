@@ -170,6 +170,7 @@ jobs:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
     - name: Configure NuGet Source
+      continue-on-error: true
       if: ${{ runner.os == 'Windows' }}
       shell: 'bash'
       run: |
