@@ -70,8 +70,8 @@ Here you can find solutions and workarounds for common issues that may arise.
 
 It is possible that another client that is privileged to connect to the Multipass socket will
 connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize`
-the client with the service. This usually when Multipass is installed as root/admin but the client
-is run as another user, or vice versa.
+the client with the service. This usually occurs when Multipass is installed as root/admin but
+the client is run as another user, or vice versa.
 
 If this is the case, you will see something like the following when you run:
 
