@@ -81,13 +81,13 @@ class CommitMsgRulesChecker:
         return not self.subject.endswith(".")
 
     def validate_rule8(self):
-        return not self.body or self.body[0].isspace()
+        return not self.body or not self.body[0]
 
     def validate_rule9(self):
         return True  # TODO@no-merge
 
     def validate_rule10(self):
-        both_blank = lambda l1, l2: l1.isspace() and l2.isspace()
+        both_blank = lambda l1, l2: not l1 and not l2
         return not any(both_blank(l1, l2) for l1, l2 in zip(self.body, self.body[1:]))
 
     def validate_rule12(self):
