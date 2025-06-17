@@ -88,7 +88,7 @@ class CommitMsgRulesChecker:
 
     def validate_rule10(self):
         both_blank = lambda l1, l2: l1.isspace() and l2.isspace()
-        return any(both_blank(l1, l2) for l1, l2 in zip(self.body, self.body[1:]))
+        return not any(both_blank(l1, l2) for l1, l2 in zip(self.body, self.body[1:]))
 
     def validate_rule12(self):
         return all(len(line) <= 72 for line in self.body)
