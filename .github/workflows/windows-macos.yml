@@ -169,7 +169,13 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
+    - name: Install nuget
+      if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' }}
+      run: |
+        brew install nuget mono
+
     - name: Configure NuGet Source
+      id: setup_nuget
       continue-on-error: true
       shell: 'bash'
       run: |
@@ -183,6 +189,17 @@ jobs:
         ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -source "${{ env.FEED_URL }}"
+
+    - name: Overwrite Homebrew nuget shim with nuget DLL
+      continue-on-error: true
+      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' && matrix.arch == 'arm64' }}
+      run: |
+        # Locate the real NuGet.exe in Homebrew’s Cellar
+        NUGET_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
+        # Remove the old shim and replace it with a symlink
+        sudo rm -f /opt/homebrew/bin/nuget
+        sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
+        sudo chmod +x /opt/homebrew/bin/nuget
 
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
