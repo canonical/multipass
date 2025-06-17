@@ -1,10 +1,11 @@
+
+# ------------   Limit to 50 chars   ------------>|
 # [category] Capitalized subject line
 # Use imperative mood. Do not end with a period.
-# ------------   Limit to 50 chars   ----------->|
 
+
+# ------------   Wrap at 72 chars   ----------------------------------->|
 # Leave a blank line before the body. Use the body to explain *what* and
 # *why* (not *how*). Omit the body if the subject suffices.
-# ------------   Wrap at 72 chars   ---------------------------------->|
-
 # Refer to the full commit message guidelines at CONTRIBUTING.md
 # TODO: anchor proper section
