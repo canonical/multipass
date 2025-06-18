@@ -62,8 +62,14 @@ endif()
 set(VCPKG_DOWNLOADS "/bad/directory/for/vcpkg/downloads")
 message(STATUS "Bootstrapping vcpkg...")
 
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+  set(VCPKG_BOOTSTRAP_EXTENSION "bat")
+else()
+  set(VCPKG_BOOTSTRAP_EXTENSION "sh")
+endif()
+
 execute_process(
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.sh"
+  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.${VCPKG_BOOTSTRAP_EXTENSION}"
   RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT
 )
 
