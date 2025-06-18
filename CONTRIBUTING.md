@@ -33,38 +33,61 @@ precedence or priority.
 The following meta-guidelines cover the process to derive Multipass's contribution guidelines, along
 with governance goals.
 
-**META1.** Everyone in the team can propose additional guidelines.
+<style>
+.meta-list {
+  counter-reset: meta-counter;
+  list-style: none;
+  padding-left: 0;
+}
+.meta-list li {
+  counter-increment: meta-counter;
+  position: relative;
+  padding-left: 60px; /* Adjust based on longest META label */
+  margin-left: 20px;
+}
+.meta-list li::before {
+  content: "META" counter(meta-counter) ". ";
+  font-weight: bold;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+</style>
 
-**META2.** Everyone in the team can question and propose changes to guidelines.
+<ol class="meta-list">
+<li>Everyone in the team can propose additional guidelines.</li>
 
-**META3.** Before the first set of guidelines is established, everyone in the team is invited to
-participate in live discussions about them.
+<li>Everyone in the team can question and propose changes to guidelines.</li>
 
-**META4.** Before a new version of these guidelines is established, everyone in the team reviews it
-independently, except if away on prolonged absence.
+<li>Before the first set of guidelines is established, everyone in the team is invited to
+participate in live discussions about them.</li>
 
-**META5.** Ideally, all team members come to agree on any given version of these guidelines before
-it is established.
+<li>Before a new version of these guidelines is established, everyone in the team reviews it
+independently, except if away on prolonged absence.</li>
 
-**META6.** Where that is not possible, preferably a majority of the team agrees with any given
-version of these guidelines before it is established.
+<li>Ideally, all team members come to agree on any given version of these guidelines before
+it is established.</li>
 
-**META7.** Preferably, all team members accept the latest established version of these guidelines,
-until the team agrees to modify it.
+<li>Where that is not possible, preferably a majority of the team agrees with any given
+version of these guidelines before it is established.</li>
 
-**META8.** In any case, all team members abide by the latest established version of these
-guidelines, until the team agrees to modify it.
+<li>Preferably, all team members accept the latest established version of these guidelines,
+until the team agrees to modify it.</li>
 
-**META9.** Established guidelines are taken seriously, but with a grain of salt. They are guidelines
-after all, not absolute rules.
+<li>In any case, all team members abide by the latest established version of these
+guidelines, until the team agrees to modify it.</li>
 
-**META10.** Once established, the first version of these guidelines is transferred to a versioned
-document (CONTRIBUTING.md).
+<li>Established guidelines are taken seriously, but with a grain of salt. They are guidelines
+after all, not absolute rules.</li>
 
-**META11.** Going forward, these guidelines are meant to be expanded, refined, and corrected via
-pull requests.
+<li>Once established, the first version of these guidelines is transferred to a versioned
+document (CONTRIBUTING.md).</li>
 
-**META12.** New practices can be experimented with before being adopted definitively.
+<li>Going forward, these guidelines are meant to be expanded, refined, and corrected via
+pull requests.</li>
+
+<li>New practices can be experimented with before being adopted definitively.</li>
+</ol>
 
 ### Core principles (MU)
 
