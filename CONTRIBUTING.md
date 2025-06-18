@@ -34,27 +34,27 @@ The following meta-guidelines cover the process to derive Multipass's contributi
 with governance goals.
 
 <style>
-.meta-list {
-  counter-reset: meta-counter;
-  list-style: none;
-  padding-left: 0;
+.custom-list {
+    counter-reset: item-counter;
+    list-style: none;
+    padding-left: 0;
 }
-.meta-list li {
-  counter-increment: meta-counter;
-  position: relative;
-  padding-left: 60px; /* Adjust based on longest META label */
-  margin-left: 20px;
+.custom-list li {
+    counter-increment: item-counter;
+    position: relative;
+    margin-left: 20px;
+    padding-left: var(--label-width, 60px);
 }
-.meta-list li::before {
-  content: "META" counter(meta-counter) ". ";
-  font-weight: bold;
+.custom-list li::before {
+    content: var(--prefix, "ITEM") counter(item-counter) ". ";
+    font-weight: bold;
     position: absolute;
     left: 0;
     top: 0;
 }
 </style>
 
-<ol class="meta-list">
+<ol class="custom-list" style="--prefix: 'META';">
 <li>Everyone in the team can propose additional guidelines.</li>
 
 <li>Everyone in the team can question and propose changes to guidelines.</li>
