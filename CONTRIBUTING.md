@@ -216,26 +216,28 @@ approval (i.e. after multiple approvals are dismissed).</li>
 
 ### Versioning (GIT)
 
-**GIT1.** Strive for atomic commits. A commit should introduce a coherent change that appears as a
-unit in a low level of abstraction.
+<ol class="custom-list" style="--prefix: 'GIT';">
+<li>Strive for atomic commits. A commit should introduce a coherent change that appears as a
+unit in a low level of abstraction.</li>
 
-**GIT2.** As a rule of thumb, commit messages of the form "do this and that" are an indication that
-there should be two commits instead.
+<li>As a rule of thumb, commit messages of the form "do this and that" are an indication that
+there should be two commits instead.</li>
 
-**GIT3.** Strive to preserve a clean but detailed git history.
+<li>Strive to preserve a clean but detailed git history.</li>
 
-**GIT4.** Avoid squashing.
+<li>Avoid squashing.</li>
 
-**GIT5.** Prefer additional commits during review (easier for reviewers to see the diff).
+<li>Prefer additional commits during review (easier for reviewers to see the diff).</li>
 
-**GIT6.** Avoid merging the target branch back into topic. Rebase instead.
+<li>Avoid merging the target branch back into topic. Rebase instead.</li>
 
-**GIT7.** External contributors are encouraged to sign their commits, while Multipass team members
-are required to do so.
+<li>External contributors are encouraged to sign their commits, while Multipass team members
+are required to do so.</li>
 
-**GIT8.** Use kebab-case branch names (i.e. lower-case-words-separated-with-hyphens).
+<li>Use kebab-case branch names (i.e. lower-case-words-separated-with-hyphens).</li>
 
-**GIT9.** Do not introduce whitespace errors.
+<li>Do not introduce whitespace errors.</li>
+</ol>
 
 ## Unset
 
@@ -244,40 +246,43 @@ are required to do so.
 Guidelines for writing commit messages for non-merge commits. They are inspired by this and other
 posts. The category prefix is the main originality.
 
-**MSG1.** Begin with a subject line.
+<ol class="custom-list" style="--prefix: 'MSG';">
+<li>Begin with a subject line.</li>
 
-**MSG2.** Start the subject line with a lower-case, single-word category, within square brackets (
-hyphenated, composite words are acceptable).
+<li>Start the subject line with a lower-case, single-word category, within square brackets (
+hyphenated, composite words are acceptable).</li>
 
-**MSG3.** If you find yourself wanting multiple categories, consider splitting commits. Otherwise,
-try to find a generic unifying category, or choose the most relevant.
+<li>If you find yourself wanting multiple categories, consider splitting commits. Otherwise,
+try to find a generic unifying category, or choose the most relevant.</li>
 
-**MSG4.** Leave a single space after the category and capitalize the first ensuing word.
+<li>Leave a single space after the category and capitalize the first ensuing word.</li>
 
-**MSG5.** Limit the subject line to 50 characters (category included).
+<li>Limit the subject line to 50 characters (category included).</li>
 
-**MSG6.** Do not end the subject line with a period.
+<li>Do not end the subject line with a period.</li>
 
-**MSG7.** Use the imperative mood in the subject line (e.g. "Fix bug" rather than "Fixed bug" or "
-Fixes bug").
+<li>Use the imperative mood in the subject line (e.g. "Fix bug" rather than "Fixed bug" or "
+Fixes bug").</li>
 
-**MSG8.** If adding a body, separate it from the subject with a blank line.
+<li>If adding a body, separate it from the subject with a blank line.</li>
 
-**MSG9.** Use multiple paragraphs in the body if needed. Separate them with a blank line.
+<li>Use multiple paragraphs in the body if needed. Separate them with a blank line.</li>
 
-**MSG10.** Do not include more than 1 consecutive blank line.
+<li>Do not include more than 1 consecutive blank line.</li>
 
-**MSG11.** Use punctuation normally in the body.
+<li>Use punctuation normally in the body.</li>
 
-**MSG12.** Wrap the body at 72 characters.
+<li>Wrap the body at 72 characters.</li>
 
-**MSG13.** Use the body to explain what and why, rather than how.
+<li>Use the body to explain what and why, rather than how.</li>
 
-**MSG14.** Be descriptive but succinct and avoid filler text.
+<li>Be descriptive but succinct and avoid filler text.</li>
 
-**MSG15.** Omit the body if the subject is self-explanatory.
+<li>Omit the body if the subject is self-explanatory.</li>
 
-**MSG16.** Common abbreviations are fine (e.g. "msg" or "var")
+<li>Common abbreviations are fine (e.g. "msg" or "var")</li>
+
+</ol>
 
 #### Examples
 
@@ -299,10 +304,12 @@ code injection (now or in the future).
 
 ### Dependencies (DEP)
 
-**DEP1.** Acceptable mechanisms to adopt source-code dependencies are, in decreasing order of
-preference: vcpkg (for C++) > FetchContent > submodule.
+<ol class="custom-list" style="--prefix: 'DEP';">
+<li>Acceptable mechanisms to adopt source-code dependencies are, in decreasing order of
+preference: vcpkg (for C++) > FetchContent > submodule.</li>
 
-**DEP2.** Avoid vendoring (copied source code).
+<li>**DEP2.** Avoid vendoring (copied source code).</li>
+</ol>
 
 ## Code
 
@@ -311,78 +318,83 @@ tension and have to be balanced.
 
 ### Generic engineering and code (COD)
 
-**COD1.** Avoid duplicate sources of truth.
+<ol class="custom-list" style="--prefix: 'COD';">
+<li>Avoid duplicate sources of truth.</li>
 
-**COD2.** Prefer small units, be they functions, classes, files, etc.
+<li>Prefer small units, be they functions, classes, files, etc.</li>
 
-**COD3.** Follow SOLID principles.
+<li>Follow SOLID principles.</li>
 
-**COD4.** Pay special attention to the principles of single responsibility and separation of
-concerns.
+<li>Pay special attention to the principles of single responsibility and separation of concerns.
+</li>
 
-**COD5.** Don't repeat yourself (DRY).
+<li>Don't repeat yourself (DRY).</li>
 
-**COD6.** Don't reinvent the wheel.
+<li>Don't reinvent the wheel.</li>
 
-**COD7.** Don't over-engineer (YAGNI).
+<li>Don't over-engineer (YAGNI).</li>
 
-**COD8.** Avoid coupling functionality that isn't logically coupled.
+<li>Avoid coupling functionality that isn't logically coupled.</li>
 
-**COD9.** Encapsulate, within each unit, all information that other units don't need.
+<li>Encapsulate, within each unit, all information that other units don't need.</li>
 
-**COD10.** Encapsulate data with dependent behavior.
+<li>Encapsulate data with dependent behavior.</li>
 
-**COD11.** Strive for interfaces that are easy to use, but hard to misuse.
+<li>Strive for interfaces that are easy to use, but hard to misuse.</li>
 
-**COD12.** Avoid redundant levels of indirection.
+<li>Avoid redundant levels of indirection.</li>
 
-**COD13.** Simplify. Avoid pointless complexity.
+<li>Simplify. Avoid pointless complexity.</li>
 
-**COD14.** All else being equal, less code is better code.
+<li>All else being equal, less code is better code.</li>
 
-**COD15.** Don't try to maximize LoC metrics.
+<li>Don't try to maximize LoC metrics.</li>
 
-**COD16.** Aim for consistency.
+<li>Aim for consistency.</li>
 
-**COD17.** If it is all the same otherwise, follow a single approach (see how it is done elsewhere).
+<li>If it is all the same otherwise, follow a single approach (see how it is done elsewhere).</li>
 
-**COD18.** Be creative. If you have a better approach, propose it and discuss it openly.
+<li>Be creative. If you have a better approach, propose it and discuss it openly.</li>
 
-**COD19.** Prioritize. Balance idealism with pragmatism.
+<li>Prioritize. Balance idealism with pragmatism.</li>
 
-**COD20.** Document public, user-facing interfaces.
+<li>Document public, user-facing interfaces.</li>
 
-**COD21.** Keep documentation up-to-date.
+<li>Keep documentation up-to-date.</li>
+</ol>
 
 ### C++ (CPP)
 
-**CPP1.** Stick to standard C++17, with the exception of #pragma once.
+<ol class="custom-list" style="--prefix: 'CPP';">
+<li>Stick to standard C++17, with the exception of #pragma once. </li>
 
-**CPP2.** Prefer "#pragma once" to header guards
+<li>Prefer "#pragma once" to header guards</li>
 
-**CPP3.** Prefer enforcing correct usage (prevent misuse) at compilation time.
+<li>Prefer enforcing correct usage (prevent misuse) at compilation time.</li>
 
-**CPP4.** If a type isn't meant to be copied or moved, inherit from DisabledCopyMove (either
-directly or indirectly).
+<li>If a type isn't meant to be copied or moved, inherit from DisabledCopyMove (either
+directly or indirectly).</li>
 
-**CPP5.** For such types, define only constructors that fully initialize objects. Avoid a default
-constructor unless the object needs no parameterization.
+<li>For such types, define only constructors that fully initialize objects. Avoid a default
+constructor unless the object needs no parameterization.</li>
 
-**CPP6.** Make copyable types semi-regular.
+<li>Make copyable types semi-regular.</li>
 
-**CPP7.** Avoid two-stage initialization. Initialize objects fully in the constructor.
+<li>Avoid two-stage initialization. Initialize objects fully in the constructor.</li>
 
-**CPP8.** Avoid const by-value params (e.g. no void foo(const bool flag);)
+<li>Avoid const by-value params (e.g. no void foo(const bool flag);)</li>
 
-**CPP9.** Encapsulate platform-dependent functionality in dedicated units (types, functions) and do
-not use platform #ifdefs (or other platform-conditional logic) outside of those units.
+<li>Encapsulate platform-dependent functionality in dedicated units (types, functions) and do
+not use platform #ifdefs (or other platform-conditional logic) outside of those units.</li>
 
-**CPP10.** Use CamelCase for types, but snake_case for variables and functions.
+<li>Use CamelCase for types, but snake_case for variables and functions.</li>
 
-**CPP11.** Avoid magic numbers.
+<li>Avoid magic numbers.</li>
 
-**CPP12.** Declare generic constants in a dedicated header.
+<li>Declare generic constants in a dedicated header.</li>
 
-**CPP13.** Avoid compilation warnings.
+<li>Avoid compilation warnings.</li>
 
-**CPP14.** To mock free functions and external APIs, wrap them with MockableSingleton
+<li>To mock free functions and external APIs, wrap them with MockableSingleton</li>
+
+</ol>
