@@ -94,116 +94,125 @@ pull requests.</li>
 Principles for the members of the Multipass team. Many of these are inspired by Canonical's values,
 which we should keep in mind.
 
-**MU1.** Aim at excellence.
+<ol class="custom-list" style="--prefix: 'MU';">
+<li>Aim at excellence.</li>
 
-**MU2.** Follow best practices (refer to other pertinent documents, e.g.CppCoreGuidelines).
+<li>Follow best practices (refer to other pertinent documents, e.g.CppCoreGuidelines).</li>
 
-**MU3.** Think critically (even about best practices).
+<li>Think critically (even about best practices).</li>
 
-**MU4.** Favor collaboration.
+<li>Favor collaboration.</li>
 
-**MU5.** Be open to feedback.
+<li>Be open to feedback.</li>
 
-**MU6.** Provide polite and sensitive feedback.
+<li>Provide polite and sensitive feedback.</li>
 
-**MU7.** Indulge your reviewer (if it's all the same to the project and yourself).
+<li>Indulge your reviewer (if it's all the same to the project and yourself).</li>
 
-**MU8.** If you believe you have it right, you have a right to defend why (arguably a duty).
+<li>If you believe you have it right, you have a right to defend why (arguably a duty).</li>
 
-**MU9.** When it comes to that, recognize that hierarchy determines who has the final word.
+<li>When it comes to that, recognize that hierarchy determines who has the final word.</li>
 
-**MU10.** Be attentive and try to avoid mistakes.
+<li>Be attentive and try to avoid mistakes.</li>
 
-**MU11.** Don't agonize over mistakes (you'll inevitably make them).
+<li>Don't agonize over mistakes (you'll inevitably make them).</li>
 
-**MU12.** Be tolerant (nobody is perfect).
+<li>Be tolerant (nobody is perfect).</li>
 
-**MU13.** Strive to improve (you always can).
+<li>Strive to improve (you always can).</li>
 
-**MU14.** Leave the code a little bit better than you found it.
+<li>Leave the code a little bit better than you found it.</li>
 
-**MU15.** Aim for optimal solutions when they are feasible, compromise when they are not.
+<li>Aim for optimal solutions when they are feasible, compromise when they are not.</li>
+</ol>
 
 ### Releases (REL)
 
 Descriptive rules of how releases are obtained from Git.
 
-**REL1.** The trunk of Multipass development happens in the main branch, which releases branch out
-of.
+<ol class="custom-list" style="--prefix: 'REL';">
+<li>The trunk of Multipass development happens in the main branch, which releases branch out
+of.</li>
 
-**REL2.** Preferably, release branches contain only commits that are directly reachable from main or
-cherry-picked from it.
+<li>Preferably, release branches contain only commits that are directly reachable from main or
+cherry-picked from it.</li>
 
-**REL3.** Cherry-picked commits in release branches may differ from the original ones only where
-necessary to avoid or fix conflicts.
+<li>Cherry-picked commits in release branches may differ from the original ones only where
+necessary to avoid or fix conflicts.</li>
 
-**REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
-conflict fixes.
+<li>In exceptional cases, release branches may contain dedicated commits for bug, build, or
+conflict fixes.</li>
 
-**REL5.** After a release is published, the corresponding release branch is merged back into main.
+<li>After a release is published, the corresponding release branch is merged back into main.</li>
+</ol>
 
 ### Pull Requests (PR)
 
 Guidelines for how we use and handle pull requests.
 
-**PR1.** Concrete modifications of Multipass can be proposed via Pull Requests (AKA PRs) targeting
-the main branch.
+<ol class="custom-list" style="--prefix: 'PR';">
+<li>Concrete modifications of Multipass can be proposed via Pull Requests (AKA PRs) targeting
+the main branch.</li>
 
-**PR2.** Prefer small, single issue PRs.
+<li>Prefer small, single issue PRs.</li>
 
-**PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
-abstraction.
+<li>A PR should introduce a coherent change that appears as a unit in a medium or high level of
+abstraction.</li>
 
-**PR4.** The main branch is modified exclusively via PRs, except for an empty commit after branching
-for release.
+<li>The main branch is modified exclusively via PRs, except for an empty commit after branching
+for release.</li>
 
-**PR5.** PRs accepted into main are merged with merge commits.
+<li>PRs accepted into main are merged with merge commits.</li>
 
-**PR6.** PRs to main should typically be covered by automated tests.
+<li>PRs to main should typically be covered by automated tests.</li>
 
-**PR7.** If a PR is valuable on its own, does not depend on others, and does not involve dead code,
+<li>If a PR is valuable on its own, does not depend on others, and does not involve dead code,
 target the main branch, even if it is part of a larger task. This should be the most common case.
+</li>
 
-**PR8.** If your PR relies on another one, target the other's branch.
+<li>If your PR relies on another one, target the other's branch.</li>
 
-**PR9.** When working on a larger set of changes with cohesive interdependence, consider using a
-feature branch.
+<li>When working on a larger set of changes with cohesive interdependence, consider using a
+feature branch.</li>
 
-**PR10.** Try to keep the number of concurrent feature branches small.
+<li>Try to keep the number of concurrent feature branches small.</li>
 
-**PR11.** When PRs are stacked, prefer to merge them in order. The target branch will update
-automatically upon merging.
+<li>When PRs are stacked, prefer to merge them in order. The target branch will update
+automatically upon merging.</li>
 
-**PR12.** PRs should include descriptions and/or point to appropriate context (within reason).
+<li>PRs should include descriptions and/or point to appropriate context (within reason).</li>
 
-**PR13.** When authoring a PR, make sure to test it.
+<li>When authoring a PR, make sure to test it.</li>
 
-**PR14.** When authoring a PR, make sure to review its diff.
+<li>When authoring a PR, make sure to review its diff.</li>
+</ol>
 
 ### Reviews (RVW)
 
-**RVW1.** Reviews can be distinguished as primary and secondary.
+<ol class="custom-list" style="--prefix: 'RVW';">
+<li>Reviews can be distinguished as primary and secondary.</li>
 
-**RVW2.** Primary reviews should approve PRs only after close inspection, impact consideration, and
-appropriate testing.
+<li>Primary reviews should approve PRs only after close inspection, impact consideration, and
+appropriate testing.</li>
 
-**RVW3.** Secondary reviews may approve PRs after a lighter overview of the changes.
+<li>Secondary reviews may approve PRs after a lighter overview of the changes.</li>
 
-**RVW4.** A review is assumed to be primary, unless otherwise indicated (on GitHub or another
-medium).
+<li>A review is assumed to be primary, unless otherwise indicated (on GitHub or another
+medium).</li>
 
-**RVW5.** PRs may normally be merged only after two approvals: one primary and one secondary. This
+<li>PRs may normally be merged only after two approvals: one primary and one secondary. This
 is mandatory for external PRs (authored or committed from outside the Multipass team and the
-Renovate bot).
+Renovate bot).</li>
 
-**RVW6.** After a PR is approved by multiple people, small updates require only a single additional
-approval (i.e. after multiple approvals are dismissed).
+<li>After a PR is approved by multiple people, small updates require only a single additional
+approval (i.e. after multiple approvals are dismissed).</li>
 
-**RVW7.** Notably trivial PRs by the Multipass team may be merged after a single primary approval.
+<li>Notably trivial PRs by the Multipass team may be merged after a single primary approval.</li>
 
-**RVW8.** Renovate PRs may be merged after a single primary approval.
+<li>Renovate PRs may be merged after a single primary approval.</li>
 
-**RVW9.** Review comments should be acknowledged by the author, but resolved by the reviewer.
+<li>Review comments should be acknowledged by the author, but resolved by the reviewer.</li>
+</ol>
 
 ### Versioning (GIT)
 
