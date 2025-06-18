@@ -52,6 +52,6 @@ Version: 1.13.3 |
 <https://github.com/pocoproject/poco/releases>
 
 ### vcpkg
-Version: 2025.01.13 |
+Version: 2025.04.09 |
 <https://github.com/microsoft/vcpkg.git> |
 <https://github.com/microsoft/vcpkg/releases>
