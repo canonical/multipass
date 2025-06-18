@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'confirmation_dialog.dart';
 
 class BeforeQuitDialog extends StatefulWidget {
+  final int runningCount;
   final Function(bool remember) onStop;
   final Function(bool remember) onKeep;
 
   const BeforeQuitDialog({
     super.key,
+    required this.runningCount,
     required this.onStop,
     required this.onKeep,
   });
@@ -21,14 +23,20 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
 
   @override
   Widget build(BuildContext context) {
+    String getMessage() {
+      if (widget.runningCount == 1) {
+        return 'There is 1 running instance. Do you want to stop it?';
+      } else {
+        return 'There are ${widget.runningCount} running instances. Do you want to stop them?';
+      }
+    }
+
     return ConfirmationDialog(
-      title: 'Before quitting',
+      title: 'Stop running instances?',
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.only(left: 8),
-          child: const Text(
-            'When quitting this application you can leave instances running in the background or choose to stop them completely.',
-          ),
+          child: Text(getMessage()),
         ),
         const SizedBox(height: 24),
         Row(
@@ -38,7 +46,7 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
               onChanged: (value) => setState(() => remember = value!),
             ),
             const SizedBox(width: 8),
-            const Text('Remember this setting'),
+            const Text('Do not ask me again'),
           ],
         ),
       ]),

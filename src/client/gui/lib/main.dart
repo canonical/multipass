@@ -193,10 +193,17 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     if (closeJob == 'ask') {
+      // Get running instances count
+      final vmInfos = ref.read(vmInfosProvider);
+      final runningCount = vmInfos
+          .where((info) => info.instanceStatus.status == Status.RUNNING)
+          .length;
+
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => BeforeQuitDialog(
+          runningCount: runningCount,
           onStop: (remember) {
             ref
                 .read(guiSettingProvider(onAppCloseKey).notifier)
