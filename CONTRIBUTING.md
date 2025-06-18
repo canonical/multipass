@@ -43,7 +43,7 @@ with governance goals.
     counter-increment: item-counter;
     position: relative;
     margin-left: 20px;
-    padding-left: var(--label-width, 60px);
+    padding-left: 60px;
 }
 .custom-list li::before {
     content: var(--prefix, "ITEM") counter(item-counter) ". ";
