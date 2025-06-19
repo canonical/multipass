@@ -478,9 +478,12 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
     }
     else if (!client_cert_store->verify_cert(client_cert))
     {
-        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
-                            "The client is not authenticated with the Multipass service.\n"
-                            "Please use 'multipass authenticate' before proceeding."};
+        return grpc::Status{
+            grpc::StatusCode::UNAUTHENTICATED,
+            "The user is not authenticated with the Multipass service.\n\n"
+            "Please authenticate before proceeding (e.g. via 'multipass authenticate'). Note that "
+            "you first need an authenticated user to set and provide you with a trusted passphrase "
+            "(e.g. via 'multipass set local.passphrase')."};
     }
 
     return emit_signal_and_wait_for_result(signal);

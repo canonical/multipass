@@ -239,9 +239,7 @@ TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
 
     send_command({"list"}, trash_stream, stream);
 
-    EXPECT_THAT(stream.str(),
-                AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
-                      HasSubstr("Please use 'multipass authenticate' before proceeding.")));
+    EXPECT_THAT(stream.str(), HasSubstr("user is not authenticated"));
 }
 
 TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
@@ -261,9 +259,7 @@ TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
 
     send_command({"list"}, trash_stream, stream);
 
-    EXPECT_THAT(stream.str(),
-                AllOf(HasSubstr("The client is not authenticated with the Multipass service."),
-                      HasSubstr("Please use 'multipass authenticate' before proceeding.")));
+    EXPECT_THAT(stream.str(), HasSubstr("user is not authenticated"));
 }
 
 TEST_F(TestDaemonRpc, listAcceptCertFailsHasError)
