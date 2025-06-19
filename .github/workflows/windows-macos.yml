@@ -179,7 +179,7 @@ jobs:
         fi
 
     - name: Install nuget
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' && env.VCPKG_BINARY_SOURCES }}
+      if: ${{ contains(matrix.runs-on, 'macos-15') }}
       run: |
         brew install nuget mono
 
