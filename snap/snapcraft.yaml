@@ -286,6 +286,7 @@ parts:
     - libseccomp-dev
     - meson
     - python3-venv
+    - gettext
     stage-packages:
     - libpixman-1-0
     stage:
