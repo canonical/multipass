@@ -20,7 +20,10 @@ env:
   HOMEBREW_NO_AUTO_UPDATE: 1
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
   S3_BUCKET: multipass-ci
+  USERNAME: ${{ github.repository_owner }}
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
 jobs:
   CheckLint:
@@ -52,12 +55,12 @@ jobs:
         set -euo pipefail
 
         MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
+        MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
         MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
         MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14"},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15"}'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -165,6 +168,49 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
+      # TODO: remove this when self-hosted runners are dropped
+    - name: Disable vcpkg binary cache on self-hosted runners
+      id: disable-cache
+      shell: bash
+      run: |
+        if [[ "${{ matrix['runs-on'] }}" == *multipass* ]]; then
+          echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
+        fi
+
+    - name: Install nuget
+      if: ${{ contains(matrix.runs-on, 'macos-15') }}
+      run: |
+        brew install nuget mono
+
+    - name: Configure NuGet Source
+      if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
+      id: setup_nuget
+      continue-on-error: true
+      shell: 'bash'
+      run: |
+        # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+          sources add \
+          -source "${{ env.FEED_URL }}" \
+          -storepasswordincleartext \
+          -name "GitHubPackages" \
+          -username "${{ env.USERNAME }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "${{ env.FEED_URL }}"
+
+    - name: Overwrite Homebrew nuget shim with nuget DLL
+      continue-on-error: true
+      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' && matrix.arch == 'arm64' }}
+      run: |
+        # Locate the real NuGet.exe in Homebrew’s Cellar
+        NUGET_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
+        # Remove the old shim and replace it with a symlink
+        sudo rm -f /opt/homebrew/bin/nuget
+        sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
+        sudo chmod +x /opt/homebrew/bin/nuget
 
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
