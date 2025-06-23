@@ -17,7 +17,40 @@ extension on ffi.Pointer<Utf8> {
   }
 }
 
-final _lib = ffi.DynamicLibrary.open(mpPlatform.ffiLibraryName);
+class FFILibrary {
+  final ffi.DynamicLibrary? _lib;
+  final Exception? _loadError;
+
+  FFILibrary._({ffi.DynamicLibrary? lib, Exception? loadError})
+      : _lib = lib,
+        _loadError = loadError;
+
+  factory FFILibrary._load() {
+    try {
+      final lib = ffi.DynamicLibrary.open(mpPlatform.ffiLibraryName);
+      return FFILibrary._(lib: lib);
+    } catch (e) {
+      return FFILibrary._(
+          loadError: Exception('Failed to load libdart_ffi library: $e'));
+    }
+  }
+
+  ffi.DynamicLibrary get lib {
+    if (_lib == null) {
+      throw _loadError!;
+    }
+    return _lib!;
+  }
+
+  bool get isAvailable => _lib != null;
+  Exception? get loadError => _loadError;
+}
+
+final _ffiLib = FFILibrary._load();
+final _lib = _ffiLib.lib;
+
+bool get isFFIAvailable => _ffiLib.isAvailable;
+Exception? get ffiLoadError => _ffiLib.loadError;
 
 final _multipassVersion = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
     ffi.Pointer<Utf8> Function()>('multipass_version');
