@@ -58,7 +58,62 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 {
     YAML::Emitter emitter;
     emitter.SetIndent(2);
-    emitter << node;
+
+    // Helper function to handle nodes recursively
+    std::function<void(const YAML::Node&)> emit_node;
+    emit_node = [&emitter, &emit_node](const YAML::Node& n) {
+        switch (n.Type())
+        {
+        case YAML::NodeType::Map:
+        {
+            emitter << YAML::BeginMap;
+            for (const auto& kv : n)
+            {
+                emitter << YAML::Key;
+                emit_node(kv.first);
+                emitter << YAML::Value;
+                emit_node(kv.second);
+            }
+            emitter << YAML::EndMap;
+            break;
+        }
+        case YAML::NodeType::Sequence:
+        {
+            emitter << YAML::BeginSeq;
+            for (const auto& v : n)
+            {
+                emit_node(v);
+            }
+            emitter << YAML::EndSeq;
+            break;
+        }
+        default:
+        {
+            // Special handling for strings that look like octal numbers (e.g. "0755")
+            if (n.IsScalar())
+            {
+                std::string value = n.Scalar();
+                if (value.length() >= 2 && value[0] == '0' &&
+                    std::all_of(value.begin() + 1, value.end(), ::isdigit))
+                {
+                    emitter << YAML::LocalTag("str") << value;
+                }
+                else
+                {
+                    emitter << n;
+                }
+            }
+            else
+            {
+                emitter << n;
+            }
+            break;
+        }
+        }
+    };
+
+    emit_node(node);
+
     if (!emitter.good())
         throw std::runtime_error{fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
 
