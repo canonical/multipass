@@ -23,6 +23,7 @@ import contextlib
 import jq
 import uuid
 import time
+import pexpect
 
 
 class JsonOutput(dict):
@@ -52,35 +53,55 @@ class Output:
 
 
 @contextlib.contextmanager
-def read_output(proc, timeout=30, retry_until=None):
+def expect_json(pexpect_child, timeout=30):
+    """Context manager that works with pexpect spawn objects"""
     try:
-        out, _ = proc.communicate(timeout=timeout)
+        # Wait for command to complete
+        pexpect_child.expect(pexpect.EOF, timeout=timeout)
+        pexpect_child.wait()
 
-        if out is None:
-            out = ""
+        # Parse the output as JSON
+        output_text = pexpect_child.before.decode("utf-8")
+        yield JsonOutput(output_text, pexpect_child.exitstatus)
 
-        if "--format=json" in proc.args:
-            yield JsonOutput(out, proc.returncode)
-        else:
-            yield Output(out, proc.returncode)
     finally:
-        if proc.poll() is None:
-            proc.kill()
+        if pexpect_child.isalive():
+            pexpect_child.terminate()
+
+
+@contextlib.contextmanager
+def expect_text(pexpect_child, timeout=30):
+    """Context manager that works with pexpect spawn objects"""
+    try:
+        # Wait for command to complete
+        pexpect_child.expect(pexpect.EOF, timeout=timeout)
+        pexpect_child.wait()
+
+        # Parse the output as JSON
+        output_text = pexpect_child.before.decode("utf-8")
+        yield Output(output_text, pexpect_child.exitstatus)
+
+    finally:
+        if pexpect_child.isalive():
+            pexpect_child.terminate()
+
 
 def retry(retries=3, delay=1.0):
     """Decorator to retry a function call based on return code"""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             for attempt in range(retries + 1):
                 result = func(*args, **kwargs)
-                if hasattr(result, 'returncode') and result.returncode == 0:
+                if hasattr(result, "returncode") and result.returncode == 0:
                     return result
                 if attempt < retries:
                     time.sleep(delay)
             return result
-        return wrapper
-    return decorator
 
+        return wrapper
+
+    return decorator
 
 
 def uuid4_str(prefix="", suffix=""):

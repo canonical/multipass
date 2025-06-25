@@ -23,19 +23,26 @@ import pytest
 import time
 import re
 import sys
+import pexpect
 
-from cli_tests.utils import read_output, uuid4_str, is_valid_ipv4_addr, retry
+from cli_tests.utils import (
+    uuid4_str,
+    is_valid_ipv4_addr,
+    retry,
+    expect_json,
+    expect_text,
+)
 
 
 def test_list_empty(multipassd, multipass):
     """Try to list instances whilst there are none."""
-    with read_output(multipass("list")) as output:
+    with expect_text(multipass("list")) as output:
         assert "No instances found." in output
 
 
 def test_list_snapshots_empty(multipassd, multipass):
     """Try to list snapshots whilst there are none."""
-    with read_output(multipass("list", "--snapshots")) as output:
+    with expect_text(multipass("list", "--snapshots")) as output:
         assert "No snapshots found." in output
 
 
@@ -50,7 +57,7 @@ def test_launch_noble(multipassd, multipass):
     # are here to remedy that until we have a "multipass status" command.
     @retry(retries=3, delay=2.0)
     def launch_vm():
-        with read_output(
+        with expect_text(
             multipass(
                 "launch",
                 "--cpus",
@@ -70,7 +77,7 @@ def test_launch_noble(multipassd, multipass):
     assert launch_vm().returncode == 0
 
     # Verify that list contains the instance
-    with read_output(multipass("list", "--format=json")) as output:
+    with expect_json(multipass("list", "--format=json")) as output:
         assert output.returncode == 0
         result = output.jq(f'.list[] | select(.name=="{name}")')
         assert len(result) == 1
@@ -80,7 +87,7 @@ def test_launch_noble(multipassd, multipass):
         assert is_valid_ipv4_addr(instance["ipv4"][0])
 
     # Verify the instance info
-    with read_output(multipass("info", "--format=json", f"{name}")) as output:
+    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
         assert output.returncode == 0
         assert "errors" in output
         assert output["errors"] == []
@@ -95,11 +102,11 @@ def test_launch_noble(multipassd, multipass):
         assert is_valid_ipv4_addr(instance_info["ipv4"][0])
 
     # Try to stop the instance
-    with read_output(multipass("stop", f"{name}"), timeout=180) as output:
+    with expect_text(multipass("stop", f"{name}"), timeout=180) as output:
         assert output.returncode == 0
 
     # Verify the instance info
-    with read_output(multipass("info", "--format=json", f"{name}")) as output:
+    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
         assert output.returncode == 0
         assert "errors" in output
         assert output["errors"] == []
@@ -109,10 +116,23 @@ def test_launch_noble(multipassd, multipass):
         assert instance_info["state"] == "Stopped"
 
     # Try to start the instance
-    with read_output(multipass("start", f"{name}"), timeout=180) as output:
+    with expect_text(multipass("start", f"{name}")) as output:
         assert output.returncode == 0
 
-    with read_output(multipass("info", "--format=json", f"{name}")) as output:
+    # Try to start the instance
+    # with read_output(multipass("start", f"{name}"), timeout=180) as output:
+    #     assert output.returncode == 0
+
+    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
+        assert output.returncode == 0
+        assert "errors" in output
+        assert output["errors"] == []
+        assert "info" in output
+        assert name in output["info"]
+        instance_info = output["info"][name]
+        assert instance_info["state"] == "Running"
+
+    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
         assert output.returncode == 0
         assert "errors" in output
         assert output["errors"] == []
@@ -122,7 +142,7 @@ def test_launch_noble(multipassd, multipass):
         assert instance_info["state"] == "Running"
 
     # Remove the instance.
-    with read_output(multipass("delete", f"{name}"), timeout=180) as output:
+    with expect_text(multipass("delete", f"{name}"), timeout=180) as output:
         assert output.returncode == 0
 
 
@@ -134,7 +154,7 @@ def test_shell(multipassd, multipass):
 
     @retry(retries=3, delay=2.0)
     def launch_vm():
-        with read_output(
+        with expect_text(
             multipass(
                 "launch",
                 "--cpus",
@@ -153,6 +173,25 @@ def test_shell(multipassd, multipass):
 
     assert launch_vm().returncode == 0
 
+    with multipass("shell", f"{name}") as vm_shell:
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
+        # Send a command and expect output
+        vm_shell.sendline('echo "Hello from multipass"')
+        vm_shell.expect("Hello from multipass")
+        vm_shell.expect(r"ubuntu@.*:.*\$")
+
+        # Test another command
+        vm_shell.sendline("pwd")
+        vm_shell.expect(r"/home/ubuntu")
+        vm_shell.expect(r"ubuntu@.*:.*\$")
+
+        # Exit the shell
+        vm_shell.sendline("exit")
+        vm_shell.expect(pexpect.EOF)
+        vm_shell.wait()
+
+        assert vm_shell.exitstatus == 0
+
     # Remove the instance.
-    with read_output(multipass("delete", f"{name}"), timeout=180) as output:
+    with expect_text(multipass("delete", f"{name}"), timeout=180) as output:
         assert output.returncode == 0
