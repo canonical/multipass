@@ -26,11 +26,12 @@ import threading
 import time
 import tempfile
 import select
+import pexpect
 from contextlib import contextmanager
 
 import pytest
 
-from cli_tests.utils import Output
+from cli_tests.utils import Output, expect_text
 
 
 def pytest_addoption(parser):
@@ -152,17 +153,11 @@ def run_process(cmd, **kwargs):
 
 @pytest.fixture
 def multipass(request):
-    """Convenience wrapper for Multipass CLI"""
     multipass_path = shutil.which(
         "multipass", path=request.config.getoption("--build-root")
     )
-    return lambda *args, **kwargs: subprocess.Popen(
-        [multipass_path] + list(args),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        **kwargs,
-    )
+
+    return lambda *args, **kwargs: pexpect.spawn(f"{multipass_path} {" ".join(args)}")
 
 
 def die(exit_code, message):
@@ -174,7 +169,7 @@ def die(exit_code, message):
     os._exit(exit_code)
 
 
-def wait_for_multipassd_ready(cli, timeout=10):
+def wait_for_multipassd_ready(multipass, timeout=10):
     """
     Wait until Multipass daemon starts responding to the CLI commands.
     For that, the function tries to shell into a non-existent instance.
@@ -192,37 +187,36 @@ def wait_for_multipassd_ready(cli, timeout=10):
         # The function  uses `shell` command to check if daemon is ready.
         # An UUID is good enough to ensure that it does not exist.
         nonexistent_instance_name = "6b76819d-faa8-404b-a65a-2183e5fe2cb6"
-        shell_proc = cli("shell", nonexistent_instance_name)
-        out, _ = shell_proc.communicate(timeout=5)
+        pattern = re.compile(f".*{nonexistent_instance_name}.*")
+        try:
+            with multipass("shell", nonexistent_instance_name, timeout=5) as shell:
+                shell.expect(pattern)
 
-        # The daemon will respond with "instance <name> not running" when it's up"
-        if re.search(f".*{nonexistent_instance_name}.*", out):
-            # Daemon is up and responding
-            # Also verify the version.
-            version_out, _ = cli("version").communicate(timeout=5)
-            version_out = version_out.splitlines() if version_out else []
+            with expect_text(multipass("version")) as version:
+                version_out = version.content.splitlines() if version.content else []
+                # One line for multipass, one line for multipassd.
+                if len(version_out) == 2:
+                    cli_ver = version_out[0].split()[-1]
+                    daemon_ver = version_out[1].split()[-1]
+                    if cli_ver == daemon_ver:
+                        return True  # No issues.
 
-            # One line for multipass, one line for multipassd.
-            if len(version_out) == 2:
-                cli_ver = version_out[0].split()[-1]
-                daemon_ver = version_out[1].split()[-1]
-                if cli_ver == daemon_ver:
-                    return True  # No issues.
-
-                sys.stderr.write(
-                    f"Version mismatch detected!\n"
-                    f"👉 CLI version: {cli_ver}\n"
-                    f"👉 Daemon version: {daemon_ver}\n"
-                )
-                sys.stderr.flush()
-                return False
+                    sys.stderr.write(
+                        f"Version mismatch detected!\n"
+                        f"👉 CLI version: {cli_ver}\n"
+                        f"👉 Daemon version: {daemon_ver}\n"
+                    )
+                    sys.stderr.flush()
+                    return False
+        except:
+            pass
 
         time.sleep(0.2)
 
     sys.stderr.write("\n❌ Fatal error: The daemon did not respond in time!\n")
     sys.stderr.flush()
     return False
-    # os._exit(3)
+
 
 @pytest.fixture
 def multipassd(request, multipass, data_root):
