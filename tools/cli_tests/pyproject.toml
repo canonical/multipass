@@ -1,0 +1,14 @@
+[project]
+name = "multipass-cli-tests"
+version = "1.0.0"
+readme = "README.md"
+dependencies = ["pytest", "pexpect", "jq"]
+
+# This project is not intended for packaging.
+[tool.setuptools]
+py-modules = []
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"
+]
