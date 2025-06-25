@@ -15,14 +15,17 @@ class DaemonUnavailable extends ConsumerWidget {
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5)
+          BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5),
         ],
       ),
-      child: const Row(mainAxisSize: MainAxisSize.min, children: [
-        CircularProgressIndicator(color: Colors.orange),
-        SizedBox(width: 20),
-        Text('Waiting for daemon...'),
-      ]),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: Colors.orange),
+          SizedBox(width: 20),
+          Text('Waiting for daemon...'),
+        ],
+      ),
     );
 
     return IgnorePointer(

@@ -24,17 +24,19 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
   Widget build(BuildContext context) {
     return ConfirmationDialog(
       title: 'Before quitting',
-      body: Column(children: [
-        const Text(
-          'When quitting this application you can leave instances running in the background or choose to stop them completely.',
-        ),
-        const SizedBox(height: 12),
-        Switch(
-          value: remember,
-          label: 'Remember this setting',
-          onChanged: (value) => setState(() => remember = value),
-        ),
-      ]),
+      body: Column(
+        children: [
+          const Text(
+            'When quitting this application you can leave instances running in the background or choose to stop them completely.',
+          ),
+          const SizedBox(height: 12),
+          Switch(
+            value: remember,
+            label: 'Remember this setting',
+            onChanged: (value) => setState(() => remember = value),
+          ),
+        ],
+      ),
       actionText: 'Stop instances',
       onAction: () => widget.onStop(remember),
       inactionText: 'Leave instances running',

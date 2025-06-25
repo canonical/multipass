@@ -26,10 +26,7 @@ class TableHeader<T> {
     return Container(
       alignment: Alignment.centerLeft,
       margin: const EdgeInsets.only(left: 10),
-      child: Text(name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          )),
+      child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 }
@@ -69,10 +66,7 @@ class _TableState<T> extends State<Table<T>> {
   Widget addScrollbars(TableView table) {
     return Scrollbar(
       controller: vertical,
-      child: Scrollbar(
-        controller: horizontal,
-        child: table,
-      ),
+      child: Scrollbar(controller: horizontal, child: table),
     );
   }
 
@@ -90,29 +84,34 @@ class _TableState<T> extends State<Table<T>> {
           ),
         ),
         onHorizontalDragStart: (_) => setState(() => isResizingColumn++),
-        onHorizontalDragUpdate: (d) => setState(() {
-          header.width = max(
-            header.minWidth,
-            header._oldWidth + d.localPosition.dx,
-          );
-        }),
-        onHorizontalDragEnd: (_) => setState(() {
-          header._oldWidth = header.width;
-          isResizingColumn--;
-        }),
+        onHorizontalDragUpdate:
+            (d) => setState(() {
+              header.width = max(
+                header.minWidth,
+                header._oldWidth + d.localPosition.dx,
+              );
+            }),
+        onHorizontalDragEnd:
+            (_) => setState(() {
+              header._oldWidth = header.width;
+              isResizingColumn--;
+            }),
       ),
     );
 
-    final title = Stack(children: [
-      Positioned.fill(child: header.childBuilder(header.name)),
-      if (index == sortIndex)
-        Align(
-          alignment: Alignment.centerRight,
-          child: sortAscending
-              ? const Icon(Icons.arrow_drop_up_rounded)
-              : const Icon(Icons.arrow_drop_down_rounded),
-        ),
-    ]);
+    final title = Stack(
+      children: [
+        Positioned.fill(child: header.childBuilder(header.name)),
+        if (index == sortIndex)
+          Align(
+            alignment: Alignment.centerRight,
+            child:
+                sortAscending
+                    ? const Icon(Icons.arrow_drop_up_rounded)
+                    : const Icon(Icons.arrow_drop_down_rounded),
+          ),
+      ],
+    );
 
     setSorting() {
       setState(() {
@@ -126,10 +125,14 @@ class _TableState<T> extends State<Table<T>> {
       });
     }
 
-    return Stack(children: [
-      header.sortKey != null ? InkWell(onTap: setSorting, child: title) : title,
-      Align(alignment: Alignment.centerRight, child: resizeHandle),
-    ]);
+    return Stack(
+      children: [
+        header.sortKey != null
+            ? InkWell(onTap: setSorting, child: title)
+            : title,
+        Align(alignment: Alignment.centerRight, child: resizeHandle),
+      ],
+    );
   }
 
   List<Widget> buildRow(T entry) {
@@ -146,9 +149,10 @@ class _TableState<T> extends State<Table<T>> {
   @override
   Widget build(BuildContext context) {
     Iterable<T> data = widget.data;
-    final sortKey = widget.headers
-        .elementAtOrNull(sortIndex ?? widget.headers.length)
-        ?.sortKey;
+    final sortKey =
+        widget.headers
+            .elementAtOrNull(sortIndex ?? widget.headers.length)
+            ?.sortKey;
     if (sortKey != null) {
       final sortedData = data.sortedBy(sortKey);
       data = sortAscending ? sortedData : sortedData.reversed;
@@ -157,11 +161,7 @@ class _TableState<T> extends State<Table<T>> {
     final headerCells = [
       for (final (i, header) in widget.headers.indexed) buildHeader(i, header),
     ];
-    final cells = [
-      headerCells,
-      ...data.map(buildRow),
-      widget.finalRow,
-    ];
+    final cells = [headerCells, ...data.map(buildRow), widget.finalRow];
 
     final table = TableView.builder(
       horizontalDetails: ScrollableDetails.horizontal(controller: horizontal),
@@ -170,27 +170,32 @@ class _TableState<T> extends State<Table<T>> {
       rowCount: cells.length,
       columnCount: widget.headers.length + 1,
       rowBuilder: (_) => const TableSpan(extent: FixedTableSpanExtent(50)),
-      columnBuilder: (i) => TableSpan(
-        extent: i == widget.headers.length
-            ? const RemainingTableSpanExtent()
-            : FixedTableSpanExtent(widget.headers[i].width),
-      ),
-      cellBuilder: (_, v) => TableViewCell(
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: v.row < cells.length - 1 ? borderSide : BorderSide.none,
+      columnBuilder:
+          (i) => TableSpan(
+            extent:
+                i == widget.headers.length
+                    ? const RemainingTableSpanExtent()
+                    : FixedTableSpanExtent(widget.headers[i].width),
+          ),
+      cellBuilder:
+          (_, v) => TableViewCell(
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom:
+                      v.row < cells.length - 1 ? borderSide : BorderSide.none,
+                ),
+              ),
+              child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
             ),
           ),
-          child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
-        ),
-      ),
     );
 
     return MouseRegion(
-      cursor: isResizingColumn == 0
-          ? MouseCursor.defer
-          : SystemMouseCursors.resizeColumn,
+      cursor:
+          isResizingColumn == 0
+              ? MouseCursor.defer
+              : SystemMouseCursors.resizeColumn,
       child: DecoratedBox(
         decoration: const BoxDecoration(
           border: Border.fromBorderSide(borderSide),

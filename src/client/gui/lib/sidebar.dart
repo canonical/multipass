@@ -74,7 +74,8 @@ class SideBar extends ConsumerWidget {
 
     final instances = SidebarEntry(
       icon: SvgPicture.asset('assets/instances.svg'),
-      selected: isSelected(VmTableScreen.sidebarKey) ||
+      selected:
+          isSelected(VmTableScreen.sidebarKey) ||
           !expanded && selectedSidebarKey.startsWith('vm-'),
       label: 'Instances',
       badge: vmNames.length.toString(),
@@ -110,48 +111,51 @@ class SideBar extends ConsumerWidget {
           pushContent ? Icons.chevron_left : Icons.chevron_right,
           color: Colors.white,
         ),
-        onPressed: () => ref
-            .read(sidebarPushContentProvider.notifier)
-            .update((state) => !state),
+        onPressed:
+            () => ref
+                .read(sidebarPushContentProvider.notifier)
+                .update((state) => !state),
       ),
     );
 
-    final header = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      Container(
-        alignment: Alignment.bottomCenter,
-        color: const Color(0xffE95420),
-        height: 50,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        padding: const EdgeInsets.all(4),
-        child: SvgPicture.asset('assets/multipass.svg', width: 20),
-      ),
-      Expanded(
-        flex: 3,
-        child: AnimatedOpacity(
-          opacity: expanded ? 1 : 0,
-          duration: SideBar.animationDuration,
-          child: Text.rich([
-            'Canonical\n'.span.size(12).color(Colors.white),
-            'Multipass'.span.size(24).color(Colors.white),
-          ].spans),
+    final header = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Container(
+          alignment: Alignment.bottomCenter,
+          color: const Color(0xffE95420),
+          height: 50,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.all(4),
+          child: SvgPicture.asset('assets/multipass.svg', width: 20),
         ),
-      ),
-      Flexible(child: pinSidebarButton),
-    ]);
+        Expanded(
+          flex: 3,
+          child: AnimatedOpacity(
+            opacity: expanded ? 1 : 0,
+            duration: SideBar.animationDuration,
+            child: Text.rich(
+              [
+                'Canonical\n'.span.size(12).color(Colors.white),
+                'Multipass'.span.size(24).color(Colors.white),
+              ].spans,
+            ),
+          ),
+        ),
+        Flexible(child: pinSidebarButton),
+      ],
+    );
 
     final vmEntries = vmNames.map((name) {
       final key = 'vm-$name';
-      final hasShells =
-          ref.watch(runningShellsProvider(name).select((n) => n > 0));
+      final hasShells = ref.watch(
+        runningShellsProvider(name).select((n) => n > 0),
+      );
       return SidebarEntry(
         key: ValueKey(key),
         icon: Opacity(
           opacity: hasShells ? 1 : 0,
-          child: SvgPicture.asset(
-            'assets/shell.svg',
-            width: 15,
-            height: 15,
-          ),
+          child: SvgPicture.asset('assets/shell.svg', width: 15, height: 15),
         ),
         selected: isSelected(key) && expanded,
         label: name,
@@ -232,9 +236,10 @@ class SidebarEntry extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         border: Border(
-          left: selected
-              ? const BorderSide(color: Colors.white, width: 2)
-              : BorderSide.none,
+          left:
+              selected
+                  ? const BorderSide(color: Colors.white, width: 2)
+                  : BorderSide.none,
         ),
       ),
       child: TextButton(
@@ -244,36 +249,38 @@ class SidebarEntry extends ConsumerWidget {
           backgroundColor:
               selected ? const Color(0xff444444) : Colors.transparent,
         ),
-        child: Row(children: [
-          badge == null
-              ? icon
-              : Badge(
+        child: Row(
+          children: [
+            badge == null
+                ? icon
+                : Badge(
                   backgroundColor: const Color(0xff333333),
                   isLabelVisible: !expanded,
                   label: Text(badge!),
                   offset: const Offset(10, -6),
                   child: icon,
                 ),
-          Expanded(
-            flex: 5,
-            child: AnimatedOpacity(
-              duration: SideBar.animationDuration,
-              opacity: expanded ? 1 : 0,
-              child: Text('    $label', softWrap: false),
-            ),
-          ),
-          if (badge != null && expanded)
-            Flexible(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xff333333),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(badge!, softWrap: false),
+            Expanded(
+              flex: 5,
+              child: AnimatedOpacity(
+                duration: SideBar.animationDuration,
+                opacity: expanded ? 1 : 0,
+                child: Text('    $label', softWrap: false),
               ),
             ),
-        ]),
+            if (badge != null && expanded)
+              Flexible(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xff333333),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(badge!, softWrap: false),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
