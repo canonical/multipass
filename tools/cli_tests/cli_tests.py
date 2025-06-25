@@ -119,10 +119,6 @@ def test_launch_noble(multipassd, multipass):
     with expect_text(multipass("start", f"{name}")) as output:
         assert output.returncode == 0
 
-    # Try to start the instance
-    # with read_output(multipass("start", f"{name}"), timeout=180) as output:
-    #     assert output.returncode == 0
-
     with expect_json(multipass("info", "--format=json", f"{name}")) as output:
         assert output.returncode == 0
         assert "errors" in output
@@ -173,7 +169,9 @@ def test_shell(multipassd, multipass):
 
     assert launch_vm().returncode == 0
 
-    with multipass("shell", f"{name}") as vm_shell:
+    with multipass("shell", f"{name}", encoding="utf-8") as vm_shell:
+        # Display the contents
+        vm_shell.logfile = sys.stdout.buffer
         vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
         # Send a command and expect output
         vm_shell.sendline('echo "Hello from multipass"')
@@ -184,6 +182,24 @@ def test_shell(multipassd, multipass):
         vm_shell.sendline("pwd")
         vm_shell.expect(r"/home/ubuntu")
         vm_shell.expect(r"ubuntu@.*:.*\$")
+
+        # Verify the basics
+
+        # Core count
+        vm_shell.sendline("nproc")
+        vm_shell.expect("2")
+
+        # User name
+        vm_shell.sendline("whoami")
+        vm_shell.expect("ubuntu")
+
+        # Hostname
+        vm_shell.sendline("hostname")
+        vm_shell.expect(f"{name}")
+
+        # Ubuntu Series
+        vm_shell.sendline("grep --color=never '^VERSION=' /etc/os-release")
+        vm_shell.expect(r'VERSION="22\.04\..* LTS \(Jammy Jellyfish\)"')
 
         # Exit the shell
         vm_shell.sendline("exit")
