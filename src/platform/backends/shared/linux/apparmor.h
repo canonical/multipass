@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_APPARMOR_H
-#define MULTIPASS_APPARMOR_H
+#pragma once
 
 #include <QStringList>
 
@@ -46,5 +45,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_APPARMOR_CONFINEMENT_H

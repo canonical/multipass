@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
-#define MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -30,10 +29,9 @@ class FileOpenFailedException : public std::runtime_error
 {
 public:
     explicit FileOpenFailedException(const std::string& name)
-        : std::runtime_error(fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno))
+        : std::runtime_error(
+              fmt::format("failed to open file '{}': {}({})", name, strerror(errno), errno))
     {
     }
 };
 } // namespace multipass
-
-#endif // MULTIPASS_FILE_OPEN_FAILED_EXCEPTION_H

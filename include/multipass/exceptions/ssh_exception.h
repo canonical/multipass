@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSH_EXCEPTION_H
-#define MULTIPASS_SSH_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -34,7 +33,8 @@ public:
 class SSHExecFailure : public SSHException
 {
 public:
-    SSHExecFailure(const std::string& what_arg, int exit_code) : SSHException{what_arg}, ec{exit_code}
+    SSHExecFailure(const std::string& what_arg, int exit_code)
+        : SSHException{what_arg}, ec{exit_code}
     {
     }
 
@@ -47,4 +47,3 @@ private:
     int ec;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSH_EXCEPTION_H

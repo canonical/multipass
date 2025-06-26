@@ -44,7 +44,8 @@ struct TestJsonUtils : public Test
     inline static const QJsonObject json = QJsonDocument::fromJson(json_text).object();
 
     template <typename T>
-    static Matcher<T&> file_matcher() // not using static template var to workaround bad init order in AppleClang
+    static Matcher<T&>
+    file_matcher() // not using static template var to workaround bad init order in AppleClang
     {
         static const auto ret = Property(&T::fileName, Eq(file_path));
         return ret;
@@ -53,12 +54,15 @@ struct TestJsonUtils : public Test
 
 TEST_F(TestJsonUtils, writesJsonTransactionally)
 {
-    auto json_matcher =
-        ResultOf([](auto&& text) { return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr); },
-                 Property(&QJsonDocument::object, Eq(json)));
+    auto json_matcher = ResultOf(
+        [](auto&& text) {
+            return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr);
+        },
+        Property(&QJsonDocument::object, Eq(json)));
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(file_matcher<QFileDevice>(), _)).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>(), json_matcher)).WillOnce(Return(14));
+    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>(), json_matcher))
+        .WillOnce(Return(14));
     EXPECT_CALL(mock_file_ops, commit(file_matcher<QSaveFile>())).WillOnce(Return(true));
     EXPECT_NO_THROW(MP_JSONUTILS.write_json(json, file_path));
 }
@@ -66,18 +70,20 @@ TEST_F(TestJsonUtils, writesJsonTransactionally)
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCreateDirectory)
 {
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(false));
-    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
+    MP_EXPECT_THROW_THAT(
+        MP_JSONUTILS.write_json(json, file_path),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
 }
 
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToOpenFile)
 {
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
-    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(file_path.toStdString()))));
+    MP_EXPECT_THROW_THAT(
+        MP_JSONUTILS.write_json(json, file_path),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(file_path.toStdString()))));
 }
 
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToWriteFile)
@@ -85,9 +91,10 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToWriteFile)
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, write(_, _)).WillOnce(Return(-1));
-    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Could not write"), HasSubstr(file_path.toStdString()))));
+    MP_EXPECT_THROW_THAT(
+        MP_JSONUTILS.write_json(json, file_path),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not write"), HasSubstr(file_path.toStdString()))));
 }
 
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
@@ -96,16 +103,18 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, write(_, _)).WillOnce(Return(1234));
     EXPECT_CALL(mock_file_ops, commit).WillOnce(Return(false));
-    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
+    MP_EXPECT_THROW_THAT(
+        MP_JSONUTILS.write_json(json, file_path),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }
 
-struct ExtraInterfacesRead : public TestJsonUtils, public WithParamInterface<std::vector<mp::NetworkInterface>>
+struct ExtraInterfacesRead : public TestJsonUtils,
+                             public WithParamInterface<std::vector<mp::NetworkInterface>>
 {
 };
 
-TEST_P(ExtraInterfacesRead, write_and_read_extra_interfaces)
+TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
 {
     std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
 
@@ -119,13 +128,14 @@ TEST_P(ExtraInterfacesRead, write_and_read_extra_interfaces)
     ASSERT_EQ(read_ifaces, extra_ifaces);
 }
 
-INSTANTIATE_TEST_SUITE_P(TestJsonUtils,
-                         ExtraInterfacesRead,
-                         Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
-                                                                  {"eth2", "52:54:00:00:00:02", false}},
-                                std::vector<mp::NetworkInterface>{}));
+INSTANTIATE_TEST_SUITE_P(
+    TestJsonUtils,
+    ExtraInterfacesRead,
+    Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
+                                             {"eth2", "52:54:00:00:00:02", false}},
+           std::vector<mp::NetworkInterface>{}));
 
-TEST_F(TestJsonUtils, gives_nullopt_on_empty_extra_interfaces)
+TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
 {
     QJsonObject doc;
     doc.insert("some_data", "nothing to see here");
@@ -133,9 +143,10 @@ TEST_F(TestJsonUtils, gives_nullopt_on_empty_extra_interfaces)
     ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
 }
 
-TEST_F(TestJsonUtils, throws_on_wrong_mac)
+TEST_F(TestJsonUtils, throwsOnWrongMac)
 {
-    std::vector<mp::NetworkInterface> extra_ifaces{mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
+    std::vector<mp::NetworkInterface> extra_ifaces{
+        mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
 
     auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
 

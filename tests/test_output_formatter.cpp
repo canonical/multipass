@@ -163,7 +163,8 @@ auto construct_multiple_snapshots_list_reply()
     list_entry->set_name("hale-roller");
     fundamentals->set_snapshot_name("rocking");
     fundamentals->set_parent("pristine");
-    fundamentals->set_comment("A very long comment that should be truncated by the table formatter");
+    fundamentals->set_comment(
+        "A very long comment that should be truncated by the table formatter");
     timestamp.set_seconds(2209234259);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
@@ -179,7 +180,8 @@ auto construct_multiple_snapshots_list_reply()
     fundamentals = list_entry->mutable_fundamentals();
     list_entry->set_name("prosperous-spadefish");
     fundamentals->set_snapshot_name("snapshot2");
-    fundamentals->set_comment("Before restoring snap1\nContains a newline that\r\nshould be truncated");
+    fundamentals->set_comment(
+        "Before restoring snap1\nContains a newline that\r\nshould be truncated");
     timestamp.set_seconds(1671840000);
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
@@ -258,7 +260,8 @@ auto construct_single_instance_info_reply()
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
-    info_entry->mutable_instance_info()->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    info_entry->mutable_instance_info()->set_id(
+        "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(19);
@@ -311,7 +314,8 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
-    info_entry->mutable_instance_info()->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    info_entry->mutable_instance_info()->set_id(
+        "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -342,7 +346,8 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
-    info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
+    info_entry->mutable_instance_info()->set_id(
+        "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
 
     return info_reply;
@@ -457,7 +462,8 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
-    info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
+    info_entry->mutable_instance_info()->set_id(
+        "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
 
     return info_reply;
@@ -471,7 +477,8 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
-    info_entry->mutable_instance_info()->set_id("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    info_entry->mutable_instance_info()->set_id(
+        "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -539,7 +546,8 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
-    info_entry->mutable_instance_info()->set_id("ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
+    info_entry->mutable_instance_info()->set_id(
+        "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
 
     info_entry = info_reply.add_details();
@@ -567,7 +575,8 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
         entry->set_name(petenv_name());
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
-        entry->mutable_instance_info()->set_id("1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
+        entry->mutable_instance_info()->set_id(
+            "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
     }
 
     if ((csv_format && snapshots) || !csv_format)
@@ -751,9 +760,10 @@ public:
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet"));
 
         // Timestamps in tests need to be in a consistent locale
-        EXPECT_CALL(mock_format_utils, convert_to_user_locale(_)).WillRepeatedly([](const auto timestamp) {
-            return google::protobuf::util::TimeUtil::ToString(timestamp);
-        });
+        EXPECT_CALL(mock_format_utils, convert_to_user_locale(_))
+            .WillRepeatedly([](const auto timestamp) {
+                return google::protobuf::util::TimeUtil::ToString(timestamp);
+            });
     }
 
     ~BaseFormatterSuite()
@@ -762,17 +772,21 @@ public:
     }
 
 protected:
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
-    mpt::MockFormatUtils::GuardedMock mock_format_utils_injection = mpt::MockFormatUtils::inject<NiceMock>();
+    mpt::MockFormatUtils::GuardedMock mock_format_utils_injection =
+        mpt::MockFormatUtils::inject<NiceMock>();
     mpt::MockFormatUtils& mock_format_utils = *mock_format_utils_injection.first;
 
 private:
     std::locale saved_locale;
 };
 
-typedef std::tuple<const mp::Formatter*, const ::google::protobuf::Message*, std::string /* output */,
+typedef std::tuple<const mp::Formatter*,
+                   const ::google::protobuf::Message*,
+                   std::string /* output */,
                    std::string /* test name */>
     FormatterParamType;
 
@@ -785,8 +799,9 @@ auto print_param_name(const testing::TestParamInfo<FormatterSuite::ParamType>& i
     return std::get<3>(info.param);
 }
 
-struct PetenvFormatterSuite : public BaseFormatterSuite,
-                              public WithParamInterface<std::tuple<QString, bool, FormatterParamType>>
+struct PetenvFormatterSuite
+    : public BaseFormatterSuite,
+      public WithParamInterface<std::tuple<QString, bool, FormatterParamType>>
 {
 };
 
@@ -795,7 +810,9 @@ auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::
     const auto param_name = std::get<3>(std::get<2>(info.param));
     const auto petenv_name = std::get<0>(info.param);
     const auto prepend = std::get<1>(info.param);
-    return fmt::format("{}_{}_{}", param_name, petenv_name.isEmpty() ? "default" : petenv_name,
+    return fmt::format("{}_{}_{}",
+                       param_name,
+                       petenv_name.isEmpty() ? "default" : petenv_name,
                        prepend ? "prepend" : "append");
 }
 
@@ -823,13 +840,17 @@ const auto single_instance_info_reply = construct_single_instance_info_reply();
 const auto multiple_instances_info_reply = construct_multiple_instances_info_reply();
 const auto single_snapshot_info_reply = construct_single_snapshot_info_reply();
 const auto multiple_snapshots_info_reply = construct_multiple_snapshots_info_reply();
-const auto mixed_instance_and_snapshot_info_reply = construct_mixed_instance_and_snapshot_info_reply();
+const auto mixed_instance_and_snapshot_info_reply =
+    construct_mixed_instance_and_snapshot_info_reply();
 const auto multiple_mixed_instances_and_snapshots_info_reply =
     construct_multiple_mixed_instances_and_snapshots_info_reply();
 
 const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
-    {&table_formatter, &empty_list_snapshot_reply, "No snapshots found.\n", "table_list_snapshot_empty"},
+    {&table_formatter,
+     &empty_list_snapshot_reply,
+     "No snapshots found.\n",
+     "table_list_snapshot_empty"},
     {&table_formatter,
      &single_instance_list_reply,
      "Name                    State             IPv4             Image\n"
@@ -861,14 +882,18 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &multiple_snapshots_list_reply,
      "Instance               Snapshot     Parent      Comment\n"
      "hale-roller            pristine     --          A first snapshot\n"
-     "hale-roller            rocking      pristine    A very long comment that should be truncated by t…\n"
+     "hale-roller            rocking      pristine    A very long comment that should be truncated "
+     "by t…\n"
      "hale-roller            rolling      pristine    Loaded with stuff\n"
      "prosperous-spadefish   snapshot2    --          Before restoring snap1…\n"
      "prosperous-spadefish   snapshot10   snapshot2   --\n",
      "table_list_multiple_snapshots"},
 
     {&table_formatter, &empty_info_reply, "No instances found.\n", "table_info_empty"},
-    {&table_formatter, &empty_info_snapshot_reply, "No snapshots found.\n", "table_info_snapshot_empty"},
+    {&table_formatter,
+     &empty_info_snapshot_reply,
+     "No snapshots found.\n",
+     "table_info_snapshot_empty"},
     {&table_formatter,
      &single_instance_info_reply,
      "Name:           foo\n"
@@ -1067,7 +1092,10 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
      "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
      "csv_list_unsorted"},
-    {&csv_formatter, &empty_list_snapshot_reply, "Instance,Snapshot,Parent,Comment\n", "csv_list_snapshot_empty"},
+    {&csv_formatter,
+     &empty_list_snapshot_reply,
+     "Instance,Snapshot,Parent,Comment\n",
+     "csv_list_snapshot_empty"},
     {&csv_formatter,
      &single_snapshot_list_reply,
      "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,\"This is a sample comment\"\n",
@@ -1075,8 +1103,10 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter,
      &multiple_snapshots_list_reply,
      "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,\"A first "
-     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by the table "
-     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
+     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by "
+     "the table "
+     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with "
+     "stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
      "restoring snap1\nContains a newline that\r\nshould be "
      "truncated\"\nprosperous-spadefish,snapshot10,snapshot2,\"\"\n",
      "csv_list_multiple_snapshots"},
@@ -1085,7 +1115,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter,
      &single_instance_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu "
+     "usage,Memory "
+     "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,"
+     "Ubuntu "
      "16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
@@ -1094,23 +1126,28 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter,
      &single_snapshot_info_reply,
      "Snapshot,Instance,CPU(s),Disk space,Memory "
-     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/user/source "
+     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/"
+     "user/source "
      "=> "
-     "source;/home/user => Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"This is a comment with "
+     "source;/home/user => Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"This is a "
+     "comment with "
      "some\nnew\r\nlines.\"\n",
      "csv_info_single_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_snapshots_info_reply,
      "Snapshot,Instance,CPU(s),Disk space,Memory "
-     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/user/source => "
+     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/"
+     "user/source => "
      "source;/home/user => "
-     "Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"\"\nblack-hole,messier-87,1,1024GiB,128GiB,,"
+     "Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"\"\nblack-hole,messier-87,1,"
+     "1024GiB,128GiB,,"
      "2019-04-10T11:59:59Z,,,\"Captured by EHT\"\n",
      "csv_info_multiple_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_instances_info_reply,
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
+     "usage,Memory "
+     "total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source,10.21.124.56,4,1\nbombastic,Stopped,,,,"
@@ -1186,7 +1223,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "prosperous-spadefish:\n"
      "  - snapshot2:\n"
      "      - parent: ~\n"
-     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\"\n"
+     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be "
+     "truncated\"\n"
      "  - snapshot10:\n"
      "      - parent: snapshot2\n"
      "        comment: ~\n",
@@ -1544,7 +1582,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"parent\": \"\"\n"
      "            },\n"
      "            \"rocking\": {\n"
-     "                \"comment\": \"A very long comment that should be truncated by the table formatter\",\n"
+     "                \"comment\": \"A very long comment that should be truncated by the table "
+     "formatter\",\n"
      "                \"parent\": \"pristine\"\n"
      "            },\n"
      "            \"rolling\": {\n"
@@ -1558,7 +1597,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"parent\": \"snapshot2\"\n"
      "            },\n"
      "            \"snapshot2\": {\n"
-     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould be truncated\",\n"
+     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould "
+     "be truncated\",\n"
      "                \"parent\": \"\"\n"
      "            }\n"
      "        }\n"
@@ -1588,7 +1628,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                    \"used\": \"1288490188\"\n"
      "                }\n"
      "            },\n"
-     "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
+     "            \"image_hash\": "
+     "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
      "            \"image_release\": \"16.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "                \"10.168.32.2\",\n"
@@ -1644,7 +1685,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                    \"used\": \"1932735284\"\n"
      "                }\n"
      "            },\n"
-     "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
+     "            \"image_hash\": "
+     "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
      "            \"image_release\": \"16.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "                \"10.21.124.56\"\n"
@@ -1679,7 +1721,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"sda1\": {\n"
      "                }\n"
      "            },\n"
-     "            \"image_hash\": \"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
+     "            \"image_hash\": "
+     "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
      "            \"image_release\": \"18.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "            ],\n"
@@ -1818,7 +1861,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"sda1\": {\n"
      "                }\n"
      "            },\n"
-     "            \"image_hash\": \"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
+     "            \"image_hash\": "
+     "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
      "            \"image_release\": \"18.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "            ],\n"
@@ -1849,7 +1893,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                    \"used\": \"1932735284\"\n"
      "                }\n"
      "            },\n"
-     "            \"image_hash\": \"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
+     "            \"image_hash\": "
+     "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
      "            \"image_release\": \"16.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "                \"10.21.124.56\"\n"
@@ -1920,7 +1965,8 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "                \"sda1\": {\n"
      "                }\n"
      "            },\n"
-     "            \"image_hash\": \"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
+     "            \"image_hash\": "
+     "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
      "            \"image_release\": \"18.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "            ],\n"
@@ -1956,7 +2002,10 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "json_info_multiple_mixed_instances_and_snapshots"}};
 
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
-    {&table_formatter, &empty_networks_reply, "No network interfaces found.\n", "table_networks_empty"},
+    {&table_formatter,
+     &empty_networks_reply,
+     "No network interfaces found.\n",
+     "table_networks_empty"},
     {&table_formatter,
      &one_short_line_networks_reply,
      "Name   Type   Description\n"
@@ -2091,8 +2140,14 @@ const auto yaml_empty_find_reply = "errors:\n"
 
 const std::vector<FormatterParamType> find_formatter_outputs{
     {&table_formatter, &empty_find_reply, "No images or blueprints found.\n", "table_find_empty"},
-    {&table_formatter, &empty_find_reply_only_images, "No images found.\n", "table_find_empty_only_images"},
-    {&table_formatter, &empty_find_reply_only_blueprints, "No blueprints found.\n", "table_find_empty_only_blueprints"},
+    {&table_formatter,
+     &empty_find_reply_only_images,
+     "No images found.\n",
+     "table_find_empty_only_images"},
+    {&table_formatter,
+     &empty_find_reply_only_blueprints,
+     "No blueprints found.\n",
+     "table_find_empty_only_blueprints"},
     {&table_formatter,
      &find_one_reply,
      "Image                       Aliases           Version          Description\n"
@@ -2129,8 +2184,14 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "\n",
      "table_find_multiple_duplicate_image"},
     {&json_formatter, &empty_find_reply, json_empty_find_reply, "json_find_empty"},
-    {&json_formatter, &empty_find_reply_only_images, json_empty_find_reply, "json_find_empty_only_images"},
-    {&json_formatter, &empty_find_reply_only_blueprints, json_empty_find_reply, "json_find_empty_only_blueprints"},
+    {&json_formatter,
+     &empty_find_reply_only_images,
+     json_empty_find_reply,
+     "json_find_empty_only_images"},
+    {&json_formatter,
+     &empty_find_reply_only_blueprints,
+     json_empty_find_reply,
+     "json_find_empty_only_blueprints"},
     {&json_formatter,
      &find_one_reply,
      "{\n"
@@ -2234,8 +2295,14 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "}\n",
      "json_find_multiple_duplicate_image"},
     {&csv_formatter, &empty_find_reply, csv_empty_find_reply, "csv_find_empty"},
-    {&csv_formatter, &empty_find_reply_only_images, csv_empty_find_reply, "csv_find_empty_only_images"},
-    {&csv_formatter, &empty_find_reply_only_blueprints, csv_empty_find_reply, "csv_find_empty_only_blueprints"},
+    {&csv_formatter,
+     &empty_find_reply_only_images,
+     csv_empty_find_reply,
+     "csv_find_empty_only_images"},
+    {&csv_formatter,
+     &empty_find_reply_only_blueprints,
+     csv_empty_find_reply,
+     "csv_find_empty_only_blueprints"},
     {&csv_formatter,
      &find_one_reply,
      "Image,Remote,Aliases,OS,Release,Version,Type\n"
@@ -2260,8 +2327,14 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520,Cloud Image\n",
      "csv_find_multiple_duplicate_image"},
     {&yaml_formatter, &empty_find_reply, yaml_empty_find_reply, "yaml_find_empty"},
-    {&yaml_formatter, &empty_find_reply_only_images, yaml_empty_find_reply, "yaml_find_empty_only_images"},
-    {&yaml_formatter, &empty_find_reply_only_blueprints, yaml_empty_find_reply, "yaml_find_empty_only_blueprints"},
+    {&yaml_formatter,
+     &empty_find_reply_only_images,
+     yaml_empty_find_reply,
+     "yaml_find_empty_only_images"},
+    {&yaml_formatter,
+     &empty_find_reply_only_blueprints,
+     yaml_empty_find_reply,
+     "yaml_find_empty_only_blueprints"},
     {&yaml_formatter,
      &find_one_reply,
      "errors:\n"
@@ -2349,12 +2422,17 @@ const auto version_daemon_no_update_reply = construct_version_info_multipassd_up
 const auto version_daemon_update_reply = construct_version_info_multipassd_update_available();
 
 const std::vector<FormatterParamType> version_formatter_outputs{
-    {&table_formatter, &version_client_reply, "multipass   Client version\n", "table_version_client"},
-    {&table_formatter, &version_daemon_no_update_reply,
+    {&table_formatter,
+     &version_client_reply,
+     "multipass   Client version\n",
+     "table_version_client"},
+    {&table_formatter,
+     &version_daemon_no_update_reply,
      "multipass   Client version\n"
      "multipassd  Daemon version\n",
      "table_version_daemon_no_updates"},
-    {&table_formatter, &version_daemon_update_reply,
+    {&table_formatter,
+     &version_daemon_update_reply,
      "multipass   Client version\n"
      "multipassd  Daemon version\n"
      "\n##################################################\n"
@@ -2363,18 +2441,21 @@ const std::vector<FormatterParamType> version_formatter_outputs{
      "\nGo here for more information: http://multipass.web\n"
      "##################################################\n",
      "table_version_daemon_updates"},
-    {&json_formatter, &version_client_reply,
+    {&json_formatter,
+     &version_client_reply,
      "{\n"
      "    \"multipass\": \"Client version\"\n"
      "}\n",
      "json_version_client"},
-    {&json_formatter, &version_daemon_no_update_reply,
+    {&json_formatter,
+     &version_daemon_no_update_reply,
      "{\n"
      "    \"multipass\": \"Client version\",\n"
      "    \"multipassd\": \"Daemon version\"\n"
      "}\n",
      "json_version_daemon_no_updates"},
-    {&json_formatter, &version_daemon_update_reply,
+    {&json_formatter,
+     &version_daemon_update_reply,
      "{\n"
      "    \"multipass\": \"Client version\",\n"
      "    \"multipassd\": \"Daemon version\",\n"
@@ -2385,24 +2466,30 @@ const std::vector<FormatterParamType> version_formatter_outputs{
      "    }\n"
      "}\n",
      "json_version_daemon_updates"},
-    {&csv_formatter, &version_client_reply,
+    {&csv_formatter,
+     &version_client_reply,
      "Multipass,Multipassd,Title,Description,URL\n"
      "Client version,,,,\n",
      "csv_version_client"},
-    {&csv_formatter, &version_daemon_no_update_reply,
+    {&csv_formatter,
+     &version_daemon_no_update_reply,
      "Multipass,Multipassd,Title,Description,URL\n"
      "Client version,Daemon version,,,\n",
      "csv_version_daemon_no_updates"},
-    {&csv_formatter, &version_daemon_update_reply,
+    {&csv_formatter,
+     &version_daemon_update_reply,
      "Multipass,Multipassd,Title,Description,URL\n"
-     "Client version,Daemon version,update title information,update description information,http://multipass.web\n",
+     "Client version,Daemon version,update title information,update description "
+     "information,http://multipass.web\n",
      "csv_version_daemon_updates"},
     {&yaml_formatter, &version_client_reply, "multipass: Client version\n", "yaml_version_client"},
-    {&yaml_formatter, &version_daemon_no_update_reply,
+    {&yaml_formatter,
+     &version_daemon_no_update_reply,
      "multipass: Client version\n"
      "multipassd: Daemon version\n",
      "yaml_version_daemon_no_updates"},
-    {&yaml_formatter, &version_daemon_update_reply,
+    {&yaml_formatter,
+     &version_daemon_update_reply,
      "multipass: Client version\n"
      "multipassd: Daemon version\n"
      "update:\n  title: update title information\n"
@@ -2412,7 +2499,7 @@ const std::vector<FormatterParamType> version_formatter_outputs{
 
 } // namespace
 
-TEST_P(FormatterSuite, properly_formats_output)
+TEST_P(FormatterSuite, properlyFormatsOutput)
 {
     const auto& [formatter, reply, expected_output, test_name] = GetParam();
     Q_UNUSED(test_name); // gcc 7.4 can't do [[maybe_unused]] for structured bindings
@@ -2435,18 +2522,29 @@ TEST_P(FormatterSuite, properly_formats_output)
     EXPECT_EQ(output, expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter, FormatterSuite,
-                         ValuesIn(orderable_list_info_formatter_outputs), print_param_name);
-INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter, FormatterSuite,
-                         ValuesIn(non_orderable_list_info_formatter_outputs), print_param_name);
-INSTANTIATE_TEST_SUITE_P(FindOutputFormatter, FormatterSuite, ValuesIn(find_formatter_outputs), print_param_name);
-INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter, FormatterSuite,
-                         ValuesIn(non_orderable_networks_formatter_outputs), print_param_name);
-INSTANTIATE_TEST_SUITE_P(VersionInfoOutputFormatter, FormatterSuite, ValuesIn(version_formatter_outputs),
+INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(orderable_list_info_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(non_orderable_list_info_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(FindOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(find_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(non_orderable_networks_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(VersionInfoOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(version_formatter_outputs),
                          print_param_name);
 
 #if GTEST_HAS_POSIX_RE
-TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
+TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
 {
     const auto& [petenv_nname, prepend, param] = GetParam();
     const auto& [formatter, reply, expected_output, test_name] = param;
@@ -2518,7 +2616,8 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
                                 "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
                                 petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
-            regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
+            regex =
+                fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -2528,9 +2627,12 @@ TEST_P(PetenvFormatterSuite, pet_env_first_in_output)
     EXPECT_THAT(output, MatchesRegex(regex));
 }
 
-INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter, PetenvFormatterSuite,
-                         Combine(Values(QStringLiteral(), QStringLiteral("aaa"),
+INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter,
+                         PetenvFormatterSuite,
+                         Combine(Values(QStringLiteral(),
+                                        QStringLiteral("aaa"),
                                         QStringLiteral("zzz")) /* primary name */,
-                                 Bool() /* prepend or append */, ValuesIn(orderable_list_info_formatter_outputs)),
+                                 Bool() /* prepend or append */,
+                                 ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif

@@ -77,7 +77,8 @@ auto make_handler_unregisterer(mp::SettingsHandler* handler)
 } // namespace
 
 mp::Client::Client(ClientConfig& config)
-    : stub{mp::Rpc::NewStub(mp::client::make_channel(config.server_address, *config.cert_provider))},
+    : stub{mp::Rpc::NewStub(
+          mp::client::make_channel(config.server_address, *config.cert_provider))},
       term{config.term},
       aliases{config.term}
 {
@@ -118,7 +119,9 @@ mp::Client::Client(ClientConfig& config)
 
 void mp::Client::sort_commands()
 {
-    auto name_sort = [](cmd::Command::UPtr& a, cmd::Command::UPtr& b) { return a->name() < b->name(); };
+    auto name_sort = [](cmd::Command::UPtr& a, cmd::Command::UPtr& b) {
+        return a->name() < b->name();
+    };
     std::sort(commands.begin(), commands.end(), name_sort);
 }
 
@@ -134,15 +137,20 @@ int mp::Client::run(const QStringList& arguments)
     mp::ReturnCode ret = mp::ReturnCode::Ok;
     ParseCode parse_status = parser.parse(aliases);
 
-    auto verbosity = parser.verbosityLevel(); // try to respect requested verbosity, even if parsing failed
+    auto verbosity =
+        parser.verbosityLevel(); // try to respect requested verbosity, even if parsing failed
     if (!mpl::get_logger())
         mp::client::set_logger(mpl::level_from(verbosity));
 
     {
         auto daemon_settings_prefix = QString{daemon_settings_root} + ".";
         auto* handler = MP_SETTINGS.register_handler(
-            std::make_unique<RemoteSettingsHandler>(std::move(daemon_settings_prefix), *stub, term, verbosity));
-        auto handler_unregisterer = make_handler_unregisterer(handler); // remove handler before its dependencies expire
+            std::make_unique<RemoteSettingsHandler>(std::move(daemon_settings_prefix),
+                                                    *stub,
+                                                    term,
+                                                    verbosity));
+        auto handler_unregisterer =
+            make_handler_unregisterer(handler); // remove handler before its dependencies expire
 
         try
         {
@@ -151,7 +159,9 @@ int mp::Client::run(const QStringList& arguments)
         }
         catch (const RemoteHandlerException& e)
         {
-            ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(), term->cerr(), e.get_status());
+            ret = mp::cmd::standard_failure_handler_for(parser.chosenCommand()->name(),
+                                                        term->cerr(),
+                                                        e.get_status());
         }
     }
 

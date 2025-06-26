@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_RUNTIME_INSTANCE_INFO_HELPER_H
-#define MULTIPASS_RUNTIME_INSTANCE_INFO_HELPER_H
+#pragma once
 
 #include <string>
 
@@ -26,7 +25,8 @@ class VirtualMachine;
 class DetailedInfoItem;
 class InstanceDetails;
 
-// Note: we could extract other code to info/list populating code here, but that is left as a future improvement
+// Note: we could extract other code to info/list populating code here, but that is left as a future
+// improvement
 struct RuntimeInstanceInfoHelper
 {
     static void populate_runtime_info(VirtualMachine& vm,
@@ -37,5 +37,3 @@ struct RuntimeInstanceInfoHelper
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_RUNTIME_INSTANCE_INFO_HELPER_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_RESETTABLE_PROCESS_FACTORY_H
-#define MULTIPASS_RESETTABLE_PROCESS_FACTORY_H
+#pragma once
 
 #include "process_factory.h" // rely on build system to include the right implementation
 
@@ -34,5 +33,3 @@ struct ResetProcessFactory
 
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_RESETTABLE_PROCESS_FACTORY_H

@@ -64,8 +64,10 @@ public:
 
     MOCK_METHOD(bool, is_connected, (), (const, override));
     MOCK_METHOD(QDBusError, last_error, (), (const, override));
-    MOCK_METHOD(std::unique_ptr<mp_dbus::DBusInterface>, get_interface,
-                (const QString&, const QString&, const QString&), (const, override));
+    MOCK_METHOD(std::unique_ptr<mp_dbus::DBusInterface>,
+                get_interface,
+                (const QString&, const QString&, const QString&),
+                (const, override));
 };
 
 class MockDBusInterface : public mp_dbus::DBusInterface
@@ -78,8 +80,11 @@ public:
     MOCK_METHOD(QString, interface, (), (const, override));
     MOCK_METHOD(QString, path, (), (const, override));
     MOCK_METHOD(QString, service, (), (const, override));
-    MOCK_METHOD(QDBusMessage, call_impl,
-                (QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&), (override));
+    MOCK_METHOD(
+        QDBusMessage,
+        call_impl,
+        (QDBus::CallMode, const QString&, const QVariant&, const QVariant&, const QVariant&),
+        (override));
 };
 
 struct CreateBridgeTest : public Test
@@ -95,7 +100,8 @@ struct CreateBridgeTest : public Test
         EXPECT_CALL(mock_bus, is_connected).WillRepeatedly(Return(true));
     }
 
-    void inject_dbus_interfaces() // this moves the DBus interface mocks, so expectations must be set before calling
+    void inject_dbus_interfaces() // this moves the DBus interface mocks, so expectations must be
+                                  // set before calling
     {
         inject_root_interface();
         inject_settings_interface();
@@ -103,15 +109,18 @@ struct CreateBridgeTest : public Test
 
     void inject_root_interface() // moves mock, so expectations first please
     {
-        EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager"),
-                                            Eq("org.freedesktop.NetworkManager")))
+        EXPECT_CALL(mock_bus,
+                    get_interface(Eq("org.freedesktop.NetworkManager"),
+                                  Eq("/org/freedesktop/NetworkManager"),
+                                  Eq("org.freedesktop.NetworkManager")))
             .WillOnce(Return(ByMove(std::move(mock_nm_root))));
     }
 
     void inject_settings_interface() // moves mock, so expectations first please
     {
         EXPECT_CALL(mock_bus,
-                    get_interface(Eq("org.freedesktop.NetworkManager"), Eq("/org/freedesktop/NetworkManager/Settings"),
+                    get_interface(Eq("org.freedesktop.NetworkManager"),
+                                  Eq("/org/freedesktop/NetworkManager/Settings"),
                                   Eq("org.freedesktop.NetworkManager.Settings")))
             .WillOnce(Return(ByMove(std::move(mock_nm_settings))));
     }
@@ -130,11 +139,15 @@ struct CreateBridgeTest : public Test
             QString parent_name = get_bridge_name(child);
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 2 &&
-                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 3 &&
-                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == parent_name &&
-                   (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "bridge" &&
-                   (inner_it = outer_it->find("autoconnect-slaves")) != outer_it->end() && inner_it->toInt() == 1 &&
-                   (outer_it = outer_map.find("bridge")) != outer_map.end() && outer_it->size() == 1 &&
+                   (outer_it = outer_map.find("connection")) != outer_map.end() &&
+                   outer_it->size() == 3 && (inner_it = outer_it->find("id")) != outer_it->end() &&
+                   inner_it->toString() == parent_name &&
+                   (inner_it = outer_it->find("type")) != outer_it->end() &&
+                   inner_it->toString() == "bridge" &&
+                   (inner_it = outer_it->find("autoconnect-slaves")) != outer_it->end() &&
+                   inner_it->toInt() == 1 &&
+                   (outer_it = outer_map.find("bridge")) != outer_map.end() &&
+                   outer_it->size() == 1 &&
                    (inner_it = outer_it->find("interface-name")) != outer_it->end() &&
                    inner_it->toString() == parent_name;
         });
@@ -149,13 +162,19 @@ struct CreateBridgeTest : public Test
             QString child_name = parent_name + "-child";
 
             return (outer_map = arg.value<QMap<QString, QVariantMap>>()).size() == 1 &&
-                   (outer_it = outer_map.find("connection")) != outer_map.end() && outer_it->size() == 6 &&
-                   (inner_it = outer_it->find("id")) != outer_it->end() && inner_it->toString() == child_name &&
-                   (inner_it = outer_it->find("type")) != outer_it->end() && inner_it->toString() == "802-3-ethernet" &&
-                   (inner_it = outer_it->find("slave-type")) != outer_it->end() && inner_it->toString() == "bridge" &&
-                   (inner_it = outer_it->find("master")) != outer_it->end() && inner_it->toString() == parent_name &&
-                   (inner_it = outer_it->find("interface-name")) != outer_it->end() && inner_it->toString() == child &&
-                   (inner_it = outer_it->find("autoconnect-priority")) != outer_it->end() && inner_it->toInt() > 0;
+                   (outer_it = outer_map.find("connection")) != outer_map.end() &&
+                   outer_it->size() == 6 && (inner_it = outer_it->find("id")) != outer_it->end() &&
+                   inner_it->toString() == child_name &&
+                   (inner_it = outer_it->find("type")) != outer_it->end() &&
+                   inner_it->toString() == "802-3-ethernet" &&
+                   (inner_it = outer_it->find("slave-type")) != outer_it->end() &&
+                   inner_it->toString() == "bridge" &&
+                   (inner_it = outer_it->find("master")) != outer_it->end() &&
+                   inner_it->toString() == parent_name &&
+                   (inner_it = outer_it->find("interface-name")) != outer_it->end() &&
+                   inner_it->toString() == child &&
+                   (inner_it = outer_it->find("autoconnect-priority")) != outer_it->end() &&
+                   inner_it->toInt() > 0;
         });
     }
 
@@ -180,7 +199,7 @@ struct CreateBridgeTest : public Test
     const QVariant empty{};
 };
 
-TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
+TEST_F(CreateBridgeTest, createsAndActivatesConnections) // success case
 {
     static constexpr auto network = "eth1234567890a";
     static constexpr auto child_obj_path = "/an/obj/path/for/child";
@@ -189,17 +208,29 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
     {
         InSequence seq{};
         EXPECT_CALL(*mock_nm_settings,
-                    call_impl(QDBus::Block, Eq("AddConnection"), make_parent_connection_matcher(network), empty, empty))
+                    call_impl(QDBus::Block,
+                              Eq("AddConnection"),
+                              make_parent_connection_matcher(network),
+                              empty,
+                              empty))
             .WillOnce(Return(make_obj_path_reply("/a/b/c")));
 
         EXPECT_CALL(*mock_nm_settings,
-                    call_impl(QDBus::Block, Eq("AddConnection"), make_child_connection_matcher(network), empty, empty))
+                    call_impl(QDBus::Block,
+                              Eq("AddConnection"),
+                              make_child_connection_matcher(network),
+                              empty,
+                              empty))
             .WillOnce(Return(make_obj_path_reply(child_obj_path)));
 
         auto null_obj_matcher = make_object_path_matcher(null_obj_path);
         auto child_obj_matcher = make_object_path_matcher(child_obj_path);
-        EXPECT_CALL(*mock_nm_root, call_impl(QDBus::Block, Eq("ActivateConnection"), child_obj_matcher,
-                                             null_obj_matcher, null_obj_matcher))
+        EXPECT_CALL(*mock_nm_root,
+                    call_impl(QDBus::Block,
+                              Eq("ActivateConnection"),
+                              child_obj_matcher,
+                              null_obj_matcher,
+                              null_obj_matcher))
             .WillOnce(Return(make_obj_path_reply("/active/obj/path")));
     }
 
@@ -207,42 +238,45 @@ TEST_F(CreateBridgeTest, creates_and_activates_connections) // success case
     EXPECT_EQ(MP_BACKEND.create_bridge_with(network), get_bridge_name(network).toStdString());
 }
 
-TEST_F(CreateBridgeTest, throws_if_bus_disconnected)
+TEST_F(CreateBridgeTest, throwsIfBusDisconnected)
 {
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(mock_bus, is_connected).WillOnce(Return(false));
     EXPECT_CALL(mock_bus, last_error).WillOnce(Return(QDBusError{QDBusError::BadAddress, msg}));
 
-    MP_EXPECT_THROW_THAT(
-        MP_BACKEND.create_bridge_with("asdf"), mp::backend::CreateBridgeException,
-        mpt::match_what(AllOf(HasSubstr("Could not create bridge"), HasSubstr("Failed to connect to D-Bus system bus"),
-                              HasSubstr(msg.toStdString()))));
+    MP_EXPECT_THROW_THAT(MP_BACKEND.create_bridge_with("asdf"),
+                         mp::backend::CreateBridgeException,
+                         mpt::match_what(AllOf(HasSubstr("Could not create bridge"),
+                                               HasSubstr("Failed to connect to D-Bus system bus"),
+                                               HasSubstr(msg.toStdString()))));
 }
 
 struct CreateBridgeInvalidInterfaceTest : public CreateBridgeTest, WithParamInterface<bool>
 {
 };
 
-TEST_P(CreateBridgeInvalidInterfaceTest, throws_if_interface_invalid)
+TEST_P(CreateBridgeInvalidInterfaceTest, throwsIfInterfaceInvalid)
 {
     bool invalid_root_interface = GetParam(); // otherwise, invalid settings interface
     auto& mock_nm_interface = invalid_root_interface ? mock_nm_root : mock_nm_settings;
     auto msg = QStringLiteral("DBus error msg");
     EXPECT_CALL(*mock_nm_interface, is_valid).WillOnce(Return(false));
-    EXPECT_CALL(*mock_nm_interface, last_error).WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
+    EXPECT_CALL(*mock_nm_interface, last_error)
+        .WillOnce(Return(QDBusError{QDBusError::InvalidInterface, msg}));
 
     inject_root_interface();
     if (!invalid_root_interface)
         inject_settings_interface();
 
-    MP_ASSERT_THROW_THAT(
-        MP_BACKEND.create_bridge_with("whatever"), mp::backend::CreateBridgeException,
-        mpt::match_what(AllOf(HasSubstr("Could not reach remote D-Bus object"), HasSubstr(msg.toStdString()))));
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("whatever"),
+                         mp::backend::CreateBridgeException,
+                         mpt::match_what(AllOf(HasSubstr("Could not reach remote D-Bus object"),
+                                               HasSubstr(msg.toStdString()))));
 }
 
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeInvalidInterfaceTest, Values(true, false));
 
-TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
+TEST_F(CreateBridgeTest, throwsOnFailureToCreateFirstConnection)
 {
     auto msg = QStringLiteral("Nope");
     auto ifc = QStringLiteral("An interface");
@@ -256,12 +290,15 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_first_connection)
     EXPECT_CALL(*mock_nm_settings, service).WillOnce(Return(svc));
 
     inject_dbus_interfaces();
-    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("umdolita"), mp::backend::CreateBridgeException,
-                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
-                                               HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("umdolita"),
+                         mp::backend::CreateBridgeException,
+                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()),
+                                               HasSubstr(ifc.toStdString()),
+                                               HasSubstr(obj.toStdString()),
+                                               HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
+TEST_F(CreateBridgeTest, throwsOnFailureToCreateSecondConnection)
 {
     const auto msg = QStringLiteral("Still not");
     const auto ifc = QStringLiteral("the interface");
@@ -280,16 +317,21 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_create_second_connection)
 
     std::unique_ptr<MockDBusInterface> mock_nm_connection = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_connection, call_impl(_, Eq("Delete"), empty, empty, empty));
-    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(new_connection_path),
-                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+    EXPECT_CALL(mock_bus,
+                get_interface(Eq("org.freedesktop.NetworkManager"),
+                              Eq(new_connection_path),
+                              Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection))));
 
-    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("abc"), mp::backend::CreateBridgeException,
-                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
-                                               HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("abc"),
+                         mp::backend::CreateBridgeException,
+                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()),
+                                               HasSubstr(ifc.toStdString()),
+                                               HasSubstr(obj.toStdString()),
+                                               HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
+TEST_F(CreateBridgeTest, throwsOnFailureToActivateSecondConnection)
 {
     const auto msg = QStringLiteral("Refusing");
     const auto ifc = QStringLiteral("interface");
@@ -313,20 +355,27 @@ TEST_F(CreateBridgeTest, throws_on_failure_to_activate_second_connection)
     std::unique_ptr<MockDBusInterface> mock_nm_connection1 = std::make_unique<MockDBusInterface>();
     std::unique_ptr<MockDBusInterface> mock_nm_connection2 = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_connection1, call_impl(_, Eq("Delete"), empty, empty, empty));
-    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(new_connection_path1),
-                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+    EXPECT_CALL(mock_bus,
+                get_interface(Eq("org.freedesktop.NetworkManager"),
+                              Eq(new_connection_path1),
+                              Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection1))));
     EXPECT_CALL(*mock_nm_connection2, call_impl(_, Eq("Delete"), empty, empty, empty));
-    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(new_connection_path2),
-                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+    EXPECT_CALL(mock_bus,
+                get_interface(Eq("org.freedesktop.NetworkManager"),
+                              Eq(new_connection_path2),
+                              Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection2))));
 
-    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("kaka"), mp::backend::CreateBridgeException,
-                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()), HasSubstr(ifc.toStdString()),
-                                               HasSubstr(obj.toStdString()), HasSubstr(svc.toStdString()))));
+    MP_ASSERT_THROW_THAT(MP_BACKEND.create_bridge_with("kaka"),
+                         mp::backend::CreateBridgeException,
+                         mpt::match_what(AllOf(HasSubstr(msg.toStdString()),
+                                               HasSubstr(ifc.toStdString()),
+                                               HasSubstr(obj.toStdString()),
+                                               HasSubstr(svc.toStdString()))));
 }
 
-TEST_F(CreateBridgeTest, logs_on_failure_to_rollback)
+TEST_F(CreateBridgeTest, logsOnFailureToRollback)
 {
     const auto child_path = QStringLiteral("/child");
     const auto original_error = 255;
@@ -335,15 +384,18 @@ TEST_F(CreateBridgeTest, logs_on_failure_to_rollback)
     EXPECT_CALL(*mock_nm_settings, call_impl(_, Eq("AddConnection"), _, _, _))
         .WillOnce(Return(make_obj_path_reply("/asdf")))
         .WillOnce(Return(make_obj_path_reply(child_path)));
-    EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _)).WillOnce(Throw(original_error));
+    EXPECT_CALL(*mock_nm_root, call_impl(_, Eq("ActivateConnection"), _, _, _))
+        .WillOnce(Throw(original_error));
 
     inject_dbus_interfaces();
 
     std::unique_ptr<MockDBusInterface> mock_nm_connection1 = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_connection1, call_impl(_, Eq("Delete"), empty, empty, empty))
         .WillOnce(Throw(std::runtime_error{rollback_error}));
-    EXPECT_CALL(mock_bus, get_interface(Eq("org.freedesktop.NetworkManager"), Eq(child_path),
-                                        Eq("org.freedesktop.NetworkManager.Settings.Connection")))
+    EXPECT_CALL(mock_bus,
+                get_interface(Eq("org.freedesktop.NetworkManager"),
+                              Eq(child_path),
+                              Eq("org.freedesktop.NetworkManager.Settings.Connection")))
         .WillOnce(Return(ByMove(std::move(mock_nm_connection1))));
 
     logger_scope.mock_logger->expect_log(mpl::Level::error, rollback_error);
@@ -354,7 +406,7 @@ struct CreateBridgeExceptionTest : public CreateBridgeTest, WithParamInterface<b
 {
 };
 
-TEST_P(CreateBridgeExceptionTest, create_bridge_exception_info)
+TEST_P(CreateBridgeExceptionTest, createBridgeExceptionInfo)
 {
     auto rollback = GetParam();
     static constexpr auto specific_info = "specific error details";
@@ -363,7 +415,7 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_info)
                 mpt::match_what(AllOf(HasSubstr(generic_msg), HasSubstr(specific_info))));
 }
 
-TEST_P(CreateBridgeExceptionTest, create_bridge_exception_includes_dbus_cause_when_available)
+TEST_P(CreateBridgeExceptionTest, createBridgeExceptionIncludesDbusCauseWhenAvailable)
 {
     auto msg = QStringLiteral("DBus error msg");
     QDBusError dbus_error = {QDBusError::Other, msg};
@@ -372,7 +424,7 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_includes_dbus_cause_wh
                 mpt::match_what(HasSubstr(msg.toStdString())));
 }
 
-TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause_when_unavailable)
+TEST_P(CreateBridgeExceptionTest, createBridgeExceptionMentionsUnknownCauseWhenUnavailable)
 {
     QDBusError dbus_error{};
     ASSERT_FALSE(dbus_error.isValid());
@@ -383,7 +435,7 @@ TEST_P(CreateBridgeExceptionTest, create_bridge_exception_mentions_unknown_cause
 INSTANTIATE_TEST_SUITE_P(CreateBridgeTest, CreateBridgeExceptionTest, Values(true, false));
 } // namespace
 
-TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
+TEST(LinuxBackendUtils, checkForKvmSupportNoErrorDoesNotThrow)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
@@ -392,29 +444,33 @@ TEST(LinuxBackendUtils, check_for_kvm_support_no_error_does_not_throw)
     EXPECT_NO_THROW(MP_BACKEND.check_for_kvm_support());
 }
 
-TEST(LinuxBackendUtils, check_for_kvm_support_does_not_exist_throws_expected_error)
+TEST(LinuxBackendUtils, checkForKvmSupportDoesNotExistThrowsExpectedError)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_BACKEND.check_for_kvm_support(), std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("KVM support is not enabled on this machine."),
-                                               HasSubstr("Please ensure the following:"))));
+    MP_EXPECT_THROW_THAT(
+        MP_BACKEND.check_for_kvm_support(),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("KVM support is not enabled on this machine."),
+                              HasSubstr("Please ensure the following:"))));
 }
 
-TEST(LinuxBackendUtils, check_for_kvm_support_no_read_write_throws_expected_error)
+TEST(LinuxBackendUtils, checkForKvmSupportNoReadWriteThrowsExpectedError)
 {
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(
-        MP_BACKEND.check_for_kvm_support(), std::runtime_error,
+        MP_BACKEND.check_for_kvm_support(),
+        std::runtime_error,
         mpt::match_what(StrEq("The KVM device cannot be opened for reading and writing.\nPlease "
-                              "ensure the Snap KVM interface is connected by issuing:\n$ snap connect multipass:kvm")));
+                              "ensure the Snap KVM interface is connected by issuing:\n$ snap "
+                              "connect multipass:kvm")));
 }
 
-TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)
+TEST(LinuxBackendUtils, checkKvmInUseNoFailureDoesNotThrow)
 {
     auto [mock_linux_syscalls, guard] = mpt::MockLinuxSysCalls::inject();
 
@@ -425,7 +481,7 @@ TEST(LinuxBackendUtils, check_kvm_in_use_no_failure_does_not_throw)
     EXPECT_NO_THROW(MP_BACKEND.check_if_kvm_is_in_use());
 }
 
-TEST(LinuxBackendUtils, check_kvm_in_use_fails_throws_expected_message)
+TEST(LinuxBackendUtils, checkKvmInUseFailsThrowsExpectedMessage)
 {
     auto [mock_linux_syscalls, guard] = mpt::MockLinuxSysCalls::inject();
 
@@ -437,12 +493,14 @@ TEST(LinuxBackendUtils, check_kvm_in_use_fails_throws_expected_message)
     });
 
     MP_EXPECT_THROW_THAT(
-        MP_BACKEND.check_if_kvm_is_in_use(), std::runtime_error,
-        mpt::match_what(StrEq("Another virtual machine manager is currently running. Please shut it down before "
-                              "starting a Multipass instance.")));
+        MP_BACKEND.check_if_kvm_is_in_use(),
+        std::runtime_error,
+        mpt::match_what(StrEq(
+            "Another virtual machine manager is currently running. Please shut it down before "
+            "starting a Multipass instance.")));
 }
 
-TEST(LinuxBackendUtils, linux_syscalls_return_expected_values)
+TEST(LinuxBackendUtils, linuxSyscallsReturnExpectedValues)
 {
     const std::string null_path{"/dev/null"};
 
@@ -456,54 +514,61 @@ TEST(LinuxBackendUtils, linux_syscalls_return_expected_values)
     EXPECT_EQ(MP_LINUX_SYSCALLS.close(null_fd), 0);
 }
 
-TEST(LinuxBackendUtils, get_subnet_bridge_exists_returns_expected_data)
+TEST(LinuxBackendUtils, getSubnetBridgeExistsReturnsExpectedData)
 {
     const std::string test_subnet{"10.102.12"};
     const QString bridge_name{"test-bridge"};
     auto [mock_utils, guard] = mpt::MockUtils::inject();
 
-    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
-        .WillOnce(Return(fmt::format("{}.0 dev {} proto kernel scope link", test_subnet, bridge_name)));
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
+        .WillOnce(
+            Return(fmt::format("{}.0 dev {} proto kernel scope link", test_subnet, bridge_name)));
 
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), test_subnet);
 }
 
-TEST(LinuxBackendUtils, get_subnet_in_file_returns_expected_data)
+TEST(LinuxBackendUtils, getSubnetInFileReturnsExpectedData)
 {
     const std::string test_subnet{"10.102.12"};
     const QString bridge_name{"test-bridge"};
     auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
         .WillOnce(Return(""));
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(1));
-    EXPECT_CALL(*mock_file_ops, read_all(_)).WillOnce(Return(QByteArray::fromStdString(test_subnet)));
+    EXPECT_CALL(*mock_file_ops, read_all(_))
+        .WillOnce(Return(QByteArray::fromStdString(test_subnet)));
 
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), test_subnet);
 }
 
-TEST(LinuxBackendUtils, get_subnet_not_in_file_writes_new_subnet_returns_expected_data)
+TEST(LinuxBackendUtils, getSubnetNotInFileWritesNewSubnetReturnsExpectedData)
 {
     const QString bridge_name{"test-bridge"};
     std::string generated_subnet;
     auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
     auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_output(QString("ip"), QStringList({"-4", "route", "show"}), _))
         .WillOnce(Return(""))
         .WillOnce(Return("0.0.0.0"));
-    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), _, _)).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), _, _))
+        .WillRepeatedly(Return(false));
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce([&generated_subnet](auto&, auto data, auto) {
-        generated_subnet = std::string(data);
+    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _))
+        .WillOnce([&generated_subnet](auto&, auto data, auto) {
+            generated_subnet = std::string(data);
 
-        return generated_subnet.length();
-    });
+            return generated_subnet.length();
+        });
 
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), generated_subnet);
 }

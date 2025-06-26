@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ID_MAPPINGS_H
-#define MULTIPASS_ID_MAPPINGS_H
+#pragma once
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -42,8 +41,8 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
 
     for (auto it = xid_mappings.begin(); it != xid_mappings.end();)
     {
-        bool duplicate =
-            dup_id_map.find(it->first) != dup_id_map.end() || dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
+        bool duplicate = dup_id_map.find(it->first) != dup_id_map.end() ||
+                         dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
 
         dup_id_map[it->first].insert(it->second);
         dup_rev_id_map[it->second].insert(it->first);
@@ -77,5 +76,3 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
     return std::make_pair(dup_id_map, dup_rev_id_map);
 }
 } // namespace multipass
-
-#endif // MULTIPASS_ID_MAPPINGS_H

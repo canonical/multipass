@@ -53,7 +53,7 @@ TEST_F(RecursiveDirIterator, assign)
     EXPECT_EQ(entry.path(), temp_dir);
 }
 
-TEST_F(RecursiveDirIterator, replace_filename)
+TEST_F(RecursiveDirIterator, replaceFilename)
 {
     entry.assign(temp_dir / "filename");
     EXPECT_NO_THROW(entry.replace_filename(temp_file.filename()));
@@ -84,7 +84,7 @@ TEST_F(RecursiveDirIterator, exists)
     EXPECT_FALSE(entry.exists(err));
 }
 
-TEST_F(RecursiveDirIterator, is_type)
+TEST_F(RecursiveDirIterator, isType)
 {
     entry.assign(temp_file);
 
@@ -93,10 +93,10 @@ TEST_F(RecursiveDirIterator, is_type)
     EXPECT_TRUE(entry.is_regular_file(err));
     EXPECT_FALSE(err);
 
-#define IS_NOT_TYPE(type)                                                                                              \
-    EXPECT_NO_THROW(entry.is_##type());                                                                                \
-    EXPECT_FALSE(entry.is_##type());                                                                                   \
-    EXPECT_FALSE(entry.is_##type(err));                                                                                \
+#define IS_NOT_TYPE(type)                                                                          \
+    EXPECT_NO_THROW(entry.is_##type());                                                            \
+    EXPECT_FALSE(entry.is_##type());                                                               \
+    EXPECT_FALSE(entry.is_##type(err));                                                            \
     EXPECT_FALSE(err);
 
     IS_NOT_TYPE(block_file);
@@ -108,7 +108,7 @@ TEST_F(RecursiveDirIterator, is_type)
     IS_NOT_TYPE(symlink);
 }
 
-TEST_F(RecursiveDirIterator, file_size)
+TEST_F(RecursiveDirIterator, fileSize)
 {
     entry.assign(temp_file);
     EXPECT_NO_THROW(entry.file_size());
@@ -117,7 +117,7 @@ TEST_F(RecursiveDirIterator, file_size)
     EXPECT_FALSE(err);
 }
 
-TEST_F(RecursiveDirIterator, hard_link_count)
+TEST_F(RecursiveDirIterator, hardLinkCount)
 {
     entry.assign(temp_file);
     EXPECT_NO_THROW(entry.file_size());
@@ -126,7 +126,7 @@ TEST_F(RecursiveDirIterator, hard_link_count)
     EXPECT_FALSE(err);
 }
 
-TEST_F(RecursiveDirIterator, last_write_time)
+TEST_F(RecursiveDirIterator, lastWriteTime)
 {
     entry.assign(temp_file);
     auto file_date = entry.last_write_time();

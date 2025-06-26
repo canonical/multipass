@@ -47,7 +47,8 @@ namespace
 
 struct SshCommandOutput
 {
-    SshCommandOutput(const std::string& output = "", int exit_code = 0) : output{output}, exit_code{exit_code}
+    SshCommandOutput(const std::string& output = "", int exit_code = 0)
+        : output{output}, exit_code{exit_code}
     {
     }
 
@@ -74,21 +75,25 @@ struct SmbMountHandlerTest : public ::Test
     SmbMountHandlerTest()
     {
         EXPECT_CALL(file_ops, status)
-            .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
+            .WillOnce(
+                Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
         EXPECT_CALL(utils, make_dir(_, QString{"enc-keys"}, _)).WillOnce(Return("enc-keys"));
         EXPECT_CALL(platform, get_username).WillOnce(Return(username));
         ON_CALL(utils, contents_of).WillByDefault(Return("irrelevant"));
         ON_CALL(utils, make_file_with_content(_, _)).WillByDefault(Return());
         EXPECT_CALL(utils, make_uuid(std::make_optional(target))).WillOnce(Return(target_uuid));
-        EXPECT_CALL(utils, make_uuid(std::make_optional(username.toStdString()))).WillOnce(Return(username_uuid));
+        EXPECT_CALL(utils, make_uuid(std::make_optional(username.toStdString())))
+            .WillOnce(Return(username_uuid));
         EXPECT_CALL(logger, log).WillRepeatedly(Return());
-        logger.expect_log(mpl::Level::info,
-                          fmt::format("Initializing native mount {} => {} in '{}'", source, target, vm.vm_name));
+        logger.expect_log(
+            mpl::Level::info,
+            fmt::format("Initializing native mount {} => {} in '{}'", source, target, vm.vm_name));
 
         MP_DELEGATE_MOCK_CALLS_ON_BASE(utils, run_in_ssh_session, mp::Utils);
     }
 
-    // the returned lambda will modify `output` so that it can be used to mock ssh_channel_read_timeout
+    // the returned lambda will modify `output` so that it can be used to mock
+    // ssh_channel_read_timeout
     auto mocked_ssh_channel_request_exec(std::string& output)
     {
         return [&](ssh_channel, const char* command) {
@@ -163,14 +168,18 @@ struct SmbMountHandlerTest : public ::Test
     std::string install_cifs_command{"sudo apt-get update && sudo apt-get install -y cifs-utils"};
     std::string mkdir_command{"mkdir -p " + target};
     std::string rm_command{"sudo rm " + remote_cred_file};
-    std::string umount_command{fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target)};
-    std::string mount_command{fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
-                                          QHostInfo::localHostName(),
-                                          smb_share_name,
-                                          target,
-                                          remote_cred_file)};
-    std::string findmnt_command{
-        fmt::format("findmnt --type cifs | grep '{} //{}/{}'", target, QHostInfo::localHostName(), smb_share_name)};
+    std::string umount_command{
+        fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target)};
+    std::string mount_command{
+        fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
+                    QHostInfo::localHostName(),
+                    smb_share_name,
+                    target,
+                    remote_cred_file)};
+    std::string findmnt_command{fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
+                                            target,
+                                            QHostInfo::localHostName(),
+                                            smb_share_name)};
 
     SshCommandOutputs ssh_outputs{
         {dpkg_command, {"installed"}},
@@ -205,7 +214,7 @@ TEST_F(SmbMountHandlerTest, success)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, generate_key)
+TEST_F(SmbMountHandlerTest, generateKey)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -227,7 +236,7 @@ TEST_F(SmbMountHandlerTest, generate_key)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, installs_cifs)
+TEST_F(SmbMountHandlerTest, installsCifs)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -236,7 +245,8 @@ TEST_F(SmbMountHandlerTest, installs_cifs)
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
 
     ssh_outputs[dpkg_command].output = "not installed";
-    EXPECT_CALL(server, Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
+    EXPECT_CALL(server,
+                Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
         .WillOnce(Return(true));
     logger.expect_log(mpl::Level::info, fmt::format("Installing cifs-utils in '{}'", vm.vm_name));
 
@@ -254,7 +264,7 @@ TEST_F(SmbMountHandlerTest, installs_cifs)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, fail_install_cifs)
+TEST_F(SmbMountHandlerTest, failInstallCifs)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -265,11 +275,13 @@ TEST_F(SmbMountHandlerTest, fail_install_cifs)
     auto install_error = "error reason";
     ssh_outputs[dpkg_command].output = "not installed";
     ssh_outputs[install_cifs_command] = {install_error, 1};
-    EXPECT_CALL(server, Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
+    EXPECT_CALL(server,
+                Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
         .WillOnce(Return(true));
     logger.expect_log(mpl::Level::info, fmt::format("Installing cifs-utils in '{}'", vm.vm_name));
-    logger.expect_log(mpl::Level::warning,
-                      fmt::format("Failed to install 'cifs-utils', error message: '{}'", install_error));
+    logger.expect_log(
+        mpl::Level::warning,
+        fmt::format("Failed to install 'cifs-utils', error message: '{}'", install_error));
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
@@ -279,7 +291,7 @@ TEST_F(SmbMountHandlerTest, fail_install_cifs)
                          mpt::match_what(StrEq("Failed to install cifs-utils")));
 }
 
-TEST_F(SmbMountHandlerTest, request_and_receive_creds)
+TEST_F(SmbMountHandlerTest, requestAndReceiveCreds)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -288,7 +300,8 @@ TEST_F(SmbMountHandlerTest, request_and_receive_creds)
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
 
-    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _)).WillOnce(Return(true));
+    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _))
+        .WillOnce(Return(true));
     EXPECT_CALL(server, Read).WillOnce(set_password);
     EXPECT_CALL(aes, encrypt).WillOnce(Return("encrypted"));
 
@@ -304,7 +317,7 @@ TEST_F(SmbMountHandlerTest, request_and_receive_creds)
     handler.activate(&server);
 }
 
-TEST_F(SmbMountHandlerTest, fail_without_client)
+TEST_F(SmbMountHandlerTest, failWithoutClient)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -321,7 +334,7 @@ TEST_F(SmbMountHandlerTest, fail_without_client)
                          mpt::match_what(StrEq("Cannot get password without client connection")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_request_creds)
+TEST_F(SmbMountHandlerTest, failRequestCreds)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -330,17 +343,19 @@ TEST_F(SmbMountHandlerTest, fail_request_creds)
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
 
-    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _)).WillOnce(Return(false));
+    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _))
+        .WillOnce(Return(false));
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
     mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
-    MP_EXPECT_THROW_THAT(handler.activate(&server),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Cannot request password from client. Aborting...")));
+    MP_EXPECT_THROW_THAT(
+        handler.activate(&server),
+        std::runtime_error,
+        mpt::match_what(StrEq("Cannot request password from client. Aborting...")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_receive_creds)
+TEST_F(SmbMountHandlerTest, failReceiveCreds)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -349,7 +364,8 @@ TEST_F(SmbMountHandlerTest, fail_receive_creds)
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
 
-    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _)).WillOnce(Return(true));
+    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _))
+        .WillOnce(Return(true));
     EXPECT_CALL(server, Read).WillOnce(Return(false));
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
@@ -360,7 +376,7 @@ TEST_F(SmbMountHandlerTest, fail_receive_creds)
                          mpt::match_what(StrEq("Cannot get password from client. Aborting...")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_empty_password)
+TEST_F(SmbMountHandlerTest, failEmptyPassword)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -369,7 +385,8 @@ TEST_F(SmbMountHandlerTest, fail_empty_password)
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
 
-    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _)).WillOnce(Return(true));
+    EXPECT_CALL(server, Write(Property(&mp::MountReply::password_requested, true), _))
+        .WillOnce(Return(true));
     password.clear();
     EXPECT_CALL(server, Read).WillOnce(set_password);
 
@@ -381,7 +398,7 @@ TEST_F(SmbMountHandlerTest, fail_empty_password)
                          mpt::match_what(StrEq("A password is required for SMB mounts.")));
 }
 
-TEST_F(SmbMountHandlerTest, fail_create_smb_share)
+TEST_F(SmbMountHandlerTest, failCreateSmbShare)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -399,7 +416,7 @@ TEST_F(SmbMountHandlerTest, fail_create_smb_share)
     MP_EXPECT_THROW_THAT(handler.activate(&server), std::runtime_error, mpt::match_what(error));
 }
 
-TEST_F(SmbMountHandlerTest, fail_mkdir_target)
+TEST_F(SmbMountHandlerTest, failMkdirTarget)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -416,13 +433,15 @@ TEST_F(SmbMountHandlerTest, fail_mkdir_target)
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
     mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
-    MP_EXPECT_THROW_THAT(
-        handler.activate(&server),
-        std::runtime_error,
-        mpt::match_what(fmt::format("Cannot create \"{}\" in instance '{}': {}", target, vm.vm_name, mkdir_error)));
+    MP_EXPECT_THROW_THAT(handler.activate(&server),
+                         std::runtime_error,
+                         mpt::match_what(fmt::format("Cannot create \"{}\" in instance '{}': {}",
+                                                     target,
+                                                     vm.vm_name,
+                                                     mkdir_error)));
 }
 
-TEST_F(SmbMountHandlerTest, fail_mount_command)
+TEST_F(SmbMountHandlerTest, failMountCommand)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -449,7 +468,7 @@ TEST_F(SmbMountHandlerTest, fail_mount_command)
                          mpt::match_what(fmt::format("Error: {}", mount_error)));
 }
 
-TEST_F(SmbMountHandlerTest, fail_remove_creds_file)
+TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -465,8 +484,9 @@ TEST_F(SmbMountHandlerTest, fail_remove_creds_file)
 
     auto rm_error = "error reason";
     ssh_outputs[rm_command] = {rm_error, 1};
-    logger.expect_log(mpl::Level::warning,
-                      fmt::format("Failed deleting credentials file in \'{}\': {}", vm.vm_name, rm_error));
+    logger.expect_log(
+        mpl::Level::warning,
+        fmt::format("Failed deleting credentials file in \'{}\': {}", vm.vm_name, rm_error));
 
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
@@ -475,7 +495,7 @@ TEST_F(SmbMountHandlerTest, fail_remove_creds_file)
     EXPECT_NO_THROW(handler.activate(&server));
 }
 
-TEST_F(SmbMountHandlerTest, stop_force_fail_umount_command)
+TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -491,9 +511,11 @@ TEST_F(SmbMountHandlerTest, stop_force_fail_umount_command)
 
     auto umount_error = "error reason";
     ssh_outputs[umount_command] = {umount_error, 1};
-    logger.expect_log(
-        mpl::Level::warning,
-        fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}", target, vm.vm_name, umount_error));
+    logger.expect_log(mpl::Level::warning,
+                      fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
+                                  target,
+                                  vm.vm_name,
+                                  umount_error));
 
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
@@ -503,7 +525,7 @@ TEST_F(SmbMountHandlerTest, stop_force_fail_umount_command)
     EXPECT_NO_THROW(handler.deactivate(/*force=*/true));
 }
 
-TEST_F(SmbMountHandlerTest, stop_non_force_fail_umount_command)
+TEST_F(SmbMountHandlerTest, stopNonForceFailUmountCommand)
 {
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -525,5 +547,7 @@ TEST_F(SmbMountHandlerTest, stop_non_force_fail_umount_command)
 
     mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
-    MP_EXPECT_THROW_THAT(handler.deactivate(/*force=*/false), std::runtime_error, mpt::match_what(StrEq(umount_error)));
+    MP_EXPECT_THROW_THAT(handler.deactivate(/*force=*/false),
+                         std::runtime_error,
+                         mpt::match_what(StrEq(umount_error)));
 }

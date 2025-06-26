@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef RECURSIVE_DIR_ITERATOR_H
-#define RECURSIVE_DIR_ITERATOR_H
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -256,7 +255,8 @@ class DirIterator
 {
 public:
     DirIterator() = default;
-    DirIterator(const fs::path& path, std::error_code& err) : self{path / "."}, parent{path / ".."}, iter{path, err}
+    DirIterator(const fs::path& path, std::error_code& err)
+        : self{path / "."}, parent{path / ".."}, iter{path, err}
     {
     }
 
@@ -293,5 +293,3 @@ private:
     DirectoryEntry current;
 };
 } // namespace multipass
-
-#endif // RECURSIVE_DIR_ITERATOR_H

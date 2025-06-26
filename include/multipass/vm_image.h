@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_IMAGE_H
-#define MULTIPASS_VIRTUAL_MACHINE_IMAGE_H
+#pragma once
 
 #include <multipass/path.h>
 
@@ -34,5 +33,4 @@ public:
     std::string release_date;
     std::vector<std::string> aliases;
 };
-}
-#endif // MULTIPASS_VIRTUAL_MACHINE_IMAGE_H
+} // namespace multipass

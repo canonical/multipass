@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTIONS_H
-#define MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTIONS_H
+#pragma once
 
 #include "ssh_exception.h"
 
@@ -31,7 +30,9 @@ class ExitlessSSHProcessException : public SSHException
 {
 protected:
     ExitlessSSHProcessException(const std::string& command, const std::string& cause)
-        : SSHException{fmt::format("failed to obtain exit status for remote process '{}': {}", command, cause)}
+        : SSHException{fmt::format("failed to obtain exit status for remote process '{}': {}",
+                                   command,
+                                   cause)}
     {
     }
 };
@@ -40,7 +41,8 @@ class SSHProcessTimeoutException : public ExitlessSSHProcessException
 {
 public:
     SSHProcessTimeoutException(const std::string& command, std::chrono::milliseconds timeout)
-        : ExitlessSSHProcessException{command, fmt::format("timed out after {} ms", timeout.count())}
+        : ExitlessSSHProcessException{command,
+                                      fmt::format("timed out after {} ms", timeout.count())}
     {
     }
 };
@@ -55,4 +57,3 @@ public:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_EXITLESS_SSHPROCESS_EXCEPTIONS_H

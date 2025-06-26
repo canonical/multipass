@@ -34,19 +34,24 @@ struct MockJournaldWrapper : public mpl::JournaldWrapper
 
     MOCK_METHOD(void,
                 write_journal,
-                (std::string_view, std::string_view, std::string_view, int, std::string_view, std::string_view),
+                (std::string_view,
+                 std::string_view,
+                 std::string_view,
+                 int,
+                 std::string_view,
+                 std::string_view),
                 (const, override));
     MP_MOCK_SINGLETON_BOILERPLATE(MockJournaldWrapper, mpl::JournaldWrapper);
 };
 
-struct journald_logger_test : ::testing::Test
+struct JournaldLoggerTest : ::testing::Test
 {
     using uut_t = mpl::JournaldLogger;
     MockJournaldWrapper::GuardedMock mock_journald_guardedmock{MockJournaldWrapper::inject()};
     MockJournaldWrapper& mock_journald = *mock_journald_guardedmock.first;
 };
 
-TEST_F(journald_logger_test, call_log)
+TEST_F(JournaldLoggerTest, callLog)
 {
     constexpr static std::string_view expected_message_fmtstr = "MESSAGE=%.*s";
     constexpr static std::string_view expected_priority_fmtstr = "PRIORITY=%i";
@@ -68,7 +73,7 @@ TEST_F(journald_logger_test, call_log)
     uut.log(mpl::Level::debug, expected_category, expected_message);
 }
 
-TEST_F(journald_logger_test, call_log_filtered)
+TEST_F(JournaldLoggerTest, callLogFiltered)
 {
     EXPECT_CALL(mock_journald, write_journal).Times(0);
     uut_t uut{mpl::Level::debug};

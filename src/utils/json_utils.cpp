@@ -32,7 +32,8 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept : Singleton<JsonUtils>{pass}
+mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
+    : Singleton<JsonUtils>{pass}
 {
 }
 
@@ -44,20 +45,24 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 
     QSaveFile db_file{file_name};
     if (!MP_FILEOPS.open(db_file, QIODevice::WriteOnly))
-        throw std::runtime_error{fmt::format("Could not open transactional file for writing; filename: {}", file_name)};
+        throw std::runtime_error{
+            fmt::format("Could not open transactional file for writing; filename: {}", file_name)};
 
     if (MP_FILEOPS.write(db_file, QJsonDocument{root}.toJson()) == -1)
-        throw std::runtime_error{fmt::format("Could not write json to transactional file; filename: {}; error: {}",
-                                             file_name,
-                                             db_file.errorString())};
+        throw std::runtime_error{
+            fmt::format("Could not write json to transactional file; filename: {}; error: {}",
+                        file_name,
+                        db_file.errorString())};
 
     if (!MP_FILEOPS.commit(db_file))
-        throw std::runtime_error{fmt::format("Could not commit transactional file; filename: {}", file_name)};
+        throw std::runtime_error{
+            fmt::format("Could not commit transactional file; filename: {}", file_name)};
 }
 
 std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
 {
-    // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a QByteArray.
+    // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a
+    // QByteArray.
     return QJsonDocument(root).toJson().toStdString();
 }
 
@@ -71,11 +76,12 @@ QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
     return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
 }
 
-QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonValue& metadata,
-                                                                const multipass::VMSpecs& src_specs,
-                                                                const multipass::VMSpecs& dest_specs,
-                                                                const std::string& src_vm_name,
-                                                                const std::string& dest_vm_name) const
+QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(
+    const QJsonValue& metadata,
+    const multipass::VMSpecs& src_specs,
+    const multipass::VMSpecs& dest_specs,
+    const std::string& src_vm_name,
+    const std::string& dest_vm_name) const
 {
     assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
 
@@ -97,8 +103,10 @@ QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(const QJsonValue
             }
         }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the metadata.
-        str.replace("instances/" + QString{src_vm_name.c_str()}, "instances/" + QString{dest_vm_name.c_str()});
+        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
+        // metadata.
+        str.replace("instances/" + QString{src_vm_name.c_str()},
+                    "instances/" + QString{dest_vm_name.c_str()});
         item = str;
     }
     arguments = json_array;
@@ -123,7 +131,8 @@ QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
     return json;
 }
 
-std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_interfaces(const QJsonObject& record) const
+std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_interfaces(
+    const QJsonObject& record) const
 {
     if (record.contains("extra_interfaces"))
     {

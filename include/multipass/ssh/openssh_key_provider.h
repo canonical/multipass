@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_OPENSSH_KEY_PROVIDER_H
-#define MULTIPASS_OPENSSH_KEY_PROVIDER_H
+#pragma once
 
 #include <multipass/path.h>
 #include <multipass/ssh/ssh_key_provider.h>
@@ -44,5 +43,4 @@ private:
     QDir ssh_key_dir;
     KeyUPtr priv_key;
 };
-}
-#endif // MULTIPASS_OPENSSH_KEY_PROVIDER_H
+} // namespace multipass

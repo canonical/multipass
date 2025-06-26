@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_SSH_KEY_PROVIDER_H
-#define MULTIPASS_STUB_SSH_KEY_PROVIDER_H
+#pragma once
 
 #include <multipass/ssh/ssh_key_provider.h>
 
@@ -29,7 +28,8 @@ namespace test
 class StubSSHKeyProvider : public SSHKeyProvider
 {
 public:
-    // A default constructor is needed by Clang++-13, see https://stackoverflow.com/questions/77283333
+    // A default constructor is needed by Clang++-13, see
+    // https://stackoverflow.com/questions/77283333
     StubSSHKeyProvider(){};
 
     std::string private_key_as_base64() const override
@@ -47,6 +47,5 @@ public:
         return nullptr;
     }
 };
-}
-}
-#endif // MULTIPASS_STUB_SSH_KEY_PROVIDER_H
+} // namespace test
+} // namespace multipass

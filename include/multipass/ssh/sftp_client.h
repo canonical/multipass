@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_CLIENT_H
-#define MULTIPASS_SFTP_CLIENT_H
+#pragma once
 
 #include "ssh_session.h"
 
@@ -48,7 +47,10 @@ public:
     Q_DECLARE_FLAGS(Flags, Flag)
 
     SFTPClient() = default;
-    SFTPClient(const std::string& host, int port, const std::string& username, const std::string& priv_key_blob);
+    SFTPClient(const std::string& host,
+               int port,
+               const std::string& username,
+               const std::string& priv_key_blob);
     SFTPClient(SSHSessionUPtr ssh_session);
 
     virtual bool is_remote_dir(const fs::path& path);
@@ -73,4 +75,3 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(SFTPClient::Flags)
 } // namespace multipass
-#endif // MULTIPASS_SFTP_CLIENT_H

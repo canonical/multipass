@@ -41,9 +41,8 @@ struct URLDownloader : public Test
     {
         mock_network_access_manager = std::make_unique<NiceMock<mpt::MockQNetworkAccessManager>>();
 
-        EXPECT_CALL(*mock_network_manager_factory, make_network_manager(_)).WillOnce([this](auto...) {
-            return std::move(mock_network_access_manager);
-        });
+        EXPECT_CALL(*mock_network_manager_factory, make_network_manager(_))
+            .WillOnce([this](auto...) { return std::move(mock_network_access_manager); });
     };
 
     mpt::TempDir cache_dir;
@@ -72,8 +71,9 @@ TEST_F(URLDownloader, simpleDownloadReturnsExpectedData)
         .WillOnce(Return(0));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Found {} in cache: false", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Found {} in cache: false", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 1s);
 
@@ -91,7 +91,9 @@ TEST_F(URLDownloader, simpleDownloadNetworkTimeoutTriesCache)
 
     const QByteArray test_data{"The answer to everything is 42."};
 
-    EXPECT_CALL(*mock_reply_abort, abort()).WillOnce([&mock_reply_abort] { mock_reply_abort->abort_operation(); });
+    EXPECT_CALL(*mock_reply_abort, abort()).WillOnce([&mock_reply_abort] {
+        mock_reply_abort->abort_operation();
+    });
 
     EXPECT_CALL(*mock_reply_cache, readData(_, _))
         .WillOnce([&test_data](char* data, auto) {
@@ -106,7 +108,8 @@ TEST_F(URLDownloader, simpleDownloadNetworkTimeoutTriesCache)
         .WillOnce(Return(mock_reply_abort))
         .WillOnce([&mock_reply_cache](auto...) {
             QTimer::singleShot(0, [&mock_reply_cache] {
-                mock_reply_cache->set_attribute(QNetworkRequest::SourceIsFromCacheAttribute, QVariant(true));
+                mock_reply_cache->set_attribute(QNetworkRequest::SourceIsFromCacheAttribute,
+                                                QVariant(true));
                 mock_reply_cache->readyRead();
                 mock_reply_cache->finished();
             });
@@ -121,8 +124,9 @@ TEST_F(URLDownloader, simpleDownloadNetworkTimeoutTriesCache)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
         fmt::format("Failed to get {}: Operation canceled - trying cache.", fake_url.toString()));
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Found {} in cache: true", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Found {} in cache: true", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
@@ -135,17 +139,20 @@ TEST_F(URLDownloader, simpleDownloadProxyAuthenticationRequiredAborts)
 {
     mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply](auto...) {
-        QTimer::singleShot(0, [&mock_reply] {
-            mock_reply->set_error(QNetworkReply::ProxyAuthenticationRequiredError, "Proxy authorization required");
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply](auto...) {
+            QTimer::singleShot(0, [&mock_reply] {
+                mock_reply->set_error(QNetworkReply::ProxyAuthenticationRequiredError,
+                                      "Proxy authorization required");
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
-    MP_EXPECT_THROW_THAT(downloader.download(fake_url), mp::AbortedDownloadException,
+    MP_EXPECT_THROW_THAT(downloader.download(fake_url),
+                         mp::AbortedDownloadException,
                          mpt::match_what(StrEq("Proxy authorization required")));
 }
 
@@ -155,16 +162,18 @@ TEST_F(URLDownloader, simpleDownloadAbortAllStopsDownload)
 
     EXPECT_CALL(*mock_reply, abort()).WillOnce([&mock_reply] { mock_reply->abort_operation(); });
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply](auto...) {
-        QTimer::singleShot(0, [&mock_reply] { mock_reply->readyRead(); });
-        return mock_reply;
-    });
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply](auto...) {
+            QTimer::singleShot(0, [&mock_reply] { mock_reply->readyRead(); });
+            return mock_reply;
+        });
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     downloader.abort_all_downloads();
 
-    MP_EXPECT_THROW_THAT(downloader.download(fake_url), mp::AbortedDownloadException,
+    MP_EXPECT_THROW_THAT(downloader.download(fake_url),
+                         mp::AbortedDownloadException,
                          mpt::match_what(StrEq("Operation canceled")));
 }
 
@@ -174,14 +183,15 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
     const QByteArray test_data{"This is some data to put in a file when downloaded."};
     const int download_type{-1};
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply, &test_data](auto...) {
-        QTimer::singleShot(0, [&mock_reply, &test_data] {
-            mock_reply->downloadProgress(test_data.size(), test_data.size());
-            mock_reply->readyRead();
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply, &test_data](auto...) {
+            QTimer::singleShot(0, [&mock_reply, &test_data] {
+                mock_reply->downloadProgress(test_data.size(), test_data.size());
+                mock_reply->readyRead();
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     EXPECT_CALL(*mock_reply, readData(_, _))
         .WillOnce([&test_data](char* data, auto) {
@@ -202,15 +212,20 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
     };
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Found {} in cache: false", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Found {} in cache: false", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
 
-    downloader.download_to(fake_url, download_file, test_data.size(), download_type, progress_monitor);
+    downloader.download_to(fake_url,
+                           download_file,
+                           test_data.size(),
+                           download_type,
+                           progress_monitor);
 
     EXPECT_TRUE(progress_called);
 
@@ -228,13 +243,16 @@ TEST_F(URLDownloader, fileDownloadErrorTriesCache)
     mpt::MockQNetworkReply* mock_reply_cache = new mpt::MockQNetworkReply();
     const QByteArray test_data{"This is some data to put in a file when downloaded."};
 
-    EXPECT_CALL(*mock_reply_abort, abort()).WillOnce([&mock_reply_abort] { mock_reply_abort->abort_operation(); });
+    EXPECT_CALL(*mock_reply_abort, abort()).WillOnce([&mock_reply_abort] {
+        mock_reply_abort->abort_operation();
+    });
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce(Return(mock_reply_abort))
         .WillOnce([&mock_reply_cache, &test_data](auto...) {
             QTimer::singleShot(0, [&mock_reply_cache, &test_data] {
-                mock_reply_cache->set_attribute(QNetworkRequest::SourceIsFromCacheAttribute, QVariant(true));
+                mock_reply_cache->set_attribute(QNetworkRequest::SourceIsFromCacheAttribute,
+                                                QVariant(true));
                 mock_reply_cache->downloadProgress(test_data.size(), test_data.size());
                 mock_reply_cache->readyRead();
                 mock_reply_cache->finished();
@@ -254,8 +272,9 @@ TEST_F(URLDownloader, fileDownloadErrorTriesCache)
     auto progress_monitor = [](auto...) { return true; };
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Found {} in cache: true", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Found {} in cache: true", fake_url.toString()));
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
         fmt::format("Failed to get {}: Operation canceled - trying cache.", fake_url.toString()));
@@ -283,10 +302,11 @@ TEST_F(URLDownloader, fileDownloadMonitorReturnFalseAborts)
 
     EXPECT_CALL(*mock_reply, abort()).WillOnce([&mock_reply] { mock_reply->abort_operation(); });
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply](auto...) {
-        QTimer::singleShot(0, [&mock_reply] { mock_reply->downloadProgress(1000, 1000); });
-        return mock_reply;
-    });
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply](auto...) {
+            QTimer::singleShot(0, [&mock_reply] { mock_reply->downloadProgress(1000, 1000); });
+            return mock_reply;
+        });
 
     auto progress_monitor = [](auto...) { return false; };
 
@@ -296,7 +316,8 @@ TEST_F(URLDownloader, fileDownloadMonitorReturnFalseAborts)
     QString download_file{file_dir.path() + "/foo.txt"};
 
     MP_EXPECT_THROW_THAT(downloader.download_to(fake_url, download_file, -1, -1, progress_monitor),
-                         mp::AbortedDownloadException, mpt::match_what(StrEq("Operation canceled")));
+                         mp::AbortedDownloadException,
+                         mpt::match_what(StrEq("Operation canceled")));
 
     EXPECT_FALSE(QFile::exists(download_file));
 }
@@ -305,13 +326,14 @@ TEST_F(URLDownloader, fileDownloadZeroBytesReceivedDoesNotCallMonitor)
 {
     mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply](auto...) {
-        QTimer::singleShot(0, [&mock_reply] {
-            mock_reply->downloadProgress(0, 1000);
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply](auto...) {
+            QTimer::singleShot(0, [&mock_reply] {
+                mock_reply->downloadProgress(0, 1000);
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     EXPECT_CALL(*mock_reply, readData(_, _)).WillRepeatedly(Return(0));
 
@@ -323,8 +345,9 @@ TEST_F(URLDownloader, fileDownloadZeroBytesReceivedDoesNotCallMonitor)
     };
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Found {} in cache: false", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Found {} in cache: false", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
@@ -342,13 +365,14 @@ TEST_F(URLDownloader, fileDownloadAbortAllStopDownload)
 
     EXPECT_CALL(*mock_reply, abort()).WillOnce([&mock_reply] { mock_reply->abort_operation(); });
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply](auto...) {
-        QTimer::singleShot(0, [&mock_reply] {
-            mock_reply->readyRead();
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply](auto...) {
+            QTimer::singleShot(0, [&mock_reply] {
+                mock_reply->readyRead();
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     auto progress_monitor = [](auto...) { return true; };
 
@@ -359,7 +383,8 @@ TEST_F(URLDownloader, fileDownloadAbortAllStopDownload)
     QString download_file{file_dir.path() + "/foo.txt"};
 
     MP_EXPECT_THROW_THAT(downloader.download_to(fake_url, download_file, -1, -1, progress_monitor),
-                         mp::AbortedDownloadException, mpt::match_what(StrEq("Operation canceled")));
+                         mp::AbortedDownloadException,
+                         mpt::match_what(StrEq("Operation canceled")));
 }
 
 TEST_F(URLDownloader, fileDownloadUnknownBytesSetToQueriedSize)
@@ -368,14 +393,15 @@ TEST_F(URLDownloader, fileDownloadUnknownBytesSetToQueriedSize)
 
     const QByteArray test_data{"This is some data to put in a file when downloaded."};
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply, &test_data](auto...) {
-        QTimer::singleShot(0, [&mock_reply, &test_data] {
-            mock_reply->downloadProgress(test_data.size(), -1);
-            mock_reply->readyRead();
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply, &test_data](auto...) {
+            QTimer::singleShot(0, [&mock_reply, &test_data] {
+                mock_reply->downloadProgress(test_data.size(), -1);
+                mock_reply->readyRead();
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     EXPECT_CALL(*mock_reply, readData(_, _))
         .WillOnce([&test_data](char* data, auto) {
@@ -393,8 +419,9 @@ TEST_F(URLDownloader, fileDownloadUnknownBytesSetToQueriedSize)
     };
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Found {} in cache: false", fake_url.toString()));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Found {} in cache: false", fake_url.toString()));
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
@@ -417,7 +444,9 @@ TEST_F(URLDownloader, fileDownloadTimeoutDoesNotWriteFile)
         mock_reply_abort1->readyRead();
         ready_read_fired = true;
     });
-    EXPECT_CALL(*mock_reply_abort2, abort()).WillOnce([&mock_reply_abort2] { mock_reply_abort2->abort_operation(); });
+    EXPECT_CALL(*mock_reply_abort2, abort()).WillOnce([&mock_reply_abort2] {
+        mock_reply_abort2->abort_operation();
+    });
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce(Return(mock_reply_abort1))
@@ -428,26 +457,30 @@ TEST_F(URLDownloader, fileDownloadTimeoutDoesNotWriteFile)
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
 
     // Expect warning log for the first failed attempt
-    EXPECT_CALL(
-        *logger_scope.mock_logger,
-        log(mpl::Level::warning,
-            _,
-            HasSubstr(fmt::format("Failed to get {}: Operation canceled - trying cache.", fake_url.toString()))));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(mpl::Level::warning,
+                    _,
+                    HasSubstr(fmt::format("Failed to get {}: Operation canceled - trying cache.",
+                                          fake_url.toString()))));
 
     // Expect error log for the second failed attempt
     EXPECT_CALL(
         *logger_scope.mock_logger,
-        log(mpl::Level::error, _, HasSubstr(fmt::format("Failed to get {}: Operation canceled", fake_url.toString()))));
+        log(mpl::Level::error,
+            _,
+            HasSubstr(fmt::format("Failed to get {}: Operation canceled", fake_url.toString()))));
 
     // Expect two debug logs for each failure
-    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error"))).Times(2);
+    EXPECT_CALL(*logger_scope.mock_logger, log(mpl::Level::debug, _, StartsWith("Qt error")))
+        .Times(2);
 
     mp::URLDownloader downloader(cache_dir.path(), 10ms);
 
     mpt::TempDir file_dir;
     QString download_file{file_dir.path() + "/foo.txt"};
 
-    EXPECT_THROW(downloader.download_to(fake_url, download_file, -1, -1, progress_monitor), mp::DownloadException);
+    EXPECT_THROW(downloader.download_to(fake_url, download_file, -1, -1, progress_monitor),
+                 mp::DownloadException);
 
     EXPECT_TRUE(ready_read_fired);
     EXPECT_FALSE(QFile::exists(download_file));
@@ -460,13 +493,14 @@ TEST_F(URLDownloader, fileDownloadWriteFailsLogsErrorAndThrows)
 
     EXPECT_CALL(*mock_reply, abort()).WillOnce([&mock_reply] { mock_reply->abort_operation(); });
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply](auto...) {
-        QTimer::singleShot(0, [&mock_reply] {
-            mock_reply->readyRead();
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply](auto...) {
+            QTimer::singleShot(0, [&mock_reply] {
+                mock_reply->readyRead();
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     EXPECT_CALL(*mock_reply, readData(_, _))
         .WillOnce([&test_data](char* data, auto) {
@@ -537,13 +571,14 @@ TEST_F(URLDownloader, lastModifiedHeaderErrorThrows)
     const QString error_msg{"Host not found"};
     mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
 
-    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillOnce([&mock_reply, &error_msg](auto...) {
-        QTimer::singleShot(0, [&mock_reply, &error_msg] {
-            mock_reply->set_error(QNetworkReply::HostNotFoundError, error_msg);
-            mock_reply->finished();
+    EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
+        .WillOnce([&mock_reply, &error_msg](auto...) {
+            QTimer::singleShot(0, [&mock_reply, &error_msg] {
+                mock_reply->set_error(QNetworkReply::HostNotFoundError, error_msg);
+                mock_reply->finished();
+            });
+            return mock_reply;
         });
-        return mock_reply;
-    });
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(
@@ -566,10 +601,12 @@ struct URLConverter : public URLDownloader
         mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
         QTimer::singleShot(0, [&mock_reply] { mock_reply->finished(); });
 
-        ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault(Return(mock_reply));
+        ON_CALL(*mock_network_access_manager, createRequest(_, _, _))
+            .WillByDefault(Return(mock_reply));
         ON_CALL(*mock_reply, readData(_, _)).WillByDefault(Return(0));
 
-        EXPECT_CALL(*mock_network_access_manager, createRequest(_, Property(&QNetworkRequest::url, Eq(https_url)), _))
+        EXPECT_CALL(*mock_network_access_manager,
+                    createRequest(_, Property(&QNetworkRequest::url, Eq(https_url)), _))
             .WillRepeatedly(Return(mock_reply));
 
         return function(http_url);

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BLUEPRINT_EXCEPTIONS_H
-#define MULTIPASS_BLUEPRINT_EXCEPTIONS_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -29,7 +28,8 @@ class BlueprintMinimumException : public std::runtime_error
 {
 public:
     BlueprintMinimumException(const std::string& type, const std::string& min_val)
-        : runtime_error(fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val))
+        : runtime_error(
+              fmt::format("Requested {} is less than Blueprint minimum of {}", type, min_val))
     {
     }
 };
@@ -46,4 +46,3 @@ public:
     using std::runtime_error::runtime_error;
 };
 } // namespace multipass
-#endif // MULTIPASS_BLUEPRINT_EXCEPTIONS_H

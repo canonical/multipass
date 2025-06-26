@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_H
-#define MULTIPASS_CLIENT_H
+#pragma once
 
 #include <multipass/cert_provider.h>
 #include <multipass/cli/alias_dict.h>
@@ -34,7 +33,7 @@ struct ClientConfig
 {
     const std::string server_address;
     std::unique_ptr<CertProvider> cert_provider;
-    Terminal *term;
+    Terminal* term;
 };
 
 class Client
@@ -65,5 +64,3 @@ void multipass::Client::add_command(Ts&&... params)
     auto cmd = std::make_unique<T>(*stub, term, std::forward<Ts>(params)...);
     commands.push_back(std::move(cmd));
 }
-
-#endif // MULTIPASS_CLIENT_H

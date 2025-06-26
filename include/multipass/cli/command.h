@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_COMMAND_H
-#define MULTIPASS_COMMAND_H
+#pragma once
 
 #include <multipass/callable_traits.h>
 #include <multipass/cli/return_codes.h>
@@ -41,11 +40,13 @@ class Command : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(Rpc::StubInterface& stub, std::ostream& cout, std::ostream& cerr) : stub{&stub}, cout{cout}, cerr{cerr}
+    Command(Rpc::StubInterface& stub, std::ostream& cout, std::ostream& cerr)
+        : stub{&stub}, cout{cout}, cerr{cerr}
     {
     }
 
-    Command(Rpc::StubInterface& stub, Terminal* term) : stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
+    Command(Rpc::StubInterface& stub, Terminal* term)
+        : stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
     {
     }
     virtual ~Command() = default;
@@ -61,14 +62,21 @@ public:
     virtual QString description() const = 0;
 
 protected:
-    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable,
+    template <typename RpcFunc,
+              typename Request,
+              typename SuccessCallable,
+              typename FailureCallable,
               typename StreamingCallback>
-    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success,
-                        FailureCallable&& on_failure, StreamingCallback&& streaming_callback)
+    ReturnCode dispatch(RpcFunc&& rpc_func,
+                        const Request& request,
+                        SuccessCallable&& on_success,
+                        FailureCallable&& on_failure,
+                        StreamingCallback&& streaming_callback)
     {
         check_return_callables(on_success, on_failure);
 
-        using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
+        using Arg0Type =
+            typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = typename std::remove_reference<Arg0Type>::type;
         ReplyType reply;
         auto handle_failure = adapt_failure_handler(on_failure, reply);
@@ -76,7 +84,8 @@ protected:
         auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1);
 
         grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client = rpc_method(&context);
+        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client =
+            rpc_method(&context);
 
         client->Write(request);
 
@@ -108,28 +117,42 @@ protected:
                     multipassd_socket.error() == QLocalSocket::SocketAccessError)
                 {
                     grpc::Status denied_status{
-                        grpc::StatusCode::PERMISSION_DENIED, "multipass socket access denied",
-                        fmt::format("Please check that you have read/write permissions to '{}'", socket_address)};
+                        grpc::StatusCode::PERMISSION_DENIED,
+                        "multipass socket access denied",
+                        fmt::format("Please check that you have read/write permissions to '{}'",
+                                    socket_address)};
                     return handle_failure(denied_status);
                 }
             }
 
             grpc::Status access_error_status{
-                grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket",
-                fmt::format("Please ensure multipassd is running and '{}' is accessible", socket_address)};
+                grpc::StatusCode::NOT_FOUND,
+                "cannot connect to the multipass socket",
+                fmt::format("Please ensure multipassd is running and '{}' is accessible",
+                            socket_address)};
 
             return handle_failure(access_error_status);
         }
     }
 
-    template <typename RpcFunc, typename Request, typename SuccessCallable, typename FailureCallable>
-    ReturnCode dispatch(RpcFunc&& rpc_func, const Request& request, SuccessCallable&& on_success,
+    template <typename RpcFunc,
+              typename Request,
+              typename SuccessCallable,
+              typename FailureCallable>
+    ReturnCode dispatch(RpcFunc&& rpc_func,
+                        const Request& request,
+                        SuccessCallable&& on_success,
                         FailureCallable&& on_failure)
     {
-        using Arg0Type = typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
+        using Arg0Type =
+            typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = typename std::remove_reference<Arg0Type>::type;
-        return dispatch(rpc_func, request, on_success, on_failure,
-                        [this](ReplyType& reply, grpc::ClientReaderWriterInterface<Request, ReplyType>* client) {
+        return dispatch(rpc_func,
+                        request,
+                        on_success,
+                        on_failure,
+                        [this](ReplyType& reply,
+                               grpc::ClientReaderWriterInterface<Request, ReplyType>* client) {
                             if (!reply.log_line().empty())
                             {
                                 cerr << reply.log_line();
@@ -148,8 +171,10 @@ private:
     {
         using SuccessCallableTraits = multipass::callable_traits<SuccessCallable>;
         using FailureCallableTraits = multipass::callable_traits<FailureCallable>;
-        using SuccessCallableArg0Type = std::remove_reference_t<typename SuccessCallableTraits::template arg<0>::type>;
-        using FailureCallableArg0Type = std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
+        using SuccessCallableArg0Type =
+            std::remove_reference_t<typename SuccessCallableTraits::template arg<0>::type>;
+        using FailureCallableArg0Type =
+            std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
 
         static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value);
         static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value);
@@ -160,7 +185,8 @@ private:
 
         if constexpr (FailureCallableTraits::num_args != 1)
         {
-            static_assert(FailureCallableTraits::num_args == 2, "`on_failure` needs to take either 1 or 2 parameters");
+            static_assert(FailureCallableTraits::num_args == 2,
+                          "`on_failure` needs to take either 1 or 2 parameters");
             using FailureCallableArg1Type =
                 std::remove_reference_t<typename FailureCallableTraits::template arg<1>::type>;
             static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
@@ -170,10 +196,12 @@ private:
     }
 
     template <typename FailureCallable, typename Reply>
-    auto adapt_failure_handler(FailureCallable& on_failure, Reply& reply) // lvalue refs ensure args' lifetime continues
+    auto adapt_failure_handler(FailureCallable& on_failure,
+                               Reply& reply) // lvalue refs ensure args' lifetime continues
     {
         return [&on_failure, &reply](grpc::Status status) {
-            (void)reply; // suppress unhelpful warning in clang: https://bugs.llvm.org/show_bug.cgi?id=35450
+            (void)reply; // suppress unhelpful warning in clang:
+                         // https://bugs.llvm.org/show_bug.cgi?id=35450
             if constexpr (multipass::callable_traits<FailureCallable>::num_args == 2)
                 return on_failure(status, reply);
             else
@@ -183,4 +211,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_COMMAND_H

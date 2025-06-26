@@ -45,24 +45,26 @@ std::vector<std::string> words_in(const std::string& filename)
 class Words
 {
 public:
-    Words(const std::string& filename, std::string var_name) : var_name{std::move(var_name)}, words{words_in(filename)}
+    Words(const std::string& filename, std::string var_name)
+        : var_name{std::move(var_name)}, words{words_in(filename)}
     {
     }
 
     void print_to(std::ostream& out)
     {
         out << "const char* " << var_name << "[] =\n{\n";
-        for (auto const& w: words)
+        for (auto const& w : words)
         {
             out << "    \"" << w << "\",\n";
         }
         out << "};\n\n";
     }
+
 private:
     std::string var_name;
     std::vector<std::string> words;
 };
-}
+} // namespace
 
 int main(int argc, char* argv[])
 try
@@ -91,7 +93,7 @@ try
 
     return EXIT_SUCCESS;
 }
-catch(const std::exception& e)
+catch (const std::exception& e)
 {
     std::cerr << "Error: " << e.what() << "\n";
 }

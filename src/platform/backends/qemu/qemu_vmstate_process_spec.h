@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H
-#define MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H
+#pragma once
 
 #include "qemu_base_process_spec.h"
 
@@ -26,7 +25,8 @@ namespace multipass
 class QemuVmStateProcessSpec : public QemuBaseProcessSpec
 {
 public:
-    explicit QemuVmStateProcessSpec(const QString& file_name, const QStringList& platform_args = QStringList());
+    explicit QemuVmStateProcessSpec(const QString& file_name,
+                                    const QStringList& platform_args = QStringList());
 
     QStringList arguments() const override;
 
@@ -36,5 +36,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_QEMU_VMSTATE_PROCESS_SPEC_H

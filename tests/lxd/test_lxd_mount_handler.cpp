@@ -64,14 +64,16 @@ struct LXDMountHandlerTestFixture : public testing::Test
     {
         EXPECT_CALL(mock_network_access_manager, createRequest(_, _, _))
             .Times(AtMost(6))
-            .WillRepeatedly(
-                [](QNetworkAccessManager::Operation, const QNetworkRequest& request, QIODevice* outgoingData) {
-                    return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
-                });
+            .WillRepeatedly([](QNetworkAccessManager::Operation,
+                               const QNetworkRequest& request,
+                               QIODevice* outgoingData) {
+                return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
+            });
 
         EXPECT_CALL(mock_file_ops, status)
             .Times(AtMost(1))
-            .WillRepeatedly(Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
+            .WillRepeatedly(
+                Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
 
         logger_scope.mock_logger->screen_logs(mpl::Level::error);
     }
@@ -107,13 +109,15 @@ struct LXDMountHandlerTestFixture : public testing::Test
                                                             {}};
 };
 
-struct LXDMountHandlerInvalidGidUidParameterTests : public LXDMountHandlerTestFixture,
-                                                    public testing::WithParamInterface<std::tuple<int, int, int, int>>
+struct LXDMountHandlerInvalidGidUidParameterTests
+    : public LXDMountHandlerTestFixture,
+      public testing::WithParamInterface<std::tuple<int, int, int, int>>
 {
 };
 
-struct LXDMountHandlerValidGidUidParameterTests : public LXDMountHandlerTestFixture,
-                                                  public testing::WithParamInterface<std::tuple<int, int>>
+struct LXDMountHandlerValidGidUidParameterTests
+    : public LXDMountHandlerTestFixture,
+      public testing::WithParamInterface<std::tuple<int, int>>
 {
 };
 } // namespace
@@ -128,7 +132,11 @@ TEST_F(LXDMountHandlerTestFixture, startDoesNotThrowIfVMIsStopped)
                                            default_storage_pool,
                                            key_provider};
 
-    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager, &lxd_vm, &key_provider, target_path, vm_mount);
+    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
+                                          &lxd_vm,
+                                          &key_provider,
+                                          target_path,
+                                          vm_mount);
 
     EXPECT_CALL(lxd_vm, current_state).WillOnce(Return(multipass::VirtualMachine::State::stopped));
     const mp::ServerVariant dummy_server;
@@ -145,13 +153,18 @@ TEST_F(LXDMountHandlerTestFixture, startThrowsIfVMIsRunning)
                                            bridge_name,
                                            default_storage_pool,
                                            key_provider};
-    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager, &lxd_vm, &key_provider, target_path, vm_mount);
+    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
+                                          &lxd_vm,
+                                          &key_provider,
+                                          target_path,
+                                          vm_mount);
 
     EXPECT_CALL(lxd_vm, current_state).WillOnce(Return(multipass::VirtualMachine::State::running));
     const mp::ServerVariant dummy_server;
-    MP_EXPECT_THROW_THAT(
-        lxd_mount_handler.activate(dummy_server), mp::NativeMountNeedsStoppedVMException,
-        mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before attempting native mounts."))));
+    MP_EXPECT_THROW_THAT(lxd_mount_handler.activate(dummy_server),
+                         mp::NativeMountNeedsStoppedVMException,
+                         mpt::match_what(AllOf(HasSubstr("Please stop the instance"),
+                                               HasSubstr("before attempting native mounts."))));
 }
 
 TEST_F(LXDMountHandlerTestFixture, stopDoesNotThrowIfVMIsStopped)
@@ -163,7 +176,11 @@ TEST_F(LXDMountHandlerTestFixture, stopDoesNotThrowIfVMIsStopped)
                                            bridge_name,
                                            default_storage_pool,
                                            key_provider};
-    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager, &lxd_vm, &key_provider, target_path, vm_mount);
+    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
+                                          &lxd_vm,
+                                          &key_provider,
+                                          target_path,
+                                          vm_mount);
 
     EXPECT_CALL(lxd_vm, current_state)
         .Times(AtMost(2))
@@ -184,16 +201,21 @@ TEST_F(LXDMountHandlerTestFixture, stopThrowsIfVMIsRunning)
                                            default_storage_pool,
                                            key_provider};
 
-    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager, &lxd_vm, &key_provider, target_path, vm_mount);
+    mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
+                                          &lxd_vm,
+                                          &key_provider,
+                                          target_path,
+                                          vm_mount);
 
     EXPECT_CALL(lxd_vm, current_state).WillOnce(Return(multipass::VirtualMachine::State::stopped));
     const mp::ServerVariant dummy_server;
     lxd_mount_handler.activate(dummy_server);
 
     EXPECT_CALL(lxd_vm, current_state).WillOnce(Return(multipass::VirtualMachine::State::running));
-    MP_EXPECT_THROW_THAT(
-        lxd_mount_handler.deactivate(), std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Please stop the instance"), HasSubstr("before unmount it natively."))));
+    MP_EXPECT_THROW_THAT(lxd_mount_handler.deactivate(),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Please stop the instance"),
+                                               HasSubstr("before unmount it natively."))));
 }
 
 TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
@@ -208,16 +230,22 @@ TEST_P(LXDMountHandlerInvalidGidUidParameterTests, mountWithGidOrUid)
                                  key_provider,
                                  instance_dir.path()};
     const auto& [host_gid, instance_gid, host_uid, instance_uid] = GetParam();
-    const mp::VMMount vm_mount{
-        source_path, {{host_gid, instance_gid}}, {{host_uid, instance_uid}}, mp::VMMount::MountType::Native};
+    const mp::VMMount vm_mount{source_path,
+                               {{host_gid, instance_gid}},
+                               {{host_uid, instance_uid}},
+                               mp::VMMount::MountType::Native};
 
     MP_EXPECT_THROW_THAT(
         lxd_vm.make_native_mount_handler(target_path, vm_mount);
-        , std::runtime_error, mpt::match_what(StrEq("LXD native mount does not accept custom ID mappings.")));
+        ,
+        std::runtime_error,
+        mpt::match_what(StrEq("LXD native mount does not accept custom ID mappings.")));
 }
 
-INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerInvalidGidUidParameterTests,
-                         testing::Values(std::make_tuple(1000, -1, 1000, 1), std::make_tuple(2000, 1, 2000, 1),
+INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation,
+                         LXDMountHandlerInvalidGidUidParameterTests,
+                         testing::Values(std::make_tuple(1000, -1, 1000, 1),
+                                         std::make_tuple(2000, 1, 2000, 1),
                                          std::make_tuple(2000, -1, 2000, 1)));
 
 TEST_P(LXDMountHandlerValidGidUidParameterTests, mountWithGidOrUid)
@@ -241,6 +269,8 @@ TEST_P(LXDMountHandlerValidGidUidParameterTests, mountWithGidOrUid)
     EXPECT_NO_THROW(lxd_vm.make_native_mount_handler(target_path, vm_mount));
 }
 
-INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation, LXDMountHandlerValidGidUidParameterTests,
-                         testing::Values(std::make_tuple(1000, 1000), std::make_tuple(2000, 2000),
+INSTANTIATE_TEST_SUITE_P(mountWithGidOrUidInstantiation,
+                         LXDMountHandlerValidGidUidParameterTests,
+                         testing::Values(std::make_tuple(1000, 1000),
+                                         std::make_tuple(2000, 2000),
                                          std::make_tuple(2000, 2000)));

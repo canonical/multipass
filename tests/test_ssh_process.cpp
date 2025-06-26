@@ -39,7 +39,7 @@ struct SSHProcess : public Test
 };
 } // namespace
 
-TEST_F(SSHProcess, can_retrieve_exit_status)
+TEST_F(SSHProcess, canRetrieveExitStatus)
 {
     ssh_channel_callbacks callbacks{nullptr};
     auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
@@ -52,7 +52,10 @@ TEST_F(SSHProcess, can_retrieve_exit_status)
     auto event_dopoll = [&callbacks, &expected_status](auto...) {
         if (!callbacks)
             return SSH_ERROR;
-        callbacks->channel_exit_status_function(nullptr, nullptr, expected_status, callbacks->userdata);
+        callbacks->channel_exit_status_function(nullptr,
+                                                nullptr,
+                                                expected_status,
+                                                callbacks->userdata);
         return SSH_OK;
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
@@ -60,7 +63,7 @@ TEST_F(SSHProcess, can_retrieve_exit_status)
     EXPECT_THAT(proc.exit_code(), Eq(expected_status));
 }
 
-TEST_F(SSHProcess, exit_code_times_out)
+TEST_F(SSHProcess, exitCodeTimesOut)
 {
     REPLACE(ssh_event_dopoll, [](ssh_event, int timeout) {
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
@@ -70,7 +73,7 @@ TEST_F(SSHProcess, exit_code_times_out)
     EXPECT_THROW(proc.exit_code(std::chrono::milliseconds(1)), std::runtime_error);
 }
 
-TEST_F(SSHProcess, specifies_stderr_correctly)
+TEST_F(SSHProcess, specifiesStderrCorrectly)
 {
     int expected_is_stderr = 0;
     auto channel_read = [&expected_is_stderr](ssh_channel, void*, uint32_t, int is_stderr, int) {
@@ -86,7 +89,7 @@ TEST_F(SSHProcess, specifies_stderr_correctly)
     proc.read_std_error();
 }
 
-TEST_F(SSHProcess, reading_output_returns_empty_if_channel_closed)
+TEST_F(SSHProcess, readingOutputReturnsEmptyIfChannelClosed)
 {
     REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
 
@@ -95,7 +98,7 @@ TEST_F(SSHProcess, reading_output_returns_empty_if_channel_closed)
     EXPECT_TRUE(output.empty());
 }
 
-TEST_F(SSHProcess, reading_failure_returns_empty_if_channel_closed)
+TEST_F(SSHProcess, readingFailureReturnsEmptyIfChannelClosed)
 {
     int channel_closed{0};
     REPLACE(ssh_channel_read_timeout, [&channel_closed](auto...) {
@@ -109,7 +112,7 @@ TEST_F(SSHProcess, reading_failure_returns_empty_if_channel_closed)
     EXPECT_TRUE(output.empty());
 }
 
-TEST_F(SSHProcess, throws_on_read_errors)
+TEST_F(SSHProcess, throwsOnReadErrors)
 {
     REPLACE(ssh_channel_read_timeout, [](auto...) { return -1; });
 
@@ -117,7 +120,7 @@ TEST_F(SSHProcess, throws_on_read_errors)
     EXPECT_THROW(proc.read_std_output(), std::runtime_error);
 }
 
-TEST_F(SSHProcess, read_std_output_returns_empty_string_on_eof)
+TEST_F(SSHProcess, readStdOutputReturnsEmptyStringOnEof)
 {
     REPLACE(ssh_channel_read_timeout, [](auto...) { return 0; });
 
@@ -127,11 +130,12 @@ TEST_F(SSHProcess, read_std_output_returns_empty_string_on_eof)
     EXPECT_TRUE(output.empty());
 }
 
-TEST_F(SSHProcess, can_read_output)
+TEST_F(SSHProcess, canReadOutput)
 {
     std::string expected_output{"some content here"};
     auto remaining = expected_output.size();
-    auto channel_read = [&expected_output, &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+    auto channel_read = [&expected_output,
+                         &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = expected_output.begin() + expected_output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));

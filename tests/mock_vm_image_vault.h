@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_IMAGE_VAULT_H
-#define MULTIPASS_MOCK_IMAGE_VAULT_H
+#pragma once
 
 #include "common.h"
 #include "temp_file.h"
@@ -54,16 +53,20 @@ public:
     MOCK_METHOD(void, remove, (const std::string&), (override));
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
     MOCK_METHOD(void, prune_expired_images, (), (override));
-    MOCK_METHOD(void, update_images, (const FetchType&, const PrepareAction&, const ProgressMonitor&), (override));
+    MOCK_METHOD(void,
+                update_images,
+                (const FetchType&, const PrepareAction&, const ProgressMonitor&),
+                (override));
     MOCK_METHOD(MemorySize, minimum_image_size_for, (const std::string&), (override));
     MOCK_METHOD(void, clone, (const std::string&, const std::string&), (override));
     MOCK_METHOD(VMImageHost*, image_host_for, (const std::string&), (const, override));
-    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>), all_info_for, (const Query&), (const, override));
+    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>),
+                all_info_for,
+                (const Query&),
+                (const, override));
 
 private:
     TempFile dummy_image;
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_MOCK_IMAGE_VAULT_H

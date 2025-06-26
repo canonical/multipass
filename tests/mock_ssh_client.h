@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_CLIENT
-#define MULTIPASS_MOCK_SSH_CLIENT
+#pragma once
 
 #include <premock.hpp>
 
@@ -25,5 +24,3 @@
 DECL_MOCK(ssh_channel_request_shell);
 DECL_MOCK(ssh_channel_request_pty);
 DECL_MOCK(ssh_channel_change_pty_size);
-
-#endif // MULTIPASS_MOCK_SSH_CLIENT

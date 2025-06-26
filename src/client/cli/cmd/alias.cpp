@@ -61,11 +61,16 @@ QString cmd::Alias::description() const
 
 mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("definition", "Alias definition in the form <instance>:<command>", "<definition>");
-    parser->addPositionalArgument("name", "Name given to the alias being defined, defaults to <command>", "[<name>]");
+    parser->addPositionalArgument("definition",
+                                  "Alias definition in the form <instance>:<command>",
+                                  "<definition>");
+    parser->addPositionalArgument("name",
+                                  "Name given to the alias being defined, defaults to <command>",
+                                  "[<name>]");
 
-    QCommandLineOption noAliasDirMappingOption({"n", no_alias_dir_mapping_option},
-                                               "Do not automatically map the host execution path to a mounted path");
+    QCommandLineOption noAliasDirMappingOption(
+        {"n", no_alias_dir_mapping_option},
+        "Do not automatically map the host execution path to a mounted path");
 
     parser->addOptions({noAliasDirMappingOption});
 
@@ -123,8 +128,9 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     auto on_success = [](InfoReply&) { return ReturnCode::Ok; };
 
     auto on_failure = [](grpc::Status& status) {
-        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT ? ReturnCode::CommandLineError
-                                                                         : ReturnCode::DaemonFail;
+        return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT
+                   ? ReturnCode::CommandLineError
+                   : ReturnCode::DaemonFail;
     };
 
     auto ret = dispatch(&RpcMethod::info, info_request, on_success, on_failure);

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LIST_H
-#define MULTIPASS_LIST_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -30,7 +29,7 @@ class List final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     std::vector<std::string> aliases() const override;
@@ -43,6 +42,5 @@ private:
     ListRequest request;
     Formatter* chosen_formatter;
 };
-}
-}
-#endif // MULTIPASS_LIST_H
+} // namespace cmd
+} // namespace multipass

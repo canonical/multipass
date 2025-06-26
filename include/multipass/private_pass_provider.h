@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PRIVATE_PASS_PROVIDER_H
-#define MULTIPASS_PRIVATE_PASS_PROVIDER_H
+#pragma once
 
 namespace multipass
 {
@@ -47,6 +46,5 @@ private:
 } // namespace multipass
 
 template <typename T>
-constexpr const typename multipass::PrivatePassProvider<T>::PrivatePass multipass::PrivatePassProvider<T>::pass;
-
-#endif // MULTIPASS_PRIVATE_PASS_PROVIDER_H
+constexpr const typename multipass::PrivatePassProvider<T>::PrivatePass
+    multipass::PrivatePassProvider<T>::pass;

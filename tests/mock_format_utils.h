@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_FORMAT_UTILS_H
-#define MULTIPASS_MOCK_FORMAT_UTILS_H
+#pragma once
 
 #include "mock_singleton_helpers.h"
 
@@ -29,10 +28,11 @@ class MockFormatUtils : public FormatUtils
 public:
     using FormatUtils::FormatUtils;
 
-    MOCK_METHOD(std::string, convert_to_user_locale, (const google::protobuf::Timestamp&), (const, override));
+    MOCK_METHOD(std::string,
+                convert_to_user_locale,
+                (const google::protobuf::Timestamp&),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFormatUtils, FormatUtils);
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_FORMAT_UTILS_H

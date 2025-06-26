@@ -59,7 +59,8 @@ struct SSHFSMountHandlerTest : public ::Test
     {
         EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
         EXPECT_CALL(mock_file_ops, status)
-            .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
+            .WillOnce(
+                Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
         ON_CALL(mock_file_ops, weakly_canonical).WillByDefault([](const mp::fs::path& path) {
             // Not using weakly_canonical since we don't want symlink resolution on fake paths
             return mp::fs::absolute(path);
@@ -68,8 +69,8 @@ struct SSHFSMountHandlerTest : public ::Test
 
     void TearDown() override
     {
-        // Deliberately spin the event loop to ensure all deleteLater()'ed QObjects are cleaned up, so
-        // the mock tests are performed
+        // Deliberately spin the event loop to ensure all deleteLater()'ed QObjects are cleaned up,
+        // so the mock tests are performed
         qApp->processEvents(QEventLoop::AllEvents);
     }
 
@@ -93,7 +94,8 @@ struct SSHFSMountHandlerTest : public ::Test
     }
 
     mpt::StubSSHKeyProvider key_provider;
-    std::string source_path{mp::fs::absolute("/my/source/path").string()}, target_path{"/the/target/path"};
+    std::string source_path{mp::fs::absolute("/my/source/path").string()},
+        target_path{"/the/target/path"};
     mp::id_mappings gid_mappings{{1, 2}, {3, 4}}, uid_mappings{{5, -1}, {6, 10}};
     mp::VMMount mount{source_path, gid_mappings, uid_mappings, mp::VMMount::MountType::Classic};
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject();
@@ -115,7 +117,7 @@ struct SSHFSMountHandlerTest : public ::Test
     };
 };
 
-TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
+TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
 {
     factory->register_callback(sshfs_server_callback(sshfs_prints_connected));
 
@@ -138,14 +140,16 @@ TEST_F(SSHFSMountHandlerTest, mount_creates_sshfs_process)
     EXPECT_EQ(sshfs_command.arguments[3].toStdString(), source_path);
     EXPECT_EQ(sshfs_command.arguments[4], "/the/target/path");
     // Ordering of the next 2 options not guaranteed, hence the or-s.
-    EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," || sshfs_command.arguments[5] == "5:-1,6:10,");
-    EXPECT_TRUE(sshfs_command.arguments[6] == "3:4,1:2," || sshfs_command.arguments[6] == "1:2,3:4,");
+    EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," ||
+                sshfs_command.arguments[5] == "5:-1,6:10,");
+    EXPECT_TRUE(sshfs_command.arguments[6] == "3:4,1:2," ||
+                sshfs_command.arguments[6] == "1:2,3:4,");
 
     const QString log_level_as_string{QString::number(static_cast<int>(default_log_level))};
     EXPECT_EQ(sshfs_command.arguments[7], log_level_as_string);
 }
 
-TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_exception)
+TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingWithReturnCode9CausesException)
 {
     factory->register_callback(sshfs_server_callback([](mpt::MockProcess* process) {
         mp::ProcessState exit_state;
@@ -163,23 +167,26 @@ TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_with_return_code_9_causes_ex
     EXPECT_TRUE(sshfs_command.command.endsWith("sshfs_server"));
 }
 
-TEST_F(SSHFSMountHandlerTest, sshfs_process_failing_causes_runtime_exception)
+TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingCausesRuntimeException)
 {
     factory->register_callback(sshfs_server_callback([](mpt::MockProcess* process) {
         mp::ProcessState exit_state;
         exit_state.exit_code = 1;
         // Have "sshfs_server" die after short delay
         ON_CALL(*process, read_all_standard_error()).WillByDefault(Return("Whoopsie"));
-        QTimer::singleShot(100, process, [process, exit_state]() { emit process->finished(exit_state); });
+        QTimer::singleShot(100, process, [process, exit_state]() {
+            emit process->finished(exit_state);
+        });
         ON_CALL(*process, process_state()).WillByDefault(Return(exit_state));
     }));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    MP_EXPECT_THROW_THAT(sshfs_mount_handler.activate(&server), std::runtime_error,
+    MP_EXPECT_THROW_THAT(sshfs_mount_handler.activate(&server),
+                         std::runtime_error,
                          mpt::match_what(StrEq("Process returned exit code: 1: Whoopsie")));
 }
 
-TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
+TEST_F(SSHFSMountHandlerTest, stopTerminatesSshfsProcess)
 {
     factory->register_callback(sshfs_server_callback([this](mpt::MockProcess* process) {
         sshfs_prints_connected(process);
@@ -192,7 +199,7 @@ TEST_F(SSHFSMountHandlerTest, stop_terminates_sshfs_process)
     sshfs_mount_handler.deactivate();
 }
 
-TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
+TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsWhichSnapFails)
 {
     auto invoked = false;
     REPLACE(ssh_channel_request_exec, make_exec_that_fails_for({"which snap"}, invoked));
@@ -202,7 +209,7 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_which_snap_fails)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
+TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsNoSnapDirFails)
 {
     auto invoked = false;
     REPLACE(ssh_channel_request_exec,
@@ -213,18 +220,20 @@ TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_no_snap_dir_fails)
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SSHFSMountHandlerTest, throws_install_sshfs_snap_install_fails)
+TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsSnapInstallFails)
 {
     auto invoked = false;
     REPLACE(ssh_channel_request_exec,
-            make_exec_that_fails_for({"sudo snap list multipass-sshfs", "sudo snap install multipass-sshfs"}, invoked));
+            make_exec_that_fails_for(
+                {"sudo snap list multipass-sshfs", "sudo snap install multipass-sshfs"},
+                invoked));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), mp::SSHFSMissingError);
     EXPECT_TRUE(invoked);
 }
 
-TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
+TEST_F(SSHFSMountHandlerTest, installSshfsTimeoutLogsInfo)
 {
     ssh_channel_callbacks callbacks{nullptr};
     auto sleep = false;
@@ -253,7 +262,10 @@ TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
         if (sleep)
             std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
         else
-            callbacks->channel_exit_status_function(nullptr, nullptr, exit_code, callbacks->userdata);
+            callbacks->channel_exit_status_function(nullptr,
+                                                    nullptr,
+                                                    exit_code,
+                                                    callbacks->userdata);
 
         return SSH_OK;
     };
@@ -263,8 +275,10 @@ TEST_F(SSHFSMountHandlerTest, install_sshfs_timeout_logs_info)
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(mpl::Level::error,
                     StrEq("sshfs-mount-handler"),
-                    AllOf(HasSubstr("Could not install 'multipass-sshfs' in 'stub'"), HasSubstr("timed out"))));
+                    AllOf(HasSubstr("Could not install 'multipass-sshfs' in 'stub'"),
+                          HasSubstr("timed out"))));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
-    EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)), mp::SSHFSMissingError);
+    EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)),
+                 mp::SSHFSMissingError);
 }

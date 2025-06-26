@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_STATUS_MONITOR_H
-#define MULTIPASS_VM_STATUS_MONITOR_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "virtual_machine.h"
@@ -42,5 +41,4 @@ public:
 protected:
     VMStatusMonitor() = default;
 };
-}
-#endif // MULTIPASS_VM_STATUS_MONITOR_H
+} // namespace multipass

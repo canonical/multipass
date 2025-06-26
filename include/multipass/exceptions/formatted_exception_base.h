@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FORMATTED_EXCEPTION_BASE_H
-#define MULTIPASS_FORMATTED_EXCEPTION_BASE_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -44,10 +43,10 @@ struct FormattedExceptionBase : public BaseExceptionType
 {
     // These are here for giving nice and understandable compilation errors
     // instead of a 1000 page of cryptic template wall of error message.
-    static_assert(
-        std::is_constructible<BaseExceptionType, std::string>::value ||
-            std::is_constructible<BaseExceptionType, std::error_code, std::string>::value,
-        "BaseExceptionType must either be constructible with (std::string) or (std::error_code, std::string).");
+    static_assert(std::is_constructible<BaseExceptionType, std::string>::value ||
+                      std::is_constructible<BaseExceptionType, std::error_code, std::string>::value,
+                  "BaseExceptionType must either be constructible with (std::string) or "
+                  "(std::error_code, std::string).");
     static_assert(std::is_base_of<std::exception, BaseExceptionType>::value,
                   "BaseExceptionType must derive from std::exception");
 
@@ -136,5 +135,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_FORMATTED_EXCEPTION_BASE_H

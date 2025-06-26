@@ -57,8 +57,9 @@ namespace
 {
 constexpr auto category = "utils";
 constexpr auto scrypt_hash_size{64};
-}
-mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept : Singleton<Utils>::Singleton{pass}
+} // namespace
+mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept
+    : Singleton<Utils>::Singleton{pass}
 {
 }
 
@@ -72,7 +73,9 @@ void mp::Utils::exit(int code) const
     std::exit(code);
 }
 
-std::string mp::Utils::run_cmd_for_output(const QString& cmd, const QStringList& args, const int timeout) const
+std::string mp::Utils::run_cmd_for_output(const QString& cmd,
+                                          const QStringList& args,
+                                          const int timeout) const
 {
     QProcess proc;
     proc.setProgram(cmd);
@@ -84,7 +87,9 @@ std::string mp::Utils::run_cmd_for_output(const QString& cmd, const QStringList&
     return proc.readAllStandardOutput().trimmed().toStdString();
 }
 
-bool mp::Utils::run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout) const
+bool mp::Utils::run_cmd_for_status(const QString& cmd,
+                                   const QStringList& args,
+                                   const int timeout) const
 {
     QProcess proc;
     proc.setProgram(cmd);
@@ -96,7 +101,9 @@ bool mp::Utils::run_cmd_for_status(const QString& cmd, const QStringList& args, 
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
-void mp::Utils::make_file_with_content(const std::string& file_name, const std::string& content, const bool& overwrite)
+void mp::Utils::make_file_with_content(const std::string& file_name,
+                                       const std::string& content,
+                                       const bool& overwrite)
 {
     QFile file(QString::fromStdString(file_name));
     if (!overwrite && MP_FILEOPS.exists(file))
@@ -110,13 +117,16 @@ void mp::Utils::make_file_with_content(const std::string& file_name, const std::
         throw std::runtime_error(
             fmt::format("failed to open file '{}' for writing: {}", file_name, file.errorString()));
 
-    // TODO use a QTextStream instead. Theoretically, this may fail to write it all in one go but still succeed.
-    // In practice, that seems unlikely. See https://stackoverflow.com/a/70933650 for more.
+    // TODO use a QTextStream instead. Theoretically, this may fail to write it all in one go but
+    // still succeed. In practice, that seems unlikely. See https://stackoverflow.com/a/70933650 for
+    // more.
     if (MP_FILEOPS.write(file, content.c_str(), content.size()) != (qint64)content.size())
-        throw std::runtime_error(fmt::format("failed to write to file '{}': {}", file_name, file.errorString()));
+        throw std::runtime_error(
+            fmt::format("failed to write to file '{}': {}", file_name, file.errorString()));
 
     if (!MP_FILEOPS.flush(file)) // flush manually to check return (which QFile::close ignores)
-        throw std::runtime_error(fmt::format("failed to flush file '{}': {}", file_name, file.errorString()));
+        throw std::runtime_error(
+            fmt::format("failed to flush file '{}': {}", file_name, file.errorString()));
 
     return; // file closed, flush called again with errors ignored
 }
@@ -130,8 +140,16 @@ QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
 {
     QByteArray hash(scrypt_hash_size, '\0');
 
-    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(), passphrase.size(), nullptr, 0, 1 << 14, 8, 1, 0,
-                        reinterpret_cast<unsigned char*>(hash.data()), scrypt_hash_size))
+    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(),
+                        passphrase.size(),
+                        nullptr,
+                        0,
+                        1 << 14,
+                        8,
+                        1,
+                        0,
+                        reinterpret_cast<unsigned char*>(hash.data()),
+                        scrypt_hash_size))
         throw std::runtime_error("Cannot generate passphrase hash");
 
     return QString(hash.toHex());
@@ -145,7 +163,8 @@ QDir mp::utils::base_dir(const QString& path)
 
 bool mp::utils::valid_hostname(const std::string& name_string)
 {
-    QRegularExpression matcher{QRegularExpression::anchoredPattern("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])")};
+    QRegularExpression matcher{
+        QRegularExpression::anchoredPattern("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])")};
 
     return matcher.match(QString::fromStdString(name_string)).hasMatch();
 }
@@ -153,21 +172,10 @@ bool mp::utils::valid_hostname(const std::string& name_string)
 bool mp::utils::invalid_target_path(const QString& target_path)
 {
     QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegularExpression matcher{QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
+    QRegularExpression matcher{
+        QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 
     return matcher.match(sanitized_path).hasMatch();
-}
-
-QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
-{
-    auto temp_folder = QFileInfo(filename_template).absoluteDir();
-
-    if (!MP_FILEOPS.mkpath(temp_folder, temp_folder.absolutePath()))
-    {
-        throw std::runtime_error(fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
-    }
-
-    return QTemporaryFile(filename_template);
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
@@ -178,7 +186,8 @@ std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType qu
     fmt::memory_buffer buf;
     for (auto const& arg : args)
     {
-        fmt::format_to(std::back_inserter(buf), "{0} ",
+        fmt::format_to(std::back_inserter(buf),
+                       "{0} ",
                        quote_type == QuoteType::no_quotes ? arg : escape_for_shell(arg));
     }
 
@@ -198,8 +207,8 @@ std::string& mp::utils::trim_newline(std::string& s)
 // Escape all characters which need to be escaped in the shell.
 std::string mp::utils::escape_for_shell(const std::string& in)
 {
-    // If the input string is empty, it means that the shell received an empty string enclosed in quotes and removed
-    // them. It must be quoted again for the shell to recognize it.
+    // If the input string is empty, it means that the shell received an empty string enclosed in
+    // quotes and removed them. It must be quoted again for the shell to recognize it.
     if (in.empty())
     {
         return "\'\'";
@@ -220,8 +229,8 @@ std::string mp::utils::escape_for_shell(const std::string& in)
         else
         {
             // If the character is in one of these code ranges, then it must be escaped.
-            if (c < 0x25 || c > 0x7a || (c > 0x25 && c < 0x2b) || (c > 0x5a && c < 0x5f) || 0x2c == c || 0x3b == c ||
-                0x3c == c || 0x3e == c || 0x3f == c || 0x60 == c)
+            if (c < 0x25 || c > 0x7a || (c > 0x25 && c < 0x2b) || (c > 0x5a && c < 0x5f) ||
+                0x2c == c || 0x3b == c || 0x3c == c || 0x3e == c || 0x3f == c || 0x60 == c)
             {
                 *ret_insert++ = '\\'; // backslash
             }
@@ -236,7 +245,8 @@ std::string mp::utils::escape_for_shell(const std::string& in)
 std::vector<std::string> mp::utils::split(const std::string& string, const std::string& delimiter)
 {
     std::regex regex(delimiter);
-    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1}, std::sregex_token_iterator{}};
+    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1},
+            std::sregex_token_iterator{}};
 }
 
 std::string mp::utils::generate_mac_address()
@@ -259,15 +269,20 @@ bool mp::utils::valid_mac_address(const std::string& mac)
     return match.hasMatch();
 }
 
-// Executes a given command on the given session. Returns the output of the command, with spaces and feeds trimmed.
-std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::string& cmd, bool whisper) const
+// Executes a given command on the given session. Returns the output of the command, with spaces and
+// feeds trimmed.
+std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
+                                          const std::string& cmd,
+                                          bool whisper) const
 {
     auto proc = session.exec(cmd, whisper);
 
     if (auto ec = proc.exit_code() != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
-        mpl::log(mpl::Level::debug, category, fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
         throw mp::SSHExecFailure(error_msg, ec);
     }
 
@@ -275,7 +290,9 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session, const std::st
     return mp::utils::trim_end(output);
 }
 
-mp::Path mp::Utils::make_dir(const QDir& a_dir, const QString& name, std::filesystem::perms permissions) const
+mp::Path mp::Utils::make_dir(const QDir& a_dir,
+                             const QString& name,
+                             std::filesystem::perms permissions) const
 {
     mp::Path dir_path;
     bool success{false};
@@ -309,14 +326,6 @@ mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions
     return make_dir(dir, QString(), permissions);
 }
 
-void mp::utils::remove_directories(const std::vector<QString>& dirs)
-{
-    for (const auto& dir : dirs)
-    {
-        QDir(dir).removeRecursively();
-    }
-}
-
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
 {
     if (subdirectory.isEmpty())
@@ -332,12 +341,14 @@ QString mp::utils::get_multipass_storage()
 
 QString mp::utils::make_uuid(const std::optional<std::string>& seed)
 {
-    auto uuid = seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
+    auto uuid =
+        seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
     return uuid.toString(QUuid::WithoutBraces);
 }
 
-std::string mp::utils::contents_of(const multipass::Path& file_path) // TODO this should protect against long contents
+std::string mp::utils::contents_of(const multipass::Path& file_path)
 {
+    // TODO this should protect against long contents
     const std::string name{file_path.toStdString()};
     std::ifstream in(name, std::ios::in | std::ios::binary);
     if (!in)
@@ -419,7 +430,8 @@ std::string mp::utils::match_line_for(const std::string& output, const std::stri
 
 bool mp::Utils::is_running(const VirtualMachine::State& state) const
 {
-    return state == VirtualMachine::State::running || state == VirtualMachine::State::delayed_shutdown;
+    return state == VirtualMachine::State::running ||
+           state == VirtualMachine::State::delayed_shutdown;
 }
 
 void mp::utils::check_and_create_config_file(const QString& config_file_path)
@@ -428,53 +440,77 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
 
     if (!config_file.exists())
     {
-        MP_UTILS.make_dir({}, QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
+        MP_UTILS.make_dir(
+            {},
+            QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
         config_file.open(QIODevice::WriteOnly);
     }
 }
 
-void mp::utils::process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                                       const QString& category, const int timeout)
+void mp::utils::process_throw_on_error(const QString& program,
+                                       const QStringList& arguments,
+                                       const QString& message,
+                                       const QString& category,
+                                       const int timeout)
 {
     QProcess process;
-    mpl::log(mpl::Level::debug, category.toStdString(),
-             fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    mpl::log(
+        mpl::Level::debug,
+        category.toStdString(),
+        fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     auto success = process.waitForFinished(timeout);
 
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
-        mpl::log(mpl::Level::debug, category.toStdString(),
-                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
-                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+        mpl::log(mpl::Level::debug,
+                 category.toStdString(),
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
+                             program.toStdString(),
+                             process.errorString().toStdString(),
+                             process.exitStatus(),
+                             process.exitCode()));
 
         auto output = process.readAllStandardOutput();
-        throw std::runtime_error(fmt::format(
-            message.toStdString(), output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
+        throw std::runtime_error(fmt::format(message.toStdString(),
+                                             output.isEmpty() ? process.errorString().toStdString()
+                                                              : output.toStdString()));
     }
 }
 
-bool mp::utils::process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                                     const QString& category, mpl::Level level, const int timeout)
+bool mp::utils::process_log_on_error(const QString& program,
+                                     const QStringList& arguments,
+                                     const QString& message,
+                                     const QString& category,
+                                     mpl::Level level,
+                                     const int timeout)
 {
     QProcess process;
-    mpl::log(mpl::Level::debug, category.toStdString(),
-             fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    mpl::log(
+        mpl::Level::debug,
+        category.toStdString(),
+        fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     auto success = process.waitForFinished(timeout);
 
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
-        mpl::log(mpl::Level::debug, category.toStdString(),
-                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}", program.toStdString(),
-                             process.errorString().toStdString(), process.exitStatus(), process.exitCode()));
+        mpl::log(mpl::Level::debug,
+                 category.toStdString(),
+                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
+                             program.toStdString(),
+                             process.errorString().toStdString(),
+                             process.exitStatus(),
+                             process.exitCode()));
 
         auto output = process.readAllStandardOutput();
-        mpl::log(level, category.toStdString(),
+        mpl::log(level,
+                 category.toStdString(),
                  fmt::format(message.toStdString(),
-                             output.isEmpty() ? process.errorString().toStdString() : output.toStdString()));
+                             output.isEmpty() ? process.errorString().toStdString()
+                                              : output.toStdString()));
         return false;
     }
 
@@ -490,14 +526,16 @@ std::string mp::utils::get_resolved_target(mp::SSHSession& session, const std::s
     case '~':
         absolute = MP_UTILS.run_in_ssh_session(
             session,
-            fmt::format("echo ~{}", mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
+            fmt::format("echo ~{}",
+                        mp::utils::escape_for_shell(target.substr(1, target.size() - 1))));
         break;
     case '/':
         absolute = target;
         break;
     default:
-        absolute =
-            MP_UTILS.run_in_ssh_session(session, fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
+        absolute = MP_UTILS.run_in_ssh_session(
+            session,
+            fmt::format("echo $PWD/{}", mp::utils::escape_for_shell(target)));
         break;
     }
 
@@ -505,37 +543,48 @@ std::string mp::utils::get_resolved_target(mp::SSHSession& session, const std::s
 }
 
 // Split a path into existing and to-be-created parts.
-std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& session, const std::string& target)
+std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& session,
+                                                              const std::string& target)
 {
     std::string absolute{get_resolved_target(session, target)};
 
-    std::string existing = MP_UTILS.run_in_ssh_session(
-        session,
-        fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                    absolute));
+    std::string existing =
+        MP_UTILS.run_in_ssh_session(session,
+                                    fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" "
+                                                "]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                                                absolute));
 
     return {existing,
-            QDir(QString::fromStdString(existing)).relativeFilePath(QString::fromStdString(absolute)).toStdString()};
+            QDir(QString::fromStdString(existing))
+                .relativeFilePath(QString::fromStdString(absolute))
+                .toStdString()};
 }
 
 // Create a directory on a given root folder.
-void mp::utils::make_target_dir(mp::SSHSession& session, const std::string& root, const std::string& relative_target)
+void mp::utils::make_target_dir(mp::SSHSession& session,
+                                const std::string& root,
+                                const std::string& relative_target)
 {
-    MP_UTILS.run_in_ssh_session(session,
-                                fmt::format("sudo /bin/bash -c 'cd {:?} && mkdir -p {:?}'", root, relative_target));
+    MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c 'cd {:?} && mkdir -p {:?}'", root, relative_target));
 }
 
 // Set ownership of all directories on a path starting on a given root.
 // Assume it is already created.
-void mp::utils::set_owner_for(mp::SSHSession& session, const std::string& root, const std::string& relative_target,
-                              int vm_user, int vm_group)
+void mp::utils::set_owner_for(mp::SSHSession& session,
+                              const std::string& root,
+                              const std::string& relative_target,
+                              int vm_user,
+                              int vm_group)
 {
-    MP_UTILS.run_in_ssh_session(session,
-                                fmt::format("sudo /bin/bash -c 'cd {:?} && chown -R {}:{} {:?}'",
-                                            root,
-                                            vm_user,
-                                            vm_group,
-                                            relative_target.substr(0, relative_target.find_first_of('/'))));
+    MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c 'cd {:?} && chown -R {}:{} {:?}'",
+                    root,
+                    vm_user,
+                    vm_group,
+                    relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
 mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
@@ -574,13 +623,15 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
 
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,
                                  const std::string& target_network,
-                                 const std::string& bridge_type) -> std::optional<mp::NetworkInterfaceInfo>
+                                 const std::string& bridge_type)
+    -> std::optional<mp::NetworkInterfaceInfo>
 {
-    const auto it = std::find_if(std::cbegin(networks),
-                                 std::cend(networks),
-                                 [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
-                                     return info.type == bridge_type && info.has_link(target_network);
-                                 });
+    const auto it =
+        std::find_if(std::cbegin(networks),
+                     std::cend(networks),
+                     [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
+                         return info.type == bridge_type && info.has_link(target_network);
+                     });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
 }
 
@@ -591,14 +642,16 @@ std::string deprecation_warning_message_driver_concatenated(
         "*** Warning! The {0} driver is deprecated and will be removed in an future "
         "release. ***\n\n";
 
-    constexpr auto driver_deprecation_warning_lxd_part = "Instances will no longer be available in Multipass then, "
-                                                         "but they will remain in LXD.\n\n";
+    constexpr auto driver_deprecation_warning_lxd_part =
+        "Instances will no longer be available in Multipass then, "
+        "but they will remain in LXD.\n\n";
 
     constexpr auto driver_deprecation_warning_libvirt_part =
         "Instances will remain available with the QEMU driver.\n\n";
 
     const std::string deprecation_warning_message_driver_specific_part =
-        driver_name == "lxd" ? driver_deprecation_warning_lxd_part : driver_deprecation_warning_libvirt_part;
+        driver_name == "lxd" ? driver_deprecation_warning_lxd_part
+                             : driver_deprecation_warning_libvirt_part;
 
     return fmt::format(driver_deprecation_warning_template_common_part, driver_name) +
            deprecation_warning_message_driver_specific_part;

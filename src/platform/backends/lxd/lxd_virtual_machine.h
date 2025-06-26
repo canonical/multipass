@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_H
-#define MULTIPASS_LXD_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <QString>
 #include <QUrl>
@@ -60,16 +59,20 @@ public:
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
-    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
+                                                            const VMMount& mount) override;
 
 private:
-    void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                    const NetworkInterface& extra_interface) const override;
-    void apply_extra_interfaces_and_instance_id_to_cloud_init(const std::string& default_mac_addr,
-                                                              const std::vector<NetworkInterface>& extra_interfaces,
-                                                              const std::string& new_instance_id) const override
+    void add_extra_interface_to_instance_cloud_init(
+        const std::string& default_mac_addr,
+        const NetworkInterface& extra_interface) const override;
+    void apply_extra_interfaces_and_instance_id_to_cloud_init(
+        const std::string& default_mac_addr,
+        const std::vector<NetworkInterface>& extra_interfaces,
+        const std::string& new_instance_id) const override
     {
-        throw NotImplementedOnThisBackendException("apply_extra_interfaces_and_instance_id_to_cloud_init");
+        throw NotImplementedOnThisBackendException(
+            "apply_extra_interfaces_and_instance_id_to_cloud_init");
     }
 
     const QString name;
@@ -89,4 +92,3 @@ private:
     void request_state(const QString& new_state, const QJsonObject& args = {});
 };
 } // namespace multipass
-#endif // MULTIPASS_LXD_VIRTUAL_MACHINE_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PREFER_H
-#define MULTIPASS_PREFER_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -33,7 +32,8 @@ class Prefer final : public Command
 public:
     using Command::Command;
 
-    Prefer(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Prefer(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -49,4 +49,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_PREFER_H

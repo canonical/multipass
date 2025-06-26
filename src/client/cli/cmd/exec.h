@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_EXEC_H
-#define MULTIPASS_EXEC_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -32,7 +31,8 @@ class Exec final : public Command
 public:
     using Command::Command;
 
-    Exec(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Exec(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -41,8 +41,10 @@ public:
     QString short_help() const override;
     QString description() const override;
 
-    static ReturnCode exec_success(const SSHInfoReply& reply, const std::optional<std::string>& dir,
-                                   const std::vector<std::string>& args, Terminal* term);
+    static ReturnCode exec_success(const SSHInfoReply& reply,
+                                   const std::optional<std::string>& dir,
+                                   const std::vector<std::string>& args,
+                                   Terminal* term);
 
 private:
     SSHInfoRequest ssh_info_request;
@@ -53,4 +55,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_EXEC_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VIRTUAL_MACHINE_H
-#define MULTIPASS_BASE_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/logging/log.h>
@@ -46,7 +45,9 @@ public:
                        const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
                        const Path& instance_dir);
-    BaseVirtualMachine(const std::string& vm_name, const SSHKeyProvider& key_provider, const Path& instance_dir);
+    BaseVirtualMachine(const std::string& vm_name,
+                       const SSHKeyProvider& key_provider,
+                       const Path& instance_dir);
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
 
@@ -60,7 +61,8 @@ public:
     {
         throw NotImplementedOnThisBackendException("networks");
     }
-    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
+                                                            const VMMount& mount) override
     {
         throw NotImplementedOnThisBackendException("native mounts");
     }
@@ -73,8 +75,8 @@ public:
     std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
     std::shared_ptr<Snapshot> get_snapshot(int index) override;
 
-    // TODO: the VM should know its directory, but that is true of everything in its VMDescription; pulling that from
-    // derived classes is a big refactor
+    // TODO: the VM should know its directory, but that is true of everything in its VMDescription;
+    // pulling that from derived classes is a big refactor
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
                                                   const std::string& snapshot_name,
                                                   const std::string& comment) override;
@@ -96,8 +98,9 @@ protected:
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
 
-    virtual void add_extra_interface_to_instance_cloud_init(const std::string& default_mac_addr,
-                                                            const NetworkInterface& extra_interface) const;
+    virtual void add_extra_interface_to_instance_cloud_init(
+        const std::string& default_mac_addr,
+        const NetworkInterface& extra_interface) const;
     virtual void apply_extra_interfaces_and_instance_id_to_cloud_init(
         const std::string& default_mac_addr,
         const std::vector<NetworkInterface>& extra_interfaces,
@@ -116,9 +119,13 @@ private:
     void load_snapshot(const QString& filename);
 
     auto make_take_snapshot_rollback(SnapshotMap::iterator it);
-    void take_snapshot_rollback_helper(SnapshotMap::iterator it, std::shared_ptr<Snapshot>& old_head, int old_count);
+    void take_snapshot_rollback_helper(SnapshotMap::iterator it,
+                                       std::shared_ptr<Snapshot>& old_head,
+                                       int old_count);
 
-    auto make_common_file_rollback(const Path& file_path, QFile& file, const std::string& old_contents) const;
+    auto make_common_file_rollback(const Path& file_path,
+                                   QFile& file,
+                                   const std::string& old_contents) const;
     void common_file_rollback_helper(const Path& file_path,
                                      QFile& file,
                                      const std::string& old_contents,
@@ -143,7 +150,8 @@ private:
                                       const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
 
-    void update_parents(std::shared_ptr<Snapshot>& deleted_parent, std::vector<Snapshot*>& updated_parents);
+    void update_parents(std::shared_ptr<Snapshot>& deleted_parent,
+                        std::vector<Snapshot*>& updated_parents);
     auto make_parent_update_rollback(const std::shared_ptr<Snapshot>& deleted_parent,
                                      std::vector<Snapshot*>& updated_snapshot_paths) const;
 
@@ -179,5 +187,3 @@ inline void multipass::BaseVirtualMachine::require_snapshots_support() const
 {
     throw NotImplementedOnThisBackendException{"snapshots"};
 }
-
-#endif // MULTIPASS_BASE_VIRTUAL_MACHINE_H

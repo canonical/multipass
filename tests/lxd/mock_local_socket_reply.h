@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_LOCAL_SOCKET_REPLY_H
-#define MULTIPASS_MOCK_LOCAL_SOCKET_REPLY_H
+#pragma once
 
 #include <src/network/local_socket_reply.h>
 
@@ -26,7 +25,8 @@ namespace test
 {
 struct MockLocalSocketReply : public LocalSocketReply
 {
-    MockLocalSocketReply(const QByteArray& data, const QNetworkReply::NetworkError error = QNetworkReply::NoError)
+    MockLocalSocketReply(const QByteArray& data,
+                         const QNetworkReply::NetworkError error = QNetworkReply::NoError)
     {
         content_data = data;
         setError(error, "Error");
@@ -40,5 +40,3 @@ struct MockLocalSocketReply : public LocalSocketReply
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_MOCK_LOCAL_SOCKET_REPLY_H

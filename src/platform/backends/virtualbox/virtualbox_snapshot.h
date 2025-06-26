@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUALBOX_SNAPSHOT_H
-#define MULTIPASS_VIRTUALBOX_SNAPSHOT_H
+#pragma once
 
 #include <shared/base_snapshot.h>
 
@@ -35,7 +34,9 @@ public:
                        const QString& vm_name,
                        const VMSpecs& specs,
                        VirtualBoxVirtualMachine& vm);
-    VirtualBoxSnapshot(const QString& filename, VirtualBoxVirtualMachine& vm, const VirtualMachineDescription& desc);
+    VirtualBoxSnapshot(const QString& filename,
+                       VirtualBoxVirtualMachine& vm,
+                       const VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;
@@ -47,4 +48,3 @@ private:
 };
 
 } // namespace multipass
-#endif // MULTIPASS_VIRTUALBOX_SNAPSHOT_H

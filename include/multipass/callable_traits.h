@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_CALLABLE_TRAITS_H
-#define MULTIPASS_CALLABLE_TRAITS_H
+#pragma once
 
 #include <tuple>
 
@@ -44,12 +43,14 @@ struct callable_traits<T*> : public callable_traits<T>
 
 // Deal with member functions
 template <typename ClassType, typename ReturnType, typename... Args>
-struct callable_traits<ReturnType (ClassType::*)(Args...) const> : public callable_traits<ReturnType(Args...)>
+struct callable_traits<ReturnType (ClassType::*)(Args...) const>
+    : public callable_traits<ReturnType(Args...)>
 {
 };
 
 template <typename ClassType, typename ReturnType, typename... Args>
-struct callable_traits<ReturnType (ClassType::*)(Args...)> : public callable_traits<ReturnType(Args...)>
+struct callable_traits<ReturnType (ClassType::*)(Args...)>
+    : public callable_traits<ReturnType(Args...)>
 {
 };
 
@@ -68,5 +69,4 @@ struct callable_traits<ReturnType(Args...)>
         using type = typename std::tuple_element<N, std::tuple<Args...>>::type;
     };
 };
-}
-#endif // MULTIPASS_CALLABLE_TRAITS_H
+} // namespace multipass

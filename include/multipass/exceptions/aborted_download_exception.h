@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ABORTED_DOWNLOAD_EXCEPTION
-#define MULTIPASS_ABORTED_DOWNLOAD_EXCEPTION
+#pragma once
 
 #include "base_qexception.h"
 
@@ -28,4 +27,3 @@ public:
     using BaseQException::BaseQException;
 };
 } // namespace multipass
-#endif // MULTIPASS_ABORTED_DOWNLOAD_EXCEPTION

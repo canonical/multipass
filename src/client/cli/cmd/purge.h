@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PURGE_H
-#define MULTIPASS_PURGE_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -30,7 +29,8 @@ class Purge final : public Command
 public:
     using Command::Command;
 
-    Purge(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Purge(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -46,4 +46,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_PURGE_H

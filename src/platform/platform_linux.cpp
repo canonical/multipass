@@ -32,10 +32,7 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/lxd/lxd_virtual_machine_factory.h"
-
-#ifdef QEMU_ENABLED
 #include "backends/qemu/qemu_virtual_machine_factory.h"
-#endif
 
 #ifdef VIRTUALBOX_ENABLED
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
@@ -85,18 +82,22 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
     if (type_file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         bool ok;
-        auto got = QTextStream{&type_file}.read(6).toInt(&ok); // 6 chars enough for up to 0xFFFF; 0 returned on failure
+        auto got = QTextStream{&type_file}.read(6).toInt(
+            &ok); // 6 chars enough for up to 0xFFFF; 0 returned on failure
         return ok ? got : default_ret;
     }
 
-    auto snap_hint = mpu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
-    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}.{}", type_file.fileName(), snap_hint));
+    auto snap_hint =
+        mpu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
+    mpl::log(mpl::Level::warning,
+             category,
+             fmt::format("Could not read {}.{}", type_file.fileName(), snap_hint));
 
     return default_ret;
 }
 
-// device types found in Linux source (in drivers/net/): PHY, bareudp, bond, geneve, gtp, macsec, ppp, vxlan, wlan, wwan
-// should be empty for ethernet
+// device types found in Linux source (in drivers/net/): PHY, bareudp, bond, geneve, gtp, macsec,
+// ppp, vxlan, wlan, wwan should be empty for ethernet
 QString get_net_devtype(const QDir& net_dir)
 {
     static constexpr auto max_read = 5000;
@@ -111,7 +112,9 @@ QString get_net_devtype(const QDir& net_dir)
         return devtype_regex.match(contents).captured(1);
     }
 
-    mpl::log(mpl::Level::warning, category, fmt::format("Could not read {}", uevent_file.fileName()));
+    mpl::log(mpl::Level::warning,
+             category,
+             fmt::format("Could not read {}", uevent_file.fileName()));
     return {};
 }
 
@@ -126,8 +129,8 @@ bool is_ethernet(const QDir& net_dir)
 {
     static const auto wireless = QStringLiteral("wireless");
 
-    return !is_virtual_net(net_dir) && !net_dir.exists(wireless) && get_net_type(net_dir) == ARPHRD_ETHER &&
-           get_net_devtype(net_dir).isEmpty();
+    return !is_virtual_net(net_dir) && !net_dir.exists(wireless) &&
+           get_net_type(net_dir) == ARPHRD_ETHER && get_net_devtype(net_dir).isEmpty();
 }
 
 std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
@@ -138,10 +141,13 @@ std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
     if (net_dir.exists(br_nomenclature))
     {
         std::vector<std::string> links;
-        QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        QStringList bridge_members =
+            QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
 
         links.reserve(bridge_members.size());
-        std::transform(bridge_members.cbegin(), bridge_members.cend(), std::back_inserter(links),
+        std::transform(bridge_members.cbegin(),
+                       bridge_members.cend(),
+                       std::back_inserter(links),
                        [](const QString& interface) { return interface.toStdString(); });
 
         return {{std::move(id),
@@ -169,9 +175,10 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
             links.erase(std::remove_if(links.begin(), links.end(), is_unknown),
                         links.end()); // filter links to networks we don't recognize
 
-            net.description =
-                links.empty() ? "Network bridge"
-                              : fmt::format("Network bridge with {}", fmt::join(links.cbegin(), links.cend(), ", "));
+            net.description = links.empty()
+                                  ? "Network bridge"
+                                  : fmt::format("Network bridge with {}",
+                                                fmt::join(links.cbegin(), links.cend(), ", "));
         }
     }
 }
@@ -186,8 +193,8 @@ std::string get_alias_script_path(const std::string& alias)
 std::filesystem::path multipass_final_storage_location()
 {
     const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto mp_final_storage =
-        user_specified_mp_storage.isEmpty() ? mp::utils::snap_common_dir() : user_specified_mp_storage;
+    const auto mp_final_storage = user_specified_mp_storage.isEmpty() ? mp::utils::snap_common_dir()
+                                                                      : user_specified_mp_storage;
     return std::filesystem::path{mp_final_storage.toStdString()};
 }
 } // namespace
@@ -206,7 +213,8 @@ std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
     return ret;
 }
 
-std::pair<QString, QString> multipass::platform::detail::parse_os_release(const QStringList& os_data)
+std::pair<QString, QString> multipass::platform::detail::parse_os_release(
+    const QStringList& os_data)
 {
     const QString id_field = "NAME";
     const QString version_field = "VERSION_ID";
@@ -219,7 +227,8 @@ std::pair<QString, QString> multipass::platform::detail::parse_os_release(const 
     for (const QString& line : os_data)
     {
         QStringList split = line.split('=', Qt::KeepEmptyParts);
-        if (split.length() == 2 && split[1].length() > 2) // Check for at least 1 char between quotes.
+        if (split.length() == 2 &&
+            split[1].length() > 2) // Check for at least 1 char between quotes.
         {
             if (split[0] == id_field)
                 distro_id = strip_quotes(split[1]);
@@ -255,7 +264,8 @@ std::string multipass::platform::detail::read_os_release()
     return "unknown-unknown";
 }
 
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+std::map<std::string, mp::NetworkInterfaceInfo>
+mp::platform::Platform::get_network_interfaces_info() const
 {
     static const auto sysfs = QDir{QStringLiteral("/sys/class/net")};
     return detail::get_network_interfaces_from(sysfs);
@@ -263,14 +273,11 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return
-#ifdef QEMU_ENABLED
-        backend == "qemu" ||
-#endif
+    return backend == "qemu" ||
 #ifdef VIRTUALBOX_ENABLED
-        backend == "virtualbox" ||
+           backend == "virtualbox" ||
 #endif
-        backend == "libvirt" || backend == "lxd";
+           backend == "libvirt" || backend == "lxd";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -288,30 +295,34 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
     }
     else
     {
-        QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+        QString location =
+            MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
         aliases_folder = QDir{location};
     }
 
     return aliases_folder;
 }
 
-void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
+void mp::platform::Platform::create_alias_script(const std::string& alias,
+                                                 const mp::AliasDefinition& def) const
 {
     std::string file_path = get_alias_script_path(alias);
 
-    std::string multipass_exec = mpu::in_multipass_snap()
-                                     ? "exec /usr/bin/snap run multipass"
-                                     : fmt::format("{:?}", QCoreApplication::applicationFilePath().toStdString());
+    std::string multipass_exec =
+        mpu::in_multipass_snap()
+            ? "exec /usr/bin/snap run multipass"
+            : fmt::format("{:?}", QCoreApplication::applicationFilePath().toStdString());
 
     std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + " -- \"${@}\"\n";
 
     MP_UTILS.make_file_with_content(file_path, script, true);
 
-    auto permissions =
-        MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec;
+    auto permissions = MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec |
+                       fs::perms::group_exec | fs::perms::others_exec;
 
     if (!MP_PLATFORM.set_permissions(file_path, permissions))
-        throw std::runtime_error(fmt::format("cannot set permissions to alias script '{}'", file_path));
+        throw std::runtime_error(
+            fmt::format("cannot set permissions to alias script '{}'", file_path));
 }
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias) const
@@ -344,13 +355,7 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
 
 QString mp::platform::Platform::default_driver() const
 {
-    return QStringLiteral(
-#ifdef QEMU_ENABLED
-        "qemu"
-#else
-        "lxd"
-#endif
-    );
+    return QStringLiteral("qemu");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -411,10 +416,8 @@ std::string mp::platform::default_server_address()
 mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
 {
     const auto& driver = MP_SETTINGS.get(mp::driver_key);
-#ifdef QEMU_ENABLED
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir);
-#endif
 
     if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
@@ -430,12 +433,14 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
-std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
+    const mp::SSHFSServerConfig& config)
 {
     return MP_PROCFACTORY.create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
-std::unique_ptr<mp::Process> mp::platform::make_process(std::unique_ptr<mp::ProcessSpec>&& process_spec)
+std::unique_ptr<mp::Process> mp::platform::make_process(
+    std::unique_ptr<mp::ProcessSpec>&& process_spec)
 {
     return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
@@ -461,14 +466,16 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::string multipass::platform::host_version()
 {
-    return mpu::in_multipass_snap() ? multipass::platform::detail::read_os_release()
-                                    : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+    return mpu::in_multipass_snap()
+               ? multipass::platform::detail::read_os_release()
+               : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
 
 std::filesystem::path mp::platform::Platform::get_root_cert_path() const
 {
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
     return mp::utils::in_multipass_snap()
-               ? multipass_final_storage_location() / "data" / daemon_name / "certificates" / root_cert_file_name
+               ? multipass_final_storage_location() / "data" / daemon_name / "certificates" /
+                     root_cert_file_name
                : std::filesystem::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
 }

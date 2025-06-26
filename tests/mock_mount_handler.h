@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_MOUNT_HANDLER_H
-#define MULTIPASS_MOCK_MOUNT_HANDLER_H
+#pragma once
 
 #include <multipass/mount_handler.h>
 
@@ -30,4 +29,3 @@ public:
     MOCK_METHOD(bool, is_active, (), (override));
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_MOUNT_HANDLER_H

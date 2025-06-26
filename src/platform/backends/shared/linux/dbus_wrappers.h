@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DBUS_WRAPPERS_H
-#define MULTIPASS_DBUS_WRAPPERS_H
+#pragma once
 
 #include "multipass/singleton.h"
 
@@ -68,17 +67,28 @@ public:
         return iface->service();
     }
 
-    QDBusMessage call(QDBus::CallMode mode, const QString& method, const QVariant& arg1 = {}, const QVariant& arg2 = {},
-                      const QVariant& arg3 = {}) // three args should be enough for the DBus methods we need
+    QDBusMessage call(
+        QDBus::CallMode mode,
+        const QString& method,
+        const QVariant& arg1 = {},
+        const QVariant& arg2 = {},
+        const QVariant& arg3 = {}) // three args should be enough for the DBus methods we need
     {
-        return call_impl(mode, method, arg1, arg2, arg3); // indirection avoids default args in virtual method
+        return call_impl(mode,
+                         method,
+                         arg1,
+                         arg2,
+                         arg3); // indirection avoids default args in virtual method
     }
 
 protected:
     DBusInterface() = default; // for mocks
 
-    virtual QDBusMessage call_impl(QDBus::CallMode mode, const QString& method, const QVariant& arg1,
-                                   const QVariant& arg2, const QVariant& arg3)
+    virtual QDBusMessage call_impl(QDBus::CallMode mode,
+                                   const QString& method,
+                                   const QVariant& arg1,
+                                   const QVariant& arg2,
+                                   const QVariant& arg3)
     {
         assert(iface);
         if (!arg1.isValid())
@@ -93,8 +103,8 @@ protected:
 
 private:
     friend class DBusConnection;
-    explicit DBusInterface(
-        std::unique_ptr<QDBusInterface>&& iface) noexcept // client creates QDBusInterface, so we can noexcept
+    explicit DBusInterface(std::unique_ptr<QDBusInterface>&&
+                               iface) noexcept // client creates QDBusInterface, so we can noexcept
         : iface{std::move(iface)}
     {
     }
@@ -117,15 +127,17 @@ public:
         return connection.value().lastError();
     }
 
-    virtual std::unique_ptr<DBusInterface> get_interface(const QString& service, const QString& path,
+    virtual std::unique_ptr<DBusInterface> get_interface(const QString& service,
+                                                         const QString& path,
                                                          const QString& interface) const
     {
         auto con = connection.value();
         assert(con.isConnected());
         auto qiface = std::make_unique<QDBusInterface>(service, path, interface, con);
 
-        return std::unique_ptr<DBusInterface>(new DBusInterface(std::move(qiface))); /* std::make_unique can't call
-                                      private ctors, so we call it ourselves; but the ctor is noexcept, so no leaks */
+        return std::unique_ptr<DBusInterface>(
+            new DBusInterface(std::move(qiface))); /* std::make_unique can't call
+    private ctors, so we call it ourselves; but the ctor is noexcept, so no leaks */
     }
 
 protected:
@@ -142,11 +154,13 @@ private:
 class DBusProvider : public Singleton<DBusProvider>
 {
 public:
-    explicit DBusProvider(const Singleton::PrivatePass& pass) : Singleton{pass}, system_bus{/* create_bus = */ true}
+    explicit DBusProvider(const Singleton::PrivatePass& pass)
+        : Singleton{pass}, system_bus{/* create_bus = */ true}
     {
     }
 
-    virtual const DBusConnection& get_system_bus() const // return ref for polymorphism (and no chopping in mocks)
+    virtual const DBusConnection&
+    get_system_bus() const // return ref for polymorphism (and no chopping in mocks)
     {
         return system_bus;
     }
@@ -155,5 +169,3 @@ private:
     DBusConnection system_bus;
 };
 } // namespace multipass::backend::dbus
-
-#endif // MULTIPASS_DBUS_WRAPPERS_H

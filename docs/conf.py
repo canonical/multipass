@@ -70,7 +70,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = "https://documentation.ubuntu.com/multipass"
+ogp_site_url = "https://documentation.ubuntu.com/multipass/en/latest/"
 
 
 # Preview name of the documentation website
@@ -152,6 +152,7 @@ html_context = {
 
 # The following instructions are to display a clickable pencil "Edit" button on every page, in the top-right.
 html_theme_options = {
+    "source_edit_link": "https://github.com/canonical/multipass",
     "source_repository": "https://github.com/canonical/multipass",
     "source_branch": "main",
     "source_directory": "docs/",

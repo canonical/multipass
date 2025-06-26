@@ -23,19 +23,19 @@
 namespace mp = multipass;
 using namespace testing;
 
-TEST(Constants, constants_constraints) {
+TEST(Constants, constantsConstraints)
+{
     EXPECT_NO_THROW(std::stoi(mp::min_cpu_cores));
     EXPECT_NO_THROW(std::stoi(mp::default_cpu_cores));
     EXPECT_NO_THROW(mp::MemorySize{mp::min_memory_size});
     EXPECT_NO_THROW(mp::MemorySize{mp::default_memory_size});
     EXPECT_NO_THROW(mp::MemorySize{mp::min_disk_size});
     EXPECT_NO_THROW(mp::MemorySize{mp::default_disk_size});
- }
+}
 
-TEST(Constants, defaults_greater_or_equal_to_minimums)
+TEST(Constants, defaultsGreaterOrEqualToMinimums)
 {
     EXPECT_GE(mp::MemorySize{mp::default_memory_size}, mp::MemorySize{mp::min_memory_size});
     EXPECT_GE(mp::MemorySize{mp::default_disk_size}, mp::MemorySize{mp::min_disk_size});
     EXPECT_GE(std::stoi(mp::default_cpu_cores), std::stoi(mp::min_cpu_cores));
 }
-

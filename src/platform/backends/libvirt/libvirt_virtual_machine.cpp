@@ -38,7 +38,8 @@ namespace
 auto instance_mac_addr_for(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     std::string mac_addr;
-    std::unique_ptr<char, decltype(free)*> desc{libvirt_wrapper->virDomainGetXMLDesc(domain, 0), free};
+    std::unique_ptr<char, decltype(free)*> desc{libvirt_wrapper->virDomainGetXMLDesc(domain, 0),
+                                                free};
 
     QXmlStreamReader reader(desc.get());
 
@@ -70,11 +71,13 @@ auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper::UPtr
         return ip_address;
     }
 
-    mp::LibVirtVirtualMachine::NetworkUPtr network{libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"),
-                                                   libvirt_wrapper->virNetworkFree};
+    mp::LibVirtVirtualMachine::NetworkUPtr network{
+        libvirt_wrapper->virNetworkLookupByName(connection.get(), "default"),
+        libvirt_wrapper->virNetworkFree};
 
     virNetworkDHCPLeasePtr* leases = nullptr;
-    auto nleases = libvirt_wrapper->virNetworkGetDHCPLeases(network.get(), mac_addr.c_str(), &leases, 0);
+    auto nleases =
+        libvirt_wrapper->virNetworkGetDHCPLeases(network.get(), mac_addr.c_str(), &leases, 0);
 
     auto leases_deleter = [&nleases, &libvirt_wrapper](virNetworkDHCPLeasePtr* leases) {
         for (auto i = 0; i < nleases; ++i)
@@ -84,7 +87,8 @@ auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper::UPtr
         free(leases);
     };
 
-    std::unique_ptr<virNetworkDHCPLeasePtr, decltype(leases_deleter)> leases_ptr{leases, leases_deleter};
+    std::unique_ptr<virNetworkDHCPLeasePtr, decltype(leases_deleter)> leases_ptr{leases,
+                                                                                 leases_deleter};
     if (nleases > 0)
     {
         ip_address.emplace(leases[0]->ipaddr);
@@ -93,10 +97,13 @@ auto instance_ip_for(const std::string& mac_addr, const mp::LibvirtWrapper::UPtr
     return ip_address;
 }
 
-auto host_architecture_for(virConnectPtr connection, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
+auto host_architecture_for(virConnectPtr connection,
+                           const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     std::string arch;
-    std::unique_ptr<char, decltype(free)*> capabilities{libvirt_wrapper->virConnectGetCapabilities(connection), free};
+    std::unique_ptr<char, decltype(free)*> capabilities{
+        libvirt_wrapper->virConnectGetCapabilities(connection),
+        free};
 
     QXmlStreamReader reader(capabilities.get());
 
@@ -114,94 +121,115 @@ auto host_architecture_for(virConnectPtr connection, const mp::LibvirtWrapper::U
     return arch;
 }
 
-auto generate_xml_config_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
+auto generate_xml_config_for(const mp::VirtualMachineDescription& desc,
+                             const std::string& bridge_name,
                              const std::string& arch)
 {
-    static constexpr auto mem_unit = "k"; // see https://libvirt.org/formatdomain.html#elementsMemoryAllocation
-    const auto memory = desc.mem_size.in_kilobytes(); /* floored here, but then "[...] the value will be rounded up to
-    the nearest kibibyte by libvirt, and may be further rounded to the granularity supported by the hypervisor [...]" */
+    static constexpr auto mem_unit =
+        "k"; // see https://libvirt.org/formatdomain.html#elementsMemoryAllocation
+    const auto memory = desc.mem_size.in_kilobytes(); /* floored here, but then "[...] the value
+    will be rounded up to the nearest kibibyte by libvirt, and may be further rounded to the
+    granularity supported by the hypervisor [...]" */
 
     auto qemu_path = fmt::format("/usr/bin/qemu-system-{}", arch);
 
-    return fmt::format(
-        "<domain type=\'kvm\'>\n"
-        "  <name>{}</name>\n"
-        "  <memory unit=\'{}\'>{}</memory>\n"
-        "  <currentMemory unit=\'{}\'>{}</currentMemory>\n"
-        "  <vcpu placement=\'static\'>{}</vcpu>\n"
-        "  <resource>\n"
-        "    <partition>/machine</partition>\n"
-        "  </resource>\n"
-        "  <os>\n"
-        "    <type arch=\'{}\'>hvm</type>\n"
-        "    <boot dev=\'hd\'/>\n"
-        "  </os>\n"
-        "  <features>\n"
-        "    <acpi/>\n"
-        "    <apic/>\n"
-        "    <vmport state=\'off\'/>\n"
-        "  </features>\n"
-        "  <cpu mode=\'host-passthrough\'>\n"
-        "  </cpu>\n"
-        "  <devices>\n"
-        "    <emulator>{}</emulator>\n"
-        "    <disk type=\'file\' device=\'disk\'>\n"
-        "      <driver name=\'qemu\' type=\'qcow2\' discard=\'unmap\'/>\n"
-        "      <source file=\'{}\'/>\n"
-        "      <backingStore/>\n"
-        "      <target dev=\'vda\' bus=\'virtio\'/>\n"
-        "      <alias name=\'virtio-disk0\'/>\n"
-        "    </disk>\n"
-        "    <disk type=\'file\' device=\'disk\'>\n"
-        "      <driver name=\'qemu\' type=\'raw\'/>\n"
-        "      <source file=\'{}\'/>\n"
-        "      <backingStore/>\n"
-        "      <target dev=\'vdb\' bus=\'virtio\'/>\n"
-        "      <alias name=\'virtio-disk1\'/>\n"
-        "    </disk>\n"
-        "    <interface type=\'bridge\'>\n"
-        "      <mac address=\'{}\'/>\n"
-        "      <source bridge=\'{}\'/>\n"
-        "      <target dev=\'vnet0\'/>\n"
-        "      <model type=\'virtio\'/>\n"
-        "      <alias name=\'net0\'/>\n"
-        "    </interface>\n"
-        "    <serial type=\'pty\'>\n"
-        "      <source path=\'/dev/pts/2\'/>\n"
-        "      <target port=\"0\"/>\n"
-        "    </serial>\n"
-        "    <video>\n"
-        "      <model type=\'qxl\' ram=\'65536\' vram=\'65536\' vgamem=\'16384\' heads=\'1\' primary=\'yes\'/>\n"
-        "      <alias name=\'video0\'/>\n"
-        "    </video>\n"
-        "  </devices>\n"
-        "</domain>",
-        desc.vm_name, mem_unit, memory, mem_unit, memory, desc.num_cores, arch, qemu_path,
-        desc.image.image_path.toStdString(), desc.cloud_init_iso.toStdString(), desc.default_mac_address, bridge_name);
+    return fmt::format("<domain type=\'kvm\'>\n"
+                       "  <name>{}</name>\n"
+                       "  <memory unit=\'{}\'>{}</memory>\n"
+                       "  <currentMemory unit=\'{}\'>{}</currentMemory>\n"
+                       "  <vcpu placement=\'static\'>{}</vcpu>\n"
+                       "  <resource>\n"
+                       "    <partition>/machine</partition>\n"
+                       "  </resource>\n"
+                       "  <os>\n"
+                       "    <type arch=\'{}\'>hvm</type>\n"
+                       "    <boot dev=\'hd\'/>\n"
+                       "  </os>\n"
+                       "  <features>\n"
+                       "    <acpi/>\n"
+                       "    <apic/>\n"
+                       "    <vmport state=\'off\'/>\n"
+                       "  </features>\n"
+                       "  <cpu mode=\'host-passthrough\'>\n"
+                       "  </cpu>\n"
+                       "  <devices>\n"
+                       "    <emulator>{}</emulator>\n"
+                       "    <disk type=\'file\' device=\'disk\'>\n"
+                       "      <driver name=\'qemu\' type=\'qcow2\' discard=\'unmap\'/>\n"
+                       "      <source file=\'{}\'/>\n"
+                       "      <backingStore/>\n"
+                       "      <target dev=\'vda\' bus=\'virtio\'/>\n"
+                       "      <alias name=\'virtio-disk0\'/>\n"
+                       "    </disk>\n"
+                       "    <disk type=\'file\' device=\'disk\'>\n"
+                       "      <driver name=\'qemu\' type=\'raw\'/>\n"
+                       "      <source file=\'{}\'/>\n"
+                       "      <backingStore/>\n"
+                       "      <target dev=\'vdb\' bus=\'virtio\'/>\n"
+                       "      <alias name=\'virtio-disk1\'/>\n"
+                       "    </disk>\n"
+                       "    <interface type=\'bridge\'>\n"
+                       "      <mac address=\'{}\'/>\n"
+                       "      <source bridge=\'{}\'/>\n"
+                       "      <target dev=\'vnet0\'/>\n"
+                       "      <model type=\'virtio\'/>\n"
+                       "      <alias name=\'net0\'/>\n"
+                       "    </interface>\n"
+                       "    <serial type=\'pty\'>\n"
+                       "      <source path=\'/dev/pts/2\'/>\n"
+                       "      <target port=\"0\"/>\n"
+                       "    </serial>\n"
+                       "    <video>\n"
+                       "      <model type=\'qxl\' ram=\'65536\' vram=\'65536\' vgamem=\'16384\' "
+                       "heads=\'1\' primary=\'yes\'/>\n"
+                       "      <alias name=\'video0\'/>\n"
+                       "    </video>\n"
+                       "  </devices>\n"
+                       "</domain>",
+                       desc.vm_name,
+                       mem_unit,
+                       memory,
+                       mem_unit,
+                       memory,
+                       desc.num_cores,
+                       arch,
+                       qemu_path,
+                       desc.image.image_path.toStdString(),
+                       desc.cloud_init_iso.toStdString(),
+                       desc.default_mac_address,
+                       bridge_name);
 }
 
-auto domain_by_name_for(const std::string& vm_name, virConnectPtr connection,
+auto domain_by_name_for(const std::string& vm_name,
+                        virConnectPtr connection,
                         const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
-    mp::LibVirtVirtualMachine::DomainUPtr domain{libvirt_wrapper->virDomainLookupByName(connection, vm_name.c_str()),
-                                                 libvirt_wrapper->virDomainFree};
-
-    return domain;
-}
-
-auto domain_by_definition_for(const mp::VirtualMachineDescription& desc, const std::string& bridge_name,
-                              virConnectPtr connection, const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
-{
     mp::LibVirtVirtualMachine::DomainUPtr domain{
-        libvirt_wrapper->virDomainDefineXML(
-            connection,
-            generate_xml_config_for(desc, bridge_name, host_architecture_for(connection, libvirt_wrapper)).c_str()),
+        libvirt_wrapper->virDomainLookupByName(connection, vm_name.c_str()),
         libvirt_wrapper->virDomainFree};
 
     return domain;
 }
 
-auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMachine::State& current_instance_state,
+auto domain_by_definition_for(const mp::VirtualMachineDescription& desc,
+                              const std::string& bridge_name,
+                              virConnectPtr connection,
+                              const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
+{
+    mp::LibVirtVirtualMachine::DomainUPtr domain{
+        libvirt_wrapper->virDomainDefineXML(
+            connection,
+            generate_xml_config_for(desc,
+                                    bridge_name,
+                                    host_architecture_for(connection, libvirt_wrapper))
+                .c_str()),
+        libvirt_wrapper->virDomainFree};
+
+    return domain;
+}
+
+auto refresh_instance_state_for_domain(virDomainPtr domain,
+                                       const mp::VirtualMachine::State& current_instance_state,
                                        const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     auto domain_state{0};
@@ -215,13 +243,19 @@ auto refresh_instance_state_for_domain(virDomainPtr domain, const mp::VirtualMac
 
     // Most of these libvirt domain states don't have a Multipass instance state
     // analogue, so we'll treat them as "off".
-    const auto domain_off_states = {VIR_DOMAIN_BLOCKED, VIR_DOMAIN_PAUSED,  VIR_DOMAIN_SHUTDOWN,
-                                    VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_CRASHED, VIR_DOMAIN_PMSUSPENDED};
+    const auto domain_off_states = {VIR_DOMAIN_BLOCKED,
+                                    VIR_DOMAIN_PAUSED,
+                                    VIR_DOMAIN_SHUTDOWN,
+                                    VIR_DOMAIN_SHUTOFF,
+                                    VIR_DOMAIN_CRASHED,
+                                    VIR_DOMAIN_PMSUSPENDED};
 
-    if (std::find(domain_off_states.begin(), domain_off_states.end(), domain_state) != domain_off_states.end())
+    if (std::find(domain_off_states.begin(), domain_off_states.end(), domain_state) !=
+        domain_off_states.end())
         return mp::VirtualMachine::State::off;
 
-    if (domain_state == VIR_DOMAIN_RUNNING && current_instance_state == mp::VirtualMachine::State::off)
+    if (domain_state == VIR_DOMAIN_RUNNING &&
+        current_instance_state == mp::VirtualMachine::State::off)
         return mp::VirtualMachine::State::running;
 
     return current_instance_state;
@@ -239,7 +273,10 @@ bool domain_is_running(virDomainPtr domain, const mp::LibvirtWrapper::UPtr& libv
 }
 
 template <typename Updater, typename Integer>
-void update_max_and_property(virDomainPtr domain_ptr, Updater* fun_ptr, Integer new_value, unsigned int max_flag,
+void update_max_and_property(virDomainPtr domain_ptr,
+                             Updater* fun_ptr,
+                             Integer new_value,
+                             unsigned int max_flag,
                              const std::string& property_name)
 {
     assert(domain_ptr);
@@ -329,15 +366,18 @@ void mp::LibVirtVirtualMachine::start()
         std::string error_string{libvirt_wrapper->virGetLastErrorMessage()};
         if (error_string.find("virtio-net-pci.rom: 0x80000 in != 0x40000") != std::string::npos)
         {
-            error_string = fmt::format("Unable to start suspended instance due to incompatible save image.\n"
-                                       "Please use the following steps to recover:\n"
-                                       "  1. snap refresh multipass --channel core16/beta\n"
-                                       "  2. multipass start {}\n"
-                                       "  3. Save any data in the instance\n"
-                                       "  4. multipass stop {}\n"
-                                       "  5. snap refresh multipass --channel stable\n"
-                                       "  6. multipass start {}\n",
-                                       vm_name, vm_name, vm_name);
+            error_string =
+                fmt::format("Unable to start suspended instance due to incompatible save image.\n"
+                            "Please use the following steps to recover:\n"
+                            "  1. snap refresh multipass --channel core16/beta\n"
+                            "  2. multipass start {}\n"
+                            "  3. Save any data in the instance\n"
+                            "  4. multipass stop {}\n"
+                            "  5. snap refresh multipass --channel stable\n"
+                            "  6. multipass start {}\n",
+                            vm_name,
+                            vm_name,
+                            vm_name);
         }
 
         throw std::runtime_error(error_string);
@@ -381,8 +421,9 @@ void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
         if (libvirt_wrapper->virDomainShutdown(domain.get()) == -1)
         {
-            auto warning_string{
-                fmt::format("Cannot shutdown '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
+            auto warning_string{fmt::format("Cannot shutdown '{}': {}",
+                                            vm_name,
+                                            libvirt_wrapper->virGetLastErrorMessage())};
             mpl::log(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
@@ -395,15 +436,18 @@ void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void mp::LibVirtVirtualMachine::suspend()
 {
-    auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
+    auto domain = domain_by_name_for(vm_name,
+                                     open_libvirt_connection(libvirt_wrapper).get(),
+                                     libvirt_wrapper);
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
     if (state == State::running || state == State::delayed_shutdown)
     {
         drop_ssh_session();
         if (!domain || libvirt_wrapper->virDomainManagedSave(domain.get(), 0) < 0)
         {
-            auto warning_string{
-                fmt::format("Cannot suspend '{}': {}", vm_name, libvirt_wrapper->virGetLastErrorMessage())};
+            auto warning_string{fmt::format("Cannot suspend '{}': {}",
+                                            vm_name,
+                                            libvirt_wrapper->virGetLastErrorMessage())};
             mpl::log(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
@@ -449,7 +493,9 @@ int mp::LibVirtVirtualMachine::ssh_port()
 void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 {
     auto is_vm_running = [this] {
-        auto domain = domain_by_name_for(vm_name, open_libvirt_connection(libvirt_wrapper).get(), libvirt_wrapper);
+        auto domain = domain_by_name_for(vm_name,
+                                         open_libvirt_connection(libvirt_wrapper).get(),
+                                         libvirt_wrapper);
         return domain_is_running(domain.get(), libvirt_wrapper);
     };
 
@@ -458,7 +504,9 @@ void mp::LibVirtVirtualMachine::ensure_vm_is_running()
 
 std::string mp::LibVirtVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> std::optional<IPAddress> { return instance_ip_for(mac_addr, libvirt_wrapper); };
+    auto get_ip = [this]() -> std::optional<IPAddress> {
+        return instance_ip_for(mac_addr, libvirt_wrapper);
+    };
 
     return mp::backend::ip_address_for(this, get_ip, timeout);
 }
@@ -483,7 +531,8 @@ void mp::LibVirtVirtualMachine::update_state()
     monitor->persist_state_for(vm_name, state);
 }
 
-mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_domain_info(virConnectPtr connection)
+mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::initialize_domain_info(
+    virConnectPtr connection)
 {
     auto domain = domain_by_name_for(vm_name, connection, libvirt_wrapper);
 
@@ -508,25 +557,27 @@ mp::LibVirtVirtualMachine::DomainUPtr mp::LibVirtVirtualMachine::checked_vm_doma
 
     auto domain = domain_by_name_for(vm_name, connection.get(), libvirt_wrapper);
     if (!domain)
-        throw std::runtime_error{
-            fmt::format("Could not obtain libvirt domain: {}", libvirt_wrapper->virGetLastErrorMessage())};
+        throw std::runtime_error{fmt::format("Could not obtain libvirt domain: {}",
+                                             libvirt_wrapper->virGetLastErrorMessage())};
 
     return domain;
 }
 
-mp::LibVirtVirtualMachine::ConnectionUPtr
-mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
+mp::LibVirtVirtualMachine::ConnectionUPtr mp::LibVirtVirtualMachine::open_libvirt_connection(
+    const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     if (!libvirt_wrapper)
-        throw std::runtime_error("The libvirt library is not loaded. Please ensure libvirt is installed and running.");
+        throw std::runtime_error(
+            "The libvirt library is not loaded. Please ensure libvirt is installed and running.");
 
-    mp::LibVirtVirtualMachine::ConnectionUPtr connection{libvirt_wrapper->virConnectOpen("qemu:///system"),
-                                                         libvirt_wrapper->virConnectClose};
+    mp::LibVirtVirtualMachine::ConnectionUPtr connection{
+        libvirt_wrapper->virConnectOpen("qemu:///system"),
+        libvirt_wrapper->virConnectClose};
     if (!connection)
     {
-        throw std::runtime_error(
-            fmt::format("Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.",
-                        libvirt_wrapper->virGetLastErrorMessage()));
+        throw std::runtime_error(fmt::format(
+            "Cannot connect to libvirtd: {}\nPlease ensure libvirt is installed and running.",
+            libvirt_wrapper->virGetLastErrorMessage()));
     }
 
     return connection;
@@ -535,8 +586,11 @@ mp::LibVirtVirtualMachine::open_libvirt_connection(const mp::LibvirtWrapper::UPt
 void mp::LibVirtVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
-    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetVcpusFlags, num_cores,
-                            VIR_DOMAIN_VCPU_MAXIMUM, "CPUs");
+    update_max_and_property(checked_vm_domain().get(),
+                            libvirt_wrapper->virDomainSetVcpusFlags,
+                            num_cores,
+                            VIR_DOMAIN_VCPU_MAXIMUM,
+                            "CPUs");
 
     desc.num_cores = num_cores;
 }
@@ -544,8 +598,11 @@ void mp::LibVirtVirtualMachine::update_cpus(int num_cores)
 void mp::LibVirtVirtualMachine::resize_memory(const MemorySize& new_size)
 {
     auto new_size_kb = new_size.in_kilobytes(); /* floored here */
-    update_max_and_property(checked_vm_domain().get(), libvirt_wrapper->virDomainSetMemoryFlags, new_size_kb,
-                            VIR_DOMAIN_MEM_MAXIMUM, "memory");
+    update_max_and_property(checked_vm_domain().get(),
+                            libvirt_wrapper->virDomainSetMemoryFlags,
+                            new_size_kb,
+                            VIR_DOMAIN_MEM_MAXIMUM,
+                            "memory");
 
     desc.mem_size = new_size;
 }

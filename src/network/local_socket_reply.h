@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LOCAL_SOCKET_REPLY_H
-#define MULTIPASS_LOCAL_SOCKET_REPLY_H
+#pragma once
 
 #include <QByteArray>
 #include <QLocalSocket>
@@ -34,7 +33,9 @@ class LocalSocketReply : public QNetworkReply
 {
     Q_OBJECT
 public:
-    LocalSocketReply(LocalSocketUPtr local_socket, const QNetworkRequest& request, QIODevice* outgoingData);
+    LocalSocketReply(LocalSocketUPtr local_socket,
+                     const QNetworkRequest& request,
+                     QIODevice* outgoingData);
     LocalSocketReply();
     virtual ~LocalSocketReply();
 
@@ -62,5 +63,3 @@ private:
     bool chunked_transfer_encoding{false};
 };
 } // namespace multipass
-
-#endif // MULTIPASS_LOCAL_SOCKET_REPLY_H

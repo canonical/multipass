@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_STATUS_MONITOR_H
-#define MULTIPASS_STUB_STATUS_MONITOR_H
+#pragma once
 
 #include <multipass/vm_status_monitor.h>
 
@@ -38,6 +37,5 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
         return QJsonObject();
     };
 };
-}
-}
-#endif // MULTIPASS_STUB_STATUS_MONITOR_H
+} // namespace test
+} // namespace multipass

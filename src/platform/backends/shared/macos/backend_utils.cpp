@@ -45,8 +45,8 @@ QString simplify_mac_address(const QString& input_mac_address)
 
 QString get_arp_output()
 {
-    // -a shows all Address Resolution Protocol(ARP) entries, -n shows numeric IP addresses instead of resolving to
-    // hostnames
+    // -a shows all Address Resolution Protocol(ARP) entries, -n shows numeric IP addresses instead
+    // of resolving to hostnames
     const auto arp_process = mp::platform::make_process(mp::simple_process_spec("arp", {"-an"}));
     const auto arp_exit_state = arp_process->execute();
 
@@ -75,9 +75,11 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
 
     const QString arp_ouput_stream = get_arp_output();
     const QRegularExpression ip_and_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
-    QRegularExpressionMatchIterator iter = ip_and_mac_address_pair_regex.globalMatch(arp_ouput_stream);
+    QRegularExpressionMatchIterator iter =
+        ip_and_mac_address_pair_regex.globalMatch(arp_ouput_stream);
 
-    const QString arp_format_mac_address = simplify_mac_address(QString::fromStdString(mac_address));
+    const QString arp_format_mac_address =
+        simplify_mac_address(QString::fromStdString(mac_address));
     while (iter.hasNext())
     {
         QRegularExpressionMatch match = iter.next();

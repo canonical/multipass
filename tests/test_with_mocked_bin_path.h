@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
-#define MULTIPASS_TEST_WITH_MOCKED_BIN_PATH
+#pragma once
 
 #include "common.h"
 #include "mock_environment_helpers.h"
@@ -29,10 +28,9 @@ struct TestWithMockedBinPath : public testing::Test
 {
     void SetUp() override;
     void TearDown() override;
+
 private:
     std::unique_ptr<SetEnvScope> env;
 };
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_TEST_WITH_MOCKED_BIN_PATH

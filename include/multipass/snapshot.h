@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAPSHOT_H
-#define MULTIPASS_SNAPSHOT_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "virtual_machine.h"
@@ -64,12 +63,12 @@ public:
     virtual void set_parent(std::shared_ptr<Snapshot>) = 0;
 
     // precondition: capture only once
-    virtual void capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
+    virtual void
+    capture() = 0; // not using the constructor, we need snapshot objects for existing snapshots too
     // precondition: call only on captured snapshots
-    virtual void erase() = 0; // not using the destructor, we want snapshots to stick around when daemon quits
+    virtual void
+    erase() = 0; // not using the destructor, we want snapshots to stick around when daemon quits
     // precondition: call only on captured snapshots
     virtual void apply() = 0;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_SNAPSHOT_H

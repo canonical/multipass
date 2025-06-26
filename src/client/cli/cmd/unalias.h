@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UNALIAS_H
-#define MULTIPASS_UNALIAS_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -34,7 +33,8 @@ class Unalias final : public Command
 public:
     using Command::Command;
 
-    Unalias(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Unalias(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -60,4 +60,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_UNALIAS_H

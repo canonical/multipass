@@ -46,17 +46,18 @@ struct QemuPlatformDetail : public Test
     {
         EXPECT_CALL(*mock_backend, get_subnet(_, _)).WillOnce([this](auto...) { return subnet; });
 
-        EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _, _)).WillOnce([this](auto...) {
-            return std::move(mock_dnsmasq_server);
-        });
+        EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _, _))
+            .WillOnce([this](auto...) { return std::move(mock_dnsmasq_server); });
 
-        EXPECT_CALL(*mock_firewall_config_factory, make_firewall_config(_, _)).WillOnce([this](auto...) {
-            return std::move(mock_firewall_config);
-        });
+        EXPECT_CALL(*mock_firewall_config_factory, make_firewall_config(_, _))
+            .WillOnce([this](auto...) { return std::move(mock_firewall_config); });
 
-        EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), _, _)).WillRepeatedly(Return(true));
+        EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), _, _))
+            .WillRepeatedly(Return(true));
         EXPECT_CALL(*mock_utils,
-                    run_cmd_for_status(QString("ip"), QStringList({"addr", "show", multipass_bridge_name}), _))
+                    run_cmd_for_status(QString("ip"),
+                                       QStringList({"addr", "show", multipass_bridge_name}),
+                                       _))
             .WillOnce(Return(false))
             .WillOnce(Return(true));
 
@@ -85,7 +86,8 @@ struct QemuPlatformDetail : public Test
 
     mpt::MockFirewallConfigFactory::GuardedMock firewall_config_factory_attr{
         mpt::MockFirewallConfigFactory::inject<NiceMock>()};
-    mpt::MockFirewallConfigFactory* mock_firewall_config_factory = firewall_config_factory_attr.first;
+    mpt::MockFirewallConfigFactory* mock_firewall_config_factory =
+        firewall_config_factory_attr.first;
 
     mpt::MockFileOps::GuardedMock file_ops_attr{mpt::MockFileOps::inject<NiceMock>()};
     mpt::MockFileOps* mock_file_ops = file_ops_attr.first;
@@ -94,35 +96,50 @@ struct QemuPlatformDetail : public Test
 };
 } // namespace
 
-TEST_F(QemuPlatformDetail, ctor_sets_up_expected_virtual_switch)
+TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitch)
 {
     const QString qstring_subnet{QString::fromStdString(subnet)};
 
-    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"),
-                                                ElementsAre(QString("link"), QString("add"), multipass_bridge_name,
-                                                            QString("address"), _, QString("type"), QString("bridge")),
-                                                _))
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("link"),
+                                               QString("add"),
+                                               multipass_bridge_name,
+                                               QString("address"),
+                                               _,
+                                               QString("type"),
+                                               QString("bridge")),
+                                   _))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"),
-                                                ElementsAre(QString("address"), QString("add"),
-                                                            QString("%1.1/24").arg(qstring_subnet), QString("dev"),
-                                                            multipass_bridge_name, "broadcast",
-                                                            QString("%1.255").arg(qstring_subnet)),
-                                                _))
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("address"),
+                                               QString("add"),
+                                               QString("%1.1/24").arg(qstring_subnet),
+                                               QString("dev"),
+                                               multipass_bridge_name,
+                                               "broadcast",
+                                               QString("%1.255").arg(qstring_subnet)),
+                                   _))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils, run_cmd_for_status(
-                                 QString("ip"),
-                                 ElementsAre(QString("link"), QString("set"), multipass_bridge_name, QString("up")), _))
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(
+            QString("ip"),
+            ElementsAre(QString("link"), QString("set"), multipass_bridge_name, QString("up")),
+            _))
         .WillOnce(Return(true));
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
+TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
 {
     const mp::IPAddress ip_address{fmt::format("{}.5", subnet)};
 
-    EXPECT_CALL(*mock_dnsmasq_server, get_ip_for(hw_addr)).WillOnce([&ip_address](auto...) { return ip_address; });
+    EXPECT_CALL(*mock_dnsmasq_server, get_ip_for(hw_addr)).WillOnce([&ip_address](auto...) {
+        return ip_address;
+    });
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
@@ -131,7 +148,7 @@ TEST_F(QemuPlatformDetail, get_ip_for_returns_expected_info)
     EXPECT_EQ(*addr, ip_address);
 }
 
-TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as_expected)
+TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpected)
 {
     mp::VirtualMachineDescription vm_desc;
     mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
@@ -145,8 +162,10 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
 
     EXPECT_CALL(
         *mock_utils,
-        run_cmd_for_status(QString("ip"),
-                           ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))), _))
+        run_cmd_for_status(
+            QString("ip"),
+            ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
+            _))
         .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
             tap_name = opts.last();
             return false;
@@ -162,32 +181,38 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
 #if defined Q_PROCESSOR_X86
         "-bios", "OVMF.fd",
 #elif defined Q_PROCESSOR_ARM
-        "-bios", "QEMU_EFI.fd",
+        "-bios", "QEMU_EFI.fd", "-machine", "virt",
 #endif
             "--enable-kvm", "-cpu", "host", "-nic",
-            QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
-                                               tap_name,
-                                               vm_desc.default_mac_address)),
+            QString::fromStdString(
+                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+                            tap_name,
+                            vm_desc.default_mac_address)),
             "-nic",
-            QString::fromStdString(fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
-                                               extra_interface.id,
-                                               extra_interface.mac_address,
-                                               QCoreApplication::applicationDirPath() + "/bridge_helper"))
+            QString::fromStdString(
+                fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                            extra_interface.id,
+                            extra_interface.mac_address,
+                            QCoreApplication::applicationDirPath() + "/bridge_helper"))
     };
 
     EXPECT_THAT(platform_args, ElementsAreArray(expected_platform_args));
 
     EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"), ElementsAre(QString("addr"), QString("show"), tap_name), _))
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("addr"), QString("show"), tap_name),
+                                   _))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"), ElementsAre(QString("link"), QString("delete"), tap_name), _))
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("link"), QString("delete"), tap_name),
+                                   _))
         .WillOnce(Return(true));
 
     qemu_platform_detail.remove_resources_for(name);
 }
 
-TEST_F(QemuPlatformDetail, platform_health_check_calls_expected_methods)
+TEST_F(QemuPlatformDetail, platformHealthCheckCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
     EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
@@ -199,20 +224,24 @@ TEST_F(QemuPlatformDetail, platform_health_check_calls_expected_methods)
     qemu_platform_detail.platform_health_check();
 }
 
-TEST_F(QemuPlatformDetail, opening_ipforward_file_failure_logs_expected_message)
+TEST_F(QemuPlatformDetail, openingIpforwardFileFailureLogsExpectedMessage)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning); // warning and above expected explicitly in tests
-    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Unable to open /proc/sys/net/ipv4/ip_forward");
+    logger_scope.mock_logger->screen_logs(
+        mpl::Level::warning); // warning and above expected explicitly in tests
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Unable to open /proc/sys/net/ipv4/ip_forward");
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, writing_ipforward_file_failure_logs_expected_message)
+TEST_F(QemuPlatformDetail, writingIpforwardFileFailureLogsExpectedMessage)
 {
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning); // warning and above expected explicitly in tests
-    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Failed to write to /proc/sys/net/ipv4/ip_forward");
+    logger_scope.mock_logger->screen_logs(
+        mpl::Level::warning); // warning and above expected explicitly in tests
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Failed to write to /proc/sys/net/ipv4/ip_forward");
 
     EXPECT_CALL(*mock_file_ops, write(_, QByteArray("1"))).WillOnce(Return(-1));
 
@@ -223,10 +252,13 @@ TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
 {
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    std::vector<mp::NetworkInterfaceInfo> networks{mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
-                                                   mp::NetworkInterfaceInfo{"mpbr0", "bridge", "", {}, false}};
-    const auto& bridged_network = networks.emplace_back(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, false});
-    const auto& non_bridged_network = networks.emplace_back(mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, false});
+    std::vector<mp::NetworkInterfaceInfo> networks{
+        mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
+        mp::NetworkInterfaceInfo{"mpbr0", "bridge", "", {}, false}};
+    const auto& bridged_network =
+        networks.emplace_back(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, false});
+    const auto& non_bridged_network =
+        networks.emplace_back(mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, false});
 
     qemu_platform_detail.set_authorization(networks);
 
@@ -234,12 +266,13 @@ TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
     EXPECT_TRUE(non_bridged_network.needs_authorization);
 }
 
-TEST_F(QemuPlatformDetail, CreateBridgeWithCallsExpectedMethods)
+TEST_F(QemuPlatformDetail, createBridgeWithCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
 
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
-    EXPECT_EQ(qemu_platform_detail.create_bridge_with(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
+    EXPECT_EQ(qemu_platform_detail.create_bridge_with(
+                  mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
               "br-en0");
 }

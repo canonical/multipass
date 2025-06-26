@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <shared/base_virtual_machine_factory.h>
 
@@ -33,7 +32,8 @@ public:
 
     void prepare_networking(std::vector<NetworkInterface>& vector) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
-    void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
+    void prepare_instance_image(const VMImage& instance_image,
+                                const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_directory_name() const override
     {
@@ -64,5 +64,3 @@ private:
 inline void multipass::VirtualBoxVirtualMachineFactory::require_snapshots_support() const
 {
 }
-
-#endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_FACTORY_H

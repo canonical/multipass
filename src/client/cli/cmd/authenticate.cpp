@@ -36,7 +36,9 @@ mp::ReturnCode cmd::Authenticate::run(mp::ArgParser* parser)
 
     auto on_success = [](mp::AuthenticateReply& reply) { return mp::ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::authenticate, request, on_success, on_failure);
@@ -66,10 +68,11 @@ QString cmd::Authenticate::description() const
 
 mp::ParseCode cmd::Authenticate::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("passphrase",
-                                  "Passphrase to register with the Multipass service. If omitted, a prompt will be "
-                                  "displayed for entering the passphrase.",
-                                  "[<passphrase>]");
+    parser->addPositionalArgument(
+        "passphrase",
+        "Passphrase to register with the Multipass service. If omitted, a prompt will be "
+        "displayed for entering the passphrase.",
+        "[<passphrase>]");
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)

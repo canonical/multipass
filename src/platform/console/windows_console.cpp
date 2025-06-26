@@ -103,7 +103,8 @@ void mp::WindowsConsole::read_console()
                     text_buffer.append(key_event.wRepeatCount, chr);
             }
             break;
-            case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see microsoft/terminal#281)
+            case WINDOW_BUFFER_SIZE_EVENT: // The size in this event isn't reliable in WT (see
+                                           // microsoft/terminal#281)
                 update_ssh_pty_size();     // We obtain it ourselves to update here
                 break;
             default:

@@ -20,6 +20,5 @@ A string identifying the hypervisor back-end in use.
 
 ## Default values
 
-  - `qemu` on macOS and AMD64 Linux
-  - `lxd` (deprecated) on non-AMD64 Linux
+  - `qemu` on macOS and Linux
   - `hyperv` on Windows

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SHARED_BACKEND_UTILS_H
-#define MULTIPASS_SHARED_BACKEND_UTILS_H
+#pragma once
 
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/start_exception.h>
@@ -33,7 +32,9 @@ namespace backend
 using namespace std::chrono_literals;
 
 template <typename Callable>
-std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, std::chrono::milliseconds timeout)
+std::string ip_address_for(VirtualMachine* virtual_machine,
+                           Callable&& get_ip,
+                           std::chrono::milliseconds timeout)
 {
     if (!virtual_machine->management_ip)
     {
@@ -63,7 +64,9 @@ std::string ip_address_for(VirtualMachine* virtual_machine, Callable&& get_ip, s
 }
 
 template <typename Callable>
-void ensure_vm_is_running_for(VirtualMachine* virtual_machine, Callable&& is_vm_running, const std::string& msg)
+void ensure_vm_is_running_for(VirtualMachine* virtual_machine,
+                              Callable&& is_vm_running,
+                              const std::string& msg)
 {
     std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
     if (!is_vm_running())
@@ -75,5 +78,3 @@ void ensure_vm_is_running_for(VirtualMachine* virtual_machine, Callable&& is_vm_
 }
 } // namespace backend
 } // namespace multipass
-
-#endif // MULTIPASS_SHARED_BACKEND_UTILS_H

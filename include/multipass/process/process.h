@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_H
-#define MULTIPASS_PROCESS_H
+#pragma once
 
 #include <QProcessEnvironment>
 #include <QStringList>
@@ -27,20 +26,20 @@
 namespace multipass
 {
 
-/***
+/*
  * ProcessState - encapsulates info on an process
  *
  * Possible states this encapsulates are:
- * +--------------------------------+------------------------+-----------+--------------------------+
- * |             state              | completed_successfully | exit_code |          error           |
- * +--------------------------------+------------------------+-----------+--------------------------+
- * | running                        | false                  | N/A       | N/A.                     |
- * | normal exit (returns 0)        | true                   | set       | N/A.                     |
- * | normal exit (returns non-zero) | false                  | set       | N/A.                     |
- * | failed to start                | false                  | N/A       | FailedToStart            |
- * | crash exit                     | false                  | N/A       | Crashed                  |
- * | timeout                        | false                  | N/A       | Timedout (still running) |
- * +--------------------------------+------------------------+-----------+--------------------------+
+ * +--------------------------------+------------------------+-----------+-------------------------+
+ * |             state              | completed_successfully | exit_code |          error          |
+ * +--------------------------------+------------------------+-----------+-------------------------+
+ * | running                        | false                  | N/A       | N/A.                    |
+ * | normal exit (returns 0)        | true                   | set       | N/A.                    |
+ * | normal exit (returns non-zero) | false                  | set       | N/A.                    |
+ * | failed to start                | false                  | N/A       | FailedToStart           |
+ * | crash exit                     | false                  | N/A       | Crashed                 |
+ * | timeout                        | false                  | N/A       | Timeout (still running) |
+ * +--------------------------------+------------------------+-----------+-------------------------+
  */
 struct ProcessState
 {
@@ -61,7 +60,8 @@ struct ProcessState
         return QString();
     }
 
-    std::optional<int> exit_code; // only set if process stops successfully. Can be set even if success() is false
+    std::optional<int>
+        exit_code; // only set if process stops successfully. Can be set even if success() is false
 
     struct Error
     {
@@ -111,9 +111,10 @@ signals:
     void started();
     void finished(multipass::ProcessState process_state);
     void state_changed(QProcess::ProcessState state); // not running, starting, running
-    void error_occurred(QProcess::ProcessError error,
-                        QString error_string); // FailedToStart (file not found / resource error) Crashed,
-                                               // Timedout, ReadError, WriteError, UnknownError
+    void error_occurred(
+        QProcess::ProcessError error,
+        QString error_string); // FailedToStart (file not found / resource error) Crashed,
+                               // Timedout, ReadError, WriteError, UnknownError
     void ready_read_standard_output();
     void ready_read_standard_error();
 
@@ -123,5 +124,3 @@ protected:
 } // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::ProcessState)
-
-#endif // MULTIPASS_PROCESS_H

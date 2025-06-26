@@ -65,19 +65,26 @@ QString cmd::Get::short_help() const
 
 QString cmd::Get::description() const
 {
-    auto desc = QStringLiteral("Get the configuration setting corresponding to the given key, or all settings if "
-                               "no key is specified.\n(Support for multiple keys and wildcards coming...)");
+    auto desc = QStringLiteral(
+        "Get the configuration setting corresponding to the given key, or all settings if "
+        "no key is specified.\n(Support for multiple keys and wildcards coming...)");
     return desc + "\n\n" + describe_common_settings_keys();
 }
 
 mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("arg", "Setting key, i.e. path to the intended setting.", "[<arg>]");
+    parser->addPositionalArgument("arg",
+                                  "Setting key, i.e. path to the intended setting.",
+                                  "[<arg>]");
 
-    QCommandLineOption raw_option("raw", "Output in raw format. For now, this affects only the representation of empty "
-                                         "values (i.e. \"\" instead of \"<empty>\").");
-    QCommandLineOption keys_option("keys", "List available settings keys. This outputs the whole list of currently "
-                                           "available settings keys, or just <arg>, if provided and a valid key.");
+    QCommandLineOption raw_option(
+        "raw",
+        "Output in raw format. For now, this affects only the representation of empty "
+        "values (i.e. \"\" instead of \"<empty>\").");
+    QCommandLineOption keys_option(
+        "keys",
+        "List available settings keys. This outputs the whole list of currently "
+        "available settings keys, or just <arg>, if provided and a valid key.");
 
     parser->addOption(raw_option);
     parser->addOption(keys_option);
@@ -100,7 +107,8 @@ mp::ParseCode cmd::Get::parse_args(mp::ArgParser* parser)
         }
         else if (!keys_opt) // support 0 or 1 positional arg when --keys is given
         {
-            cerr << "Multiple settings not implemented yet. Please try again with one setting key or just the "
+            cerr << "Multiple settings not implemented yet. Please try again with one setting key "
+                    "or just the "
                     "`--keys` option for now.\n";
             status = ParseCode::CommandLineError;
         }
@@ -113,7 +121,8 @@ void cmd::Get::print_settings() const
 {
     assert(!arg.isEmpty() && "Need single arg until we implement multiple settings");
 
-    if (const auto val = MP_SETTINGS.get(arg); arg == passphrase_key) // TODO integrate into setting specs
+    if (const auto val = MP_SETTINGS.get(arg);
+        arg == passphrase_key) // TODO integrate into setting specs
         cout << (val.isEmpty() ? "false" : "true");
     else if (val.isEmpty() && !raw_opt)
         cout << "<empty>";
@@ -130,8 +139,11 @@ void multipass::cmd::Get::print_keys() const
 
     if (arg.isEmpty())
         fmt::print(cout, format, fmt::join(keys, "\n"));
-    else if (std::find(keys.cbegin(), keys.cend(), arg) != keys.cend()) // TODO implement key globing
-        fmt::print(cout, format, arg); // not very useful, but just a particular case of (intended) glob matching
+    else if (std::find(keys.cbegin(), keys.cend(), arg) !=
+             keys.cend()) // TODO implement key globing
+        fmt::print(cout,
+                   format,
+                   arg); // not very useful, but just a particular case of (intended) glob matching
     else
         throw mp::UnrecognizedSettingException(arg); // wildcards not implemented yet
 }

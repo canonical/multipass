@@ -37,19 +37,19 @@ namespace
 const QByteArray snap_name{"multipass"};
 } // namespace
 
-TEST(Snap, recognizes_in_snap_when_snap_name_is_multipass)
+TEST(Snap, recognizesInSnapWhenSnapNameIsMultipass)
 {
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
     EXPECT_TRUE(mpu::in_multipass_snap());
 }
 
-TEST(Snap, recognizes_not_in_snap_when_snap_name_is_empty)
+TEST(Snap, recognizesNotInSnapWhenSnapNameIsEmpty)
 {
     mpt::UnsetEnvScope env{"SNAP_NAME"};
     EXPECT_FALSE(mpu::in_multipass_snap());
 }
 
-TEST(Snap, recognizes_not_in_snap_when_snap_name_is_otherwise)
+TEST(Snap, recognizesNotInSnapWhenSnapNameIsOtherwise)
 {
     mpt::SetEnvScope env{"SNAP_NAME", "otherwise"};
     EXPECT_FALSE(mpu::in_multipass_snap());
@@ -59,7 +59,7 @@ struct SnapDirs : public TestWithParam<std::pair<const char*, std::function<QByt
 {
 };
 
-TEST_P(SnapDirs, test_snap_dir_no_throw_if_set)
+TEST_P(SnapDirs, testSnapDirNoThrowIfSet)
 {
     const auto& [var, getter] = GetParam();
     mpt::SetEnvScope env(var, "/tmp");
@@ -68,7 +68,7 @@ TEST_P(SnapDirs, test_snap_dir_no_throw_if_set)
     EXPECT_NO_THROW(getter());
 }
 
-TEST_P(SnapDirs, test_snap_dir_throws_if_not_set)
+TEST_P(SnapDirs, testSnapDirThrowsIfNotSet)
 {
     const auto& [var, getter] = GetParam();
     mpt::UnsetEnvScope env(var);
@@ -77,7 +77,7 @@ TEST_P(SnapDirs, test_snap_dir_throws_if_not_set)
     EXPECT_THROW(getter(), mp::SnapEnvironmentException);
 }
 
-TEST_P(SnapDirs, test_snap_dir_throws_when_snap_name_not_set)
+TEST_P(SnapDirs, testSnapDirThrowsWhenSnapNameNotSet)
 {
     const auto& [var, getter] = GetParam();
     QTemporaryDir snap_dir;
@@ -87,7 +87,7 @@ TEST_P(SnapDirs, test_snap_dir_throws_when_snap_name_not_set)
     EXPECT_THROW(getter(), mp::SnapEnvironmentException);
 }
 
-TEST_P(SnapDirs, test_snap_dir_throws_when_snap_name_not_multipass)
+TEST_P(SnapDirs, testSnapDirThrowsWhenSnapNameNotMultipass)
 {
     const auto& [var, getter] = GetParam();
     QByteArray other_name{"foo"};
@@ -98,7 +98,7 @@ TEST_P(SnapDirs, test_snap_dir_throws_when_snap_name_not_multipass)
     EXPECT_THROW(getter(), mp::SnapEnvironmentException);
 }
 
-TEST_P(SnapDirs, test_snap_dir_read_ok)
+TEST_P(SnapDirs, testSnapDirReadOk)
 {
     const auto& [var, getter] = GetParam();
     QTemporaryDir snap_dir;
@@ -108,7 +108,7 @@ TEST_P(SnapDirs, test_snap_dir_read_ok)
     EXPECT_EQ(snap_dir.path(), getter());
 }
 
-TEST_P(SnapDirs, test_snap_dir_resolves_links)
+TEST_P(SnapDirs, testSnapDirResolvesLinks)
 {
     const auto& [var, getter] = GetParam();
     QTemporaryDir snap_dir, link_dir;
@@ -124,4 +124,5 @@ INSTANTIATE_TEST_SUITE_P(SnapUtils,
                          SnapDirs,
                          testing::Values(std::make_pair("SNAP", &mpu::snap_dir),
                                          std::make_pair("SNAP_COMMON", &mpu::snap_common_dir),
-                                         std::make_pair("SNAP_REAL_HOME", &mpu::snap_real_home_dir)));
+                                         std::make_pair("SNAP_REAL_HOME",
+                                                        &mpu::snap_real_home_dir)));

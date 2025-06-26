@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_LIBC_FUNCTIONS_H
-#define MULTIPASS_MOCK_LIBC_FUNCTIONS_H
+#pragma once
 
 #include <premock.hpp>
 
@@ -27,12 +26,11 @@
 DECL_MOCK(getgrnam);
 
 // The following mocks can't use premock directly because they are declared noexcept and the way
-// premock works is that it uses decltype() to get the function types and then uses this when declaring
-// the std::function.  However, in C++17, std::function can no longer be declared with a noexcept type, so
-// to avoid that, we basically do what the premock macros do here but be explicit about the types and
-// not use noexcept.
+// premock works is that it uses decltype() to get the function types and then uses this when
+// declaring the std::function.  However, in C++17, std::function can no longer be declared with a
+// noexcept type, so to avoid that, we basically do what the premock macros do here but be explicit
+// about the types and not use noexcept.
 extern "C" std::function<int(int)> mock_isatty;
 extern "C" std::function<int(FILE*)> mock_fileno;
 extern "C" std::function<int(int, struct termios*)> mock_tcgetattr;
 extern "C" std::function<int(int, int, const struct termios*)> mock_tcsetattr;
-#endif // MULTIPASS_MOCK_LIBC_FUNCTIONS_H

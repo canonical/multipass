@@ -23,14 +23,17 @@ namespace mp = multipass;
 namespace
 {
 QString interpret_bool(QString val)
-{ // constrain accepted values to avoid QVariant::toBool interpreting non-empty strings (such as "nope") as true
+{ // constrain accepted values to avoid QVariant::toBool interpreting non-empty strings (such as
+  // "nope") as true
     static constexpr auto convert_to_true = {"on", "yes", "1"};
     static constexpr auto convert_to_false = {"off", "no", "0"};
     auto lower_val = val.toLower();
 
-    if (std::find(cbegin(convert_to_true), cend(convert_to_true), lower_val) != cend(convert_to_true))
+    if (std::find(cbegin(convert_to_true), cend(convert_to_true), lower_val) !=
+        cend(convert_to_true))
         val = QStringLiteral("true");
-    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), lower_val) != cend(convert_to_false))
+    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), lower_val) !=
+             cend(convert_to_false))
         val = QStringLiteral("false");
 
     return val;
@@ -45,7 +48,8 @@ QString interpret_impl(const QString& key, QString val)
     return ret;
 }
 
-std::pair<QString, QString> munch_params(QString key, QString default_) // work around use after move
+std::pair<QString, QString> munch_params(QString key,
+                                         QString default_) // work around use after move
 {
     auto interpreted_default = interpret_impl(key, std::move(default_));
     return {std::move(key), std::move(interpreted_default)};

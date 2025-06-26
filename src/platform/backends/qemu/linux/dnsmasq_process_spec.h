@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_PROCESS_SPEC_H
-#define MULTIPASS_DNSMASQ_PROCESS_SPEC_H
+#pragma once
 
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
@@ -30,7 +29,9 @@ namespace multipass
 class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
-    explicit DNSMasqProcessSpec(const Path& data_dir, const QString& bridge_name, const std::string& subnet,
+    explicit DNSMasqProcessSpec(const Path& data_dir,
+                                const QString& bridge_name,
+                                const std::string& subnet,
                                 const QString& conf_file_path);
 
     QString program() const override;
@@ -47,5 +48,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_DNSMASQ_PROCESS_SPEC_H

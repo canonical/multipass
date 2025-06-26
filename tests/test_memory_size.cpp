@@ -32,7 +32,8 @@ using namespace testing;
 
 namespace
 {
-constexpr auto kilo = 1024LL; // LL: giga times value higher than 4 would overflow if we used only 4bytes here
+constexpr auto kilo =
+    1024LL; // LL: giga times value higher than 4 would overflow if we used only 4bytes here
 constexpr auto mega = kilo * kilo;
 constexpr auto giga = kilo * mega;
 
@@ -42,7 +43,8 @@ std::string to_str(Num val) // alternative to std::to_string that ignores locale
     return fmt::format("{}", val);
 }
 
-struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, long long, std::string, long long>>
+struct TestGoodMemorySizeFormats
+    : public TestWithParam<std::tuple<long long, long long, std::string, long long>>
 {
     struct UnitSpec
     {
@@ -52,7 +54,7 @@ struct TestGoodMemorySizeFormats : public TestWithParam<std::tuple<long long, lo
         auto gen_unit_args() const
         {
             std::vector<std::tuple<std::string, long long>> ret;
-            for(const auto& suffix : suffixes)
+            for (const auto& suffix : suffixes)
                 ret.emplace_back(suffix, factor);
 
             return ret;
@@ -114,11 +116,12 @@ TEST_P(TestGoodMemorySizeFormats, interpretsValidFormats)
     const auto unit = get<2>(param);
     const auto factor = get<3>(param);
 
-    const auto size =
-        dec < 0 ? mp::MemorySize{to_str(val) + unit} : mp::MemorySize{to_str(val) + "." + to_str(dec) + unit};
+    const auto size = dec < 0 ? mp::MemorySize{to_str(val) + unit}
+                              : mp::MemorySize{to_str(val) + "." + to_str(dec) + unit};
 
     EXPECT_EQ(size.in_bytes(),
-              dec < 0 ? val * factor : val * factor + (long long)((dec * factor) / pow(10, to_str(dec).size())));
+              dec < 0 ? val * factor
+                      : val * factor + (long long)((dec * factor) / pow(10, to_str(dec).size())));
 }
 
 TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
@@ -126,11 +129,37 @@ TEST_P(TestBadMemorySizeFormats, rejectsBadFormats)
     EXPECT_THROW(mp::MemorySize{GetParam()}, mp::InvalidMemorySizeException);
 }
 
-INSTANTIATE_TEST_SUITE_P(MemorySize, TestGoodMemorySizeFormats, ValuesIn(TestGoodMemorySizeFormats::generate_args()));
-INSTANTIATE_TEST_SUITE_P(MemorySize, TestBadMemorySizeFormats,
-                         Values("321BB", "321BK", "1024MM", "1024KM", "1024GK", "K", "", "123.321", "6868i", "555iB",
-                                "486ki", "54Mi", "8i33", "4M2", "-2345", "-5MiB", "K", "4GM", "256.M", "186000.B",
-                                "3.14", ".5g", "4.2B", "42.", "2048.K", " 268. "));
+INSTANTIATE_TEST_SUITE_P(MemorySize,
+                         TestGoodMemorySizeFormats,
+                         ValuesIn(TestGoodMemorySizeFormats::generate_args()));
+INSTANTIATE_TEST_SUITE_P(MemorySize,
+                         TestBadMemorySizeFormats,
+                         Values("321BB",
+                                "321BK",
+                                "1024MM",
+                                "1024KM",
+                                "1024GK",
+                                "K",
+                                "",
+                                "123.321",
+                                "6868i",
+                                "555iB",
+                                "486ki",
+                                "54Mi",
+                                "8i33",
+                                "4M2",
+                                "-2345",
+                                "-5MiB",
+                                "K",
+                                "4GM",
+                                "256.M",
+                                "186000.B",
+                                "3.14",
+                                ".5g",
+                                "4.2B",
+                                "42.",
+                                "2048.K",
+                                " 268. "));
 
 TEST(MemorySize, defaultConstructsToZero)
 {
@@ -322,11 +351,23 @@ TEST_P(TestHumanReadableSizes, producesProperHumanReadableFormat)
     EXPECT_EQ(mp::MemorySize{size}.human_readable(), repr);
 }
 
-INSTANTIATE_TEST_SUITE_P(MemorySize, TestHumanReadableSizes,
-                         Values(mem_repr{"0", "0B"}, mem_repr{"42B", "42B"}, mem_repr{"31", "31B"},
-                                mem_repr{"50B", "50B"}, mem_repr{"999", "999B"}, mem_repr{"1023", "1023B"},
-                                mem_repr{"876b", "876B"}, mem_repr{"9k", "9.0KiB"}, mem_repr{"98kib", "98.0KiB"},
-                                mem_repr{"1024", "1.0KiB"}, mem_repr{"1031", "1.0KiB"}, mem_repr{"999K", "999.0KiB"},
-                                mem_repr{"4096K", "4.0MiB"}, mem_repr{"4546K", "4.4MiB"}, mem_repr{"8653K", "8.5MiB"},
-                                mem_repr{"9999M", "9.8GiB"}, mem_repr{"1234567890", "1.1GiB"},
+INSTANTIATE_TEST_SUITE_P(MemorySize,
+                         TestHumanReadableSizes,
+                         Values(mem_repr{"0", "0B"},
+                                mem_repr{"42B", "42B"},
+                                mem_repr{"31", "31B"},
+                                mem_repr{"50B", "50B"},
+                                mem_repr{"999", "999B"},
+                                mem_repr{"1023", "1023B"},
+                                mem_repr{"876b", "876B"},
+                                mem_repr{"9k", "9.0KiB"},
+                                mem_repr{"98kib", "98.0KiB"},
+                                mem_repr{"1024", "1.0KiB"},
+                                mem_repr{"1031", "1.0KiB"},
+                                mem_repr{"999K", "999.0KiB"},
+                                mem_repr{"4096K", "4.0MiB"},
+                                mem_repr{"4546K", "4.4MiB"},
+                                mem_repr{"8653K", "8.5MiB"},
+                                mem_repr{"9999M", "9.8GiB"},
+                                mem_repr{"1234567890", "1.1GiB"},
                                 mem_repr{"123456G", "123456.0GiB"}));

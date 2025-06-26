@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUAL_MACHINE_H
-#define MULTIPASS_VIRTUAL_MACHINE_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "ip_address.h"
@@ -62,8 +61,8 @@ public:
     {
         Powerdown, // gracefully shut down the vm
         Poweroff,  // forcefully shut down the vm
-        Halt // halt the vm to non-running state. More specifically. suspended and stopped state will remain the same
-             // and running state will be shut down to stopped state
+        Halt // halt the vm to non-running state. More specifically. suspended and stopped state
+             // will remain the same and running state will be shut down to stopped state
     };
 
     using UPtr = std::unique_ptr<VirtualMachine>;
@@ -101,7 +100,8 @@ public:
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
 
-    using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid confusion with C++ views
+    using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
+                                                                        // confusion with C++ views
     virtual SnapshotVista view_snapshots() const = 0;
     virtual int get_num_snapshots() const = 0;
 
@@ -113,8 +113,9 @@ public:
     virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
                                                           const std::string& snapshot_name,
                                                           const std::string& comment) = 0;
-    virtual void rename_snapshot(const std::string& old_name,
-                                 const std::string& new_name) = 0; // only VM can avoid repeated names
+    virtual void rename_snapshot(
+        const std::string& old_name,
+        const std::string& new_name) = 0; // only VM can avoid repeated names
     virtual void delete_snapshot(const std::string& name) = 0;
     virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots() = 0;
@@ -133,7 +134,9 @@ public:
 protected:
     const QDir instance_dir;
 
-    VirtualMachine(VirtualMachine::State state, const std::string& vm_name, const Path& instance_dir)
+    VirtualMachine(VirtualMachine::State state,
+                   const std::string& vm_name,
+                   const Path& instance_dir)
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
     VirtualMachine(const std::string& vm_name, const Path& instance_dir)
         : VirtualMachine(State::off, vm_name, instance_dir){};
@@ -144,5 +147,3 @@ inline QDir multipass::VirtualMachine::instance_directory() const
 {
     return instance_dir; // TODO this should probably only be known at the level of the base VM
 }
-
-#endif // MULTIPASS_VIRTUAL_MACHINE_H

@@ -84,7 +84,7 @@ struct ApparmoredProcessTest : public ApparmoredProcessNoFactoryTest
     const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
 };
 
-TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
+TEST_F(ApparmoredProcessTest, loadsProfileWithApparmor)
 {
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
@@ -97,7 +97,7 @@ TEST_F(ApparmoredProcessTest, loads_profile_with_apparmor)
     EXPECT_TRUE(input.contains(apparmor_profile_text));
 }
 
-TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
+TEST_F(ApparmoredProcessNoFactoryTest, snapEnablesCacheWithExpectedArgs)
 {
     mpt::TempDir cache_dir;
     const QByteArray snap_name{"multipass"};
@@ -113,12 +113,14 @@ TEST_F(ApparmoredProcessNoFactoryTest, snap_enables_cache_with_expected_args)
     ASSERT_TRUE(apparmor_input.open(QIODevice::ReadOnly | QIODevice::Text));
     auto input = apparmor_input.readAll();
 
-    EXPECT_TRUE(input.contains(
-        QString("args: -WL, %1/apparmor.d/cache/multipass, --abort-on-error, -r,").arg(cache_dir.path()).toUtf8()));
+    EXPECT_TRUE(
+        input.contains(QString("args: -WL, %1/apparmor.d/cache/multipass, --abort-on-error, -r,")
+                           .arg(cache_dir.path())
+                           .toUtf8()));
     EXPECT_TRUE(input.contains(apparmor_profile_text));
 }
 
-TEST_F(ApparmoredProcessNoFactoryTest, no_output_file_when_no_apparmor)
+TEST_F(ApparmoredProcessNoFactoryTest, noOutputFileWhenNoApparmor)
 {
     REPLACE(aa_is_enabled, [] { return 0; });
     const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
@@ -127,7 +129,7 @@ TEST_F(ApparmoredProcessNoFactoryTest, no_output_file_when_no_apparmor)
     EXPECT_FALSE(QFile::exists(apparmor_output_file));
 }
 
-TEST_F(ApparmoredProcessTest, unloads_profile_with_apparmor_on_process_out_of_scope)
+TEST_F(ApparmoredProcessTest, unloadsProfileWithApparmorOnProcessOutOfScope)
 {
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
     process.reset();
@@ -142,7 +144,7 @@ TEST_F(ApparmoredProcessTest, unloads_profile_with_apparmor_on_process_out_of_sc
 }
 
 // Copies of tests in LinuxProcessTest
-TEST_F(ApparmoredProcessTest, execute_missing_command)
+TEST_F(ApparmoredProcessTest, executeMissingCommand)
 {
     auto process = process_factory.create_process("a_missing_command");
     auto process_state = process->execute();
@@ -154,7 +156,7 @@ TEST_F(ApparmoredProcessTest, execute_missing_command)
     EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error->state);
 }
 
-TEST_F(ApparmoredProcessTest, execute_crashing_command)
+TEST_F(ApparmoredProcessTest, executeCrashingCommand)
 {
     auto process = process_factory.create_process("mock_process");
     auto process_state = process->execute();
@@ -166,7 +168,7 @@ TEST_F(ApparmoredProcessTest, execute_crashing_command)
     EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error->state);
 }
 
-TEST_F(ApparmoredProcessTest, execute_good_command_with_positive_exit_code)
+TEST_F(ApparmoredProcessTest, executeGoodCommandWithPositiveExitCode)
 {
     const int exit_code = 7;
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
@@ -180,7 +182,7 @@ TEST_F(ApparmoredProcessTest, execute_good_command_with_positive_exit_code)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(ApparmoredProcessTest, execute_good_command_with_zero_exit_code)
+TEST_F(ApparmoredProcessTest, executeGoodCommandWithZeroExitCode)
 {
     const int exit_code = 0;
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
@@ -194,10 +196,11 @@ TEST_F(ApparmoredProcessTest, execute_good_command_with_zero_exit_code)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_ok)
+TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsOk)
 {
     const int exit_code = 7;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process =
+        process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -216,10 +219,11 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_ok)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(ApparmoredProcessTest, process_state_when_runs_but_fails_to_stop)
+TEST_F(ApparmoredProcessTest, processStateWhenRunsButFailsToStop)
 {
     const int exit_code = 2;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process =
+        process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -237,7 +241,7 @@ TEST_F(ApparmoredProcessTest, process_state_when_runs_but_fails_to_stop)
     EXPECT_EQ(QProcess::Timedout, process_state.error->state);
 }
 
-TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
+TEST_F(ApparmoredProcessTest, processStateWhenCrashesOnStart)
 {
     auto process = process_factory.create_process("mock_process"); // will crash immediately
     process->start();
@@ -251,9 +255,10 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_on_start)
     EXPECT_EQ(QProcess::Crashed, process_state.error->state);
 }
 
-TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
+TEST_F(ApparmoredProcessTest, processStateWhenCrashesWhileRunning)
 {
-    auto process = process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
+    auto process =
+        process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
     process->start();
 
     process->write("crash"); // will make mock_process crash
@@ -267,7 +272,7 @@ TEST_F(ApparmoredProcessTest, process_state_when_crashes_while_running)
     EXPECT_EQ(QProcess::Crashed, process_state.error->state);
 }
 
-TEST_F(ApparmoredProcessTest, process_state_when_failed_to_start)
+TEST_F(ApparmoredProcessTest, processStateWhenFailedToStart)
 {
     auto process = process_factory.create_process("a_missing_process");
     process->start();
@@ -281,7 +286,7 @@ TEST_F(ApparmoredProcessTest, process_state_when_failed_to_start)
     EXPECT_EQ(QProcess::FailedToStart, process_state.error->state);
 }
 
-TEST_F(ApparmoredProcessTest, process_state_when_runs_and_stops_immediately)
+TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsImmediately)
 {
     const int exit_code = 7;
     auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
@@ -306,17 +311,21 @@ TEST_F(ApparmoredProcessNoFactoryTest, logsAllExpectedMessagesOnStart)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Using AppArmor support");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Loading AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        fmt::format("Loading AppArmor policy:\n{}", apparmor_profile_text));
 
     const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
-    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Applied AppArmor policy: multipass.test_prog");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         fmt::format("Removing AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                         "Applied AppArmor policy: multipass.test_prog");
     logger_scope.mock_logger->expect_log(
-        mpl::Level::debug, fmt::format("started: {} {}", process->program(), process->arguments().join(' ')));
+        mpl::Level::trace,
+        fmt::format("Removing AppArmor policy:\n{}", apparmor_profile_text));
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::debug,
+        fmt::format("started: {} {}", process->program(), process->arguments().join(' ')));
 
     process->start();
     process->kill();

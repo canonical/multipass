@@ -30,7 +30,8 @@ namespace
 {
 struct TestQemuPlatformDetail : public Test
 {
-    void check_expected_args(const std::vector<QStringList>& expected_args, const QStringList& platform_args)
+    void check_expected_args(const std::vector<QStringList>& expected_args,
+                             const QStringList& platform_args)
     {
         if (expected_args.empty())
         {
@@ -40,7 +41,10 @@ struct TestQemuPlatformDetail : public Test
         {
             for (const auto& args : expected_args)
             {
-                auto it = std::search(platform_args.cbegin(), platform_args.cend(), args.cbegin(), args.cend());
+                auto it = std::search(platform_args.cbegin(),
+                                      platform_args.cend(),
+                                      args.cbegin(),
+                                      args.cend());
 
                 EXPECT_NE(it, platform_args.cend());
             }
@@ -53,11 +57,12 @@ struct TestQemuPlatformDetail : public Test
 };
 } // namespace
 
-TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
+TEST_F(TestQemuPlatformDetail, vmPlatformArgsReturnsExpectedArguments)
 {
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
-        {"-nic", QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
+        {"-nic",
+         QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
         {"-cpu", "host"}};
     mp::VirtualMachineDescription vm_desc;
     vm_desc.vm_name = "foo";
@@ -71,7 +76,7 @@ TEST_F(TestQemuPlatformDetail, vm_platform_args_returns_expected_arguments)
     check_expected_args(expected_args, qemu_platform_detail.vm_platform_args(vm_desc));
 }
 
-TEST_F(TestQemuPlatformDetail, vmstate_platform_args_returns_expected_arguments)
+TEST_F(TestQemuPlatformDetail, vmstatePlatformArgsReturnsExpectedArguments)
 {
     std::vector<QStringList> expected_args;
 
@@ -83,7 +88,7 @@ TEST_F(TestQemuPlatformDetail, vmstate_platform_args_returns_expected_arguments)
     check_expected_args(expected_args, qemu_platform_detail.vmstate_platform_args());
 }
 
-TEST_F(TestQemuPlatformDetail, get_directory_name_returns_expected_string)
+TEST_F(TestQemuPlatformDetail, getDirectoryNameReturnsExpectedString)
 {
     EXPECT_EQ(qemu_platform_detail.get_directory_name(), "qemu");
 }

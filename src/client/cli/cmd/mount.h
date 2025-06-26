@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOUNT_H
-#define MULTIPASS_MOUNT_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -28,7 +27,7 @@ class Mount final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
@@ -39,6 +38,5 @@ private:
 
     ParseCode parse_args(ArgParser* parser);
 };
-}
-}
-#endif // MULTIPASS_MOUNT_H
+} // namespace cmd
+} // namespace multipass

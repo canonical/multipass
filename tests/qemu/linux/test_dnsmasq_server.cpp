@@ -46,7 +46,9 @@ namespace
 {
 struct CapturingLogger : public mp::logging::Logger
 {
-    void log(mpl::Level level, std::string_view /*category*/, std::string_view message) const override
+    void log(mpl::Level level,
+             std::string_view /*category*/,
+             std::string_view message) const override
     {
         logged_lines.emplace_back(message);
     }
@@ -70,9 +72,10 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     {
         mpt::make_file_with_content(
             QDir{data_dir.path()}.filePath("dnsmasq.leases"),
-            fmt::format("0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12",
-                        expected_hw_addr,
-                        expected_ip));
+            fmt::format(
+                "0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12",
+                expected_hw_addr,
+                expected_ip));
     }
 
     void make_lease_entry()
@@ -86,11 +89,13 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
     const QString bridge_name{"dummy-bridge"};
     const std::string subnet{"192.168.64"};
-    const std::string error_subnet{"0.0.0"}; // This forces the mock dnsmasq process to exit with error
+    const std::string error_subnet{
+        "0.0.0"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
     const std::string expected_ip{"10.177.224.22"};
     const std::string lease_entry =
-        "0 "s + hw_addr + " "s + expected_ip + " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
+        "0 "s + hw_addr + " "s + expected_ip +
+        " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 
     mp::DNSMasqServer make_default_dnsmasq_server()
     {
@@ -98,12 +103,12 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     }
 };
 
-TEST_F(DNSMasqServer, starts_dnsmasq_process)
+TEST_F(DNSMasqServer, startsDnsmasqProcess)
 {
     EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), bridge_name, subnet));
 }
 
-TEST_F(DNSMasqServer, finds_ip)
+TEST_F(DNSMasqServer, findsIp)
 {
     auto dns = make_default_dnsmasq_server();
     make_lease_entry();
@@ -114,7 +119,7 @@ TEST_F(DNSMasqServer, finds_ip)
     EXPECT_EQ(ip.value(), mp::IPAddress(expected_ip));
 }
 
-TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
+TEST_F(DNSMasqServer, returnsNullIpWhenLeasesFileDoesNotExist)
 {
     auto dns = make_default_dnsmasq_server();
 
@@ -124,7 +129,7 @@ TEST_F(DNSMasqServer, returns_null_ip_when_leases_file_does_not_exist)
     EXPECT_FALSE(ip);
 }
 
-TEST_F(DNSMasqServer, release_mac_releases_ip)
+TEST_F(DNSMasqServer, releaseMacReleasesIp)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
 
@@ -136,7 +141,7 @@ TEST_F(DNSMasqServer, release_mac_releases_ip)
     EXPECT_TRUE(QFile::exists(dhcp_release_called));
 }
 
-TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
+TEST_F(DNSMasqServer, releaseMacLogsFailureOnMissingIp)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
 
@@ -147,7 +152,7 @@ TEST_F(DNSMasqServer, release_mac_logs_failure_on_missing_ip)
     EXPECT_TRUE(logger->logged_lines.size() > 0);
 }
 
-TEST_F(DNSMasqServer, release_mac_logs_failures)
+TEST_F(DNSMasqServer, releaseMacLogsFailures)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called.fail")};
 
@@ -160,7 +165,7 @@ TEST_F(DNSMasqServer, release_mac_logs_failures)
     EXPECT_TRUE(logger->logged_lines.size() > 0);
 }
 
-TEST_F(DNSMasqServer, release_mac_crashes_logs_failure)
+TEST_F(DNSMasqServer, releaseMacCrashesLogsFailure)
 {
     const QString dhcp_release_called{QDir{data_dir.path()}.filePath("dhcp_release_called")};
     const std::string crash_hw_addr{"00:00:00:00:00:00"};
@@ -171,29 +176,32 @@ TEST_F(DNSMasqServer, release_mac_crashes_logs_failure)
     dns.release_mac(crash_hw_addr);
 
     EXPECT_THAT(logger->logged_lines,
-                Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed", expected_ip, crash_hw_addr)));
+                Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed",
+                                     expected_ip,
+                                     crash_hw_addr)));
 }
 
-TEST_F(DNSMasqServer, dnsmasq_starts_and_does_not_throw)
+TEST_F(DNSMasqServer, dnsmasqStartsAndDoesNotThrow)
 {
     auto dns = make_default_dnsmasq_server();
 
     EXPECT_NO_THROW(dns.check_dnsmasq_running());
 }
 
-TEST_F(DNSMasqServer, dnsmasq_fails_and_throws)
+TEST_F(DNSMasqServer, dnsmasqFailsAndThrows)
 {
-    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}), std::runtime_error);
+    EXPECT_THROW((mp::DNSMasqServer{data_dir.path(), bridge_name, error_subnet}),
+                 std::runtime_error);
 }
 
-TEST_F(DNSMasqServer, dnsmasq_creates_conf_file)
+TEST_F(DNSMasqServer, dnsmasqCreatesConfFile)
 {
     auto dns = make_default_dnsmasq_server();
 
     EXPECT_FALSE(QDir(data_dir.path()).entryList({"dnsmasq-??????.conf"}, QDir::Files).isEmpty());
 }
 
-TEST_F(DNSMasqServer, dnsmasq_creates_empty_dnsmasq_hosts_file)
+TEST_F(DNSMasqServer, dnsmasqCreatesEmptyDnsmasqHostsFile)
 {
     const QString dnsmasq_hosts{QDir{data_dir.path()}.filePath("dnsmasq.hosts")};
     auto dns = make_default_dnsmasq_server();
@@ -205,7 +213,8 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 {
     void SetUp() override
     {
-        logger_scope.mock_logger->screen_logs(mpl::Level::warning); // warning and above expected explicitly in tests
+        logger_scope.mock_logger->screen_logs(
+            mpl::Level::warning); // warning and above expected explicitly in tests
     }
 
     void TearDown() override
@@ -244,12 +253,13 @@ struct DNSMasqServerMockedProcess : public DNSMasqServer
 
     bool forked = false;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope = mpt::MockProcessFactory::Inject();
+    std::unique_ptr<mpt::MockProcessFactory::Scope> factory_scope =
+        mpt::MockProcessFactory::Inject();
 
     inline static const auto exe = mp::DNSMasqProcessSpec{{}, {}, {}, {}}.program();
 };
 
-TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_skips_start_if_already_running)
+TEST_F(DNSMasqServerMockedProcess, dnsmasqCheckSkipsStartIfAlreadyRunning)
 {
     setup([this](auto* process) {
         InSequence seq;
@@ -263,7 +273,7 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_skips_start_if_already_running)
     dns.check_dnsmasq_running();
 }
 
-TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_warns_and_starts_if_not_running)
+TEST_F(DNSMasqServerMockedProcess, dnsmasqCheckWarnsAndStartsIfNotRunning)
 {
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Not running");
     setup([this](auto* process) {
@@ -279,7 +289,7 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_check_warns_and_starts_if_not_running
     dns.check_dnsmasq_running();
 }
 
-TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
+TEST_F(DNSMasqServerMockedProcess, dnsmasqThrowsOnFailureToStart)
 {
     logger_scope.mock_logger->expect_log(mpl::Level::error, "died");
     setup([](auto* process) {
@@ -295,7 +305,7 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_on_failure_to_start)
                          mpt::match_what(HasSubstr("failed to start")));
 }
 
-TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
+TEST_F(DNSMasqServerMockedProcess, dnsmasqThrowsWhenItDiesImmediately)
 {
     constexpr auto msg = "an error msg";
     setup([](auto* process) {
@@ -309,12 +319,13 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasq_throws_when_it_dies_immediately)
         EXPECT_CALL(*process, process_state()).WillOnce(Return(state));
     });
 
-    MP_EXPECT_THROW_THAT(make_default_dnsmasq_server(),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
+    MP_EXPECT_THROW_THAT(
+        make_default_dnsmasq_server(),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(msg), HasSubstr("died"), HasSubstr("port 53"))));
 }
 
-TEST_F(DNSMasqServerMockedProcess, dnsmasq_logs_error_when_it_dies)
+TEST_F(DNSMasqServerMockedProcess, dnsmasqLogsErrorWhenItDies)
 {
     constexpr auto msg = "crash test dummy";
     logger_scope.mock_logger->expect_log(mpl::Level::error, msg);

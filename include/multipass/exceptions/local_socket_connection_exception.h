@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LOCAL_SOCKET_CONNECTION_EXCEPTION_H
-#define MULTIPASS_LOCAL_SOCKET_CONNECTION_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 
@@ -30,4 +29,3 @@ public:
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_HTTP_LOCAL_SOCKET_EXCEPTION_H

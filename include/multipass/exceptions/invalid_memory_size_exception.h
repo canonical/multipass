@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H
-#define MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -29,11 +28,11 @@ class InvalidMemorySizeException : public std::runtime_error
 {
 public:
     InvalidMemorySizeException(const std::string& val)
-        : runtime_error(fmt::format("{} is not a valid memory size - need a non-negative integer (in base 10) "
-                                    "or a decimal followed by K, M, or G (e.g. 1234B, 42MiB, 0.5G)",
-                                    val))
+        : runtime_error(fmt::format(
+              "{} is not a valid memory size - need a non-negative integer (in base 10) "
+              "or a decimal followed by K, M, or G (e.g. 1234B, 42MiB, 0.5G)",
+              val))
     {
     }
 };
 } // namespace multipass
-#endif // MULTIPASS_INVALID_MEMORY_SIZE_EXCEPTION_H

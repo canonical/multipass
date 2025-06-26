@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VM_IMAGE_VAULT_H
-#define MULTIPASS_BASE_VM_IMAGE_VAULT_H
+#pragma once
 
 #include <multipass/format.h>
 #include <multipass/query.h>
@@ -44,7 +43,8 @@ public:
         if (it == remote_image_host_map.end())
         {
             throw std::runtime_error(
-                fmt::format("Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.",
+                fmt::format("Remote \'{}\' is not found. Please use `multipass find` for supported "
+                            "remotes and images.",
                             remote_name));
         }
 
@@ -62,7 +62,9 @@ public:
         if (!query.remote_name.empty())
             images_info = image_host_for(query.remote_name)->all_info_for(query);
         else
-            static_cast<void>(std::any_of(image_hosts.begin(), image_hosts.end(), grab_imgs)); // intentional discard
+            static_cast<void>(std::any_of(image_hosts.begin(),
+                                          image_hosts.end(),
+                                          grab_imgs)); // intentional discard
 
         return images_info;
     };
@@ -96,5 +98,3 @@ private:
     std::unordered_map<std::string, VMImageHost*> remote_image_host_map;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_BASE_VM_IMAGE_VAULT_H

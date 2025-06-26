@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_QSETTINGS_H
-#define MULTIPASS_MOCK_QSETTINGS_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -31,7 +30,9 @@ public:
     using WrappedQSettings::WrappedQSettings; // promote visibility
     MOCK_METHOD(QSettings::Status, status, (), (const, override));
     MOCK_METHOD(QString, fileName, (), (const, override));
-    MOCK_METHOD(QVariant, value_impl, (const QString& key, const QVariant& default_value),
+    MOCK_METHOD(QVariant,
+                value_impl,
+                (const QString& key, const QVariant& default_value),
                 (const, override)); // promote visibility
     MOCK_METHOD(void, sync, (), (override));
     MOCK_METHOD(void, setValue, (const QString& key, const QVariant& value), (override));
@@ -42,10 +43,11 @@ class MockQSettingsProvider : public WrappedQSettingsFactory
 {
 public:
     using WrappedQSettingsFactory::WrappedQSettingsFactory;
-    MOCK_METHOD(std::unique_ptr<WrappedQSettings>, make_wrapped_qsettings, (const QString&, QSettings::Format),
+    MOCK_METHOD(std::unique_ptr<WrappedQSettings>,
+                make_wrapped_qsettings,
+                (const QString&, QSettings::Format),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockQSettingsProvider, WrappedQSettingsFactory);
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_QSETTINGS_H

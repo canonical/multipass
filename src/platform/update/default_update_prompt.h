@@ -15,12 +15,11 @@
  *
  */
 
-#ifndef MULTIPASS_DEFAULT_UPDATE_PROMPT_H
-#define MULTIPASS_DEFAULT_UPDATE_PROMPT_H
+#pragma once
 
-#include <multipass/update_prompt.h>
 #include <chrono>
 #include <memory>
+#include <multipass/update_prompt.h>
 
 namespace multipass
 {
@@ -36,13 +35,11 @@ public:
     ~DefaultUpdatePrompt();
 
     bool is_time_to_show() override;
-    void populate(UpdateInfo *update_info) override;
-    void populate_if_time_to_show(UpdateInfo *update_info) override;
+    void populate(UpdateInfo* update_info) override;
+    void populate_if_time_to_show(UpdateInfo* update_info) override;
 
 private:
     std::unique_ptr<NewReleaseMonitor> monitor;
     std::chrono::system_clock::time_point last_shown;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_DEFAULT_UPDATE_PROMPT_H

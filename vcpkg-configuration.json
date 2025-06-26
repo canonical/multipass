@@ -1,7 +1,8 @@
 {
   "overlay-ports": [
-    "3rd-party/vcpkg-ports/grpc",
-    "3rd-party/vcpkg-ports/poco"
+    "3rd-party/vcpkg-ports/grpc"
   ],
-  "overlay-triplets": ["3rd-party/vcpkg-triplets"]
+  "overlay-triplets": [
+    "3rd-party/vcpkg-triplets"
+  ]
 }

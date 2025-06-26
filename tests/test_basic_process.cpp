@@ -30,7 +30,7 @@ struct BasicProcessTest : public mpt::TestWithMockedBinPath
 {
 };
 
-TEST_F(BasicProcessTest, execute_missing_command)
+TEST_F(BasicProcessTest, executeMissingCommand)
 {
     mp::BasicProcess process(mp::simple_process_spec("a_missing_command"));
     auto process_state = process.execute();
@@ -42,7 +42,7 @@ TEST_F(BasicProcessTest, execute_missing_command)
     EXPECT_EQ(QProcess::ProcessError::FailedToStart, process_state.error->state);
 }
 
-TEST_F(BasicProcessTest, execute_crashing_command)
+TEST_F(BasicProcessTest, executeCrashingCommand)
 {
     mp::BasicProcess process(mp::simple_process_spec("mock_process"));
     auto process_state = process.execute();
@@ -54,7 +54,7 @@ TEST_F(BasicProcessTest, execute_crashing_command)
     EXPECT_EQ(QProcess::ProcessError::Crashed, process_state.error->state);
 }
 
-TEST_F(BasicProcessTest, execute_good_command_with_positive_exit_code)
+TEST_F(BasicProcessTest, executeGoodCommandWithPositiveExitCode)
 {
     const int exit_code = 7;
     mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code)}));
@@ -68,7 +68,7 @@ TEST_F(BasicProcessTest, execute_good_command_with_positive_exit_code)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(BasicProcessTest, execute_good_command_with_zero_exit_code)
+TEST_F(BasicProcessTest, executeGoodCommandWithZeroExitCode)
 {
     const int exit_code = 0;
     mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code)}));
@@ -82,10 +82,11 @@ TEST_F(BasicProcessTest, execute_good_command_with_zero_exit_code)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(BasicProcessTest, process_state_when_runs_and_stops_ok)
+TEST_F(BasicProcessTest, processStateWhenRunsAndStopsOk)
 {
     const int exit_code = 7;
-    mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
+    mp::BasicProcess process(
+        mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
     process.start();
 
     EXPECT_TRUE(process.wait_for_started());
@@ -104,10 +105,11 @@ TEST_F(BasicProcessTest, process_state_when_runs_and_stops_ok)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(BasicProcessTest, process_state_when_runs_but_fails_to_stop)
+TEST_F(BasicProcessTest, processStateWhenRunsButFailsToStop)
 {
     const int exit_code = 2;
-    mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
+    mp::BasicProcess process(
+        mp::simple_process_spec("mock_process", {QString::number(exit_code), "stay-alive"}));
     process.start();
 
     EXPECT_TRUE(process.wait_for_started());
@@ -125,7 +127,7 @@ TEST_F(BasicProcessTest, process_state_when_runs_but_fails_to_stop)
     EXPECT_EQ(QProcess::Timedout, process_state.error->state);
 }
 
-TEST_F(BasicProcessTest, process_state_when_crashes_on_start)
+TEST_F(BasicProcessTest, processStateWhenCrashesOnStart)
 {
     mp::BasicProcess process(mp::simple_process_spec("mock_process")); // will crash immediately
     process.start();
@@ -139,9 +141,10 @@ TEST_F(BasicProcessTest, process_state_when_crashes_on_start)
     EXPECT_EQ(QProcess::Crashed, process_state.error->state);
 }
 
-TEST_F(BasicProcessTest, process_state_when_crashes_while_running)
+TEST_F(BasicProcessTest, processStateWhenCrashesWhileRunning)
 {
-    mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(0), "stay-alive"}));
+    mp::BasicProcess process(
+        mp::simple_process_spec("mock_process", {QString::number(0), "stay-alive"}));
     process.start();
 
     process.write("crash"); // will make mock_process crash
@@ -155,7 +158,7 @@ TEST_F(BasicProcessTest, process_state_when_crashes_while_running)
     EXPECT_EQ(QProcess::Crashed, process_state.error->state);
 }
 
-TEST_F(BasicProcessTest, process_state_when_failed_to_start)
+TEST_F(BasicProcessTest, processStateWhenFailedToStart)
 {
     mp::BasicProcess process(mp::simple_process_spec("a_missing_process"));
     process.start();
@@ -169,7 +172,7 @@ TEST_F(BasicProcessTest, process_state_when_failed_to_start)
     EXPECT_EQ(QProcess::FailedToStart, process_state.error->state);
 }
 
-TEST_F(BasicProcessTest, process_state_when_runs_and_stops_immediately)
+TEST_F(BasicProcessTest, processStateWhenRunsAndStopsImmediately)
 {
     const int exit_code = 7;
     mp::BasicProcess process(mp::simple_process_spec("mock_process", {QString::number(exit_code)}));
@@ -190,7 +193,7 @@ TEST_F(BasicProcessTest, process_state_when_runs_and_stops_immediately)
     EXPECT_FALSE(process_state.error);
 }
 
-TEST_F(BasicProcessTest, error_string_when_not_run)
+TEST_F(BasicProcessTest, errorStringWhenNotRun)
 {
     const auto program = "foo";
     mp::BasicProcess process{mp::simple_process_spec(program)};
@@ -198,7 +201,7 @@ TEST_F(BasicProcessTest, error_string_when_not_run)
     EXPECT_THAT(process.error_string().toStdString(), HasSubstr("Unknown"));
 }
 
-TEST_F(BasicProcessTest, error_string_when_completing_successfully)
+TEST_F(BasicProcessTest, errorStringWhenCompletingSuccessfully)
 {
     const auto program = "mock_process";
     mp::BasicProcess process{mp::simple_process_spec(program, {"0"})};
@@ -208,7 +211,7 @@ TEST_F(BasicProcessTest, error_string_when_completing_successfully)
     EXPECT_THAT(process.error_string().toStdString(), HasSubstr("Unknown"));
 }
 
-TEST_F(BasicProcessTest, error_string_when_crashing)
+TEST_F(BasicProcessTest, errorStringWhenCrashing)
 {
     const auto program = "mock_process";
     mp::BasicProcess process(mp::simple_process_spec(program));
@@ -217,7 +220,7 @@ TEST_F(BasicProcessTest, error_string_when_crashing)
     EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
 }
 
-TEST_F(BasicProcessTest, error_string_when_missing_command)
+TEST_F(BasicProcessTest, errorStringWhenMissingCommand)
 {
     const auto program = "no_bin_named_like_this";
     mp::BasicProcess process{mp::simple_process_spec(program)};
@@ -226,7 +229,7 @@ TEST_F(BasicProcessTest, error_string_when_missing_command)
     EXPECT_THAT(process.error_string().toStdString(), HasSubstr(program));
 }
 
-TEST_F(BasicProcessTest, reports_pid_0_until_started)
+TEST_F(BasicProcessTest, reportsPid0UntilStarted)
 {
     const auto program = "mock_process";
     mp::BasicProcess process{mp::simple_process_spec(program)};
@@ -234,7 +237,7 @@ TEST_F(BasicProcessTest, reports_pid_0_until_started)
     ASSERT_EQ(process.process_id(), 0);
 }
 
-TEST_F(BasicProcessTest, reports_positive_pid_after_started)
+TEST_F(BasicProcessTest, reportsPositivePidAfterStarted)
 {
     const auto program = "mock_process";
     auto ran = false;
@@ -249,12 +252,14 @@ TEST_F(BasicProcessTest, reports_positive_pid_after_started)
     EXPECT_TRUE(ran);
 }
 
-TEST_F(BasicProcessTest, reports_previous_pid_after_finished)
+TEST_F(BasicProcessTest, reportsPreviousPidAfterFinished)
 {
     const auto program = "mock_process";
     auto pid = 0ll;
     mp::BasicProcess process{mp::simple_process_spec(program)};
-    QObject::connect(&process, &mp::Process::started, [&process, &pid] { pid = process.process_id(); });
+    QObject::connect(&process, &mp::Process::started, [&process, &pid] {
+        pid = process.process_id();
+    });
 
     process.start();
     EXPECT_TRUE(process.wait_for_finished());
@@ -262,7 +267,7 @@ TEST_F(BasicProcessTest, reports_previous_pid_after_finished)
     EXPECT_EQ(process.process_id(), pid);
 }
 
-TEST_F(BasicProcessTest, reads_expected_data_from_stdout_and_stderr)
+TEST_F(BasicProcessTest, readsExpectedDataFromStdoutAndStderr)
 {
     const QByteArray data{"Some data the mock process will return"};
     mp::BasicProcess process(mp::simple_process_spec("mock_process", {"0", "stay-alive"}));

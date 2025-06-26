@@ -109,8 +109,9 @@ void create_client_cert_if_necessary()
     auto storage_path = MP_PLATFORM.multipass_storage_location();
 
     const QString multipassd_data_dir_path{
-        storage_path.isEmpty() ? QString("%1\\config\\systemprofile\\AppData\\Roaming\\multipassd\\").arg(infoBuf)
-                               : QString("%1\\data").arg(storage_path)};
+        storage_path.isEmpty()
+            ? QString("%1\\config\\systemprofile\\AppData\\Roaming\\multipassd\\").arg(infoBuf)
+            : QString("%1\\data").arg(storage_path)};
 
     mp::ClientCertStore cert_store{multipassd_data_dir_path};
 
@@ -146,14 +147,16 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
                      &mp::Daemon::shutdown_grpc_server,
                      Qt::DirectConnection);
 
-    mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    mpl::log(mpl::Level::info,
+             "daemon",
+             fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
     auto ret = QCoreApplication::exec();
     mpl::log(mpl::Level::info, "daemon", "Goodbye!");
     return ret;
 }
 
-void service_main(DWORD argc, char* argv[]) // clang-format off
-try // clang-format on
+void service_main(DWORD argc, char* argv[])
+try
 {
     auto logger = mp::platform::make_logger(mpl::Level::info);
     auto daemon_argv(service_argv);
@@ -175,7 +178,8 @@ try // clang-format on
 
     logger->log(mpl::Level::info, "service_main", "service is running");
 
-    auto exit_code = daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
+    auto exit_code =
+        daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
 
     status.dwCurrentState = SERVICE_STOPPED;
     status.dwWin32ExitCode = exit_code;
@@ -194,14 +198,16 @@ catch (...)
 }
 } // namespace
 
-int main(int argc, char* argv[]) // clang-format off
-try // clang-format on
+int main(int argc, char* argv[])
+try
 {
     service_argv.assign(argv, argv + argc);
 
     auto logger = mp::platform::make_logger(mpl::Level::info);
     std::ostringstream arguments;
-    std::copy(service_argv.begin(), service_argv.end(), std::ostream_iterator<std::string>(arguments, " "));
+    std::copy(service_argv.begin(),
+              service_argv.end(),
+              std::ostream_iterator<std::string>(arguments, " "));
     logger->log(mpl::Level::info, "main", fmt::format("Starting Multipass {}", mp::version_string));
     logger->log(mpl::Level::info, "main", fmt::format("Service arguments: {}", arguments.str()));
 
@@ -220,7 +226,8 @@ try // clang-format on
         if (cmd == "/svc")
         {
             logger->log(mpl::Level::info, "main", "calling service ctrl dispatcher");
-            std::array<SERVICE_TABLE_ENTRY, 2> table{{{const_cast<char*>(""), service_main}, {nullptr, nullptr}}};
+            std::array<SERVICE_TABLE_ENTRY, 2> table{
+                {{const_cast<char*>(""), service_main}, {nullptr, nullptr}}};
             // remove "/svc" from the list of arguments
             service_argv.erase(service_argv.begin() + 1);
             return StartServiceCtrlDispatcher(table.data());

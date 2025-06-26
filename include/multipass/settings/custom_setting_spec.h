@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CUSTOM_SETTING_SPEC_H
-#define MULTIPASS_CUSTOM_SETTING_SPEC_H
+#pragma once
 
 #include "basic_setting_spec.h"
 
@@ -34,5 +33,3 @@ protected:
     std::function<QString(const QString&)> interpreter;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_CUSTOM_SETTING_SPEC_H

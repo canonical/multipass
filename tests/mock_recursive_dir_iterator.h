@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H
-#define MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H
+#pragma once
 
 #include "common.h"
 #include <multipass/recursive_dir_iterator.h>
@@ -55,11 +54,17 @@ struct MockDirectoryEntry : public DirectoryEntry
     MOCK_METHOD(uintmax_t, hard_link_count, (), (const, override));
     MOCK_METHOD(uintmax_t, hard_link_count, (std::error_code & err), (const, noexcept, override));
     MOCK_METHOD(fs::file_time_type, last_write_time, (), (const, override));
-    MOCK_METHOD(fs::file_time_type, last_write_time, (std::error_code & err), (const, noexcept, override));
+    MOCK_METHOD(fs::file_time_type,
+                last_write_time,
+                (std::error_code & err),
+                (const, noexcept, override));
     MOCK_METHOD(fs::file_status, status, (), (const, override));
     MOCK_METHOD(fs::file_status, status, (std::error_code & err), (const, noexcept, override));
     MOCK_METHOD(fs::file_status, symlink_status, (), (const, override));
-    MOCK_METHOD(fs::file_status, symlink_status, (std::error_code & err), (const, noexcept, override));
+    MOCK_METHOD(fs::file_status,
+                symlink_status,
+                (std::error_code & err),
+                (const, noexcept, override));
 };
 
 struct MockRecursiveDirIterator : public RecursiveDirIterator
@@ -74,5 +79,3 @@ struct MockDirIterator : public DirIterator
     MOCK_METHOD(const DirectoryEntry&, next, (), (override));
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_STD_RECURSIVE_DIR_ITER_H

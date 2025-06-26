@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ALIAS_DICT_H
-#define MULTIPASS_ALIAS_DICT_H
+#pragma once
 
 #include <multipass/alias_definition.h>
 #include <multipass/terminal.h>
@@ -34,8 +33,9 @@ static constexpr auto default_context_name = "default";
 
 typedef std::pair<std::string, std::string> ContextAliasPair;
 
-// The alias dictionary is basically a mapping between strings and contexts. The string represents the context name
-// and the associated context is itself a map relating alias names to alias definitions.
+// The alias dictionary is basically a mapping between strings and contexts. The string represents
+// the context name and the associated context is itself a map relating alias names to alias
+// definitions.
 class AliasDict
 {
 public:
@@ -110,4 +110,3 @@ private:
     std::ostream& cerr;
 }; // class AliasDict
 } // namespace multipass
-#endif // MULTIPASS_ALIAS_DICT_H

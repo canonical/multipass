@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_IMAGE_INFO_H
-#define MULTIPASS_VM_IMAGE_INFO_H
+#pragma once
 
 #include <QString>
 #include <QStringList>
@@ -67,4 +66,3 @@ inline bool operator==(const VMImageInfo& a, const VMImageInfo& b)
                                           b.verify);
 }
 } // namespace multipass
-#endif // MULTIPASS_VM_IMAGE_INFO_H

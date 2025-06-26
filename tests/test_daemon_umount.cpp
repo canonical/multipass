@@ -74,11 +74,15 @@ TEST_F(TestDaemonUmount, missingInstanceFails)
     auto entry = request.add_target_paths();
     entry->set_instance_name(fake_instance);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("instance '{}' does not exist", fake_instance)));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(fmt::format("instance '{}' does not exist", fake_instance)));
 }
 
 TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
@@ -87,7 +91,8 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}},
         {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -111,8 +116,11 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     auto entry = request.add_target_paths();
     entry->set_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -124,7 +132,8 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
         {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}},
         {fake_target_path + "3", {"foo3", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -157,15 +166,19 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
     entry2->set_instance_name(mock_instance_name);
     entry2->set_target_path(fake_target_path + "3");
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
 
 TEST_F(TestDaemonUmount, mountNotFound)
 {
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     EXPECT_CALL(*mock_factory, create_virtual_machine)
@@ -178,12 +191,17 @@ TEST_F(TestDaemonUmount, mountNotFound)
     entry->set_instance_name(mock_instance_name);
     entry->set_target_path(fake_target_path);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(),
-                HasSubstr(fmt::format("path \"{}\" is not mounted in '{}'", fake_target_path, mock_instance_name)));
+                HasSubstr(fmt::format("path \"{}\" is not mounted in '{}'",
+                                      fake_target_path,
+                                      mock_instance_name)));
 }
 
 TEST_F(TestDaemonUmount, stoppingMountFails)
@@ -191,13 +209,15 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto error = "device is busy";
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
-    EXPECT_CALL(*mock_mount_handler, deactivate_impl(false)).WillOnce(Throw(std::runtime_error{error}));
+    EXPECT_CALL(*mock_mount_handler, deactivate_impl(false))
+        .WillOnce(Throw(std::runtime_error{error}));
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
@@ -211,10 +231,16 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
     auto entry = request.add_target_paths();
     entry->set_instance_name(mock_instance_name);
 
-    auto status = call_daemon_slot(daemon, &mp::Daemon::umount, request,
-                                   StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
-    EXPECT_THAT(status.error_message(), HasSubstr(fmt::format("failed to unmount \"{}\" from '{}': {}",
-                                                              fake_target_path, mock_instance_name, error)));
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(fmt::format("failed to unmount \"{}\" from '{}': {}",
+                                      fake_target_path,
+                                      mock_instance_name,
+                                      error)));
 }

@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
-#define MULTIPASS_SIMPLE_STREAMS_MANIFEST_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "vm_image_info.h"
@@ -36,8 +35,10 @@ namespace multipass
 
 struct SimpleStreamsManifest
 {
-    static std::unique_ptr<SimpleStreamsManifest>
-    fromJson(const QByteArray& json, const std::optional<QByteArray>& json_from_mirror, const QString& host_url);
+    static std::unique_ptr<SimpleStreamsManifest> fromJson(
+        const QByteArray& json,
+        const std::optional<QByteArray>& json_from_mirror,
+        const QString& host_url);
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;
@@ -46,4 +47,3 @@ struct SimpleStreamsManifest
     SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images);
 };
 } // namespace multipass
-#endif // MULTIPASS_SIMPLE_STREAMS_MANIFEST_H

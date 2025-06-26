@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_CERT_PROVIDER_H
-#define MULTIPASS_MOCK_CERT_PROVIDER_H
+#pragma once
 
 #include <multipass/cert_provider.h>
 
@@ -37,7 +36,8 @@ constexpr auto root_cert = "-----BEGIN CERTIFICATE-----\n"
                            "xgvZMY2ColjLunUiNG8H096n\n"
                            "-----END CERTIFICATE-----\n";
 
-// cert and key are used as both server certificate and client certificate in the unit test environment
+// cert and key are used as both server certificate and client certificate in the unit test
+// environment
 constexpr auto cert = "-----BEGIN CERTIFICATE-----\n"
                       "MIIByjCCAXCgAwIBAgIENvdePTAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzES\n"
                       "MBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAe\n"
@@ -69,4 +69,3 @@ struct MockCertProvider : public CertProvider
     MOCK_METHOD(std::string, PEM_signing_key, (), (override, const));
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_CERT_PROVIDER_H

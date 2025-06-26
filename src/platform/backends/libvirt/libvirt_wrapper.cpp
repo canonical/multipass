@@ -52,47 +52,60 @@ auto get_symbol_address_for(const std::string& symbol, void* handle)
 
 mp::LibvirtWrapper::LibvirtWrapper(const std::string& filename)
     : handle{open_libvirt_handle(filename)},
-      virConnectOpen{reinterpret_cast<virConnectOpen_t>(get_symbol_address_for("virConnectOpen", handle))},
-      virConnectClose{reinterpret_cast<virConnectClose_t>(get_symbol_address_for("virConnectClose", handle))},
-      virConnectGetCapabilities{
-          reinterpret_cast<virConnectGetCapabilities_t>(get_symbol_address_for("virConnectGetCapabilities", handle))},
-      virConnectGetVersion{
-          reinterpret_cast<virConnectGetVersion_t>(get_symbol_address_for("virConnectGetVersion", handle))},
-      virNetworkLookupByName{
-          reinterpret_cast<virNetworkLookupByName_t>(get_symbol_address_for("virNetworkLookupByName", handle))},
-      virNetworkCreateXML{
-          reinterpret_cast<virNetworkCreateXML_t>(get_symbol_address_for("virNetworkCreateXML", handle))},
-      virNetworkDestroy{reinterpret_cast<virNetworkDestroy_t>(get_symbol_address_for("virNetworkDestroy", handle))},
-      virNetworkFree{reinterpret_cast<virNetworkFree_t>(get_symbol_address_for("virNetworkFree", handle))},
-      virNetworkGetBridgeName{
-          reinterpret_cast<virNetworkGetBridgeName_t>(get_symbol_address_for("virNetworkGetBridgeName", handle))},
-      virNetworkIsActive{reinterpret_cast<virNetworkIsActive_t>(get_symbol_address_for("virNetworkIsActive", handle))},
-      virNetworkCreate{reinterpret_cast<virNetworkCreate_t>(get_symbol_address_for("virNetworkCreate", handle))},
-      virNetworkGetDHCPLeases{
-          reinterpret_cast<virNetworkGetDHCPLeases_t>(get_symbol_address_for("virNetworkGetDHCPLeases", handle))},
-      virNetworkDHCPLeaseFree{
-          reinterpret_cast<virNetworkDHCPLeaseFree_t>(get_symbol_address_for("virNetworkDHCPLeaseFree", handle))},
-      virDomainUndefine{reinterpret_cast<virDomainUndefine_t>(get_symbol_address_for("virDomainUndefine", handle))},
-      virDomainLookupByName{
-          reinterpret_cast<virDomainLookupByName_t>(get_symbol_address_for("virDomainLookupByName", handle))},
-      virDomainGetXMLDesc{
-          reinterpret_cast<virDomainGetXMLDesc_t>(get_symbol_address_for("virDomainGetXMLDesc", handle))},
-      virDomainDestroy{reinterpret_cast<virDomainDestroy_t>(get_symbol_address_for("virDomainDestroy", handle))},
-      virDomainFree{reinterpret_cast<virDomainFree_t>(get_symbol_address_for("virDomainFree", handle))},
-      virDomainDefineXML{reinterpret_cast<virDomainDefineXML_t>(get_symbol_address_for("virDomainDefineXML", handle))},
-      virDomainGetState{reinterpret_cast<virDomainGetState_t>(get_symbol_address_for("virDomainGetState", handle))},
-      virDomainCreate{reinterpret_cast<virDomainCreate_t>(get_symbol_address_for("virDomainCreate", handle))},
-      virDomainShutdown{reinterpret_cast<virDomainShutdown_t>(get_symbol_address_for("virDomainShutdown", handle))},
-      virDomainManagedSave{
-          reinterpret_cast<virDomainManagedSave_t>(get_symbol_address_for("virDomainManagedSave", handle))},
+      virConnectOpen{
+          reinterpret_cast<virConnectOpen_t>(get_symbol_address_for("virConnectOpen", handle))},
+      virConnectClose{
+          reinterpret_cast<virConnectClose_t>(get_symbol_address_for("virConnectClose", handle))},
+      virConnectGetCapabilities{reinterpret_cast<virConnectGetCapabilities_t>(
+          get_symbol_address_for("virConnectGetCapabilities", handle))},
+      virConnectGetVersion{reinterpret_cast<virConnectGetVersion_t>(
+          get_symbol_address_for("virConnectGetVersion", handle))},
+      virNetworkLookupByName{reinterpret_cast<virNetworkLookupByName_t>(
+          get_symbol_address_for("virNetworkLookupByName", handle))},
+      virNetworkCreateXML{reinterpret_cast<virNetworkCreateXML_t>(
+          get_symbol_address_for("virNetworkCreateXML", handle))},
+      virNetworkDestroy{reinterpret_cast<virNetworkDestroy_t>(
+          get_symbol_address_for("virNetworkDestroy", handle))},
+      virNetworkFree{
+          reinterpret_cast<virNetworkFree_t>(get_symbol_address_for("virNetworkFree", handle))},
+      virNetworkGetBridgeName{reinterpret_cast<virNetworkGetBridgeName_t>(
+          get_symbol_address_for("virNetworkGetBridgeName", handle))},
+      virNetworkIsActive{reinterpret_cast<virNetworkIsActive_t>(
+          get_symbol_address_for("virNetworkIsActive", handle))},
+      virNetworkCreate{
+          reinterpret_cast<virNetworkCreate_t>(get_symbol_address_for("virNetworkCreate", handle))},
+      virNetworkGetDHCPLeases{reinterpret_cast<virNetworkGetDHCPLeases_t>(
+          get_symbol_address_for("virNetworkGetDHCPLeases", handle))},
+      virNetworkDHCPLeaseFree{reinterpret_cast<virNetworkDHCPLeaseFree_t>(
+          get_symbol_address_for("virNetworkDHCPLeaseFree", handle))},
+      virDomainUndefine{reinterpret_cast<virDomainUndefine_t>(
+          get_symbol_address_for("virDomainUndefine", handle))},
+      virDomainLookupByName{reinterpret_cast<virDomainLookupByName_t>(
+          get_symbol_address_for("virDomainLookupByName", handle))},
+      virDomainGetXMLDesc{reinterpret_cast<virDomainGetXMLDesc_t>(
+          get_symbol_address_for("virDomainGetXMLDesc", handle))},
+      virDomainDestroy{
+          reinterpret_cast<virDomainDestroy_t>(get_symbol_address_for("virDomainDestroy", handle))},
+      virDomainFree{
+          reinterpret_cast<virDomainFree_t>(get_symbol_address_for("virDomainFree", handle))},
+      virDomainDefineXML{reinterpret_cast<virDomainDefineXML_t>(
+          get_symbol_address_for("virDomainDefineXML", handle))},
+      virDomainGetState{reinterpret_cast<virDomainGetState_t>(
+          get_symbol_address_for("virDomainGetState", handle))},
+      virDomainCreate{
+          reinterpret_cast<virDomainCreate_t>(get_symbol_address_for("virDomainCreate", handle))},
+      virDomainShutdown{reinterpret_cast<virDomainShutdown_t>(
+          get_symbol_address_for("virDomainShutdown", handle))},
+      virDomainManagedSave{reinterpret_cast<virDomainManagedSave_t>(
+          get_symbol_address_for("virDomainManagedSave", handle))},
       virDomainHasManagedSaveImage{reinterpret_cast<virDomainHasManagedSaveImage_t>(
           get_symbol_address_for("virDomainHasManagedSaveImage", handle))},
-      virDomainSetVcpusFlags{
-          reinterpret_cast<virDomainSetVcpusFlags_t>(get_symbol_address_for("virDomainSetVcpusFlags", handle))},
-      virDomainSetMemoryFlags{
-          reinterpret_cast<virDomainSetMemoryFlags_t>(get_symbol_address_for("virDomainSetMemoryFlags", handle))},
-      virGetLastErrorMessage{
-          reinterpret_cast<virGetLastErrorMessage_t>(get_symbol_address_for("virGetLastErrorMessage", handle))}
+      virDomainSetVcpusFlags{reinterpret_cast<virDomainSetVcpusFlags_t>(
+          get_symbol_address_for("virDomainSetVcpusFlags", handle))},
+      virDomainSetMemoryFlags{reinterpret_cast<virDomainSetMemoryFlags_t>(
+          get_symbol_address_for("virDomainSetMemoryFlags", handle))},
+      virGetLastErrorMessage{reinterpret_cast<virGetLastErrorMessage_t>(
+          get_symbol_address_for("virGetLastErrorMessage", handle))}
 {
 }
 

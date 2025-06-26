@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_MISSING_ERROR_H
-#define MULTIPASS_SSHFS_MISSING_ERROR_H
+#pragma once
 
 #include <stdexcept>
 
@@ -28,7 +27,5 @@ public:
     SSHFSMissingError() : runtime_error{"sshfs missing"}
     {
     }
-
 };
-}
-#endif // MULTIPASS_SSHFS_MISSING_ERROR_H
+} // namespace multipass

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_HANDLER_H
-#define MULTIPASS_SETTINGS_HANDLER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 
@@ -41,20 +40,24 @@ public:
     /**
      * Get the value of the setting specified by @c key.
      * @param key The key identifying the requested setting.
-     * @return A string representation of the value of the specified setting, according to this SettingsHandler's
-     * interpretation.
-     * @throws UnrecognizedSettingException When @c key does not identify a setting that this handler recognizes.
+     * @return A string representation of the value of the specified setting, according to this
+     * SettingsHandler's interpretation.
+     * @throws UnrecognizedSettingException When @c key does not identify a setting that this
+     * handler recognizes.
      * @note Descendents are free to throw other exceptions as well.
      */
     virtual QString get(const QString& key) const = 0;
 
     /**
-     * Set the value of the setting specified by @c key to @val, according to this SettingsHandler's interpretation.
+     * Set the value of the setting specified by @c key to @val, according to this SettingsHandler's
+     * interpretation.
      * @param key The key identifying the setting to modify.
-     * @param val A string representation of the value to assign to the setting. The actual value is derived according
-     * to this SettingsHandler's interpretation.
-     * @throws UnrecognizedSettingException When @c key does not identify a setting that this handler recognizes.
-     * @throws InvalidSettingException When @c val does not represent a valid value for the setting identified by
+     * @param val A string representation of the value to assign to the setting. The actual value is
+     * derived according to this SettingsHandler's interpretation.
+     * @throws UnrecognizedSettingException When @c key does not identify a setting that this
+     * handler recognizes.
+     * @throws InvalidSettingException When @c val does not represent a valid value for the setting
+     * identified by
      * @c key, according to this SettingHandler's interpretation.
      * @note Descendents are free to throw other exceptions as well.
      */
@@ -62,5 +65,3 @@ public:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_SETTINGS_HANDLER_H

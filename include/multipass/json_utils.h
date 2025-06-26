@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_UTILS_H
-#define MULTIPASS_JSON_UTILS_H
+#pragma once
 
 #include "singleton.h"
 
@@ -40,7 +39,8 @@ class JsonUtils : public Singleton<JsonUtils>
 public:
     explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
 
-    virtual void write_json(const QJsonObject& root, QString file_name) const; // transactional; creates parent dirs
+    virtual void write_json(const QJsonObject& root,
+                            QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
     virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
                                                      const std::string& src_vm_name,
@@ -50,8 +50,9 @@ public:
                                                              const multipass::VMSpecs& dest_specs,
                                                              const std::string& src_vm_name,
                                                              const std::string& dest_vm_name) const;
-    virtual QJsonArray extra_interfaces_to_json_array(const std::vector<NetworkInterface>& extra_interfaces) const;
-    virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(const QJsonObject& record) const;
+    virtual QJsonArray extra_interfaces_to_json_array(
+        const std::vector<NetworkInterface>& extra_interfaces) const;
+    virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
+        const QJsonObject& record) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_JSON_UTILS_H

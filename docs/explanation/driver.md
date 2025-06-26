@@ -17,7 +17,7 @@ On some platforms, it is possible to select a driver during installation. Until 
 
 Different sets of drivers are available on different platforms:
 
-- On Linux, Multipass can be configured to use QEMU, LXD, and libvirt. As of Multipass version 1.16, LXD and libvirt are no longer supported.
+- On Linux, Multipass can be configured to use QEMU, LXD, and libvirt. As of Multipass version 1.16, LXD and libvirt are deprecated.
 - On macOS, the options are QEMU and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available.
 - On Windows, Multipass uses Hyper-V (only available on Windows Pro) or VirtualBox.
 
@@ -25,10 +25,7 @@ Different sets of drivers are available on different platforms:
 
 When Multipass is installed, the following drivers are selected by default:
 
-- On Linux, the default driver depends on the host's architecture:
-    + QEMU on AMD64
-    + LXD (deprecated) on other platforms.
-- On macOS, QEMU is used.
+- On Linux and macOS, QEMU is used.
 - On Windows, the default driver depends on the OS version:
   + Hyper-V on Windows Pro
   + VirtualBox on Windows Home

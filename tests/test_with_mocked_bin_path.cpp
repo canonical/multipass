@@ -26,8 +26,8 @@ using namespace testing;
 
 void mpt::TestWithMockedBinPath::SetUp()
 {
-    QByteArray new_path =
-        QByteArray::fromStdString(mpt::mock_bin_path()) + QDir::listSeparator().toLatin1() + qgetenv("PATH");
+    QByteArray new_path = QByteArray::fromStdString(mpt::mock_bin_path()) +
+                          QDir::listSeparator().toLatin1() + qgetenv("PATH");
     env = std::make_unique<SetEnvScope>("PATH", new_path);
 }
 

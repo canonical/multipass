@@ -47,15 +47,17 @@ struct DelayedShutdown : public Test
     ssh_channel_callbacks callbacks{nullptr};
 };
 
-TEST_F(DelayedShutdown, emits_finished_after_timer_expires)
+TEST_F(DelayedShutdown, emitsFinishedAfterTimerExpires)
 {
     mp::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
 
-    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
-        loop.quit();
-        finished.signal();
-    });
+    QObject::connect(&delayed_shutdown_timer,
+                     &mp::DelayedShutdownTimer::finished,
+                     [this, &finished] {
+                         loop.quit();
+                         finished.signal();
+                     });
 
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
     loop.exec();
@@ -77,7 +79,9 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
     EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher, _)).Times(1); // as we start
     EXPECT_CALL(vm, ssh_exec(now_cmd_matcher, _)).Times(1);      // as we finish
 
-    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this] { loop.quit(); });
+    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this] {
+        loop.quit();
+    });
 
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
     loop.exec();
@@ -88,13 +92,17 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
     mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
-    EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _)).Times(2).WillRepeatedly(Throw(mp::SSHException("nope")));
+    EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _))
+        .Times(2)
+        .WillRepeatedly(Throw(mp::SSHException("nope")));
 
     mp::Signal finished;
-    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [this, &finished] {
-        loop.quit();
-        finished.signal();
-    });
+    QObject::connect(&delayed_shutdown_timer,
+                     &mp::DelayedShutdownTimer::finished,
+                     [this, &finished] {
+                         loop.quit();
+                         finished.signal();
+                     });
 
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
     loop.exec();
@@ -102,19 +110,21 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
     EXPECT_TRUE(finished.wait_for(std::chrono::milliseconds(1)));
 }
 
-TEST_F(DelayedShutdown, emits_finished_with_no_timer)
+TEST_F(DelayedShutdown, emitsFinishedWithNoTimer)
 {
     mp::Signal finished;
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
 
-    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] { finished.signal(); });
+    QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] {
+        finished.signal();
+    });
 
     delayed_shutdown_timer.start(std::chrono::milliseconds::zero());
     auto finish_invoked = finished.wait_for(std::chrono::seconds(1));
     EXPECT_TRUE(finish_invoked);
 }
 
-TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
+TEST_F(DelayedShutdown, vmStateDelayedShutdownWhenTimerRunning)
 {
     auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
         callbacks = cb;
@@ -137,7 +147,7 @@ TEST_F(DelayedShutdown, vm_state_delayed_shutdown_when_timer_running)
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
 }
 
-TEST_F(DelayedShutdown, vm_state_running_after_cancel)
+TEST_F(DelayedShutdown, vmStateRunningAfterCancel)
 {
     auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
         callbacks = cb;

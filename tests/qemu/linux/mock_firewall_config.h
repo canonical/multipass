@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_FIREWALL_CONFIG
-#define MULTIPASS_MOCK_FIREWALL_CONFIG
+#pragma once
 
 #include "tests/common.h"
 #include "tests/mock_singleton_helpers.h"
@@ -38,10 +37,12 @@ struct MockFirewallConfigFactory : public FirewallConfigFactory
 {
     using FirewallConfigFactory::FirewallConfigFactory;
 
-    MOCK_METHOD(FirewallConfig::UPtr, make_firewall_config, (const QString&, const std::string&), (const, override));
+    MOCK_METHOD(FirewallConfig::UPtr,
+                make_firewall_config,
+                (const QString&, const std::string&),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFirewallConfigFactory, FirewallConfigFactory);
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_FIREWALL_CONFIG

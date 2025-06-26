@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CUSTOM_IMAGE_HOST
-#define MULTIPASS_CUSTOM_IMAGE_HOST
+#pragma once
 
 #include "common_image_host.h"
 
@@ -47,7 +46,8 @@ public:
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
-    std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override;
+    std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
+                                            const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 
 private:
@@ -63,4 +63,3 @@ private:
     std::vector<std::string> remotes;
 };
 } // namespace multipass
-#endif // MULTIPASS_CUSTOM_IMAGE_HOST

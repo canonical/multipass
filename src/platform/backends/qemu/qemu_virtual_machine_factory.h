@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "qemu_platform.h"
 
@@ -37,7 +36,8 @@ public:
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
-    void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
+    void prepare_instance_image(const VMImage& instance_image,
+                                const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_version_string() const override;
     QString get_backend_directory_name() const override;
@@ -69,4 +69,3 @@ inline void multipass::QemuVirtualMachineFactory::require_snapshots_support() co
 inline void multipass::QemuVirtualMachineFactory::require_clone_support() const
 {
 }
-#endif // MULTIPASS_QEMU_VIRTUAL_MACHINE_FACTORY_H

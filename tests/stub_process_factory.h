@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_PROCESS_FACTORY_H
-#define MULTIPASS_STUB_PROCESS_FACTORY_H
+#pragma once
 
 #include "common.h"
 #include "process_factory.h" // rely on build system to include the right implementation
@@ -37,7 +36,8 @@ public:
         QStringList arguments;
     };
 
-    // StubProcessFactory installed with Inject() call, and uninstalled when the Scope object deleted
+    // StubProcessFactory installed with Inject() call, and uninstalled when the Scope object
+    // deleted
     struct Scope
     {
         ~Scope();
@@ -60,5 +60,3 @@ private:
 
 } // namespace test
 } // namespace multipass
-
-#endif // MULTIPASS_STUB_PROCESS_FACTORY_H

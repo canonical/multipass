@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SSHFS_MOUNT
-#define MULTIPASS_SSHFS_MOUNT
+#pragma once
 
 #include <multipass/id_mappings.h>
 
@@ -31,8 +30,11 @@ class SftpServer;
 class SshfsMount
 {
 public:
-    SshfsMount(SSHSession&& session, const std::string& source, const std::string& target,
-               const id_mappings& gid_mappings, const id_mappings& uid_mappings);
+    SshfsMount(SSHSession&& session,
+               const std::string& source,
+               const std::string& target,
+               const id_mappings& gid_mappings,
+               const id_mappings& uid_mappings);
     SshfsMount(SshfsMount&& other);
     ~SshfsMount();
 
@@ -55,4 +57,3 @@ private:
     std::thread sftp_thread;
 };
 } // namespace multipass
-#endif // MULTIPASS_SSHFS_MOUNT

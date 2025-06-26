@@ -65,60 +65,60 @@ void check_file_contents(QFile& checked_file, const std::string& checked_content
 }
 } // namespace
 
-TEST(Utils, hostname_begins_with_letter_is_valid)
+TEST(Utils, hostnameBeginsWithLetterIsValid)
 {
     EXPECT_TRUE(mp::utils::valid_hostname("foo"));
 }
 
-TEST(Utils, hostname_single_letter_is_valid)
+TEST(Utils, hostnameSingleLetterIsValid)
 {
     EXPECT_TRUE(mp::utils::valid_hostname("f"));
 }
 
-TEST(Utils, hostname_contains_digit_is_valid)
+TEST(Utils, hostnameContainsDigitIsValid)
 {
     EXPECT_TRUE(mp::utils::valid_hostname("foo1"));
 }
 
-TEST(Utils, hostname_contains_hyphen_is_valid)
+TEST(Utils, hostnameContainsHyphenIsValid)
 {
     EXPECT_TRUE(mp::utils::valid_hostname("foo-bar"));
 }
 
-TEST(Utils, hostname_begins_with_digit_is_invalid)
+TEST(Utils, hostnameBeginsWithDigitIsInvalid)
 {
     EXPECT_FALSE(mp::utils::valid_hostname("1foo"));
 }
 
-TEST(Utils, hostname_single_digit_is_invalid)
+TEST(Utils, hostnameSingleDigitIsInvalid)
 {
     EXPECT_FALSE(mp::utils::valid_hostname("1"));
 }
 
-TEST(Utils, hostname_contains_underscore_is_invalid)
+TEST(Utils, hostnameContainsUnderscoreIsInvalid)
 {
     EXPECT_FALSE(mp::utils::valid_hostname("foo_bar"));
 }
 
-TEST(Utils, hostname_contains_special_character_is_invalid)
+TEST(Utils, hostnameContainsSpecialCharacterIsInvalid)
 {
     EXPECT_FALSE(mp::utils::valid_hostname("foo!"));
 }
 
-TEST(Utils, path_root_invalid)
+TEST(Utils, pathRootInvalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("//")));
 }
 
-TEST(Utils, path_root_foo_valid)
+TEST(Utils, pathRootFooValid)
 {
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo/")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("//foo")));
 }
 
-TEST(Utils, path_dev_invalid)
+TEST(Utils, pathDevInvalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/")));
@@ -128,14 +128,14 @@ TEST(Utils, path_dev_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/foo")));
 }
 
-TEST(Utils, path_devpath_valid)
+TEST(Utils, pathDevpathValid)
 {
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/foo")));
 }
 
-TEST(Utils, path_proc_invalid)
+TEST(Utils, pathProcInvalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/")));
@@ -145,7 +145,7 @@ TEST(Utils, path_proc_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/foo")));
 }
 
-TEST(Utils, path_sys_invalid)
+TEST(Utils, pathSysInvalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/")));
@@ -155,7 +155,7 @@ TEST(Utils, path_sys_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/foo")));
 }
 
-TEST(Utils, path_home_proper_invalid)
+TEST(Utils, pathHomeProperInvalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/")));
@@ -165,7 +165,7 @@ TEST(Utils, path_home_proper_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/foo/..")));
 }
 
-TEST(Utils, path_home_ubuntu_invalid)
+TEST(Utils, pathHomeUbuntuInvalid)
 {
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu")));
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/")));
@@ -176,76 +176,21 @@ TEST(Utils, path_home_ubuntu_invalid)
     EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/..")));
 }
 
-TEST(Utils, path_home_foo_valid)
+TEST(Utils, pathHomeFooValid)
 {
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo/")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/foo/")));
 }
 
-TEST(Utils, path_home_ubuntu_foo_valid)
+TEST(Utils, pathHomeUbuntuFooValid)
 {
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/")));
     EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/ubuntu/foo")));
 }
 
-TEST(Utils, create_temp_file_with_path_does_not_throw_when_folder_exists)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/test_temp_file";
-
-    EXPECT_NO_THROW(mp::utils::create_temp_file_with_path(file_template));
-}
-
-TEST(Utils, create_temp_file_with_path_does_not_throw_when_folder_does_not_exist)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/new_folder/test_temp_file";
-
-    EXPECT_NO_THROW(mp::utils::create_temp_file_with_path(file_template));
-}
-
-TEST(Utils, create_temp_file_with_path_works_when_folder_exists)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/test_temp_file";
-
-    QTemporaryFile file{mp::utils::create_temp_file_with_path(file_template)};
-
-    file.open();
-    EXPECT_THAT(file.fileName().toStdString(), HasSubstr(file_template.toStdString()));
-    file.close();
-}
-
-TEST(Utils, create_temp_file_with_path_works_when_folder_does_not_exist)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/new_folder/test_temp_file";
-
-    QTemporaryFile file{mp::utils::create_temp_file_with_path(file_template)};
-
-    EXPECT_TRUE(QFileInfo::exists(temp_dir.path() + "/new_folder/"));
-
-    file.open();
-    EXPECT_THAT(file.fileName().toStdString(), HasSubstr(file_template.toStdString()));
-    file.close();
-}
-
-TEST(Utils, create_temp_file_with_path_throws_if_cannot_create_path)
-{
-    mpt::TempDir temp_dir;
-    QString file_template = temp_dir.path() + "/new_folder/test_temp_file";
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(mp::utils::create_temp_file_with_path(file_template), std::runtime_error,
-                         mpt::match_what(HasSubstr("Could not create path")));
-}
-
-TEST(Utils, make_file_with_content_works)
+TEST(Utils, makeFileWithContentWorks)
 {
     mpt::TempDir temp_dir;
     QString file_name = temp_dir.path() + "/test-file";
@@ -256,7 +201,7 @@ TEST(Utils, make_file_with_content_works)
     check_file_contents(checked_file, file_contents);
 }
 
-TEST(Utils, make_file_with_content_does_not_overwrite)
+TEST(Utils, makeFileWithContentDoesNotOverwrite)
 {
     mpt::TempDir temp_dir;
     QString file_name = temp_dir.path() + "/test-file";
@@ -266,13 +211,14 @@ TEST(Utils, make_file_with_content_does_not_overwrite)
     QFile checked_file(file_name);
     check_file_contents(checked_file, file_contents);
 
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n"), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n"),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr("already exists")));
 
     check_file_contents(checked_file, file_contents);
 }
 
-TEST(Utils, make_file_with_content_overwrites_when_asked)
+TEST(Utils, makeFileWithContentOverwritesWhenAsked)
 {
     mpt::TempDir temp_dir;
     QString file_name = temp_dir.path() + "/test-file";
@@ -282,12 +228,13 @@ TEST(Utils, make_file_with_content_overwrites_when_asked)
     QFile checked_file(file_name);
     check_file_contents(checked_file, file_contents);
 
-    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n", true));
+    EXPECT_NO_THROW(
+        MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n", true));
 
     check_file_contents(checked_file, "other stuff\n");
 }
 
-TEST(Utils, make_file_with_content_creates_path)
+TEST(Utils, makeFileWithContentCreatesPath)
 {
     mpt::TempDir temp_dir;
     QString file_name = temp_dir.path() + "/new_dir/test-file";
@@ -298,7 +245,7 @@ TEST(Utils, make_file_with_content_creates_path)
     check_file_contents(checked_file, file_contents);
 }
 
-TEST(Utils, make_file_with_content_fails_if_path_cannot_be_created)
+TEST(Utils, makeFileWithContentFailsIfPathCannotBeCreated)
 {
     std::string file_name{"some_dir/test-file"};
 
@@ -307,11 +254,12 @@ TEST(Utils, make_file_with_content_fails_if_path_cannot_be_created)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr("failed to create dir")));
 }
 
-TEST(Utils, make_file_with_content_fails_if_file_cannot_be_created)
+TEST(Utils, makeFileWithContentFailsIfFileCannotBeCreated)
 {
     std::string file_name{"some_dir/test-file"};
 
@@ -321,11 +269,12 @@ TEST(Utils, make_file_with_content_fails_if_file_cannot_be_created)
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr("failed to open file")));
 }
 
-TEST(Utils, make_file_with_content_throws_on_write_error)
+TEST(Utils, makeFileWithContentThrowsOnWriteError)
 {
     std::string file_name{"some_dir/test-file"};
 
@@ -336,11 +285,12 @@ TEST(Utils, make_file_with_content_throws_on_write_error)
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
 
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
+                         std::runtime_error,
                          mpt::match_what(HasSubstr("failed to write to file")));
 }
 
-TEST(Utils, make_file_with_content_throws_on_failure_to_flush)
+TEST(Utils, makeFileWithContentThrowsOnFailureToFlush)
 {
     std::string file_name{"some_dir/test-file"};
 
@@ -361,47 +311,50 @@ TEST(Utils, expectedScryptHashReturned)
 {
     const auto passphrase = MP_UTILS.generate_scrypt_hash_for("passphrase");
 
-    EXPECT_EQ(passphrase, "f28cb995d91eed8064674766f28e468aae8065b2cf02af556c857dd77de2d2476f3830fd02147f3e35037a1812df"
-                          "0d0d0934fa677be585269fee5358d5c70758");
+    EXPECT_EQ(passphrase,
+              "f28cb995d91eed8064674766f28e468aae8065b2cf02af556c857dd77de2d2476f3830fd02147f3e3503"
+              "7a1812df"
+              "0d0d0934fa677be585269fee5358d5c70758");
 }
 
 TEST(Utils, generateScryptHashErrorThrows)
 {
     REPLACE(EVP_PBE_scrypt, [](auto...) { return 0; });
 
-    MP_EXPECT_THROW_THAT(MP_UTILS.generate_scrypt_hash_for("passphrase"), std::runtime_error,
+    MP_EXPECT_THROW_THAT(MP_UTILS.generate_scrypt_hash_for("passphrase"),
+                         std::runtime_error,
                          mpt::match_what(StrEq("Cannot generate passphrase hash")));
 }
 
-TEST(Utils, to_cmd_returns_empty_string_on_empty_input)
+TEST(Utils, toCmdReturnsEmptyStringOnEmptyInput)
 {
     std::vector<std::string> args{};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
     EXPECT_THAT(output, ::testing::StrEq(""));
 }
 
-TEST(Utils, to_cmd_output_are_not_escaped_with_no_quotes)
+TEST(Utils, toCmdOutputAreNotEscapedWithNoQuotes)
 {
     std::vector<std::string> args{"hello", "world"};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::no_quotes);
     EXPECT_THAT(output, ::testing::StrEq("hello world"));
 }
 
-TEST(Utils, to_cmd_arguments_are_not_escaped_if_not_needed)
+TEST(Utils, toCmdArgumentsAreNotEscapedIfNotNeeded)
 {
     std::vector<std::string> args{"hello", "world"};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
     EXPECT_THAT(output, ::testing::StrEq("hello world"));
 }
 
-TEST(Utils, to_cmd_arguments_with_single_quotes_are_escaped)
+TEST(Utils, toCmdArgumentsWithSingleQuotesAreEscaped)
 {
     std::vector<std::string> args{"it's", "me"};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
     EXPECT_THAT(output, ::testing::StrEq("it\\'s me"));
 }
 
-TEST(Utils, to_cmd_arguments_with_double_quotes_are_escaped)
+TEST(Utils, toCmdArgumentsWithDoubleQuotesAreEscaped)
 {
     std::vector<std::string> args{"they", "said", "\"please\""};
     auto output = mp::utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg);
@@ -441,7 +394,7 @@ TEST_F(TestTrimUtilities, trimAcceptsCustomFilter)
     EXPECT_EQ(s, " \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   ");
 }
 
-TEST(Utils, trim_newline_works)
+TEST(Utils, trimNewlineWorks)
 {
     std::string s{"correct\n"};
     mp::utils::trim_newline(s);
@@ -449,35 +402,35 @@ TEST(Utils, trim_newline_works)
     EXPECT_THAT(s, ::testing::StrEq("correct"));
 }
 
-TEST(Utils, trim_newline_assertion_works)
+TEST(Utils, trimNewlineAssertionWorks)
 {
     std::string s{"wrong"};
     // https://google.github.io/googletest/advanced.html#regular-expression-syntax
     ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "\\wssert");
 }
 
-TEST(Utils, escape_for_shell_actually_escapes)
+TEST(Utils, escapeForShellActuallyEscapes)
 {
     std::string s{"I've got \"quotes\""};
     auto res = mp::utils::escape_for_shell(s);
     EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\\ \\\"quotes\\\""));
 }
 
-TEST(Utils, escape_for_shell_quotes_newlines)
+TEST(Utils, escapeForShellQuotesNewlines)
 {
     std::string s{"I've got\nnewlines"};
     auto res = mp::utils::escape_for_shell(s);
     EXPECT_THAT(res, ::testing::StrEq("I\\'ve\\ got\"\n\"newlines"));
 }
 
-TEST(Utils, escape_for_shell_quotes_empty_string)
+TEST(Utils, escapeForShellQuotesEmptyString)
 {
     std::string s{""};
     auto res = mp::utils::escape_for_shell(s);
     EXPECT_THAT(res, ::testing::StrEq("''"));
 }
 
-TEST(Utils, try_action_actually_times_out)
+TEST(Utils, tryActionActuallyTimesOut)
 {
     bool on_timeout_called{false};
     auto on_timeout = [&on_timeout_called] { on_timeout_called = true; };
@@ -487,7 +440,7 @@ TEST(Utils, try_action_actually_times_out)
     EXPECT_TRUE(on_timeout_called);
 }
 
-TEST(Utils, try_action_does_not_timeout)
+TEST(Utils, tryActionDoesNotTimeout)
 {
     bool on_timeout_called{false};
     auto on_timeout = [&on_timeout_called] { on_timeout_called = true; };
@@ -503,13 +456,13 @@ TEST(Utils, try_action_does_not_timeout)
     EXPECT_TRUE(action_called);
 }
 
-TEST(Utils, uuid_has_no_curly_brackets)
+TEST(Utils, uuidHasNoCurlyBrackets)
 {
     auto uuid = mp::utils::make_uuid();
     EXPECT_FALSE(uuid.contains(QRegularExpression("[{}]")));
 }
 
-TEST(Utils, contents_of_actually_reads_contents)
+TEST(Utils, contentsOfActuallyReadsContents)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -520,12 +473,12 @@ TEST(Utils, contents_of_actually_reads_contents)
     EXPECT_THAT(content, StrEq(expected_content));
 }
 
-TEST(Utils, contents_of_throws_on_missing_file)
+TEST(Utils, contentsOfThrowsOnMissingFile)
 {
     EXPECT_THROW(mp::utils::contents_of("this-file-does-not-exist"), std::runtime_error);
 }
 
-TEST(Utils, contents_of_empty_contents_on_empty_file)
+TEST(Utils, contentsOfEmptyContentsOnEmptyFile)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/empty_test_file";
@@ -535,7 +488,7 @@ TEST(Utils, contents_of_empty_contents_on_empty_file)
     EXPECT_TRUE(content.empty());
 }
 
-TEST(Utils, split_returns_token_list)
+TEST(Utils, splitReturnsTokenList)
 {
     std::vector<std::string> expected_tokens;
     expected_tokens.push_back("Hello");
@@ -555,7 +508,7 @@ TEST(Utils, split_returns_token_list)
     EXPECT_THAT(tokens, ContainerEq(expected_tokens));
 }
 
-TEST(Utils, split_returns_one_token_if_no_delimiter)
+TEST(Utils, splitReturnsOneTokenIfNoDelimiter)
 {
     const std::string content{"no delimiter here"};
     const std::string delimiter{":"};
@@ -566,7 +519,7 @@ TEST(Utils, split_returns_one_token_if_no_delimiter)
     EXPECT_THAT(tokens[0], StrEq(content));
 }
 
-TEST(Utils, valid_mac_address_works)
+TEST(Utils, validMacAddressWorks)
 {
     EXPECT_TRUE(mp::utils::valid_mac_address("00:11:22:33:44:55"));
     EXPECT_TRUE(mp::utils::valid_mac_address("aa:bb:cc:dd:ee:ff"));
@@ -581,7 +534,7 @@ TEST(Utils, valid_mac_address_works)
     EXPECT_FALSE(mp::utils::valid_mac_address(":aa:bb:cc:dd:ee:ff"));
 }
 
-TEST(Utils, has_only_digits_works)
+TEST(Utils, hasOnlyDigitsWorks)
 {
     EXPECT_FALSE(mp::utils::has_only_digits("124ft:,"));
     EXPECT_TRUE(mp::utils::has_only_digits("0123456789"));
@@ -593,7 +546,7 @@ TEST(Utils, randomBytesReturnCorrectSize)
     EXPECT_THAT(MP_UTILS.random_bytes(4), SizeIs(4));
 }
 
-TEST(Utils, validate_server_address_throws_on_invalid_address)
+TEST(Utils, validateServerAddressThrowsOnInvalidAddress)
 {
     EXPECT_THROW(mp::utils::validate_server_address("unix"), std::runtime_error);
     EXPECT_THROW(mp::utils::validate_server_address("unix:"), std::runtime_error);
@@ -601,13 +554,13 @@ TEST(Utils, validate_server_address_throws_on_invalid_address)
     EXPECT_THROW(mp::utils::validate_server_address(""), std::runtime_error);
 }
 
-TEST(Utils, validate_server_address_does_not_throw_on_good_address)
+TEST(Utils, validateServerAddressDoesNotThrowOnGoodAddress)
 {
     EXPECT_NO_THROW(mp::utils::validate_server_address("unix:/tmp/a_socket"));
     EXPECT_NO_THROW(mp::utils::validate_server_address("test-server.net:123"));
 }
 
-TEST(Utils, no_subdirectory_returns_same_path)
+TEST(Utils, noSubdirectoryReturnsSamePath)
 {
     mp::Path original_path{"/tmp/foo"};
     QString empty_subdir{};
@@ -615,36 +568,37 @@ TEST(Utils, no_subdirectory_returns_same_path)
     EXPECT_THAT(mp::utils::backend_directory_path(original_path, empty_subdir), Eq(original_path));
 }
 
-TEST(Utils, subdirectory_returns_new_path)
+TEST(Utils, subdirectoryReturnsNewPath)
 {
     mp::Path original_path{"/tmp/foo"};
     QString subdir{"bar"};
 
-    EXPECT_THAT(mp::utils::backend_directory_path(original_path, subdir), Eq(mp::Path{"/tmp/foo/bar"}));
+    EXPECT_THAT(mp::utils::backend_directory_path(original_path, subdir),
+                Eq(mp::Path{"/tmp/foo/bar"}));
 }
 
-TEST(Utils, vm_running_returns_true)
+TEST(Utils, vmRunningReturnsTrue)
 {
     mp::VirtualMachine::State state = mp::VirtualMachine::State::running;
 
     EXPECT_TRUE(MP_UTILS.is_running(state));
 }
 
-TEST(Utils, vm_delayed_shutdown_returns_true)
+TEST(Utils, vmDelayedShutdownReturnsTrue)
 {
     mp::VirtualMachine::State state = mp::VirtualMachine::State::delayed_shutdown;
 
     EXPECT_TRUE(MP_UTILS.is_running(state));
 }
 
-TEST(Utils, vm_stopped_returns_false)
+TEST(Utils, vmStoppedReturnsFalse)
 {
     mp::VirtualMachine::State state = mp::VirtualMachine::State::stopped;
 
     EXPECT_FALSE(MP_UTILS.is_running(state));
 }
 
-TEST(Utils, absent_config_file_and_dir_are_created)
+TEST(Utils, absentConfigFileAndDirAreCreated)
 {
     mpt::TempDir temp_dir;
     const QString config_file_path{QString("%1/config_dir/config").arg(temp_dir.path())};
@@ -654,7 +608,7 @@ TEST(Utils, absent_config_file_and_dir_are_created)
     EXPECT_TRUE(QFile::exists(config_file_path));
 }
 
-TEST(Utils, existing_config_file_is_untouched)
+TEST(Utils, existingConfigFileIsUntouched)
 {
     mpt::TempFile config_file;
     QFileInfo config_file_info{config_file.name()};
@@ -668,7 +622,7 @@ TEST(Utils, existing_config_file_is_untouched)
     EXPECT_THAT(new_last_modified, Eq(original_last_modified));
 }
 
-TEST(Utils, line_matcher_returns_expected_line)
+TEST(Utils, lineMatcherReturnsExpectedLine)
 {
     std::string data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
     std::string matcher{"SNAP="};
@@ -678,7 +632,7 @@ TEST(Utils, line_matcher_returns_expected_line)
     EXPECT_THAT(snap_data, Eq("SNAP=/foo/bin"));
 }
 
-TEST(Utils, line_matcher_no_match_returns_empty_string)
+TEST(Utils, lineMatcherNoMatchReturnsEmptyString)
 {
     std::string data{"LD_LIBRARY_PATH=/foo/lib\nSNAP=/foo/bin\nDATA=/bar/baz\n"};
     std::string matcher{"FOO="};
@@ -688,7 +642,7 @@ TEST(Utils, line_matcher_no_match_returns_empty_string)
     EXPECT_TRUE(snap_data.empty());
 }
 
-TEST(Utils, make_dir_creates_correct_dir)
+TEST(Utils, makeDirCreatesCorrectDir)
 {
     mpt::TempDir temp_dir;
     QString new_dir{"foo"};
@@ -699,7 +653,7 @@ TEST(Utils, make_dir_creates_correct_dir)
     EXPECT_EQ(new_path, temp_dir.path() + "/" + new_dir);
 }
 
-TEST(Utils, make_dir_with_no_new_dir)
+TEST(Utils, makeDirWithNoNewDir)
 {
     mpt::TempDir temp_dir;
 
@@ -709,7 +663,7 @@ TEST(Utils, make_dir_with_no_new_dir)
     EXPECT_EQ(new_path, temp_dir.path());
 }
 
-TEST(Utils, check_filesystem_bytes_available_returns_non_negative)
+TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
 {
     mpt::TempDir temp_dir;
 

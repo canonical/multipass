@@ -64,14 +64,17 @@ TEST_F(TestDaemonAuthenticate, authenticateNoErrorReturnsOk)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::passphrase_key))).WillOnce(Return(saved_hash));
 
-    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(QString("foo")))).WillOnce(Return(good_hash));
+    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(QString("foo"))))
+        .WillOnce(Return(good_hash));
 
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::authenticate,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_TRUE(status.ok());
 }
@@ -85,13 +88,16 @@ TEST_F(TestDaemonAuthenticate, authenticateNoPassphraseSetReturnsError)
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::authenticate,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_EQ(status.error_message(),
-              "Passphrase is not set. Please `multipass set local.passphrase` with a trusted client.");
+    EXPECT_EQ(
+        status.error_message(),
+        "Passphrase is not set. Please `multipass set local.passphrase` with a trusted client.");
 }
 
 TEST_F(TestDaemonAuthenticate, authenticatePassphraseMismatchReturnsError)
@@ -100,14 +106,17 @@ TEST_F(TestDaemonAuthenticate, authenticatePassphraseMismatchReturnsError)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::passphrase_key))).WillOnce(Return(saved_hash));
 
-    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(QString("foo")))).WillOnce(Return(bad_hash));
+    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(QString("foo"))))
+        .WillOnce(Return(bad_hash));
 
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::authenticate,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_EQ(status.error_message(), "Passphrase is not correct. Please try again.");
@@ -118,14 +127,17 @@ TEST_F(TestDaemonAuthenticate, authenticateCatchesExceptionReturnsError)
     const std::string error_msg{"Getting settings failed"};
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(mock_settings, get(Eq(mp::passphrase_key))).WillOnce(Throw(std::runtime_error(error_msg)));
+    EXPECT_CALL(mock_settings, get(Eq(mp::passphrase_key)))
+        .WillOnce(Throw(std::runtime_error(error_msg)));
 
     mp::AuthenticateRequest request;
     request.set_passphrase("foo");
 
-    auto status =
-        call_daemon_slot(daemon, &mp::Daemon::authenticate, request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::authenticate,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_EQ(status.error_message(), error_msg);

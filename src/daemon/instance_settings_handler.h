@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
-#define MULTIPASS_INSTANCE_SETTINGS_HANDLER_H
+#pragma once
 
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/network_interface_info.h>
@@ -38,13 +37,14 @@ namespace multipass
 class InstanceSettingsHandler : public SettingsHandler
 {
 public:
-    InstanceSettingsHandler(std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
-                            std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
-                            const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
-                            const std::unordered_set<std::string>& preparing_instances,
-                            std::function<void()> instance_persister,
-                            std::function<bool(const std::string&)> is_bridged,
-                            std::function<void(const std::string&)> add_interface);
+    InstanceSettingsHandler(
+        std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
+        std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
+        const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
+        const std::unordered_set<std::string>& preparing_instances,
+        std::function<void()> instance_persister,
+        std::function<bool(const std::string&)> is_bridged,
+        std::function<void(const std::string&)> add_interface);
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
@@ -69,7 +69,9 @@ private:
 class InstanceSettingsException : public SettingsException
 {
 public:
-    InstanceSettingsException(const std::string& reason, const std::string& instance, const std::string& detail);
+    InstanceSettingsException(const std::string& reason,
+                              const std::string& instance,
+                              const std::string& detail);
 };
 
 class InstanceStateSettingsException : public InstanceSettingsException
@@ -81,8 +83,12 @@ public:
 class NonAuthorizedBridgeSettingsException : public InstanceSettingsException
 {
 public:
-    NonAuthorizedBridgeSettingsException(const std::string& reason, const std::string& instance, const std::string& net)
-        : InstanceSettingsException{reason, instance, fmt::format("Need user authorization to bridge {}", net)}
+    NonAuthorizedBridgeSettingsException(const std::string& reason,
+                                         const std::string& instance,
+                                         const std::string& net)
+        : InstanceSettingsException{reason,
+                                    instance,
+                                    fmt::format("Need user authorization to bridge {}", net)}
     {
     }
 };
@@ -90,12 +96,12 @@ public:
 class BridgeFailureException : public InstanceSettingsException
 {
 public:
-    BridgeFailureException(const std::string& reason, const std::string& instance, const std::string& net)
+    BridgeFailureException(const std::string& reason,
+                           const std::string& instance,
+                           const std::string& net)
         : InstanceSettingsException{reason, instance, fmt::format("Failure to bridge {}", net)}
     {
     }
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_INSTANCE_SETTINGS_HANDLER_H

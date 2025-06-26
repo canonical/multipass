@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_NETWORK_H
-#define MULTIPASS_MOCK_NETWORK_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -31,7 +30,10 @@ namespace multipass::test
 class MockQNetworkAccessManager : public QNetworkAccessManager
 {
 public:
-    MOCK_METHOD(QNetworkReply*, createRequest, (Operation, const QNetworkRequest&, QIODevice*), (override));
+    MOCK_METHOD(QNetworkReply*,
+                createRequest,
+                (Operation, const QNetworkRequest&, QIODevice*),
+                (override));
 };
 
 class MockQNetworkReply : public QNetworkReply
@@ -77,9 +79,11 @@ class MockNetworkManagerFactory : public NetworkManagerFactory
 public:
     using NetworkManagerFactory::NetworkManagerFactory;
 
-    MOCK_METHOD(std::unique_ptr<QNetworkAccessManager>, make_network_manager, (const Path&), (const, override));
+    MOCK_METHOD(std::unique_ptr<QNetworkAccessManager>,
+                make_network_manager,
+                (const Path&),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetworkManagerFactory, NetworkManagerFactory);
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_NETWORK_H

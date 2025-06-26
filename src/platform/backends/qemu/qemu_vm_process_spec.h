@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMU_PROCESS_H
-#define MULTIPASS_QEMU_PROCESS_H
+#pragma once
 
 #include "qemu_base_process_spec.h"
 #include "qemu_virtual_machine.h"
@@ -42,7 +41,8 @@ public:
 
     static QString default_machine_type();
 
-    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc, const QStringList& platform_args,
+    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc,
+                               const QStringList& platform_args,
                                const QemuVirtualMachine::MountArgs& mount_args,
                                const std::optional<ResumeData>& resume_data);
 
@@ -59,5 +59,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_QEMU_PROCESS_H

@@ -32,31 +32,37 @@ struct MockSyslogWrapper : public mpl::SyslogWrapper
 {
     using SyslogWrapper::SyslogWrapper;
 
-    MOCK_METHOD(void, write_syslog, (int, std::string_view, std::string_view, std::string_view), (const, override));
+    MOCK_METHOD(void,
+                write_syslog,
+                (int, std::string_view, std::string_view, std::string_view),
+                (const, override));
     MP_MOCK_SINGLETON_BOILERPLATE(MockSyslogWrapper, mpl::SyslogWrapper);
 };
 
-struct syslog_logger_test : ::testing::Test
+struct SyslogLoggerTest : ::testing::Test
 {
     using uut_t = mpl::SyslogLogger;
     MockSyslogWrapper::GuardedMock mock_syslog_guardedmock{MockSyslogWrapper::inject()};
     MockSyslogWrapper& mock_syslog = *mock_syslog_guardedmock.first;
 };
 
-TEST_F(syslog_logger_test, call_log)
+TEST_F(SyslogLoggerTest, callLog)
 {
     constexpr static std::string_view expected_category = "category";
     constexpr static std::string_view expected_message = "message";
     constexpr static std::string_view expected_fmtstr = "[%.*s] %.*s";
     constexpr static int expected_level = LOG_DEBUG;
     EXPECT_CALL(mock_syslog,
-                write_syslog(Eq(expected_level), Eq(expected_fmtstr), Eq(expected_category), Eq(expected_message)));
+                write_syslog(Eq(expected_level),
+                             Eq(expected_fmtstr),
+                             Eq(expected_category),
+                             Eq(expected_message)));
     uut_t uut{mpl::Level::debug};
     // This should log
     uut.log(mpl::Level::debug, expected_category, expected_message);
 }
 
-TEST_F(syslog_logger_test, call_log_filtered)
+TEST_F(SyslogLoggerTest, callLogFiltered)
 {
     EXPECT_CALL(mock_syslog, write_syslog).Times(0);
     uut_t uut{mpl::Level::debug};
@@ -64,21 +70,24 @@ TEST_F(syslog_logger_test, call_log_filtered)
     uut.log(mpl::Level::trace, "category", "message");
 }
 
-struct syslog_logger_priority_test : public testing::TestWithParam<std::tuple<int, mpl::Level>>
+struct SyslogLoggerPriorityTest : public testing::TestWithParam<std::tuple<int, mpl::Level>>
 {
     using uut_t = mpl::SyslogLogger;
     MockSyslogWrapper::GuardedMock mock_syslog_guardedmock{MockSyslogWrapper::inject()};
     MockSyslogWrapper& mock_syslog = *mock_syslog_guardedmock.first;
 };
 
-TEST_P(syslog_logger_priority_test, validate_level_to_priority)
+TEST_P(SyslogLoggerPriorityTest, validateLevelToPriority)
 {
     const auto& [syslog_level, mpl_level] = GetParam();
     constexpr static std::string_view expected_category = "category";
     constexpr static std::string_view expected_message = "message";
     constexpr static std::string_view expected_fmtstr = "[%.*s] %.*s";
     EXPECT_CALL(mock_syslog,
-                write_syslog(Eq(syslog_level), Eq(expected_fmtstr), Eq(expected_category), Eq(expected_message)));
+                write_syslog(Eq(syslog_level),
+                             Eq(expected_fmtstr),
+                             Eq(expected_category),
+                             Eq(expected_message)));
 
     uut_t uut{mpl_level};
     // This should log
@@ -86,7 +95,7 @@ TEST_P(syslog_logger_priority_test, validate_level_to_priority)
 }
 
 INSTANTIATE_TEST_SUITE_P(SyslogLevels,
-                         syslog_logger_priority_test,
+                         SyslogLoggerPriorityTest,
                          ::testing::Values(std::make_tuple(LOG_DEBUG, mpl::Level::trace),
                                            std::make_tuple(LOG_DEBUG, mpl::Level::debug),
                                            std::make_tuple(LOG_ERR, mpl::Level::error),

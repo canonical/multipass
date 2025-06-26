@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SIGNAL_H
-#define MULTIPASS_SIGNAL_H
+#pragma once
 
 #include <condition_variable>
 #include <mutex>
@@ -50,4 +49,3 @@ struct Signal
     bool signaled{false};
 };
 } // namespace multipass
-#endif // MULTIPASS_SIGNAL_TEST_FIXTURE_H

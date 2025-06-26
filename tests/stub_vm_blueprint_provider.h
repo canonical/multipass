@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef MULTIPASS_STUB_WORKFLOW_PROVIDER
-#define MULTIPASS_STUB_WORKFLOW_PROVIDER
+#pragma once
 
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/vm_blueprint_provider.h>
@@ -26,14 +25,17 @@ namespace test
 {
 struct StubVMBlueprintProvider final : public VMBlueprintProvider
 {
-    Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
+    Query fetch_blueprint_for(const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc,
                               ClientLaunchData& client_launch_data) override
     {
         throw std::out_of_range("");
     }
 
-    Query blueprint_from_file(const std::string& path, const std::string& blueprint_name,
-                              VirtualMachineDescription& vm_desc, ClientLaunchData& client_launch_data) override
+    Query blueprint_from_file(const std::string& path,
+                              const std::string& blueprint_name,
+                              VirtualMachineDescription& vm_desc,
+                              ClientLaunchData& client_launch_data) override
     {
         throw InvalidBlueprintException("");
     }
@@ -60,4 +62,3 @@ struct StubVMBlueprintProvider final : public VMBlueprintProvider
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_WORKFLOW_PROVIDER

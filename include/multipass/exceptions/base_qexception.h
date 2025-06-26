@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_QEXCEPTION
-#define MULTIPASS_BASE_QEXCEPTION
+#pragma once
 
 #include <QException>
 
@@ -37,8 +36,8 @@ public:
                       "DerivedException must be derived from BaseQException");
     }
 
-    // TODO@C++23, use explicit object parameters instead of static_cast conversion to derive class, see
-    // https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/ for more details
+    // TODO@C++23, use explicit object parameters instead of static_cast conversion to derive class,
+    // see https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/ for more details
     void raise() const override
     {
         throw static_cast<const DerivedException&>(*this);
@@ -58,4 +57,3 @@ private:
     std::string error_string;
 };
 } // namespace multipass
-#endif // MULTIPASS_BASE_QEXCEPTION

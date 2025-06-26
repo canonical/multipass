@@ -16,8 +16,7 @@
  * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  */
 
-#ifndef MULTIPASS_AUTO_JOIN_THREAD_H
-#define MULTIPASS_AUTO_JOIN_THREAD_H
+#pragma once
 
 #include <memory>
 #include <thread>
@@ -28,7 +27,8 @@ namespace multipass
 struct AutoJoinThread
 {
     template <typename Callable, typename... Args>
-    AutoJoinThread(Callable&& f, Args&&... args) : thread{std::forward<Callable>(f), std::forward<Args>(args)...}
+    AutoJoinThread(Callable&& f, Args&&... args)
+        : thread{std::forward<Callable>(f), std::forward<Args>(args)...}
     {
     }
     ~AutoJoinThread()
@@ -41,5 +41,3 @@ struct AutoJoinThread
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_AUTO_JOIN_THREAD_H

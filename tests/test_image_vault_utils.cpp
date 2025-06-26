@@ -47,21 +47,22 @@ struct TestImageVaultUtils : public ::testing::Test
     const mp::fs::path fs_test_output{test_output.toStdU16String()};
 };
 
-TEST_F(TestImageVaultUtils, copy_to_dir_handles_empty_file)
+TEST_F(TestImageVaultUtils, copyToDirHandlesEmptyFile)
 {
     EXPECT_EQ(MP_IMAGE_VAULT_UTILS.copy_to_dir("", test_dir), "");
 }
 
-TEST_F(TestImageVaultUtils, copy_to_dir_throws_on_nonexistant_file)
+TEST_F(TestImageVaultUtils, copyToDirThrowsOnNonexistantFile)
 {
     EXPECT_CALL(mock_file_ops, exists(test_info)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("not found"))));
+    MP_EXPECT_THROW_THAT(
+        MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("not found"))));
 }
 
-TEST_F(TestImageVaultUtils, copy_to_dir_throws_on_fail_to_copy)
+TEST_F(TestImageVaultUtils, copyToDirThrowsOnFailToCopy)
 {
     EXPECT_CALL(mock_file_ops, exists(test_info)).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, copy(test_path, test_output)).WillOnce(Return(false));
@@ -73,7 +74,7 @@ TEST_F(TestImageVaultUtils, copy_to_dir_throws_on_fail_to_copy)
                                                HasSubstr(test_output.toStdString()))));
 }
 
-TEST_F(TestImageVaultUtils, copy_to_dir_copys_to_dir)
+TEST_F(TestImageVaultUtils, copyToDirCopysToDir)
 {
     EXPECT_CALL(mock_file_ops, exists(test_info)).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, copy(test_path, test_output)).WillOnce(Return(true));
@@ -82,7 +83,7 @@ TEST_F(TestImageVaultUtils, copy_to_dir_copys_to_dir)
     EXPECT_EQ(result, test_output);
 }
 
-TEST_F(TestImageVaultUtils, compute_hash_throws_when_cant_read)
+TEST_F(TestImageVaultUtils, computeHashThrowsWhenCantRead)
 {
     QBuffer buffer{}; // note: buffer is not opened
     MP_EXPECT_THROW_THAT(std::ignore = MP_IMAGE_VAULT_UTILS.compute_hash(buffer),
@@ -90,7 +91,7 @@ TEST_F(TestImageVaultUtils, compute_hash_throws_when_cant_read)
                          mpt::match_what(HasSubstr("Failed to read")));
 }
 
-TEST_F(TestImageVaultUtils, compute_hash_computes_sha256)
+TEST_F(TestImageVaultUtils, computeHashComputesSha256)
 {
     QByteArray data = ":)";
     QBuffer buffer{&data};
@@ -101,30 +102,32 @@ TEST_F(TestImageVaultUtils, compute_hash_computes_sha256)
     EXPECT_EQ(hash, "54d626e08c1c802b305dad30b7e54a82f102390cc92c7d4db112048935236e9c");
 }
 
-TEST_F(TestImageVaultUtils, compute_file_hash_throws_when_cant_open)
+TEST_F(TestImageVaultUtils, computeFileHashThrowsWhenCantOpen)
 {
-    EXPECT_CALL(mock_file_ops, open(Property(&QFileDevice::fileName, test_path), Truly([](const auto& mode) {
-                                        return (mode & QFile::ReadOnly) > 0;
-                                    })))
+    EXPECT_CALL(mock_file_ops,
+                open(Property(&QFileDevice::fileName, test_path),
+                     Truly([](const auto& mode) { return (mode & QFile::ReadOnly) > 0; })))
         .WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(std::ignore = MP_IMAGE_VAULT_UTILS.compute_file_hash(test_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("Failed to open"))));
+    MP_EXPECT_THROW_THAT(
+        std::ignore = MP_IMAGE_VAULT_UTILS.compute_file_hash(test_path),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr("Failed to open"))));
 }
 
-TEST_F(TestImageVaultUtils, verify_file_hash_throws_on_bad_hash)
+TEST_F(TestImageVaultUtils, verifyFileHashThrowsOnBadHash)
 {
     auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
     EXPECT_CALL(*mock_utils, compute_file_hash(test_path)).WillOnce(Return(":("));
 
-    MP_EXPECT_THROW_THAT(
-        mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr(test_path.toStdString()), HasSubstr(":)"), HasSubstr("does not match"))));
+    MP_EXPECT_THROW_THAT(mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr(test_path.toStdString()),
+                                               HasSubstr(":)"),
+                                               HasSubstr("does not match"))));
 }
 
-TEST_F(TestImageVaultUtils, verify_file_hash_doesnt_throw_on_good_hash)
+TEST_F(TestImageVaultUtils, verifyFileHashDoesntThrowOnGoodHash)
 {
     auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
     EXPECT_CALL(*mock_utils, compute_file_hash(test_path)).WillOnce(Return(":)"));
@@ -132,7 +135,7 @@ TEST_F(TestImageVaultUtils, verify_file_hash_doesnt_throw_on_good_hash)
     EXPECT_NO_THROW(mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"));
 }
 
-TEST_F(TestImageVaultUtils, extract_file_will_delete_file)
+TEST_F(TestImageVaultUtils, extractFileWillDeleteFile)
 {
     auto decoder = [](const QString&, const QString&) {};
 
@@ -141,7 +144,7 @@ TEST_F(TestImageVaultUtils, extract_file_will_delete_file)
     MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, true);
 }
 
-TEST_F(TestImageVaultUtils, extract_file_wont_delete_file)
+TEST_F(TestImageVaultUtils, extractFileWontDeleteFile)
 {
     EXPECT_CALL(mock_file_ops, remove_extension(fs_test_path)).WillOnce(Return(fs_test_output));
 
@@ -158,7 +161,7 @@ TEST_F(TestImageVaultUtils, extract_file_wont_delete_file)
     EXPECT_EQ(calls, 1);
 }
 
-TEST_F(TestImageVaultUtils, extract_file_extracts_file)
+TEST_F(TestImageVaultUtils, extractFileExtractsFile)
 {
     EXPECT_CALL(mock_file_ops, remove_extension(fs_test_path)).WillOnce(Return(fs_test_output));
 
@@ -174,7 +177,7 @@ TEST_F(TestImageVaultUtils, extract_file_extracts_file)
     EXPECT_EQ(calls, 1);
 }
 
-TEST_F(TestImageVaultUtils, extract_file_with_decoder_binds_monitor)
+TEST_F(TestImageVaultUtils, extractFileWithDecoderBindsMonitor)
 {
     EXPECT_CALL(mock_file_ops, remove_extension(fs_test_path)).WillOnce(Return(fs_test_output));
 
@@ -189,20 +192,22 @@ TEST_F(TestImageVaultUtils, extract_file_with_decoder_binds_monitor)
     };
 
     mpt::MockImageDecoder decoder{};
-    EXPECT_CALL(decoder, decode_to(test_path, test_output, Truly([&](const auto& m) { return m(type, progress); })));
+    EXPECT_CALL(decoder, decode_to(test_path, test_output, Truly([&](const auto& m) {
+                                       return m(type, progress);
+                                   })));
 
     MP_IMAGE_VAULT_UTILS.extract_file(test_path, monitor, false, decoder);
 
     EXPECT_EQ(calls, 1);
 }
 
-TEST_F(TestImageVaultUtils, empty_hosts_produces_empty_map)
+TEST_F(TestImageVaultUtils, emptyHostsProducesEmptyMap)
 {
     auto map = MP_IMAGE_VAULT_UTILS.configure_image_host_map({});
     EXPECT_TRUE(map.empty());
 }
 
-TEST_F(TestImageVaultUtils, configure_image_host_map_maps_hosts)
+TEST_F(TestImageVaultUtils, configureImageHostMapMapsHosts)
 {
     mpt::MockImageHost mock1{};
     std::vector<std::string> hosts1{"this", "is", "a", "remotes"};

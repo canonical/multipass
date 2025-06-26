@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_COMMON_H
-#define MULTIPASS_COMMON_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -28,53 +27,57 @@
 // Extra macros for testing exceptions.
 //
 //    * MP_{ASSERT|EXPECT}_THROW_THAT(statement, expected_exception, matcher):
-//         Tests that the statement throws an exception of the expected type, matching the provided matcher
-#define MP_EXPECT_THROW_THAT(statement, expected_exception, matcher)                                                   \
-    EXPECT_THROW(                                                                                                      \
-        {                                                                                                              \
-            try                                                                                                        \
-            {                                                                                                          \
-                statement;                                                                                             \
-            }                                                                                                          \
-            catch (const expected_exception& e)                                                                        \
-            {                                                                                                          \
-                EXPECT_THAT(e, matcher);                                                                               \
-                throw;                                                                                                 \
-            }                                                                                                          \
-        },                                                                                                             \
+//         Tests that the statement throws an exception of the expected type, matching the provided
+//         matcher
+#define MP_EXPECT_THROW_THAT(statement, expected_exception, matcher)                               \
+    EXPECT_THROW(                                                                                  \
+        {                                                                                          \
+            try                                                                                    \
+            {                                                                                      \
+                statement;                                                                         \
+            }                                                                                      \
+            catch (const expected_exception& e)                                                    \
+            {                                                                                      \
+                EXPECT_THAT(e, matcher);                                                           \
+                throw;                                                                             \
+            }                                                                                      \
+        },                                                                                         \
         expected_exception)
 
-#define MP_ASSERT_THROW_THAT(statement, expected_exception, matcher)                                                   \
-    ASSERT_THROW(                                                                                                      \
-        {                                                                                                              \
-            try                                                                                                        \
-            {                                                                                                          \
-                statement;                                                                                             \
-            }                                                                                                          \
-            catch (const expected_exception& e)                                                                        \
-            {                                                                                                          \
-                ASSERT_THAT(e, matcher);                                                                               \
-                throw;                                                                                                 \
-            }                                                                                                          \
-        },                                                                                                             \
+#define MP_ASSERT_THROW_THAT(statement, expected_exception, matcher)                               \
+    ASSERT_THROW(                                                                                  \
+        {                                                                                          \
+            try                                                                                    \
+            {                                                                                      \
+                statement;                                                                         \
+            }                                                                                      \
+            catch (const expected_exception& e)                                                    \
+            {                                                                                      \
+                ASSERT_THAT(e, matcher);                                                           \
+                throw;                                                                             \
+            }                                                                                      \
+        },                                                                                         \
         expected_exception)
 
 // work around warning: https://github.com/google/googletest/issues/2271#issuecomment-665742471
 #define MP_TYPED_TEST_SUITE(suite_name, types_param) TYPED_TEST_SUITE(suite_name, types_param, )
 
 // Macros to make a mock delegate calls on a base class by default.
-// For example, if `mock_widget` is an object of type `MockWidget` which mocks `Widget`, one can say:
+// For example, if `mock_widget` is an object of type `MockWidget` which mocks `Widget`, one can
+// say:
 //     `MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_widget, Widget, render);`
-// This will cause calls to `mock_widget.render()` to delegate on the base implementation in `MockWidget`.
-#define MP_DELEGATE_MOCK_CALLS_ON_BASE(mock, method, BaseT)                                                            \
+// This will cause calls to `mock_widget.render()` to delegate on the base implementation in
+// `MockWidget`.
+#define MP_DELEGATE_MOCK_CALLS_ON_BASE(mock, method, BaseT)                                        \
     MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock, method, BaseT, )
 
-// This second form accepts matchers, which are useful to disambiguate overloaded methods. For example:
+// This second form accepts matchers, which are useful to disambiguate overloaded methods. For
+// example:
 //     `MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_widget, Widget, render, (A<Canvas>()))`
 // This will redirect the version of `MockWidget::render` that takes one argument of type `Canvas`.
-#define MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock, method, BaseT, ...)                                         \
-    ON_CALL(mock, method __VA_ARGS__).WillByDefault([m = &mock](auto&&... args) {                                      \
-        return m->BaseT::method(std::forward<decltype(args)>(args)...);                                                \
+#define MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock, method, BaseT, ...)                     \
+    ON_CALL(mock, method __VA_ARGS__).WillByDefault([m = &mock](auto&&... args) {                  \
+        return m->BaseT::method(std::forward<decltype(args)>(args)...);                            \
     })
 
 // Teach GTest to print Qt stuff
@@ -102,12 +105,14 @@ namespace multipass::test
  * @details This is useful to create matchers with Truly (which expects a unary predicate).
  * @tparam F The type of the callable.
  * @param f The n-ary callable we want to adapt. Note that this argument may be copied.
- * @return A unary callable that receives an n-tuple, calls \c f with that tuple unpacked, and returns what @c f returns
+ * @return A unary callable that receives an n-tuple, calls \c f with that tuple unpacked, and
+ * returns what @c f returns
  */
 template <typename F>
 auto with_arg_tuple(F f)
 {
-    return [f](auto&& arg_tuple) // may copy f, but avoiding forwarding-capture mess (see https://v.gd/2IbEdv)
+    return [f](auto&& arg_tuple) // may copy f, but avoiding forwarding-capture mess (see
+                                 // https://v.gd/2IbEdv)
     { return std::apply(f, std::forward<decltype(arg_tuple)>(arg_tuple)); };
 }
 
@@ -123,5 +128,3 @@ auto match_qstring(StrMatcher&& matcher)
     return testing::Property(&QString::toStdString, std::forward<StrMatcher>(matcher));
 }
 } // namespace multipass::test
-
-#endif // MULTIPASS_COMMON_H

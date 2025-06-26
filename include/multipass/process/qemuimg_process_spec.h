@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_QEMUIMG_PROCESS_SPEC_H
-#define MULTIPASS_QEMUIMG_PROCESS_SPEC_H
+#pragma once
 
 #include <multipass/process/process_spec.h>
 
@@ -29,7 +28,9 @@ namespace multipass
 class QemuImgProcessSpec : public ProcessSpec
 {
 public:
-    explicit QemuImgProcessSpec(const QStringList& args, const QString& source_image, const QString& target_image = {});
+    explicit QemuImgProcessSpec(const QStringList& args,
+                                const QString& source_image,
+                                const QString& target_image = {});
 
     QString program() const override;
     QStringList arguments() const override;
@@ -43,5 +44,3 @@ private:
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_QEMUIMG_PROCESS_SPEC_H

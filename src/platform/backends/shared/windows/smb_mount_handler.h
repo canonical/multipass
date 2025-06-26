@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SMB_MOUNT_HANDLER_H
-#define MULTIPASS_SMB_MOUNT_HANDLER_H
+#pragma once
 
 #include <multipass/mount_handler.h>
 #include <multipass/path.h>
@@ -28,7 +27,9 @@ namespace multipass
 struct SmbManager
 {
     virtual bool share_exists(const QString& share_name) const;
-    virtual void create_share(const QString& share_name, const QString& source, const QString& user) const;
+    virtual void create_share(const QString& share_name,
+                              const QString& source,
+                              const QString& user) const;
     virtual void remove_share(const QString& share_name) const;
 };
 
@@ -58,7 +59,7 @@ private:
     void encrypt_credentials_to_file(const QString& cred_filename,
                                      const QString& iv_filename,
                                      const std::string& ptext);
-    std::string decrypt_credentials_from_file(const QString& cred_filename, const QString& iv_filename);
+    std::string decrypt_credentials_from_file(const QString& cred_filename,
+                                              const QString& iv_filename);
 };
 } // namespace multipass
-#endif // MULTIPASS_SMB_MOUNT_HANDLER_H

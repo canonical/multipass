@@ -31,7 +31,8 @@ namespace mpu = multipass::utils;
 
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir) : instances_dir{instances_dir} {};
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir)
+    : instances_dir{instances_dir} {};
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
@@ -47,13 +48,14 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
         if (!vm_desc.network_data_config.IsNull())
             iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
 
-        iso.write_to(cloud_init_iso);
+        iso.write_to(cloud_init_iso.toStdString());
     }
 
     vm_desc.cloud_init_iso = cloud_init_iso;
 }
 
-void mp::BaseVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>& extra_interfaces)
+void mp::BaseVirtualMachineFactory::prepare_networking(
+    std::vector<NetworkInterface>& extra_interfaces)
 {
     if (!extra_interfaces.empty())
     {
@@ -67,8 +69,10 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
                                                       std::vector<NetworkInterfaceInfo>& host_nets)
 {
     const auto bridge_type = MP_PLATFORM.bridge_nomenclature();
-    auto net_it = std::find_if(host_nets.cbegin(), host_nets.cend(),
-                               [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
+    auto net_it =
+        std::find_if(host_nets.cbegin(),
+                     host_nets.cend(),
+                     [&net](const mp::NetworkInterfaceInfo& info) { return info.id == net.id; });
 
     if (net_it != host_nets.end() && net_it->type != bridge_type)
     {
@@ -84,13 +88,14 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
     }
 }
 
-mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSpecs& src_spec,
-                                                                      const VMSpecs& dest_spec,
-                                                                      const std::string& src_name,
-                                                                      const std::string& dest_name,
-                                                                      const VMImage& dest_image,
-                                                                      const multipass::SSHKeyProvider& key_provider,
-                                                                      VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
+    const VMSpecs& src_spec,
+    const VMSpecs& dest_spec,
+    const std::string& src_name,
+    const std::string& dest_name,
+    const VMImage& dest_image,
+    const multipass::SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
 {
     const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
     const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
@@ -119,22 +124,25 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSp
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance = clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
+    mp::VirtualMachine::UPtr cloned_instance =
+        clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 
     return cloned_instance;
 }
 
-void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
-                                                                           const fs::path& dest_instance_dir_path)
+void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
+    const fs::path& source_instance_dir_path,
+    const fs::path& dest_instance_dir_path)
 {
     assert(fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path));
 
     fs::create_directory(dest_instance_dir_path);
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
-        // snapshot files are intentionally skipped; .iso file is included for all, .img file here is not relevant
-        // for non-qemu backends.
-        if (entry.path().extension().string() == ".iso" || entry.path().extension().string() == ".img")
+        // snapshot files are intentionally skipped; .iso file is included for all, .img file here
+        // is not relevant for non-qemu backends.
+        if (entry.path().extension().string() == ".iso" ||
+            entry.path().extension().string() == ".img")
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);

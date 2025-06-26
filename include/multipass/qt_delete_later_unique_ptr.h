@@ -15,11 +15,10 @@
  *
  */
 
-#ifndef QT_DELETE_LATER_UNIQUE_PTR_H
-#define QT_DELETE_LATER_UNIQUE_PTR_H
+#pragma once
 
-#include <memory>
 #include <QObject>
+#include <memory>
 
 namespace multipass
 {
@@ -29,8 +28,10 @@ namespace multipass
  * e.g. QThread
  */
 
-struct QtDeleteLater {
-    void operator()(QObject *o) {
+struct QtDeleteLater
+{
+    void operator()(QObject* o)
+    {
         // Detach the signal handlers since this object doesn't live in a QT object
         // hierarchy, and that might cause lifetime related issues, especially
         // if signals are involved.
@@ -40,9 +41,7 @@ struct QtDeleteLater {
     }
 };
 
-template<typename T>
+template <typename T>
 using qt_delete_later_unique_ptr = std::unique_ptr<T, QtDeleteLater>;
 
-} // namespace
-
-#endif // QT_DELETE_LATER_UNIQUE_PTR_H
+} // namespace multipass

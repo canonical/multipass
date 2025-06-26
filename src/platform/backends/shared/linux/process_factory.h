@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PROCESS_FACTORY_H
-#define MULTIPASS_PROCESS_FACTORY_H
+#pragma once
 
 #include "apparmor.h"
 #include <multipass/process/process_spec.h>
@@ -36,13 +35,13 @@ class ProcessFactory : public Singleton<ProcessFactory>
 public:
     ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
 
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
-    std::unique_ptr<Process> create_process(const QString& command, const QStringList& args = QStringList()) const;
+    virtual std::unique_ptr<Process> create_process(
+        std::unique_ptr<ProcessSpec>&& process_spec) const;
+    std::unique_ptr<Process> create_process(const QString& command,
+                                            const QStringList& args = QStringList()) const;
 
 private:
     const std::optional<AppArmor> apparmor;
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_PROCESS_FACTORY_H

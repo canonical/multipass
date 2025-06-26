@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_SPECS_H
-#define MULTIPASS_VM_SPECS_H
+#pragma once
 
 #include "memory_size.h"
 #include "network_interface.h"
@@ -44,7 +43,8 @@ struct VMSpecs
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
     QJsonObject metadata;
-    int clone_count = 0; // tracks the number of cloned vm from this source vm (regardless of deletes)
+    int clone_count =
+        0; // tracks the number of cloned vm from this source vm (regardless of deletes)
 };
 
 inline bool operator==(const VMSpecs& a, const VMSpecs& b)
@@ -78,5 +78,3 @@ inline bool operator!=(const VMSpecs& a, const VMSpecs& b) // TODO drop in C++20
 }
 
 } // namespace multipass
-
-#endif // MULTIPASS_VM_SPECS_H

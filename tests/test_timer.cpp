@@ -38,11 +38,16 @@ struct MockTimerSyncFuncs : public mpu::TimerSyncFuncs
     using TimerSyncFuncs::TimerSyncFuncs;
 
     MOCK_METHOD(void, notify_all, (std::condition_variable&), (const, override));
-    MOCK_METHOD(void, wait, (std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>),
+    MOCK_METHOD(void,
+                wait,
+                (std::condition_variable&, std::unique_lock<std::mutex>&, std::function<bool()>),
                 (const, override));
-    MOCK_METHOD(bool, wait_for,
-                (std::condition_variable&, std::unique_lock<std::mutex>&,
-                 (const std::chrono::duration<int, std::milli>&), std::function<bool()>),
+    MOCK_METHOD(bool,
+                wait_for,
+                (std::condition_variable&,
+                 std::unique_lock<std::mutex>&,
+                 (const std::chrono::duration<int, std::milli>&),
+                 std::function<bool()>),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockTimerSyncFuncs, TimerSyncFuncs);
@@ -130,7 +135,7 @@ struct TestTimer : public testing::Test
 
 } // namespace
 
-TEST_F(TestTimer, times_out)
+TEST_F(TestTimer, timesOut)
 {
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
         .WillOnce(WithArg<1>(make_mock_wait_for(false)));
@@ -189,7 +194,8 @@ TEST_F(TestTimer, resumes)
         .WillOnce(WithArg<1>(make_mock_wait_for(true)));
 
     // After resume() is called, there should be less time left than the default timeout
-    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout), _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Lt(default_timeout), _))
+        .WillOnce(Return(false));
     EXPECT_CALL(*mock_timer_sync_funcs, wait);
 
     t.start();
@@ -212,7 +218,7 @@ TEST_F(TestTimer, resumes)
     ASSERT_EQ(timeout_count.load(), 1) << "Should have timed out";
 }
 
-TEST_F(TestTimer, stops_paused)
+TEST_F(TestTimer, stopsPaused)
 {
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
         .WillOnce(WithArg<1>(make_mock_wait_for(true)));
@@ -279,7 +285,7 @@ TEST_F(TestTimer, restarts)
     ASSERT_EQ(timeout_count.load(), 1) << "Should have timed out once now";
 }
 
-TEST_F(TestTimer, stopped_ignores_pause)
+TEST_F(TestTimer, stoppedIgnoresPause)
 {
     // Indicates the Timer was never running
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for).Times(0);
@@ -289,7 +295,7 @@ TEST_F(TestTimer, stopped_ignores_pause)
     ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(TestTimer, stopped_ignores_resume)
+TEST_F(TestTimer, stoppedIgnoresResume)
 {
     // Indicates the Timer was never running
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for).Times(0);
@@ -299,7 +305,7 @@ TEST_F(TestTimer, stopped_ignores_resume)
     ASSERT_EQ(timeout_count.load(), 0) << "Should not have timed out";
 }
 
-TEST_F(TestTimer, running_ignores_resume)
+TEST_F(TestTimer, runningIgnoresResume)
 {
     EXPECT_CALL(*mock_timer_sync_funcs, wait_for(_, _, Eq(default_timeout), _))
         .WillOnce(WithArg<1>(make_mock_wait_for(true)));

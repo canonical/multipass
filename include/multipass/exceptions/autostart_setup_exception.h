@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
-#define MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -26,7 +25,8 @@ namespace multipass
 class AutostartSetupException : public std::runtime_error
 {
 public:
-    AutostartSetupException(const std::string& why, const std::string& detail) : runtime_error(why), detail{detail}
+    AutostartSetupException(const std::string& why, const std::string& detail)
+        : runtime_error(why), detail{detail}
     {
     }
 
@@ -39,5 +39,3 @@ private:
     std::string detail;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_AUTOSTART_SETUP_EXCEPTION_H

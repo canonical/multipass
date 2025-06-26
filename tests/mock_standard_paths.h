@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STANDARD_PATHS_H
-#define MULTIPASS_MOCK_STANDARD_PATHS_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -34,7 +33,10 @@ public:
     static void mockit();
     static MockStandardPaths& mock_instance();
 
-    MOCK_METHOD(QString, locate, (StandardLocation, const QString&, LocateOptions), (const, override));
+    MOCK_METHOD(QString,
+                locate,
+                (StandardLocation, const QString&, LocateOptions),
+                (const, override));
     MOCK_METHOD(QStringList, standardLocations, (StandardLocation type), (const, override));
     MOCK_METHOD(QString, writableLocation, (StandardLocation type), (const, override));
 
@@ -44,5 +46,3 @@ private:
     friend class MockSingletonHelper<MockStandardPaths, ::testing::NiceMock>;
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_STANDARD_PATHS_H

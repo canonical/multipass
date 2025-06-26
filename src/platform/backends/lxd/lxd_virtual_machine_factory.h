@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include "lxd_request.h"
 
@@ -31,22 +30,26 @@ class LXDVirtualMachineFactory : public BaseVirtualMachineFactory
 {
 public:
     explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
-    explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const Path& data_dir,
+    explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager,
+                                      const Path& data_dir,
                                       const QUrl& base_url = lxd_socket_url);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
-    void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
+    void prepare_instance_image(const VMImage& instance_image,
+                                const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_directory_name() const override
     {
         return "lxd";
     };
     QString get_backend_version_string() const override;
-    VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                          const Path& cache_dir_path, const Path& data_dir_path,
+    VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
+                                          URLDownloader* downloader,
+                                          const Path& cache_dir_path,
+                                          const Path& data_dir_path,
                                           const days& days_to_expire) override;
     void configure(VirtualMachineDescription& vm_desc) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
@@ -67,5 +70,3 @@ inline void multipass::LXDVirtualMachineFactory::require_suspend_support() const
 {
     throw NotImplementedOnThisBackendException{"suspend"};
 }
-
-#endif // MULTIPASS_LXD_VIRTUAL_MACHINE_FACTORY_H

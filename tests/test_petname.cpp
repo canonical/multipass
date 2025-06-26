@@ -35,10 +35,11 @@ namespace
 std::vector<std::string> split(const std::string& string, const std::string& delimiter)
 {
     std::regex regex(delimiter);
-    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1}, std::sregex_token_iterator{}};
+    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1},
+            std::sregex_token_iterator{}};
 }
-}
-TEST(Petname, generates_the_requested_num_words)
+} // namespace
+TEST(Petname, generatesTheRequestedNumWords)
 {
     std::string separator{"-"};
     mp::Petname gen1{mp::Petname::NumWords::ONE, separator};
@@ -58,7 +59,7 @@ TEST(Petname, generates_the_requested_num_words)
     EXPECT_THAT(tokens.size(), Eq(3u));
 }
 
-TEST(Petname, uses_default_separator)
+TEST(Petname, usesDefaultSeparator)
 {
     std::string expected_separator{"-"};
     mp::Petname name_generator{mp::Petname::NumWords::THREE};
@@ -67,7 +68,7 @@ TEST(Petname, uses_default_separator)
     EXPECT_THAT(tokens.size(), Eq(3u));
 }
 
-TEST(Petname, generates_two_tokens_by_default)
+TEST(Petname, generatesTwoTokensByDefault)
 {
     std::string separator{"-"};
     mp::Petname name_generator{separator};
@@ -80,16 +81,16 @@ TEST(Petname, generates_two_tokens_by_default)
     EXPECT_THAT(set.size(), Eq(tokens.size()));
 }
 
-TEST(Petname, can_generate_at_least_hundred_unique_names)
+TEST(Petname, canGenerateAtLeastHundredUniqueNames)
 {
     std::string separator{"-"};
     mp::Petname name_generator{mp::Petname::NumWords::THREE, separator};
     std::unordered_set<std::string> name_set;
     const std::size_t expected_num_unique_names{100};
 
-    //TODO: fixme, randomness is involved in name generation hence there's a non-zero probability
-    // we will fail to generate the number of expected unique names.
-    for (std::size_t i = 0; i < 10*expected_num_unique_names; i++)
+    // TODO: fixme, randomness is involved in name generation hence there's a non-zero probability
+    //  we will fail to generate the number of expected unique names.
+    for (std::size_t i = 0; i < 10 * expected_num_unique_names; i++)
     {
         name_set.insert(name_generator.make_name());
     }

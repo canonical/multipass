@@ -30,11 +30,12 @@ using namespace testing;
 namespace
 {
 
-TEST(StandardPaths, provides_regular_locate_by_default)
+TEST(StandardPaths, providesRegularLocateByDefault)
 {
     const auto location_type = mp::StandardPaths::TempLocation;
     const auto find = QStringLiteral("o_o");
-    const auto locate_options = mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateDirectory};
+    const auto locate_options =
+        mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateDirectory};
 
     // Create a subdir in the standard temp dir, for locate to find
     QDir aux{QStandardPaths::writableLocation(location_type)};
@@ -48,7 +49,7 @@ TEST(StandardPaths, provides_regular_locate_by_default)
     ASSERT_EQ(MP_STDPATHS.locate(location_type, find, locate_options), proof);
 }
 
-TEST(StandardPaths, can_have_locate_mocked)
+TEST(StandardPaths, canHaveLocateMocked)
 {
     const auto location_type = mp::StandardPaths::HomeLocation;
     const auto locate_options = mp::StandardPaths::LocateOptions{mp::StandardPaths::LocateFile};
@@ -60,13 +61,13 @@ TEST(StandardPaths, can_have_locate_mocked)
     ASSERT_EQ(MP_STDPATHS.locate(location_type, find, locate_options), proof);
 }
 
-TEST(StandardPaths, provides_regular_standard_locations_by_default)
+TEST(StandardPaths, providesRegularStandardLocationsByDefault)
 {
     const auto& test = mp::StandardPaths::MusicLocation;
     ASSERT_EQ(MP_STDPATHS.standardLocations(test), QStandardPaths::standardLocations(test));
 }
 
-TEST(StandardPaths, can_have_standard_locations_mocked)
+TEST(StandardPaths, canHaveStandardLocationsMocked)
 {
     const auto test = mp::StandardPaths::AppConfigLocation;
     const auto proof = QStringList{QStringLiteral("abc"), QStringLiteral("xyz")};
@@ -76,13 +77,13 @@ TEST(StandardPaths, can_have_standard_locations_mocked)
     ASSERT_EQ(MP_STDPATHS.standardLocations(test), proof);
 }
 
-TEST(StandardPaths, provides_regular_writable_location_by_default)
+TEST(StandardPaths, providesRegularWritableLocationByDefault)
 {
     const auto test = mp::StandardPaths::MoviesLocation;
     ASSERT_EQ(MP_STDPATHS.writableLocation(test), QStandardPaths::writableLocation(test));
 }
 
-TEST(StandardPaths, can_have_writable_location_mocked)
+TEST(StandardPaths, canHaveWritableLocationMocked)
 {
     const auto test = mp::StandardPaths::ConfigLocation;
     const auto proof = QStringLiteral("xyz");

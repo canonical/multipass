@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UTILS_H
-#define MULTIPASS_UTILS_H
+#pragma once
 
 #include <multipass/logging/level.h>
 #include <multipass/network_interface_info.h>
@@ -68,15 +67,17 @@ enum class TimeoutAction
 QDir base_dir(const QString& path);
 bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
-std::string filename_for(const std::string& path);
 std::string contents_of(const multipass::Path& file_path);
 bool invalid_target_path(const QString& target_path);
-QTemporaryFile create_temp_file_with_path(const QString& filename_template);
-void remove_directories(const std::vector<QString>& dirs);
 
 // filesystem mount helpers
-void make_target_dir(SSHSession& session, const std::string& root, const std::string& relative_target);
-void set_owner_for(SSHSession& session, const std::string& root, const std::string& relative_target, int vm_user,
+void make_target_dir(SSHSession& session,
+                     const std::string& root,
+                     const std::string& relative_target);
+void set_owner_for(SSHSession& session,
+                   const std::string& root,
+                   const std::string& relative_target,
+                   int vm_user,
                    int vm_group);
 std::string get_resolved_target(SSHSession& session, const std::string& target);
 std::pair<std::string, std::string> get_path_split(SSHSession& session, const std::string& target);
@@ -86,10 +87,16 @@ void check_and_create_config_file(const QString& config_file_path);
 
 // command and process helpers
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
-void process_throw_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                            const QString& category = "utils", const int timeout = 30000);
-bool process_log_on_error(const QString& program, const QStringList& arguments, const QString& message,
-                          const QString& category, multipass::logging::Level level = multipass::logging::Level::debug,
+void process_throw_on_error(const QString& program,
+                            const QStringList& arguments,
+                            const QString& message,
+                            const QString& category = "utils",
+                            const int timeout = 30000);
+bool process_log_on_error(const QString& program,
+                          const QStringList& arguments,
+                          const QString& message,
+                          const QString& category,
+                          multipass::logging::Level level = multipass::logging::Level::debug,
                           const int timeout = 30000);
 
 // networking helpers
@@ -98,9 +105,10 @@ bool valid_hostname(const std::string& name_string);
 std::string generate_mac_address();
 bool valid_mac_address(const std::string& mac);
 
-std::optional<NetworkInterfaceInfo> find_bridge_with(const std::vector<NetworkInterfaceInfo>& networks,
-                                                     const std::string& target_network,
-                                                     const std::string& bridge_type);
+std::optional<NetworkInterfaceInfo> find_bridge_with(
+    const std::vector<NetworkInterfaceInfo>& networks,
+    const std::string& target_network,
+    const std::string& bridge_type);
 
 // string helpers
 bool has_only_digits(const std::string& value);
@@ -132,7 +140,9 @@ QString get_multipass_storage();
 QString make_uuid(const std::optional<std::string>& seed = std::nullopt);
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
-void try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout, TryAction&& try_action,
+void try_action_for(OnTimeoutCallable&& on_timeout,
+                    std::chrono::milliseconds timeout,
+                    TryAction&& try_action,
                     Args&&... args);
 
 template <typename T>
@@ -142,10 +152,11 @@ bool is_default_constructed(const T& input_type)
 }
 
 // simplified parallel transform, it takes a std container and a unary operation and
-// returns a std::vector<OutputValueType> where the OutputValueType is the unary operation return type
-// There are two options of the return types, one is the one below and the other one is auto. Eventually, I went with
-// the std::invoke_result_t based one because it makes the function signature more expressive despite the fact that it
-// makes std::invoke_result_t<std::decay_t<UnaryOperation>, InputValueType> code duplicate.
+// returns a std::vector<OutputValueType> where the OutputValueType is the unary operation return
+// type There are two options of the return types, one is the one below and the other one is auto.
+// Eventually, I went with the std::invoke_result_t based one because it makes the function
+// signature more expressive despite the fact that it makes
+// std::invoke_result_t<std::decay_t<UnaryOperation>, InputValueType> code duplicate.
 template <typename Container, typename UnaryOperation>
 std::vector<std::invoke_result_t<std::decay_t<UnaryOperation>, typename Container::value_type>>
 parallel_transform(const Container& input_container, UnaryOperation&& unary_op)
@@ -203,17 +214,22 @@ public:
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code) const;
     virtual std::string contents_of(const multipass::Path& file_path) const;
-    virtual void make_file_with_content(const std::string& file_name, const std::string& content,
+    virtual void make_file_with_content(const std::string& file_name,
+                                        const std::string& content,
                                         const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir,
                           const QString& name,
                           std::filesystem::perms permissions = std::filesystem::perms::none) const;
-    virtual Path make_dir(const QDir& dir, std::filesystem::perms permissions = std::filesystem::perms::none) const;
+    virtual Path make_dir(const QDir& dir,
+                          std::filesystem::perms permissions = std::filesystem::perms::none) const;
 
     // command and process helpers
-    virtual std::string run_cmd_for_output(const QString& cmd, const QStringList& args,
+    virtual std::string run_cmd_for_output(const QString& cmd,
+                                           const QStringList& args,
                                            const int timeout = 30000) const;
-    virtual bool run_cmd_for_status(const QString& cmd, const QStringList& args, const int timeout = 30000) const;
+    virtual bool run_cmd_for_status(const QString& cmd,
+                                    const QStringList& args,
+                                    const int timeout = 30000) const;
 
     virtual Path derive_instances_dir(const Path& data_dir,
                                       const Path& backend_directory_name,
@@ -227,7 +243,9 @@ public:
 
     // virtual machine helpers
     [[nodiscard]] virtual bool is_running(const VirtualMachine::State& state) const;
-    virtual std::string run_in_ssh_session(SSHSession& session, const std::string& cmd, bool whisper = false) const;
+    virtual std::string run_in_ssh_session(SSHSession& session,
+                                           const std::string& cmd,
+                                           bool whisper = false) const;
 
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
@@ -287,11 +305,15 @@ Str&& multipass::utils::trim(Str&& s)
 }
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
-void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout, std::chrono::milliseconds timeout,
-                                      TryAction&& try_action, Args&&... args)
+void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout,
+                                      std::chrono::milliseconds timeout,
+                                      TryAction&& try_action,
+                                      Args&&... args)
 {
 
-    static_assert(std::is_same<decltype(try_action(std::forward<Args>(args)...)), TimeoutAction>::value, "");
+    static_assert(
+        std::is_same<decltype(try_action(std::forward<Args>(args)...)), TimeoutAction>::value,
+        "");
     using namespace std::literals::chrono_literals;
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
@@ -321,4 +343,3 @@ std::string multipass::utils::qenum_to_string(RegisteredQtEnum val)
 
 std::string deprecation_warning_message_driver_concatenated(
     const QString driver_name); // TODO lxd and libvirt migration, remove
-#endif // MULTIPASS_UTILS_H

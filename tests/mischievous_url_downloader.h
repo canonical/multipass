@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H
-#define MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H
+#pragma once
 
 #include <multipass/url_downloader.h>
 
@@ -31,7 +30,10 @@ class MischievousURLDownloader : public URLDownloader
 public:
     MischievousURLDownloader(std::chrono::milliseconds timeout);
 
-    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+    void download_to(const QUrl& url,
+                     const QString& file_name,
+                     int64_t size,
+                     const int download_type,
                      const ProgressMonitor& monitor) override;
     QByteArray download(const QUrl& url) override;
     QByteArray download(const QUrl& url, const bool is_force_update_from_network) override;
@@ -47,5 +49,3 @@ private:
 };
 } // namespace test
 } // namespace multipass
-
-#endif /* MULTIPASS_MISCHIEVOUS_URL_DOWNLOADER_H */

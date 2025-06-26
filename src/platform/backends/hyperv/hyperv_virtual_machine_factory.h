@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <shared/base_virtual_machine_factory.h>
 
@@ -36,7 +35,8 @@ public:
                                                 const SSHKeyProvider& key_provider,
                                                 VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
-    void prepare_instance_image(const VMImage& instance_image, const VirtualMachineDescription& desc) override;
+    void prepare_instance_image(const VMImage& instance_image,
+                                const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_version_string() const override
     {
@@ -60,7 +60,8 @@ private:
                                        const VirtualMachineDescription& desc,
                                        VMStatusMonitor& monitor,
                                        const SSHKeyProvider& key_provider) override;
-    static std::vector<NetworkInterfaceInfo> get_switches(const std::vector<NetworkInterfaceInfo>& adapters);
+    static std::vector<NetworkInterfaceInfo> get_switches(
+        const std::vector<NetworkInterfaceInfo>& adapters);
     static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass
@@ -68,5 +69,3 @@ private:
 inline void multipass::HyperVVirtualMachineFactory::require_snapshots_support() const
 {
 }
-
-#endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_FACTORY_H

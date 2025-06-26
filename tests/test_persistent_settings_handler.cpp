@@ -40,10 +40,10 @@ namespace
 class TestPersistentSettingsHandler : public Test
 {
 public:
-    mp::PersistentSettingsHandler
-    make_handler(const std::optional<QString>& specific_key = std::nullopt,
-                 const std::optional<QString>& specific_val = std::nullopt,
-                 const std::optional<std::function<QString(QString)>>& specific_interpreter = std::nullopt)
+    mp::PersistentSettingsHandler make_handler(
+        const std::optional<QString>& specific_key = std::nullopt,
+        const std::optional<QString>& specific_val = std::nullopt,
+        const std::optional<std::function<QString(QString)>>& specific_interpreter = std::nullopt)
     {
         auto setting_set = make_basic_persistent_settings();
 
@@ -52,7 +52,9 @@ public:
             auto val = specific_val.value_or("banana");
 
             if (specific_interpreter)
-                setting_set.insert(std::make_unique<mp::CustomSettingSpec>(*specific_key, val, *specific_interpreter));
+                setting_set.insert(std::make_unique<mp::CustomSettingSpec>(*specific_key,
+                                                                           val,
+                                                                           *specific_interpreter));
             else
                 setting_set.insert(std::make_unique<mp::BasicSettingSpec>(*specific_key, val));
         }
@@ -62,7 +64,8 @@ public:
 
     void inject_mock_qsettings() // moves the mock, so call once only, after setting expectations
     {
-        EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(fake_filename), Eq(QSettings::IniFormat)))
+        EXPECT_CALL(*mock_qsettings_provider,
+                    make_wrapped_qsettings(Eq(fake_filename), Eq(QSettings::IniFormat)))
             .WillOnce(Return(ByMove(std::move(mock_qsettings))));
     }
 
@@ -71,27 +74,32 @@ public:
         std::fstream fstream{};
         fstream.setstate(std::ios_base::failbit);
 
-        EXPECT_CALL(*mock_file_ops, open(_, StrEq(qPrintable(fake_filename)), Eq(std::ios_base::in)))
-            .WillOnce(DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
-                            Assign(&errno, EACCES)));
+        EXPECT_CALL(*mock_file_ops,
+                    open(_, StrEq(qPrintable(fake_filename)), Eq(std::ios_base::in)))
+            .WillOnce(
+                DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
+                      Assign(&errno, EACCES)));
 
         EXPECT_CALL(*mock_qsettings, fileName).WillOnce(Return(fake_filename));
     }
 
 public:
     QString fake_filename = "/tmp/fake.filename";
-    std::map<QString, QString> defaults{
-        {"a.key", "a value"}, {"another.key", "with a value"}, {"one.further.key", "and its default value"}};
+    std::map<QString, QString> defaults{{"a.key", "a value"},
+                                        {"another.key", "with a value"},
+                                        {"one.further.key", "and its default value"}};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
     mpt::MockFileOps* mock_file_ops = mock_file_ops_injection.first;
 
     mpt::MockQSettingsProvider::GuardedMock mock_qsettings_injection =
-        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than explicitly injected, no
-                                                             QSettings are used */
+        mpt::MockQSettingsProvider::inject<StrictMock>(); /* strict to ensure that, other than
+                                                             explicitly injected, no QSettings are
+                                                             used */
     mpt::MockQSettingsProvider* mock_qsettings_provider = mock_qsettings_injection.first;
 
-    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings = std::make_unique<NiceMock<mpt::MockQSettings>>();
+    std::unique_ptr<NiceMock<mpt::MockQSettings>> mock_qsettings =
+        std::make_unique<NiceMock<mpt::MockQSettings>>();
 
 private:
     mp::SettingSpec::Set make_basic_persistent_settings() const
@@ -131,7 +139,8 @@ TEST_F(TestPersistentSettingsHandler, getThrowsOnUnreadableFile)
     mock_unreadable_settings_file();
     inject_mock_qsettings();
 
-    MP_EXPECT_THROW_THAT(handler.get(key), mp::PersistentSettingsException,
+    MP_EXPECT_THROW_THAT(handler.get(key),
+                         mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
@@ -143,7 +152,8 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnreadableFile)
     mock_unreadable_settings_file();
     inject_mock_qsettings();
 
-    MP_EXPECT_THROW_THAT(handler.set(key, val), mp::PersistentSettingsException,
+    MP_EXPECT_THROW_THAT(handler.set(key, val),
+                         mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
 
@@ -163,7 +173,8 @@ TEST_P(TestPersistentSettingsReadWriteError, getThrowsOnFileReadError)
 
     inject_mock_qsettings();
 
-    MP_EXPECT_THROW_THAT(handler.get(key), mp::PersistentSettingsException,
+    MP_EXPECT_THROW_THAT(handler.get(key),
+                         mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr(desc))));
 }
 
@@ -181,11 +192,13 @@ TEST_P(TestPersistentSettingsReadWriteError, setThrowsOnFileWriteError)
 
     inject_mock_qsettings();
 
-    MP_EXPECT_THROW_THAT(handler.set(key, "bleh"), mp::PersistentSettingsException,
+    MP_EXPECT_THROW_THAT(handler.set(key, "bleh"),
+                         mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
 }
 
-INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors, TestPersistentSettingsReadWriteError,
+INSTANTIATE_TEST_SUITE_P(TestSettingsAllReadErrors,
+                         TestPersistentSettingsReadWriteError,
                          Values(DescribedQSettingsStatus{QSettings::FormatError, "format"},
                                 DescribedQSettingsStatus{QSettings::AccessError, "access"}));
 
@@ -242,7 +255,9 @@ TEST_F(TestPersistentSettingsHandler, getThrowsOnUnknownKey)
     const auto handler = make_handler();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
-    MP_EXPECT_THROW_THAT(handler.get(key), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(handler.get(key),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
@@ -251,7 +266,9 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
     auto handler = make_handler();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
-    MP_EXPECT_THROW_THAT(handler.set(key, "asdf"), mp::UnrecognizedSettingException, mpt::match_what(HasSubstr(key)));
+    MP_EXPECT_THROW_THAT(handler.set(key, "asdf"),
+                         mp::UnrecognizedSettingException,
+                         mpt::match_what(HasSubstr(key)));
 }
 
 TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
@@ -268,7 +285,8 @@ TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
 TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
 {
     const auto key = "k.e.y", given_val = "given", interpreted_val = "interpreted";
-    auto handler = make_handler(key, "default", [&interpreted_val](QString) { return interpreted_val; });
+    auto handler =
+        make_handler(key, "default", [&interpreted_val](QString) { return interpreted_val; });
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(interpreted_val)));
 
     inject_mock_qsettings();
@@ -287,7 +305,9 @@ TEST_F(TestPersistentSettingsHandler, setThrowsInterpreterExceptions)
     });
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
-    MP_EXPECT_THROW_THAT(handler.set(key, val), mp::InvalidSettingException, mpt::match_what(HasSubstr(error)));
+    MP_EXPECT_THROW_THAT(handler.set(key, val),
+                         mp::InvalidSettingException,
+                         mpt::match_what(HasSubstr(error)));
 }
 
 } // namespace

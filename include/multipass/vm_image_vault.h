@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_IMAGE_VAULT_H
-#define MULTIPASS_VM_IMAGE_VAULT_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "fetch_type.h"
@@ -80,15 +79,17 @@ public:
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;
-    virtual void update_images(const FetchType& fetch_type, const PrepareAction& prepare,
+    virtual void update_images(const FetchType& fetch_type,
+                               const PrepareAction& prepare,
                                const ProgressMonitor& monitor) = 0;
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
-    virtual void clone(const std::string& source_instance_name, const std::string& destination_instance_name) = 0;
+    virtual void clone(const std::string& source_instance_name,
+                       const std::string& destination_instance_name) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
-    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const = 0;
+    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
+        const Query& query) const = 0;
 
 protected:
     VMImageVault() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_VM_IMAGE_VAULT_H

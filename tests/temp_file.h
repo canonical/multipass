@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_TEMP_FILE_H
-#define MULTIPASS_TEMP_FILE_H
+#pragma once
 
 #include <QString>
 #include <QTemporaryFile>
@@ -32,14 +31,19 @@ class TempFile
 {
 public:
     TempFile();
-    QString name() const { return the_name; }
-    QString url() const { return the_url; }
+    QString name() const
+    {
+        return the_name;
+    }
+    QString url() const
+    {
+        return the_url;
+    }
+
 private:
     QTemporaryFile file;
     QString the_name;
     QString the_url;
 };
-}
-}
-
-#endif // MULTIPASS_TEMP_FILE_H
+} // namespace test
+} // namespace multipass

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/format.h>
@@ -62,11 +61,16 @@ public:
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
 
-    VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts, URLDownloader* downloader,
-                                          const Path& cache_dir_path, const Path& data_dir_path,
+    VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
+                                          URLDownloader* downloader,
+                                          const Path& cache_dir_path,
+                                          const Path& data_dir_path,
                                           const days& days_to_expire) override
     {
-        return std::make_unique<DefaultVMImageVault>(image_hosts, downloader, cache_dir_path, data_dir_path,
+        return std::make_unique<DefaultVMImageVault>(image_hosts,
+                                                     downloader,
+                                                     cache_dir_path,
+                                                     data_dir_path,
                                                      days_to_expire);
     };
 
@@ -90,7 +94,8 @@ protected:
         throw NotImplementedOnThisBackendException{"bridge creation"};
     }
 
-    virtual void prepare_interface(NetworkInterface& net, std::vector<NetworkInterfaceInfo>& host_nets);
+    virtual void prepare_interface(NetworkInterface& net,
+                                   std::vector<NetworkInterfaceInfo>& host_nets);
 
     virtual void remove_resources_for_impl(const std::string& name) = 0;
 
@@ -138,5 +143,3 @@ inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clo
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }
-
-#endif // MULTIPASS_BASE_VIRTUAL_MACHINE_FACTORY_H

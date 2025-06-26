@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LOGGER_H
-#define MULTIPASS_LOGGER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/logging/level.h>
@@ -55,4 +54,3 @@ protected:
 };
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_LOGGER_H

@@ -61,32 +61,33 @@ public:
 
 } // namespace
 
-TEST_F(TopCatchAll, calls_function_with_no_args)
+TEST_F(TopCatchAll, callsFunctionWithNoArgs)
 {
     int ret = 123, got = 0;
     EXPECT_NO_THROW(got = mp::top_catch_all("", EXIT_FAILURE, [ret] { return ret; }););
     EXPECT_EQ(got, ret);
 }
 
-TEST_F(TopCatchAll, calls_function_with_other_return)
+TEST_F(TopCatchAll, callsFunctionWithOtherReturn)
 {
     std::string ret{"abc"}, got;
     EXPECT_NO_THROW(got = mp::top_catch_all("", "unused", [&ret] { return ret; }););
     EXPECT_EQ(got, ret);
 }
 
-TEST_F(TopCatchAll, calls_function_with_args)
+TEST_F(TopCatchAll, callsFunctionWithArgs)
 {
     int a = 5, b = 7, got = 0;
     EXPECT_NO_THROW(got = mp::top_catch_all("", EXIT_FAILURE, std::plus<int>{}, a, b););
     EXPECT_EQ(got, a + b);
 }
 
-TEST_F(TopCatchAll, handles_unknown_error)
+TEST_F(TopCatchAll, handlesUnknownError)
 {
     int got = 0;
 
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), HasSubstr("unknown")));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), make_category_matcher(), HasSubstr("unknown")));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, EXIT_FAILURE, [] {
                         throw 123;
                         return 0;
@@ -94,13 +95,14 @@ TEST_F(TopCatchAll, handles_unknown_error)
     EXPECT_EQ(got, EXIT_FAILURE);
 }
 
-TEST_F(TopCatchAll, handles_standard_exception)
+TEST_F(TopCatchAll, handlesStandardException)
 {
     int got = 0;
     const std::string emsg = "some error";
     const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(emsg.c_str()));
 
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), msg_matcher));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), make_category_matcher(), msg_matcher));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, EXIT_FAILURE, [&emsg] {
                         throw std::runtime_error{emsg};
                         return 0;
@@ -108,12 +110,14 @@ TEST_F(TopCatchAll, handles_standard_exception)
     EXPECT_EQ(got, EXIT_FAILURE);
 }
 
-TEST_F(TopCatchAll, handles_custom_exception)
+TEST_F(TopCatchAll, handlesCustomException)
 {
     int got = 0;
-    const auto msg_matcher = AllOf(HasSubstr("exception"), HasSubstr(CustomExceptionForTesting::msg));
+    const auto msg_matcher =
+        AllOf(HasSubstr("exception"), HasSubstr(CustomExceptionForTesting::msg));
 
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), msg_matcher));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), make_category_matcher(), msg_matcher));
     EXPECT_NO_THROW(got = mp::top_catch_all(category, EXIT_FAILURE, [] {
                         throw CustomExceptionForTesting{};
                         return 42;
@@ -121,7 +125,7 @@ TEST_F(TopCatchAll, handles_custom_exception)
     EXPECT_EQ(got, EXIT_FAILURE);
 }
 
-TEST_F(TopCatchAll, uses_fallback_object_of_other_types_on_exception)
+TEST_F(TopCatchAll, usesFallbackObjectOfOtherTypesOnException)
 {
     std::string fallback{"default"}, got;
     EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), _, _)).Times(1);
@@ -129,21 +133,23 @@ TEST_F(TopCatchAll, uses_fallback_object_of_other_types_on_exception)
     EXPECT_EQ(got, fallback);
 }
 
-TEST_F(TopCatchAll, calls_void_callable)
+TEST_F(TopCatchAll, callsVoidCallable)
 {
     auto ran = false;
     EXPECT_NO_THROW(mp::top_catch_all("", [&ran] { ran = true; }));
     EXPECT_TRUE(ran);
 }
 
-TEST_F(TopCatchAll, handles_unknown_error_in_void_callable)
+TEST_F(TopCatchAll, handlesUnknownErrorInVoidCallable)
 {
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), HasSubstr("unknown")));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), make_category_matcher(), HasSubstr("unknown")));
     EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw 123; }));
 }
 
-TEST_F(TopCatchAll, handles_exception_in_void_callable)
+TEST_F(TopCatchAll, handlesExceptionInVoidCallable)
 {
-    EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::error), make_category_matcher(), HasSubstr("exception")));
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::error), make_category_matcher(), HasSubstr("exception")));
     EXPECT_NO_THROW(mp::top_catch_all(category, [] { throw std::exception{}; }));
 }

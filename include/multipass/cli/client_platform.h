@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_CLIENT_PLATFORM_H
-#define MULTIPASS_CLIENT_PLATFORM_H
+#pragma once
 
 #include <multipass/singleton.h>
 
@@ -50,13 +49,13 @@ public:
 void parse_transfer_entry(const QString& entry, QString& path, QString& instance_name);
 int getuid();
 int getgid();
-void open_multipass_shell(const QString& instance_name); // precondition: requires a valid instance name
+void open_multipass_shell(
+    const QString& instance_name); // precondition: requires a valid instance name
 } // namespace platform
 } // namespace cli
 } // namespace multipass
 
-inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
+inline multipass::cli::platform::Platform::Platform(const PrivatePass& pass) noexcept
+    : Singleton(pass)
 {
 }
-
-#endif // MULTIPASS_CLIENT_PLATFORM_H

@@ -31,7 +31,8 @@ namespace
 {
 auto get_dummy_attr(const char* name, uint8_t type)
 {
-    auto attr = static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
+    auto attr =
+        static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
     attr->name = strdup(name);
     attr->type = type;
     return attr;
@@ -71,8 +72,12 @@ TEST(SFTPDirIterator, success)
         nullptr,
     };
 
-    auto open_dir = [&, i = 0](auto...) mutable { return i == (int)dirs.size() ? nullptr : dirs[i++]; };
-    auto read_dir = [&, i = 0](auto...) mutable { return i == (int)entries.size() ? nullptr : entries[i++]; };
+    auto open_dir = [&, i = 0](auto...) mutable {
+        return i == (int)dirs.size() ? nullptr : dirs[i++];
+    };
+    auto read_dir = [&, i = 0](auto...) mutable {
+        return i == (int)entries.size() ? nullptr : entries[i++];
+    };
 
     REPLACE(sftp_opendir, open_dir);
     REPLACE(sftp_readdir, read_dir);
@@ -85,21 +90,30 @@ TEST(SFTPDirIterator, success)
         result.emplace_back(iter.next()->name);
 
     EXPECT_THAT(result,
-                UnorderedElementsAre("dir/file1", "dir/dir1", "dir/dir1/file2", "dir/dir1/dir2", "dir/dir1/dir2/file3",
-                                     "dir/dir1/file4", "dir/dir1/file5", "dir/dir3", "dir/dir3/file6"));
+                UnorderedElementsAre("dir/file1",
+                                     "dir/dir1",
+                                     "dir/dir1/file2",
+                                     "dir/dir1/dir2",
+                                     "dir/dir1/dir2/file3",
+                                     "dir/dir1/file4",
+                                     "dir/dir1/file5",
+                                     "dir/dir3",
+                                     "dir/dir3/file6"));
 }
 
-TEST(SFTPDirIterator, fail_opendir)
+TEST(SFTPDirIterator, failOpendir)
 {
     REPLACE(sftp_opendir, [](auto...) { return nullptr; });
     REPLACE(ssh_get_error, [](auto...) { return "SFTP server: No such file"; });
 
     sftp_session_struct sftp{};
-    MP_EXPECT_THROW_THAT((mp::SFTPDirIterator{&sftp, "dir"}), mp::SFTPError,
-                         mpt::match_what(StrEq("cannot open remote directory 'dir': SFTP server: No such file")));
+    MP_EXPECT_THROW_THAT(
+        (mp::SFTPDirIterator{&sftp, "dir"}),
+        mp::SFTPError,
+        mpt::match_what(StrEq("cannot open remote directory 'dir': SFTP server: No such file")));
 }
 
-TEST(SFTPDirIterator, fail_readdir)
+TEST(SFTPDirIterator, failReaddir)
 {
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_dir(path); });
     REPLACE(sftp_readdir, [](auto...) { return nullptr; });
@@ -107,6 +121,9 @@ TEST(SFTPDirIterator, fail_readdir)
     REPLACE(ssh_get_error, [](auto...) { return "SFTP server: Permission denied"; });
 
     sftp_session_struct sftp{};
-    MP_EXPECT_THROW_THAT((mp::SFTPDirIterator{&sftp, "dir"}), mp::SFTPError,
-                         mpt::match_what(StrEq("cannot read remote directory 'dir': SFTP server: Permission denied")));
+    MP_EXPECT_THROW_THAT(
+        (mp::SFTPDirIterator{&sftp, "dir"}),
+        mp::SFTPError,
+        mpt::match_what(
+            StrEq("cannot read remote directory 'dir': SFTP server: Permission denied")));
 }

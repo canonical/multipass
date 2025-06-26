@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_STATUS_MONITOR_H
-#define MULTIPASS_MOCK_STATUS_MONITOR_H
+#pragma once
 
 #include "common.h"
 
@@ -32,10 +31,12 @@ struct MockVMStatusMonitor : public VMStatusMonitor
     MOCK_METHOD(void, on_shutdown, (), (override));
     MOCK_METHOD(void, on_suspend, (), (override));
     MOCK_METHOD(void, on_restart, (const std::string&), (override));
-    MOCK_METHOD(void, persist_state_for, (const std::string&, const VirtualMachine::State&), (override));
+    MOCK_METHOD(void,
+                persist_state_for,
+                (const std::string&, const VirtualMachine::State&),
+                (override));
     MOCK_METHOD(void, update_metadata_for, (const std::string&, const QJsonObject&), (override));
     MOCK_METHOD(QJsonObject, retrieve_metadata_for, (const std::string&), (override));
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_STATUS_MONITOR_H

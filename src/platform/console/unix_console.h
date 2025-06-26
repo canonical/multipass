@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UNIX_CONSOLE_H
-#define MULTIPASS_UNIX_CONSOLE_H
+#pragma once
 
 #include <multipass/console.h>
 
@@ -24,16 +23,16 @@
 
 #include <vector>
 
+#include "unix_terminal.h"
 #include <csignal>
 #include <termios.h>
-#include "unix_terminal.h"
 
 namespace multipass
 {
 class UnixConsole final : public Console
 {
 public:
-    explicit UnixConsole(ssh_channel channel, UnixTerminal *term);
+    explicit UnixConsole(ssh_channel channel, UnixTerminal* term);
     ~UnixConsole();
 
     void read_console() override{};
@@ -51,4 +50,3 @@ private:
     struct sigaction winch_action;
 };
 } // namespace multipass
-#endif // MULTIPASS_UNIX_CONSOLE_H

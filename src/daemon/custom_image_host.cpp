@@ -89,11 +89,16 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
         "Core 24",
         "Core 24"}}}}};
 
-auto base_image_info_for(mp::URLDownloader* url_downloader, const QString& image_url, const QString& hash_url,
-                         const QString& image_file, const bool is_force_update_from_network = false)
+auto base_image_info_for(mp::URLDownloader* url_downloader,
+                         const QString& image_url,
+                         const QString& hash_url,
+                         const QString& image_file,
+                         const bool is_force_update_from_network = false)
 {
-    const auto last_modified = QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
-    const auto sha256_sums = url_downloader->download({hash_url}, is_force_update_from_network).split('\n');
+    const auto last_modified =
+        QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
+    const auto sha256_sums =
+        url_downloader->download({hash_url}, is_force_update_from_network).split('\n');
     QString hash;
 
     for (const QString line : sha256_sums) // intentional copy
@@ -123,18 +128,22 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info, mp::URLDownloader* url_downloader,
+auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info,
+                         mp::URLDownloader* url_downloader,
                          const bool is_force_update_from_network = false)
 {
     auto fetch_one_image_info =
-        [is_force_update_from_network,
-         url_downloader](const std::pair<const QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
+        [is_force_update_from_network, url_downloader](
+            const std::pair<const QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
         const auto& [image_file_name, custom_image_info] = image_info_pair;
         const QString image_url{custom_image_info.url_prefix + image_info_pair.first};
         const QString hash_url{custom_image_info.url_prefix + QStringLiteral("SHA256SUMS")};
 
-        const auto base_image_info =
-            base_image_info_for(url_downloader, image_url, hash_url, image_file_name, is_force_update_from_network);
+        const auto base_image_info = base_image_info_for(url_downloader,
+                                                         image_url,
+                                                         hash_url,
+                                                         image_file_name,
+                                                         is_force_update_from_network);
 
         return mp::VMImageInfo{custom_image_info.aliases,
                                custom_image_info.os,
@@ -178,7 +187,8 @@ std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& quer
     return *it->second;
 }
 
-std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for(const Query& query)
+std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for(
+    const Query& query)
 {
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
@@ -199,7 +209,9 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
 {
     std::vector<mp::VMImageInfo> images;
     auto custom_manifest = manifest_from(remote_name);
-    std::copy(custom_manifest->products.begin(), custom_manifest->products.end(), std::back_inserter(images));
+    std::copy(custom_manifest->products.begin(),
+              custom_manifest->products.end(),
+              std::back_inserter(images));
 
     return images;
 }
@@ -246,7 +258,8 @@ mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remo
 {
     auto it = custom_image_info.find(remote_name);
     if (it == custom_image_info.end())
-        throw std::runtime_error(fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
+        throw std::runtime_error(
+            fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
 
     return it->second.get();
 }

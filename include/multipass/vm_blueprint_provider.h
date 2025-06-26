@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_BLUEPRINT_PROVIDER_H
-#define MULTIPASS_VM_BLUEPRINT_PROVIDER_H
+#pragma once
 
 #include "client_launch_data.h"
 #include "disabled_copy_move.h"
@@ -35,10 +34,13 @@ class VMBlueprintProvider : private DisabledCopyMove
 public:
     virtual ~VMBlueprintProvider() = default;
 
-    virtual Query fetch_blueprint_for(const std::string& blueprint_name, VirtualMachineDescription& vm_desc,
+    virtual Query fetch_blueprint_for(const std::string& blueprint_name,
+                                      VirtualMachineDescription& vm_desc,
                                       ClientLaunchData& client_launch_data) = 0;
-    virtual Query blueprint_from_file(const std::string& path, const std::string& blueprint_name,
-                                      VirtualMachineDescription& vm_desc, ClientLaunchData& client_launch_data) = 0;
+    virtual Query blueprint_from_file(const std::string& path,
+                                      const std::string& blueprint_name,
+                                      VirtualMachineDescription& vm_desc,
+                                      ClientLaunchData& client_launch_data) = 0;
     virtual std::optional<VMImageInfo> info_for(const std::string& blueprint_name) = 0;
     virtual std::vector<VMImageInfo> all_blueprints() = 0;
     virtual std::string name_from_blueprint(const std::string& blueprint_name) = 0;
@@ -48,4 +50,3 @@ protected:
     VMBlueprintProvider() = default;
 };
 } // namespace multipass
-#endif // MULTIPASS_VM_BLUEPRINT_PROVIDER_H

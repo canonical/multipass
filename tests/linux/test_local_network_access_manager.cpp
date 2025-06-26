@@ -73,14 +73,17 @@ struct LocalNetworkAccessManager : public Test
         base_url.setHost("test");
     }
 
-    auto handle_request(const QUrl& url, const QByteArray& verb, const QByteArray& data = QByteArray())
+    auto handle_request(const QUrl& url,
+                        const QByteArray& verb,
+                        const QByteArray& data = QByteArray())
     {
         QNetworkRequest request{url};
         request.setHeader(QNetworkRequest::UserAgentHeader, "Test");
 
         if (!data.isEmpty())
         {
-            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+            request.setHeader(QNetworkRequest::ContentTypeHeader,
+                              "application/x-www-form-urlencoded");
 
             auto data_size = data.size();
             if (data_size < max_bytes)
@@ -137,7 +140,7 @@ const std::vector<HTTPErrorParamType> http_error_suite_inputs{
     {"HTTP/1.1 412 Precondition Failed\r\n\r\n", QNetworkReply::UnknownContentError}};
 } // namespace
 
-TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
+TEST_F(LocalNetworkAccessManager, noErrorReturnsGoodReply)
 {
     QByteArray http_response;
     http_response += "HTTP/1.1 200 OK\r\n";
@@ -151,7 +154,7 @@ TEST_F(LocalNetworkAccessManager, no_error_returns_good_reply)
     EXPECT_EQ(reply->error(), QNetworkReply::NoError);
 }
 
-TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
+TEST_F(LocalNetworkAccessManager, readsExpectedDataNotChunked)
 {
     QByteArray reply_data{"Hello"};
 
@@ -174,7 +177,7 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_not_chunked)
     EXPECT_EQ(data, reply_data);
 }
 
-TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
+TEST_F(LocalNetworkAccessManager, readsExpectedDataChunked)
 {
     QByteArray reply_data{"What's up?"};
 
@@ -199,7 +202,7 @@ TEST_F(LocalNetworkAccessManager, reads_expected_data_chunked)
     EXPECT_EQ(data, reply_data);
 }
 
-TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
+TEST_F(LocalNetworkAccessManager, clientPostsCorrectData)
 {
     QByteArray expected_data{"POST /1.0 HTTP/1.1\r\n"
                              "Host: test\r\n"
@@ -221,7 +224,7 @@ TEST_F(LocalNetworkAccessManager, client_posts_correct_data)
     handle_request(base_url, "POST", "Hello World");
 }
 
-TEST_F(LocalNetworkAccessManager, bad_http_server_response_has_error)
+TEST_F(LocalNetworkAccessManager, badHttpServerResponseHasError)
 {
     QByteArray malformed_http_response{"FOO/1.4 42 Yo\r\n"};
 
@@ -233,7 +236,7 @@ TEST_F(LocalNetworkAccessManager, bad_http_server_response_has_error)
     EXPECT_EQ(reply->error(), QNetworkReply::ProtocolFailure);
 }
 
-TEST_F(LocalNetworkAccessManager, malformed_unix_schema_throws)
+TEST_F(LocalNetworkAccessManager, malformedUnixSchemaThrows)
 {
     base_url = "unix:///foo";
 
@@ -242,7 +245,7 @@ TEST_F(LocalNetworkAccessManager, malformed_unix_schema_throws)
     EXPECT_THROW(manager.sendCustomRequest(request, "GET"), mp::LocalSocketConnectionException);
 }
 
-TEST_F(LocalNetworkAccessManager, unable_to_connect_throws)
+TEST_F(LocalNetworkAccessManager, unableToConnectThrows)
 {
     base_url = "unix:///invalid/path@1.0";
 
@@ -251,7 +254,7 @@ TEST_F(LocalNetworkAccessManager, unable_to_connect_throws)
     EXPECT_THROW(manager.sendCustomRequest(request, "GET"), mp::LocalSocketConnectionException);
 }
 
-TEST_F(LocalNetworkAccessManager, reply_abort_sets_expected_error)
+TEST_F(LocalNetworkAccessManager, replyAbortSetsExpectedError)
 {
     download_timeout.setInterval(2);
 
@@ -260,7 +263,7 @@ TEST_F(LocalNetworkAccessManager, reply_abort_sets_expected_error)
     EXPECT_EQ(reply->error(), QNetworkReply::OperationCanceledError);
 }
 
-TEST_F(LocalNetworkAccessManager, other_request_uses_qnam)
+TEST_F(LocalNetworkAccessManager, otherRequestUsesQnam)
 {
     QUrl url{QString("file://%1/missing_doc.txt").arg(temp_dir.path())};
 
@@ -269,7 +272,7 @@ TEST_F(LocalNetworkAccessManager, other_request_uses_qnam)
     EXPECT_EQ(reply->error(), QNetworkReply::ProtocolUnknownError);
 }
 
-TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
+TEST_F(LocalNetworkAccessManager, queryInUrlIsPreserved)
 {
     const QString query_string{"query=foo"};
 
@@ -289,7 +292,7 @@ TEST_F(LocalNetworkAccessManager, query_in_url_is_preserved)
     handle_request(base_url, "GET");
 }
 
-TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
+TEST_F(LocalNetworkAccessManager, sendingChunkedDataReceivesExpectedData)
 {
     QByteArray random_data = generate_random_data(max_content);
     QByteArray http_response{"HTTP/1.1 200 OK\r\n\r\n"};
@@ -313,7 +316,7 @@ TEST_F(LocalNetworkAccessManager, sending_chunked_data_receives_expected_data)
     handle_request(base_url, "POST", random_data);
 }
 
-TEST_F(LocalNetworkAccessManager, overflowing_response_works)
+TEST_F(LocalNetworkAccessManager, overflowingResponseWorks)
 {
     auto reply_data = generate_random_data(max_content * 2);
     QByteArray http_response;
@@ -335,7 +338,7 @@ TEST_F(LocalNetworkAccessManager, overflowing_response_works)
     EXPECT_EQ(data, reply_data);
 }
 
-TEST_F(LocalNetworkAccessManager, no_host_set_throws)
+TEST_F(LocalNetworkAccessManager, noHostSetThrows)
 {
     base_url.setHost("");
 
@@ -344,7 +347,7 @@ TEST_F(LocalNetworkAccessManager, no_host_set_throws)
     EXPECT_THROW(manager.sendCustomRequest(request, "GET"), mp::HttpLocalSocketException);
 }
 
-TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_both_set_throws)
+TEST_F(LocalNetworkAccessManager, contentLengthAndTransferEncodingBothSetThrows)
 {
     QNetworkRequest request{base_url};
     QByteArray some_data{"This is some data"};
@@ -352,20 +355,23 @@ TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_both_set_
     request.setHeader(QNetworkRequest::ContentLengthHeader, some_data.size());
     request.setRawHeader("Transfer-Encoding", "chunked");
 
-    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data), mp::HttpLocalSocketException);
+    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data),
+                 mp::HttpLocalSocketException);
 }
 
-TEST_F(LocalNetworkAccessManager, content_length_and_transfer_encoding_not_set_throws)
+TEST_F(LocalNetworkAccessManager, contentLengthAndTransferEncodingNotSetThrows)
 {
     QNetworkRequest request{base_url};
     QByteArray some_data{"This is some data"};
 
-    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data), mp::HttpLocalSocketException);
+    EXPECT_THROW(manager.sendCustomRequest(request, "POST", some_data),
+                 mp::HttpLocalSocketException);
 }
 
-TEST_F(LocalNetworkAccessManager, qiodevice_read_fails_throws)
+TEST_F(LocalNetworkAccessManager, qiodeviceReadFailsThrows)
 {
-    auto mock_q_local_socket = std::make_unique<mpt::MockQLocalSocket>(10); // Not failing any writes
+    auto mock_q_local_socket =
+        std::make_unique<mpt::MockQLocalSocket>(10); // Not failing any writes
 
     base_url.setHost("test");
     QNetworkRequest request{base_url};
@@ -377,12 +383,13 @@ TEST_F(LocalNetworkAccessManager, qiodevice_read_fails_throws)
     auto data{generate_random_data(32768)};
     mpt::MockQBuffer buffer{&data};
 
-    EXPECT_THROW(mp::LocalSocketReply local_socket_reply(std::move(mock_q_local_socket), request, &buffer),
-                 mp::HttpLocalSocketException);
+    EXPECT_THROW(
+        mp::LocalSocketReply local_socket_reply(std::move(mock_q_local_socket), request, &buffer),
+        mp::HttpLocalSocketException);
     EXPECT_TRUE(buffer.read_attempted());
 }
 
-TEST_P(HTTPErrorsTestSuite, returns_expected_error)
+TEST_P(HTTPErrorsTestSuite, returnsExpectedError)
 {
     const auto http_response = GetParam().first;
     const auto expected_error = GetParam().second;
@@ -395,7 +402,7 @@ TEST_P(HTTPErrorsTestSuite, returns_expected_error)
     EXPECT_EQ(reply->error(), expected_error);
 }
 
-TEST_P(LocalSocketWriteErrorTestSuite, write_fails_emits_error_and_returns)
+TEST_P(LocalSocketWriteErrorTestSuite, writeFailsEmitsErrorAndReturns)
 {
     const int writes_before_failure = GetParam();
     auto mock_q_local_socket = std::make_unique<mpt::MockQLocalSocket>(writes_before_failure);
@@ -417,7 +424,10 @@ TEST_P(LocalSocketWriteErrorTestSuite, write_fails_emits_error_and_returns)
     EXPECT_EQ(mock_q_local_socket_ptr->num_writes_called(), writes_before_failure + 1);
 }
 
-INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager, HTTPErrorsTestSuite, ValuesIn(http_error_suite_inputs));
+INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager,
+                         HTTPErrorsTestSuite,
+                         ValuesIn(http_error_suite_inputs));
 
-INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager, LocalSocketWriteErrorTestSuite,
+INSTANTIATE_TEST_SUITE_P(LocalNetworkAccessManager,
+                         LocalSocketWriteErrorTestSuite,
                          ValuesIn(local_socket_write_error_suite_inputs));

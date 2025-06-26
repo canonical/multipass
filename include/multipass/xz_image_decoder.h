@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_XZ_IMAGE_DECODER_H
-#define MULTIPASS_XZ_IMAGE_DECODER_H
+#pragma once
 
 #include <multipass/path.h>
 #include <multipass/progress_monitor.h>
@@ -34,7 +33,9 @@ class XzImageDecoder
 public:
     XzImageDecoder();
 
-    void decode_to(const Path& xz_file_path, const Path& decoded_file_path, const ProgressMonitor& monitor) const;
+    void decode_to(const Path& xz_file_path,
+                   const Path& decoded_file_path,
+                   const ProgressMonitor& monitor) const;
 
     using XzDecoderUPtr = std::unique_ptr<xz_dec, decltype(xz_dec_end)*>;
 
@@ -42,4 +43,3 @@ private:
     XzDecoderUPtr xz_decoder;
 };
 } // namespace multipass
-#endif // MULTIPASS_XZ_IMAGE_DECODER_H

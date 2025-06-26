@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef MULTIPASS_VERSION_H
-#define MULTIPASS_VERSION_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -32,7 +31,7 @@ class Version final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
@@ -43,6 +42,5 @@ private:
 
     Formatter* chosen_formatter;
 };
-}
-}
-#endif // MULTIPASS_VERSION_H
+} // namespace cmd
+} // namespace multipass

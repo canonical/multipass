@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
-#define MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <shared/base_virtual_machine.h>
 
@@ -84,7 +83,8 @@ private:
                              bool is_internal);
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
+    // TODO we should probably keep the VMDescription in the base VM class instead
+    VirtualMachineDescription desc;
     const QString name;
     std::optional<int> port;
     VMStatusMonitor* monitor;
@@ -95,5 +95,3 @@ private:
 inline void multipass::VirtualBoxVirtualMachine::require_snapshots_support() const
 {
 }
-
-#endif // MULTIPASS_VIRTUALBOX_VIRTUAL_MACHINE_H

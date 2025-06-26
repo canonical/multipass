@@ -54,7 +54,8 @@ auto instance_state_for(const QString& name)
     auto success = vminfo.waitForFinished();
     if (!success || vminfo.exitStatus() != QProcess::NormalExit)
     {
-        throw std::runtime_error(fmt::format("Failed to run VBoxManage: {}", vminfo.errorString().toStdString()));
+        throw std::runtime_error(
+            fmt::format("Failed to run VBoxManage: {}", vminfo.errorString().toStdString()));
     }
     auto vminfo_output = QString::fromUtf8(vminfo.readAllStandardOutput());
     auto vmstate_match = vmstate_re.match(vminfo_output);
@@ -63,13 +64,16 @@ auto instance_state_for(const QString& name)
     {
         auto state = vmstate_match.captured(1);
 
-        mpl::log(mpl::Level::trace, name.toStdString(), fmt::format("Got VMState: {}", state.toStdString()));
+        mpl::log(mpl::Level::trace,
+                 name.toStdString(),
+                 fmt::format("Got VMState: {}", state.toStdString()));
 
         if (state == "starting" || state == "restoring")
         {
             return mp::VirtualMachine::State::starting;
         }
-        else if (state == "running" || state == "paused" || state == "onlinesnapshotting" || state == "stopping")
+        else if (state == "running" || state == "paused" || state == "onlinesnapshotting" ||
+                 state == "stopping")
         {
             return mp::VirtualMachine::State::running;
         }
@@ -88,7 +92,8 @@ auto instance_state_for(const QString& name)
 
         mpl::log(mpl::Level::error,
                  name.toStdString(),
-                 fmt::format("Failed to parse instance state: {}", vmstate_match.captured().toStdString()));
+                 fmt::format("Failed to parse instance state: {}",
+                             vmstate_match.captured().toStdString()));
     }
     else if (vminfo.exitCode() == 0)
     {
@@ -154,23 +159,27 @@ QStringList modifyvm_arguments(const mp::VirtualMachineDescription& desc, const 
     return modify_arguments;
 }
 
-void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescription& desc, const QString& vm_name)
+void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescription& desc,
+                                              const QString& vm_name)
 {
-    mpu::process_log_on_error(
-        "VBoxManage",
-        {"modifyvm", vm_name, "--macaddress1", QString::fromStdString(desc.default_mac_address).remove(':')},
-        "Could not update the default network adapter address of: {}",
-        vm_name);
+    mpu::process_log_on_error("VBoxManage",
+                              {"modifyvm",
+                               vm_name,
+                               "--macaddress1",
+                               QString::fromStdString(desc.default_mac_address).remove(':')},
+                              "Could not update the default network adapter address of: {}",
+                              vm_name);
     for (size_t i = 0; i < desc.extra_interfaces.size(); ++i)
     {
         const size_t current_adapter_number = i + 2;
-        mpu::process_log_on_error("VBoxManage",
-                                  {"modifyvm",
-                                   vm_name,
-                                   "--macaddress" + QString::number(current_adapter_number),
-                                   QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':')},
-                                  "Could not update the network adapter address of: {}",
-                                  vm_name);
+        mpu::process_log_on_error(
+            "VBoxManage",
+            {"modifyvm",
+             vm_name,
+             "--macaddress" + QString::number(current_adapter_number),
+             QString::fromStdString(desc.extra_interfaces[i].mac_address).remove(':')},
+            "Could not update the network adapter address of: {}",
+            vm_name);
     }
 }
 
@@ -205,12 +214,16 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                     "Could not create VM: {}",
                                     name);
 
-        mpu::process_throw_on_error("VBoxManage", modifyvm_arguments(desc, name), "Could not modify VM: {}", name);
-
         mpu::process_throw_on_error("VBoxManage",
-                                    {"storagectl", name, "--add", "sata", "--name", "SATA_0", "--portcount", "2"},
+                                    modifyvm_arguments(desc, name),
                                     "Could not modify VM: {}",
                                     name);
+
+        mpu::process_throw_on_error(
+            "VBoxManage",
+            {"storagectl", name, "--add", "sata", "--name", "SATA_0", "--portcount", "2"},
+            "Could not modify VM: {}",
+            name);
 
         mpu::process_throw_on_error("VBoxManage",
                                     {"storageattach",
@@ -261,11 +274,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
-    // 1. clone the vm with certain options and mode. --mode value is all, which copies all snapshot history and it
-    // always includes the base disk whereas machine mode only copies the current differencing disk when the vm is
-    // snapshoted. --options has keepdisknames and keepallmacs, keepdisknames means disk file name will be kept instead
-    // of using <vm_name>.vdi, keepallmacs implies that the mac addresses of network adapters will not be generated by
-    // virtualbox because they will be overwritten by multipass generated mac addresses anyway.
+    // 1. clone the vm with certain options and mode. --mode value is all, which copies all snapshot
+    // history and it always includes the base disk whereas machine mode only copies the current
+    // differencing disk when the vm is snapshoted. --options has keepdisknames and keepallmacs,
+    // keepdisknames means disk file name will be kept instead of using <vm_name>.vdi, keepallmacs
+    // implies that the mac addresses of network adapters will not be generated by virtualbox
+    // because they will be overwritten by multipass generated mac addresses anyway.
     mpu::process_throw_on_error("VBoxManage",
                                 {"clonevm",
                                  QString::fromStdString(source_vm_name),
@@ -345,7 +359,10 @@ void mp::VirtualBoxVirtualMachine::start()
     state = State::starting;
     update_state();
 
-    mpu::process_throw_on_error("VBoxManage", {"startvm", name, "--type", "headless"}, "Could not start VM: {}", name);
+    mpu::process_throw_on_error("VBoxManage",
+                                {"startvm", name, "--type", "headless"},
+                                "Could not start VM: {}",
+                                name);
 }
 
 void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -368,11 +385,15 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
-        // virtualbox needs the discardstate command to shutdown in the suspend state, it discards the saved state of
-        // the vm, which is akin to resetting it to the off state without a proper shutdown process
+        // virtualbox needs the discardstate command to shutdown in the suspend state, it discards
+        // the saved state of the vm, which is akin to resetting it to the off state without a
+        // proper shutdown process
         if (state == State::suspended)
         {
-            mpu::process_throw_on_error("VBoxManage", {"discardstate", name}, "Could not power VM off: {}", name);
+            mpu::process_throw_on_error("VBoxManage",
+                                        {"discardstate", name},
+                                        "Could not power VM off: {}",
+                                        name);
         }
         else
         {
@@ -408,7 +429,10 @@ void mp::VirtualBoxVirtualMachine::suspend()
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
     {
-        mpu::process_throw_on_error("VBoxManage", {"controlvm", name, "savestate"}, "Could not suspend VM: {}", name);
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"controlvm", name, "savestate"},
+                                    "Could not suspend VM: {}",
+                                    name);
 
         drop_ssh_session();
         if (update_suspend_status)
@@ -429,7 +453,8 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(name);
 
-    if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
+    if ((state == State::delayed_shutdown && present_state == State::running) ||
+        state == State::starting)
         return state;
 
     state = present_state;
@@ -446,8 +471,8 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
         QTcpServer socket;
         if (!socket.listen(QHostAddress("127.0.0.1")))
         {
-            throw std::runtime_error(
-                fmt::format("Could not find a port available to listen on: {}", socket.errorString()));
+            throw std::runtime_error(fmt::format("Could not find a port available to listen on: {}",
+                                                 socket.errorString()));
         }
 
         mpu::process_log_on_error("VBoxManage",
@@ -457,7 +482,10 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
         mpu::process_throw_on_error(
             "VBoxManage",
-            {"controlvm", name, "natpf1", QString::fromStdString(fmt::format("ssh,tcp,,{},,22", socket.serverPort()))},
+            {"controlvm",
+             name,
+             "natpf1",
+             QString::fromStdString(fmt::format("ssh,tcp,,{},,22", socket.serverPort()))},
             "Could not add SSH port forwarding: {}",
             name);
 
@@ -522,10 +550,11 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    mpu::process_throw_on_error("VBoxManage",
-                                {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
-                                "Could not update memory: {}",
-                                name);
+    mpu::process_throw_on_error(
+        "VBoxManage",
+        {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
+        "Could not update memory: {}",
+        name);
 }
 
 void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
@@ -545,7 +574,10 @@ void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
 {
     auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, extra_interface);
 
-    mpu::process_throw_on_error("VBoxManage", arguments, "Could not add network interface: {}", name);
+    mpu::process_throw_on_error("VBoxManage",
+                                arguments,
+                                "Could not add network interface: {}",
+                                name);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
@@ -558,8 +590,8 @@ void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
     //        Name: @s3 (UUID: c4800b70-1e50-4b84-b430-1856437fe967)
     //        Description: snapshot3:
 
-    const QString snap_shot_list =
-        QString::fromStdString(MP_UTILS.run_cmd_for_output("VBoxManage", {"snapshot", name, "list"}));
+    const QString snap_shot_list = QString::fromStdString(
+        MP_UTILS.run_cmd_for_output("VBoxManage", {"snapshot", name, "list"}));
     const QRegularExpression uuid_key_value_regex(R"(UUID: ([\w-]+))");
     QRegularExpressionMatchIterator iter = uuid_key_value_regex.globalMatch(snap_shot_list);
 
@@ -567,8 +599,8 @@ void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
     while (iter.hasNext())
     {
         QRegularExpressionMatch match = iter.next();
-        // captured(0) is the entire match which contains UUID key and value, captured(1) is the first regex capture
-        // group which is the value of the UUID only
+        // captured(0) is the entire match which contains UUID key and value, captured(1) is the
+        // first regex capture group which is the value of the UUID only
         uuid_list.append(match.captured(1));
     }
 
@@ -581,7 +613,8 @@ void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
     }
 }
 
-auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename) -> std::shared_ptr<Snapshot>
+auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename)
+    -> std::shared_ptr<Snapshot>
 {
     return std::make_shared<VirtualBoxSnapshot>(filename, *this, desc);
 }

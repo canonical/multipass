@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_VM_MOUNT_H
-#define MULTIPASS_VM_MOUNT_H
+#pragma once
 
 #include <multipass/id_mappings.h>
 
@@ -37,7 +36,10 @@ public:
 
     VMMount() = default;
     explicit VMMount(const QJsonObject& json);
-    VMMount(const std::string& sourcePath, id_mappings gidMappings, id_mappings uidMappings, MountType mountType);
+    VMMount(const std::string& sourcePath,
+            id_mappings gidMappings,
+            id_mappings uidMappings,
+            MountType mountType);
 
     QJsonObject serialize() const;
 
@@ -107,5 +109,3 @@ struct formatter<multipass::VMMount::MountType>
     }
 };
 } // namespace fmt
-
-#endif // MULTIPASS_VM_MOUNT_H

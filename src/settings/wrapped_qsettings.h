@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WRAPPED_QSETTINGS_H
-#define MULTIPASS_WRAPPED_QSETTINGS_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/singleton.h>
@@ -79,7 +78,8 @@ protected:
 
 private:
     friend class WrappedQSettingsFactory;
-    explicit WrappedQSettings(std::unique_ptr<QSettings>&& qsettings) noexcept : qsettings{std::move(qsettings)}
+    explicit WrappedQSettings(std::unique_ptr<QSettings>&& qsettings) noexcept
+        : qsettings{std::move(qsettings)}
     {
     }
 
@@ -97,10 +97,9 @@ public:
                                                                      QSettings::Format format) const
     {
         auto qsettings = std::make_unique<QSettings>(file_path, format);
-        return std::unique_ptr<WrappedQSettings>(new WrappedQSettings(std::move(qsettings))); /* std::make_unique can't
-                                   call private ctors, so we call it ourselves; but the ctor is noexcept, so no leaks */
+        return std::unique_ptr<WrappedQSettings>(
+            new WrappedQSettings(std::move(qsettings))); /* std::make_unique can't
+call private ctors, so we call it ourselves; but the ctor is noexcept, so no leaks */
     }
 };
 } // namespace multipass
-
-#endif // MULTIPASS_WRAPPED_QSETTINGS_H

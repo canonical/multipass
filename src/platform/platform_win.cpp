@@ -98,8 +98,8 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
     attr.uid = -2;
     attr.gid = -2;
 
-    attr.flags =
-        SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS | SSH_FILEXFER_ATTR_ACMODTIME;
+    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
+                 SSH_FILEXFER_ATTR_ACMODTIME;
 
     attr.atime = time_t_from(&(data->ftLastAccessTime));
     attr.mtime = time_t_from(&(data->ftLastWriteTime));
@@ -128,8 +128,9 @@ QString locate_profiles_path()
     // The profiles file is expected in
     // $env:LocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
     // where $env:LocalAppData is normally C:\Users\<USER>\AppData\Local
-    return MP_STDPATHS.locate(mp::StandardPaths::GenericConfigLocation,
-                              "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
+    return MP_STDPATHS.locate(
+        mp::StandardPaths::GenericConfigLocation,
+        "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
 struct WintermSyncException : public std::runtime_error
@@ -140,7 +141,9 @@ struct WintermSyncException : public std::runtime_error
     }
 
     WintermSyncException(const std::string& msg, const QString& path)
-        : WintermSyncException{msg, path, fmt::format("{} (error code: {})", std::strerror(errno), errno)}
+        : WintermSyncException{msg,
+                               path,
+                               fmt::format("{} (error code: {})", std::strerror(errno), errno)}
     {
     }
 };
@@ -167,10 +170,13 @@ Json::Value& edit_profiles(const QString& path, Json::Value& json_root)
                                            path,
                                            "No \"profiles\" node under JSON root"};
 
-    auto& profiles = json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
-    return profiles.isArray() || !profiles.isMember("list") ? profiles : profiles["list"]; /* Notes:
-                                                                    1) don't index into "list" unless it already exists
-                                                                    2) can't look for named member on array values */
+    auto& profiles =
+        json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
+    return profiles.isArray() || !profiles.isMember("list")
+               ? profiles
+               : profiles["list"]; /* Notes:
+            1) don't index into "list" unless it already exists
+            2) can't look for named member on array values */
 }
 
 Json::Value read_winterm_settings(const QString& path)
@@ -183,7 +189,9 @@ Json::Value read_winterm_settings(const QString& path)
     Json::Value json_root;
     std::string errs;
     if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
-        throw ModerateWintermSyncException{"Could not parse Windows Terminal's configuration", path, errs};
+        throw ModerateWintermSyncException{"Could not parse Windows Terminal's configuration",
+                                           path,
+                                           errs};
 
     return json_root;
 }
@@ -218,19 +226,23 @@ Json::Value create_primary_profile()
     primary_profile["cursorShape"] = "filledBox";
     primary_profile["fontFace"] = "Ubuntu Mono";
     primary_profile["historySize"] = 50000;
-    primary_profile["icon"] = QDir{QCoreApplication::applicationDirPath()}.filePath("multipass_wt.ico").toStdString();
+    primary_profile["icon"] =
+        QDir{QCoreApplication::applicationDirPath()}.filePath("multipass_wt.ico").toStdString();
 
     return primary_profile;
 }
 
-Json::Value update_profiles(const QString& path, const Json::Value& json_root, const QString& winterm_setting)
+Json::Value update_profiles(const QString& path,
+                            const Json::Value& json_root,
+                            const QString& winterm_setting)
 {
     Json::Value ret = json_root;
     auto& profiles = edit_profiles(path, ret);
 
-    auto primary_profile_it = std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-        return profile["guid"] == mp::winterm_profile_guid;
-    });
+    auto primary_profile_it =
+        std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
+            return profile["guid"] == mp::winterm_profile_guid;
+        });
 
     Json::Value* primary_profile_ptr = nullptr;
     if (primary_profile_it != std::end(profiles))
@@ -263,8 +275,9 @@ std::string create_shadow_config_file(const QString& path)
     auto tmp_file = QTemporaryFile{tmp_file_template};
 
     if (!tmp_file.open() || !tmp_file.exists())
-        throw GreaterWintermSyncException{"Could not create temporary configuration file for Windows Terminal",
-                                          tmp_file_template};
+        throw GreaterWintermSyncException{
+            "Could not create temporary configuration file for Windows Terminal",
+            tmp_file_template};
 
     tmp_file.setAutoRemove(false);
     return tmp_file.fileName().toStdString();
@@ -274,7 +287,8 @@ void save_profiles(const QString& path, const Json::Value& json_root)
 {
     std::string tmp_file_name = create_shadow_config_file(path);
     auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name]() noexcept {
-        std::error_code ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
+        std::error_code
+            ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
         std::filesystem::remove(tmp_file_name, ec);
     });
 
@@ -286,7 +300,9 @@ void save_profiles(const QString& path, const Json::Value& json_root)
     }
     catch (std::filesystem::filesystem_error& e)
     {
-        throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration", path, e.what()};
+        throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration",
+                                          path,
+                                          e.what()};
     }
 
     tmp_file_removing_guard.dismiss(); // we succeeded, tmp file no longer there
@@ -295,7 +311,8 @@ void save_profiles(const QString& path, const Json::Value& json_root)
 std::string interpret_net_type(const QString& media_type, const QString& physical_media_type)
 {
     // Note: use the following to see what types may be returned
-    // `get-netadapter | select -first 1 | get-member -name physicalmediatype | select -expandproperty definition`
+    // `get-netadapter | select -first 1 | get-member -name physicalmediatype | select
+    // -expandproperty definition`
     if (physical_media_type == "802.3")
         return "ethernet";
     else if (physical_media_type == "Unspecified")
@@ -315,7 +332,8 @@ QString get_alias_script_path(const std::string& alias)
 
 QString program_data_multipass_path()
 {
-    return QDir{qEnvironmentVariable("ProgramData", "C:\\ProgramData")}.absoluteFilePath("Multipass");
+    return QDir{qEnvironmentVariable("ProgramData", "C:\\ProgramData")}.absoluteFilePath(
+        "Multipass");
 }
 
 QString systemprofile_app_data_path()
@@ -367,7 +385,13 @@ DWORD set_file_owner(LPSTR path, PSID new_owner)
         return err;
     }
 
-    auto r = SetNamedSecurityInfo(path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, new_owner, NULL, NULL, NULL);
+    auto r = SetNamedSecurityInfo(path,
+                                  SE_FILE_OBJECT,
+                                  OWNER_SECURITY_INFORMATION,
+                                  new_owner,
+                                  NULL,
+                                  NULL,
+                                  NULL);
     set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, false);
     return r;
 }
@@ -378,7 +402,14 @@ DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
     PSECURITY_DESCRIPTOR pSD = NULL;
     EXPLICIT_ACCESS ea;
 
-    GetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &pOldDACL, NULL, &pSD);
+    GetNamedSecurityInfo(path,
+                         SE_FILE_OBJECT,
+                         DACL_SECURITY_INFORMATION,
+                         NULL,
+                         NULL,
+                         &pOldDACL,
+                         NULL,
+                         &pSD);
 
     ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
 
@@ -390,15 +421,15 @@ DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
     SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
-    auto error_code =
-        SetNamedSecurityInfo(path,
-                             SE_FILE_OBJECT,
-                             DACL_SECURITY_INFORMATION | ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
-                                                                    : PROTECTED_DACL_SECURITY_INFORMATION),
-                             NULL,
-                             NULL,
-                             pDACL,
-                             NULL);
+    auto error_code = SetNamedSecurityInfo(path,
+                                           SE_FILE_OBJECT,
+                                           DACL_SECURITY_INFORMATION |
+                                               ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
+                                                          : PROTECTED_DACL_SECURITY_INFORMATION),
+                                           NULL,
+                                           NULL,
+                                           pDACL,
+                                           NULL);
 
     LocalFree((HLOCAL)pSD);
     LocalFree((HLOCAL)pDACL);
@@ -413,7 +444,9 @@ auto get_well_known_sid(WELL_KNOWN_SID_TYPE type)
     auto sid = std::unique_ptr<void, decltype(&FreeSid)>(LocalAlloc(LPTR, len), FreeSid);
     if (!CreateWellKnownSid(type, nullptr, sid.get(), &len))
     {
-        throw std::system_error(GetLastError(), std::system_category(), "Failed to create well known SID");
+        throw std::system_error(GetLastError(),
+                                std::system_category(),
+                                "Failed to create well known SID");
     }
 
     return sid;
@@ -467,22 +500,29 @@ BOOL signal_handler(DWORD dwCtrlType)
 std::filesystem::path multipass_final_storage_location()
 {
     const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto mp_final_storage = user_specified_mp_storage.isEmpty()
-                                      ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
-                                      : user_specified_mp_storage;
+    const auto mp_final_storage =
+        user_specified_mp_storage.isEmpty()
+            ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
+            : user_specified_mp_storage;
     return std::filesystem::path{mp_final_storage.toStdString()};
 }
 } // namespace
 
-std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_network_interfaces_info() const
+std::map<std::string, mp::NetworkInterfaceInfo>
+mp::platform::Platform::get_network_interfaces_info() const
 {
-    static const auto ps_cmd_base = QStringLiteral(
-        "Get-NetAdapter -physical | Select-Object -Property Name,MediaType,PhysicalMediaType,InterfaceDescription");
-    static const auto ps_args = QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+    static const auto ps_cmd_base =
+        QStringLiteral("Get-NetAdapter -physical | Select-Object -Property "
+                       "Name,MediaType,PhysicalMediaType,InterfaceDescription");
+    static const auto ps_args =
+        QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
 
     QString ps_output;
     QString ps_output_err;
-    if (PowerShell::exec(ps_args, "Network Listing on Windows Platform", &ps_output, &ps_output_err))
+    if (PowerShell::exec(ps_args,
+                         "Network Listing on Windows Platform",
+                         &ps_output,
+                         &ps_output_err))
     {
         std::map<std::string, mp::NetworkInterfaceInfo> ret{};
         for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
@@ -490,9 +530,9 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
             auto terms = line.split(',', Qt::KeepEmptyParts);
             if (terms.size() != 4)
             {
-                throw std::runtime_error{
-                    fmt::format("Could not determine available networks - unexpected powershell output: {}",
-                                ps_output)};
+                throw std::runtime_error{fmt::format(
+                    "Could not determine available networks - unexpected powershell output: {}",
+                    ps_output)};
             }
 
             auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(),
@@ -505,7 +545,9 @@ std::map<std::string, mp::NetworkInterfaceInfo> mp::platform::Platform::get_netw
     }
 
     auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
-    auto err = fmt::format("Could not determine available networks - error executing powershell command.{}", detail);
+    auto err = fmt::format(
+        "Could not determine available networks - error executing powershell command.{}",
+        detail);
     throw std::runtime_error{err};
 }
 
@@ -585,13 +627,14 @@ std::string mp::platform::Platform::bridge_nomenclature() const
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();
-    ret =
-        QDir{ret}.absoluteFilePath("Local"); // what LOCALAPPDATA would point to under the system account, at this point
+    ret = QDir{ret}.absoluteFilePath(
+        "Local"); // what LOCALAPPDATA would point to under the system account, at this point
     ret = QDir{ret}.absoluteFilePath(mp::daemon_name);
 
     if (QFile::exists(ret))
     {
-        return ret; // should be something like "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
+        return ret; // should be something like
+                    // "C:/Windows/system32/config/systemprofile/AppData/Local/multipassd"
     }
     else
     {
@@ -619,12 +662,14 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
-std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(const mp::SSHFSServerConfig& config)
+std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
+    const mp::SSHFSServerConfig& config)
 {
     return MP_PROCFACTORY.create_process(std::make_unique<mp::SSHFSServerProcessSpec>(config));
 }
 
-std::unique_ptr<mp::Process> mp::platform::make_process(std::unique_ptr<mp::ProcessSpec>&& process_spec)
+std::unique_ptr<mp::Process> mp::platform::make_process(
+    std::unique_ptr<mp::ProcessSpec>&& process_spec)
 {
     return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
@@ -644,7 +689,8 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return -1;
 }
 
-// new_ACL returns a new ACL unique ptr that retains all existing Hyper-V ACEs or NULL if no entries exist.
+// new_ACL returns a new ACL unique ptr that retains all existing Hyper-V ACEs or NULL if no entries
+// exist.
 auto new_ACL(LPSTR path)
 {
     auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
@@ -654,8 +700,14 @@ auto new_ACL(LPSTR path)
     auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
 
     PACL pOldDACL = NULL;
-    if (GetNamedSecurityInfo(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &pOldDACL, NULL, &pSD) !=
-        ERROR_SUCCESS)
+    if (GetNamedSecurityInfo(path,
+                             SE_FILE_OBJECT,
+                             DACL_SECURITY_INFORMATION,
+                             NULL,
+                             NULL,
+                             &pOldDACL,
+                             NULL,
+                             &pSD) != ERROR_SUCCESS)
     {
         return newACL;
     }
@@ -705,7 +757,9 @@ auto new_ACL(LPSTR path)
         {
             if (!InitializeAcl(newACL.get(), size, ACL_REVISION))
             {
-                throw std::system_error(GetLastError(), std::system_category(), "Failed to initialize new ACL");
+                throw std::system_error(GetLastError(),
+                                        std::system_category(),
+                                        "Failed to initialize new ACL");
             }
 
             // try to add all Hyper-V ACEs
@@ -742,20 +796,32 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     auto newACL = new_ACL(lpPath);
 
     // Wipe out current ACLs
-    SetNamedSecurityInfo(lpPath, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, newACL.get(), nullptr);
+    SetNamedSecurityInfo(lpPath,
+                         SE_FILE_OBJECT,
+                         DACL_SECURITY_INFORMATION,
+                         nullptr,
+                         nullptr,
+                         newACL.get(),
+                         nullptr);
 
     if (int others = int(perms) & 0007; others != 0)
-        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) == ERROR_SUCCESS;
+        success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) ==
+                   ERROR_SUCCESS;
     if (int group = int(perms) & 0070; group != 0)
-        success &=
-            set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group >> 3), inherit) == ERROR_SUCCESS;
+        success &= set_specific_perms(lpPath,
+                                      WinCreatorGroupSid,
+                                      convert_permissions(group >> 3),
+                                      inherit) == ERROR_SUCCESS;
     if (int owner = int(perms) & 0700; owner != 0)
-        success &=
-            set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner >> 6), inherit) == ERROR_SUCCESS;
+        success &= set_specific_perms(lpPath,
+                                      WinCreatorOwnerSid,
+                                      convert_permissions(owner >> 6),
+                                      inherit) == ERROR_SUCCESS;
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= take_ownership(path);
-    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, inherit) == ERROR_SUCCESS;
+    success &= set_specific_perms(lpPath, WinBuiltinAdministratorsSid, GENERIC_ALL, inherit) ==
+               ERROR_SUCCESS;
 
     return success;
 }
@@ -765,7 +831,8 @@ bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) c
     auto u8path = path.u8string();
     LPSTR lpPath = u8path.data();
 
-    return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) == ERROR_SUCCESS;
+    return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
+           ERROR_SUCCESS;
 }
 
 void mp::platform::Platform::setup_permission_inheritance(bool) const
@@ -775,7 +842,8 @@ void mp::platform::Platform::setup_permission_inheritance(bool) const
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
-    DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    DWORD flags =
+        is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
 
@@ -817,9 +885,10 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 QString mp::platform::Platform::get_username() const
 {
     QString username;
-    mp::PowerShell::exec({"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-                         "get-username",
-                         &username);
+    mp::PowerShell::exec(
+        {"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
+        "get-username",
+        &username);
     return username.section('\\', 1);
 }
 
@@ -827,7 +896,8 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
 
-    QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::HomeLocation) + "/AppData/local/multipass/bin";
+    QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::HomeLocation) +
+                       "/AppData/local/multipass/bin";
     aliases_folder = QDir{location};
 
     if (!aliases_folder.mkpath(aliases_folder.path()))
@@ -836,7 +906,8 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
     return aliases_folder;
 }
 
-void mp::platform::Platform::create_alias_script(const std::string& alias, const mp::AliasDefinition& def) const
+void mp::platform::Platform::create_alias_script(const std::string& alias,
+                                                 const mp::AliasDefinition& def) const
 {
     auto file_path = get_alias_script_path(alias);
 
@@ -863,20 +934,22 @@ auto mp::platform::Platform::extra_daemon_settings() const -> SettingSpec::Set
 auto mp::platform::Platform::extra_client_settings() const -> SettingSpec::Set
 {
     SettingSpec::Set ret;
-    ret.insert(std::make_unique<CustomSettingSpec>(winterm_key, petenv_default, [](const QString& val) {
-        return interpret_setting(winterm_key, val);
-    }));
+    ret.insert(
+        std::make_unique<CustomSettingSpec>(winterm_key, petenv_default, [](const QString& val) {
+            return interpret_setting(winterm_key, val);
+        }));
 
     return ret;
 }
 
 std::string mp::platform::Platform::alias_path_message() const
 {
-    return fmt::format("You'll need to add the script alias folder to your path for aliases to work\n"
-                       "without prefixing with `multipass`. For now, you can just do:\n\n"
-                       "In PowerShell:\n$ENV:PATH=\"$ENV:PATH;{0}\"\n\n"
-                       "Or in Command Prompt:\nPATH=%PATH%;{0}\n",
-                       get_alias_scripts_folder().absolutePath());
+    return fmt::format(
+        "You'll need to add the script alias folder to your path for aliases to work\n"
+        "without prefixing with `multipass`. For now, you can just do:\n\n"
+        "In PowerShell:\n$ENV:PATH=\"$ENV:PATH;{0}\"\n\n"
+        "Or in Command Prompt:\nPATH=%PATH%;{0}\n",
+        get_alias_scripts_folder().absolutePath());
 }
 
 QString mp::platform::Platform::multipass_storage_location() const
@@ -890,10 +963,12 @@ QString mp::platform::Platform::multipass_storage_location() const
     }
 
     auto program_data_path = program_data_multipass_path();
-    auto systemprofile_roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
+    auto systemprofile_roaming_path =
+        QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
 
-    // If %PROGRAMDATA%\Multipass exists or if %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd doesn't
-    // exist, use %PROGRAMDATA%\Multipass
+    // If %PROGRAMDATA%\Multipass exists or if
+    // %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd doesn't exist, use
+    // %PROGRAMDATA%\Multipass
     if (QFile::exists(program_data_path) ||
         !QFile::exists(QDir{systemprofile_roaming_path}.absoluteFilePath("multipassd")))
     {
@@ -927,25 +1002,28 @@ std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::ma
 
     SetConsoleCtrlHandler(signal_handler, TRUE);
 
-    return [millis = timeout.count()](const std::function<bool()>& condition) -> std::optional<int> {
-        ResetEvent(signal_event);
+    return
+        [millis = timeout.count()](const std::function<bool()>& condition) -> std::optional<int> {
+            ResetEvent(signal_event);
 
-        while (condition())
-        {
-            // Ctrl+C will break this wait.
-            if (WaitForSingleObject(signal_event, millis) != WAIT_TIMEOUT)
-                return 0;
-        }
+            while (condition())
+            {
+                // Ctrl+C will break this wait.
+                if (WaitForSingleObject(signal_event, millis) != WAIT_TIMEOUT)
+                    return 0;
+            }
 
-        return std::nullopt;
-    };
+            return std::nullopt;
+        };
 }
 
 std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 {
-    auto ps_cmd = QStringLiteral("Get-NetAdapter -Name \"%1\" | Select-Object -ExpandProperty InterfaceDescription")
-                      .arg(QString::fromStdString(ux_id))
-                      .split(' ', Qt::SkipEmptyParts);
+    auto ps_cmd =
+        QStringLiteral(
+            "Get-NetAdapter -Name \"%1\" | Select-Object -ExpandProperty InterfaceDescription")
+            .arg(QString::fromStdString(ux_id))
+            .split(' ', Qt::SkipEmptyParts);
 
     QString ps_output;
     QString ps_output_err;
@@ -954,20 +1032,20 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
         auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)
         {
-            throw std::runtime_error{
-                fmt::format("Could not obtain adapter description from name \"{}\" - unexpected powershell output: {}",
-                            ux_id,
-                            ps_output)};
+            throw std::runtime_error{fmt::format("Could not obtain adapter description from name "
+                                                 "\"{}\" - unexpected powershell output: {}",
+                                                 ux_id,
+                                                 ps_output)};
         }
 
         return output_lines.first().toStdString();
     }
 
     auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
-    auto err =
-        fmt::format("Could not obtain adapter description from name \"{}\" - error executing powershell command.{}",
-                    ux_id,
-                    detail);
+    auto err = fmt::format("Could not obtain adapter description from name \"{}\" - error "
+                           "executing powershell command.{}",
+                           ux_id,
+                           detail);
     throw std::runtime_error{err};
 }
 

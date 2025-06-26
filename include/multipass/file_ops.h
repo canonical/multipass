@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_FILE_OPS_H
-#define MULTIPASS_FILE_OPS_H
+#pragma once
 
 #include "recursive_dir_iterator.h"
 #include "singleton.h"
@@ -97,26 +96,33 @@ public:
     virtual off_t lseek(int fd, off_t offset, int whence) const;
 
     // std operations
-    virtual void open(std::fstream& stream, const char* filename, std::ios_base::openmode mode) const;
+    virtual void open(std::fstream& stream,
+                      const char* filename,
+                      std::ios_base::openmode mode) const;
     virtual bool is_open(const std::ifstream& file) const;
     virtual std::ifstream& read(std::ifstream& file, char* buffer, std::streamsize size) const;
-    virtual std::unique_ptr<std::ostream> open_write(const fs::path& path,
-                                                     std::ios_base::openmode mode = std::ios_base::out) const;
-    virtual std::unique_ptr<std::istream> open_read(const fs::path& path,
-                                                    std::ios_base::openmode mode = std::ios_base::in) const;
-    virtual void copy(const fs::path& src, const fs::path& dist, fs::copy_options copy_options) const;
+    virtual std::unique_ptr<std::ostream>
+    open_write(const fs::path& path, std::ios_base::openmode mode = std::ios_base::out) const;
+    virtual std::unique_ptr<std::istream>
+    open_read(const fs::path& path, std::ios_base::openmode mode = std::ios_base::in) const;
+    virtual void copy(const fs::path& src,
+                      const fs::path& dist,
+                      fs::copy_options copy_options) const;
     virtual bool exists(const fs::path& path, std::error_code& err) const;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directories(const fs::path& path, std::error_code& err) const;
     virtual bool remove(const fs::path& path, std::error_code& err) const;
-    virtual void create_symlink(const fs::path& to, const fs::path& path, std::error_code& err) const;
+    virtual void create_symlink(const fs::path& to,
+                                const fs::path& path,
+                                std::error_code& err) const;
     virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
     virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
     virtual fs::file_status symlink_status(const fs::path& path, std::error_code& err) const;
-    virtual std::unique_ptr<RecursiveDirIterator> recursive_dir_iterator(const fs::path& path,
-                                                                         std::error_code& err) const;
-    virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path, std::error_code& err) const;
+    virtual std::unique_ptr<RecursiveDirIterator>
+    recursive_dir_iterator(const fs::path& path, std::error_code& err) const;
+    virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path,
+                                                      std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
 
     virtual fs::perms get_permissions(const fs::path& file) const;
@@ -124,5 +130,3 @@ public:
     virtual fs::path remove_extension(const fs::path& path) const;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_FILE_OPS_H

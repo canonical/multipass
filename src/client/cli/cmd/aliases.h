@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ALIASES_H
-#define MULTIPASS_ALIASES_H
+#pragma once
 
 #include <multipass/cli/command.h>
 
@@ -34,7 +33,8 @@ class Aliases final : public Command
 public:
     using Command::Command;
 
-    Aliases(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Aliases(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -52,4 +52,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_ALIASES_H

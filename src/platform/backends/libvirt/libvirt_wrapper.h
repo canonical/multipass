@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_LIBVIRT_WRAPPER_H
-#define MULTIPASS_LIBVIRT_WRAPPER_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -49,7 +48,8 @@ class LibvirtSymbolAddressException : public BaseLibvirtException
 {
 public:
     LibvirtSymbolAddressException(const std::string& symbol, const char* error_message)
-        : BaseLibvirtException(fmt::format("Failed to load symbol \"{}\": {}", symbol, error_message))
+        : BaseLibvirtException(
+              fmt::format("Failed to load symbol \"{}\": {}", symbol, error_message))
     {
     }
 };
@@ -68,7 +68,9 @@ private:
     typedef char* (*virNetworkGetBridgeName_t)(virNetworkPtr network);
     typedef int (*virNetworkIsActive_t)(virNetworkPtr network);
     typedef int (*virNetworkCreate_t)(virNetworkPtr network);
-    typedef int (*virNetworkGetDHCPLeases_t)(virNetworkPtr network, const char* mac, virNetworkDHCPLeasePtr** leases,
+    typedef int (*virNetworkGetDHCPLeases_t)(virNetworkPtr network,
+                                             const char* mac,
+                                             virNetworkDHCPLeasePtr** leases,
                                              unsigned int flags);
     typedef void (*virNetworkDHCPLeaseFree_t)(virNetworkDHCPLeasePtr lease);
     typedef int (*virDomainUndefine_t)(virDomainPtr domain);
@@ -77,13 +79,20 @@ private:
     typedef int (*virDomainDestroy_t)(virDomainPtr domain);
     typedef int (*virDomainFree_t)(virDomainPtr domain);
     typedef virDomainPtr (*virDomainDefineXML_t)(virConnectPtr conn, const char* xml);
-    typedef int (*virDomainGetState_t)(virDomainPtr domain, int* state, int* reason, unsigned int flags);
+    typedef int (*virDomainGetState_t)(virDomainPtr domain,
+                                       int* state,
+                                       int* reason,
+                                       unsigned int flags);
     typedef int (*virDomainCreate_t)(virDomainPtr domain);
     typedef int (*virDomainShutdown_t)(virDomainPtr domain);
     typedef int (*virDomainManagedSave_t)(virDomainPtr domain, unsigned int flags);
     typedef int (*virDomainHasManagedSaveImage_t)(virDomainPtr domain, unsigned int flags);
-    typedef int (*virDomainSetVcpusFlags_t)(virDomainPtr domain, unsigned int nvcpus, unsigned int flags);
-    typedef int (*virDomainSetMemoryFlags_t)(virDomainPtr domain, unsigned long memory, unsigned int flags);
+    typedef int (*virDomainSetVcpusFlags_t)(virDomainPtr domain,
+                                            unsigned int nvcpus,
+                                            unsigned int flags);
+    typedef int (*virDomainSetMemoryFlags_t)(virDomainPtr domain,
+                                             unsigned long memory,
+                                             unsigned int flags);
     typedef const char* (*virGetLastErrorMessage_t)();
 
     void* handle{nullptr};
@@ -123,5 +132,3 @@ public:
     virGetLastErrorMessage_t virGetLastErrorMessage;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_LIBVIRT_WRAPPER_H

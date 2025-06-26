@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_NEW_RELEASE_MONITOR_H
-#define MULTIPASS_NEW_RELEASE_MONITOR_H
+#pragma once
 
 #include <multipass/new_release_info.h>
 #include <multipass/qt_delete_later_unique_ptr.h>
@@ -45,9 +44,11 @@ class NewReleaseMonitor : public QObject
 {
     Q_OBJECT
 public:
-    static constexpr auto default_update_url = "https://canonical.com/static/files/latest-multipass-releases.json";
+    static constexpr auto default_update_url =
+        "https://canonical.com/static/files/latest-multipass-releases.json";
 
-    NewReleaseMonitor(const QString& current_version, std::chrono::steady_clock::duration refresh_rate,
+    NewReleaseMonitor(const QString& current_version,
+                      std::chrono::steady_clock::duration refresh_rate,
                       const QString& update_url = default_update_url);
     ~NewReleaseMonitor();
 
@@ -65,5 +66,3 @@ private:
     qt_delete_later_unique_ptr<LatestReleaseChecker> worker_thread;
 };
 } // namespace multipass
-
-#endif // MULTIPASS_NEW_RELEASE_MONITOR_H

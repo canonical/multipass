@@ -34,8 +34,8 @@ struct TestSpinnerCallbacks : public Test
     auto clearStreamMatcher()
     {
         static const std::regex clear_regex{
-            R"(\u001B\[2K\u001B\[0A\u001B\[0E|^$)"}; /* A "clear" stream should have nothing on the current
-                                     line and the cursor in the leftmost position */
+            R"(\u001B\[2K\u001B\[0A\u001B\[0E|^$)"}; /* A "clear" stream should have nothing on the
+                                     current line and the cursor in the leftmost position */
         return Truly([](const auto& str) {
             return std::regex_match(str, clear_regex); // (gtest regex not cutting it on macOS)
         });
@@ -54,21 +54,25 @@ enum class CommonCallbackType
     Iterative
 };
 
-struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks, public WithParamInterface<CommonCallbackType>
+struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks,
+                                     public WithParamInterface<CommonCallbackType>
 {
-    std::function<void(const mp::MountReply&, grpc::ClientReaderWriterInterface<mp::MountRequest, mp::MountReply>*)>
+    std::function<void(const mp::MountReply&,
+                       grpc::ClientReaderWriterInterface<mp::MountRequest, mp::MountReply>*)>
     make_callback()
     {
         switch (GetParam())
         {
         case CommonCallbackType::Logging:
-            return mp::make_logging_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, err);
+            return mp::make_logging_spinner_callback<mp::MountRequest, mp::MountReply>(spinner,
+                                                                                       err);
             break;
         case CommonCallbackType::Reply:
             return mp::make_reply_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, err);
             break;
         case CommonCallbackType::Iterative:
-            return mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, term);
+            return mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner,
+                                                                                         term);
             break;
         default:
             assert(false && "shouldn't be here");
@@ -86,8 +90,9 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackLogs)
     make_callback()(reply, nullptr);
 
     EXPECT_THAT(err.str(), StrEq(log));
-    EXPECT_THAT(out.str(), clearStreamMatcher()); /* this is not empty because print stops, stop clears, and clear
-                                                     prints ANSI escape characters to clear the line */
+    EXPECT_THAT(out.str(),
+                clearStreamMatcher()); /* this is not empty because print stops, stop clears, and
+                                          clear prints ANSI escape characters to clear the line */
 }
 
 TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
@@ -101,11 +106,15 @@ TEST_P(TestLoggingSpinnerCallbacks, loggingSpinnerCallbackIgnoresEmptyLog)
 
 INSTANTIATE_TEST_SUITE_P(TestLoggingSpinnerCallbacks,
                          TestLoggingSpinnerCallbacks,
-                         Values(CommonCallbackType::Logging, CommonCallbackType::Reply, CommonCallbackType::Iterative));
+                         Values(CommonCallbackType::Logging,
+                                CommonCallbackType::Reply,
+                                CommonCallbackType::Iterative));
 
-struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks, public WithParamInterface<CommonCallbackType>
+struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks,
+                                   public WithParamInterface<CommonCallbackType>
 {
-    std::function<void(const mp::MountReply&, grpc::ClientReaderWriterInterface<mp::MountRequest, mp::MountReply>*)>
+    std::function<void(const mp::MountReply&,
+                       grpc::ClientReaderWriterInterface<mp::MountRequest, mp::MountReply>*)>
     make_callback()
     {
         switch (GetParam())
@@ -114,7 +123,8 @@ struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks, public WithParam
             return mp::make_reply_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, err);
             break;
         case CommonCallbackType::Iterative:
-            return mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner, term);
+            return mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(spinner,
+                                                                                         term);
             break;
         default:
             assert(false && "shouldn't be here");
@@ -160,9 +170,11 @@ TEST_F(TestSpinnerCallbacks, iterativeSpinnerCallbackHandlesPasswordRequest)
     reply.set_password_requested(true);
 
     EXPECT_CALL(*mock_client_platform, get_password(&term)).WillOnce(Return(pwd));
-    EXPECT_CALL(mock_client, Write(Property(&mp::RestartRequest::password, StrEq(pwd)), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_client, Write(Property(&mp::RestartRequest::password, StrEq(pwd)), _))
+        .WillOnce(Return(true));
 
-    auto cb = mp::make_iterative_spinner_callback<mp::RestartRequest, mp::RestartReply>(spinner, term);
+    auto cb =
+        mp::make_iterative_spinner_callback<mp::RestartRequest, mp::RestartReply>(spinner, term);
     cb(reply, &mock_client);
 
     EXPECT_THAT(err.str(), IsEmpty());

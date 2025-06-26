@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_URL_DOWNLOADER_H
-#define MULTIPASS_MOCK_URL_DOWNLOADER_H
+#pragma once
 
 #include <multipass/url_downloader.h>
 
@@ -31,9 +30,10 @@ struct MockURLDownloader : public multipass::URLDownloader
     MOCK_METHOD(QByteArray, download, (const QUrl&), (override));
     MOCK_METHOD(QByteArray, download, (const QUrl&, bool), (override));
     MOCK_METHOD(QDateTime, last_modified, (const QUrl&), (override));
-    MOCK_METHOD(void, download_to, (const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&),
+    MOCK_METHOD(void,
+                download_to,
+                (const QUrl&, const QString&, int64_t, const int, const ProgressMonitor&),
                 (override));
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_URL_DOWNLOADER_H

@@ -34,7 +34,7 @@ struct SSLCertProviderFixture : public testing::Test
     mp::Path cert_dir{temp_dir.path() + "/test-cert"};
 };
 
-TEST_F(SSLCertProviderFixture, creates_cert_and_key)
+TEST_F(SSLCertProviderFixture, createsCertAndKey)
 {
     mp::SSLCertProvider cert_provider{cert_dir};
 
@@ -44,7 +44,7 @@ TEST_F(SSLCertProviderFixture, creates_cert_and_key)
     EXPECT_THAT(pem_key, StrNe(""));
 }
 
-TEST_F(SSLCertProviderFixture, imports_existing_cert_and_key)
+TEST_F(SSLCertProviderFixture, importsExistingCertAndKey)
 {
     constexpr auto key_data = "-----BEGIN PRIVATE KEY-----\n"
                               "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgsSAz5ggzrLjai0I/\n"
@@ -76,7 +76,7 @@ TEST_F(SSLCertProviderFixture, imports_existing_cert_and_key)
     EXPECT_THAT(cert_provider.PEM_certificate(), StrEq(cert_data));
 }
 
-TEST_F(SSLCertProviderFixture, persists_cert_and_key)
+TEST_F(SSLCertProviderFixture, persistsCertAndKey)
 {
     QDir dir{cert_dir};
     auto key_file = dir.filePath("multipass_cert_key.pem");
@@ -91,12 +91,14 @@ TEST_F(SSLCertProviderFixture, persists_cert_and_key)
     EXPECT_TRUE(QFile::exists(cert_file));
 }
 
-TEST_F(SSLCertProviderFixture, creates_different_certs_per_server_name)
+TEST_F(SSLCertProviderFixture, createsDifferentCertsPerServerName)
 {
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
-    // move the multipass_root_cert.pem into the temporary directory so it will be deleted automatically later
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
     EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+        .WillRepeatedly(
+            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
 
     mp::SSLCertProvider cert_provider1{cert_dir, "test_server1"};
     mp::SSLCertProvider cert_provider2{cert_dir, "test_server2"};

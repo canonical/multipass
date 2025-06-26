@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SNAP_UTILS_H
-#define MULTIPASS_SNAP_UTILS_H
+#pragma once
 
 #include <QByteArray>
 
@@ -31,5 +30,3 @@ QByteArray snap_real_home_dir();
 QByteArray snap_user_common_dir();
 } // namespace utils
 } // namespace multipass
-
-#endif // MULTIPASS_SNAP_UTILS_H

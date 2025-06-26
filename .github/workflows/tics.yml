@@ -1,17 +1,14 @@
-name: Linux
+name: TICS
 
 on:
-    schedule:
-    # 0:00 UTC every Sunday
-    - cron: 11 4 * * 0
+  workflow_dispatch:
+  schedule:
+  # 04:11 UTC every Sunday
+  - cron: 11 4 * * 0
 
 jobs:
   build:
     runs-on: [self-hosted, reactive, amd64, 2xlarge, noble]
-
-    outputs:
-      label: ${{ steps.build-params.outputs.label }}
-      channel: ${{ steps.build-params.outputs.channel }}
 
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
@@ -22,26 +19,30 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 0
 
-    - name: Determine build parameters
-      id: build-params
-      uses: ./.github/actions/build-params
-
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get --preserve-env install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
-        mk-build-deps -s sudo -i
+        sudo --preserve-env apt-get install --yes \
+          devscripts \
+          equivs \
+          flake8 \
+          lcov \
+          ninja-build \
+          pylint \
+          python3-clang \
+          python3-venv \
+          python3-pip
+        sudo --preserve-env apt-get build-dep --yes ./
 
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
-              -DCMAKE_BUILD_TYPE=Coverage \
-              -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+              -DCMAKE_BUILD_TYPE=Coverage
 
     - name: BuildAndTest
       run: |

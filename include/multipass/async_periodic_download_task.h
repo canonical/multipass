@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_ASYNC_PERIODIC_DOWNLOAD_TASK_H
-#define MULTIPASS_ASYNC_PERIODIC_DOWNLOAD_TASK_H
+#pragma once
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
@@ -31,9 +30,9 @@ namespace mpl = multipass::logging;
 
 namespace multipass::utils
 {
-// Because AsyncPeriodicDownloadTask needs to be instantiated as data member of a class to function properly, and Class
-// template argument deduction (CTAD) does not work for data member, so that means we can not deduced type data member
-// from the below code snippet.
+// Because AsyncPeriodicDownloadTask needs to be instantiated as data member of a class to function
+// properly, and Class template argument deduction (CTAD) does not work for data member, so that
+// means we can not deduced type data member from the below code snippet.
 
 // template <typename Callable, typename...Args>
 // class AsyncPeriodicDownloadTask
@@ -58,11 +57,12 @@ public:
                               Args&&... args)
         : default_delay_time{normal_delay_time}, retry_current_delay_time{retry_start_delay_time}
     {
-        // Log in a side thread will cause some unit tests (like launch_warns_when_overcommitting_disk) to have data
-        // race on log, because the side thread log messes with the mock_logger. Because of that, we only allow the
-        // main thread log for now. That is why launch_msg parameter is here. A long-term solution would be a better
-        // separation of classes and mock the corresponding class function, so it will not log and mess with the
-        // mock_logger in the unit tests.
+        // Log in a side thread will cause some unit tests (like
+        // launch_warns_when_overcommitting_disk) to have data race on log, because the side thread
+        // log messes with the mock_logger. Because of that, we only allow the main thread log for
+        // now. That is why launch_msg parameter is here. A long-term solution would be a better
+        // separation of classes and mock the corresponding class function, so it will not log and
+        // mess with the mock_logger in the unit tests.
 
         // TODO, remove the launch_msg parameter once we have better class separation.
         mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
@@ -73,7 +73,8 @@ public:
             {
                 // rethrow exception
                 future.waitForFinished();
-                // success case, we reset the time interval for timer and the reset the retry delay time value
+                // success case, we reset the time interval for timer and the reset the retry delay
+                // time value
                 timer.start(default_delay_time);
                 retry_current_delay_time = retry_start_delay_time;
             }
@@ -84,11 +85,14 @@ public:
                          fmt::format("QFutureWatcher caught DownloadException {}", e.what()));
                 // failure case, trigger or continue the retry mechanism
                 timer.start(retry_current_delay_time);
-                retry_current_delay_time = std::min(2 * retry_current_delay_time, default_delay_time);
+                retry_current_delay_time =
+                    std::min(2 * retry_current_delay_time, default_delay_time);
             }
         };
 
-        QObject::connect(&future_watcher, &QFutureWatcher<ReturnType>::finished, event_handler_on_success_and_failure);
+        QObject::connect(&future_watcher,
+                         &QFutureWatcher<ReturnType>::finished,
+                         event_handler_on_success_and_failure);
         future_watcher.setFuture(future);
 
         QObject::connect(&timer, &QTimer::timeout, [launch_msg, this, func, args...]() -> void {
@@ -130,5 +134,3 @@ private:
     std::chrono::milliseconds retry_current_delay_time;
 };
 } // namespace multipass::utils
-
-#endif

@@ -15,13 +15,10 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_AA_SYSCALLS_H
-#define MULTIPASS_MOCK_AA_SYSCALLS_H
+#pragma once
 
 #include <premock.hpp>
 
 #include <sys/apparmor.h>
 
 DECL_MOCK(aa_is_enabled);
-
-#endif // MULTIPASS_MOCK_AA_SYSCALLS_H

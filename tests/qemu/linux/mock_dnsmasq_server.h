@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_DNSMASQ_SERVER_H
-#define MULTIPASS_MOCK_DNSMASQ_SERVER_H
+#pragma once
 
 #include "tests/common.h"
 #include "tests/mock_singleton_helpers.h"
@@ -40,11 +39,12 @@ struct MockDNSMasqServerFactory : public DNSMasqServerFactory
 {
     using DNSMasqServerFactory::DNSMasqServerFactory;
 
-    MOCK_METHOD(DNSMasqServer::UPtr, make_dnsmasq_server, (const Path&, const QString&, const std::string&),
+    MOCK_METHOD(DNSMasqServer::UPtr,
+                make_dnsmasq_server,
+                (const Path&, const QString&, const std::string&),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockDNSMasqServerFactory, DNSMasqServerFactory);
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_MOCK_DNSMASQ_SERVER_H

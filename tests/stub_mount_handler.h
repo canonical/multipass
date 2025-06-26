@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_MOUNT_HANDLER
-#define MULTIPASS_STUB_MOUNT_HANDLER
+#pragma once
 
 #include <multipass/mount_handler.h>
 
@@ -33,4 +32,3 @@ struct StubMountHandler : public MountHandler
     }
 };
 } // namespace multipass::test
-#endif // MULTIPASS_STUB_MOUNT_HANDLER

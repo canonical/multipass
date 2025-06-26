@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_UBUNTU_IMAGE_HOST_H
-#define MULTIPASS_UBUNTU_IMAGE_HOST_H
+#pragma once
 
 #include "common_image_host.h"
 
@@ -40,11 +39,13 @@ class UbuntuVMImageRemote;
 class UbuntuVMImageHost final : public CommonVMImageHost
 {
 public:
-    UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes, URLDownloader* downloader);
+    UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
+                      URLDownloader* downloader);
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
-    std::vector<VMImageInfo> all_images_for(const std::string& remote_name, const bool allow_unsupported) override;
+    std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
+                                            const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 
 private:
@@ -65,7 +66,9 @@ private:
 class UbuntuVMImageRemote
 {
 public:
-    UbuntuVMImageRemote(std::string official_host, std::string uri, std::optional<QString> mirror_key = std::nullopt);
+    UbuntuVMImageRemote(std::string official_host,
+                        std::string uri,
+                        std::optional<QString> mirror_key = std::nullopt);
     UbuntuVMImageRemote(std::string official_host,
                         std::string uri,
                         std::function<bool(const VMImageInfo&)> custom_image_admitter,
@@ -84,4 +87,3 @@ private:
     const std::optional<QString> mirror_key;
 };
 } // namespace multipass
-#endif // MULTIPASS_UBUNTU_IMAGE_HOST_H

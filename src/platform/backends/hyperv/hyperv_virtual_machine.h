@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
-#define MULTIPASS_HYPERV_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <shared/base_virtual_machine.h>
 
@@ -70,7 +69,8 @@ public:
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
-    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target, const VMMount& mount) override;
+    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
+                                                            const VMMount& mount) override;
 
 protected:
     void require_snapshots_support() const override;
@@ -86,13 +86,14 @@ private:
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
                          const Path& instance_dir,
-                         bool is_internal); // is_internal is a dummy parameter to differentiate with other constructors
+                         bool is_internal); // is_internal is a dummy parameter to differentiate
+                                            // with other constructors
 
     void setup_network_interfaces();
     void update_network_interfaces(const VMSpecs& src_specs);
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc; // TODO we should probably keep the VMDescription in the base VM class instead
+    VirtualMachineDescription desc; // TODO we should probably keep this in the base class instead
     const QString name;
     std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
@@ -104,5 +105,3 @@ private:
 inline void multipass::HyperVVirtualMachine::require_snapshots_support() const
 {
 }
-
-#endif // MULTIPASS_HYPERV_VIRTUAL_MACHINE_H

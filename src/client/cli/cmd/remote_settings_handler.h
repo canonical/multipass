@@ -15,6 +15,8 @@
  *
  */
 
+#pragma once
+
 #include "common_cli.h"
 
 #include <multipass/settings/settings_handler.h>
@@ -27,7 +29,10 @@ class RemoteSettingsHandler : public SettingsHandler
 {
 public:
     // need to ensure refs outlive this
-    RemoteSettingsHandler(QString key_prefix, Rpc::StubInterface& stub, Terminal* term, int verbosity);
+    RemoteSettingsHandler(QString key_prefix,
+                          Rpc::StubInterface& stub,
+                          Terminal* term,
+                          int verbosity);
 
     QString get(const QString& key) const override;
     void set(const QString& key, const QString& val) override;
@@ -64,8 +69,3 @@ inline int multipass::RemoteSettingsHandler::get_verbosity() const
 {
     return verbosity;
 }
-
-#ifndef MULTIPASS_REMOTE_SETTINGS_HANDLER_H
-#define MULTIPASS_REMOTE_SETTINGS_HANDLER_H
-
-#endif // MULTIPASS_REMOTE_SETTINGS_HANDLER_H

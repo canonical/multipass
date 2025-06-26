@@ -1,16 +1,19 @@
 # What is Multipass?
 
-Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who want to spin up a fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on Windows and QEMU on macOS to run virtual machines with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch Ubuntu images for you and keep them up to date.
+Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who want to spin up a
+fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on Windows and QEMU on macOS to run
+virtual machines with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch Ubuntu
+images for you and keep them up to date.
 
 Since it supports metadata for cloud-init, you can simulate a small cloud deployment on your laptop or workstation.
 
 ## Project status
 
-| Service | Status |
-|-----|:---|
-| [CI](https://github.com/canonical/multipass/actions) |  [![Build Status][gha-image]][gha-url]  |
-| [Snap](https://snapcraft.io/) |  [![Build Status][snap-image]][snap-url]  |
-| [Codecov](https://codecov.io/) |  [![Codecov Status][codecov-image]][codecov-url]  |
+| Service                                              | Status                                          |
+|------------------------------------------------------|:------------------------------------------------|
+| [CI](https://github.com/canonical/multipass/actions) | [![Build Status][gha-image]][gha-url]           |
+| [Snap](https://snapcraft.io/)                        | [![Build Status][snap-image]][snap-url]         |
+| [Codecov](https://codecov.io/)                       | [![Codecov Status][codecov-image]][codecov-url] |
 
 # Installation
 
@@ -22,13 +25,16 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 * On **macOS**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
-  Alternatively, you can use [Homebrew](https://github.com/Homebrew/brew). Please note that this method is **not officially supported**, as it is not maintained by the Multipass team, but by the community. Multipass is available as a cask:
+  Alternatively, you can use [Homebrew](https://github.com/Homebrew/brew). Please note that this method is **not
+  officially supported**, as it is not maintained by the Multipass team, but by the community. Multipass is available as
+  a cask:
 
   ```
   brew install --cask multipass
   ```
-  
-  Please note that you may be required to enter your password for some sudo operations during installation. You may also need to disable the firewall to launch a multipass instance successfully on macOS.
+
+  Please note that you may be required to enter your password for some sudo operations during installation. You may also
+  need to disable the firewall to launch a multipass instance successfully on macOS.
 
 * On **Windows**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
@@ -36,7 +42,8 @@ For more information, see [How to install Multipass](https://canonical.com/multi
 
 # Usage
 
-Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
+Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the
+Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
 
 ## Find available images
 
@@ -156,83 +163,31 @@ multipass help
 multipass help <command>
 ```
 
-# Start developing Multipass
+# Contributing
 
-Here's a set of steps to build the Multipass source code on Linux.
+The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions
+on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21). Please read the policy sections below carefully
+before contributing to the project. <!-- TODO: link to guidelines -->
 
-Please note that these instructions do not support building packages for macOS or Windows systems.
+## Building Multipass
 
-Note: if building on arm, s390x, ppc64le, or riscv, environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must be set:
+For build instructions, please refer to the following files:
 
-```
-export VCPKG_FORCE_SYSTEM_BINARIES=1
-```
+- [BUILD.linux.md](BUILD.linux.md) for Linux
+- [BUILD.macOS.md](BUILD.macOS.md) for macOS
+- [BUILD.windows.md](BUILD.windows.md) for Windows
 
-## Build dependencies
-
-```
-cd <multipass>
-sudo apt install devscripts equivs
-mk-build-deps -s sudo -i
-```
-
-## Build Multipass
-
-```
-cd <multipass>
-git submodule update --init --recursive
-mkdir build
-cd build
-cmake ../
-make
-```
-
-Please note that if you're working on a forked repository that you created using the "Copy the main branch only" option, the repository will not include the necessary git tags to determine the Multipass version during CMake configuration. In this case, you need to manually fetch the tags from the upstream by running `git fetch --tags https://github.com/canonical/multipass.git` in the `<multipass>` source code directory. 
+Please report any outdated information or inconsistencies in these files. Or, even better, submit a pull request with
+the changes! Our CI setup is also a good reference for building and testing Multipass.
 
 ### Automatic linker selection
 
 ***Requires (>= CMake 3.29)***
 
-To accelerate the build, the build system will attempt to locate and utilize `mold` or `lld` (respectively) in place of the default linker of the toolchain. To override, set [CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake configure step.
-
-## Run the Multipass daemon and client
-
-First, install Multipass's runtime dependencies. On AMD64 architecture, you can do this with:
-
-```
-sudo apt update
-sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
-    libqt6network6 libqt6widgets6 libxml2 libvirt0 dnsmasq-base \
-    dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 \
-    iptables iputils-ping libatm1 libxtables12 xterm
-```
-
-Then run the Multipass daemon:
-
-```
-sudo <multipass>/build/bin/multipassd &
-```
-
-Copy the desktop file that Multipass clients expect to find in your home:
-
-```
-mkdir -p ~/.local/share/multipass/
-cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
-```
-
-Optionally, enable auto-complete in Bash:
-
-```
-source <multipass>/completions/bash/multipass
-```
-
-Now you can use the `multipass` command from your terminal (for example `<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command `<multipass>/build/bin/multipass.gui`.
-
-# Contributing guidelines
-
-The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21).
-
-Please read the following guidelines carefully before contributing to the project.
+To accelerate the build, the build system will attempt to locate and utilize `mold` or `lld` (respectively) in place of
+the default linker of the toolchain. To override, set
+[CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake
+configure step.
 
 ## Code of Conduct
 
@@ -240,23 +195,31 @@ When contributing, you must adhere to the [Code of Conduct](https://ubuntu.com/c
 
 ## Copyright
 
-The code in this repository is licensed under GNU General Public License v3.0. See [LICENSE](https://github.com/canonical/multipass/blob/main/LICENSE) for more information.
+The code in this repository is licensed under GNU General Public License v3.0.
+See [LICENSE](https://github.com/canonical/multipass/blob/main/LICENSE) for more information.
 
 ## License agreement
 
-All contributors must sign the [Canonical contributor license agreement (CLA)](https://ubuntu.com/legal/contributors), which gives Canonical permission to use the contributions. Without the CLA, contributions cannot be accepted.
+All contributors must sign the [Canonical contributor license agreement (CLA)](https://ubuntu.com/legal/contributors),
+which gives Canonical permission to use the contributions. Without the CLA, contributions cannot be accepted.
 
 ## Pull requests
 
-Changes to this project should be proposed as pull requests. Proposed changes will then go through review and once approved, be merged into the main branch.
+Changes to this project should be proposed as pull requests. Proposed changes will then go through review and once
+approved, be merged into the main branch.
 
 # Additional information
 
 [Multipass documentation](https://canonical.com/multipass/docs)
 
 [gha-image]: https://github.com/canonical/multipass/workflows/Linux/badge.svg?branch=main
+
 [gha-url]: https://github.com/canonical/multipass/actions?query=branch%3Amain+workflow%3ALinux
+
 [snap-image]: https://snapcraft.io/multipass/badge.svg
+
 [snap-url]: https://snapcraft.io/multipass
+
 [codecov-image]: https://codecov.io/gh/canonical/multipass/branch/main/graph/badge.svg
+
 [codecov-url]: https://codecov.io/gh/canonical/multipass

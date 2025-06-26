@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SFTP_SERVER_H
-#define MULTIPASS_SFTP_SERVER_H
+#pragma once
 
 #include <multipass/file_ops.h>
 #include <multipass/id_mappings.h>
@@ -39,8 +38,13 @@ class SSHProcess;
 class SftpServer
 {
 public:
-    SftpServer(SSHSession&& ssh_session, const std::string& source, const std::string& target,
-               const id_mappings& gid_mappings, const id_mappings& uid_mappings, int default_uid, int default_gid,
+    SftpServer(SSHSession&& ssh_session,
+               const std::string& source,
+               const std::string& target,
+               const id_mappings& gid_mappings,
+               const id_mappings& uid_mappings,
+               int default_uid,
+               int default_gid,
                const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();
@@ -101,4 +105,3 @@ private:
     bool stop_invoked{false};
 };
 } // namespace multipass
-#endif // MULTIPASS_SFTP_SERVER_H

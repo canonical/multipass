@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_AES_H
-#define MULTIPASS_MOCK_AES_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -31,7 +30,8 @@ public:
     MockAES(const Singleton<AES>::PrivatePass& pass) noexcept : AES{pass}
     {
         ON_CALL(*this, aes_256_key_size).WillByDefault(testing::Return(AES::aes_256_key_size()));
-        ON_CALL(*this, aes_256_block_size).WillByDefault(testing::Return(AES::aes_256_block_size()));
+        ON_CALL(*this, aes_256_block_size)
+            .WillByDefault(testing::Return(AES::aes_256_block_size()));
     }
 
     MOCK_METHOD(int, aes_256_key_size, (), (const, override));
@@ -48,5 +48,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockAES, AES);
 };
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_AES_H

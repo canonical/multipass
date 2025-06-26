@@ -37,15 +37,16 @@ struct TestSimpleStreamsManifest : public Test
 {
     void SetUp() override
     {
-        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu")); /* TODO parameterize driver
-                                                                                              (code branches for lxd) */
+        // TODO parameterize driver (code branches for lxd)
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu"));
     }
 
-    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
-TEST_F(TestSimpleStreamsManifest, can_parse_image_info)
+TEST_F(TestSimpleStreamsManifest, canParseImageInfo)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
@@ -58,7 +59,7 @@ TEST_F(TestSimpleStreamsManifest, can_parse_image_info)
     EXPECT_FALSE(info->image_location.isEmpty());
 }
 
-TEST_F(TestSimpleStreamsManifest, can_find_info_by_alias)
+TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
 {
     auto json = mpt::load_test_file("good_manifest.json");
     const auto host_url{"http://stream/url"};
@@ -66,7 +67,8 @@ TEST_F(TestSimpleStreamsManifest, can_find_info_by_alias)
 
     const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
     const QString expected_location =
-        QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img").arg(MANIFEST_ARCH);
+        QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img")
+            .arg(MANIFEST_ARCH);
 
     const auto info = manifest->image_records[expected_id];
     ASSERT_THAT(info, NotNull());
@@ -75,34 +77,39 @@ TEST_F(TestSimpleStreamsManifest, can_find_info_by_alias)
     EXPECT_THAT(info->stream_location, Eq(host_url));
 }
 
-TEST_F(TestSimpleStreamsManifest, throws_on_invalid_json)
+TEST_F(TestSimpleStreamsManifest, throwsOnInvalidJson)
 {
     QByteArray json;
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""), mp::GenericManifestException);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
+                 mp::GenericManifestException);
 }
 
-TEST_F(TestSimpleStreamsManifest, throws_on_invalid_top_level_type)
+TEST_F(TestSimpleStreamsManifest, throwsOnInvalidTopLevelType)
 {
     auto json = mpt::load_test_file("invalid_top_level.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""), mp::GenericManifestException);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
+                 mp::GenericManifestException);
 }
 
-TEST_F(TestSimpleStreamsManifest, throws_when_missing_products)
+TEST_F(TestSimpleStreamsManifest, throwsWhenMissingProducts)
 {
     auto json = mpt::load_test_file("missing_products_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""), mp::GenericManifestException);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
+                 mp::GenericManifestException);
 }
 
-TEST_F(TestSimpleStreamsManifest, throws_when_failed_to_parse_any_products)
+TEST_F(TestSimpleStreamsManifest, throwsWhenFailedToParseAnyProducts)
 {
     auto json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""), mp::EmptyManifestException);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
+                 mp::EmptyManifestException);
 
     json = mpt::load_test_file("missing_versions_manifest.json");
-    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""), mp::EmptyManifestException);
+    EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
+                 mp::EmptyManifestException);
 }
 
-TEST_F(TestSimpleStreamsManifest, chooses_newest_version)
+TEST_F(TestSimpleStreamsManifest, choosesNewestVersion)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
@@ -116,7 +123,7 @@ TEST_F(TestSimpleStreamsManifest, chooses_newest_version)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
-TEST_F(TestSimpleStreamsManifest, can_query_all_versions)
+TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 {
     auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
@@ -134,7 +141,7 @@ TEST_F(TestSimpleStreamsManifest, can_query_all_versions)
     }
 }
 
-TEST_F(TestSimpleStreamsManifest, LXDDriverReturnsExpectedData)
+TEST_F(TestSimpleStreamsManifest, lXDDriverReturnsExpectedData)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
 
@@ -146,13 +153,15 @@ TEST_F(TestSimpleStreamsManifest, LXDDriverReturnsExpectedData)
     const auto xenial_info = manifest->image_records["xenial"];
 
     // combined_disk1-img_sha256 for xenial product
-    const QString expected_xenial_id{"09d24fab15c6e1c86a47d3de2e7fb6d01a10f9ff2655a43f0959a672e03e7674"};
+    const QString expected_xenial_id{
+        "09d24fab15c6e1c86a47d3de2e7fb6d01a10f9ff2655a43f0959a672e03e7674"};
     EXPECT_EQ(xenial_info->id, expected_xenial_id);
 
     // combined_disk-img_sha256 despite -kvm being available (canonical/multipass#2491)
     const auto bionic_info = manifest->image_records["bionic"];
 
-    const QString expected_bionic_id{"09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
+    const QString expected_bionic_id{
+        "09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
     EXPECT_EQ(bionic_info->id, expected_bionic_id);
 }
 

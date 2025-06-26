@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_SSH_PROCESS_EXIT_STATUS
-#define MULTIPASS_MOCK_SSH_PROCESS_EXIT_STATUS
+#pragma once
 
 #include "mock_ssh.h"
 
@@ -39,7 +38,10 @@ public:
                 return SSH_ERROR;
 
             if (exit_code)
-                channel_cbs->channel_exit_status_function(nullptr, nullptr, *exit_code, channel_cbs->userdata);
+                channel_cbs->channel_exit_status_function(nullptr,
+                                                          nullptr,
+                                                          *exit_code,
+                                                          channel_cbs->userdata);
 
             return ssh_rc;
         };
@@ -71,7 +73,8 @@ public:
 
 private:
     decltype(mock_ssh_add_channel_callbacks)& add_channel_cbs{mock_ssh_add_channel_callbacks};
-    decltype(mock_ssh_add_channel_callbacks) old_add_channel_cbs{std::move(mock_ssh_add_channel_callbacks)};
+    decltype(mock_ssh_add_channel_callbacks) old_add_channel_cbs{
+        std::move(mock_ssh_add_channel_callbacks)};
     decltype(mock_ssh_event_dopoll)& event_do_poll{mock_ssh_event_dopoll};
     decltype(mock_ssh_event_dopoll) old_event_do_poll{std::move(mock_ssh_event_dopoll)};
 
@@ -80,4 +83,3 @@ private:
     ssh_channel_callbacks channel_cbs{nullptr};
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_SSH_PROCESS_EXIT_STATUS

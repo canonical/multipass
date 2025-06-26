@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DNSMASQ_SERVER_H
-#define MULTIPASS_DNSMASQ_SERVER_H
+#pragma once
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/ip_address.h>
@@ -67,8 +66,8 @@ public:
     DNSMasqServerFactory(const Singleton<DNSMasqServerFactory>::PrivatePass& pass) noexcept
         : Singleton<DNSMasqServerFactory>::Singleton{pass} {};
 
-    virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir, const QString& bridge_name,
+    virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir,
+                                                    const QString& bridge_name,
                                                     const std::string& subnet) const;
 };
 } // namespace multipass
-#endif // MULTIPASS_DNSMASQ_SERVER_H

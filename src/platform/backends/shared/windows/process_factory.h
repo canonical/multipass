@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_WINDOWS_PROCESS_FACTORY_H
-#define MULTIPASS_WINDOWS_PROCESS_FACTORY_H
+#pragma once
 
 #include <memory>
 
@@ -36,12 +35,13 @@ class ProcessFactory : public Singleton<ProcessFactory>
 public:
     ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&);
 
-    virtual std::unique_ptr<Process> create_process(std::unique_ptr<ProcessSpec>&& process_spec) const;
-    std::unique_ptr<Process> create_process(const QString& command, const QStringList& = QStringList()) const;
+    virtual std::unique_ptr<Process> create_process(
+        std::unique_ptr<ProcessSpec>&& process_spec) const;
+    std::unique_ptr<Process> create_process(const QString& command,
+                                            const QStringList& = QStringList()) const;
 
 private:
     HANDLE ghJob;
 };
 
 } // namespace multipass
-#endif // MULTIPASS_WINDOWS_PROCESS_FACTORY_H

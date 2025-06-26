@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_UTILS_H
-#define MULTIPASS_MOCK_UTILS_H
+#pragma once
 
 #include "common.h"
 #include "mock_singleton_helpers.h"
@@ -33,12 +32,24 @@ public:
     using Utils::Utils;
     MOCK_METHOD(qint64, filesystem_bytes_available, (const QString&), (const, override));
     MOCK_METHOD(void, exit, (int), (const override));
-    MOCK_METHOD(std::string, run_cmd_for_output, (const QString&, const QStringList&, const int), (const, override));
-    MOCK_METHOD(bool, run_cmd_for_status, (const QString&, const QStringList&, const int), (const, override));
+    MOCK_METHOD(std::string,
+                run_cmd_for_output,
+                (const QString&, const QStringList&, const int),
+                (const, override));
+    MOCK_METHOD(bool,
+                run_cmd_for_status,
+                (const QString&, const QStringList&, const int),
+                (const, override));
     MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&), ());
-    MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&, const bool&), (override));
-    MOCK_METHOD(Path, make_dir, (const QDir&, const QString&, std::filesystem::perms), (const override));
+    MOCK_METHOD(void,
+                make_file_with_content,
+                (const std::string&, const std::string&, const bool&),
+                (override));
+    MOCK_METHOD(Path,
+                make_dir,
+                (const QDir&, const QString&, std::filesystem::perms),
+                (const override));
     MOCK_METHOD(Path, make_dir, (const QDir&, std::filesystem::perms), (const override));
     MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
     MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
@@ -57,4 +68,3 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };
 } // namespace multipass::test
-#endif // MULTIPASS_MOCK_UTILS_H

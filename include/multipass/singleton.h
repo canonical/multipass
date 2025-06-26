@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SINGLETON_H
-#define MULTIPASS_SINGLETON_H
+#pragma once
 
 #include "disabled_copy_move.h"
 #include "private_pass_provider.h"
@@ -42,8 +41,10 @@ public:
 
 protected:
     template <typename U, typename = std::enable_if_t<std::is_base_of<T, U>::value>>
-    static void mock() noexcept(noexcept(U(Base::pass))); // only works if instance not called yet, or after reset
-    static void reset() noexcept; // not thread-safe, make sure no other threads using this singleton anymore!
+    static void mock() noexcept(
+        noexcept(U(Base::pass))); // only works if instance not called yet, or after reset
+    static void
+    reset() noexcept; // not thread-safe, make sure no other threads using this singleton anymore!
 
 private:
     template <typename U>
@@ -56,7 +57,8 @@ private:
 } // namespace multipass
 
 template <typename T>
-inline constexpr multipass::Singleton<T>::Singleton(const multipass::Singleton<T>::PrivatePass&) noexcept
+inline constexpr multipass::Singleton<T>::Singleton(
+    const multipass::Singleton<T>::PrivatePass&) noexcept
 {
 }
 
@@ -93,5 +95,3 @@ inline void multipass::Singleton<T>::init() noexcept(noexcept(U(Base::pass)))
 {
     std::call_once(*once, [] { single = std::make_unique<U>(Base::pass); });
 }
-
-#endif // MULTIPASS_SINGLETON_H

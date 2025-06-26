@@ -77,19 +77,23 @@ public:
             release.title = manifest[::json_title].toString();
             release.description = manifest[::json_description].toString();
 
-            mpl::log(mpl::Level::debug, "update",
-                     fmt::format("Latest Multipass release available is version {}", qUtf8Printable(release.version)));
+            mpl::log(mpl::Level::debug,
+                     "update",
+                     fmt::format("Latest Multipass release available is version {}",
+                                 qUtf8Printable(release.version)));
 
             emit latest_release_found(release);
         }
         catch (const mp::DownloadException& e)
         {
-            mpl::log(mpl::Level::info, "update",
+            mpl::log(mpl::Level::info,
+                     "update",
                      fmt::format("Failed to fetch update info: {}", qUtf8Printable(e.what())));
         }
         catch (const std::runtime_error& e)
         {
-            mpl::log(mpl::Level::info, "update",
+            mpl::log(mpl::Level::info,
+                     "update",
                      fmt::format("Failed to parse update info: {}", qUtf8Printable(e.what())));
         }
     }
@@ -101,10 +105,12 @@ private:
 };
 
 mp::NewReleaseMonitor::NewReleaseMonitor(const QString& current_version,
-                                         std::chrono::steady_clock::duration refresh_rate, const QString& update_url)
+                                         std::chrono::steady_clock::duration refresh_rate,
+                                         const QString& update_url)
     : current_version(current_version), update_url(update_url)
 {
-    qRegisterMetaType<multipass::NewReleaseInfo>(); // necessary to allow custom type be passed in signal/slot
+    qRegisterMetaType<multipass::NewReleaseInfo>(); // necessary to allow custom type be passed in
+                                                    // signal/slot
 
     check_for_new_release();
 
@@ -130,15 +136,20 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
             version::Semver200_version(latest_release.version.toStdString()))
         {
             new_release = latest_release;
-            mpl::log(mpl::Level::info, "update",
-                     fmt::format("A New Multipass release is available: {}", qUtf8Printable(new_release->version)));
+            mpl::log(mpl::Level::info,
+                     "update",
+                     fmt::format("A New Multipass release is available: {}",
+                                 qUtf8Printable(new_release->version)));
         }
     }
     catch (const version::Parse_error& e)
     {
-        mpl::log(mpl::Level::warning, "update",
-                 fmt::format("Version strings {} and {} not comparable: {}", qUtf8Printable(current_version),
-                             qUtf8Printable(latest_release.version), e.what()));
+        mpl::log(mpl::Level::warning,
+                 "update",
+                 fmt::format("Version strings {} and {} not comparable: {}",
+                             qUtf8Printable(current_version),
+                             qUtf8Printable(latest_release.version),
+                             e.what()));
     }
 }
 
@@ -147,13 +158,16 @@ void mp::NewReleaseMonitor::check_for_new_release()
     if (!worker_thread)
     {
         worker_thread.reset(new mp::LatestReleaseChecker(update_url));
-        connect(worker_thread.get(), &mp::LatestReleaseChecker::latest_release_found, this,
+        connect(worker_thread.get(),
+                &mp::LatestReleaseChecker::latest_release_found,
+                this,
                 &mp::NewReleaseMonitor::latest_release_found);
         // ATTN: The worker_thread is a qt_delete_later_unique_ptr, and the deleter will invoke
         // disconnect() method upon calling. This is safe to do for this instance because, it's
         // defined behavior to call disconnect in a signal handler itself. But, it is not without
-        // any quirks. The following signal deliveries might not be triggered if the disconnect happens
-        // in a signal handler. In this particular case, there are none, but be wary of it future travelers.
+        // any quirks. The following signal deliveries might not be triggered if the disconnect
+        // happens in a signal handler. In this particular case, there are none, but be wary of it
+        // future travelers.
         // FIXME: New release monitor code can be much simpler, needs a refactor.
         connect(worker_thread.get(), &QThread::finished, this, [this]() { worker_thread.reset(); });
         worker_thread->start();

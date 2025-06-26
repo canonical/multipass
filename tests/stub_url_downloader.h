@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_STUB_URL_DOWNLOADER_H
-#define MULTIPASS_STUB_URL_DOWNLOADER_H
+#pragma once
 
 #include <multipass/url_downloader.h>
 
@@ -29,7 +28,10 @@ struct StubURLDownloader : public multipass::URLDownloader
     StubURLDownloader() : multipass::URLDownloader{std::chrono::seconds(10)}
     {
     }
-    void download_to(const QUrl& url, const QString& file_name, int64_t size, const int download_type,
+    void download_to(const QUrl& url,
+                     const QString& file_name,
+                     int64_t size,
+                     const int download_type,
                      const multipass::ProgressMonitor&) override
     {
     }
@@ -40,4 +42,3 @@ struct StubURLDownloader : public multipass::URLDownloader
 };
 } // namespace test
 } // namespace multipass
-#endif // MULTIPASS_STUB_URL_DOWNLOADER_H

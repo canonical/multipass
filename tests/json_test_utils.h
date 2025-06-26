@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_JSON_TEST_UTILS_H
-#define MULTIPASS_JSON_TEST_UTILS_H
+#pragma once
 
 #include "temp_dir.h"
 
@@ -37,17 +36,19 @@ std::string make_instance_json(const std::optional<std::string>& default_mac = s
                                const std::vector<mp::NetworkInterface>& extra_ifaces = {},
                                const std::vector<std::string>& extra_instances = {});
 
-std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents); // unique_ptr bypasses missing move ctor
+std::unique_ptr<mpt::TempDir> plant_instance_json(
+    const std::string& contents); // unique_ptr bypasses missing move ctor
 
-void check_interfaces_in_json(const QString& file, const std::string& mac,
+void check_interfaces_in_json(const QString& file,
+                              const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_interfaces);
 
 void check_interfaces_in_json(const QJsonObject& doc_object,
                               const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_interfaces);
 
-void check_mounts_in_json(const QString& file, const std::unordered_map<std::string, mp::VMMount>& mounts);
+void check_mounts_in_json(const QString& file,
+                          const std::unordered_map<std::string, mp::VMMount>& mounts);
 
-void check_mounts_in_json(const QJsonObject& doc_object, const std::unordered_map<std::string, mp::VMMount>& mounts);
-
-#endif // MULTIPASS_JSON_TEST_UTILS_H
+void check_mounts_in_json(const QJsonObject& doc_object,
+                          const std::unordered_map<std::string, mp::VMMount>& mounts);

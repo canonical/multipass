@@ -25,7 +25,7 @@ namespace mpl = multipass::logging;
 
 using uut_t = mpl::StandardLogger;
 
-TEST(standard_logger_tests, call_log)
+TEST(StandardLoggerTests, callLog)
 {
     std::ostringstream mock_stderr;
     uut_t logger{mpl::Level::debug, mock_stderr};
@@ -33,7 +33,7 @@ TEST(standard_logger_tests, call_log)
     ASSERT_THAT(mock_stderr.str(), testing::HasSubstr("[debug] [cat] msg"));
 }
 
-TEST(standard_logger_tests, call_log_filtered)
+TEST(StandardLoggerTests, callLogFiltered)
 {
     std::ostringstream mock_stderr;
     uut_t logger{mpl::Level::debug, mock_stderr};

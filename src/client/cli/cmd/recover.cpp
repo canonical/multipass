@@ -31,17 +31,20 @@ mp::ReturnCode cmd::Recover::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::RecoverReply& reply) {
-        return mp::ReturnCode::Ok;
-    };
+    auto on_success = [](mp::RecoverReply& reply) { return mp::ReturnCode::Ok; };
 
-    auto on_failure = [this](grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     request.set_verbosity_level(parser->verbosityLevel());
     return dispatch(&RpcMethod::recover, request, on_success, on_failure);
 }
 
-std::string cmd::Recover::name() const { return "recover"; }
+std::string cmd::Recover::name() const
+{
+    return "recover";
+}
 
 QString cmd::Recover::short_help() const
 {

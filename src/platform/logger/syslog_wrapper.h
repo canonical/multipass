@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SYSLOG_WRAPPER_H
-#define MULTIPASS_SYSLOG_WRAPPER_H
+#pragma once
 
 #include <multipass/singleton.h>
 #include <string_view>
@@ -47,4 +46,3 @@ public:
 };
 } // namespace logging
 } // namespace multipass
-#endif // MULTIPASS_SYSLOG_WRAPPER_H

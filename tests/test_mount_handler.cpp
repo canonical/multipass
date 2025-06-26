@@ -53,7 +53,8 @@ TEST(MountHandler, providesMountSpec)
     mp::VMMount mount{"asdf", {}, {}, multipass::VMMount::MountType::Native};
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, status).WillOnce(Return(fs::file_status{fs::file_type::directory, fs::perms::unknown}));
+    EXPECT_CALL(*mock_file_ops, status)
+        .WillOnce(Return(fs::file_status{fs::file_type::directory, fs::perms::unknown}));
 
     PublicMountHandler handler{nullptr, nullptr, mount, ""};
     EXPECT_EQ(handler.get_mount_spec(), mount);

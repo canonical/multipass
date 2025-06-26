@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_SETTINGS_EXCEPTIONS_H
-#define MULTIPASS_SETTINGS_EXCEPTIONS_H
+#pragma once
 
 #include <multipass/format.h>
 
@@ -67,11 +66,10 @@ class UnsupportedSettingValueType : public SettingsException
 {
 public:
     explicit UnsupportedSettingValueType(const QString& key)
-        : SettingsException{fmt::format("Invalid value type for key {}. Type hint: {}", key, typeid(T).name())}
+        : SettingsException{
+              fmt::format("Invalid value type for key {}. Type hint: {}", key, typeid(T).name())}
     {
     }
 };
 
 } // namespace multipass
-
-#endif // MULTIPASS_SETTINGS_EXCEPTIONS_H

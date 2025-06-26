@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_DELETE_H
-#define MULTIPASS_DELETE_H
+#pragma once
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
@@ -30,7 +29,8 @@ class Delete final : public Command
 public:
     using Command::Command;
 
-    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict) : Command(stub, term), aliases(dict)
+    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+        : Command(stub, term), aliases(dict)
     {
     }
 
@@ -53,4 +53,3 @@ private:
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_DELETE_H
