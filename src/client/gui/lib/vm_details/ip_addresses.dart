@@ -26,14 +26,13 @@ class IpAddresses extends StatelessWidget {
               position: PopupMenuPosition.under,
               tooltip: 'Other IP addresses',
               splashRadius: 10,
-              itemBuilder:
-                  (_) => [
-                    const PopupMenuItem(
-                      enabled: false,
-                      child: Text('Other IP addresses'),
-                    ),
-                    ...restIps.map((ip) => PopupMenuItem(child: Text(ip))),
-                  ],
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  enabled: false,
+                  child: Text('Other IP addresses'),
+                ),
+                ...restIps.map((ip) => PopupMenuItem(child: Text(ip))),
+              ],
             ),
           ),
       ],

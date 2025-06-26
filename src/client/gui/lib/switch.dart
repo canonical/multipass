@@ -36,12 +36,12 @@ class Switch extends StatelessWidget {
 
     return trailingSwitch
         ? Row(
-          children: [
-            Expanded(child: labelText),
-            const SizedBox(width: 8),
-            switchBox,
-          ],
-        )
+            children: [
+              Expanded(child: labelText),
+              const SizedBox(width: 8),
+              switchBox,
+            ],
+          )
         : Row(children: [switchBox, const SizedBox(width: 8), labelText]);
   }
 }

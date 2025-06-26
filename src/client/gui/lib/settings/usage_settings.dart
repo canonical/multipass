@@ -56,8 +56,8 @@ class UsageSettings extends ConsumerWidget {
         const SizedBox(height: 20),
         HotkeyField(
           value: hotkey,
-          onSave:
-              (newHotkey) => ref.read(hotkeyProvider.notifier).set(newHotkey),
+          onSave: (newHotkey) =>
+              ref.read(hotkeyProvider.notifier).set(newHotkey),
         ),
         const SizedBox(height: 20),
         PassphraseField(
@@ -212,20 +212,18 @@ class _HotkeyFieldState extends State<HotkeyField> {
     return SettingField(
       label: 'Primary instance hotkey',
       onSave: () => widget.onSave(value),
-      onDiscard:
-          () => setState(() {
-            recorderState.currentState?.set(widget.value);
-            changed = false;
-          }),
+      onDiscard: () => setState(() {
+        recorderState.currentState?.set(widget.value);
+        changed = false;
+      }),
       changed: changed,
       child: HotkeyRecorder(
         key: recorderState,
         value: value,
-        onSave:
-            (newHotkey) => setState(() {
-              value = newHotkey;
-              changed = components(value) != components(widget.value);
-            }),
+        onSave: (newHotkey) => setState(() {
+          value = newHotkey;
+          changed = components(value) != components(widget.value);
+        }),
       ),
     );
   }

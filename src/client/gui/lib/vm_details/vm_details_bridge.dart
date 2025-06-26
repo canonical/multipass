@@ -58,12 +58,11 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       },
       builder: (field) {
         final validBridgedNetwork = networks.contains(bridgedNetworkSetting);
-        final message =
-            networks.isEmpty
-                ? 'No networks found.'
-                : validBridgedNetwork
-                ? "Once established, you won't be able to unset the connection."
-                : 'No valid bridged network is set.';
+        final message = networks.isEmpty
+            ? 'No networks found.'
+            : validBridgedNetwork
+            ? "Once established, you won't be able to unset the connection."
+            : 'No valid bridged network is set.';
 
         return CheckboxListTile(
           contentPadding: EdgeInsets.zero,
@@ -132,9 +131,9 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
           editing
               ? SizedBox(width: 300, child: bridgedCheckbox)
               : Text(
-                'Status: ${bridged ?? false ? '' : 'not'} connected',
-                style: const TextStyle(fontSize: 16),
-              ),
+                  'Status: ${bridged ?? false ? '' : 'not'} connected',
+                  style: const TextStyle(fontSize: 16),
+                ),
           if (editing)
             Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
         ],

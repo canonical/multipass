@@ -35,11 +35,8 @@ class WindowsPlatform extends MpPlatform {
         CopySelectionTextIntent.copy,
     SingleActivator(LogicalKeyboardKey.insert, control: true):
         CopySelectionTextIntent.copy,
-    SingleActivator(
-      LogicalKeyboardKey.keyV,
-      control: true,
-      shift: true,
-    ): PasteTextIntent(SelectionChangedCause.keyboard),
+    SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
+        PasteTextIntent(SelectionChangedCause.keyboard),
     SingleActivator(LogicalKeyboardKey.insert, shift: true): PasteTextIntent(
       SelectionChangedCause.keyboard,
     ),

@@ -72,17 +72,15 @@ class Vms extends ConsumerWidget {
     );
 
     final enabledHeaderNames = ref.watch(enabledHeadersProvider).asMap();
-    final enabledHeaders =
-        headers.where((h) => enabledHeaderNames[h.name]!).toList();
+    final enabledHeaders = headers
+        .where((h) => enabledHeaderNames[h.name]!)
+        .toList();
 
-    final infos =
-        ref
-            .watch(vmInfosProvider)
-            .where(
-              (i) => !runningOnly || i.instanceStatus.status == Status.RUNNING,
-            )
-            .where((i) => i.name.contains(searchName))
-            .toList();
+    final infos = ref
+        .watch(vmInfosProvider)
+        .where((i) => !runningOnly || i.instanceStatus.status == Status.RUNNING)
+        .where((i) => i.name.contains(searchName))
+        .toList();
 
     int total(Iterable<String> it) => it.map((e) => int.tryParse(e) ?? 0).sum;
     final totalUsedMemory = total(infos.map((i) => i.instanceInfo.memoryUsage));

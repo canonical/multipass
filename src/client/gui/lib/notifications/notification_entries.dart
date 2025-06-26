@@ -126,13 +126,12 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
       onExit: (_) => timeoutController.forward(),
       child: AnimatedBuilder(
         animation: timeoutController,
-        builder:
-            (_, __) => SimpleNotification(
-              icon: widget.icon,
-              barColor: widget.barColor,
-              barFullness: 1.0 - timeoutController.value,
-              child: widget.child,
-            ),
+        builder: (_, __) => SimpleNotification(
+          icon: widget.icon,
+          barColor: widget.barColor,
+          barFullness: 1.0 - timeoutController.value,
+          child: widget.child,
+        ),
       ),
     );
   }

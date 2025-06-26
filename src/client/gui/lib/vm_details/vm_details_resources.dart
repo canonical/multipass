@@ -50,66 +50,63 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
 
     if (!stopped) editing = false;
 
-    final cpusResource =
-        !editing
-            ? Text(
-              'CPUs ${cpus?.toString() ?? '…'}',
-              style: TextStyle(fontSize: 16),
-            )
-            : CpusSlider(
-              key: Key('cpus-$cpus'),
-              initialValue: cpus,
-              onSaved: (value) {
-                if (value == null || value == cpus) return;
-                ref
-                    .read(cpusProvider.notifier)
-                    .set('$value')
-                    .onError(
-                      ref.notifyError((error) => 'Failed to set CPUs : $error'),
-                    );
-              },
-            );
+    final cpusResource = !editing
+        ? Text(
+            'CPUs ${cpus?.toString() ?? '…'}',
+            style: TextStyle(fontSize: 16),
+          )
+        : CpusSlider(
+            key: Key('cpus-$cpus'),
+            initialValue: cpus,
+            onSaved: (value) {
+              if (value == null || value == cpus) return;
+              ref
+                  .read(cpusProvider.notifier)
+                  .set('$value')
+                  .onError(
+                    ref.notifyError((error) => 'Failed to set CPUs : $error'),
+                  );
+            },
+          );
 
-    final ramResource =
-        !editing
-            ? Text(
-              'Memory ${ram.map(humanReadableMemory) ?? '…'}',
-              style: TextStyle(fontSize: 16),
-            )
-            : RamSlider(
-              key: Key('ram-$ram'),
-              initialValue: ram,
-              onSaved: (value) {
-                if (value == null || value == ram) return;
-                ref
-                    .read(ramProvider.notifier)
-                    .set('${value}B')
-                    .onError(
-                      ref.notifyError((e) => 'Failed to set memory size: $e'),
-                    );
-              },
-            );
+    final ramResource = !editing
+        ? Text(
+            'Memory ${ram.map(humanReadableMemory) ?? '…'}',
+            style: TextStyle(fontSize: 16),
+          )
+        : RamSlider(
+            key: Key('ram-$ram'),
+            initialValue: ram,
+            onSaved: (value) {
+              if (value == null || value == ram) return;
+              ref
+                  .read(ramProvider.notifier)
+                  .set('${value}B')
+                  .onError(
+                    ref.notifyError((e) => 'Failed to set memory size: $e'),
+                  );
+            },
+          );
 
-    final diskResource =
-        !editing
-            ? Text(
-              'Disk ${disk.map(humanReadableMemory) ?? '…'}',
-              style: TextStyle(fontSize: 16),
-            )
-            : DiskSlider(
-              key: Key('disk-$disk'),
-              min: disk,
-              initialValue: disk,
-              onSaved: (value) {
-                if (value == null || value == disk) return;
-                ref
-                    .read(diskProvider.notifier)
-                    .set('${value}B')
-                    .onError(
-                      ref.notifyError((e) => 'Failed to set disk size: $e'),
-                    );
-              },
-            );
+    final diskResource = !editing
+        ? Text(
+            'Disk ${disk.map(humanReadableMemory) ?? '…'}',
+            style: TextStyle(fontSize: 16),
+          )
+        : DiskSlider(
+            key: Key('disk-$disk'),
+            min: disk,
+            initialValue: disk,
+            onSaved: (value) {
+              if (value == null || value == disk) return;
+              ref
+                  .read(diskProvider.notifier)
+                  .set('${value}B')
+                  .onError(
+                    ref.notifyError((e) => 'Failed to set disk size: $e'),
+                  );
+            },
+          );
 
     final saveButton = TextButton(
       onPressed: () {

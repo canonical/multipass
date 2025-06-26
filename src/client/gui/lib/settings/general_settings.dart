@@ -49,8 +49,8 @@ class GeneralSettings extends ConsumerWidget {
           label: 'When closing Multipass',
           width: 260,
           value: onAppClose ?? 'ask',
-          onChanged:
-              (value) => ref.read(onAppCloseProvider.notifier).set(value!),
+          onChanged: (value) =>
+              ref.read(onAppCloseProvider.notifier).set(value!),
           items: const {
             'ask': 'Ask about running instances',
             'stop': 'Stop running instances',

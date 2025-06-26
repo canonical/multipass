@@ -41,10 +41,9 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
 
     final editableMountPoint = EditableMountPoint(
       existingTargets: mounts.map((m) => m.targetPath).toList(),
-      initialSource:
-          mounts.any((m) => m.sourcePath == mpPlatform.homeDirectory)
-              ? null
-              : mpPlatform.homeDirectory,
+      initialSource: mounts.any((m) => m.sourcePath == mpPlatform.homeDirectory)
+          ? null
+          : mpPlatform.homeDirectory,
       onSaved: doMount,
     );
 
@@ -82,10 +81,9 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: const Text('Add mount'),
     );
 
-    final topRightButton =
-        phase == MountDetailsPhase.idle
-            ? (mounts.isEmpty ? addMountButton : configureButton)
-            : cancelButton;
+    final topRightButton = phase == MountDetailsPhase.idle
+        ? (mounts.isEmpty ? addMountButton : configureButton)
+        : cancelButton;
 
     return Form(
       key: formKey,
@@ -140,31 +138,30 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => ConfirmationDialog(
-            title: 'Delete mount',
-            body: Text.rich(
-              [
-                'Are you sure you want to remove the mount\n'.span,
-                '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
-                ' from ${widget.name}?'.span,
-              ].spans,
-            ),
-            actionText: 'Delete',
-            onAction: () {
-              Navigator.pop(context);
-              notificationsNotifier.addOperation(
-                grpcClient.umount(widget.name, target),
-                loading: "Unmounting '$target' from ${widget.name}",
-                onSuccess: (_) => "Unmounted '$target' from ${widget.name}",
-                onError: (error) {
-                  return "Failed to unmount '$target' from ${widget.name}: $error";
-                },
-              );
+      builder: (context) => ConfirmationDialog(
+        title: 'Delete mount',
+        body: Text.rich(
+          [
+            'Are you sure you want to remove the mount\n'.span,
+            '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
+            ' from ${widget.name}?'.span,
+          ].spans,
+        ),
+        actionText: 'Delete',
+        onAction: () {
+          Navigator.pop(context);
+          notificationsNotifier.addOperation(
+            grpcClient.umount(widget.name, target),
+            loading: "Unmounting '$target' from ${widget.name}",
+            onSuccess: (_) => "Unmounted '$target' from ${widget.name}",
+            onError: (error) {
+              return "Failed to unmount '$target' from ${widget.name}: $error";
             },
-            inactionText: 'Cancel',
-            onInaction: () => Navigator.pop(context),
-          ),
+          );
+        },
+        inactionText: 'Cancel',
+        onInaction: () => Navigator.pop(context),
+      ),
     );
   }
 }

@@ -29,11 +29,8 @@ class LinuxPlatform extends MpPlatform {
         CopySelectionTextIntent.copy,
     SingleActivator(LogicalKeyboardKey.insert, control: true):
         CopySelectionTextIntent.copy,
-    SingleActivator(
-      LogicalKeyboardKey.keyV,
-      control: true,
-      shift: true,
-    ): PasteTextIntent(SelectionChangedCause.keyboard),
+    SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
+        PasteTextIntent(SelectionChangedCause.keyboard),
     SingleActivator(LogicalKeyboardKey.insert, shift: true): PasteTextIntent(
       SelectionChangedCause.keyboard,
     ),
@@ -62,10 +59,9 @@ class LinuxPlatform extends MpPlatform {
   String get metaKey => 'Super';
 
   @override
-  String? get homeDirectory =>
-      Platform.environment['SNAP'] == null
-          ? Platform.environment['HOME']
-          : Platform.environment['SNAP_REAL_HOME'];
+  String? get homeDirectory => Platform.environment['SNAP'] == null
+      ? Platform.environment['HOME']
+      : Platform.environment['SNAP_REAL_HOME'];
 }
 
 class LinuxAutostartNotifier extends AutostartNotifier {

@@ -48,10 +48,9 @@ Future<Size> deriveWindowSize(SharedPreferences sharedPreferences) async {
   final prefix = resolutionString(screenSize);
   final lastWidth = sharedPreferences.getDouble('$prefix$windowWidthKey');
   final lastHeight = sharedPreferences.getDouble('$prefix$windowHeightKey');
-  final size =
-      lastWidth != null && lastHeight != null
-          ? Size(lastWidth, lastHeight)
-          : null;
+  final size = lastWidth != null && lastHeight != null
+      ? Size(lastWidth, lastHeight)
+      : null;
   logger.d('Got last window size: ${size?.s()}');
   return size ?? computeDefaultWindowSize(screenSize);
 }

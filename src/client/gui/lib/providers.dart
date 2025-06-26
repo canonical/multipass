@@ -97,11 +97,10 @@ final allVmInfosProvider =
     );
 
 final vmInfosProvider = Provider((ref) {
-  final existingVms =
-      ref
-          .watch(allVmInfosProvider)
-          .where((info) => info.instanceStatus.status != Status.DELETED)
-          .toBuiltList();
+  final existingVms = ref
+      .watch(allVmInfosProvider)
+      .where((info) => info.instanceStatus.status != Status.DELETED)
+      .toBuiltList();
   final existingVmNames = existingVms.map((i) => i.name).toSet();
   final launchingVms = ref.watch(launchingVmsProvider).where((info) {
     return !existingVmNames.contains(info.name);

@@ -88,26 +88,25 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
     final content = Stack(
       fit: StackFit.expand,
-      children:
-          widgets.entries.map((e) {
-            final MapEntry(:key, value: widget) = e;
-            final isCurrent = key == currentKey;
-            var maintainState = key != SettingsScreen.sidebarKey;
-            if (key.startsWith('vm-')) {
-              maintainState = ref.read(vmVisitedProvider(key));
-            }
-            return Visibility(
-              key: Key(key),
-              maintainState: maintainState,
-              visible: isCurrent,
-              child: FocusScope(
-                autofocus: isCurrent,
-                canRequestFocus: isCurrent,
-                skipTraversal: !isCurrent,
-                child: widget,
-              ),
-            );
-          }).toList(),
+      children: widgets.entries.map((e) {
+        final MapEntry(:key, value: widget) = e;
+        final isCurrent = key == currentKey;
+        var maintainState = key != SettingsScreen.sidebarKey;
+        if (key.startsWith('vm-')) {
+          maintainState = ref.read(vmVisitedProvider(key));
+        }
+        return Visibility(
+          key: Key(key),
+          maintainState: maintainState,
+          visible: isCurrent,
+          child: FocusScope(
+            autofocus: isCurrent,
+            canRequestFocus: isCurrent,
+            skipTraversal: !isCurrent,
+            child: widget,
+          ),
+        );
+      }).toList(),
     );
 
     final hotkey = ref.watch(hotkeyProvider);
@@ -119,10 +118,9 @@ class _AppState extends ConsumerState<App> with WindowListener {
           bottom: 0,
           right: 0,
           top: 0,
-          left:
-              sidebarPushContent && sidebarExpanded
-                  ? SideBar.expandedWidth
-                  : SideBar.collapsedWidth,
+          left: sidebarPushContent && sidebarExpanded
+              ? SideBar.expandedWidth
+              : SideBar.collapsedWidth,
           child: content,
         ),
         CallbackGlobalShortcuts(
@@ -204,22 +202,21 @@ class _AppState extends ConsumerState<App> with WindowListener {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder:
-            (context) => BeforeQuitDialog(
-              onStop: (remember) {
-                ref
-                    .read(guiSettingProvider(onAppCloseKey).notifier)
-                    .set(remember ? 'stop' : 'ask');
-                stopAllInstances();
-                Navigator.pop(context);
-              },
-              onKeep: (remember) {
-                ref
-                    .read(guiSettingProvider(onAppCloseKey).notifier)
-                    .set(remember ? 'nothing' : 'ask');
-                windowManager.destroy();
-              },
-            ),
+        builder: (context) => BeforeQuitDialog(
+          onStop: (remember) {
+            ref
+                .read(guiSettingProvider(onAppCloseKey).notifier)
+                .set(remember ? 'stop' : 'ask');
+            stopAllInstances();
+            Navigator.pop(context);
+          },
+          onKeep: (remember) {
+            ref
+                .read(guiSettingProvider(onAppCloseKey).notifier)
+                .set(remember ? 'nothing' : 'ask');
+            windowManager.destroy();
+          },
+        ),
       );
     } else {
       stopAllInstances();

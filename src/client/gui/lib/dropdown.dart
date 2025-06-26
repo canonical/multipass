@@ -26,10 +26,9 @@ class Dropdown<T> extends StatelessWidget {
       underline: const SizedBox.shrink(),
       value: value,
       onChanged: onChanged,
-      items:
-          items.entries
-              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-              .toList(),
+      items: items.entries
+          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+          .toList(),
     );
 
     final styledDropdown = SizedBox(

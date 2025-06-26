@@ -67,10 +67,9 @@ class ImageCard extends ConsumerWidget {
                       numCores: defaultCpus,
                       memSize: '${defaultRam}B',
                       diskSpace: '${defaultDisk}B',
-                      remoteName:
-                          aliasInfo.hasRemoteName()
-                              ? aliasInfo.remoteName
-                              : null,
+                      remoteName: aliasInfo.hasRemoteName()
+                          ? aliasInfo.remoteName
+                          : null,
                     );
 
                     initiateLaunchFlow(ref, launchRequest);

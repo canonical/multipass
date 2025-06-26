@@ -28,22 +28,20 @@ class VmStatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusName =
-        !isLaunching
-            ? status.name.toLowerCase().replaceAll('_', ' ')
-            : 'launching';
+    final statusName = !isLaunching
+        ? status.name.toLowerCase().replaceAll('_', ' ')
+        : 'launching';
 
-    final icon =
-        !isLaunching
-            ? icons[status] ?? unknownIcon
-            : SizedBox(
-              width: 10,
-              height: 10,
-              child: FittedBox(
-                fit: BoxFit.fill,
-                child: CircularProgressIndicator(),
-              ),
-            );
+    final icon = !isLaunching
+        ? icons[status] ?? unknownIcon
+        : SizedBox(
+            width: 10,
+            height: 10,
+            child: FittedBox(
+              fit: BoxFit.fill,
+              child: CircularProgressIndicator(),
+            ),
+          );
 
     return Row(
       children: [

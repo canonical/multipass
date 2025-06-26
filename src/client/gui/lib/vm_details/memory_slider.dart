@@ -62,10 +62,9 @@ class _MemorySliderState extends State<MemorySlider> {
     TextEditingValue newValue,
   ) {
     if (newValue.text.isEmpty) return newValue;
-    final parsedValue =
-        (unitToBytes == bytesToBytes)
-            ? int.tryParse(newValue.text)
-            : double.tryParse(newValue.text);
+    final parsedValue = (unitToBytes == bytesToBytes)
+        ? int.tryParse(newValue.text)
+        : double.tryParse(newValue.text);
     return parsedValue == null ? oldValue : newValue;
   }
 
@@ -96,17 +95,16 @@ class _MemorySliderState extends State<MemorySlider> {
         (bytesToMebi, mebiToBytes): 'MiB',
         (bytesToGibi, gibiToBytes): 'GiB',
       },
-      onChanged:
-          (convertors) => setState(() {
-            final (fromBytes, toBytes) = convertors!;
-            bytesToUnit = fromBytes;
-            unitToBytes = toBytes;
-            final value = formKey.currentState?.value;
-            if (value != null) {
-              final clampedValue = value.clamp(widget.min, widget.max);
-              controller.text = bytesToUnit(clampedValue).toNiceString();
-            }
-          }),
+      onChanged: (convertors) => setState(() {
+        final (fromBytes, toBytes) = convertors!;
+        bytesToUnit = fromBytes;
+        unitToBytes = toBytes;
+        final value = formKey.currentState?.value;
+        if (value != null) {
+          final clampedValue = value.clamp(widget.min, widget.max);
+          controller.text = bytesToUnit(clampedValue).toNiceString();
+        }
+      }),
     );
 
     final sliderFormField = FormField<int>(

@@ -123,7 +123,11 @@ class CatalogueScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 140).copyWith(top: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [welcomeText, const Divider(), Expanded(child: content)],
+          children: [
+            welcomeText,
+            const Divider(),
+            Expanded(child: content),
+          ],
         ),
       ),
     );
@@ -151,8 +155,9 @@ class CatalogueScreen extends ConsumerWidget {
               return Wrap(
                 runSpacing: spacing,
                 spacing: spacing,
-                children:
-                    images.map((image) => ImageCard(image, cardWidth)).toList(),
+                children: images
+                    .map((image) => ImageCard(image, cardWidth))
+                    .toList(),
               );
             },
           ),

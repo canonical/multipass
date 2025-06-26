@@ -79,10 +79,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       helper: 'Names cannot be changed once an instance is created',
       hint: randomName,
       validator: nameValidator(vmNames, deletedVms),
-      onSaved:
-          (value) =>
-              launchRequest.instanceName =
-                  value.isNullOrBlank ? randomName : value!,
+      onSaved: (value) => launchRequest.instanceName = value.isNullOrBlank
+          ? randomName
+          : value!,
       width: 360,
     );
 
@@ -118,12 +117,11 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         }
       },
       builder: (field) {
-        final message =
-            networks.isEmpty
-                ? 'No networks found.'
-                : validBridgedNetwork
-                ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
-                : 'No valid bridged network is set.\nYou can set one in the Settings page.';
+        final message = networks.isEmpty
+            ? 'No networks found.'
+            : validBridgedNetwork
+            ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
+            : 'No valid bridged network is set.\nYou can set one in the Settings page.';
 
         return Switch(
           label: message,
@@ -142,28 +140,26 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           targetPath: r.targetPaths.first.targetPath,
         ),
       ),
-      onDelete:
-          (mountPaths) => setState(() {
-            mountRequests.removeWhere(
-              (r) =>
-                  r.sourcePath == mountPaths.sourcePath &&
-                  r.targetPaths.first.targetPath == mountPaths.targetPath,
-            );
-          }),
+      onDelete: (mountPaths) => setState(() {
+        mountRequests.removeWhere(
+          (r) =>
+              r.sourcePath == mountPaths.sourcePath &&
+              r.targetPaths.first.targetPath == mountPaths.targetPath,
+        );
+      }),
     );
 
     final addMountButton = OutlinedButton(
-      onPressed:
-          () => setState(() {
-            addingMount = true;
-            Timer(100.milliseconds, () {
-              scrollController.animateTo(
-                scrollController.position.maxScrollExtent,
-                duration: 200.milliseconds,
-                curve: Curves.ease,
-              );
-            });
-          }),
+      onPressed: () => setState(() {
+        addingMount = true;
+        Timer(100.milliseconds, () {
+          scrollController.animateTo(
+            scrollController.position.maxScrollExtent,
+            duration: 200.milliseconds,
+            curve: Curves.ease,
+          );
+        });
+      }),
       child: const Text('Add mount'),
     );
 
@@ -186,13 +182,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       existingTargets: mountRequests.map((r) => r.targetPaths.first.targetPath),
       initialSource:
           mountRequests.any((r) => r.sourcePath == mpPlatform.homeDirectory)
-              ? null
-              : mpPlatform.homeDirectory,
-      onSaved:
-          (request) => setState(() {
-            mountRequests.add(request);
-            addingMount = false;
-          }),
+          ? null
+          : mpPlatform.homeDirectory,
+      onSaved: (request) => setState(() {
+        mountRequests.add(request);
+        addingMount = false;
+      }),
     );
 
     final mountForm = Form(

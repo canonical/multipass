@@ -146,17 +146,16 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
       } else if (shouldSave) {
         shouldSave = false;
         final trigger = key;
-        final activator =
-            trigger != null
-                ? SingleActivator(
-                  trigger,
-                  alt: alt,
-                  control: control,
-                  meta: meta,
-                  shift: shift,
-                  includeRepeats: false,
-                )
-                : null;
+        final activator = trigger != null
+            ? SingleActivator(
+                trigger,
+                alt: alt,
+                control: control,
+                meta: meta,
+                shift: shift,
+                includeRepeats: false,
+              )
+            : null;
         widget.onSave?.call(activator);
       } else {
         set(widget.value);
@@ -173,12 +172,11 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
       if (shift) 'Shift',
       if (meta) mpPlatform.metaKey,
     ].join('+');
-    final keyCombination =
-        modifiers.isNotEmpty
-            ? '$modifiers+$keyLabel'
-            : hasFocus
-            ? 'Input...'
-            : '';
+    final keyCombination = modifiers.isNotEmpty
+        ? '$modifiers+$keyLabel'
+        : hasFocus
+        ? 'Input...'
+        : '';
 
     return Focus(
       focusNode: focusNode,

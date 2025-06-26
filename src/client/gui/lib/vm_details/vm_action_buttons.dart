@@ -39,11 +39,10 @@ class VmActionButtons extends ConsumerWidget {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder:
-              (_) => DeleteInstanceDialog(
-                multiple: false,
-                onDelete: () => wrapInNotification(client.purge)(action),
-              ),
+          builder: (_) => DeleteInstanceDialog(
+            multiple: false,
+            onDelete: () => wrapInNotification(client.purge)(action),
+          ),
         );
       },
     };

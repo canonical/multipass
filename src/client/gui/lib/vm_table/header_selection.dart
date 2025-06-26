@@ -22,12 +22,9 @@ class HeaderSelectionTile extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       title: Text(name, style: const TextStyle(color: Colors.black)),
       value: enabledHeaders[name],
-      onChanged:
-          (isSelected) => ref
-              .read(enabledHeadersProvider.notifier)
-              .update(
-                (state) => state.rebuild((set) => set[name] = isSelected!),
-              ),
+      onChanged: (isSelected) => ref
+          .read(enabledHeadersProvider.notifier)
+          .update((state) => state.rebuild((set) => set[name] = isSelected!)),
     );
   }
 }
@@ -39,15 +36,13 @@ class HeaderSelection extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton(
       position: PopupMenuPosition.under,
-      itemBuilder:
-          (_) =>
-              headers.skip(2).map((h) {
-                return PopupMenuItem<void>(
-                  padding: EdgeInsets.zero,
-                  enabled: false,
-                  child: HeaderSelectionTile(h.name),
-                );
-              }).toList(),
+      itemBuilder: (_) => headers.skip(2).map((h) {
+        return PopupMenuItem<void>(
+          padding: EdgeInsets.zero,
+          enabled: false,
+          child: HeaderSelectionTile(h.name),
+        );
+      }).toList(),
       child: Container(
         width: 120,
         height: 42,

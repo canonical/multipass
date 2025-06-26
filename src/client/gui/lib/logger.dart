@@ -83,17 +83,17 @@ class MpPrettyPrinter extends LogPrinter {
   }
 
   String? formatStackTrace(StackTrace? stackTrace, int? methodCount) {
-    final lines =
-        stackTrace.toString().split('\n').where((line) {
-          return !_discardDeviceStacktraceLine(line) &&
-              !_discardWebStacktraceLine(line) &&
-              !_discardBrowserStacktraceLine(line) &&
-              line.isNotEmpty;
-        }).toList();
+    final lines = stackTrace.toString().split('\n').where((line) {
+      return !_discardDeviceStacktraceLine(line) &&
+          !_discardWebStacktraceLine(line) &&
+          !_discardBrowserStacktraceLine(line) &&
+          line.isNotEmpty;
+    }).toList();
 
     final formatted = <String>[];
-    final stackTraceLength =
-        methodCount != null ? min(lines.length, methodCount) : lines.length;
+    final stackTraceLength = methodCount != null
+        ? min(lines.length, methodCount)
+        : lines.length;
 
     for (var count = 0; count < stackTraceLength; count++) {
       final line = lines[count];

@@ -84,18 +84,16 @@ class _TableState<T> extends State<Table<T>> {
           ),
         ),
         onHorizontalDragStart: (_) => setState(() => isResizingColumn++),
-        onHorizontalDragUpdate:
-            (d) => setState(() {
-              header.width = max(
-                header.minWidth,
-                header._oldWidth + d.localPosition.dx,
-              );
-            }),
-        onHorizontalDragEnd:
-            (_) => setState(() {
-              header._oldWidth = header.width;
-              isResizingColumn--;
-            }),
+        onHorizontalDragUpdate: (d) => setState(() {
+          header.width = max(
+            header.minWidth,
+            header._oldWidth + d.localPosition.dx,
+          );
+        }),
+        onHorizontalDragEnd: (_) => setState(() {
+          header._oldWidth = header.width;
+          isResizingColumn--;
+        }),
       ),
     );
 
@@ -105,10 +103,9 @@ class _TableState<T> extends State<Table<T>> {
         if (index == sortIndex)
           Align(
             alignment: Alignment.centerRight,
-            child:
-                sortAscending
-                    ? const Icon(Icons.arrow_drop_up_rounded)
-                    : const Icon(Icons.arrow_drop_down_rounded),
+            child: sortAscending
+                ? const Icon(Icons.arrow_drop_up_rounded)
+                : const Icon(Icons.arrow_drop_down_rounded),
           ),
       ],
     );
@@ -149,10 +146,9 @@ class _TableState<T> extends State<Table<T>> {
   @override
   Widget build(BuildContext context) {
     Iterable<T> data = widget.data;
-    final sortKey =
-        widget.headers
-            .elementAtOrNull(sortIndex ?? widget.headers.length)
-            ?.sortKey;
+    final sortKey = widget.headers
+        .elementAtOrNull(sortIndex ?? widget.headers.length)
+        ?.sortKey;
     if (sortKey != null) {
       final sortedData = data.sortedBy(sortKey);
       data = sortAscending ? sortedData : sortedData.reversed;
@@ -170,32 +166,27 @@ class _TableState<T> extends State<Table<T>> {
       rowCount: cells.length,
       columnCount: widget.headers.length + 1,
       rowBuilder: (_) => const TableSpan(extent: FixedTableSpanExtent(50)),
-      columnBuilder:
-          (i) => TableSpan(
-            extent:
-                i == widget.headers.length
-                    ? const RemainingTableSpanExtent()
-                    : FixedTableSpanExtent(widget.headers[i].width),
-          ),
-      cellBuilder:
-          (_, v) => TableViewCell(
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom:
-                      v.row < cells.length - 1 ? borderSide : BorderSide.none,
-                ),
-              ),
-              child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
+      columnBuilder: (i) => TableSpan(
+        extent: i == widget.headers.length
+            ? const RemainingTableSpanExtent()
+            : FixedTableSpanExtent(widget.headers[i].width),
+      ),
+      cellBuilder: (_, v) => TableViewCell(
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: v.row < cells.length - 1 ? borderSide : BorderSide.none,
             ),
           ),
+          child: cells.elementAtOrNull(v.row)?.elementAtOrNull(v.column),
+        ),
+      ),
     );
 
     return MouseRegion(
-      cursor:
-          isResizingColumn == 0
-              ? MouseCursor.defer
-              : SystemMouseCursors.resizeColumn,
+      cursor: isResizingColumn == 0
+          ? MouseCursor.defer
+          : SystemMouseCursors.resizeColumn,
       child: DecoratedBox(
         decoration: const BoxDecoration(
           border: Border.fromBorderSide(borderSide),

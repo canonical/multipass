@@ -21,8 +21,10 @@ extension TextSpanFromStringExt on String {
 }
 
 extension TextSpanFromListExt on List<TextSpan> {
-  TextSpan get spans =>
-      TextSpan(children: this, style: const TextStyle(color: Colors.black));
+  TextSpan get spans => TextSpan(
+    children: this,
+    style: const TextStyle(color: Colors.black),
+  );
 }
 
 extension TextSpanExt on TextSpan {

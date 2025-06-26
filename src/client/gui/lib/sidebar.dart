@@ -111,10 +111,9 @@ class SideBar extends ConsumerWidget {
           pushContent ? Icons.chevron_left : Icons.chevron_right,
           color: Colors.white,
         ),
-        onPressed:
-            () => ref
-                .read(sidebarPushContentProvider.notifier)
-                .update((state) => !state),
+        onPressed: () => ref
+            .read(sidebarPushContentProvider.notifier)
+            .update((state) => !state),
       ),
     );
 
@@ -236,30 +235,30 @@ class SidebarEntry extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         border: Border(
-          left:
-              selected
-                  ? const BorderSide(color: Colors.white, width: 2)
-                  : BorderSide.none,
+          left: selected
+              ? const BorderSide(color: Colors.white, width: 2)
+              : BorderSide.none,
         ),
       ),
       child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-          backgroundColor:
-              selected ? const Color(0xff444444) : Colors.transparent,
+          backgroundColor: selected
+              ? const Color(0xff444444)
+              : Colors.transparent,
         ),
         child: Row(
           children: [
             badge == null
                 ? icon
                 : Badge(
-                  backgroundColor: const Color(0xff333333),
-                  isLabelVisible: !expanded,
-                  label: Text(badge!),
-                  offset: const Offset(10, -6),
-                  child: icon,
-                ),
+                    backgroundColor: const Color(0xff333333),
+                    isLabelVisible: !expanded,
+                    label: Text(badge!),
+                    offset: const Offset(10, -6),
+                    child: icon,
+                  ),
             Expanded(
               flex: 5,
               child: AnimatedOpacity(

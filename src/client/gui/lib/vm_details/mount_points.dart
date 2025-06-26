@@ -113,10 +113,9 @@ class _EditableMountPointState extends State<EditableMountPoint> {
         final chosenSource = sourceController.text;
         final source = await getDirectoryPath(
           confirmButtonText: 'Select',
-          initialDirectory:
-              await Directory(chosenSource).exists()
-                  ? chosenSource
-                  : mpPlatform.homeDirectory,
+          initialDirectory: await Directory(chosenSource).exists()
+              ? chosenSource
+              : mpPlatform.homeDirectory,
         );
         if (source == null) return;
         sourceController.text = source;
@@ -302,11 +301,10 @@ class _ClippingTextFieldState extends State<ClippingTextField> {
 
       final clippedTextFormField = FormField<String>(
         validator: (_) => widget.validator?.call(widget.controller.text),
-        builder:
-            (field) => InputDecorator(
-              decoration: InputDecoration(errorText: field.errorText),
-              child: clippedText,
-            ),
+        builder: (field) => InputDecorator(
+          decoration: InputDecoration(errorText: field.errorText),
+          child: clippedText,
+        ),
       );
 
       return GestureDetector(

@@ -45,23 +45,25 @@ final _settingsFile = _lib
       'settings_file',
     );
 
-final _getSetting = _lib.lookupFunction<
-  ffi.Int32 Function(ffi.Pointer<Utf8>, ffi.Pointer<ffi.Pointer<Utf8>>),
-  int Function(ffi.Pointer<Utf8>, ffi.Pointer<ffi.Pointer<Utf8>>)
->('get_setting');
+final _getSetting = _lib
+    .lookupFunction<
+      ffi.Int32 Function(ffi.Pointer<Utf8>, ffi.Pointer<ffi.Pointer<Utf8>>),
+      int Function(ffi.Pointer<Utf8>, ffi.Pointer<ffi.Pointer<Utf8>>)
+    >('get_setting');
 
-final _setSetting = _lib.lookupFunction<
-  ffi.Int32 Function(
-    ffi.Pointer<Utf8>,
-    ffi.Pointer<Utf8>,
-    ffi.Pointer<ffi.Pointer<Utf8>>,
-  ),
-  int Function(
-    ffi.Pointer<Utf8>,
-    ffi.Pointer<Utf8>,
-    ffi.Pointer<ffi.Pointer<Utf8>>,
-  )
->('set_setting');
+final _setSetting = _lib
+    .lookupFunction<
+      ffi.Int32 Function(
+        ffi.Pointer<Utf8>,
+        ffi.Pointer<Utf8>,
+        ffi.Pointer<ffi.Pointer<Utf8>>,
+      ),
+      int Function(
+        ffi.Pointer<Utf8>,
+        ffi.Pointer<Utf8>,
+        ffi.Pointer<ffi.Pointer<Utf8>>,
+      )
+    >('set_setting');
 
 final uid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('uid');
 final gid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('gid');
@@ -69,25 +71,28 @@ final defaultId = _lib.lookupFunction<ffi.Int32 Function(), int Function()>(
   'default_id',
 );
 
-final _memoryInBytes = _lib.lookupFunction<
-  ffi.LongLong Function(ffi.Pointer<Utf8>),
-  int Function(ffi.Pointer<Utf8>)
->('memory_in_bytes');
+final _memoryInBytes = _lib
+    .lookupFunction<
+      ffi.LongLong Function(ffi.Pointer<Utf8>),
+      int Function(ffi.Pointer<Utf8>)
+    >('memory_in_bytes');
 
-final _humanReadableMemory = _lib.lookupFunction<
-  ffi.Pointer<Utf8> Function(ffi.LongLong),
-  ffi.Pointer<Utf8> Function(int)
->('human_readable_memory');
+final _humanReadableMemory = _lib
+    .lookupFunction<
+      ffi.Pointer<Utf8> Function(ffi.LongLong),
+      ffi.Pointer<Utf8> Function(int)
+    >('human_readable_memory');
 
 final getTotalDiskSize = _lib
     .lookupFunction<ffi.LongLong Function(), int Function()>(
       'get_total_disk_size',
     );
 
-final _defaultMountTarget = _lib.lookupFunction<
-  ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>),
-  ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>)
->('default_mount_target');
+final _defaultMountTarget = _lib
+    .lookupFunction<
+      ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>),
+      ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>)
+    >('default_mount_target');
 
 final class _NativeKeyCertificatePair extends ffi.Struct {
   // ignore: non_constant_identifier_names
@@ -104,10 +109,11 @@ class KeyCertificatePair {
   KeyCertificatePair(this.cert, this.key);
 }
 
-final _getCertPair = _lib.lookupFunction<
-  _NativeKeyCertificatePair Function(),
-  _NativeKeyCertificatePair Function()
->('get_cert_pair');
+final _getCertPair = _lib
+    .lookupFunction<
+      _NativeKeyCertificatePair Function(),
+      _NativeKeyCertificatePair Function()
+    >('get_cert_pair');
 
 String get multipassVersion => _multipassVersion().toDartString();
 

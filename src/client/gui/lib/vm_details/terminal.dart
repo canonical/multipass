@@ -296,17 +296,16 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     contextMenuController.show(
       context: context,
-      contextMenuBuilder:
-          (_) => TapRegion(
-            onTapOutside: (_) => ContextMenuController.removeAny(),
-            child: TextButtonTheme(
-              data: TextButtonThemeData(style: style),
-              child: AdaptiveTextSelectionToolbar.buttonItems(
-                anchors: TextSelectionToolbarAnchors(primaryAnchor: offset),
-                buttonItems: buttonItems,
-              ),
-            ),
+      contextMenuBuilder: (_) => TapRegion(
+        onTapOutside: (_) => ContextMenuController.removeAny(),
+        child: TextButtonTheme(
+          data: TextButtonThemeData(style: style),
+          child: AdaptiveTextSelectionToolbar.buttonItems(
+            anchors: TextSelectionToolbarAnchors(primaryAnchor: offset),
+            buttonItems: buttonItems,
           ),
+        ),
+      ),
     );
   }
 
@@ -334,11 +333,9 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
             const SizedBox(height: 12),
             OutlinedButton(
               style: buttonStyle,
-              onPressed:
-                  canStartVm || vmRunning
-                      ? () =>
-                          startVmIfNeeded(vmRunning).then((_) => openShell())
-                      : null,
+              onPressed: canStartVm || vmRunning
+                  ? () => startVmIfNeeded(vmRunning).then((_) => openShell())
+                  : null,
               child: const Text('Open shell'),
             ),
             const SizedBox(height: 32),
@@ -356,8 +353,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           controller: terminalController,
           focusNode: focusNode,
           hardwareKeyboardOnly: true,
-          onSecondaryTapUp:
-              (d, _) => openContextMenu(d.globalPosition, context),
+          onSecondaryTapUp: (d, _) =>
+              openContextMenu(d.globalPosition, context),
           padding: const EdgeInsets.all(4),
           scrollController: scrollController,
           shortcuts: mpPlatform.terminalShortcuts,
@@ -379,16 +376,14 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     final terminalActions = {
       IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
-        onInvoke:
-            (_) => setState(() {
-              fontSize = min(fontSize + fontSizeStep, maxFontSize);
-            }),
+        onInvoke: (_) => setState(() {
+          fontSize = min(fontSize + fontSizeStep, maxFontSize);
+        }),
       ),
       DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
-        onInvoke:
-            (_) => setState(() {
-              fontSize = max(fontSize - fontSizeStep, minFontSize);
-            }),
+        onInvoke: (_) => setState(() {
+          fontSize = max(fontSize - fontSizeStep, minFontSize);
+        }),
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
         onInvoke: (_) => setState(() => fontSize = defaultFontSize),
