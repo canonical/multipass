@@ -273,7 +273,7 @@ final theme = ThemeData(
     cursorColor: Colors.black,
     selectionColor: Colors.grey,
   ),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     indicator: BoxDecoration(
       color: Colors.black12,
       border: Border(bottom: BorderSide(width: 3)),

@@ -113,7 +113,7 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
     LogicalKeyboardKey.shiftRight: setShift,
   };
 
-  KeyEventResult handleKeyEvent(_, KeyEvent event) {
+  KeyEventResult handleKeyEvent(FocusNode _, KeyEvent event) {
     if (event is KeyRepeatEvent) return KeyEventResult.handled;
 
     shouldSave = false;
