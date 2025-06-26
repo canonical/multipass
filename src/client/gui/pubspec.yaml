@@ -17,7 +17,7 @@ dependencies:
   extended_text: ^15.0.0
   ffi: ^2.1.4
   file_selector: ^1.0.3
-  fl_chart: ^0.71.0
+  fl_chart: ^1.0.0
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
@@ -39,8 +39,8 @@ dependencies:
       ref: cef5b8f
   two_dimensional_scrollables: ^0.3.3
   url_launcher: ^6.3.1
-  win32: ^5.11.0
-  window_manager: ^0.4.3
+  win32: ^5.14.0
+  window_manager: ^0.5.0
   window_size:
     git:
       url: https://github.com/google/flutter-desktop-embedding.git
@@ -59,7 +59,7 @@ dependency_overrides:
       path: packages/hotkey_manager_linux
 
 dev_dependencies:
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
