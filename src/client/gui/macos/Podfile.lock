@@ -20,7 +20,7 @@ PODS:
     - FlutterMacOS
   - url_launcher_macos (0.0.1):
     - FlutterMacOS
-  - window_manager (0.2.0):
+  - window_manager (0.5.0):
     - FlutterMacOS
   - window_size (0.0.2):
     - FlutterMacOS
@@ -77,7 +77,7 @@ SPEC CHECKSUMS:
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   tray_menu: 388c475404aa4fc1563a6ed002bef6677d467905
   url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
-  window_manager: 3a1844359a6295ab1e47659b1a777e36773cd6e8
+  window_manager: e25faf20d88283a0d46e7b1a759d07261ca27575
   window_size: 339dafa0b27a95a62a843042038fa6c3c48de195
 
 PODFILE CHECKSUM: 236401fc2c932af29a9fcf0e97baeeb2d750d367
