@@ -177,7 +177,7 @@ void remove_source_images(const mp::VMImage& source_image, const mp::VMImage& pr
     }
 }
 
-void delete_image_dir(const mp::Path& image_path)
+void delete_image_dir(const QString& image_path)
 {
     QFileInfo image_file{image_path};
     if (image_file.exists())
@@ -189,9 +189,9 @@ void delete_image_dir(const mp::Path& image_path)
     }
 }
 
-mp::MemorySize get_image_size(const mp::Path& image_path)
+mp::MemorySize get_image_size(const QString& image_path)
 {
-    QStringList qemuimg_parameters{{"info", image_path}};
+    QStringList qemuimg_parameters{"info", image_path};
     auto qemuimg_process = mp::platform::make_process(
         std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image_path));
     auto process_state = qemuimg_process->execute();
@@ -239,8 +239,8 @@ void persist_records(const T& records, const QString& path)
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts,
                                              URLDownloader* downloader,
-                                             const mp::Path& cache_dir_path,
-                                             const mp::Path& data_dir_path,
+                                             const QString& cache_dir_path,
+                                             const QString& data_dir_path,
                                              const mp::days& days_to_expire)
     : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
@@ -263,7 +263,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                                                  const PrepareAction& prepare,
                                                  const ProgressMonitor& monitor,
                                                  const std::optional<std::string>& checksum,
-                                                 const mp::Path& save_dir)
+                                                 const QString& save_dir)
 {
     {
         std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -723,7 +723,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
 QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
                                                     const ProgressMonitor& monitor,
-                                                    const mp::Path& dest_dir)
+                                                    const QString& dest_dir)
 {
     MP_UTILS.make_dir(dest_dir);
     QFileInfo file_info{source_image.image_path};
@@ -734,7 +734,7 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
 }
 
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image,
-                                                         const mp::Path& dest_dir)
+                                                         const QString& dest_dir)
 {
     MP_UTILS.make_dir(dest_dir);
 
@@ -760,7 +760,7 @@ std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(co
 mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query,
                                                             const VMImage& prepared_image,
                                                             const std::string& id,
-                                                            const mp::Path& dest_dir)
+                                                            const QString& dest_dir)
 {
     VMImage vm_image;
 

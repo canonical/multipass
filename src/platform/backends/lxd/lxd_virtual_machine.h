@@ -38,7 +38,7 @@ public:
                       const QString& bridge_name,
                       const QString& storage_pool,
                       const SSHKeyProvider& key_provider,
-                      const Path& instance_dir);
+                      const QString& instance_dir);
     ~LXDVirtualMachine() override;
 
     void start() override;

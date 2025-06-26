@@ -30,9 +30,9 @@ class ProcessFactory;
 class LibVirtVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir,
+    explicit LibVirtVirtualMachineFactory(const QString& data_dir,
                                           const std::string& libvirt_object_path); // For testing
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir);
+    explicit LibVirtVirtualMachineFactory(const QString& data_dir);
     ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -51,7 +51,7 @@ protected:
     void remove_resources_for_impl(const std::string& name) override;
 
 private:
-    const Path data_dir;
+    const QString data_dir;
     std::string bridge_name;
     const std::string libvirt_object_path;
 };

@@ -41,7 +41,7 @@ struct MockDNSMasqServerFactory : public DNSMasqServerFactory
 
     MOCK_METHOD(DNSMasqServer::UPtr,
                 make_dnsmasq_server,
-                (const Path&, const QString&, const std::string&),
+                (const QString&, const QString&, const std::string&),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockDNSMasqServerFactory, DNSMasqServerFactory);

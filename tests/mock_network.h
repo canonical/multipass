@@ -81,7 +81,7 @@ public:
 
     MOCK_METHOD(std::unique_ptr<QNetworkAccessManager>,
                 make_network_manager,
-                (const Path&),
+                (const QString&),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetworkManagerFactory, NetworkManagerFactory);

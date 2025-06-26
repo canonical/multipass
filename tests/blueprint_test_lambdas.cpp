@@ -36,7 +36,7 @@ std::function<mp::VMImage(const mp::FetchType&,
                           const mp::VMImageVault::PrepareAction&,
                           const mp::ProgressMonitor&,
                           const std::optional<std::string>,
-                          const mp::Path&)>
+                          const QString&)>
 mpt::fetch_image_lambda(const std::string& release,
                         const std::string& remote,
                         const bool must_have_checksum)
@@ -46,7 +46,7 @@ mpt::fetch_image_lambda(const std::string& release,
                                                    const mp::VMImageVault::PrepareAction& prepare,
                                                    const mp::ProgressMonitor& monitor,
                                                    const std::optional<std::string>& checksum,
-                                                   const mp::Path& save_dir) {
+                                                   const QString& save_dir) {
         EXPECT_EQ(query.release, release);
         if (remote.empty())
         {

@@ -74,7 +74,7 @@ void mp::OpenSSHKeyProvider::KeyDeleter::operator()(ssh_key key)
     ssh_key_free(key);
 }
 
-mp::OpenSSHKeyProvider::OpenSSHKeyProvider(const mp::Path& cache_dir)
+mp::OpenSSHKeyProvider::OpenSSHKeyProvider(const QString& cache_dir)
     : ssh_key_dir{MP_UTILS.make_dir(cache_dir, "ssh-keys")}, priv_key{get_priv_key(ssh_key_dir)}
 {
 }

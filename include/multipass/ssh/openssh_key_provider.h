@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/path.h>
+#include <QString>
 #include <multipass/ssh/ssh_key_provider.h>
 
 #include <QDir>
@@ -34,7 +34,7 @@ public:
     };
     using KeyUPtr = std::unique_ptr<ssh_key_struct, KeyDeleter>;
 
-    OpenSSHKeyProvider(const Path& cache_dir);
+    OpenSSHKeyProvider(const QString& cache_dir);
     std::string private_key_as_base64() const override;
     std::string public_key_as_base64() const override;
     ssh_key private_key() const override;

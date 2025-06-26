@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <multipass/path.h>
 #include <multipass/vm_blueprint_provider.h>
 
 #include <yaml-cpp/yaml.h>

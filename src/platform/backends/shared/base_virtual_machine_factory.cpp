@@ -29,9 +29,9 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
+const QString mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir)
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const QString& instances_dir)
     : instances_dir{instances_dir} {};
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)

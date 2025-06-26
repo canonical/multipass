@@ -35,7 +35,7 @@ namespace
 {
 constexpr auto immediate_wait = 100; // period to wait for immediate dnsmasq failures, in ms
 
-auto make_dnsmasq_process(const mp::Path& data_dir,
+auto make_dnsmasq_process(const QString& data_dir,
                           const QString& bridge_name,
                           const std::string& subnet,
                           const QString& conf_file_path)
@@ -46,7 +46,7 @@ auto make_dnsmasq_process(const mp::Path& data_dir,
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
+mp::DNSMasqServer::DNSMasqServer(const QString& data_dir,
                                  const QString& bridge_name,
                                  const std::string& subnet)
     : data_dir{data_dir},
@@ -206,7 +206,7 @@ void mp::DNSMasqServer::start_dnsmasq()
 }
 
 mp::DNSMasqServer::UPtr mp::DNSMasqServerFactory::make_dnsmasq_server(
-    const mp::Path& network_dir,
+    const QString& network_dir,
     const QString& bridge_name,
     const std::string& subnet) const
 {

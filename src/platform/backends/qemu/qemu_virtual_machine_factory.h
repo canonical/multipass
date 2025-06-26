@@ -18,7 +18,7 @@
 
 #include "qemu_platform.h"
 
-#include <multipass/path.h>
+#include <QString>
 #include <shared/base_virtual_machine_factory.h>
 
 #include <QString>
@@ -30,7 +30,7 @@ namespace multipass
 class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const Path& data_dir);
+    explicit QemuVirtualMachineFactory(const QString& data_dir);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
@@ -51,7 +51,7 @@ protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
-    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
+    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const QString& data_dir);
     VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,

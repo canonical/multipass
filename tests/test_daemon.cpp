@@ -1957,8 +1957,8 @@ TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
     mp::URLDownloader downloader(std::chrono::milliseconds(1));
     mp::DefaultVMImageVault default_vault(hosts,
                                           &downloader,
-                                          mp::Path("/"),
-                                          mp::Path("/"),
+                                          QString("/"),
+                                          QString("/"),
                                           mp::days(1));
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();

@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/path.h>
+#include <QString>
 
 #include <vector>
 
@@ -26,7 +26,7 @@ namespace multipass
 class VMImage
 {
 public:
-    Path image_path;
+    QString image_path;
     std::string id;
     std::string original_release;
     std::string current_release;

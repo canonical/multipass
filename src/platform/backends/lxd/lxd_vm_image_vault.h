@@ -48,7 +48,7 @@ public:
                         const PrepareAction& prepare,
                         const ProgressMonitor& monitor,
                         const std::optional<std::string>& checksum,
-                        const Path& /* save_dir */) override;
+                        const QString& /* save_dir */) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;

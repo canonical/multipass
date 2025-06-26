@@ -33,7 +33,7 @@ namespace mp = multipass;
 namespace
 {
 std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag,
-                                                          const mp::Path& image_path)
+                                                          const QString& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
                                                     /* src_img = */ "",
@@ -41,7 +41,7 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag,
 }
 
 std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag,
-                                                          const mp::Path& image_path)
+                                                          const QString& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-a", tag, image_path},
                                                     /* src_img = */ "",
@@ -49,7 +49,7 @@ std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag,
 }
 
 std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag,
-                                                         const mp::Path& image_path)
+                                                         const QString& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, image_path},
                                                     /* src_img = */ "",

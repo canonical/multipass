@@ -24,7 +24,7 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir,
+mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const QString& data_dir,
                                            const QString& bridge_name,
                                            const std::string& subnet,
                                            const QString& conf_file_path)

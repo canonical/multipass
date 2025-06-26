@@ -61,7 +61,7 @@ void assert_vm_stopped(St state)
     assert(state == St::off || state == St::stopped);
 }
 
-mp::Path derive_head_path(const QDir& snapshot_dir)
+QString derive_head_path(const QDir& snapshot_dir)
 {
     return snapshot_dir.filePath(head_filename);
 }
@@ -141,14 +141,14 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
 mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
                                            const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
-                                           const Path& instance_dir)
+                                           const QString& instance_dir)
     : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}
 {
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
-                                           const Path& instance_dir)
+                                           const QString& instance_dir)
     : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}
 {
 }
@@ -477,7 +477,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
 }
 
 bool mp::BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& snapshot,
-                                                  const Path& head_path)
+                                                  const QString& head_path)
 {
     if (head_snapshot == snapshot)
     {
@@ -489,7 +489,7 @@ bool mp::BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& sna
     return false;
 }
 
-auto mp::BaseVirtualMachine::make_deleted_head_rollback(const Path& head_path,
+auto mp::BaseVirtualMachine::make_deleted_head_rollback(const QString& head_path,
                                                         const bool& wrote_head)
 {
     return sg::make_scope_guard(
@@ -498,7 +498,7 @@ auto mp::BaseVirtualMachine::make_deleted_head_rollback(const Path& head_path,
         });
 }
 
-void mp::BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
+void mp::BaseVirtualMachine::deleted_head_rollback_helper(const QString& head_path,
                                                           const bool& wrote_head,
                                                           std::shared_ptr<Snapshot>& old_head)
 {
@@ -688,7 +688,7 @@ void mp::BaseVirtualMachine::load_snapshot(const QString& filename)
     }
 }
 
-auto mp::BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
+auto mp::BaseVirtualMachine::make_common_file_rollback(const QString& file_path,
                                                        QFile& file,
                                                        const std::string& old_contents) const
 {
@@ -698,7 +698,7 @@ auto mp::BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
         });
 }
 
-void mp::BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
+void mp::BaseVirtualMachine::common_file_rollback_helper(const QString& file_path,
                                                          QFile& file,
                                                          const std::string& old_contents,
                                                          bool existed) const
@@ -738,7 +738,7 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
     head_file_rollback.dismiss();
 }
 
-void mp::BaseVirtualMachine::persist_head_snapshot_index(const Path& head_path) const
+void mp::BaseVirtualMachine::persist_head_snapshot_index(const QString& head_path) const
 {
     auto head_index = head_snapshot ? head_snapshot->get_index() : 0;
     MP_UTILS.make_file_with_content(head_path.toStdString(),
@@ -751,7 +751,7 @@ std::string mp::BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
-auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
+auto mp::BaseVirtualMachine::make_restore_rollback(const QString& head_path, VMSpecs& specs)
 {
     return sg::make_scope_guard(
         [this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
@@ -765,7 +765,7 @@ auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpec
         });
 }
 
-void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
+void mp::BaseVirtualMachine::restore_rollback_helper(const QString& head_path,
                                                      const std::shared_ptr<Snapshot>& old_head,
                                                      const VMSpecs& old_specs,
                                                      VMSpecs& specs)

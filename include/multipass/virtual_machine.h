@@ -20,7 +20,7 @@
 #include "disabled_copy_move.h"
 #include "ip_address.h"
 #include "network_interface.h"
-#include "path.h"
+#include <QString>
 
 #include <QDir>
 #include <QJsonObject>
@@ -136,9 +136,9 @@ protected:
 
     VirtualMachine(VirtualMachine::State state,
                    const std::string& vm_name,
-                   const Path& instance_dir)
+                   const QString& instance_dir)
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
-    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
+    VirtualMachine(const std::string& vm_name, const QString& instance_dir)
         : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass

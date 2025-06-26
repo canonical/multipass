@@ -19,9 +19,9 @@
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/ip_address.h>
-#include <multipass/path.h>
 #include <multipass/singleton.h>
 
+#include <QString>
 #include <QTemporaryFile>
 
 #include <memory>
@@ -37,7 +37,7 @@ class DNSMasqServer : private DisabledCopyMove
 public:
     using UPtr = std::unique_ptr<DNSMasqServer>;
 
-    DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
+    DNSMasqServer(const QString& data_dir, const QString& bridge_name, const std::string& subnet);
     virtual ~DNSMasqServer(); // inherited by mock for testing
 
     virtual std::optional<IPAddress> get_ip_for(const std::string& hw_addr);
@@ -66,7 +66,7 @@ public:
     DNSMasqServerFactory(const Singleton<DNSMasqServerFactory>::PrivatePass& pass) noexcept
         : Singleton<DNSMasqServerFactory>::Singleton{pass} {};
 
-    virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir,
+    virtual DNSMasqServer::UPtr make_dnsmasq_server(const QString& network_dir,
                                                     const QString& bridge_name,
                                                     const std::string& subnet) const;
 };

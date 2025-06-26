@@ -22,7 +22,7 @@
 
 #include <qemu_platform.h>
 
-#include <multipass/path.h>
+#include <QString>
 
 #include <unordered_map>
 #include <utility>
@@ -33,7 +33,7 @@ namespace multipass
 class QemuPlatformDetail : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail(const Path& data_dir);
+    explicit QemuPlatformDetail(const QString& data_dir);
     virtual ~QemuPlatformDetail();
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
@@ -47,7 +47,7 @@ public:
 
 private:
     const QString bridge_name;
-    const Path network_dir;
+    const QString network_dir;
     const std::string subnet;
     DNSMasqServer::UPtr dnsmasq_server;
     FirewallConfig::UPtr firewall_config;

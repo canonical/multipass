@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/path.h>
+#include <QString>
 #include <multipass/singleton.h>
 
 #include <chrono>
@@ -53,7 +53,7 @@ public:
     using Singleton<Backend>::Singleton;
 
     virtual std::string create_bridge_with(const std::string& interface);
-    virtual std::string get_subnet(const Path& network_dir, const QString& bridge_name) const;
+    virtual std::string get_subnet(const QString& network_dir, const QString& bridge_name) const;
 
     // For detecting KVM
     virtual void check_for_kvm_support();

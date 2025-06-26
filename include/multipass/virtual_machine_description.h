@@ -43,7 +43,7 @@ public:
     std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;
     VMImage image;
-    Path cloud_init_iso;
+    QString cloud_init_iso;
     YAML::Node meta_data_config;
     YAML::Node user_data_config;
     YAML::Node vendor_data_config;

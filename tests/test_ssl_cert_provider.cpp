@@ -31,7 +31,7 @@ using namespace testing;
 struct SSLCertProviderFixture : public testing::Test
 {
     mpt::TempDir temp_dir;
-    mp::Path cert_dir{temp_dir.path() + "/test-cert"};
+    QString cert_dir{temp_dir.path() + "/test-cert"};
 };
 
 TEST_F(SSLCertProviderFixture, createsCertAndKey)

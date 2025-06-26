@@ -44,7 +44,7 @@ namespace
 constexpr auto category = "url downloader";
 using NetworkReplyUPtr = std::unique_ptr<QNetworkReply>;
 
-auto make_network_manager(const mp::Path& cache_dir_path)
+auto make_network_manager(const QString& cache_dir_path)
 {
     auto manager = std::make_unique<QNetworkAccessManager>();
 
@@ -231,16 +231,17 @@ mp::NetworkManagerFactory::NetworkManagerFactory(
 }
 
 std::unique_ptr<QNetworkAccessManager> mp::NetworkManagerFactory::make_network_manager(
-    const mp::Path& cache_dir_path) const
+    const QString& cache_dir_path) const
 {
     return ::make_network_manager(cache_dir_path);
 }
 
-mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : URLDownloader{Path(), timeout}
+mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout)
+    : URLDownloader{QString(), timeout}
 {
 }
 
-mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout)
+mp::URLDownloader::URLDownloader(const QString& cache_dir, std::chrono::milliseconds timeout)
     : cache_dir_path{QDir(cache_dir).filePath("network-cache")}, timeout{timeout}
 {
 }

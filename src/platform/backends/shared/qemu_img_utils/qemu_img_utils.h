@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/path.h>
+#include <QString>
 #include <multipass/platform.h>
 
 #include <optional>
@@ -38,11 +38,11 @@ public:
 Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
                                     const std::string& custom_error_prefix = "Internal error",
                                     std::optional<int> timeout = std::nullopt);
-void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
-Path convert_to_qcow_if_necessary(const Path& image_path);
-void amend_to_qcow2_v3(const Path& image_path);
-bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
-QByteArray snapshot_list_output(const Path& image_path);
-void delete_snapshot_from_image(const Path& image_path, const QString& snapshot_tag);
+void resize_instance_image(const MemorySize& disk_space, const QString& image_path);
+QString convert_to_qcow_if_necessary(const QString& image_path);
+void amend_to_qcow2_v3(const QString& image_path);
+bool instance_image_has_snapshot(const QString& image_path, QString snapshot_tag);
+QByteArray snapshot_list_output(const QString& image_path);
+void delete_snapshot_from_image(const QString& image_path, const QString& snapshot_tag);
 } // namespace backend
 } // namespace multipass

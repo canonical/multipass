@@ -39,7 +39,7 @@ struct TestQemuVMProcessSpec : public Test
                                              {},
                                              "ssh_username",
                                              {"/path/to/image", "", "", "", "", {}}, // VMImage
-                                             mp::Path{"/path/to/cloud_init.iso"},
+                                             QString{"/path/to/cloud_init.iso"},
                                              {},
                                              {},
                                              {},

@@ -36,13 +36,13 @@ namespace
 constexpr auto category = "qemu factory";
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const QString& data_dir)
     : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir), data_dir}
 {
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
-                                                         const mp::Path& data_dir)
+                                                         const QString& data_dir)
     : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir,
                                                               qemu_platform->get_directory_name(),
                                                               instances_subdir)),

@@ -17,8 +17,8 @@
 
 #pragma once
 
+#include <QString>
 #include <multipass/cert_provider.h>
-#include <multipass/path.h>
 
 #include <string>
 
@@ -33,7 +33,7 @@ public:
         std::string pem_priv_key;
     };
 
-    explicit SSLCertProvider(const Path& data_dir, const std::string& server_name = "");
+    explicit SSLCertProvider(const QString& data_dir, const std::string& server_name = "");
     // leave server_name empty for clients; choose a (non-empty) name for servers.
 
     std::string PEM_certificate() const override;

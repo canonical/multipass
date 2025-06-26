@@ -20,7 +20,6 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/ip_address.h>
-#include <multipass/path.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QString>
