@@ -41,38 +41,40 @@ class Vms extends ConsumerWidget {
       ref.read(sidebarKeyProvider.notifier).set(CatalogueScreen.sidebarKey);
     }
 
-    final heading = Row(children: [
-      const Expanded(
-        child: Text(
-          'All Instances',
-          style: TextStyle(fontSize: 37, fontWeight: FontWeight.w300),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+    final heading = Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'All Instances',
+            style: TextStyle(fontSize: 37, fontWeight: FontWeight.w300),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-      ),
-      TextButton(
-        onPressed: goToCatalogue,
-        child: const Text('Launch'),
-      )
-    ]);
+        TextButton(onPressed: goToCatalogue, child: const Text('Launch')),
+      ],
+    );
 
     final searchName = ref.watch(searchNameProvider);
     final runningOnly = ref.watch(runningOnlyProvider);
-    final vmFilters = Row(children: [
-      Switch(
-        label: 'Show running instances only',
-        value: runningOnly,
-        onChanged: (v) => ref.read(runningOnlyProvider.notifier).state = v,
-      ),
-      const Spacer(),
-      const SearchBox(),
-      const SizedBox(width: 8),
-      const HeaderSelection(),
-    ]);
+    final vmFilters = Row(
+      children: [
+        Switch(
+          label: 'Show running instances only',
+          value: runningOnly,
+          onChanged: (v) => ref.read(runningOnlyProvider.notifier).state = v,
+        ),
+        const Spacer(),
+        const SearchBox(),
+        const SizedBox(width: 8),
+        const HeaderSelection(),
+      ],
+    );
 
     final enabledHeaderNames = ref.watch(enabledHeadersProvider).asMap();
-    final enabledHeaders =
-        headers.where((h) => enabledHeaderNames[h.name]!).toList();
+    final enabledHeaders = headers
+        .where((h) => enabledHeaderNames[h.name]!)
+        .toList();
 
     final infos = ref
         .watch(vmInfosProvider)
@@ -118,23 +120,25 @@ class Vms extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.all(20).copyWith(top: 52),
-      child: Column(children: [
-        heading,
-        const SizedBox(height: 35),
-        vmFilters,
-        const BulkActionsBar(),
-        const SizedBox(height: 10),
-        Flexible(
-          child: SizedBox(
-            height: (infos.length + 2) * 50,
-            child: Table<VmInfo>(
-              headers: enabledHeaders,
-              data: infos.toList(),
-              finalRow: totalUsageRow,
+      child: Column(
+        children: [
+          heading,
+          const SizedBox(height: 35),
+          vmFilters,
+          const BulkActionsBar(),
+          const SizedBox(height: 10),
+          Flexible(
+            child: SizedBox(
+              height: (infos.length + 2) * 50,
+              child: Table<VmInfo>(
+                headers: enabledHeaders,
+                data: infos.toList(),
+                finalRow: totalUsageRow,
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }

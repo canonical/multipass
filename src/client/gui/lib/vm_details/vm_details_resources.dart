@@ -42,9 +42,11 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
     final cpus = ref.watch(cpusProvider).whenOrNull(data: int.tryParse);
     final ram = ref.watch(ramProvider).whenOrNull(data: memoryInBytes);
     final disk = ref.watch(diskProvider).whenOrNull(data: memoryInBytes);
-    final stopped = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status == Status.STOPPED;
-    }));
+    final stopped = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.STOPPED;
+      }),
+    );
 
     if (!stopped) editing = false;
 
@@ -58,8 +60,12 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: cpus,
             onSaved: (value) {
               if (value == null || value == cpus) return;
-              ref.read(cpusProvider.notifier).set('$value').onError(
-                  ref.notifyError((error) => 'Failed to set CPUs : $error'));
+              ref
+                  .read(cpusProvider.notifier)
+                  .set('$value')
+                  .onError(
+                    ref.notifyError((error) => 'Failed to set CPUs : $error'),
+                  );
             },
           );
 
@@ -73,8 +79,12 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: ram,
             onSaved: (value) {
               if (value == null || value == ram) return;
-              ref.read(ramProvider.notifier).set('${value}B').onError(
-                  ref.notifyError((e) => 'Failed to set memory size: $e'));
+              ref
+                  .read(ramProvider.notifier)
+                  .set('${value}B')
+                  .onError(
+                    ref.notifyError((e) => 'Failed to set memory size: $e'),
+                  );
             },
           );
 
@@ -89,8 +99,12 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: disk,
             onSaved: (value) {
               if (value == null || value == disk) return;
-              ref.read(diskProvider.notifier).set('${value}B').onError(
-                  ref.notifyError((e) => 'Failed to set disk size: $e'));
+              ref
+                  .read(diskProvider.notifier)
+                  .set('${value}B')
+                  .onError(
+                    ref.notifyError((e) => 'Failed to set disk size: $e'),
+                  );
             },
           );
 
@@ -135,27 +149,29 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const SizedBox(
-              height: 50,
-              child: Text('Resources', style: TextStyle(fontSize: 24)),
-            ),
-            const Spacer(),
-            editing ? cancelButton : configureButton,
-          ]),
+          Row(
+            children: [
+              const SizedBox(
+                height: 50,
+                child: Text('Resources', style: TextStyle(fontSize: 24)),
+              ),
+              const Spacer(),
+              editing ? cancelButton : configureButton,
+            ],
+          ),
           const SizedBox(height: 10),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: cpusResource),
-            const SizedBox(width: 86),
-            Expanded(child: ramResource),
-            const SizedBox(width: 86),
-            Expanded(child: diskResource),
-          ]),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: cpusResource),
+              const SizedBox(width: 86),
+              Expanded(child: ramResource),
+              const SizedBox(width: 86),
+              Expanded(child: diskResource),
+            ],
+          ),
           if (editing)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: saveButton,
-            ),
+            Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
         ],
       ),
     );

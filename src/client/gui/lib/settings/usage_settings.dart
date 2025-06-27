@@ -22,70 +22,82 @@ class UsageSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryName = ref.watch(primaryNameProvider);
-    final hasPassphrase = ref.watch(passphraseProvider.select((value) {
-      return value.valueOrNull.isNotNullOrBlank;
-    }));
-    final privilegedMounts = ref.watch(privilegedMountsProvider.select((value) {
-      return value.valueOrNull?.toBoolOption.toNullable() ?? false;
-    }));
+    final hasPassphrase = ref.watch(
+      passphraseProvider.select((value) {
+        return value.valueOrNull.isNotNullOrBlank;
+      }),
+    );
+    final privilegedMounts = ref.watch(
+      privilegedMountsProvider.select((value) {
+        return value.valueOrNull?.toBoolOption.toNullable() ?? false;
+      }),
+    );
     final hotkey = ref.watch(hotkeyProvider);
-    final askTerminalClose = ref.watch(askTerminalCloseProvider.select((value) {
-      return value?.toBoolOption.toNullable() ?? true;
-    }));
+    final askTerminalClose = ref.watch(
+      askTerminalCloseProvider.select((value) {
+        return value?.toBoolOption.toNullable() ?? true;
+      }),
+    );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text(
-        'Usage',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 20),
-      PrimaryNameField(
-        value: primaryName,
-        onSave: (value) {
-          ref.read(primaryNameProvider.notifier).set(value);
-        },
-      ),
-      const SizedBox(height: 20),
-      HotkeyField(
-        value: hotkey,
-        onSave: (newHotkey) => ref.read(hotkeyProvider.notifier).set(newHotkey),
-      ),
-      const SizedBox(height: 20),
-      PassphraseField(
-        hasPassphrase: hasPassphrase,
-        onSave: (value) {
-          ref
-              .read(passphraseProvider.notifier)
-              .set(value)
-              .onError(ref.notifyError((e) => 'Failed to set passphrase: $e'));
-        },
-      ),
-      const SizedBox(height: 20),
-      Switch(
-        label: 'Allow privileged mounts',
-        value: privilegedMounts,
-        trailingSwitch: true,
-        size: 30,
-        onChanged: (value) {
-          ref
-              .read(privilegedMountsProvider.notifier)
-              .set(value.toString())
-              .onError(
-                ref.notifyError((e) => 'Failed to set privileged mounts: $e'),
-              );
-        },
-      ),
-      const SizedBox(height: 20),
-      Switch(
-        label: 'Ask before closing terminal',
-        value: askTerminalClose,
-        trailingSwitch: true,
-        size: 30,
-        onChanged: (value) {
-          ref.read(askTerminalCloseProvider.notifier).set(value.toString());
-        },
-      ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Usage',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        PrimaryNameField(
+          value: primaryName,
+          onSave: (value) {
+            ref.read(primaryNameProvider.notifier).set(value);
+          },
+        ),
+        const SizedBox(height: 20),
+        HotkeyField(
+          value: hotkey,
+          onSave: (newHotkey) =>
+              ref.read(hotkeyProvider.notifier).set(newHotkey),
+        ),
+        const SizedBox(height: 20),
+        PassphraseField(
+          hasPassphrase: hasPassphrase,
+          onSave: (value) {
+            ref
+                .read(passphraseProvider.notifier)
+                .set(value)
+                .onError(
+                  ref.notifyError((e) => 'Failed to set passphrase: $e'),
+                );
+          },
+        ),
+        const SizedBox(height: 20),
+        Switch(
+          label: 'Allow privileged mounts',
+          value: privilegedMounts,
+          trailingSwitch: true,
+          size: 30,
+          onChanged: (value) {
+            ref
+                .read(privilegedMountsProvider.notifier)
+                .set(value.toString())
+                .onError(
+                  ref.notifyError((e) => 'Failed to set privileged mounts: $e'),
+                );
+          },
+        ),
+        const SizedBox(height: 20),
+        Switch(
+          label: 'Ask before closing terminal',
+          value: askTerminalClose,
+          trailingSwitch: true,
+          size: 30,
+          onChanged: (value) {
+            ref.read(askTerminalCloseProvider.notifier).set(value.toString());
+          },
+        ),
+      ],
+    );
   }
 }
 
@@ -155,7 +167,7 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
           return null;
         },
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp('[-A-Za-z0-9]'))
+          FilteringTextInputFormatter.allow(RegExp('[-A-Za-z0-9]')),
         ],
       ),
     );
@@ -166,11 +178,7 @@ class HotkeyField extends StatefulWidget {
   final SingleActivator? value;
   final ValueChanged<SingleActivator?> onSave;
 
-  const HotkeyField({
-    super.key,
-    required this.value,
-    required this.onSave,
-  });
+  const HotkeyField({super.key, required this.value, required this.onSave});
 
   @override
   State<HotkeyField> createState() => _HotkeyFieldState();
@@ -250,7 +258,8 @@ class _PassphraseFieldState extends State<PassphraseField> {
   void hasChanged() {
     Timer(100.milliseconds, () {
       setState(() {
-        changed = (focus.hasFocus && widget.hasPassphrase) ||
+        changed =
+            (focus.hasFocus && widget.hasPassphrase) ||
             controller.text.isNotEmpty;
       });
     });
@@ -300,22 +309,25 @@ class SettingField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
-      const SizedBox(width: 12),
-      if (changed) ...[
-        OutlinedButton(
-          onPressed: onSave,
-          child: const Icon(Icons.check, color: Color(0xff0E8620)),
-        ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
         const SizedBox(width: 12),
-        OutlinedButton(
-          onPressed: onDiscard,
-          child: const Icon(Icons.close, color: Color(0xffC7162B)),
-        ),
-        const SizedBox(width: 12),
+        if (changed) ...[
+          OutlinedButton(
+            onPressed: onSave,
+            child: const Icon(Icons.check, color: Color(0xff0E8620)),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton(
+            onPressed: onDiscard,
+            child: const Icon(Icons.close, color: Color(0xffC7162B)),
+          ),
+          const SizedBox(width: 12),
+        ],
+        SizedBox(width: 260, child: child),
       ],
-      SizedBox(width: 260, child: child),
-    ]);
+    );
   }
 }

@@ -18,12 +18,7 @@ Future<void> setupLogger() async {
 
   logger = Logger(
     filter: NoFilter(),
-    printer: MpPrettyPrinter(
-      excludePaths: [
-        'dart:',
-        'package:flutter',
-      ],
-    ),
+    printer: MpPrettyPrinter(excludePaths: ['dart:', 'package:flutter']),
     output: MultiOutput([
       ConsoleOutput(),
       FileOutput(file: File('${logFilePath.path}/multipass_gui.log')),
@@ -38,11 +33,7 @@ Future<void> setupLogger() async {
     );
   };
   PlatformDispatcher.instance.onError = (error, stackTrace) {
-    logger.e(
-      'Dart error',
-      error: error,
-      stackTrace: stackTrace,
-    );
+    logger.e('Dart error', error: error, stackTrace: stackTrace);
     return true;
   };
 }
@@ -50,8 +41,9 @@ Future<void> setupLogger() async {
 class MpPrettyPrinter extends LogPrinter {
   static final _deviceStackTraceRegex = RegExp(r'#[0-9]+\s+(.+) \((\S+)\)');
   static final _webStackTraceRegex = RegExp(r'^((packages|dart-sdk)/\S+/)');
-  static final _browserStackTraceRegex =
-      RegExp(r'^(?:package:)?(dart:\S+|\S+)');
+  static final _browserStackTraceRegex = RegExp(
+    r'^(?:package:)?(dart:\S+|\S+)',
+  );
   final int stackTraceBeginIndex;
   final int? methodCount;
   final int? errorMethodCount;
@@ -99,8 +91,9 @@ class MpPrettyPrinter extends LogPrinter {
     }).toList();
 
     final formatted = <String>[];
-    final stackTraceLength =
-        methodCount != null ? min(lines.length, methodCount) : lines.length;
+    final stackTraceLength = methodCount != null
+        ? min(lines.length, methodCount)
+        : lines.length;
 
     for (var count = 0; count < stackTraceLength; count++) {
       final line = lines[count];
@@ -127,9 +120,9 @@ class MpPrettyPrinter extends LogPrinter {
     final match = _webStackTraceRegex.matchAsPrefix(line);
     if (match == null) return false;
     final segment = match.group(1)!;
-    if (segment.startsWith('packages/logger') ||
-        segment.startsWith('dart-sdk/lib')) return true;
-    return _isInExcludePaths(segment);
+    return segment.startsWith('packages/logger') ||
+        segment.startsWith('dart-sdk/lib') ||
+        _isInExcludePaths(segment);
   }
 
   bool _discardBrowserStacktraceLine(String line) {

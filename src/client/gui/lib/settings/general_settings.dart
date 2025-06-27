@@ -20,40 +20,44 @@ class GeneralSettings extends ConsumerWidget {
     final autostart = ref.watch(autostartProvider).valueOrNull ?? false;
     final onAppClose = ref.watch(onAppCloseProvider);
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text(
-        'General',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 20),
-      if (update.version.isNotBlank) ...[
-        UpdateAvailable(update),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'General',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 20),
+        if (update.version.isNotBlank) ...[
+          UpdateAvailable(update),
+          const SizedBox(height: 20),
+        ],
+        Switch(
+          label: 'Open the Multipass GUI on startup',
+          value: autostart,
+          trailingSwitch: true,
+          size: 30,
+          onChanged: (value) {
+            ref
+                .read(autostartProvider.notifier)
+                .set(value)
+                .onError(ref.notifyError((e) => 'Failed to set autostart: $e'));
+          },
+        ),
+        const SizedBox(height: 20),
+        Dropdown(
+          label: 'When closing Multipass',
+          width: 260,
+          value: onAppClose ?? 'ask',
+          onChanged: (value) =>
+              ref.read(onAppCloseProvider.notifier).set(value!),
+          items: const {
+            'ask': 'Ask about running instances',
+            'stop': 'Stop running instances',
+            'nothing': 'Do not stop running instances',
+          },
+        ),
       ],
-      Switch(
-        label: 'Open the Multipass GUI on startup',
-        value: autostart,
-        trailingSwitch: true,
-        size: 30,
-        onChanged: (value) {
-          ref
-              .read(autostartProvider.notifier)
-              .set(value)
-              .onError(ref.notifyError((e) => 'Failed to set autostart: $e'));
-        },
-      ),
-      const SizedBox(height: 20),
-      Dropdown(
-        label: 'When closing Multipass',
-        width: 260,
-        value: onAppClose ?? 'ask',
-        onChanged: (value) => ref.read(onAppCloseProvider.notifier).set(value!),
-        items: const {
-          'ask': 'Ask about running instances',
-          'stop': 'Stop running instances',
-          'nothing': 'Do not stop running instances',
-        },
-      ),
-    ]);
+    );
   }
 }

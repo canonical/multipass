@@ -35,20 +35,22 @@ class NotificationsNotifier extends AutoDisposeNotifier<BuiltList<Widget>> {
     required String Function(T) onSuccess,
     required String Function(Object?) onError,
   }) {
-    add(OperationNotification(
-      text: loading,
-      future: op.then(onSuccess).onError((error, _) {
-        if (error is GrpcError) error = error.message;
-        throw onError(error);
-      }),
-    ));
+    add(
+      OperationNotification(
+        text: loading,
+        future: op.then(onSuccess).onError((error, _) {
+          if (error is GrpcError) error = error.message;
+          throw onError(error);
+        }),
+      ),
+    );
   }
 }
 
 final notificationsProvider =
     NotifierProvider.autoDispose<NotificationsNotifier, BuiltList<Widget>>(
-  NotificationsNotifier.new,
-);
+      NotificationsNotifier.new,
+    );
 
 extension ErrorNotificationWidgetRefExtension on WidgetRef {
   void Function(Object?, StackTrace) notifyError(

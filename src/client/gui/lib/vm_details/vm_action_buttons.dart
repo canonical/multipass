@@ -88,9 +88,11 @@ class ActionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(vmInfoProvider(name).select((info) {
-      return action.allowedStatuses.contains(info.instanceStatus.status);
-    }));
+    final enabled = ref.watch(
+      vmInfoProvider(name).select((info) {
+        return action.allowedStatuses.contains(info.instanceStatus.status);
+      }),
+    );
 
     return ListTile(
       enabled: enabled,
