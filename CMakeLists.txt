@@ -59,7 +59,6 @@ if(NOT DEFINED VCPKG_BUILD_DEFAULT)
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 endif()
 
-set(VCPKG_DOWNLOADS "/bad/directory/for/vcpkg/downloads")
 message(STATUS "Bootstrapping vcpkg...")
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
