@@ -240,11 +240,11 @@ def multipassd(request, multipass, data_root):
             data_root, "data/vault/multipassd-instance-image-records.json"
         )
         subprocess.run(
-            ["sudo", "truncate", "-s", "0", instance_records_file], check=True
+            ["sudo", "truncate", "-s", "0", instance_records_file], check=False
         )
         subprocess.run(
             ["sudo", "rm", "-rf", os.path.join(data_root, "data/vault/instances")],
-            check=True,
+            check=False,
         )
 
     prologue = []
