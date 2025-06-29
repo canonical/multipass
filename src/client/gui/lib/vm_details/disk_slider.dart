@@ -18,7 +18,7 @@ class DiskSlider extends ConsumerWidget {
     int? min,
     this.initialValue,
     required this.onSaved,
-  }) : min = min ?? 1.gibi;
+  }) : min = min ?? 10.gibi;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

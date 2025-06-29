@@ -29,12 +29,12 @@ constexpr auto daemon_name = "multipassd";
 
 constexpr auto snapcraft_remote = "snapcraft";
 
-constexpr auto min_memory_size = "128M";
-constexpr auto min_disk_size = "512M";
+constexpr auto min_memory_size = "512M";
+constexpr auto min_disk_size = "10G";
 constexpr auto min_cpu_cores = "1";
 
-constexpr auto default_memory_size = "1G";
-constexpr auto default_disk_size = "5G";
+constexpr auto default_memory_size = min_memory_size;
+constexpr auto default_disk_size = min_disk_size;
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto default_timeout = std::chrono::seconds(300);
 constexpr auto image_resize_timeout =
