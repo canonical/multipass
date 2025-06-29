@@ -59,6 +59,25 @@ if(NOT DEFINED VCPKG_BUILD_DEFAULT)
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 endif()
 
+message(STATUS "Bootstrapping vcpkg...")
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+  set(VCPKG_BOOTSTRAP_EXTENSION "bat")
+else()
+  set(VCPKG_BOOTSTRAP_EXTENSION "sh")
+endif()
+
+execute_process(
+  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.${VCPKG_BOOTSTRAP_EXTENSION}"
+  RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT
+)
+
+if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
+  message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
+else()
+  message(STATUS "Bootstrapping vcpkg completed successfully.")
+endif()
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
