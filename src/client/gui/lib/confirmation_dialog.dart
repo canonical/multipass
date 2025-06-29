@@ -17,16 +17,18 @@ class ConfirmationDialog extends StatelessWidget {
     required this.onAction,
     required this.inactionText,
     required this.onInaction,
-    this.width = 350,
+    this.width = 520,
   });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: const Border(),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      titlePadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      titlePadding: const EdgeInsets.only(left: 16, right: 8, top: 8),
       buttonPadding: const EdgeInsets.symmetric(horizontal: 16),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16)
+          .copyWith(top: 4, bottom: 12),
       title: Row(children: [
         Expanded(child: Text(title)),
         IconButton(
@@ -43,7 +45,7 @@ class ConfirmationDialog extends StatelessWidget {
           SizedBox(
             width: width,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
               child: body,
             ),
           ),
@@ -51,16 +53,16 @@ class ConfirmationDialog extends StatelessWidget {
         ],
       ),
       actions: [
+        OutlinedButton(
+          onPressed: onInaction,
+          child: Text(inactionText),
+        ),
         TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(
             backgroundColor: const Color(0xffC7162B),
           ),
           child: Text(actionText),
-        ),
-        OutlinedButton(
-          onPressed: onInaction,
-          child: Text(inactionText),
         ),
       ],
     );
