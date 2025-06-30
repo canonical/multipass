@@ -229,8 +229,8 @@ auto name_from(const std::string& requested_name,
     }
 }
 
-std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
-                                                     const mp::Path& cache_path)
+std::unordered_map<std::string, mp::VMSpecs> load_db(const QString& data_path,
+                                                     const QString& cache_path)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -1044,7 +1044,7 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
 // than or equal than the size of the image.
 mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
                                         std::optional<mp::MemorySize> command_line_value,
-                                        mp::Path data_directory)
+                                        QString data_directory)
 {
     mp::MemorySize disk_space{};
 

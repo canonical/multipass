@@ -20,10 +20,11 @@
 #include "days.h"
 #include "disabled_copy_move.h"
 #include "fetch_type.h"
-#include "path.h"
 #include "virtual_machine.h"
 #include "vm_image.h"
 #include "vm_image_vault.h"
+
+#include <QString>
 
 namespace YAML
 {
@@ -70,12 +71,12 @@ public:
                                         const VirtualMachineDescription& desc) = 0;
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() const = 0;
-    virtual Path get_instance_directory(const std::string& name) const = 0;
+    virtual QString get_instance_directory(const std::string& name) const = 0;
     virtual QString get_backend_version_string() const = 0;
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                                   URLDownloader* downloader,
-                                                  const Path& cache_dir_path,
-                                                  const Path& data_dir_path,
+                                                  const QString& cache_dir_path,
+                                                  const QString& data_dir_path,
                                                   const days& days_to_expire) = 0;
     virtual void configure(VirtualMachineDescription& vm_desc) = 0;
 

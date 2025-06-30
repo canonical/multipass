@@ -21,7 +21,7 @@
 
 #include <shared/base_snapshot.h>
 
-#include <multipass/path.h>
+#include <QString>
 
 namespace multipass
 {
@@ -47,7 +47,7 @@ protected:
 
 private:
     VirtualMachineDescription& desc;
-    const Path& image_path;
+    const QString& image_path;
 };
 
 } // namespace multipass

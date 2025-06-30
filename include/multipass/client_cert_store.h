@@ -18,7 +18,6 @@
 #pragma once
 
 #include <multipass/cert_store.h>
-#include <multipass/path.h>
 
 #include <QDir>
 #include <QList>
@@ -29,7 +28,7 @@ namespace multipass
 class ClientCertStore : public CertStore
 {
 public:
-    explicit ClientCertStore(const multipass::Path& cert_dir);
+    explicit ClientCertStore(const QString& cert_dir);
     void add_cert(const std::string& pem_cert) override;
     std::string PEM_cert_chain() const override;
     bool verify_cert(const std::string& pem_cert) override;

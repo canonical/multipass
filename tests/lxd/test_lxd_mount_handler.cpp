@@ -26,7 +26,6 @@
 
 #include "src/platform/backends/lxd/lxd_mount_handler.h"
 
-#include <multipass/path.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_mount.h>

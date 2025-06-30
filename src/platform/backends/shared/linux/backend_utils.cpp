@@ -274,7 +274,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     return ret;
 }
 
-std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
+std::string mp::Backend::get_subnet(const QString& network_dir, const QString& bridge_name) const
 {
     auto subnet = virtual_switch_subnet(bridge_name);
     if (!subnet.empty())

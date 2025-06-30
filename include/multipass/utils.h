@@ -19,7 +19,6 @@
 
 #include <multipass/logging/level.h>
 #include <multipass/network_interface_info.h>
-#include <multipass/path.h>
 #include <multipass/singleton.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
@@ -66,8 +65,8 @@ enum class TimeoutAction
 // filesystem and path helpers
 QDir base_dir(const QString& path);
 bool is_dir(const std::string& path);
-QString backend_directory_path(const Path& path, const QString& subdirectory);
-std::string contents_of(const multipass::Path& file_path);
+QString backend_directory_path(const QString& path, const QString& subdirectory);
+std::string contents_of(const QString& file_path);
 bool invalid_target_path(const QString& target_path);
 
 // filesystem mount helpers
@@ -213,15 +212,17 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code) const;
-    virtual std::string contents_of(const multipass::Path& file_path) const;
+    virtual std::string contents_of(const QString& file_path) const;
     virtual void make_file_with_content(const std::string& file_name,
                                         const std::string& content,
                                         const bool& overwrite = false);
-    virtual Path make_dir(const QDir& a_dir,
-                          const QString& name,
-                          std::filesystem::perms permissions = std::filesystem::perms::none) const;
-    virtual Path make_dir(const QDir& dir,
-                          std::filesystem::perms permissions = std::filesystem::perms::none) const;
+    virtual QString make_dir(
+        const QDir& a_dir,
+        const QString& name,
+        std::filesystem::perms permissions = std::filesystem::perms::none) const;
+    virtual QString make_dir(
+        const QDir& dir,
+        std::filesystem::perms permissions = std::filesystem::perms::none) const;
 
     // command and process helpers
     virtual std::string run_cmd_for_output(const QString& cmd,
@@ -231,9 +232,9 @@ public:
                                     const QStringList& args,
                                     const int timeout = 30000) const;
 
-    virtual Path derive_instances_dir(const Path& data_dir,
-                                      const Path& backend_directory_name,
-                                      const Path& instances_subdir) const;
+    virtual QString derive_instances_dir(const QString& data_dir,
+                                         const QString& backend_directory_name,
+                                         const QString& instances_subdir) const;
 
     // system info helpers
     virtual std::string get_kernel_version() const;
@@ -253,7 +254,7 @@ public:
     virtual void sleep_for(const std::chrono::milliseconds& ms) const;
     virtual bool is_ipv4_valid(const std::string& ipv4) const;
 
-    virtual Path default_mount_target(const Path& source) const;
+    virtual QString default_mount_target(const QString& source) const;
 };
 } // namespace multipass
 

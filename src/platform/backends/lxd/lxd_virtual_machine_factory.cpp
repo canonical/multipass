@@ -82,7 +82,7 @@ mp::NetworkInterfaceInfo munch_network(
 } // namespace
 
 mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager,
-                                                       const mp::Path& data_dir,
+                                                       const QString& data_dir,
                                                        const QUrl& base_url)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
@@ -91,7 +91,7 @@ mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(NetworkAccessManager::UPt
 {
 }
 
-mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const mp::Path& data_dir,
+mp::LXDVirtualMachineFactory::LXDVirtualMachineFactory(const QString& data_dir,
                                                        const QUrl& base_url)
     : LXDVirtualMachineFactory(std::make_unique<NetworkAccessManager>(), data_dir, base_url)
 {
@@ -253,8 +253,8 @@ QString mp::LXDVirtualMachineFactory::get_backend_version_string() const
 mp::VMImageVault::UPtr mp::LXDVirtualMachineFactory::create_image_vault(
     std::vector<mp::VMImageHost*> image_hosts,
     mp::URLDownloader* downloader,
-    const mp::Path& cache_dir_path,
-    const mp::Path& data_dir_path,
+    const QString& cache_dir_path,
+    const QString& data_dir_path,
     const mp::days& days_to_expire)
 {
     return std::make_unique<mp::LXDVMImageVault>(image_hosts,
