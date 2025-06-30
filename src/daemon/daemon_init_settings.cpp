@@ -80,7 +80,7 @@ QString image_mirror_interpreter(QString val)
     if (!val.startsWith("https://"))
     {
         throw mp::InvalidSettingException(
-            mp::mirror_key,
+            mp::ubuntu_mirror_key,
             val,
             "The hostname of mirror must contain protocol name: https");
     }
@@ -120,7 +120,7 @@ void mp::daemon::register_global_settings_handlers()
         return val.isEmpty() ? val : MP_UTILS.generate_scrypt_hash_for(val);
     }));
     settings.insert(
-        std::make_unique<CustomSettingSpec>(mp::mirror_key, "", image_mirror_interpreter));
+        std::make_unique<CustomSettingSpec>(mp::ubuntu_mirror_key, "", image_mirror_interpreter));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(),

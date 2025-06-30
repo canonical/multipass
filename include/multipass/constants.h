@@ -62,7 +62,8 @@ constexpr auto passphrase_key = "local.passphrase";
 constexpr auto bridged_interface_key = "local.bridged-network";
 constexpr auto mounts_key = "local.privileged-mounts";
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
-constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
+constexpr auto ubuntu_mirror_key = "local.ubuntu.mirror"; // the mirror of simple streams
+constexpr auto debian_mirror_key = "local.debian.mirror"; // the mirror of Debian images
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 

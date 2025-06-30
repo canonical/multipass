@@ -51,7 +51,7 @@ struct UbuntuImageHost : public testing::Test
     {
         // TODO parameterize driver (code branches for lxd)
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu"));
-        EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(""));
+        EXPECT_CALL(mock_settings, get(Eq(mp::ubuntu_mirror_key))).WillRepeatedly(Return(""));
     }
 
     mp::Query make_query(std::string release, std::string remote)
@@ -77,7 +77,7 @@ struct UbuntuImageHost : public testing::Test
         "release",
         mp::UbuntuVMImageRemote{mock_image_host,
                                 "releases/",
-                                std::make_optional<QString>(mp::mirror_key)}};
+                                std::make_optional<QString>(mp::ubuntu_mirror_key)}};
     std::pair<std::string, mp::UbuntuVMImageRemote> daily_remote_spec = {
         "daily",
         mp::UbuntuVMImageRemote{mock_image_host, "daily/"}};
@@ -110,7 +110,7 @@ TEST_F(UbuntuImageHost, returnsExpectedInfo)
 
 TEST_F(UbuntuImageHost, returnsExpectedMirrorInfo)
 {
-    EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key)))
+    EXPECT_CALL(mock_settings, get(Eq(mp::ubuntu_mirror_key)))
         .WillRepeatedly(Return(test_valid_mirror_host));
 
     mp::UbuntuVMImageHost host{{release_remote_spec_with_mirror_allowed}, &url_downloader};
@@ -126,7 +126,7 @@ TEST_F(UbuntuImageHost, returnsExpectedMirrorInfo)
 
 TEST_F(UbuntuImageHost, returnsExpectedMirrorInfoWithMostRecentImage)
 {
-    EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key)))
+    EXPECT_CALL(mock_settings, get(Eq(mp::ubuntu_mirror_key)))
         .WillRepeatedly(Return(test_valid_outdated_mirror_host));
 
     mp::UbuntuVMImageHost host{{release_remote_spec_with_mirror_allowed}, &url_downloader};
@@ -143,7 +143,7 @@ TEST_F(UbuntuImageHost, returnsExpectedMirrorInfoWithMostRecentImage)
 
 TEST_F(UbuntuImageHost, throwIfMirrorIsInvalid)
 {
-    EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key)))
+    EXPECT_CALL(mock_settings, get(Eq(mp::ubuntu_mirror_key)))
         .WillRepeatedly(Return(test_invalid_mirror_host));
 
     mp::UbuntuVMImageHost host{{release_remote_spec_with_mirror_allowed}, &url_downloader};
