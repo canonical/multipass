@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include "common_image_host.h"
+#include <multipass/image_host/common_image_host.h>
+#include <multipass/vm_image_info.h>
 
 #include <QString>
 
