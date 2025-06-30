@@ -27,7 +27,7 @@
 namespace multipass
 {
 
-class CommonVMImageHost : public VMImageHost
+class BaseVMImageHost : public VMImageHost
 {
 public:
     void for_each_entry_do(const Action& action) final;
