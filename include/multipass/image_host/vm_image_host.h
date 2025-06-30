@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include "disabled_copy_move.h"
-#include "vm_image_info.h"
+#include <multipass/disabled_copy_move.h>
+#include <multipass/vm_image_info.h>
 
 #include <functional>
 #include <optional>
