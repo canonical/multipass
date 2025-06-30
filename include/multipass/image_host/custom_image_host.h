@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/image_host/common_image_host.h>
+#include <multipass/image_host/base_image_host.h>
 #include <multipass/vm_image_info.h>
 
 #include <QString>
@@ -40,7 +40,7 @@ struct CustomManifest
     CustomManifest(std::vector<VMImageInfo>&& images);
 };
 
-class CustomVMImageHost final : public CommonVMImageHost
+class CustomVMImageHost final : public BaseVMImageHost
 {
 public:
     CustomVMImageHost(const QString& arch, URLDownloader* downloader);
