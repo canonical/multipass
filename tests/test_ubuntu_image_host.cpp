@@ -23,11 +23,10 @@
 #include "path.h"
 #include "stub_url_downloader.h"
 
-#include <src/daemon/ubuntu_image_host.h>
-
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/query.h>
 
 #include <QUrl>

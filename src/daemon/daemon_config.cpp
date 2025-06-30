@@ -17,11 +17,10 @@
 
 #include "daemon_config.h"
 
-#include "custom_image_host.h"
-#include "ubuntu_image_host.h"
-
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
+#include <multipass/image_host/custom_image_host.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>

@@ -16,7 +16,7 @@
  */
 
 #include <multipass/format.h>
-#include <multipass/vm_image_host.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/vm_image_vault_utils.h>
 #include <multipass/xz_image_decoder.h>

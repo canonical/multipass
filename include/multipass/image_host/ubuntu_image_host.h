@@ -17,9 +17,8 @@
 
 #pragma once
 
-#include "common_image_host.h"
-
 #include <multipass/constants.h>
+#include <multipass/image_host/common_image_host.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <QString>

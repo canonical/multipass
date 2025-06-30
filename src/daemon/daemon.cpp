@@ -33,6 +33,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -52,7 +53,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
 

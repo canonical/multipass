@@ -45,13 +45,12 @@
 #include <src/daemon/instance_settings_handler.h>
 
 #include <multipass/constants.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/signal.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
-#include <multipass/vm_image_info.h>
 
 #include <yaml-cpp/yaml.h>
 

@@ -22,10 +22,9 @@
 #include "mock_url_downloader.h"
 #include "path.h"
 
-#include <src/daemon/custom_image_host.h>
-
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
+#include <multipass/image_host/custom_image_host.h>
 #include <multipass/query.h>
 
 #include <QUrl>
