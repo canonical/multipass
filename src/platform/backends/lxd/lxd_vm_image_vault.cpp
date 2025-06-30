@@ -22,6 +22,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/format.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_access_manager.h>
 #include <multipass/platform.h>
@@ -29,7 +30,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 
 #include <shared/linux/process_factory.h>
 #include <shared/qemu_img_utils/qemu_img_utils.h>

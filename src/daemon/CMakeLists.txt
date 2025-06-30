@@ -16,8 +16,6 @@ set(CMAKE_AUTOMOC ON)
 
 add_library(daemon STATIC
   cli.cpp
-  common_image_host.cpp
-  custom_image_host.cpp
   daemon.cpp
   daemon_config.cpp
   daemon_init_settings.cpp
@@ -25,8 +23,7 @@ add_library(daemon STATIC
   default_vm_image_vault.cpp
   instance_settings_handler.cpp
   runtime_instance_info_helper.cpp
-  snapshot_settings_handler.cpp
-  ubuntu_image_host.cpp)
+  snapshot_settings_handler.cpp)
 
 include_directories(daemon
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
@@ -35,6 +32,7 @@ target_link_libraries(daemon
   cert
   delayed_shutdown
   fmt::fmt-header-only
+  image_host
   logger
   petname
   platform

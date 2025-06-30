@@ -47,12 +47,12 @@
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/signal.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
 
 #include <yaml-cpp/yaml.h>
 

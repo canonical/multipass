@@ -20,8 +20,8 @@
 #include "common.h"
 #include "temp_file.h"
 
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
-#include <multipass/vm_image_host.h>
 
 using namespace testing;
 

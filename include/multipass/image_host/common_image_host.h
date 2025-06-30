@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "multipass/vm_image_host.h"
+#include <multipass/image_host/vm_image_host.h>
 
 #include <QStringList>
 #include <QTimer>

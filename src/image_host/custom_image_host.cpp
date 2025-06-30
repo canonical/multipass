@@ -15,10 +15,9 @@
  *
  */
 
-#include "custom_image_host.h"
-
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
+#include <multipass/image_host/custom_image_host.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>

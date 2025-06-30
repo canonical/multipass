@@ -16,8 +16,8 @@
  */
 #pragma once
 
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 
 namespace multipass
 {

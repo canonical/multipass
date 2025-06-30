@@ -15,11 +15,9 @@
  *
  */
 
-#include "common_image_host.h"
-
-#include <multipass/logging/log.h>
-
 #include <multipass/format.h>
+#include <multipass/image_host/common_image_host.h>
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 
 namespace mp = multipass;
