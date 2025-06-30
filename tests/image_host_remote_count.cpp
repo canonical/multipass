@@ -17,7 +17,7 @@
 
 #include "image_host_remote_count.h"
 
-#include <multipass/vm_image_host.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/vm_image_info.h>
 
 #include <set>

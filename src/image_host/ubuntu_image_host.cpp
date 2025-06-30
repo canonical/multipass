@@ -15,12 +15,11 @@
  *
  */
 
-#include "ubuntu_image_host.h"
-
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
