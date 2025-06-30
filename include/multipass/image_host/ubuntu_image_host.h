@@ -18,7 +18,7 @@
 #pragma once
 
 #include <multipass/constants.h>
-#include <multipass/image_host/common_image_host.h>
+#include <multipass/image_host/base_image_host.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <QString>
@@ -34,7 +34,7 @@ constexpr auto daily_remote = "daily";
 
 class URLDownloader;
 class UbuntuVMImageRemote;
-class UbuntuVMImageHost final : public CommonVMImageHost
+class UbuntuVMImageHost final : public BaseVMImageHost
 {
 public:
     UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,

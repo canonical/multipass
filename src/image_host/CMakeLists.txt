@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(image_host STATIC
-  common_image_host.cpp
+  base_image_host.cpp
   custom_image_host.cpp
   ubuntu_image_host.cpp)
 
