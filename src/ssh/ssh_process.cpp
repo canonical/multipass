@@ -25,6 +25,8 @@
 #include <libssh/callbacks.h>
 
 #include <array>
+#define __FILENAME__ (__builtin_strrchr(__FILE__, '/') ? __builtin_strrchr(__FILE__, '/') + 1 : __FILE__)
+
 #include <cerrno>
 #include <cstring>
 #include <sstream>
@@ -177,7 +179,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     mpl::log(mpl::Level::trace,
              category,
              fmt::format("{}:{} {}(type = {}, timeout = {}): ",
-                         __FILE__,
+                         __FILENAME__,
                          __LINE__,
                          __FUNCTION__,
                          static_cast<int>(type),
@@ -187,7 +189,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     {
         mpl::log(mpl::Level::trace,
                  category,
-                 fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
+                 fmt::format("{}:{} {}(): channel closed", __FILENAME__, __LINE__, __FUNCTION__));
         return std::string();
     }
 
@@ -205,7 +207,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
         mpl::log(
             mpl::Level::trace,
             category,
-            fmt::format("{}:{} {}(): num_bytes = {}", __FILE__, __LINE__, __FUNCTION__, num_bytes));
+            fmt::format("{}:{} {}(): num_bytes = {}", __FILENAME__, __LINE__, __FUNCTION__, num_bytes));
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
@@ -215,7 +217,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                 mpl::log(
                     mpl::Level::trace,
                     category,
-                    fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
+                    fmt::format("{}:{} {}(): channel closed", __FILENAME__, __LINE__, __FUNCTION__));
                 return output.str();
             }
 
