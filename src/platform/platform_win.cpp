@@ -460,7 +460,7 @@ DWORD set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_
 
 DWORD convert_permissions(int unix_perms)
 {
-    if (unix_perms & 07)
+    if (unix_perms == 07)
         return GENERIC_ALL;
 
     DWORD access_mask = 0;

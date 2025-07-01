@@ -388,6 +388,11 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
         client_cert_key.write(priv_key_path);
         client_cert.write(cert_path);
 
+        MP_PLATFORM.set_permissions(priv_key_path.toStdU16String(),
+                                    std::filesystem::perms::owner_all |
+                                        std::filesystem::perms::group_read |
+                                        std::filesystem::perms::others_read);
+
         return {client_cert.as_pem(), client_cert_key.as_pem()};
     }
 }
