@@ -3,7 +3,8 @@
 
 > See also: [`authenticate`](/reference/command-line-interface/authenticate), [local.passphrase](/reference/settings/local-passphrase), [Service](/explanation/service)
 
-Multipass requires clients to be authenticated with the service before allowing commands to complete.
+Multipass requires clients to be authenticated with the service before allowing commands to
+complete. The installing user is automatically authenticated.
 
 ## Setting the passphrase
 
@@ -67,7 +68,10 @@ Here you can find solutions and workarounds for common issues that may arise.
 
 ### The client cannot be authorised and the passphrase cannot be set
 
-It is possible that another client that is privileged to connect to the Multipass socket will connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize` the client with the service.
+It is possible that another client that is privileged to connect to the Multipass socket will
+connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize`
+the client with the service. This usually occurs when Multipass is installed as root/admin but
+the client is run as another user, or vice versa.
 
 If this is the case, you will see something like the following when you run:
 
