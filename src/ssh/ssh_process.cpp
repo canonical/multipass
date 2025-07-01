@@ -14,7 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+#include <source_location>
+#include <string_view>             
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
@@ -25,18 +26,33 @@
 #include <libssh/callbacks.h>
 
 #include <array>
-#define __FILENAME__ (__builtin_strrchr(__FILE__, '/') ? __builtin_strrchr(__FILE__, '/') + 1 : __FILE__)
-
 #include <cerrno>
 #include <cstring>
 #include <sstream>
 
+
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+constexpr auto category = "ssh process";
+
+void log_trace(const std::string_view message,
+               const std::source_location location = std::source_location::current())
+{
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("{}:{} {}(): {}",
+                         location.file_name(),
+                         location.line(),
+                         location.function_name(),
+                         message));
+}
+
 namespace
 {
-constexpr auto category = "ssh process";
+
+
 
 template <typename T>
 class ExitStatusCallback
@@ -176,20 +192,12 @@ std::string mp::SSHProcess::read_std_error()
 
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 {
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("{}:{} {}(type = {}, timeout = {}): ",
-                         __FILENAME__,
-                         __LINE__,
-                         __FUNCTION__,
-                         static_cast<int>(type),
-                         timeout));
+    log_trace(fmt::format("type = {}, timeout = {}", static_cast<int>(type), timeout));
+
     // If the channel is closed there's no output to read
     if (ssh_channel_is_closed(channel.get()))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}:{} {}(): channel closed", __FILENAME__, __LINE__, __FUNCTION__));
+        log_trace("channel closed");
         return std::string();
     }
 
@@ -204,20 +212,16 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                                              buffer.size(),
                                              is_std_err,
                                              timeout);
-        mpl::log(
-            mpl::Level::trace,
-            category,
-            fmt::format("{}:{} {}(): num_bytes = {}", __FILENAME__, __LINE__, __FUNCTION__, num_bytes));
+       
+            log_trace(fmt::format("num_bytes = {}", num_bytes));
+
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
             if (ssh_channel_is_closed(channel.get()))
             {
-                mpl::log(
-                    mpl::Level::trace,
-                    category,
-                    fmt::format("{}:{} {}(): channel closed", __FILENAME__, __LINE__, __FUNCTION__));
+                log_trace("channel closed");
                 return output.str();
             }
 
