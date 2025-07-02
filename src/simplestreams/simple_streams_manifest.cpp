@@ -179,8 +179,11 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
             }
             else
             {
-                const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
+                const auto image_key = "disk1.img";
                 image = items[image_key].toObject();
+                if (image.isEmpty())
+                    continue;
+
                 image_location = image["path"].toString();
                 sha256 = image["sha256"].toString();
                 size = image["size"].toInt(-1);
