@@ -440,6 +440,21 @@ void mp::HyperVVirtualMachine::ensure_vm_is_running()
 
 void mp::HyperVVirtualMachine::update_state()
 {
+    // Invalidate the management IP address on state update.
+    {
+        // The reason "why" is as follows:
+        // - The daemon starts and constructs the VM
+        // - The mgmt IP address gets cached on the first invocation of management_ipv4()
+        // - `multipass restart` initiates a guest reboot with "sudo reboot"
+        // -  It's an "out-of-band" reboot in perspective of Hyper-V backend since
+        //    it does not trigger the "on_restart" function afterwards.
+        // - The cached "vm->ip address is not reset
+        // - management_ipv4() continues to report the stale IP address from the previous boot
+        mpl::log(mpl::Level::debug,
+                 vm_name,
+                 "Invalidating cached mgmt IP address upon state update");
+        ip = std::nullopt;
+    }
     monitor->persist_state_for(vm_name, state);
 }
 
