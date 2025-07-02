@@ -304,6 +304,7 @@ class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
 const onAppCloseKey = 'onAppClose';
 const hotkeyKey = 'hotkey';
 const askTerminalCloseKey = 'askTerminalClose';
+const terminalFontSizeKey = 'terminalFontSize';
 // this provider is set with a value obtained asynchronously in main.dart
 final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(() {

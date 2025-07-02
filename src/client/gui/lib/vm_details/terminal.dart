@@ -186,8 +186,12 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final contextMenuController = ContextMenuController();
   final terminalController = TerminalController();
   final focusNode = FocusNode();
-  var fontSize = defaultFontSize;
   late final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
+
+  double get fontSize {
+    final stored = ref.watch(guiSettingProvider(terminalFontSizeKey));
+    return double.tryParse(stored ?? '') ?? defaultFontSize;
+  }
 
   @override
   void initState() {
@@ -374,17 +378,30 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     final terminalActions = {
       IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
-        onInvoke: (_) => setState(() {
-          fontSize = min(fontSize + fontSizeStep, maxFontSize);
-        }),
+        onInvoke: (_) {
+          final newSize = min(fontSize + fontSizeStep, maxFontSize);
+          ref
+              .read(guiSettingProvider(terminalFontSizeKey).notifier)
+              .set(newSize.toString());
+          setState(() {});
+        },
       ),
       DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
-        onInvoke: (_) => setState(() {
-          fontSize = max(fontSize - fontSizeStep, minFontSize);
-        }),
+        onInvoke: (_) {
+          final newSize = max(fontSize - fontSizeStep, minFontSize);
+          ref
+              .read(guiSettingProvider(terminalFontSizeKey).notifier)
+              .set(newSize.toString());
+          setState(() {});
+        },
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
-        onInvoke: (_) => setState(() => fontSize = defaultFontSize),
+        onInvoke: (_) {
+          ref
+              .read(guiSettingProvider(terminalFontSizeKey).notifier)
+              .set(defaultFontSize.toString());
+          setState(() {});
+        },
       ),
       PasteTextIntent: CallbackAction<PasteTextIntent>(
         onInvoke: (_) async {
