@@ -106,15 +106,6 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
     return mp::VirtualMachine::State::unknown;
 }
 
-void delete_automatic_snapshots(mp::PowerShell* power_shell, const QString& name)
-{
-    power_shell->easy_run(
-        {"Get-VMCheckpoint -VMName",
-         name,
-         "| Where-Object { $_.IsAutomaticCheckpoint } | Remove-VMCheckpoint -Confirm:$false"},
-        "Could not delete existing automatic checkpoints");
-}
-
 void add_extra_net(mp::PowerShell& ps,
                    const QString& vm_name,
                    const mp::NetworkInterface& extra_interface)
@@ -193,6 +184,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
             "Could not setup cloud-init drive");
         power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
                               "Could not disable dynamic memory");
+        power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},
+                              "Could not disable automatic snapshots");
 
         setup_network_interfaces();
 
@@ -202,12 +195,6 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     {
         state = instance_state_for(power_shell.get(), name);
     }
-
-    power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},
-                          "Could not disable automatic snapshots"); // TODO move to new VMs only in
-                                                                    // a couple of releases
-    delete_automatic_snapshots(power_shell.get(),
-                               name); // TODO drop in a couple of releases (going in on v1.13)
 }
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name,
