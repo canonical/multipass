@@ -17,7 +17,16 @@ export 'grpc_client.dart';
 
 late final ProviderContainer providerContainer;
 
-final grpcClientProvider = Provider((_) {
+final ffiAvailableProvider = Provider((ref) {
+  return isFFIAvailable;
+});
+
+final grpcClientProvider = Provider((ref) {
+  // Check if FFI is available first
+  if (!ref.watch(ffiAvailableProvider)) {
+    throw ffiLoadError ?? Exception('FFI library not available');
+  }
+
   final address = getServerAddress();
   final certPair = getCertPair();
 
@@ -61,6 +70,11 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
 });
 
 final daemonAvailableProvider = Provider((ref) {
+  // Check FFI availability first
+  if (!ref.watch(ffiAvailableProvider)) {
+    return false;
+  }
+
   final error = ref.watch(vmInfosStreamProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
