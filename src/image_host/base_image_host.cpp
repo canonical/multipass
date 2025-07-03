@@ -28,6 +28,10 @@ namespace
 constexpr auto category = "VMImageHost";
 }
 
+mp::BaseVMImageHost::BaseVMImageHost(URLDownloader* downloader) : url_downloader(downloader)
+{
+}
+
 void mp::BaseVMImageHost::for_each_entry_do(const Action& action)
 {
     for_each_entry_do_impl(action);
