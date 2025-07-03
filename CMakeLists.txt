@@ -283,7 +283,7 @@ determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
@@ -292,7 +292,7 @@ if(MSVC)
   add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
-  add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
+  add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # TODO@no-merge try to drop this
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   set(MULTIPASS_BACKENDS hyperv virtualbox)
   set(MULTIPASS_PLATFORM windows)
