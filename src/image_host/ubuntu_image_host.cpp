@@ -81,7 +81,7 @@ auto key_from(const std::string& search_string)
 mp::UbuntuVMImageHost::UbuntuVMImageHost(
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
     URLDownloader* downloader)
-    : url_downloader{downloader}, remotes{std::move(remotes)}
+    : BaseVMImageHost{downloader}, remotes{std::move(remotes)}
 {
 }
 
