@@ -400,7 +400,6 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
-    ip = std::nullopt;
     update_state();
 }
 
@@ -466,7 +465,7 @@ void mp::HyperVVirtualMachine::update_state()
         mpl::log(mpl::Level::debug,
                  vm_name,
                  "Invalidating cached mgmt IP address upon state update");
-        ip = std::nullopt;
+        management_ip = std::nullopt;
     }
     monitor->persist_state_for(vm_name, state);
 }
@@ -483,7 +482,7 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::string mp::HyperVVirtualMachine::management_ipv4()
 {
-    if (!ip)
+    if (!management_ip)
     {
         // Not using cached SSH session for this because a) the underlying functions do not
         // guarantee constness; b) we endure the penalty of creating a new session only when we
@@ -491,9 +490,9 @@ std::string mp::HyperVVirtualMachine::management_ipv4()
         auto result =
             remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
         if (result)
-            ip.emplace(result.value());
+            management_ip.emplace(result.value());
     }
-    return ip ? ip.value().as_string() : "UNKNOWN";
+    return management_ip ? management_ip.value().as_string() : "UNKNOWN";
 }
 
 std::string mp::HyperVVirtualMachine::ipv6()
