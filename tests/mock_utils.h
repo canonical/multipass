@@ -40,17 +40,17 @@ public:
                 run_cmd_for_status,
                 (const QString&, const QStringList&, const int),
                 (const, override));
-    MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));
+    MOCK_METHOD(std::string, contents_of, (const QString&), (const, override));
     MOCK_METHOD(void, make_file_with_content, (const std::string&, const std::string&), ());
     MOCK_METHOD(void,
                 make_file_with_content,
                 (const std::string&, const std::string&, const bool&),
                 (override));
-    MOCK_METHOD(Path,
+    MOCK_METHOD(QString,
                 make_dir,
                 (const QDir&, const QString&, std::filesystem::perms),
                 (const override));
-    MOCK_METHOD(Path, make_dir, (const QDir&, std::filesystem::perms), (const override));
+    MOCK_METHOD(QString, make_dir, (const QDir&, std::filesystem::perms), (const override));
     MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
     MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
     MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));
@@ -63,7 +63,7 @@ public:
     MOCK_METHOD(QString, make_uuid, (const std::optional<std::string>&), (const, override));
     MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
     MOCK_METHOD(bool, is_ipv4_valid, (const std::string& ipv4), (const, override));
-    MOCK_METHOD(Path, default_mount_target, (const Path& source), (const, override));
+    MOCK_METHOD(QString, default_mount_target, (const QString& source), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };

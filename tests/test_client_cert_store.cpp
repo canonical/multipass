@@ -66,7 +66,7 @@ struct ClientCertStore : public testing::Test
                                      std::filesystem::perms::owner_all);
     }
     mpt::TempDir temp_dir;
-    mp::Path cert_dir;
+    QString cert_dir;
 };
 } // namespace
 

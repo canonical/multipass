@@ -314,7 +314,7 @@ mp::LibVirtVirtualMachine::LibVirtVirtualMachine(const VirtualMachineDescription
                                                  VMStatusMonitor& monitor,
                                                  const LibvirtWrapper::UPtr& libvirt_wrapper,
                                                  const SSHKeyProvider& key_provider,
-                                                 const Path& instance_dir)
+                                                 const QString& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       username{desc.ssh_username},
       desc{desc},

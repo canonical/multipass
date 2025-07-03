@@ -103,7 +103,7 @@ void set_ip_forward()
     }
 }
 
-mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir,
+mp::DNSMasqServer::UPtr init_nat_network(const QString& network_dir,
                                          const QString& bridge_name,
                                          const std::string& subnet)
 {
@@ -122,7 +122,7 @@ void delete_virtual_switch(const QString& bridge_name)
 }
 } // namespace
 
-mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
+mp::QemuPlatformDetail::QemuPlatformDetail(const QString& data_dir)
     : bridge_name{multipass_bridge_name},
       network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
       subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
@@ -222,7 +222,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     return opts;
 }
 
-mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
+mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const QString& data_dir) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir);
 }

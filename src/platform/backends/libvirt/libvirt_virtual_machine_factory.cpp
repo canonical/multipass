@@ -34,7 +34,7 @@ namespace
 constexpr auto multipass_bridge_name = "mpvirtbr0";
 constexpr auto logging_category = "libvirt factory";
 
-auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
+auto generate_libvirt_bridge_xml_config(const QString& data_dir, const std::string& bridge_name)
 {
     auto network_dir = MP_UTILS.make_dir(QDir(data_dir), "network");
     auto subnet = MP_BACKEND.get_subnet(network_dir, QString::fromStdString(bridge_name));
@@ -56,7 +56,7 @@ auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::str
                        subnet);
 }
 
-std::string enable_libvirt_network(const mp::Path& data_dir,
+std::string enable_libvirt_network(const QString& data_dir,
                                    const mp::LibvirtWrapper::UPtr& libvirt_wrapper)
 {
     mp::LibVirtVirtualMachine::ConnectionUPtr connection{nullptr, nullptr};
@@ -113,7 +113,7 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 } // namespace
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(
-    const mp::Path& data_dir,
+    const QString& data_dir,
     const std::string& libvirt_object_path)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
@@ -124,7 +124,7 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(
 {
 }
 
-mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
+mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const QString& data_dir)
     : LibVirtVirtualMachineFactory(data_dir, "libvirt.so.0")
 {
 }

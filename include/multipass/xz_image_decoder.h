@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/path.h>
+#include <QString>
 #include <multipass/progress_monitor.h>
 
 #include <memory>
@@ -33,8 +33,8 @@ class XzImageDecoder
 public:
     XzImageDecoder();
 
-    void decode_to(const Path& xz_file_path,
-                   const Path& decoded_file_path,
+    void decode_to(const QString& xz_file_path,
+                   const QString& decoded_file_path,
                    const ProgressMonitor& monitor) const;
 
     using XzDecoderUPtr = std::unique_ptr<xz_dec, decltype(xz_dec_end)*>;

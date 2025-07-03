@@ -46,8 +46,8 @@ class DefaultVMImageVault final : public BaseVMImageVault
 public:
     DefaultVMImageVault(std::vector<VMImageHost*> image_host,
                         URLDownloader* downloader,
-                        const multipass::Path& cache_dir_path,
-                        const multipass::Path& data_dir_path,
+                        const QString& cache_dir_path,
+                        const QString& data_dir_path,
                         const multipass::days& days_to_expire);
     ~DefaultVMImageVault();
 
@@ -56,7 +56,7 @@ public:
                         const PrepareAction& prepare,
                         const ProgressMonitor& monitor,
                         const std::optional<std::string>& checksum,
-                        const Path& save_dir) override;
+                        const QString& save_dir) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;
@@ -68,7 +68,7 @@ public:
                const std::string& destination_instance_name) override;
 
 private:
-    VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);
+    VMImage image_instance_from(const VMImage& prepared_image, const QString& dest_dir);
     VMImage download_and_prepare_source_image(const VMImageInfo& info,
                                               std::optional<VMImage>& existing_source_image,
                                               const QDir& image_dir,
@@ -77,12 +77,12 @@ private:
                                               const ProgressMonitor& monitor);
     QString extract_image_from(const VMImage& source_image,
                                const ProgressMonitor& monitor,
-                               const Path& dest_dir);
+                               const QString& dest_dir);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query,
                                    const VMImage& prepared_image,
                                    const std::string& id,
-                                   const Path& dest_dir);
+                                   const QString& dest_dir);
     void persist_image_records();
     void persist_instance_records();
 

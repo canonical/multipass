@@ -18,13 +18,13 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "path.h"
 #include "progress_monitor.h"
 #include "singleton.h"
 
 #include <QByteArray>
 #include <QDateTime>
 #include <QNetworkAccessManager>
+#include <QString>
 
 #include <atomic>
 #include <chrono>
@@ -41,14 +41,14 @@ public:
     NetworkManagerFactory(const Singleton<NetworkManagerFactory>::PrivatePass&) noexcept;
 
     virtual std::unique_ptr<QNetworkAccessManager> make_network_manager(
-        const Path& cache_dir_path) const;
+        const QString& cache_dir_path) const;
 };
 
 class URLDownloader : private DisabledCopyMove
 {
 public:
     URLDownloader(std::chrono::milliseconds timeout);
-    URLDownloader(const Path& cache_dir, std::chrono::milliseconds timeout);
+    URLDownloader(const QString& cache_dir, std::chrono::milliseconds timeout);
     virtual ~URLDownloader() = default;
 
     // Note: All http urls are converted to https
@@ -66,7 +66,7 @@ protected:
     std::atomic_bool abort_downloads{false};
 
 private:
-    const Path cache_dir_path;
+    const QString cache_dir_path;
     std::chrono::milliseconds timeout;
 };
 } // namespace multipass

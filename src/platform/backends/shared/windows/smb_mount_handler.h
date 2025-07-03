@@ -18,7 +18,6 @@
 #pragma once
 
 #include <multipass/mount_handler.h>
-#include <multipass/path.h>
 
 #include <vector>
 
@@ -40,7 +39,7 @@ public:
                     const SSHKeyProvider* ssh_key_provider,
                     const std::string& target,
                     VMMount mount_spec,
-                    const multipass::Path& cred_dir,
+                    const QString& cred_dir,
                     const SmbManager& smb_manager);
     ~SmbMountHandler() override;
 

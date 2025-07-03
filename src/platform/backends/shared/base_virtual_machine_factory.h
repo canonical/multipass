@@ -33,7 +33,7 @@ constexpr auto log_category = "base factory";
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    explicit BaseVirtualMachineFactory(const Path& instances_dir);
+    explicit BaseVirtualMachineFactory(const QString& instances_dir);
     VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                        const VMSpecs& dest_spec,
                                        const std::string& src_name,
@@ -54,7 +54,7 @@ public:
         return {};
     };
 
-    Path get_instance_directory(const std::string& name) const override
+    QString get_instance_directory(const std::string& name) const override
     {
         return utils::backend_directory_path(instances_dir, QString::fromStdString(name));
     }
@@ -63,8 +63,8 @@ public:
 
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                           URLDownloader* downloader,
-                                          const Path& cache_dir_path,
-                                          const Path& data_dir_path,
+                                          const QString& cache_dir_path,
+                                          const QString& data_dir_path,
                                           const days& days_to_expire) override
     {
         return std::make_unique<DefaultVMImageVault>(image_hosts,
@@ -86,7 +86,7 @@ public:
     void require_clone_support() const override;
 
 protected:
-    static const Path instances_subdir;
+    static const QString instances_subdir;
 
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override
@@ -108,7 +108,7 @@ private:
     static void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
                                                        const fs::path& dest_instance_dir_path);
 
-    Path instances_dir;
+    QString instances_dir;
 };
 
 } // namespace multipass

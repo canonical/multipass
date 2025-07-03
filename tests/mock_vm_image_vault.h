@@ -48,7 +48,7 @@ public:
                  const PrepareAction&,
                  const ProgressMonitor&,
                  const std::optional<std::string>&,
-                 const mp::Path&),
+                 const QString&),
                 (override));
     MOCK_METHOD(void, remove, (const std::string&), (override));
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
