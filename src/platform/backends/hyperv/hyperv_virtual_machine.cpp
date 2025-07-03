@@ -440,6 +440,7 @@ void mp::HyperVVirtualMachine::ensure_vm_is_running()
 void mp::HyperVVirtualMachine::update_state()
 {
     // Invalidate the management IP address on state update.
+    if (current_state() == VirtualMachine::State::running)
     {
         // The reason "why" is as follows:
         // - The daemon starts and constructs the VM
