@@ -170,7 +170,7 @@ mp::CustomManifest::CustomManifest(std::vector<VMImageInfo>&& images)
 }
 
 mp::CustomVMImageHost::CustomVMImageHost(const QString& arch, URLDownloader* downloader)
-    : arch{arch}, url_downloader{downloader}, custom_image_info{}, remotes{no_remote}
+    : BaseVMImageHost{downloader}, arch{arch}, custom_image_info{}, remotes{no_remote}
 {
 }
 
