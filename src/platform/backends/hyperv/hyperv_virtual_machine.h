@@ -95,7 +95,6 @@ private:
 
     VirtualMachineDescription desc; // TODO we should probably keep this in the base class instead
     const QString name;
-    std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
