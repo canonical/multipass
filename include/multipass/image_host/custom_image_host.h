@@ -59,7 +59,6 @@ private:
     CustomManifest* manifest_from(const std::string& remote_name);
 
     const QString arch;
-    URLDownloader* const url_downloader;
     std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
     std::vector<std::string> remotes;
 };

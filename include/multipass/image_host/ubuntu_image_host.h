@@ -57,7 +57,6 @@ private:
     std::string remote_url_from(const std::string& remote_name);
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
-    URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
     QString index_path;
 };
