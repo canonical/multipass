@@ -89,14 +89,18 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
         }
         default:
         {
-            // Special handling for strings that look like octal numbers (e.g. "0755")
+            // Special handling for strings that need quoting
             if (n.IsScalar())
             {
                 std::string value = n.Scalar();
-                if (value.length() >= 2 && value[0] == '0' &&
-                    std::all_of(value.begin() + 1, value.end(), ::isdigit))
+                // Force quoting for:
+                // 1. Octal-like strings (0755, 0644, etc.) - prevents cloud-init schema errors
+                // 2. Strings containing colons - replaces need for custom yaml-cpp patch
+                if ((value.length() >= 2 && value[0] == '0' &&
+                     std::all_of(value.begin() + 1, value.end(), ::isdigit)) ||
+                    value.find(':') != std::string::npos)
                 {
-                    emitter << YAML::LocalTag("str") << value;
+                    emitter << YAML::DoubleQuoted << value;
                 }
                 else
                 {
