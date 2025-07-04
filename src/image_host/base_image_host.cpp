@@ -42,10 +42,10 @@ auto mp::BaseVMImageHost::info_for_full_hash(const std::string& full_hash) -> VM
     return info_for_full_hash_impl(full_hash);
 }
 
-void mp::BaseVMImageHost::update_manifests(const bool is_force_update_from_network)
+void mp::BaseVMImageHost::update_manifests(const bool force_update)
 {
     clear();
-    fetch_manifests(is_force_update_from_network);
+    fetch_manifests(force_update);
 }
 
 void mp::BaseVMImageHost::on_manifest_empty(const std::string& details)
