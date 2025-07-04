@@ -181,14 +181,18 @@ class TestCommitMsgRulesChecker:
 
         self._test_valid_msgs(valid_messages)
 
+    def _test_rule(self, rule, msg, expect_failure):
+        checker = CommitMsgRulesChecker(msg)
+        rule_broken = any(rule in error for error in checker.errors)
+        error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
+
+        assert rule_broken == expect_failure, error + f" - Errors: {checker.errors}"
+
     def test_rule1_subject_line_required_breached(self):
         invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
 
         for msg in invalid_messages:
-            checker = CommitMsgRulesChecker(msg)
-            assert any(
-                "MSG1" in error for error in checker.errors
-            ), f"MSG1 should fail for: {msg!r}"
+            self._test_rule("MSG1", msg, expect_failure=True)
 
     def test_rule1_subject_line_required_observed(self):
         valid_messages = [
@@ -197,10 +201,7 @@ class TestCommitMsgRulesChecker:
         ]
 
         for msg in valid_messages:
-            checker = CommitMsgRulesChecker(msg)
-            assert not any(
-                "MSG1" in error for error in checker.errors
-            ), f"MSG1 should pass for: {msg!r}"
+            self._test_rule("MSG1", msg, expect_failure=False)
 
     def test_rule2_category_format_breached(self):
         invalid_messages = [
@@ -219,10 +220,7 @@ class TestCommitMsgRulesChecker:
         ]
 
         for msg in invalid_messages:
-            checker = CommitMsgRulesChecker(msg)
-            assert any(
-                "MSG2" in error for error in checker.errors
-            ), f"MSG2 should fail for: {msg!r}"
+            self._test_rule("MSG2", msg, expect_failure=True)
 
     def test_rule4_space_and_capitalization_breached(self):
         invalid_messages = [
@@ -237,10 +235,7 @@ class TestCommitMsgRulesChecker:
         ]
 
         for msg in invalid_messages:
-            checker = CommitMsgRulesChecker(msg)
-            assert any(
-                "MSG4" in error for error in checker.errors
-            ), f"MSG4 should fail for: {msg!r}"
+            self._test_rule("MSG4", msg, expect_failure=True)
 
 
 def main():
