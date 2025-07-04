@@ -181,6 +181,15 @@ class TestCommitMsgRulesChecker:
 
         self._test_valid_msgs(valid_messages)
 
+    def test_rule1_subject_line_required(self):
+        invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
+
+        for msg in invalid_messages:
+            checker = CommitMsgRulesChecker(msg)
+            assert any(
+                "MSG1" in error for error in checker.errors
+            ), f"MSG1 should fail for: {msg!r}"
+
 
 def main():
     """
