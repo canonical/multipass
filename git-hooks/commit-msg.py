@@ -190,6 +190,28 @@ class TestCommitMsgRulesChecker:
                 "MSG1" in error for error in checker.errors
             ), f"MSG1 should fail for: {msg!r}"
 
+    def test_rule2_category_format(self):
+        invalid_messages = [
+            "fix Update documentation",
+            "[Fix] Update documentation",
+            "[fix[ Update documentation",
+            "]fix] Update documentation",
+            "[fix-Feature] Update docs",
+            "[] Update documentation",
+            "[fix_update] Documentation",
+            "Update [fix] documentation",
+            " [fix] Update documentation",
+            "\t[fix] Update documentation",
+            "foo\nbar",
+            "foo\n[bar]",
+        ]
+
+        for msg in invalid_messages:
+            checker = CommitMsgRulesChecker(msg)
+            assert any(
+                "MSG2" in error for error in checker.errors
+            ), f"MSG2 should fail for: {msg!r}"
+
 
 def main():
     """
