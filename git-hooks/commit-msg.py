@@ -280,6 +280,25 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG8", msg, expect_failure=True)
 
+    def test_rule10_no_consecutive_blank_lines_observed(self):
+        valid_messages = [
+            "[msg] Subject line\n\nAnd a body.",
+            "[msg] Subject line\n\nAnd a body with\n\nmultiple paragraphs.",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG10", msg, expect_failure=False)
+
+    def test_rule10_no_consecutive_blank_lines_breached(self):
+        invalid_messages = [
+            "[msg] Subject line\n\n\nAnd a body with\n\nmultiple paragraphs.",
+            "[msg] Subject line\n\nAnd a body with\n\n\nmultiple paragraphs.",
+            "[msg] Subject line\n\nAnd a body with\n\n\n\nmultiple paragraphs.",
+        ]
+
+        for msg in invalid_messages:
+            self._test_rule("MSG10", msg, expect_failure=True)
+
     @staticmethod
     def _test_valid_msgs(valid_messages):
         for msg in valid_messages:
