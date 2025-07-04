@@ -42,14 +42,12 @@ constexpr auto index_path = "streams/v1/index.json";
 
 auto download_manifest(const QString& host_url,
                        mp::URLDownloader* url_downloader,
-                       const bool is_force_update_from_network)
+                       const bool force_update)
 {
-    auto json_index =
-        url_downloader->download({host_url + index_path}, is_force_update_from_network);
+    auto json_index = url_downloader->download({host_url + index_path}, force_update);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
-    auto json_manifest =
-        url_downloader->download({host_url + index.manifest_path}, is_force_update_from_network);
+    auto json_manifest = url_downloader->download({host_url + index.manifest_path}, force_update);
     return json_manifest;
 }
 
@@ -236,25 +234,23 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_network)
+void mp::UbuntuVMImageHost::fetch_manifests(const bool force_update)
 {
-    auto fetch_one_remote = [this, is_force_update_from_network](
-                                const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
+    auto fetch_one_remote =
+        [this, force_update](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
         -> std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>> {
         const auto& [remote_name, remote_info] = remote_pair;
         try
         {
             auto official_site = remote_info.get_official_url();
             auto manifest_bytes_from_official =
-                download_manifest(official_site, url_downloader, is_force_update_from_network);
+                download_manifest(official_site, url_downloader, force_update);
 
             auto mirror_site = remote_info.get_mirror_url();
             std::optional<QByteArray> manifest_bytes_from_mirror = std::nullopt;
             if (mirror_site)
             {
-                auto bytes = download_manifest(mirror_site.value(),
-                                               url_downloader,
-                                               is_force_update_from_network);
+                auto bytes = download_manifest(mirror_site.value(), url_downloader, force_update);
                 manifest_bytes_from_mirror = std::make_optional(bytes);
             }
 
