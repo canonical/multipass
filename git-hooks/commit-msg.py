@@ -120,25 +120,7 @@ def handle_errors(errors):
     return 0
 
 
-def run_tests():
-    """
-    Run unit tests with pytest.
-    """
-    try:
-        import pytest
-
-        return pytest.main([__file__, "-v"])
-    except ImportError:
-        print(
-            "Error: pytest is not installed. Please install it with: pip install pytest",
-            file=sys.stderr,
-        )
-        return 1
-    except Exception as e:
-        print(f"Error running tests: {e}", file=sys.stderr)
-        return 1
-
-
+# Tests
 class TestCommitMsgRulesChecker:
     def test_valid_single_line_commit_messages(self):
         """Test valid commit messages that should pass all rules."""
@@ -175,12 +157,6 @@ class TestCommitMsgRulesChecker:
 
         self._test_valid_msgs(valid_messages)
 
-    def test_rule1_subject_line_required_breached(self):
-        invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
-
-        for msg in invalid_messages:
-            self._test_rule("MSG1", msg, expect_failure=True)
-
     def test_rule1_subject_line_required_observed(self):
         valid_messages = [
             "[category] This is a valid subject line",
@@ -189,6 +165,23 @@ class TestCommitMsgRulesChecker:
 
         for msg in valid_messages:
             self._test_rule("MSG1", msg, expect_failure=False)
+
+    def test_rule1_subject_line_required_breached(self):
+        invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
+
+        for msg in invalid_messages:
+            self._test_rule("MSG1", msg, expect_failure=True)
+
+    def test_rule2_category_format_observed(self):
+        valid_messages = [
+            "[fix] This and that",
+            "[feature] XYZ",
+            "[bug-fix] Fix bug",
+            "[fix-issue-123] Fix bug in validation logic",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG2", msg, expect_failure=False)
 
     def test_rule2_category_format_breached(self):
         invalid_messages = [
@@ -209,16 +202,11 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG2", msg, expect_failure=True)
 
-    def test_rule2_category_format_observed(self):
-        valid_messages = [
-            "[fix] This and that",
-            "[feature] XYZ",
-            "[bug-fix] Fix bug",
-            "[fix-issue-123] Fix bug in validation logic",
-        ]
+    def test_rule4_space_and_capitalization_observed(self):
+        valid_messages = ["[film] Matrix", "[book] Pandora's Star\nScience fiction novel."]
 
         for msg in valid_messages:
-            self._test_rule("MSG2", msg, expect_failure=False)
+            self._test_rule("MSG4", msg, expect_failure=False)
 
     def test_rule4_space_and_capitalization_breached(self):
         invalid_messages = [
@@ -234,12 +222,6 @@ class TestCommitMsgRulesChecker:
 
         for msg in invalid_messages:
             self._test_rule("MSG4", msg, expect_failure=True)
-
-    def test_rule4_space_and_capitalization_observed(self):
-        valid_messages = ["[film] Matrix", "[book] Pandora's Star\nScience fiction novel."]
-
-        for msg in valid_messages:
-            self._test_rule("MSG4", msg, expect_failure=False)
 
     def test_rule5_subject_length_observed(self):
         valid_messages = [
@@ -273,6 +255,25 @@ class TestCommitMsgRulesChecker:
         error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
 
         assert rule_broken == expect_failure, error + f" - Errors: {checker.errors}"
+
+
+def run_tests():
+    """
+    Run unit tests with pytest.
+    """
+    try:
+        import pytest
+
+        return pytest.main([__file__, "-v"])
+    except ImportError:
+        print(
+            "Error: pytest is not installed. Please install it with: pip install pytest",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:
+        print(f"Error running tests: {e}", file=sys.stderr)
+        return 1
 
 
 def main():
