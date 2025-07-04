@@ -262,6 +262,24 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG6", msg, expect_failure=True)
 
+    def test_rule8_blank_line_after_subject_observed(self):
+        valid_messages = [
+            "[feature] Add new user authentication system\n\nThis is the body.",
+            "[fix] Update documentation\n\nThis is the body of the commit message.\n\nBlah blah.",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG8", msg, expect_failure=False)
+
+    def test_rule8_blank_line_after_subject_breached(self):
+        invalid_messages = [
+            "[fix] Update documentation\nThis is the body without a blank line",
+            "[feature] Add new user authentication system\nThis is the body without\na blank line",
+        ]
+
+        for msg in invalid_messages:
+            self._test_rule("MSG8", msg, expect_failure=True)
+
     @staticmethod
     def _test_valid_msgs(valid_messages):
         for msg in valid_messages:
