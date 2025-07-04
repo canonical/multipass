@@ -58,7 +58,66 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
 {
     YAML::Emitter emitter;
     emitter.SetIndent(2);
-    emitter << node;
+
+    // Helper function to handle nodes recursively
+    std::function<void(const YAML::Node&)> emit_node;
+    emit_node = [&emitter, &emit_node](const YAML::Node& n) {
+        switch (n.Type())
+        {
+        case YAML::NodeType::Map:
+        {
+            emitter << YAML::BeginMap;
+            for (const auto& kv : n)
+            {
+                emitter << YAML::Key;
+                emit_node(kv.first);
+                emitter << YAML::Value;
+                emit_node(kv.second);
+            }
+            emitter << YAML::EndMap;
+            break;
+        }
+        case YAML::NodeType::Sequence:
+        {
+            emitter << YAML::BeginSeq;
+            for (const auto& v : n)
+            {
+                emit_node(v);
+            }
+            emitter << YAML::EndSeq;
+            break;
+        }
+        default:
+        {
+            // Special handling for strings that need quoting
+            if (n.IsScalar())
+            {
+                std::string value = n.Scalar();
+                // Force quoting for:
+                // 1. Octal-like strings (0755, 0644, etc.) - prevents cloud-init schema errors
+                // 2. Strings containing colons - replaces need for custom yaml-cpp patch
+                if ((value.length() >= 2 && value[0] == '0' &&
+                     std::all_of(value.begin() + 1, value.end(), ::isdigit)) ||
+                    value.find(':') != std::string::npos)
+                {
+                    emitter << YAML::DoubleQuoted << value;
+                }
+                else
+                {
+                    emitter << n;
+                }
+            }
+            else
+            {
+                emitter << n;
+            }
+            break;
+        }
+        }
+    };
+
+    emit_node(node);
+
     if (!emitter.good())
         throw std::runtime_error{fmt::format("Failed to emit YAML: {}", emitter.GetLastError())};
 
