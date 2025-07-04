@@ -181,7 +181,7 @@ class TestCommitMsgRulesChecker:
 
         self._test_valid_msgs(valid_messages)
 
-    def test_rule1_subject_line_required(self):
+    def test_rule1_subject_line_required_breached(self):
         invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
 
         for msg in invalid_messages:
@@ -190,7 +190,19 @@ class TestCommitMsgRulesChecker:
                 "MSG1" in error for error in checker.errors
             ), f"MSG1 should fail for: {msg!r}"
 
-    def test_rule2_category_format(self):
+    def test_rule1_subject_line_required_observed(self):
+        valid_messages = [
+            "[category] This is a valid subject line",
+            "[good] Another one",
+        ]
+
+        for msg in valid_messages:
+            checker = CommitMsgRulesChecker(msg)
+            assert not any(
+                "MSG1" in error for error in checker.errors
+            ), f"MSG1 should pass for: {msg!r}"
+
+    def test_rule2_category_format_breached(self):
         invalid_messages = [
             "fix Update documentation",
             "[Fix] Update documentation",
