@@ -299,6 +299,28 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG10", msg, expect_failure=True)
 
+    def test_rule12_body_line_length_observed(self):
+        valid_messages = [
+            "[msg] Subject\n\n" "This body line is under 72 characters long.",
+            "[msg] Subject\n\n"
+            "This body line is exactly 72 characters long, as prescribed by the rule.",
+            "[msg] Subject\n\n"
+            "This body line is almost 72 characters long, but not quite there yet...",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG12", msg, expect_failure=False)
+
+    def test_rule12_body_line_length_breached(self):
+        invalid_messages = [
+            "[msg] Subject\n\n"
+            "This body line is clearly over 72 characters long, so it is longer than expected.",
+            "[msg] Subject\n\n"
+            "This body line is barely over 72 characters long, surpassing the limit...",
+        ]
+        for msg in invalid_messages:
+            self._test_rule("MSG12", msg, expect_failure=True)
+
     @staticmethod
     def _test_valid_msgs(valid_messages):
         for msg in valid_messages:
