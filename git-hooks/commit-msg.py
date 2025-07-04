@@ -140,12 +140,6 @@ def run_tests():
 
 
 class TestCommitMsgRulesChecker:
-    @staticmethod
-    def _test_valid_msgs(valid_messages):
-        for msg in valid_messages:
-            checker = CommitMsgRulesChecker(msg)
-            assert not checker.errors, f"Valid message failed: {msg!r} - Errors: {checker.errors}"
-
     def test_valid_single_line_commit_messages(self):
         """Test valid commit messages that should pass all rules."""
 
@@ -180,13 +174,6 @@ class TestCommitMsgRulesChecker:
         ]
 
         self._test_valid_msgs(valid_messages)
-
-    def _test_rule(self, rule, msg, expect_failure):
-        checker = CommitMsgRulesChecker(msg)
-        rule_broken = any(rule in error for error in checker.errors)
-        error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
-
-        assert rule_broken == expect_failure, error + f" - Errors: {checker.errors}"
 
     def test_rule1_subject_line_required_breached(self):
         invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
@@ -253,6 +240,20 @@ class TestCommitMsgRulesChecker:
 
         for msg in valid_messages:
             self._test_rule("MSG4", msg, expect_failure=False)
+
+
+    @staticmethod
+    def _test_valid_msgs(valid_messages):
+        for msg in valid_messages:
+            checker = CommitMsgRulesChecker(msg)
+            assert not checker.errors, f"Valid message failed: {msg!r} - Errors: {checker.errors}"
+
+    def _test_rule(self, rule, msg, expect_failure):
+        checker = CommitMsgRulesChecker(msg)
+        rule_broken = any(rule in error for error in checker.errors)
+        error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
+
+        assert rule_broken == expect_failure, error + f" - Errors: {checker.errors}"
 
 
 def main():
