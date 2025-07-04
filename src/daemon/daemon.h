@@ -226,7 +226,7 @@ private:
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
-    void update_manifests_all(const bool is_force_update_from_network = false);
+    void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
 
