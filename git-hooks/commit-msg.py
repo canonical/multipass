@@ -242,6 +242,26 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG5", msg, expect_failure=True)
 
+    def test_rule6_no_period_at_end_observed(self):
+        valid_messages = [
+            "[fix] Update documentation",
+            "[feature] Add new user authentication system",
+            "[test] Improve test coverage for validation logic",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG6", msg, expect_failure=False)
+
+    def test_rule6_no_period_at_end_breached(self):
+        invalid_messages = [
+            "[fix] Update documentation.",
+            "[feature] Add new user authentication system.",
+            "[test] Improve test coverage for validation logic.",
+        ]
+
+        for msg in invalid_messages:
+            self._test_rule("MSG6", msg, expect_failure=True)
+
     @staticmethod
     def _test_valid_msgs(valid_messages):
         for msg in valid_messages:
