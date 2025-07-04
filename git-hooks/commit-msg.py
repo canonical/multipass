@@ -5,6 +5,7 @@ Git commit-msg hook to validate commit messages according to team guidelines.
 
 Validates rules: 1-2, 4-6, 8-10, and 12.
 """
+import argparse
 import re
 import sys
 from enum import Enum
@@ -118,18 +119,31 @@ def handle_errors(errors):
     return 0
 
 
+def run_tests():
+    print("Tests placeholder")
+    return 0
+
+
 def main():
     """
     Entry point for the commit-msg hook.
 
-    Expects a single argument beyond its own name: the path to the commit message file.
+    Supports --tests flag to run unit tests, otherwise expects a single argument:
+    the path to the commit message file.
     """
+    parser = argparse.ArgumentParser(description="Git commit message validator")
+    parser.add_argument("--tests", action="store_true", help="Run unit tests")
+    parser.add_argument("commit_msg_file", nargs="?", help="Path to commit message file")
 
-    if len(sys.argv) != 2:
-        print(f"Error: Expected a single argument, got {len(sys.argv) - 1}", file=sys.stderr)
+    args = parser.parse_args()  # exits on error
+
+    if args.tests:
+        sys.exit(run_tests())  # TODO@no-merge get this to run in CI
+
+    commit_msg_file = Path(args.commit_msg_file)
+    if not args.commit_msg_file:
+        print("Error: Expected a commit message file path", file=sys.stderr)
         sys.exit(1)
-
-    commit_msg_file = Path(sys.argv[1])
 
     try:
         msg = commit_msg_file.read_text(encoding="utf-8")
