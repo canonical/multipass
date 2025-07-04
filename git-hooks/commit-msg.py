@@ -120,8 +120,28 @@ def handle_errors(errors):
 
 
 def run_tests():
-    print("Tests placeholder")
-    return 0
+    """
+    Run unit tests with pytest.
+    """
+    try:
+        import pytest
+
+        return pytest.main([__file__, "-v"])
+    except ImportError:
+        print(
+            "Error: pytest is not installed. Please install it with: pip install pytest",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:
+        print(f"Error running tests: {e}", file=sys.stderr)
+        return 1
+
+
+# Test functions
+def test_placeholder():
+    print("test placeholder")
+    assert True
 
 
 def main():
