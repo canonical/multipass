@@ -92,12 +92,11 @@ auto base_image_info_for(mp::URLDownloader* url_downloader,
                          const QString& image_url,
                          const QString& hash_url,
                          const QString& image_file,
-                         const bool is_force_update_from_network = false)
+                         const bool force_update = false)
 {
     const auto last_modified =
         QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
-    const auto sha256_sums =
-        url_downloader->download({hash_url}, is_force_update_from_network).split('\n');
+    const auto sha256_sums = url_downloader->download({hash_url}, force_update).split('\n');
     QString hash;
 
     for (const QString line : sha256_sums) // intentional copy
@@ -129,20 +128,17 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
 
 auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info,
                          mp::URLDownloader* url_downloader,
-                         const bool is_force_update_from_network = false)
+                         const bool force_update = false)
 {
     auto fetch_one_image_info =
-        [is_force_update_from_network, url_downloader](
+        [force_update, url_downloader](
             const std::pair<const QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
         const auto& [image_file_name, custom_image_info] = image_info_pair;
         const QString image_url{custom_image_info.url_prefix + image_info_pair.first};
         const QString hash_url{custom_image_info.url_prefix + QStringLiteral("SHA256SUMS")};
 
-        const auto base_image_info = base_image_info_for(url_downloader,
-                                                         image_url,
-                                                         hash_url,
-                                                         image_file_name,
-                                                         is_force_update_from_network);
+        const auto base_image_info =
+            base_image_info_for(url_downloader, image_url, hash_url, image_file_name, force_update);
 
         return mp::VMImageInfo{custom_image_info.aliases,
                                custom_image_info.os,
@@ -231,14 +227,14 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
     return remotes;
 }
 
-void mp::CustomVMImageHost::fetch_manifests(const bool is_force_update_from_network)
+void mp::CustomVMImageHost::fetch_manifests(const bool force_update)
 {
     for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch])})
     {
         try
         {
             std::unique_ptr<mp::CustomManifest> custom_manifest =
-                full_image_info_for(spec.second, url_downloader, is_force_update_from_network);
+                full_image_info_for(spec.second, url_downloader, force_update);
             custom_image_info.emplace(spec.first, std::move(custom_manifest));
         }
         catch (mp::DownloadException& e)
