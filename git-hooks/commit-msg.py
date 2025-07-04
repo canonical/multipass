@@ -8,6 +8,7 @@ Validates rules: 1-2, 4-6, 8-10, and 12.
 import argparse
 import re
 import sys
+import textwrap
 from enum import Enum
 from pathlib import Path
 
@@ -138,10 +139,47 @@ def run_tests():
         return 1
 
 
-# Test functions
-def test_placeholder():
-    print("test placeholder")
-    assert True
+class TestCommitMsgRulesChecker:
+    @staticmethod
+    def _test_valid_msgs(valid_messages):
+        for msg in valid_messages:
+            checker = CommitMsgRulesChecker(msg)
+            assert not checker.errors, f"Valid message failed: {msg!r} - Errors: {checker.errors}"
+
+    def test_valid_single_line_commit_messages(self):
+        """Test valid commit messages that should pass all rules."""
+
+        valid_messages = [
+            "[fix] Update documentation for API changes",
+            "[feature] Add new user authentication system",
+            "[test] Improve test coverage for validation logic",
+        ]
+        self._test_valid_msgs(valid_messages)
+
+    def test_valid_multi_line_commit_messages(self):
+        valid_messages = [
+            textwrap.dedent(
+                """\
+                [good] A multi-line commit message
+
+                A commit message with 2 paragraphs and some filler text in this one. The
+                second paragraph can have multiple lines, but it should still be wrapped
+                at 72 chars.
+                """
+            ),
+            textwrap.dedent(
+                """\
+                [good] A commit message with multiple paragraphs
+
+                Some filler text for the second paragraph. It can be longer than the
+                first one.
+
+                This is the third paragraph.
+                """
+            ),
+        ]
+
+        self._test_valid_msgs(valid_messages)
 
 
 def main():
