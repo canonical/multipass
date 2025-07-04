@@ -42,11 +42,4 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
   else() # Windows
     include("CMakeLists.txt.windows")
   endif()
-
-  add_custom_command(TARGET dart_ffi POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E create_symlink
-      $<TARGET_FILE:dart_ffi>
-      "${CMAKE_BINARY_DIR}/bin/bundle/lib/$<TARGET_FILE_NAME:dart_ffi>"
-      COMMENT "Creating symlink `$<TARGET_FILE:dart_ffi>` --> `bundle/lib/$<TARGET_FILE_NAME:dart_ffi>`"
-  )
 endif()
