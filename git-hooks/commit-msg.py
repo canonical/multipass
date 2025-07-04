@@ -248,7 +248,8 @@ class TestCommitMsgRulesChecker:
             checker = CommitMsgRulesChecker(msg)
             assert not checker.errors, f"Valid message failed: {msg!r} - Errors: {checker.errors}"
 
-    def _test_rule(self, rule, msg, expect_failure):
+    @staticmethod
+    def _test_rule(rule, msg, expect_failure):
         checker = CommitMsgRulesChecker(msg)
         rule_broken = any(rule in error for error in checker.errors)
         error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
