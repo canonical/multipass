@@ -241,6 +241,24 @@ class TestCommitMsgRulesChecker:
         for msg in valid_messages:
             self._test_rule("MSG4", msg, expect_failure=False)
 
+    def test_rule5_subject_length_observed(self):
+        valid_messages = [
+            "[less] This line has less than 50 characters",
+            "[almost] This line has close to the 50 characters",
+            "[exactly] This line has the expected 50 characters",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG5", msg, expect_failure=False)
+
+    def test_rule5_subject_length_breached(self):
+        invalid_messages = [
+            "[over] This line is slightly over the 50 characters",
+            "[wrong] This line has more than the expected 50 characters",
+        ]
+
+        for msg in invalid_messages:
+            self._test_rule("MSG5", msg, expect_failure=True)
 
     @staticmethod
     def _test_valid_msgs(valid_messages):
