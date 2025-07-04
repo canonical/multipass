@@ -222,6 +222,17 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG2", msg, expect_failure=True)
 
+    def test_rule2_category_format_observed(self):
+        valid_messages = [
+            "[fix] This and that",
+            "[feature] XYZ",
+            "[bug-fix] Fix bug",
+            "[fix-issue-123] Fix bug in validation logic",
+        ]
+
+        for msg in valid_messages:
+            self._test_rule("MSG2", msg, expect_failure=False)
+
     def test_rule4_space_and_capitalization_breached(self):
         invalid_messages = [
             "[fix]update documentation",
