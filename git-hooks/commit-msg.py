@@ -224,6 +224,24 @@ class TestCommitMsgRulesChecker:
                 "MSG2" in error for error in checker.errors
             ), f"MSG2 should fail for: {msg!r}"
 
+    def test_rule4_space_and_capitalization_breached(self):
+        invalid_messages = [
+            "[fix]update documentation",
+            "[fix]  update documentation",
+            "[fix] update documentation",
+            "[fix]\nupdate documentation",
+            "[fix]\tupdate documentation",
+            "[fix]\t",
+            "[fix] ",
+            "[fix]",
+        ]
+
+        for msg in invalid_messages:
+            checker = CommitMsgRulesChecker(msg)
+            assert any(
+                "MSG4" in error for error in checker.errors
+            ), f"MSG4 should fail for: {msg!r}"
+
 
 def main():
     """
