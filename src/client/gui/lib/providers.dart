@@ -304,7 +304,6 @@ class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
 const onAppCloseKey = 'onAppClose';
 const hotkeyKey = 'hotkey';
 const askTerminalCloseKey = 'askTerminalClose';
-const terminalFontSizeKey = 'terminalFontSize';
 // this provider is set with a value obtained asynchronously in main.dart
 final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(() {
@@ -320,3 +319,17 @@ final networksProvider = Provider.autoDispose((ref) {
   }
   return BuiltSet<String>();
 });
+
+// Session-level terminal font size that resets on app restart
+class SessionTerminalFontSizeNotifier extends Notifier<double> {
+  static const defaultFontSize = 13.0;
+
+  @override
+  double build() => defaultFontSize;
+
+  void set(double value) => state = value;
+}
+
+final sessionTerminalFontSizeProvider =
+    NotifierProvider<SessionTerminalFontSizeNotifier, double>(
+        SessionTerminalFontSizeNotifier.new);
