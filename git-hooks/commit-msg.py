@@ -248,6 +248,12 @@ class TestCommitMsgRulesChecker:
         for msg in invalid_messages:
             self._test_rule("MSG4", msg, expect_failure=True)
 
+    def test_rule4_space_and_capitalization_observed(self):
+        valid_messages = ["[film] Matrix", "[book] Pandora's Star\nScience fiction novel."]
+
+        for msg in valid_messages:
+            self._test_rule("MSG4", msg, expect_failure=False)
+
 
 def main():
     """
