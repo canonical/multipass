@@ -27,13 +27,22 @@ import pexpect
 
 
 class JsonOutput(dict):
-    def __init__(self, content, returncode):
+    def __init__(self, content, exitstatus):
         self.content = content
-        self.returncode = returncode
+        self.exitstatus = exitstatus
         try:
             super().__init__(json.loads(content))
         except json.JSONDecodeError:
             super().__init__()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def __bool__(self):
+        return self.exitstatus == 0
 
     def jq(self, query):
         """Real jq queries using the jq library"""
@@ -41,9 +50,9 @@ class JsonOutput(dict):
 
 
 class Output:
-    def __init__(self, content, returncode):
+    def __init__(self, content, exitstatus):
         self.content = content
-        self.returncode = returncode
+        self.exitstatus = exitstatus
 
     def __contains__(self, pattern):
         return re.search(pattern, self.content) is not None
@@ -51,39 +60,17 @@ class Output:
     def __str__(self):
         return self.content
 
+    def __enter__(self):
+        return self
 
-@contextlib.contextmanager
-def expect_json(pexpect_child, timeout=30):
-    """Context manager that works with pexpect spawn objects"""
-    try:
-        # Wait for command to complete
-        pexpect_child.expect(pexpect.EOF, timeout=timeout)
-        pexpect_child.wait()
+    def __exit__(self, *args):
+        return False
 
-        # Parse the output as JSON
-        output_text = pexpect_child.before.decode("utf-8")
-        yield JsonOutput(output_text, pexpect_child.exitstatus)
+    def __bool__(self):
+        return self.exitstatus == 0
 
-    finally:
-        if pexpect_child.isalive():
-            pexpect_child.terminate()
-
-
-@contextlib.contextmanager
-def expect_text(pexpect_child, timeout=30):
-    """Context manager that works with pexpect spawn objects"""
-    try:
-        # Wait for command to complete
-        pexpect_child.expect(pexpect.EOF, timeout=timeout)
-        pexpect_child.wait()
-
-        # Parse the output as JSON
-        output_text = pexpect_child.before.decode("utf-8")
-        yield Output(output_text, pexpect_child.exitstatus)
-
-    finally:
-        if pexpect_child.isalive():
-            pexpect_child.terminate()
+    def json(self):
+        return JsonOutput(self.content, self.exitstatus)
 
 
 def retry(retries=3, delay=1.0):
@@ -92,8 +79,11 @@ def retry(retries=3, delay=1.0):
     def decorator(func):
         def wrapper(*args, **kwargs):
             for attempt in range(retries + 1):
-                result = func(*args, **kwargs)
-                if hasattr(result, "returncode") and result.returncode == 0:
+                try:
+                    result = func(*args, **kwargs)
+                except pexpect.exceptions.TIMEOUT:
+                    result = None
+                if hasattr(result, "exitstatus") and result.exitstatus == 0:
                     return result
                 if attempt < retries:
                     time.sleep(delay)
