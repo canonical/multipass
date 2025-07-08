@@ -14,6 +14,7 @@
 
 add_library(image_host STATIC
   base_image_host.cpp
+  base_image_remote.cpp
   custom_image_host.cpp
   cloud_image_host.cpp
   ubuntu_image_host.cpp)
