@@ -2,6 +2,12 @@ name: WindowsMacOS
 
 on:
   workflow_call:
+  workflow_dispatch:
+    inputs:
+      host-my-apple:
+        description: "Run on HostMyApple MacOS 12 runners"
+        required: false
+        default: "false"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
@@ -47,11 +53,16 @@ jobs:
 
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
-        MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-        MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
         MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
         MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""}'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""},'
+
+        if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.host-my-apple }}" == "true" ]]; then
+          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
+        fi
+
+        MATRIX=${MATRIX%,}
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
