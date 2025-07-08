@@ -28,7 +28,7 @@ endif()
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0") # needs to be set before "project"
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0") # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
