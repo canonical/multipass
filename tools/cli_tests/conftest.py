@@ -28,10 +28,13 @@ import tempfile
 import select
 import pexpect
 from contextlib import contextmanager
+from types import SimpleNamespace
 
 import pytest
 
-from cli_tests.utils import Output, expect_text
+from cli_tests.utils import Output, JsonOutput, retry
+
+config = SimpleNamespace()
 
 
 def pytest_addoption(parser):
@@ -56,7 +59,13 @@ def pytest_addoption(parser):
     parser.addoption(
         "--print-daemon-output",
         action="store_true",
-        help="Do not automatically launch the daemon for the tests.",
+        help="Print daemon output to stdout",
+    )
+
+    parser.addoption(
+        "--print-cli-output",
+        action="store_true",
+        help="Print CLI output to stdout",
     )
 
     parser.addoption(
@@ -69,6 +78,38 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     if config.getoption("--build-root") is None:
         pytest.exit("ERROR: The `--build-root` argument is required.", returncode=1)
+
+
+@pytest.fixture(autouse=True)
+def store_config(request):
+    config.build_root = request.config.getoption("--build-root")
+    config.data_root = request.config.getoption("--data-root")
+    config.no_daemon = request.config.getoption("--no-daemon")
+    config.print_daemon_output = request.config.getoption("--print-daemon-output")
+    config.print_cli_output = request.config.getoption("--print-cli-output")
+    config.remove_all_instances = request.config.getoption("--remove-all-instances")
+
+    # If user gave --data-root, use it
+    if not config.data_root:
+        # Otherwise, create a temp dir for the whole session
+        tmpdir = tempfile.TemporaryDirectory()
+
+        def cleanup():
+            """Since the daemon owns the data_root on startup
+            a non-root user cannot remove it. Therefore, try
+            privilege escalation if nuking as normal fails."""
+            try:
+                shutil.rmtree(tmpdir.name)
+                print(f"\n🧹 ✅ Cleaned up {tmpdir.name} normally.")
+            except PermissionError:
+                print(
+                    f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir.name}"
+                )
+                subprocess.run(["sudo", "rm", "-rf", tmpdir.name], check=True)
+
+        # Register finalizer to cleanup on exit
+        request.addfinalizer(cleanup)
+        config.data_root = tmpdir.name
 
 
 def pytest_assertrepr_compare(op, left, right):
@@ -87,7 +128,7 @@ def pytest_assertrepr_compare(op, left, right):
     return None
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
     if sys.platform == "win32":
@@ -110,31 +151,6 @@ def ensure_sudo_auth():
         pytest.skip("Cannot authenticate sudo non-interactively")
 
 
-@pytest.fixture(scope="session")
-def data_root(request):
-    # If user gave --data-root, use it
-    user_value = request.config.getoption("--data-root")
-    if user_value:
-        return user_value
-    # Otherwise, create a temp dir for the whole session
-    tmpdir = tempfile.TemporaryDirectory()
-
-    def cleanup():
-        """Since the daemon owns the data_root on startup
-        a non-root user cannot remove it. Therefore, try
-        privilege escalation if nuking as normal fails."""
-        try:
-            shutil.rmtree(tmpdir.name)
-            print(f"\n🧹 ✅ Cleaned up {tmpdir.name} normally.")
-        except PermissionError:
-            print(f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir.name}")
-            subprocess.run(["sudo", "rm", "-rf", tmpdir.name], check=True)
-
-    # Register finalizer to cleanup on exit
-    request.addfinalizer(cleanup)
-    return tmpdir.name
-
-
 @contextmanager
 def run_process(cmd, **kwargs):
     """Execute and yield a process."""
@@ -151,13 +167,89 @@ def run_process(cmd, **kwargs):
             proc.kill()
 
 
-@pytest.fixture
-def multipass(request):
-    multipass_path = shutil.which(
-        "multipass", path=request.config.getoption("--build-root")
-    )
+def multipass(*args, **kwargs):
+    """Run Multipass CLI commands."""
+    multipass_path = shutil.which("multipass", path=config.build_root)
 
-    return lambda *args, **kwargs: pexpect.spawn(f"{multipass_path} {" ".join(args)}")
+    timeout = kwargs.get("timeout") if "timeout" in kwargs else 30
+    # print(f"timeout is {timeout} for {multipass_path} {' '.join(args)}")
+    retry_count = kwargs.pop("retry", None)
+    if retry_count is not None:
+
+        @retry(retries=retry_count, delay=2.0)
+        def retry_wrapper():
+            return multipass(*args, **kwargs)
+
+        return retry_wrapper()
+
+    if kwargs.get("interactive"):
+        return pexpect.spawn(
+            f"{multipass_path} {' '.join(args)}",
+            logfile=(sys.stdout.buffer if config.print_cli_output else None),
+            timeout=timeout,
+        )
+
+    class Cmd:
+        def __init__(self):
+            try:
+                self.pexpect_child = pexpect.spawn(
+                    f"{multipass_path} {' '.join(args)}",
+                    logfile=(sys.stdout.buffer if config.print_cli_output else None),
+                    timeout=timeout,
+                )
+                self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
+                self.pexpect_child.wait()
+                self.output_text = self.pexpect_child.before.decode("utf-8")
+            finally:
+                if self.pexpect_child.isalive():
+                    sys.stderr.write(
+                        f"\n❌🔥 Terminating {multipass_path} {' '.join(args)}\n"
+                    )
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                    self.pexpect_child.terminate()
+
+        def __call__(self):
+            return Output(self.output_text, self.pexpect_child.exitstatus)
+
+        def __enter__(self):
+            return self.__call__()
+
+        def __exit__(self, *args):
+            return False
+
+    cmd = Cmd()
+
+    class ContextManagerProxy:
+        """Wrapper to avoid having to type multipass("command")() (note the parens)"""
+
+        def __init__(self):
+            self.result = None
+
+        def _populate_result(self):
+            if self.result is None:
+                self.result = cmd()
+
+        def __getattr__(self, name):
+            # Lazily run the command if someone tries to access attributes
+            self._populate_result()
+            return getattr(self.result, name)
+
+        def __enter__(self):
+            return cmd.__enter__()
+
+        def __exit__(self, *a):
+            return cmd.__exit__(*a)
+
+        def __contains__(self, item):
+            self._populate_result()
+            return self.result.__contains__(item)
+
+        def __bool__(self):
+            self._populate_result()
+            return self.result.__bool__()
+
+    return ContextManagerProxy()
 
 
 def die(exit_code, message):
@@ -169,7 +261,7 @@ def die(exit_code, message):
     os._exit(exit_code)
 
 
-def wait_for_multipassd_ready(multipass, timeout=10):
+def wait_for_multipassd_ready(timeout=10):
     """
     Wait until Multipass daemon starts responding to the CLI commands.
     For that, the function tries to shell into a non-existent instance.
@@ -189,10 +281,11 @@ def wait_for_multipassd_ready(multipass, timeout=10):
         nonexistent_instance_name = "6b76819d-faa8-404b-a65a-2183e5fe2cb6"
         pattern = re.compile(f".*{nonexistent_instance_name}.*")
         try:
-            with multipass("shell", nonexistent_instance_name, timeout=5) as shell:
+            with multipass(
+                "shell", nonexistent_instance_name, timeout=5, interactive=True
+            ) as shell:
                 shell.expect(pattern)
-
-            with expect_text(multipass("version")) as version:
+            with multipass("version") as version:
                 version_out = version.content.splitlines() if version.content else []
                 # One line for multipass, one line for multipassd.
                 if len(version_out) == 2:
@@ -208,7 +301,9 @@ def wait_for_multipassd_ready(multipass, timeout=10):
                     )
                     sys.stderr.flush()
                     return False
-        except:
+        except pexpect.exceptions.EOF:
+            pass
+        except pexpect.exceptions.TIMEOUT:
             pass
 
         time.sleep(0.2)
@@ -218,32 +313,38 @@ def wait_for_multipassd_ready(multipass, timeout=10):
     return False
 
 
-@pytest.fixture
-def multipassd(request, multipass, data_root):
+@pytest.fixture(autouse=True)
+def multipassd(store_config):
 
-    if request.config.getoption("--no-daemon") is False:
+    if config.no_daemon is False:
         sys.stdout.write("Skipping launching the daemon.")
         yield None
         return
 
-    multipassd_path = shutil.which(
-        "multipassd", path=request.config.getoption("--build-root")
-    )
+    multipassd_path = shutil.which("multipassd", path=config.build_root)
     if not multipassd_path:
         die(2, "Could not find 'multipassd' executable!")
 
     multipassd_env = os.environ.copy()
-    multipassd_env["MULTIPASS_STORAGE"] = data_root
+    multipassd_env["MULTIPASS_STORAGE"] = config.data_root
 
-    if request.config.getoption("--remove-all-instances"):
+    if config.remove_all_instances:
+        sys.stderr.flush()
+        sys.stdout.flush()
         instance_records_file = os.path.join(
-            data_root, "data/vault/multipassd-instance-image-records.json"
+            config.data_root, "data/vault/multipassd-instance-image-records.json"
         )
+        # FIXME: Cross-platform
         subprocess.run(
             ["sudo", "truncate", "-s", "0", instance_records_file], check=False
         )
         subprocess.run(
-            ["sudo", "rm", "-rf", os.path.join(data_root, "data/vault/instances")],
+            [
+                "sudo",
+                "rm",
+                "-rf",
+                os.path.join(config.data_root, "data/vault/instances"),
+            ],
             check=False,
         )
 
@@ -251,7 +352,7 @@ def multipassd(request, multipass, data_root):
     if sys.platform == "win32":
         pass
     else:
-        prologue = ["sudo", "env", f"MULTIPASS_STORAGE={data_root}"]
+        prologue = ["sudo", "env", f"MULTIPASS_STORAGE={config.data_root}"]
 
     with run_process(
         prologue + [multipassd_path, "--logger=stderr"], env=multipassd_env
@@ -260,7 +361,6 @@ def multipassd(request, multipass, data_root):
 
         def monitor():
             poll_interval = 0.5
-            print_daemon_output = request.config.getoption("--print-daemon-output")
             while True:
                 if multipassd_proc.poll() is not None:
 
@@ -268,18 +368,13 @@ def multipassd(request, multipass, data_root):
                     if test_scope_exit and multipassd_proc.returncode == 0:
                         return
 
-                    sys.stderr.write(
-                        f"\n💥 FATAL: multipassd died with code {multipassd_proc.returncode}\n"
-                    )
-                    sys.stderr.flush()
-
                     reason_dict = {
                         r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?"
                     }
                     reasons = []
 
                     for line in multipassd_proc.stdout:
-                        if print_daemon_output:
+                        if config.print_daemon_output:
                             print(line, end="")
                         for k, v in reason_dict.items():
                             if re.search(k, line):
@@ -290,7 +385,7 @@ def multipassd(request, multipass, data_root):
                         f"FATAL: multipassd died with code {multipassd_proc.returncode}!\n"
                         "\n".join(reasons),
                     )
-                if print_daemon_output:
+                if config.print_daemon_output:
                     rlist, _, _ = select.select(
                         [multipassd_proc.stdout], [], [], poll_interval
                     )
@@ -305,7 +400,7 @@ def multipassd(request, multipass, data_root):
         monitor_thread = threading.Thread(target=monitor, daemon=True)
         monitor_thread.start()
 
-        if wait_for_multipassd_ready(multipass) is False:
+        if wait_for_multipassd_ready() is False:
             print("⚠️ multipassd not ready, attempting graceful shutdown...")
             multipassd_proc.terminate()  # polite SIGTERM
             try:
