@@ -18,67 +18,128 @@
 #
 
 # pytest -s tools/cli_tests/cli_tests.py --build-root build/bin/ --data-root=/tmp/multipass-test --remove-all-instances -vv
+# kill zombie dnsmasq: ps -eo pid,cmd | awk '/dnsmasq/ && /mpqemubr0/ { print $1 }' | xargs sudo kill -9
 
-import pytest
-import time
-import re
 import sys
+
+from collections.abc import Sequence
+
 import pexpect
 
+from cli_tests.conftest import multipass
 from cli_tests.utils import (
-    uuid4_str,
     is_valid_ipv4_addr,
     retry,
-    expect_json,
-    expect_text,
+    uuid4_str,
 )
 
 
-def test_list_empty(multipassd, multipass):
+def verify_vm(name, properties):
+    """Validate a VM's properties by fetching it via the `list`
+    command. The properties are compared by the actual values.
+    """
+    with multipass("list", "--format=json").json() as output:
+        assert output.exitstatus == 0
+        result = output.jq(f'.list[] | select(.name=="{name}")')
+        assert len(result) == 1
+        [instance] = result
+        for k, v in properties.items():
+            assert k in instance
+            # A property can be assigned to a callable. In that case, we'd want
+            # to treat it as a predicate and call it. We'd call it for each
+            # element if the matching key's value is a collection.
+            if callable(v):
+                if isinstance(instance[k], Sequence):
+                    for item in instance[k]:
+                        assert v(item)
+                else:
+                    assert v(instance[k])
+            else:
+                assert instance[k] == v
+
+
+def file_exists(vm_name, path):
+    return multipass("exec", f"{vm_name}", "--", "ls", f"{path}", timeout=180)
+
+
+def take_snapshot_and_verify(
+    vm_name, snapshot_name, expected_parent="", expected_comment=""
+):
+    assert multipass(
+        "exec",
+        f"{vm_name}",
+        "--",
+        "touch",
+        f"before_{snapshot_name}",
+        timeout=180,
+    )
+
+    assert multipass(
+        "exec",
+        f"{vm_name}",
+        "--",
+        "ls",
+        f"before_{snapshot_name}",
+        timeout=180,
+    )
+
+    assert multipass("stop", f"{vm_name}")
+
+    with multipass("snapshot", f"{vm_name}") as output:
+        assert output.exitstatus == 0
+        assert "Snapshot taken" in output
+
+    with multipass("list", "--format=json", "--snapshots").json() as output:
+        assert output.exitstatus == 0
+        assert vm_name in output["info"]
+        assert snapshot_name in output["info"][vm_name]
+        snapshot = output["info"][vm_name][snapshot_name]
+        assert expected_parent == snapshot["parent"]
+        assert expected_comment == snapshot["comment"]
+
+
+def test_list_empty():
     """Try to list instances whilst there are none."""
-    with expect_text(multipass("list")) as output:
-        assert "No instances found." in output
+    assert "No instances found." in multipass("list")
 
 
-def test_list_snapshots_empty(multipassd, multipass):
+def test_list_snapshots_empty():
     """Try to list snapshots whilst there are none."""
-    with expect_text(multipass("list", "--snapshots")) as output:
-        assert "No snapshots found." in output
+    assert "No snapshots found." in multipass("list", "--snapshots")
 
 
-def test_launch_noble(multipassd, multipass):
+def test_launch_noble():
     """Try to launch an Ubuntu 24.04 VM with 2 CPUs 1GiB RAM and 6G disk.
     Then, validate the basics."""
     name = uuid4_str("instance")
-    launch_timeout = 600  # 10 minutes should be plenty enough.
 
     # Launch with retry.
     # Sometimes the daemon is not immediately ready. Retry attempts
     # are here to remedy that until we have a "multipass status" command.
-    @retry(retries=3, delay=2.0)
-    def launch_vm():
-        with expect_text(
-            multipass(
-                "launch",
-                "--cpus",
-                "2",
-                "--memory",
-                "1G",
-                "--disk",
-                "6G",
-                "--name",
-                name,
-                "noble",
-            ),
-            timeout=launch_timeout,
-        ) as output:
-            return output
 
-    assert launch_vm().returncode == 0
+    assert multipass(
+        "launch",
+        "--cpus",
+        "2",
+        "--memory",
+        "1G",
+        "--disk",
+        "6G",
+        "--name",
+        name,
+        "noble",
+        retry=3,
+        timeout=600,
+    )
+
+    verify_vm(
+        name,
+        {"state": "Running", "release": "Ubuntu 24.04 LTS", "ipv4": is_valid_ipv4_addr},
+    )
 
     # Verify that list contains the instance
-    with expect_json(multipass("list", "--format=json")) as output:
-        assert output.returncode == 0
+    with multipass("list", "--format=json").json() as output:
+        assert output.exitstatus == 0
         result = output.jq(f'.list[] | select(.name=="{name}")')
         assert len(result) == 1
         [instance] = result
@@ -87,8 +148,8 @@ def test_launch_noble(multipassd, multipass):
         assert is_valid_ipv4_addr(instance["ipv4"][0])
 
     # Verify the instance info
-    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
-        assert output.returncode == 0
+    with multipass("info", "--format=json", f"{name}").json() as output:
+        assert output.exitstatus == 0
         assert "errors" in output
         assert output["errors"] == []
         assert "info" in output
@@ -102,12 +163,11 @@ def test_launch_noble(multipassd, multipass):
         assert is_valid_ipv4_addr(instance_info["ipv4"][0])
 
     # Try to stop the instance
-    with expect_text(multipass("stop", f"{name}"), timeout=180) as output:
-        assert output.returncode == 0
+    assert multipass("stop", f"{name}", timeout=180)
 
     # Verify the instance info
-    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
-        assert output.returncode == 0
+    with multipass("info", "--format=json", f"{name}").json() as output:
+        assert output.exitstatus == 0
         assert "errors" in output
         assert output["errors"] == []
         assert "info" in output
@@ -116,11 +176,10 @@ def test_launch_noble(multipassd, multipass):
         assert instance_info["state"] == "Stopped"
 
     # Try to start the instance
-    with expect_text(multipass("start", f"{name}")) as output:
-        assert output.returncode == 0
+    assert multipass("start", f"{name}")
 
-    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
-        assert output.returncode == 0
+    with multipass("info", "--format=json", f"{name}").json() as output:
+        assert output.exitstatus == 0
         assert "errors" in output
         assert output["errors"] == []
         assert "info" in output
@@ -128,8 +187,8 @@ def test_launch_noble(multipassd, multipass):
         instance_info = output["info"][name]
         assert instance_info["state"] == "Running"
 
-    with expect_json(multipass("info", "--format=json", f"{name}")) as output:
-        assert output.returncode == 0
+    with multipass("info", "--format=json", f"{name}", retry=3).json() as output:
+        assert output.exitstatus == 0
         assert "errors" in output
         assert output["errors"] == []
         assert "info" in output
@@ -138,38 +197,32 @@ def test_launch_noble(multipassd, multipass):
         assert instance_info["state"] == "Running"
 
     # Remove the instance.
-    with expect_text(multipass("delete", f"{name}"), timeout=180) as output:
-        assert output.returncode == 0
+    assert multipass("delete", f"{name}")
 
 
-def test_shell(multipassd, multipass):
+def test_shell():
     """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
     Then, try to shell into it and execute some basic commands."""
     name = uuid4_str("instance")
-    timeout = 600  # 10 minutes should be plenty enough.
 
-    @retry(retries=3, delay=2.0)
-    def launch_vm():
-        with expect_text(
-            multipass(
-                "launch",
-                "--cpus",
-                "2",
-                "--memory",
-                "1G",
-                "--disk",
-                "6G",
-                "--name",
-                name,
-                "jammy",
-            ),
-            timeout=timeout,
-        ) as output:
-            return output
+    assert multipass(
+        "launch",
+        "--cpus",
+        "2",
+        "--memory",
+        "1G",
+        "--disk",
+        "6G",
+        "--name",
+        name,
+        "jammy",
+        retry=3,
+        timeout=600,
+    )
 
-    assert launch_vm().returncode == 0
+    verify_vm(name, {"state": "Running"})
 
-    with multipass("shell", f"{name}", encoding="utf-8") as vm_shell:
+    with multipass("shell", f"{name}", encoding="utf-8", interactive=True) as vm_shell:
         # Display the contents
         vm_shell.logfile = sys.stdout.buffer
         vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
@@ -209,5 +262,92 @@ def test_shell(multipassd, multipass):
         assert vm_shell.exitstatus == 0
 
     # Remove the instance.
-    with expect_text(multipass("delete", f"{name}"), timeout=180) as output:
-        assert output.returncode == 0
+    assert multipass("delete", f"{name}").exitstatus == 0
+
+
+def test_take_snapshot_linear_history():
+    """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
+    Then, try to test snapshots feature"""
+    name = uuid4_str("instance")
+
+    assert multipass(
+        "launch",
+        "--cpus",
+        "2",
+        "--memory",
+        "1G",
+        "--disk",
+        "6G",
+        "--name",
+        name,
+        "jammy",
+        retry=3,
+        timeout=600,
+    )
+
+    verify_vm(name, {"state": "Running"})
+
+    take_snapshot_and_verify(name, "snapshot1")
+    take_snapshot_and_verify(name, "snapshot2", "snapshot1")
+    take_snapshot_and_verify(name, "snapshot3", "snapshot2")
+
+
+def test_take_snapshot_delete_linear_history():
+    """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
+    Then, try to test snapshots feature"""
+    name = uuid4_str("instance")
+
+    assert multipass(
+        "launch",
+        "--cpus",
+        "2",
+        "--memory",
+        "1G",
+        "--disk",
+        "6G",
+        "--name",
+        name,
+        "jammy",
+        retry=3,
+        timeout=600,
+    )
+
+    verify_vm(name, {"state": "Running"})
+
+    take_snapshot_and_verify(name, "snapshot1")
+    take_snapshot_and_verify(name, "snapshot2", "snapshot1")
+    take_snapshot_and_verify(name, "snapshot3", "snapshot2")
+    assert multipass("delete", f"{name}.snapshot1", "--purge")
+
+
+def test_take_snapshot_and_restore():
+    """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
+    Then, try to test snapshots feature"""
+    name = uuid4_str("instance")
+
+    assert multipass(
+        "launch",
+        "--cpus",
+        "2",
+        "--memory",
+        "1G",
+        "--disk",
+        "6G",
+        "--name",
+        name,
+        "jammy",
+        retry=3,
+        timeout=600,
+    )
+
+    verify_vm(name, {"state": "Running"})
+
+    take_snapshot_and_verify(name, "snapshot1")
+    take_snapshot_and_verify(name, "snapshot2", "snapshot1")
+    take_snapshot_and_verify(name, "snapshot3", "snapshot2")
+
+    assert multipass("restore", f"{name}.snapshot1", "--destructive")
+
+    assert file_exists(name, "before_snapshot1")
+    assert not file_exists(name, "before_snapshot2")
+    assert not file_exists(name, "before_snapshot3")
