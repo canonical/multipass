@@ -93,6 +93,8 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
             if (n.IsScalar())
             {
                 const std::string value = n.Scalar();
+                // If the node is a scalar string that looks like an octal number,
+                // emit it explicitly as a string to prevent YAML from interpreting it as an octal value.                
                 if (value.length() >= 2 && value[0] == '0' &&
                     std::all_of(value.begin() + 1, value.end(), ::isdigit))
                 {
