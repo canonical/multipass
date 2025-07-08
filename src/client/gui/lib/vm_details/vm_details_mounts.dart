@@ -27,9 +27,11 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
 
   @override
   Widget build(BuildContext context) {
-    final mounts = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.mountInfo.mountPaths.build();
-    }));
+    final mounts = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.mountInfo.mountPaths.build();
+      }),
+    );
 
     final mountPointsView = MountPointsView(
       mounts: mounts,
@@ -89,23 +91,22 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const SizedBox(
-              height: 50,
-              child: Text('Mounts', style: TextStyle(fontSize: 24)),
-            ),
-            const Spacer(),
-            topRightButton,
-          ]),
+          Row(
+            children: [
+              const SizedBox(
+                height: 50,
+                child: Text('Mounts', style: TextStyle(fontSize: 24)),
+              ),
+              const Spacer(),
+              topRightButton,
+            ],
+          ),
           mountPointsView,
           const SizedBox(height: 20),
           if (phase == MountDetailsPhase.configure) addMountButton,
           if (phase == MountDetailsPhase.adding) ...[
             editableMountPoint,
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: saveButton,
-            ),
+            Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
           ],
         ],
       ),
@@ -139,11 +140,13 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       barrierDismissible: false,
       builder: (context) => ConfirmationDialog(
         title: 'Delete mount',
-        body: Text.rich([
-          'Are you sure you want to remove the mount\n'.span,
-          '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
-          ' from ${widget.name}?'.span,
-        ].spans),
+        body: Text.rich(
+          [
+            'Are you sure you want to remove the mount\n'.span,
+            '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
+            ' from ${widget.name}?'.span,
+          ].spans,
+        ),
         actionText: 'Delete',
         onAction: () {
           Navigator.pop(context);

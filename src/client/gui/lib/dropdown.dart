@@ -51,11 +51,13 @@ class Dropdown<T> extends StatelessWidget {
       ),
     );
 
-    return Row(children: [
-      if (label != null) ...[
-        Expanded(child: Text(label!, style: const TextStyle(fontSize: 16))),
+    return Row(
+      children: [
+        if (label != null) ...[
+          Expanded(child: Text(label!, style: const TextStyle(fontSize: 16))),
+        ],
+        styledDropdown,
       ],
-      styledDropdown,
-    ]);
+    );
   }
 }

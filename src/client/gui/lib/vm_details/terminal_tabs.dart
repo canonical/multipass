@@ -12,7 +12,7 @@ import 'terminal.dart';
 
 typedef ShellIds = ({
   BuiltList<ShellId> ids,
-// this is the index of the currently selected shell id
+  // this is the index of the currently selected shell id
   int currentIndex,
 });
 
@@ -118,11 +118,13 @@ class Tab extends StatelessWidget {
       child: Container(
         width: 190,
         decoration: decoration,
-        child: Row(children: [
-          ubuntuIcon,
-          Expanded(child: tabTitle),
-          closeButton,
-        ]),
+        child: Row(
+          children: [
+            ubuntuIcon,
+            Expanded(child: tabTitle),
+            closeButton,
+          ],
+        ),
       ),
     );
   }
@@ -149,9 +151,11 @@ class TerminalTabs extends ConsumerWidget {
           selected: index == currentIndex,
           onTap: () => ref.read(notifier).setCurrent(index),
           onClose: () {
-            final ask = ref.read(askTerminalCloseProvider.select((ask) {
-              return ask?.toBoolOption.toNullable() ?? true;
-            }));
+            final ask = ref.read(
+              askTerminalCloseProvider.select((ask) {
+                return ask?.toBoolOption.toNullable() ?? true;
+              }),
+            );
             final terminalKey = (vmName: name, shellId: shellId);
             if (!ask || ref.read(terminalProvider(terminalKey)) == null) {
               ref.read(notifier).remove(index);
@@ -216,13 +220,11 @@ class TerminalTabs extends ConsumerWidget {
       ),
     );
 
-    return Column(children: [
-      Container(
-        color: const Color(0xff222222),
-        height: 35,
-        child: tabList,
-      ),
-      Expanded(child: shellStack),
-    ]);
+    return Column(
+      children: [
+        Container(color: const Color(0xff222222), height: 35, child: tabList),
+        Expanded(child: shellStack),
+      ],
+    );
   }
 }

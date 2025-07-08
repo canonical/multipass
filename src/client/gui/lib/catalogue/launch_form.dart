@@ -79,8 +79,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       helper: 'Names cannot be changed once an instance is created',
       hint: randomName,
       validator: nameValidator(vmNames, deletedVms),
-      onSaved: (value) => launchRequest.instanceName =
-          value.isNullOrBlank ? randomName : value!,
+      onSaved: (value) => launchRequest.instanceName = value.isNullOrBlank
+          ? randomName
+          : value!,
       width: 360,
     );
 
@@ -110,16 +111,17 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       initialValue: false,
       onSaved: (value) {
         if (value!) {
-          launchRequest.networkOptions
-              .add(LaunchRequest_NetworkOptions(id: 'bridged'));
+          launchRequest.networkOptions.add(
+            LaunchRequest_NetworkOptions(id: 'bridged'),
+          );
         }
       },
       builder: (field) {
         final message = networks.isEmpty
             ? 'No networks found.'
             : validBridgedNetwork
-                ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
-                : 'No valid bridged network is set.\nYou can set one in the Settings page.';
+            ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
+            : 'No valid bridged network is set.\nYou can set one in the Settings page.';
 
         return Switch(
           label: message,
@@ -132,14 +134,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final mountPointsView = MountPointsView(
       allowDelete: true,
-      mounts: mountRequests.map((r) => MountPaths(
-            sourcePath: r.sourcePath,
-            targetPath: r.targetPaths.first.targetPath,
-          )),
+      mounts: mountRequests.map(
+        (r) => MountPaths(
+          sourcePath: r.sourcePath,
+          targetPath: r.targetPaths.first.targetPath,
+        ),
+      ),
       onDelete: (mountPaths) => setState(() {
-        mountRequests.removeWhere((r) =>
-            r.sourcePath == mountPaths.sourcePath &&
-            r.targetPaths.first.targetPath == mountPaths.targetPath);
+        mountRequests.removeWhere(
+          (r) =>
+              r.sourcePath == mountPaths.sourcePath &&
+              r.targetPaths.first.targetPath == mountPaths.targetPath,
+        );
       }),
     );
 
@@ -176,8 +182,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       existingTargets: mountRequests.map((r) => r.targetPaths.first.targetPath),
       initialSource:
           mountRequests.any((r) => r.sourcePath == mpPlatform.homeDirectory)
-              ? null
-              : mpPlatform.homeDirectory,
+          ? null
+          : mpPlatform.homeDirectory,
       onSaved: (request) => setState(() {
         mountRequests.add(request);
         addingMount = false;
@@ -186,49 +192,55 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final mountForm = Form(
       key: mountFormKey,
-      child: Column(children: [
-        editableMountPoint,
-        const SizedBox(height: 16),
-        Row(children: [
-          saveMountButton,
-          const SizedBox(width: 16),
-          cancelMountButton,
-        ]),
-      ]),
+      child: Column(
+        children: [
+          editableMountPoint,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              saveMountButton,
+              const SizedBox(width: 16),
+              cancelMountButton,
+            ],
+          ),
+        ],
+      ),
     );
 
     final formBody = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          const Text('Configure instance', style: TextStyle(fontSize: 24)),
-          const Spacer(),
-          closeButton,
-        ]),
-        const SizedBox(height: 20),
-        const Text(
-          'Image',
-          style: TextStyle(fontSize: 18),
+        Row(
+          children: [
+            const Text('Configure instance', style: TextStyle(fontSize: 24)),
+            const Spacer(),
+            closeButton,
+          ],
         ),
+        const SizedBox(height: 20),
+        const Text('Image', style: TextStyle(fontSize: 18)),
         const SizedBox(height: 4),
         chosenImageName,
         const SizedBox(height: 16),
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          nameInput,
-          const Spacer(),
-        ]),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [nameInput, const Spacer()],
+        ),
         const Divider(height: 60),
         const SizedBox(
           height: 50,
           child: Text('Resources', style: TextStyle(fontSize: 24)),
         ),
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: cpusSlider),
-          const SizedBox(width: 86),
-          Expanded(child: memorySlider),
-          const SizedBox(width: 86),
-          Expanded(child: diskSlider),
-        ]),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: cpusSlider),
+            const SizedBox(width: 86),
+            Expanded(child: memorySlider),
+            const SizedBox(width: 86),
+            Expanded(child: diskSlider),
+          ],
+        ),
         const Divider(height: 60),
         const SizedBox(
           height: 50,
@@ -261,44 +273,52 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: const Text('Cancel'),
     );
 
-    return Stack(fit: StackFit.loose, children: [
-      Positioned.fill(
-        bottom: 80,
-        child: Container(
-          alignment: Alignment.topCenter,
-          color: Colors.white,
-          child: Form(
-            key: formKey,
-            autovalidateMode: AutovalidateMode.always,
-            child: SingleChildScrollView(
-              clipBehavior: Clip.none,
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: formBody,
+    return Stack(
+      fit: StackFit.loose,
+      children: [
+        Positioned.fill(
+          bottom: 80,
+          child: Container(
+            alignment: Alignment.topCenter,
+            color: Colors.white,
+            child: Form(
+              key: formKey,
+              autovalidateMode: AutovalidateMode.always,
+              child: SingleChildScrollView(
+                clipBehavior: Clip.none,
+                controller: scrollController,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: formBody,
+                ),
               ),
             ),
           ),
         ),
-      ),
-      Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.all(16).copyWith(top: 4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Divider(height: 30),
-            Row(children: [
-              launchButton,
-              const SizedBox(width: 16),
-              launchAndConfigureNextButton,
-              const SizedBox(width: 16),
-              cancelButton,
-            ]),
-          ]),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(16).copyWith(top: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Divider(height: 30),
+                Row(
+                  children: [
+                    launchButton,
+                    const SizedBox(width: 16),
+                    launchAndConfigureNextButton,
+                    const SizedBox(width: 16),
+                    cancelButton,
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 
   void launch(ImageInfo imageInfo, {bool configureNext = false}) {

@@ -62,10 +62,8 @@ final headers = <TableHeader<VmInfo>>[
     name: 'DISK USAGE',
     width: 130,
     minWidth: 100,
-    cellBuilder: (info) => MemoryUsage(
-      used: info.instanceInfo.diskUsage,
-      total: info.diskTotal,
-    ),
+    cellBuilder: (info) =>
+        MemoryUsage(used: info.instanceInfo.diskUsage, total: info.diskTotal),
   ),
   TableHeader(
     name: 'IMAGE',
@@ -128,9 +126,11 @@ class SelectVmCheckbox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedVmsProvider.select((selectedVms) {
-      return selectedVms.contains(name);
-    }));
+    final selected = ref.watch(
+      selectedVmsProvider.select((selectedVms) {
+        return selectedVms.contains(name);
+      }),
+    );
 
     void toggleSelected(bool isSelected) {
       ref.read(selectedVmsProvider.notifier).update((state) {
