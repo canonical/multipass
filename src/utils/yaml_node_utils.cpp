@@ -92,7 +92,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
             // Special handling for strings that look like octal numbers (e.g. "0755")
             if (n.IsScalar())
             {
-                std::string value = n.Scalar();
+                const std::string value = n.Scalar();
                 if (value.length() >= 2 && value[0] == '0' &&
                     std::all_of(value.begin() + 1, value.end(), ::isdigit))
                 {
