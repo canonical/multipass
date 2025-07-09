@@ -73,8 +73,8 @@ struct GuidParseError : FormattedExceptionBase<>
 
 auto guid_from_wstring(const std::wstring& guid_wstr) -> ::GUID
 {
-    constexpr auto kGUIDLength = 36;
-    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
+    constexpr static auto kGUIDLength = 36;
+    constexpr static auto kGUIDLengthWithBraces = kGUIDLength + 2;
 
     const auto input = [&guid_wstr]() {
         switch (guid_wstr.length())
