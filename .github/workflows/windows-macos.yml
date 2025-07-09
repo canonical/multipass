@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  group: windows-macos-${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
   cancel-in-progress: true
 
 env:
