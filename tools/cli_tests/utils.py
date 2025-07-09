@@ -117,6 +117,13 @@ def is_valid_ipv4_addr(ip_str):
     return bool(re.match(pattern, ip_str))
 
 
+def get_default_timeout_for(cmd):
+    default_timeouts = {"delete": 30, "stop": 180, "launch": 600}
+    if cmd in default_timeouts:
+        return default_timeouts[cmd]
+    return 10
+
+
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context manager support.
 
@@ -153,7 +160,11 @@ def multipass(*args, **kwargs):
     """
     multipass_path = shutil.which("multipass", path=config.build_root)
 
-    timeout = kwargs.get("timeout") if "timeout" in kwargs else 30
+    timeout = (
+        kwargs.get("timeout")
+        if "timeout" in kwargs
+        else get_default_timeout_for(args[0])
+    )
     # print(f"timeout is {timeout} for {multipass_path} {' '.join(args)}")
     retry_count = kwargs.pop("retry", None)
     if retry_count is not None:
