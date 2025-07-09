@@ -126,10 +126,6 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     EXPECT_TRUE(p_result);
     std::wprintf(L"%s\n", p_result.status_msg.c_str());
 
-    // const auto e_result = uut.enumerate_all_compute_systems();
-    // EXPECT_TRUE(e_result);
-    // std::wprintf(L"%s\n", e_result.status_msg.c_str());
-
     const auto d_result = uut.terminate_compute_system(params.name);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
