@@ -17,6 +17,8 @@
 #
 #
 
+"""Pytest customizations."""
+
 import sys
 import os
 import re
@@ -27,14 +29,12 @@ import time
 import tempfile
 import select
 from contextlib import contextmanager
-from types import SimpleNamespace
 
 import pexpect
 import pytest
 
-from cli_tests.utils import Output, retry
-
-config = SimpleNamespace()
+from cli_tests.utils import Output, multipass
+from cli_tests.config import config
 
 
 def pytest_addoption(parser):
@@ -169,134 +169,6 @@ def ensure_sudo_auth():
         subprocess.run(["sudo", "-v"], check=True)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
-
-
-def multipass(*args, **kwargs):
-    """Run a Multipass CLI command with optional retry, timeout, and context manager support.
-
-    This function wraps Multipass CLI invocations using `pexpect`. It supports:
-    - Retry logic on failure
-    - Interactive vs. non-interactive execution
-    - Context manager usage (`with` statement)
-    - Lazy evaluation of command output
-
-    Args:
-        *args: Positional CLI arguments to pass to the `multipass` command.
-
-    Keyword Args:
-        timeout (int, optional): Maximum time in seconds to wait for command completion.Defaults to 30.
-        interactive (bool, optional): If True, returns a live interactive `pexpect.spawn` object for manual interaction.
-        retry (int, optional): Number of retry attempts on failure. Uses exponential backoff (2s delay).
-
-    Returns:
-        - If `interactive=True`: a `pexpect.spawn` object.
-        - Otherwise, Output object containing the command's result.
-
-    Raises:
-        TimeoutError: If the command execution exceeds the timeout.
-        RuntimeError: If the CLI process fails in a non-retryable way.
-
-    Example:
-        >>> out = multipass("list", "--format", "json").jq(".instances")
-        >>> with multipass("info", "test") as output:
-        ...     print(output.exitstatus)
-
-    Notes:
-        - You can access output fields directly: `multipass("version").exitstatus`
-        - You can use `in` or `bool()` checks on the result proxy.
-    """
-    multipass_path = shutil.which("multipass", path=config.build_root)
-
-    timeout = kwargs.get("timeout") if "timeout" in kwargs else 30
-    # print(f"timeout is {timeout} for {multipass_path} {' '.join(args)}")
-    retry_count = kwargs.pop("retry", None)
-    if retry_count is not None:
-
-        @retry(retries=retry_count, delay=2.0)
-        def retry_wrapper():
-            return multipass(*args, **kwargs)
-
-        return retry_wrapper()
-
-    if kwargs.get("interactive"):
-        return pexpect.spawn(
-            f"{multipass_path} {' '.join(args)}",
-            logfile=(sys.stdout.buffer if config.print_cli_output else None),
-            timeout=timeout,
-        )
-
-    class Cmd:
-        """Run a Multipass CLI command and capture its output.
-
-        Spawns a `pexpect` child process to run the given command,
-        waits for it to complete, decodes the output, and ensures cleanup.
-
-        Methods:
-            __call__(): Returns an `Output` object with decoded output and exit status.
-            __enter__(): Enables use as a context manager, returning the `Output`.
-            __exit__(): No-op for context manager exit; always returns False.
-        """
-
-        def __init__(self):
-            try:
-                self.pexpect_child = pexpect.spawn(
-                    f"{multipass_path} {' '.join(args)}",
-                    logfile=(sys.stdout.buffer if config.print_cli_output else None),
-                    timeout=timeout,
-                )
-                self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
-                self.pexpect_child.wait()
-                self.output_text = self.pexpect_child.before.decode("utf-8")
-            finally:
-                if self.pexpect_child.isalive():
-                    sys.stderr.write(
-                        f"\n❌🔥 Terminating {multipass_path} {' '.join(args)}\n"
-                    )
-                    sys.stdout.flush()
-                    sys.stderr.flush()
-                    self.pexpect_child.terminate()
-
-        def __call__(self):
-            return Output(self.output_text, self.pexpect_child.exitstatus)
-
-        def __enter__(self):
-            return self.__call__()
-
-        def __exit__(self, *args):
-            return False
-
-    cmd = Cmd()
-
-    class ContextManagerProxy:
-        """Wrapper to avoid having to type multipass("command")() (note the parens)"""
-
-        def __init__(self):
-            self.result = None
-
-        def _populate_result(self):
-            if self.result is None:
-                self.result = cmd()
-
-        def __getattr__(self, name):
-            # Lazily run the command if someone tries to access attributes
-            self._populate_result()
-            return getattr(self.result, name)
-
-        def __enter__(self):
-            return cmd.__enter__()
-
-        def __exit__(self, *a):
-            return cmd.__exit__(*a)
-
-        def __contains__(self, item):
-            self._populate_result()
-            return self.result.__contains__(item)
-
-        def __bool__(self):
-            self._populate_result()
-            return self.result.__bool__()
-
-    return ContextManagerProxy()
 
 
 def wait_for_multipassd_ready(timeout=10):
