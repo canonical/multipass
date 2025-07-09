@@ -222,9 +222,7 @@ def test_shell():
 
     verify_vm(name, {"state": "Running"})
 
-    with multipass("shell", f"{name}", encoding="utf-8", interactive=True) as vm_shell:
-        # Display the contents
-        vm_shell.logfile = sys.stdout.buffer
+    with multipass("shell", f"{name}", interactive=True) as vm_shell:
         vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
         # Send a command and expect output
         vm_shell.sendline('echo "Hello from multipass"')
