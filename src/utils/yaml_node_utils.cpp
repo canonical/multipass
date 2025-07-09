@@ -25,35 +25,26 @@ namespace mp = multipass;
 
 namespace
 {
-/**
- * Index for the default interface
- */
-constexpr std::size_t kDefaultInterfaceIndex = 0;
 
-/**
- * The start index for the extra interfaces
- */
+constexpr std::size_t kDefaultInterfaceIndex = 0;
 constexpr std::size_t kExtraInterfaceIndexStart = kDefaultInterfaceIndex + 1;
+constexpr std::string_view kInterfaceNamePattern = "eth{}";
 
 struct interface_details
 {
     std::string name;
     std::string mac_addr;
-    std::optional<int> route_metric{std::nullopt};
     bool optional{false};
+    std::optional<int> route_metric{std::nullopt};
 
     interface_details(const std::string& mac_addr,
                       std::size_t index = kDefaultInterfaceIndex,
                       bool optional = false)
+        : name(fmt::format(kInterfaceNamePattern, index)),
+          mac_addr(mac_addr),
+          optional(optional),
+          route_metric(optional ? std::make_optional(200) : std::nullopt)
     {
-        constexpr std::string_view kInterfaceNamePattern = "eth{}";
-        this->name = fmt::format(kInterfaceNamePattern, index);
-        this->mac_addr = mac_addr;
-        if (optional)
-        {
-            this->optional = true;
-            this->route_metric = 200;
-        }
     }
 };
 
