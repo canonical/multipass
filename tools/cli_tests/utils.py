@@ -253,6 +253,14 @@ def multipass(*args, **kwargs):
             self._populate_result()
             return self.result.__bool__()
 
+        def __repr__(self):
+            status = (
+                f"exit={self.result.content}"
+                if self.result is not None
+                else "not yet executed"
+            )
+            return f"<MultipassProxy cmd='multipass {' '.join(cmd.pexpect_child.command)}' {status}>"
+
     return ContextManagerProxy()
 
 
