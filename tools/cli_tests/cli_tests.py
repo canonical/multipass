@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -17,79 +16,19 @@
 #
 #
 
-from collections.abc import Sequence
+"""Multipass command line e2e tests"""
 
 import pexpect
 
-from cli_tests.conftest import multipass
 from cli_tests.utils import (
     is_valid_ipv4_addr,
     uuid4_str,
+    validate_list_output,
+    validate_info_output,
+    file_exists,
+    take_snapshot,
+    multipass,
 )
-
-
-def verify_vm(name, properties):
-    """Validate a VM's properties by fetching it via the `list`
-    command. The properties are compared by the actual values.
-    """
-    with multipass("list", "--format=json").json() as output:
-        assert output.exitstatus == 0
-        result = output.jq(f'.list[] | select(.name=="{name}")')
-        assert len(result) == 1
-        [instance] = result
-        for k, v in properties.items():
-            assert k in instance
-            # A property can be assigned to a callable. In that case, we'd want
-            # to treat it as a predicate and call it. We'd call it for each
-            # element if the matching key's value is a collection.
-            if callable(v):
-                if isinstance(instance[k], Sequence):
-                    for item in instance[k]:
-                        assert v(item)
-                else:
-                    assert v(instance[k])
-            else:
-                assert instance[k] == v
-
-
-def file_exists(vm_name, path):
-    return multipass("exec", f"{vm_name}", "--", "ls", f"{path}", timeout=180)
-
-
-def take_snapshot_and_verify(
-    vm_name, snapshot_name, expected_parent="", expected_comment=""
-):
-    assert multipass(
-        "exec",
-        f"{vm_name}",
-        "--",
-        "touch",
-        f"before_{snapshot_name}",
-        timeout=180,
-    )
-
-    assert multipass(
-        "exec",
-        f"{vm_name}",
-        "--",
-        "ls",
-        f"before_{snapshot_name}",
-        timeout=180,
-    )
-
-    assert multipass("stop", f"{vm_name}")
-
-    with multipass("snapshot", f"{vm_name}") as output:
-        assert output.exitstatus == 0
-        assert "Snapshot taken" in output
-
-    with multipass("list", "--format=json", "--snapshots").json() as output:
-        assert output.exitstatus == 0
-        assert vm_name in output["info"]
-        assert snapshot_name in output["info"][vm_name]
-        snapshot = output["info"][vm_name][snapshot_name]
-        assert expected_parent == snapshot["parent"]
-        assert expected_comment == snapshot["comment"]
 
 
 def test_list_empty():
@@ -126,72 +65,34 @@ def test_launch_noble():
         timeout=600,
     )
 
-    verify_vm(
+    validate_list_output(
         name,
         {"state": "Running", "release": "Ubuntu 24.04 LTS", "ipv4": is_valid_ipv4_addr},
     )
 
-    # Verify that list contains the instance
-    with multipass("list", "--format=json").json() as output:
-        assert output.exitstatus == 0
-        result = output.jq(f'.list[] | select(.name=="{name}")')
-        assert len(result) == 1
-        [instance] = result
-        assert instance["release"] == "Ubuntu 24.04 LTS"
-        assert instance["state"] == "Running"
-        assert is_valid_ipv4_addr(instance["ipv4"][0])
-
-    # Verify the instance info
-    with multipass("info", "--format=json", f"{name}").json() as output:
-        assert output.exitstatus == 0
-        assert "errors" in output
-        assert output["errors"] == []
-        assert "info" in output
-        assert name in output["info"]
-        instance_info = output["info"][name]
-        assert instance_info["cpu_count"] == "2"
-        assert instance_info["snapshot_count"] == "0"
-        assert instance_info["state"] == "Running"
-        assert instance_info["mounts"] == {}
-        assert instance_info["image_release"] == "24.04 LTS"
-        assert is_valid_ipv4_addr(instance_info["ipv4"][0])
+    validate_info_output(
+        name,
+        {
+            "cpu_count": "2",
+            "snapshot_count": "0",
+            "state": "Running",
+            "mounts": {},
+            "image_release": "24.04 LTS",
+            "ipv4": is_valid_ipv4_addr,
+        },
+    )
 
     # Try to stop the instance
     assert multipass("stop", f"{name}", timeout=180)
-
-    # Verify the instance info
-    with multipass("info", "--format=json", f"{name}").json() as output:
-        assert output.exitstatus == 0
-        assert "errors" in output
-        assert output["errors"] == []
-        assert "info" in output
-        assert name in output["info"]
-        instance_info = output["info"][name]
-        assert instance_info["state"] == "Stopped"
+    validate_info_output(name, {"state": "Stopped"})
 
     # Try to start the instance
     assert multipass("start", f"{name}")
-
-    with multipass("info", "--format=json", f"{name}").json() as output:
-        assert output.exitstatus == 0
-        assert "errors" in output
-        assert output["errors"] == []
-        assert "info" in output
-        assert name in output["info"]
-        instance_info = output["info"][name]
-        assert instance_info["state"] == "Running"
-
-    with multipass("info", "--format=json", f"{name}", retry=3).json() as output:
-        assert output.exitstatus == 0
-        assert "errors" in output
-        assert output["errors"] == []
-        assert "info" in output
-        assert name in output["info"]
-        instance_info = output["info"][name]
-        assert instance_info["state"] == "Running"
+    validate_info_output(name, {"state": "Running"})
 
     # Remove the instance.
     assert multipass("delete", f"{name}")
+    validate_info_output(name, {"state": "Deleted"})
 
 
 def test_shell():
@@ -214,7 +115,7 @@ def test_shell():
         timeout=600,
     )
 
-    verify_vm(name, {"state": "Running"})
+    validate_list_output(name, {"state": "Running"})
 
     with multipass("shell", f"{name}", interactive=True) as vm_shell:
         vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
@@ -254,7 +155,7 @@ def test_shell():
         assert vm_shell.exitstatus == 0
 
     # Remove the instance.
-    assert multipass("delete", f"{name}").exitstatus == 0
+    assert multipass("delete", f"{name}")
 
 
 def test_take_snapshot_linear_history():
@@ -277,11 +178,14 @@ def test_take_snapshot_linear_history():
         timeout=600,
     )
 
-    verify_vm(name, {"state": "Running"})
-
-    take_snapshot_and_verify(name, "snapshot1")
-    take_snapshot_and_verify(name, "snapshot2", "snapshot1")
-    take_snapshot_and_verify(name, "snapshot3", "snapshot2")
+    validate_list_output(name, {"state": "Running"})
+    validate_info_output(name, {"snapshot_count": "0"})
+    take_snapshot(name, "snapshot1")
+    validate_info_output(name, {"snapshot_count": "1"})
+    take_snapshot(name, "snapshot2", "snapshot1")
+    validate_info_output(name, {"snapshot_count": "2"})
+    take_snapshot(name, "snapshot3", "snapshot2")
+    validate_info_output(name, {"snapshot_count": "3"})
 
 
 def test_take_snapshot_delete_linear_history():
@@ -304,12 +208,20 @@ def test_take_snapshot_delete_linear_history():
         timeout=600,
     )
 
-    verify_vm(name, {"state": "Running"})
+    validate_list_output(name, {"state": "Running"})
+    validate_info_output(name, {"snapshot_count": "0"})
 
-    take_snapshot_and_verify(name, "snapshot1")
-    take_snapshot_and_verify(name, "snapshot2", "snapshot1")
-    take_snapshot_and_verify(name, "snapshot3", "snapshot2")
+    take_snapshot(name, "snapshot1")
+    validate_info_output(name, {"snapshot_count": "1"})
+
+    take_snapshot(name, "snapshot2", "snapshot1")
+    validate_info_output(name, {"snapshot_count": "2"})
+
+    take_snapshot(name, "snapshot3", "snapshot2")
+    validate_info_output(name, {"snapshot_count": "3"})
+
     assert multipass("delete", f"{name}.snapshot1", "--purge")
+    validate_info_output(name, {"snapshot_count": "2"})
 
 
 def test_take_snapshot_and_restore():
@@ -332,13 +244,20 @@ def test_take_snapshot_and_restore():
         timeout=600,
     )
 
-    verify_vm(name, {"state": "Running"})
+    validate_list_output(name, {"state": "Running"})
+    validate_info_output(name, {"snapshot_count": "0"})
 
-    take_snapshot_and_verify(name, "snapshot1")
-    take_snapshot_and_verify(name, "snapshot2", "snapshot1")
-    take_snapshot_and_verify(name, "snapshot3", "snapshot2")
+    take_snapshot(name, "snapshot1")
+    validate_info_output(name, {"snapshot_count": "1"})
+
+    take_snapshot(name, "snapshot2", "snapshot1")
+    validate_info_output(name, {"snapshot_count": "2"})
+
+    take_snapshot(name, "snapshot3", "snapshot2")
+    validate_info_output(name, {"snapshot_count": "3"})
 
     assert multipass("restore", f"{name}.snapshot1", "--destructive")
+    validate_info_output(name, {"snapshot_count": "3"})
 
     assert file_exists(name, "before_snapshot1")
     assert not file_exists(name, "before_snapshot2")
