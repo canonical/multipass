@@ -143,8 +143,15 @@ def ensure_sudo_auth():
         if result.returncode == 0:
             return
 
-        # Need to authenticate
-        sys.stdout.write("\n\n")
+        message = (
+            "🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒\n"
+            "Multipass CLI tests require `sudo` authentication.\n"
+            "This only needs to be done once per session.\n"
+            "You'll be prompted to enter your password now.\n"
+            "🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒\n"
+        )
+
+        sys.stdout.write(f"\n\n{message}")
         sys.stdout.flush()
         subprocess.run(["sudo", "-v"], check=True)
     except subprocess.TimeoutExpired:
