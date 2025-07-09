@@ -164,3 +164,25 @@ cloud-name: multipass)";
     EXPECT_EQ(meta_data_node["local-hostname"].as<std::string>(), "vm1");
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
+
+TEST(UtilsTests, emitYamlWithOctalString)
+{
+    YAML::Node node;
+    node["permissions"] = "0755";
+    node["another_permission"] = "0644";
+    node["not_octal"] = "0abc";
+    node["regular_string"] = "hello";
+
+    const std::string result = mpu::emit_yaml(node);
+
+    // The octal strings should be tagged as strings to preserve their format
+    EXPECT_TRUE(result.find("permissions: !str \"0755\"") != std::string::npos ||
+                result.find("permissions: !str 0755") != std::string::npos);
+    EXPECT_TRUE(result.find("another_permission: !str \"0644\"") != std::string::npos ||
+                result.find("another_permission: !str 0644") != std::string::npos);
+    // Non-octal strings should not be tagged
+    EXPECT_TRUE(result.find("not_octal: 0abc") != std::string::npos ||
+                result.find("not_octal: \"0abc\"") != std::string::npos);
+    EXPECT_TRUE(result.find("regular_string: hello") != std::string::npos ||
+                result.find("regular_string: \"hello\"") != std::string::npos);
+}
