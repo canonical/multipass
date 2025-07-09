@@ -17,9 +17,6 @@
 #
 #
 
-# pytest -s tools/cli_tests/cli_tests.py --build-root build/bin/ --data-root=/tmp/multipass-test --remove-all-instances -vv
-# kill zombie dnsmasq: ps -eo pid,cmd | awk '/dnsmasq/ && /mpqemubr0/ { print $1 }' | xargs sudo kill -9
-
 from collections.abc import Sequence
 
 import pexpect
