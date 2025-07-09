@@ -366,9 +366,9 @@ def validate_info_output(name, properties):
     #     assert is_valid_ipv4_addr(instance_info["ipv4"][0])
 
 
-def file_exists(vm_name, path):
+def file_exists(vm_name, *paths):
     """Return True if a file exists in the given VM, False otherwise."""
-    return multipass("exec", f"{vm_name}", "--", "ls", f"{path}", timeout=180)
+    return multipass("exec", f"{vm_name}", "--", "ls", *paths, timeout=180)
 
 
 def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment=""):
