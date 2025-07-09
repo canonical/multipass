@@ -2,17 +2,7 @@
 name: Automatic doc checks
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    paths:
-      - "docs/**"
-      - ".github/workflows/automatic-doc-checks.yml"
-  merge_group:
-    types: [checks_requested]
-    paths:
-      - "docs/**"
-      - ".github/workflows/automatic-doc-checks.yml"
+  workflow_call:
   workflow_dispatch:
     # Manual trigger
 
