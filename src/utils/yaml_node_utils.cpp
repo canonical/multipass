@@ -209,7 +209,7 @@ YAML::Node mp::utils::make_cloud_init_network_config(
     {
         if (!extra.auto_mode)
             continue;
-
+        // FIXME: C++20 (designated initializers)
         const auto extra_interface = interface_details{/*mac_addr=*/extra.mac_address,
                                                        /*interface_idx=*/extra_idx,
                                                        /*optional=*/true};
@@ -240,7 +240,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
 
         const interface_details default_interface{default_mac_addr};
         network_data["ethernets"][default_interface.name] = default_interface;
-
+        // FIXME: C++20 (designated initializers)
         const interface_details extra{/*mac_addr=*/extra_interface.mac_address,
                                       /*index=*/kExtraInterfaceIndexStart,
                                       /*optional=*/true};
@@ -254,6 +254,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
     // Iterate over possible extra interface names and find a vacant one.
     for (std::size_t current_index = kExtraInterfaceIndexStart;; current_index++)
     {
+        // FIXME: C++20 (designated initializers)
         const interface_details extra{/*mac_addr=*/extra_interface.mac_address,
                                       /*index=*/current_index,
                                       /*optional=*/true};
