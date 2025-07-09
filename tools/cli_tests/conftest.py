@@ -26,18 +26,19 @@ import threading
 import time
 import tempfile
 import select
-import pexpect
 from contextlib import contextmanager
 from types import SimpleNamespace
 
+import pexpect
 import pytest
 
-from cli_tests.utils import Output, JsonOutput, retry
+from cli_tests.utils import Output, retry
 
 config = SimpleNamespace()
 
 
 def pytest_addoption(parser):
+    """Populate command line args for the CLI tests."""
     parser.addoption(
         "--build-root",
         action="store",
@@ -76,12 +77,15 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    """Validate command line args."""
     if config.getoption("--build-root") is None:
         pytest.exit("ERROR: The `--build-root` argument is required.", returncode=1)
 
 
 @pytest.fixture(autouse=True)
 def store_config(request):
+    """Store the given command line args in a global variable so
+    they would be accessible to all functions in the module."""
     config.build_root = request.config.getoption("--build-root")
     config.data_root = request.config.getoption("--data-root")
     config.no_daemon = request.config.getoption("--no-daemon")
@@ -128,6 +132,15 @@ def pytest_assertrepr_compare(op, left, right):
     return None
 
 
+def die(exit_code, message):
+    """End testing process abruptly."""
+    sys.stderr.write(f"\n❌🔥 {message}\n")
+    # Flush both streams
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(exit_code)
+
+
 @pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
@@ -158,24 +171,40 @@ def ensure_sudo_auth():
         pytest.skip("Cannot authenticate sudo non-interactively")
 
 
-@contextmanager
-def run_process(cmd, **kwargs):
-    """Execute and yield a process."""
-    proc = subprocess.Popen(
-        cmd, **kwargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-    )
-    try:
-        yield proc
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=30)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-
-
 def multipass(*args, **kwargs):
-    """Run Multipass CLI commands."""
+    """Run a Multipass CLI command with optional retry, timeout, and context manager support.
+
+    This function wraps Multipass CLI invocations using `pexpect`. It supports:
+    - Retry logic on failure
+    - Interactive vs. non-interactive execution
+    - Context manager usage (`with` statement)
+    - Lazy evaluation of command output
+
+    Args:
+        *args: Positional CLI arguments to pass to the `multipass` command.
+
+    Keyword Args:
+        timeout (int, optional): Maximum time in seconds to wait for command completion.Defaults to 30.
+        interactive (bool, optional): If True, returns a live interactive `pexpect.spawn` object for manual interaction.
+        retry (int, optional): Number of retry attempts on failure. Uses exponential backoff (2s delay).
+
+    Returns:
+        - If `interactive=True`: a `pexpect.spawn` object.
+        - Otherwise, Output object containing the command's result.
+
+    Raises:
+        TimeoutError: If the command execution exceeds the timeout.
+        RuntimeError: If the CLI process fails in a non-retryable way.
+
+    Example:
+        >>> out = multipass("list", "--format", "json").jq(".instances")
+        >>> with multipass("info", "test") as output:
+        ...     print(output.exitstatus)
+
+    Notes:
+        - You can access output fields directly: `multipass("version").exitstatus`
+        - You can use `in` or `bool()` checks on the result proxy.
+    """
     multipass_path = shutil.which("multipass", path=config.build_root)
 
     timeout = kwargs.get("timeout") if "timeout" in kwargs else 30
@@ -197,6 +226,17 @@ def multipass(*args, **kwargs):
         )
 
     class Cmd:
+        """Run a Multipass CLI command and capture its output.
+
+        Spawns a `pexpect` child process to run the given command,
+        waits for it to complete, decodes the output, and ensures cleanup.
+
+        Methods:
+            __call__(): Returns an `Output` object with decoded output and exit status.
+            __enter__(): Enables use as a context manager, returning the `Output`.
+            __exit__(): No-op for context manager exit; always returns False.
+        """
+
         def __init__(self):
             try:
                 self.pexpect_child = pexpect.spawn(
@@ -259,15 +299,6 @@ def multipass(*args, **kwargs):
     return ContextManagerProxy()
 
 
-def die(exit_code, message):
-    """End testing process abruptly."""
-    sys.stderr.write(f"\n❌🔥 {message}\n")
-    # Flush both streams
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(exit_code)
-
-
 def wait_for_multipassd_ready(timeout=10):
     """
     Wait until Multipass daemon starts responding to the CLI commands.
@@ -322,6 +353,23 @@ def wait_for_multipassd_ready(timeout=10):
 
 @pytest.fixture(autouse=True)
 def multipassd(store_config):
+    """Automatically manage the lifecycle of the multipassd daemon for tests.
+
+    - Skips daemon launch if `config.no_daemon` is False.
+    - Locates and runs `multipassd` from `config.build_root`.
+    - Optionally purges instance state if `config.remove_all_instances` is set.
+    - Starts `multipassd` in a subprocess with a watchdog thread that:
+        - Monitors output for known failure patterns (e.g., dnsmasq port conflict)
+        - Streams logs if `config.print_daemon_output` is enabled
+    - Waits for the daemon to become ready before tests run.
+    - Ensures clean shutdown on fixture teardown.
+
+    Yields:
+        subprocess.Popen: The running `multipassd` process handle, or None if skipped.
+
+    Raises:
+        SystemExit: If prerequisites are unmet, the daemon dies early, or readiness check fails.
+    """
 
     if config.no_daemon is False:
         sys.stdout.write("Skipping launching the daemon.")
@@ -360,6 +408,21 @@ def multipassd(store_config):
         pass
     else:
         prologue = ["sudo", "env", f"MULTIPASS_STORAGE={config.data_root}"]
+
+    @contextmanager
+    def run_process(cmd, **kwargs):
+        """Execute and yield a process."""
+        proc = subprocess.Popen(
+            cmd, **kwargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+        try:
+            yield proc
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                proc.kill()
 
     with run_process(
         prologue + [multipassd_path, "--logger=stderr"], env=multipassd_env

@@ -19,14 +19,16 @@
 
 import re
 import json
-import contextlib
-import jq
 import uuid
 import time
+
 import pexpect
+import jq
 
 
 class JsonOutput(dict):
+    """A type to store JSON command output."""
+
     def __init__(self, content, exitstatus):
         self.content = content
         self.exitstatus = exitstatus
@@ -50,6 +52,8 @@ class JsonOutput(dict):
 
 
 class Output:
+    """A type to store text command output."""
+
     def __init__(self, content, exitstatus):
         self.content = content
         self.exitstatus = exitstatus
@@ -70,6 +74,7 @@ class Output:
         return self.exitstatus == 0
 
     def json(self):
+        """Cast output to JsonOutput."""
         return JsonOutput(self.content, self.exitstatus)
 
 
@@ -95,9 +100,11 @@ def retry(retries=3, delay=1.0):
 
 
 def uuid4_str(prefix="", suffix=""):
+    """Generate an UUID4 string, prefixed/suffixed with the given params."""
     return f"{prefix}{str(uuid.uuid4())}{suffix}"
 
 
 def is_valid_ipv4_addr(ip_str):
+    """Validate that given ip_str is a valid IPv4 address."""
     pattern = r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
     return bool(re.match(pattern, ip_str))
