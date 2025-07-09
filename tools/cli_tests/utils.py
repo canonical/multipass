@@ -18,6 +18,7 @@
 
 """Helper utilities for testing the Multipass CLI."""
 
+from collections import defaultdict
 import sys
 import re
 import json
@@ -314,6 +315,33 @@ def validate_list_output(name, properties):
     )
 
 
+def validate_info_snapshot_output(name, properties):
+    """Validate properties of a specific VM from `multipass list`.
+
+    Fetches all VM data via `multipass list --format=json`, locates the
+    VM by name, and asserts that its properties match the expected ones.
+
+    Args:
+        name (str): Name of the VM to validate.
+        properties (dict): Expected properties. Values can be:
+            - Literals (compared with equality)
+            - Callables (used as predicates)
+              - If the VM's value is a sequence, the predicate is applied to each item.
+
+    Raises:
+        AssertionError: If the VM is missing, or any property fails validation.
+    """
+
+    return validate_output(
+        "info",
+        "--format=json",
+        "--snapshots",
+        f"{name}",
+        properties=properties,
+        jq_filter=f'.info["{name}"]',
+    )
+
+
 def validate_info_output(name, properties):
     return validate_output(
         "info",
@@ -380,7 +408,7 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
 
     assert multipass("stop", f"{vm_name}")
 
-    with multipass("snapshot", f"{vm_name}") as output:
+    with multipass("snapshot", f"{vm_name}", "--name", f"{snapshot_name}") as output:
         assert output.exitstatus == 0
         assert "Snapshot taken" in output
 
@@ -391,3 +419,39 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
         snapshot = output["info"][vm_name][snapshot_name]
         assert expected_parent == snapshot["parent"]
         assert expected_comment == snapshot["comment"]
+
+def build_snapshot_tree(vm_name, tree, parent=""):
+    for name, children in tree.items():
+        take_snapshot(vm_name, name, parent)
+        build_snapshot_tree(vm_name, children, name)
+        if parent != "":
+            assert multipass("restore", f"{vm_name}.{parent}", "--destructive")
+
+def collapse_to_snapshot_tree(flat_map):
+    tree = {}
+    children = defaultdict(dict)
+    roots = []
+
+    # First pass: map all nodes to their children
+    for name, meta in flat_map.items():
+        parent = meta["parent"]
+        if parent:
+            children[parent][name] = children[name]  # ensures nesting
+        else:
+            roots.append(name)
+            tree[name] = children[name]
+
+    return tree
+
+def find_lineage(tree, target):
+    def dfs(node, path):
+        for key, child in node.items():
+            new_path = path + [key]
+            if key == target:
+                return new_path
+            result = dfs(child, new_path)
+            if result:
+                return result
+        return None
+
+    return dfs(tree, [])
