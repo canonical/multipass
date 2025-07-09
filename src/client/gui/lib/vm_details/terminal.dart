@@ -18,8 +18,10 @@ import '../platform/platform.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 
-final runningShellsProvider =
-    StateProvider.autoDispose.family<int, String>((_, __) {
+final runningShellsProvider = StateProvider.autoDispose.family<int, String>((
+  _,
+  __,
+) {
   return 0;
 });
 
@@ -146,19 +148,15 @@ class TerminalNotifier
 
 final terminalProvider = NotifierProvider.autoDispose
     .family<TerminalNotifier, Terminal?, TerminalIdentifier>(
-        TerminalNotifier.new);
+      TerminalNotifier.new,
+    );
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
   final ShellId id;
   final bool isCurrent;
 
-  const VmTerminal(
-    this.name,
-    this.id, {
-    super.key,
-    this.isCurrent = false,
-  });
+  const VmTerminal(this.name, this.id, {super.key, this.isCurrent = false});
 
   @override
   ConsumerState<VmTerminal> createState() => _VmTerminalState();
@@ -215,7 +213,9 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     final name = widget.name;
     final action = VmAction.start;
     final operation = ref.read(grpcClientProvider).start([name]);
-    ref.read(notificationsProvider.notifier).addOperation(
+    ref
+        .read(notificationsProvider.notifier)
+        .addOperation(
           operation,
           loading: '${action.continuousTense} $name',
           onSuccess: (_) => '${action.pastTense} $name',
@@ -234,11 +234,11 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final buttonStyle = ButtonStyle(
     foregroundColor: WidgetStateColor.resolveWith((states) {
       final disabled = states.contains(WidgetState.disabled);
-      return Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      return Colors.white.withAlpha(disabled ? 128 : 255);
     }),
     side: WidgetStateBorderSide.resolveWith((states) {
       final disabled = states.contains(WidgetState.disabled);
-      var color = Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      var color = Colors.white.withAlpha(disabled ? 128 : 255);
       return BorderSide(color: color);
     }),
   );
@@ -275,10 +275,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
         label: 'Copy',
         onPressed: () {
           ContextMenuController.removeAny();
-          Actions.maybeInvoke(
-            context,
-            CopySelectionTextIntent.copy,
-          );
+          Actions.maybeInvoke(context, CopySelectionTextIntent.copy);
         },
       ),
       ContextMenuButtonItem(
@@ -294,8 +291,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     ];
 
     final style = Theme.of(context).textButtonTheme.style?.copyWith(
-          backgroundColor: WidgetStatePropertyAll(Colors.transparent),
-        );
+      backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+    );
 
     contextMenuController.show(
       context: context,
@@ -315,9 +312,11 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   @override
   Widget build(BuildContext context) {
     final terminal = ref.watch(terminalProvider(terminalIdentifier));
-    final vmStatus = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status;
-    }));
+    final vmStatus = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status;
+      }),
+    );
     final vmRunning = vmStatus == Status.RUNNING;
     final canStartVm = [Status.STOPPED, Status.SUSPENDED].contains(vmStatus);
 
@@ -347,24 +346,27 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     // we need a builder so that we introduce a new BuildContext that will end up
     // being below the BuildContext of the Actions widget so that the events can propagate
-    final terminalView = Builder(builder: (context) {
-      return TerminalView(
-        terminal,
-        controller: terminalController,
-        focusNode: focusNode,
-        hardwareKeyboardOnly: true,
-        onSecondaryTapUp: (d, _) => openContextMenu(d.globalPosition, context),
-        padding: const EdgeInsets.all(4),
-        scrollController: scrollController,
-        shortcuts: mpPlatform.terminalShortcuts,
-        theme: terminalTheme,
-        textStyle: TerminalStyle(
-          fontFamily: 'UbuntuMono',
-          fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-          fontSize: fontSize,
-        ),
-      );
-    });
+    final terminalView = Builder(
+      builder: (context) {
+        return TerminalView(
+          terminal,
+          controller: terminalController,
+          focusNode: focusNode,
+          hardwareKeyboardOnly: true,
+          onSecondaryTapUp: (d, _) =>
+              openContextMenu(d.globalPosition, context),
+          padding: const EdgeInsets.all(4),
+          scrollController: scrollController,
+          shortcuts: mpPlatform.terminalShortcuts,
+          theme: terminalTheme,
+          textStyle: TerminalStyle(
+            fontFamily: 'UbuntuMono',
+            fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+            fontSize: fontSize,
+          ),
+        );
+      },
+    );
 
     final scrollableTerminal = RawScrollbar(
       controller: scrollController,
@@ -407,10 +409,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
       ),
     };
 
-    return Actions(
-      actions: terminalActions,
-      child: scrollableTerminal,
-    );
+    return Actions(actions: terminalActions, child: scrollableTerminal);
   }
 }
 

@@ -33,23 +33,26 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
 
     return ConfirmationDialog(
       title: 'Stop running instances?',
-      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Text(getMessage()),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Checkbox(
-              value: remember,
-              onChanged: (value) => setState(() => remember = value!),
-            ),
-            const SizedBox(width: 8),
-            const Text('Do not ask me again'),
-          ],
-        ),
-      ]),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: Text(getMessage()),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Checkbox(
+                value: remember,
+                onChanged: (value) => setState(() => remember = value!),
+              ),
+              const SizedBox(width: 8),
+              const Text('Do not ask me again'),
+            ],
+          ),
+        ],
+      ),
       actionText: 'Stop instances',
       onAction: () => widget.onStop(remember),
       inactionText: 'Leave instances running',

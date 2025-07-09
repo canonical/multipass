@@ -15,8 +15,9 @@ class HotkeyNotifier extends Notifier<SingleActivator?> {
     final hotkeyString = ref.read(hotkeySettingProvider);
     if (hotkeyString == null) return null;
     final components = hotkeyString.toLowerCase().split('+');
-    final keyId =
-        components.map(int.tryParse).firstWhereOrNull((e) => e != null);
+    final keyId = components
+        .map(int.tryParse)
+        .firstWhereOrNull((e) => e != null);
     if (keyId == null) return null;
     final key = LogicalKeyboardKey.findKeyByKeyId(keyId);
     if (key == null) return null;
@@ -50,8 +51,9 @@ class HotkeyNotifier extends Notifier<SingleActivator?> {
   }
 }
 
-final hotkeyProvider =
-    NotifierProvider<HotkeyNotifier, SingleActivator?>(HotkeyNotifier.new);
+final hotkeyProvider = NotifierProvider<HotkeyNotifier, SingleActivator?>(
+  HotkeyNotifier.new,
+);
 
 class HotkeyRecorder extends StatefulWidget {
   final SingleActivator? value;
@@ -113,7 +115,7 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
     LogicalKeyboardKey.shiftRight: setShift,
   };
 
-  KeyEventResult handleKeyEvent(_, KeyEvent event) {
+  KeyEventResult handleKeyEvent(FocusNode _, KeyEvent event) {
     if (event is KeyRepeatEvent) return KeyEventResult.handled;
 
     shouldSave = false;
@@ -173,8 +175,8 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
     final keyCombination = modifiers.isNotEmpty
         ? '$modifiers+$keyLabel'
         : hasFocus
-            ? 'Input...'
-            : '';
+        ? 'Input...'
+        : '';
 
     return Focus(
       focusNode: focusNode,

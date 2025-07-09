@@ -14,10 +14,7 @@ class NoVms extends ConsumerWidget {
     final multipassLogo = SvgPicture.asset(
       'assets/multipass.svg',
       width: 40,
-      colorFilter: const ColorFilter.mode(
-        Color(0xffD9D9D9),
-        BlendMode.srcIn,
-      ),
+      colorFilter: const ColorFilter.mode(Color(0xffD9D9D9), BlendMode.srcIn),
     );
 
     goToCatalogue() {
@@ -35,12 +32,14 @@ class NoVms extends ConsumerWidget {
             const SizedBox(height: 22),
             const Text('Zero Instances', style: TextStyle(fontSize: 21)),
             const SizedBox(height: 8),
-            Text.rich([
-              'Return to the '.span,
-              'Catalogue'.span.color(Colors.blue).link(ref, goToCatalogue),
-              ' to choose your instance or get started with the primary Ubuntu Image'
-                  .span,
-            ].spans.size(16)),
+            Text.rich(
+              [
+                'Return to the '.span,
+                'Catalogue'.span.color(Colors.blue).link(ref, goToCatalogue),
+                ' to choose your instance or get started with the primary Ubuntu Image'
+                    .span,
+              ].spans.size(16),
+            ),
           ],
         ),
       ),

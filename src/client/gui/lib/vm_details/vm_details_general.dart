@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../copyable_text.dart';
 import '../extensions.dart';
 import '../providers.dart';
-import '../tooltip.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
 import 'vm_action_buttons.dart';
@@ -62,12 +61,12 @@ class VmDetailsHeader extends ConsumerWidget {
 
     OutlinedButton locationButton(VmDetailsLocation location) {
       final style = buttonStyle?.copyWith(
-        shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
+        shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
         backgroundColor: location == currentLocation
-            ? const MaterialStatePropertyAll(Color(0xff333333))
+            ? const WidgetStatePropertyAll(Color(0xff333333))
             : null,
         foregroundColor: location == currentLocation
-            ? const MaterialStatePropertyAll(Colors.white)
+            ? const WidgetStatePropertyAll(Colors.white)
             : null,
       );
       return OutlinedButton(
@@ -79,10 +78,13 @@ class VmDetailsHeader extends ConsumerWidget {
       );
     }
 
-    final locationButtons = Row(mainAxisSize: MainAxisSize.min, children: [
-      locationButton(VmDetailsLocation.shells),
-      locationButton(VmDetailsLocation.details),
-    ]);
+    final locationButtons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        locationButton(VmDetailsLocation.shells),
+        locationButton(VmDetailsLocation.details),
+      ],
+    );
 
     final list = [
       Expanded(
@@ -125,13 +127,18 @@ class VmStat extends StatelessWidget {
     return SizedBox(
       width: textScaler.scale(width),
       height: textScaler.scale(height),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-        ),
-        Expanded(child: Align(alignment: Alignment.centerLeft, child: child)),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: Align(alignment: Alignment.centerLeft, child: child),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -199,14 +206,11 @@ class GeneralDetails extends ConsumerWidget {
           height: baseVmStatHeight,
           child: Text('General', style: TextStyle(fontSize: 24)),
         ),
-        Wrap(spacing: 50, runSpacing: 25, children: [
-          status,
-          image,
-          privateIp,
-          publicIp,
-          created,
-          uptime,
-        ]),
+        Wrap(
+          spacing: 50,
+          runSpacing: 25,
+          children: [status, image, privateIp, publicIp, created, uptime],
+        ),
       ],
     );
   }

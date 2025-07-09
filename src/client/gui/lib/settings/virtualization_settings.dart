@@ -18,40 +18,44 @@ class VirtualizationSettings extends ConsumerWidget {
     final bridgedNetwork = ref.watch(bridgedNetworkProvider).valueOrNull;
     final networks = ref.watch(networksProvider);
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text(
-        'Virtualization',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 20),
-      Dropdown(
-        label: 'Driver',
-        width: 260,
-        value: driver,
-        items: {
-          if (driver != null) driver: driver,
-          ...mpPlatform.drivers,
-        },
-        onChanged: (value) {
-          if (value == driver) return;
-          ref
-              .read(driverProvider.notifier)
-              .set(value!)
-              .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
-        },
-      ),
-      const SizedBox(height: 20),
-      if (networks.isNotEmpty)
-        Dropdown<String>(
-          label: 'Bridged network',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Virtualization',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        Dropdown(
+          label: 'Driver',
           width: 260,
-          value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
-          items: {'': 'None', ...Map.fromIterable(networks)},
+          value: driver,
+          items: {if (driver != null) driver: driver, ...mpPlatform.drivers},
           onChanged: (value) {
-            ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
-                ref.notifyError((e) => 'Failed to set bridged network: $e'));
+            if (value == driver) return;
+            ref
+                .read(driverProvider.notifier)
+                .set(value!)
+                .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
           },
         ),
-    ]);
+        const SizedBox(height: 20),
+        if (networks.isNotEmpty)
+          Dropdown<String>(
+            label: 'Bridged network',
+            width: 260,
+            value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
+            items: {'': 'None', ...Map.fromIterable(networks)},
+            onChanged: (value) {
+              ref
+                  .read(bridgedNetworkProvider.notifier)
+                  .set(value!)
+                  .onError(
+                    ref.notifyError((e) => 'Failed to set bridged network: $e'),
+                  );
+            },
+          ),
+      ],
+    );
   }
 }

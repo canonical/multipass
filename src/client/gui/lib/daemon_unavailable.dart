@@ -66,17 +66,16 @@ class DaemonUnavailable extends ConsumerWidget {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black54, blurRadius: 10, spreadRadius: 5)
+                  color: Colors.black54,
+                  blurRadius: 10,
+                  spreadRadius: 5,
+                ),
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.error,
-                  color: Colors.red,
-                  size: 48,
-                ),
+                const Icon(Icons.error, color: Colors.red, size: 48),
                 const SizedBox(height: 16),
                 const Text(
                   'Fatal Error',
@@ -132,14 +131,17 @@ class DaemonUnavailable extends ConsumerWidget {
         decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5)
+            BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5),
           ],
         ),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          CircularProgressIndicator(color: Colors.orange),
-          SizedBox(width: 20),
-          Text('Waiting for daemon...'),
-        ]),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Colors.orange),
+            SizedBox(width: 20),
+            Text('Waiting for daemon...'),
+          ],
+        ),
       );
     }
 
