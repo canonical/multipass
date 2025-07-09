@@ -184,7 +184,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
     mock_api_table.CloseComputeSystem = mock_close_compute_system.AsStdFunction();
     mock_api_table.LocalFree = mock_local_free.AsStdFunction();
 
-    constexpr auto expected_vm_settings_json = LR"(
+    constexpr static auto expected_vm_settings_json = LR"(
     {
         "SchemaVersion": {
             "Major": 2,
@@ -350,7 +350,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
     mock_api_table.CloseComputeSystem = mock_close_compute_system.AsStdFunction();
     mock_api_table.LocalFree = mock_local_free.AsStdFunction();
 
-    constexpr auto expected_vm_settings_json = LR"(
+    constexpr static auto expected_vm_settings_json = LR"(
     {
         "SchemaVersion": {
             "Major": 2,
@@ -507,7 +507,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
     mock_api_table.CloseComputeSystem = mock_close_compute_system.AsStdFunction();
     mock_api_table.LocalFree = mock_local_free.AsStdFunction();
 
-    constexpr auto expected_vm_settings_json = LR"(
+    constexpr static auto expected_vm_settings_json = LR"(
     {
         "SchemaVersion": {
             "Major": 2,
@@ -664,7 +664,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
     mock_api_table.CloseComputeSystem = mock_close_compute_system.AsStdFunction();
     mock_api_table.LocalFree = mock_local_free.AsStdFunction();
 
-    constexpr auto expected_vm_settings_json = LR"(
+    constexpr static auto expected_vm_settings_json = LR"(
     {
         "SchemaVersion": {
             "Major": 2,
@@ -857,7 +857,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
     mock_api_table.CloseOperation = mock_close_operation.AsStdFunction();
     mock_api_table.CreateComputeSystem = mock_create_compute_system.AsStdFunction();
 
-    constexpr auto expected_vm_settings_json = LR"(
+    constexpr static auto expected_vm_settings_json = LR"(
      {
          "SchemaVersion": {
              "Major": 2,
@@ -1000,7 +1000,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
     mock_api_table.CloseComputeSystem = mock_close_compute_system.AsStdFunction();
     mock_api_table.LocalFree = mock_local_free.AsStdFunction();
 
-    constexpr auto expected_vm_settings_json = LR"(
+    constexpr static auto expected_vm_settings_json = LR"(
      {
          "SchemaVersion": {
              "Major": 2,
@@ -2162,7 +2162,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_wait_for_operation_result_f
 
 TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_happy_path)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
             "RequestType": "Add",
@@ -2227,7 +2227,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_create_operation_f
 
 TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_fail)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
             "RequestType": "Add",
@@ -2261,7 +2261,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_wait_for_operation_result_fail)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
             "RequestType": "Add",
@@ -2295,7 +2295,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_endpoint_to_compute_system_wait_for_operation
 
 TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_happy_path)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
             "RequestType": "Remove"
@@ -2346,7 +2346,7 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_create_operat
 
 TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_fail)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
             "RequestType": "Remove"
@@ -2371,7 +2371,7 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_wait_for_operation_result_fail)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{288cc1ac-8f31-4a09-9e90-30ad0bcfdbca}",
             "RequestType": "Remove"
@@ -2396,7 +2396,7 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_endpoint_from_compute_system_wait_for_oper
 
 TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/ComputeTopology/Memory/SizeInMB",
             "RequestType": "Update",
@@ -2447,7 +2447,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_create_operation_
 
 TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_fail)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/ComputeTopology/Memory/SizeInMB",
             "RequestType": "Update",
@@ -2473,7 +2473,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_wait_for_operation_result_fail)
 {
-    constexpr auto expected_modify_compute_system_configuration = LR"(
+    constexpr static auto expected_modify_compute_system_configuration = LR"(
         {
             "ResourcePath": "VirtualMachine/ComputeTopology/Memory/SizeInMB",
             "RequestType": "Update",
@@ -2499,7 +2499,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_wait_for_operatio
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_happy_path)
 {
-    constexpr auto expected_vm_query = LR"(
+    constexpr static auto expected_vm_query = LR"(
         {
             "PropertyTypes":[]
         })";
@@ -2548,7 +2548,7 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_create_operation_fa
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_fail)
 {
-    constexpr auto expected_vm_query = LR"(
+    constexpr static auto expected_vm_query = LR"(
         {
             "PropertyTypes":[]
         })";
@@ -2572,7 +2572,7 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_wait_for_operation_result_fail)
 {
-    constexpr auto expected_vm_query = LR"(
+    constexpr static auto expected_vm_query = LR"(
         {
             "PropertyTypes":[]
         })";
