@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -16,3 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
+
+"""Global config object that stores the test command arguments."""
+
+from types import SimpleNamespace
+
+config = SimpleNamespace()
