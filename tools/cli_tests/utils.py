@@ -171,6 +171,7 @@ def multipass(*args, **kwargs):
         if "timeout" in kwargs
         else get_default_timeout_for(args[0])
     )
+    echo = kwargs.get("echo") or False
     # print(f"timeout is {timeout} for {multipass_path} {' '.join(args)}")
     retry_count = kwargs.pop("retry", None)
     if retry_count is not None:
@@ -186,6 +187,7 @@ def multipass(*args, **kwargs):
             f"{multipass_path} {' '.join(args)}",
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
+            echo=echo
         )
 
     class Cmd:
@@ -206,6 +208,7 @@ def multipass(*args, **kwargs):
                     f"{multipass_path} {' '.join(args)}",
                     logfile=(sys.stdout.buffer if config.print_cli_output else None),
                     timeout=timeout,
+                    echo=echo
                 )
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
                 self.pexpect_child.wait()
