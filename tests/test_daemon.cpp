@@ -149,6 +149,8 @@ struct Daemon : public mpt::DaemonTestFixture
 
     const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection = mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
+
+    mpt::StubAvailabilityZone zone{};
 };
 
 TEST_F(Daemon, receives_commands_and_calls_corresponding_slot)
@@ -1915,6 +1917,7 @@ TEST_P(ListIP, lists_with_ip)
     auto [state, cmd, strs] = GetParam();
 
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*instance_ptr, ensure_vm_is_running()).WillRepeatedly(Throw(std::runtime_error("Not running")));
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
