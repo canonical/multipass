@@ -163,9 +163,10 @@ bool DisableZones::confirm()
 
     const PlainPrompter prompter{term};
     auto answer = prompter.prompt(message);
-    while (!std::regex_match(answer, client::yes_answer) && !std::regex_match(answer, client::no_answer))
+    while (!answer.empty() && !std::regex_match(answer, client::yes_answer) &&
+           !std::regex_match(answer, client::no_answer))
         answer = prompter.prompt("Please answer (Yes/No)");
 
-    return std::regex_match(answer, client::yes_answer);
+    return answer.empty() || std::regex_match(answer, client::yes_answer);
 }
 } // namespace multipass::cmd
