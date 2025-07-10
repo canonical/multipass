@@ -17,3 +17,7 @@ ps -eo pid,cmd | awk '/dnsmasq/ && /mpqemubr0/ { print $1 }' | xargs sudo kill -
 # kill multipassd
 sudo kill -TERM $(pidof multipassd)
 ```
+
+## Best practices
+
+* If a test case takes >1m to complete, mark it with `@pytest.mark.slow`
