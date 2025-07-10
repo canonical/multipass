@@ -2785,3 +2785,58 @@ INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter,
                                  ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
+
+// Helper function to create a ZonesReply with test data
+auto construct_zones_reply()
+{
+    mp::ZonesReply zones_reply;
+
+    auto zone_entry = zones_reply.add_zones();
+    zone_entry->set_name("zone1");
+    zone_entry->set_available(true);
+
+    zone_entry = zones_reply.add_zones();
+    zone_entry->set_name("zone2");
+    zone_entry->set_available(false);
+
+    return zones_reply;
+}
+
+// Tests for the table formatter's handling of zones
+TEST_F(BaseFormatterSuite, table_formatter_formats_zones_correctly)
+{
+    const auto zones_reply = construct_zones_reply();
+    const std::string expected_output = "Name    State\n"
+                                        "zone1   Available\n"
+                                        "zone2   Unavailable\n";
+
+    EXPECT_EQ(table_formatter.format(zones_reply), expected_output);
+}
+
+// Tests for the json formatter's handling of zones
+TEST_F(BaseFormatterSuite, json_formatter_formats_zones_correctly)
+{
+    const auto zones_reply = construct_zones_reply();
+    const std::string expected_output = "{\n"
+                                        "    \"zone1\": {\n"
+                                        "        \"available\": true\n"
+                                        "    },\n"
+                                        "    \"zone2\": {\n"
+                                        "        \"available\": false\n"
+                                        "    }\n"
+                                        "}\n";
+
+    EXPECT_EQ(json_formatter.format(zones_reply), expected_output);
+}
+
+// Tests for the yaml formatter's handling of zones
+TEST_F(BaseFormatterSuite, yaml_formatter_formats_zones_correctly)
+{
+    const auto zones_reply = construct_zones_reply();
+    const std::string expected_output = "zone1:\n"
+                                        "  available: true\n"
+                                        "zone2:\n"
+                                        "  available: false\n";
+
+    EXPECT_EQ(yaml_formatter.format(zones_reply), expected_output);
+}
