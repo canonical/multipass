@@ -125,6 +125,7 @@ class TestClone:
             assert f"Cloned from {name} to {name}-clone1" in output
 
         validate_info_output(f"{name}-clone1", {"state": "Stopped"})
+        assert multipass("start", f"{name}")
         assert multipass("start", f"{name}-clone1")
 
         validate_info_output(
@@ -139,14 +140,39 @@ class TestClone:
             },
         )
 
-        # TODO: validate properties
-        # with multipass("shell", f"{name}", interactive=True) as vm_shell:
-        #     vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
-        #     # Send a command and expect output
-        #     vm_shell.sendline('echo "Hello from multipass"')
-        #     vm_shell.expect("Hello from multipass")
-        #     vm_shell.expect(r"ubuntu@.*:.*\$")
-        #     vm_shell.expect(pexpect.EOF)
-        #     vm_shell.wait()
+        src_cloud_init_instance_id = multipass(
+            "exec", f"{name}", "--", "cat /var/lib/cloud/data/instance-id"
+        )
+        clone_cloud_init_instance_id = multipass(
+            "exec", f"{name}-clone1", "--", "cat /var/lib/cloud/data/instance-id"
+        )
 
-        #     assert vm_shell.exitstatus == 0
+        assert src_cloud_init_instance_id
+        assert clone_cloud_init_instance_id
+
+        assert (
+            src_cloud_init_instance_id.content != clone_cloud_init_instance_id.content
+        )
+
+        assert f"{name}-clone1" in multipass("exec", f"{name}-clone1", "--", "hostname")
+
+        # Verify that clone's primary interface has a different MAC address than
+        # the src.
+        with multipass(
+            "exec",
+            f"{name}",
+            "--",
+            "bash",
+            "-c",
+            "\"ip route get 1 | awk '{print $5}' | xargs -I{} cat /sys/class/net/{}/address\"",
+        ) as src_mac, multipass(
+            "exec",
+            f"{name}-clone1",
+            "--",
+            "bash",
+            "-c",
+            "\"ip route get 1 | awk '{print $5}' | xargs -I{} cat /sys/class/net/{}/address\"",
+        ) as clone_mac:
+            assert src_mac and clone_mac
+            assert src_mac.content != clone_mac.content
+
