@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "file_operations.h"
+#include "mock_logger.h"
 #include "mock_platform.h"
 #include "temp_dir.h"
 
@@ -32,6 +33,7 @@ struct SSLCertProviderFixture : public testing::Test
 {
     mpt::TempDir temp_dir;
     mp::Path cert_dir{temp_dir.path() + "/test-cert"};
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 
 TEST_F(SSLCertProviderFixture, createsCertAndKey)
@@ -109,4 +111,266 @@ TEST_F(SSLCertProviderFixture, createsDifferentCertsPerServerName)
     auto pem_key2 = cert_provider2.PEM_signing_key();
     EXPECT_THAT(pem_cert1, StrNe(pem_cert2));
     EXPECT_THAT(pem_key1, StrNe(pem_key2));
+}
+
+TEST_F(SSLCertProviderFixture, reusesExistingValidServerCertificates)
+{
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_path())
+        .WillRepeatedly(
+            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    constexpr auto root_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
+aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABIq/jXfQ+0U3
+DYfNb54xG3EKiBC+SDluEOJyELQkg9kGXP2Yvh8d7tWN99bc63Bju1uAR4tWhGxP
+EJt8PbSL88ajUzBRMB0GA1UdDgQWBBSOKSfZjt+7cfRspiOTU2I5a6NmVjAfBgNV
+HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
+AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATlZbmi2M8q9SR+Cgd6C/pA
+AfuqGqznWizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+o2YwZDAUBgNVHREEDTALgglsb2NhbGhvc3QwHQYDVR0OBBYEFPAgeiZPxzoczlQ5
+pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
+EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
+BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_key_contents =
+        R"cert(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
+0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
+WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+-----END PRIVATE KEY-----)cert";
+
+    const QDir dir{cert_dir};
+    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto cert_path = dir.filePath("localhost.pem");
+    const auto key_path = dir.filePath("localhost_key.pem");
+
+    mpt::make_file_with_content(root_cert_path, root_cert_contents);
+    mpt::make_file_with_content(cert_path, subordinate_cert_contents);
+    mpt::make_file_with_content(key_path, subordinate_key_contents);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "are valid X.509 files");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Re-using existing certificates for the gRPC server");
+
+    mp::SSLCertProvider cert_provider{cert_dir, "localhost"};
+
+    const auto actual_cert = cert_provider.PEM_certificate();
+    const auto actual_key = cert_provider.PEM_signing_key();
+
+    EXPECT_THAT(actual_cert, StrEq(subordinate_cert_contents));
+    EXPECT_THAT(actual_key, StrEq(subordinate_key_contents));
+}
+
+TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenRootCertIsCorrupt)
+{
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_path())
+        .WillRepeatedly(
+            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    constexpr auto root_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
+aXBhc3MgUm9vdCBDQTBZMBMGBy49AgEGCCqGSM49AwEHA0IABIq/jXfQ+0U3
+DYfNb54xG3EKiBC+SDluEOJyELQkg9kGXP2Yvh8d7tWN99bc63Bju1uAR4tWhGxP
+EJt8PbSL88ajUzBRMB0GA1UdDgQWBBSOKSfZjt+7cfRspiOTU2I5a6NmVjAfBgNV
+HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
+AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATlZbmi2M8q9SR+Cgd6C/pA
+AfuqGqznWizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+o2YwZDAUBgNVHREEDTALgglsb2NhbGhvc3QwHQYDVR0OBBYEFPAgeiZPxzoczlQ5
+pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
+EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
+BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_key_contents =
+        R"cert(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
+0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
+WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+-----END PRIVATE KEY-----)cert";
+
+    const QDir dir{cert_dir};
+    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto cert_path = dir.filePath("localhost.pem");
+    const auto key_path = dir.filePath("localhost_key.pem");
+
+    mpt::make_file_with_content(root_cert_path, root_cert_contents);
+    mpt::make_file_with_content(cert_path, subordinate_cert_contents);
+    mpt::make_file_with_content(key_path, subordinate_key_contents);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Could not load either of");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Regenerating certificates for the gRPC server");
+
+    mp::SSLCertProvider cert_provider{cert_dir, "localhost"};
+
+    const auto actual_cert = cert_provider.PEM_certificate();
+    const auto actual_key = cert_provider.PEM_signing_key();
+
+    EXPECT_THAT(actual_cert, StrNe(subordinate_cert_contents));
+    EXPECT_THAT(actual_key, StrNe(subordinate_key_contents));
+}
+
+TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenSubordCertIsCorrupt)
+{
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_path())
+        .WillRepeatedly(
+            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    constexpr auto root_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
+aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABIq/jXfQ+0U3
+DYfNb54xG3EKiBC+SDluEOJyELQkg9kGXP2Yvh8d7tWN99bc63Bju1uAR4tWhGxP
+EJt8PbSL88ajUzBRMB0GA1UdDgQWBBSOKSfZjt+7cfRspiOTU2I5a6NmVjAfBgNV
+HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
+AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATlZbmi2M8q9SR+Cgd6C/pA
+AfuqGqznWizZyQgYv6Z/AosKpE6YXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+o2YwZDAUBgNVHREEDTALgglsb2NhbGhvc3QwHQYDVR0OBBYEFPAgeiZPxzoczlQ5
+pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
+EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
+BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_key_contents =
+        R"cert(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
+0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
+WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+-----END PRIVATE KEY-----)cert";
+
+    const QDir dir{cert_dir};
+    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto cert_path = dir.filePath("localhost.pem");
+    const auto key_path = dir.filePath("localhost_key.pem");
+
+    mpt::make_file_with_content(root_cert_path, root_cert_contents);
+    mpt::make_file_with_content(cert_path, subordinate_cert_contents);
+    mpt::make_file_with_content(key_path, subordinate_key_contents);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Could not load either of");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Regenerating certificates for the gRPC server");
+
+    mp::SSLCertProvider cert_provider{cert_dir, "localhost"};
+
+    const auto actual_cert = cert_provider.PEM_certificate();
+    const auto actual_key = cert_provider.PEM_signing_key();
+
+    EXPECT_THAT(actual_cert, StrNe(subordinate_cert_contents));
+    EXPECT_THAT(actual_key, StrNe(subordinate_key_contents));
+}
+
+TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenRootCertIsNotTheIssuer)
+{
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_path())
+        .WillRepeatedly(
+            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    constexpr auto root_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIBzzCCAXWgAwIBAgIUAOtHJnyORHMBZb1g3Lub65TFMkgwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMTAzODU2WhcNMzUwNzA4MTAzODU2WjA9
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
+aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABOZrJ6hk0ARU
+fYynzij63WUdFGXASPzrshLxxzum2FfADoCHfj28O6OiVFTBF5T0q39oHGaxclgV
+99fJFjgw0GCjUzBRMB0GA1UdDgQWBBSJAiHfyxwx7DC5ru7QGjFr35H0xTAfBgNV
+HSMEGDAWgBSJAiHfyxwx7DC5ru7QGjFr35H0xTAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0gAMEUCICVVwSYOZqyPmd1aXkVCDQHMFm6hOM7hFs/6SRBQqAWZ
+AiEAmhbAFiEUSyjZj5MVOhw1TW6NxGe2+45ypLULJaOAE0g=
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATlZbmi2M8q9SR+Cgd6C/pA
+AfuqGqznWizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+o2YwZDAUBgNVHREEDTALgglsb2NhbGhvc3QwHQYDVR0OBBYEFPAgeiZPxzoczlQ5
+pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
+EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
+BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_key_contents =
+        R"cert(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
+0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
+WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+-----END PRIVATE KEY-----)cert";
+
+    const QDir dir{cert_dir};
+    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto cert_path = dir.filePath("localhost.pem");
+    const auto key_path = dir.filePath("localhost_key.pem");
+
+    mpt::make_file_with_content(root_cert_path, root_cert_contents);
+    mpt::make_file_with_content(cert_path, subordinate_cert_contents);
+    mpt::make_file_with_content(key_path, subordinate_key_contents);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "are valid X.509 files");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "is not the signer of the gRPC server certificate");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Regenerating certificates for the gRPC server");
+
+    mp::SSLCertProvider cert_provider{cert_dir, "localhost"};
+
+    const auto actual_cert = cert_provider.PEM_certificate();
+    const auto actual_key = cert_provider.PEM_signing_key();
+
+    EXPECT_THAT(actual_cert, StrNe(subordinate_cert_contents));
+    EXPECT_THAT(actual_key, StrNe(subordinate_key_contents));
 }
