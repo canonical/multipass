@@ -30,8 +30,12 @@ namespace multipass
 class LXDVirtualMachineFactory : public BaseVirtualMachineFactory
 {
 public:
-    explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
-    explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager, const Path& data_dir,
+    explicit LXDVirtualMachineFactory(const Path& data_dir,
+                                      AvailabilityZoneManager& az_manager,
+                                      const QUrl& base_url = lxd_socket_url);
+    explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager,
+                                      const Path& data_dir,
+                                      AvailabilityZoneManager& az_manager,
                                       const QUrl& base_url = lxd_socket_url);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,

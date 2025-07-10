@@ -19,6 +19,7 @@
 #define MULTIPASS_PLATFORM_H
 
 #include <multipass/alias_definition.h>
+#include <multipass/availability_zone_manager.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
@@ -86,7 +87,7 @@ void sync_winterm_profiles();
 
 std::string default_server_address();
 
-VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+VirtualMachineFactory::UPtr vm_backend(const Path& data_dir, AvailabilityZoneManager& az_manager);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);

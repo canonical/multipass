@@ -17,6 +17,7 @@
  *
  */
 
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
@@ -53,6 +54,14 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 
     if (!MP_FILEOPS.commit(db_file))
         throw std::runtime_error{fmt::format("Could not commit transactional file; filename: {}", file_name)};
+}
+
+QJsonObject mp::JsonUtils::read_object_from_file(const std::filesystem::path& file_path) const
+{
+    const auto file = MP_FILEOPS.open_read(file_path);
+    file->exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    const auto data = QString::fromStdString(std::string{std::istreambuf_iterator{*file}, {}}).toUtf8();
+    return QJsonDocument::fromJson(data).object();
 }
 
 std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
