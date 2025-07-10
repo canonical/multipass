@@ -41,11 +41,11 @@ class ZoneDropdown extends ConsumerWidget {
       children: [
         Row(
           children: [
-            const Text('Pseudo zone'),
+            const Text('Zone'),
             const SizedBox(width: 4),
             Tooltip(
               message:
-                  'Pseudo zones simulate availability zones in public clouds\nand allow for testing resilience against real-world incidents',
+                  'Zones simulate availability zones in public clouds\nand allow for testing resilience against real-world incidents',
               child: Icon(
                 Icons.info_outline,
                 size: 16,
