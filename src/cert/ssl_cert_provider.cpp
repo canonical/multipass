@@ -355,7 +355,7 @@ private:
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
 };
 
-std::unique_ptr<X509, decltype(&X509_free)> load_cert_from_file(const std::filesystem::path& path)
+std::unique_ptr<X509, decltype(&X509_free)> load_cert_from_file(const std::string& path)
 {
     std::unique_ptr<FILE, int (*)(FILE*)> file{fopen(path.c_str(), "r"), &fclose};
     if (!file)
@@ -380,7 +380,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
             QFile::exists(cert_path))
         {
             // Ensure that we can load both certificates
-            const auto root_cert = load_cert_from_file(root_cert_path);
+            const auto root_cert = load_cert_from_file(root_cert_path.string());
             const auto cert = load_cert_from_file(cert_path.toStdString());
 
             if (root_cert && cert)
