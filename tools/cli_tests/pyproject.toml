@@ -12,5 +12,6 @@ py-modules = []
 filterwarnings = ["ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"]
 markers = [
     "snapshot: Snapshot tests.",
+    "clone: Clone tests.",
     "slow: The tests that known to have a slow run time.",
 ]
