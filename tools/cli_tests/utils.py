@@ -118,7 +118,12 @@ def is_valid_ipv4_addr(ip_str):
 
 
 def get_default_timeout_for(cmd):
-    default_timeouts = {"delete": 30, "stop": 180, "launch": 600}
+    default_timeouts = {
+        "delete": 30,
+        "stop": 180,
+        "launch": 600,
+        "exec": 30,
+    }
     if cmd in default_timeouts:
         return default_timeouts[cmd]
     return 10
@@ -387,24 +392,8 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
     Raises:
         AssertionError: If any command fails or snapshot metadata does not match expectations.
     """
-    assert multipass(
-        "exec",
-        f"{vm_name}",
-        "--",
-        "touch",
-        f"before_{snapshot_name}",
-        timeout=180,
-    )
-
-    assert multipass(
-        "exec",
-        f"{vm_name}",
-        "--",
-        "ls",
-        f"before_{snapshot_name}",
-        timeout=180,
-    )
-
+    assert multipass("exec", f"{vm_name}", "--", "touch", f"before_{snapshot_name}")
+    assert multipass("exec", f"{vm_name}", "--", "ls", f"before_{snapshot_name}")
     assert multipass("stop", f"{vm_name}")
 
     with multipass("snapshot", f"{vm_name}", "--name", f"{snapshot_name}") as output:
@@ -419,12 +408,14 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
         assert expected_parent == snapshot["parent"]
         assert expected_comment == snapshot["comment"]
 
+
 def build_snapshot_tree(vm_name, tree, parent=""):
     for name, children in tree.items():
         take_snapshot(vm_name, name, parent)
         build_snapshot_tree(vm_name, children, name)
         if parent != "":
             assert multipass("restore", f"{vm_name}.{parent}", "--destructive")
+
 
 def collapse_to_snapshot_tree(flat_map):
     tree = {}
@@ -441,6 +432,7 @@ def collapse_to_snapshot_tree(flat_map):
             tree[name] = children[name]
 
     return tree
+
 
 def find_lineage(tree, target):
     def dfs(node, path):
