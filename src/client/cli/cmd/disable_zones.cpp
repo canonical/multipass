@@ -110,9 +110,9 @@ QString DisableZones::short_help() const
 
 QString DisableZones::description() const
 {
-    return QStringLiteral("Makes the given availability zones unavailable (all VMs are switched off immediately and "
-                          "forcefully and cannot be interacted with until the zone is available again, simulating a "
-                          "loss of availability on a cloud provider).");
+    return QStringLiteral("Makes the given availability zones unavailable. Instances therein are"
+                          "forcefully switched off and remain unavailable until their zone is re-enabled "
+                          "(simulating a loss of availability on a cloud provider).");
 }
 
 ParseCode DisableZones::parse_args(ArgParser* parser)
@@ -158,7 +158,8 @@ bool DisableZones::confirm()
                            fmt::join(request.zones().begin(), request.zones().begin() + last_zone, ", "),
                            request.zones(last_zone));
     };
-    const auto message = "This operation will forcefully stop the VMs in " + format_zones() + ". Proceed? (Yes/No)";
+    const auto message = "This operation will forcefully stop the VMs in " + format_zones() +
+                         ". Are you sure you want to continue? (Yes/no)";
 
     const PlainPrompter prompter{term};
     auto answer = prompter.prompt(message);
