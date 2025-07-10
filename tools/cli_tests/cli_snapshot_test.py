@@ -38,22 +38,22 @@ class TestSnapshot:
     """Snapshot tests."""
 
     def test_take_snapshot_of_nonexistent_instance(self):
-        """Try to take a snapshot of a non-existent instance.
-        It should fail."""
+        """Verify that taking a snapshot of a non-existent instance fails with
+        an appropriate error."""
         name = uuid4_str("instance")
         assert f'instance "{name}" does not exist' in multipass("snapshot", f"{name}")
 
     def test_try_restore_snapshot_of_nonexistent_instance(self):
-        """Try to restore snapshot of a non-existent instance.
-        It should fail."""
+        """Verify that restoring a snapshot for a non-existent instance fails
+        with an appropriate error."""
         name = uuid4_str("instance")
         assert f'instance "{name}" does not exist' in multipass(
             "restore", f"{name}.snapshot1"
         )
 
     def test_take_snapshot(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to test snapshots feature"""
+        """Ensure that a snapshot can be successfully created for a newly
+        launched instance."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -66,7 +66,6 @@ class TestSnapshot:
             "6G",
             "--name",
             name,
-            "jammy",
             retry=3,
         )
 
@@ -76,8 +75,8 @@ class TestSnapshot:
         validate_info_output(name, {"snapshot_count": "1"})
 
     def test_take_snapshot_name_conflict(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to test snapshots feature"""
+        """Validate that attempting to create a snapshot with a duplicate name
+        fails gracefully."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -106,8 +105,8 @@ class TestSnapshot:
         validate_info_output(name, {"snapshot_count": "1"})
 
     def test_snapshot_restore_while_running(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to test snapshots feature"""
+        """Ensure restoring a snapshot while the instance is running fails with
+        a proper error message."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -139,8 +138,8 @@ class TestSnapshot:
             )
 
     def test_take_snapshot_linear_history(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to test snapshots feature"""
+        """Verify that a linear chain of snapshots can be created, each
+        referencing the correct parent."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -167,8 +166,8 @@ class TestSnapshot:
         validate_info_output(name, {"snapshot_count": "3"})
 
     def test_take_snapshot_delete_linear_history(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to test snapshots feature"""
+        """Confirm that deleting a snapshot in a linear history reduces the
+        snapshot count appropriately."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -199,14 +198,12 @@ class TestSnapshot:
 
         assert multipass("delete", f"{name}.snapshot1", "--purge")
         validate_info_output(name, {"snapshot_count": "2"})
+        # TODO: Validate the parent_
 
     @pytest.mark.slow
     def test_take_snapshot_and_restore_linear(self):
-        """Tests snapshot creation and restoration in a Multipass VM.
-
-        Launches a VM, takes a chain of three snapshots, then restores each one
-        destructively and verifies file presence and snapshot consistency at each step.
-        """
+        """Test restoring each snapshot in a linear chain and verify file system
+        state consistency after each restore."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -267,7 +264,8 @@ class TestSnapshot:
         """Tests snapshot creation and restoration in a Multipass VM.
 
         Launches a VM, takes a chain of three snapshots, then restores each one
-        destructively and verifies file presence and snapshot consistency at each step.
+        destructively and verifies file presence and snapshot consistency at
+        each step.
         """
         name = uuid4_str("instance")
 
