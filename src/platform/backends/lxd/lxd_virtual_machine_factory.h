@@ -29,9 +29,10 @@ namespace multipass
 class LXDVirtualMachineFactory : public BaseVirtualMachineFactory
 {
 public:
-    explicit LXDVirtualMachineFactory(const Path& data_dir, const QUrl& base_url = lxd_socket_url);
+    explicit LXDVirtualMachineFactory(const QString& data_dir,
+                                      const QUrl& base_url = lxd_socket_url);
     explicit LXDVirtualMachineFactory(NetworkAccessManager::UPtr manager,
-                                      const Path& data_dir,
+                                      const QString& data_dir,
                                       const QUrl& base_url = lxd_socket_url);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -48,8 +49,8 @@ public:
     QString get_backend_version_string() const override;
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                           URLDownloader* downloader,
-                                          const Path& cache_dir_path,
-                                          const Path& data_dir_path,
+                                          const QString& cache_dir_path,
+                                          const QString& data_dir_path,
                                           const days& days_to_expire) override;
     void configure(VirtualMachineDescription& vm_desc) override;
     std::vector<NetworkInterfaceInfo> networks() const override;

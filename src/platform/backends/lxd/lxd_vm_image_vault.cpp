@@ -174,7 +174,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
                                              const PrepareAction& prepare,
                                              const ProgressMonitor& monitor,
                                              const std::optional<std::string>& checksum,
-                                             const mp::Path& /* save_dir */)
+                                             const QString& /* save_dir */)
 {
     // Look for an already existing instance and get its image info
     try
