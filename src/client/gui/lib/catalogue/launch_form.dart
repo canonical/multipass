@@ -431,7 +431,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       final zones = ref.read(zonesProvider);
       tooltipMessage = !zones.any((z) => z.available)
           ? 'All zones are unavailable'
-          : 'Enable selected pseudo zone to launch';
+          : 'Enable selected zone to launch';
     }
 
     final launchButton = Tooltip(
