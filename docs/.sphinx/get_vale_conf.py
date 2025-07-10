@@ -5,7 +5,6 @@ import os
 
 DIR = os.getcwd()
 
-
 def main():
     if os.path.exists(f"{DIR}/.sphinx/styles/Canonical"):
         print("Vale directory exists")
@@ -20,6 +19,22 @@ def main():
     for item in r.json():
         download = requests.get(item["download_url"])
         file = open(".sphinx/styles/Canonical/" + item["name"], "w")
+        file.write(download.text)
+        file.close()
+
+    # Update dictionary
+    if os.path.exists(f"{DIR}/.sphinx/styles/config/dictionaries"):
+        print("Dictionary directory exists")
+    else:
+        os.makedirs(f"{DIR}/.sphinx/styles/config/dictionaries")
+    url = (
+        "https://api.github.com/repos/canonical/praecepta/"
+        + "contents/styles/config/dictionaries"
+    )
+    r = requests.get(url)
+    for item in r.json():
+        download = requests.get(item["download_url"])
+        file = open(".sphinx/styles/config/dictionaries/" + item["name"], "w")
         file.write(download.text)
         file.close()
 
