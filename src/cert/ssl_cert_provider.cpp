@@ -16,6 +16,7 @@
  */
 
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/utils.h>
@@ -33,9 +34,11 @@
 #include <vector>
 
 namespace mp = multipass;
+namespace mpl = mp::logging;
 
 namespace
 {
+constexpr auto kLogCategory = "ssl-cert-provider";
 // utility function for checking return code or raw pointer from openssl C-apis
 // TODO: constrain T to int or raw pointer once C++20 concepts is available
 template <typename T>
@@ -196,6 +199,22 @@ void set_random_serial_number(X509* cert)
     openssl_check(X509_set_serialNumber(cert, serial), "Failed to set serial number!\n");
 }
 
+/**
+ * Check whether this certificate is the issuer (signer) of the given certificate.
+ *
+ * @param [in] signed_cert The certificate to check
+ * @return True if this certificate signed @p signed_cert; false otherwise.
+ */
+bool is_issuer_of(X509& issuer, X509& signed_cert)
+{
+    // Get the public key of this certificate (issuer)
+    std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pubkey{X509_get_pubkey(&issuer),
+                                                               &EVP_PKEY_free};
+    openssl_check(pubkey.get(), "Failed to get public key from certificate");
+    // Verify that signed_cert is issued by this certificate.
+    return X509_verify(&signed_cert, pubkey.get()) == 1;
+}
+
 class X509Cert
 {
 public:
@@ -336,6 +355,15 @@ private:
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
 };
 
+std::unique_ptr<X509, decltype(&X509_free)> load_cert_from_file(const std::filesystem::path& path)
+{
+    std::unique_ptr<FILE, int (*)(FILE*)> file{fopen(path.c_str(), "r"), &fclose};
+    if (!file)
+        return {nullptr, X509_free};
+
+    return {PEM_read_X509(file.get(), nullptr, nullptr, nullptr), X509_free};
+}
+
 mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                                                            const std::string& server_name)
 {
@@ -351,13 +379,52 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
         if (std::filesystem::exists(root_cert_path) && QFile::exists(priv_key_path) &&
             QFile::exists(cert_path))
         {
-            // Unlike other daemon files, the root certificate needs to be accessible by everyone
-            MP_PLATFORM.set_permissions(root_cert_path,
-                                        std::filesystem::perms::owner_all |
-                                            std::filesystem::perms::group_read |
-                                            std::filesystem::perms::others_read);
-            return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
+            // Ensure that we can load both certificates
+            const auto root_cert = load_cert_from_file(root_cert_path);
+            const auto cert = load_cert_from_file(cert_path.toStdString());
+
+            if (root_cert && cert)
+            {
+                mpl::debug(kLogCategory,
+                           "Certificates for the gRPC server (root: {}, subordinate: {}) are valid "
+                           "X.509 files",
+                           root_cert_path,
+                           cert_path.toStdString());
+
+                // FIXME: Also check the validity period of the certificates to decide if they need
+                // to be re-generated
+
+                // Validate root cert is the issuer(signer) of the subordinate certificate
+                if (is_issuer_of(*root_cert.get(), *cert.get()))
+                {
+                    mpl::info(kLogCategory, "Re-using existing certificates for the gRPC server");
+
+                    // Unlike other daemon files, the root certificate needs to be accessible by
+                    // everyone
+                    MP_PLATFORM.set_permissions(root_cert_path,
+                                                std::filesystem::perms::owner_all |
+                                                    std::filesystem::perms::group_read |
+                                                    std::filesystem::perms::others_read);
+                    return {mp::utils::contents_of(cert_path),
+                            mp::utils::contents_of(priv_key_path)};
+                }
+
+                mpl::warn(kLogCategory,
+                          "Existing root certificate (`{}`) is not the signer of the gRPC "
+                          "server certificate (`{}`)",
+                          root_cert_path,
+                          cert_path.toStdString());
+            }
+            else
+            {
+                mpl::warn(kLogCategory,
+                          "Could not load either of the root (`{}`) or subordinate (`{}`) "
+                          "certificates for the gRPC server",
+                          root_cert_path,
+                          cert_path.toStdString());
+            }
         }
+        mpl::info(kLogCategory, "Regenerating certificates for the gRPC server");
 
         const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
 
@@ -380,9 +447,14 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
     {
         if (QFile::exists(priv_key_path) && QFile::exists(cert_path))
         {
+            // FIXME: The client does not respect the log level and this always get printed
+            // even on `multipass list`
+            // Re-enable it after fixing.
+            // mpl::trace(kLogCategory, "Re-using existing certificates for the gRPC client");
             return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
         }
 
+        // mpl::trace(kLogCategory, "Regenerating certificates for the gRPC client");
         const EVPKey client_cert_key{};
         const X509Cert client_cert{client_cert_key, X509Cert::CertType::Client};
         client_cert_key.write(priv_key_path);
