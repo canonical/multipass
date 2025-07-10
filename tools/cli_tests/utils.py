@@ -18,19 +18,18 @@
 
 """Helper utilities for testing the Multipass CLI."""
 
-from collections import defaultdict
-import sys
-import re
 import json
-import uuid
-import time
+import re
 import shutil
+import sys
+import time
+import uuid
+from collections import defaultdict
 from collections.abc import Sequence
 from pprint import pformat
 
-import pexpect
 import jq
-
+import pexpect
 from cli_tests.config import config
 
 

@@ -9,6 +9,8 @@ dependencies = ["pytest", "pexpect", "jq"]
 py-modules = []
 
 [tool.pytest.ini_options]
-filterwarnings = [
-    "ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"
+filterwarnings = ["ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"]
+markers = [
+    "snapshot: Snapshot tests.",
+    "slow: The tests that known to have a slow run time.",
 ]
