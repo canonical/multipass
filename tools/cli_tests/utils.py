@@ -123,6 +123,7 @@ def get_default_timeout_for(cmd):
         "stop": 180,
         "launch": 600,
         "exec": 30,
+        "start": 30,
     }
     if cmd in default_timeouts:
         return default_timeouts[cmd]
