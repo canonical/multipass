@@ -309,9 +309,6 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
-    convert_to_qcow2_v3_if_necessary(
-        desc.image.image_path,
-        vm_name); // TODO drop in a couple of releases (went in on v1.13)
 
     // Load block devices from metadata
     load_block_devices_from_metadata();
