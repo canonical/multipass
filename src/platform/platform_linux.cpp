@@ -405,17 +405,17 @@ std::string mp::platform::default_server_address()
     return "unix:" + base_dir + "/multipass_socket";
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     const auto& driver = MP_SETTINGS.get(mp::driver_key);
     if (driver == QStringLiteral("qemu"))
-        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
 
     if (driver == QStringLiteral("libvirt"))
-        return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
+        return std::make_unique<LibVirtVirtualMachineFactory>(data_dir, az_manager);
 
     if (driver == QStringLiteral("lxd"))
-        return std::make_unique<LXDVirtualMachineFactory>(data_dir);
+        return std::make_unique<LXDVirtualMachineFactory>(data_dir, az_manager);
 
 #if VIRTUALBOX_ENABLED
     if (driver == QStringLiteral("virtualbox"))
