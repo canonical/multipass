@@ -14,6 +14,10 @@ jobs:
   CheckLint:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      checks: read
+
     outputs:
       conclusion: ${{ steps.check-lint.outputs.conclusion }}
 
@@ -49,6 +53,10 @@ jobs:
 
   BuildAndTest:
     needs: [GetMatrix, CheckLint]
+
+    permissions:
+      contents: read
+      packages: write
 
     # Proceed if Lint failed on a PR (but not if cancelled)
     if: ${{ !cancelled() && success() &&
