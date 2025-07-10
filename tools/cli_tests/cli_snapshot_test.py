@@ -68,7 +68,6 @@ class TestSnapshot:
             name,
             "jammy",
             retry=3,
-            timeout=600,
         )
 
         validate_list_output(name, {"state": "Running"})
@@ -93,7 +92,6 @@ class TestSnapshot:
             name,
             "jammy",
             retry=3,
-            timeout=600,
         )
 
         validate_list_output(name, {"state": "Running"})
@@ -124,7 +122,6 @@ class TestSnapshot:
             name,
             "jammy",
             retry=3,
-            timeout=600,
         )
 
         validate_list_output(name, {"state": "Running"})
@@ -158,7 +155,6 @@ class TestSnapshot:
             name,
             "jammy",
             retry=3,
-            timeout=600,
         )
 
         validate_list_output(name, {"state": "Running"})
@@ -187,7 +183,6 @@ class TestSnapshot:
             name,
             "jammy",
             retry=3,
-            timeout=600,
         )
 
         validate_list_output(name, {"state": "Running"})
@@ -226,7 +221,6 @@ class TestSnapshot:
             name,
             "jammy",
             retry=3,
-            timeout=600,
         )
 
         validate_list_output(name, {"state": "Running"})
