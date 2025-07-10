@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) Canonical, Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+
+"""Multipass command line tests for the clone feature."""
+
+import pytest
+import pexpect
+
+from cli_tests.utils import (
+    uuid4_str,
+    is_valid_ipv4_addr,
+    validate_list_output,
+    validate_info_output,
+    file_exists,
+    take_snapshot,
+    multipass,
+)
+
+
+@pytest.mark.clone
+class TestClone:
+    """Clone tests."""
+
+    def test_clone_nonexistent_instance(self):
+        name = uuid4_str("instance")
+        assert not multipass("clone", f"{name}")
+
+    def test_clone_running_instance(self):
+        name = uuid4_str("instance")
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+            retry=3,
+        )
+
+        with multipass("clone", f"{name}") as output:
+            assert not output
+            assert "Multipass can only clone stopped instances." in output
+
+    def test_clone_to_self(self):
+        name = uuid4_str("instance")
+
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+            retry=3,
+        )
+        assert multipass("stop", f"{name}")
+
+        with multipass("clone", f"{name}", "--name", f"{name}") as output:
+            assert not output
+            assert "already exist" in output
+
+    def test_clone_instance_with_snapshot(self):
+        name = uuid4_str("instance")
+
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+            retry=3,
+        )
+        take_snapshot(name, "snapshot1")
+        with multipass("clone", f"{name}") as output:
+            assert output
+            assert f"Cloned from {name} to {name}.clone1" in output
+
+    def test_clone_verify_clone_has_different_properties(self):
+        """ip, mac, hostname, etc."""
+        name = uuid4_str("instance")
+
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+            retry=3,
+        )
+
+        assert multipass("stop", f"{name}")
+        validate_info_output(name, {"state": "Stopped"})
+
+        with multipass("clone", f"{name}") as output:
+            assert output
+            assert f"Cloned from {name} to {name}-clone1" in output
+
+        validate_info_output(f"{name}-clone1", {"state": "Stopped"})
+        assert multipass("start", f"{name}-clone1")
+
+        validate_info_output(
+            f"{name}-clone1",
+            {
+                "cpu_count": "2",
+                "snapshot_count": "0",
+                "state": "Running",
+                "mounts": {},
+                "image_release": "24.04 LTS",
+                "ipv4": is_valid_ipv4_addr,
+            },
+        )
+
+        # TODO: validate properties
+        # with multipass("shell", f"{name}", interactive=True) as vm_shell:
+        #     vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
+        #     # Send a command and expect output
+        #     vm_shell.sendline('echo "Hello from multipass"')
+        #     vm_shell.expect("Hello from multipass")
+        #     vm_shell.expect(r"ubuntu@.*:.*\$")
+        #     vm_shell.expect(pexpect.EOF)
+        #     vm_shell.wait()
+
+        #     assert vm_shell.exitstatus == 0
