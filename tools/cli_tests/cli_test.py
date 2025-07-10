@@ -56,7 +56,6 @@ def test_launch_noble():
         name,
         "noble",
         retry=3,
-        timeout=600,
     )
 
     validate_list_output(
@@ -77,7 +76,7 @@ def test_launch_noble():
     )
 
     # Try to stop the instance
-    assert multipass("stop", f"{name}", timeout=180)
+    assert multipass("stop", f"{name}")
     validate_info_output(name, {"state": "Stopped"})
 
     # Try to start the instance
@@ -106,7 +105,6 @@ def test_shell():
         name,
         "jammy",
         retry=3,
-        timeout=600,
     )
 
     validate_list_output(name, {"state": "Running"})
