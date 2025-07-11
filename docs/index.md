@@ -12,6 +12,8 @@ Accessing files from your host machine is supported through the `multipass mount
 Please learn more details in the linked documentation topics.
 -->
 
+
+<!-- no-merge -->
 Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS and Windows. It provides a simple but powerful CLI that enables you to quickly access an Ubuntu command line or create your own local mini-cloud.
 
 Local development and testing can be challenging, but Multipass simplifies these processes by automating setup and teardown. Multipass has a growing library of images that you can use to launch purpose-built VMs or custom VMs you’ve configured yourself through its powerful `cloud-init` interface.
