@@ -26,6 +26,7 @@
 
 #include <QDir>
 
+#include <chrono>
 #include <fstream>
 
 namespace mp = multipass;
@@ -69,6 +70,9 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
+    constexpr static auto terminate_timeout = std::chrono::milliseconds(10000).count();
+    constexpr static auto kill_timeout = std::chrono::milliseconds(5000).count();
+
     if (dnsmasq_cmd && dnsmasq_cmd->running())
     {
         QObject::disconnect(finish_connection);
@@ -76,13 +80,15 @@ mp::DNSMasqServer::~DNSMasqServer()
         mpl::debug("dnsmasq", "terminating");
         dnsmasq_cmd->terminate();
 
-        if (!dnsmasq_cmd->wait_for_finished(1000))
+        if (!dnsmasq_cmd->wait_for_finished(terminate_timeout))
         {
             mpl::info("dnsmasq", "failed to terminate nicely, killing");
-
             dnsmasq_cmd->kill();
-            if (!dnsmasq_cmd->wait_for_finished(100))
-                mpl::warn("dnsmasq", "failed to kill");
+
+            if (!dnsmasq_cmd->wait_for_finished(kill_timeout))
+            {
+                mpl::warn("dnsmasq", "failed to kill (timed out)");
+            }
         }
     }
 }
