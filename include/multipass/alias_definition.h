@@ -15,6 +15,8 @@
  *
  */
 
+// no-merge
+
 #pragma once
 
 #include <string>
