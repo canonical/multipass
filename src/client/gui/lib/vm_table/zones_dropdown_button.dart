@@ -32,7 +32,7 @@ class ZonesDropdownButton extends ConsumerWidget {
         const PopupMenuItem(
           enabled: false,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 8),
             child: Text(
               'Availability zones',
               style: TextStyle(
@@ -46,7 +46,7 @@ class ZonesDropdownButton extends ConsumerWidget {
         for (final zone in zones)
           PopupMenuItem(
             enabled: false,
-            padding: EdgeInsets.zero,
+            padding: zone == zones.last ? EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0 ) : EdgeInsets.symmetric(horizontal: 24.0),
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.withAlpha(77)),
