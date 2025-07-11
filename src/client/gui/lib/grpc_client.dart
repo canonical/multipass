@@ -244,11 +244,11 @@ class CustomChannelCredentials extends ChannelCredentials {
     super.authority,
     required List<int> certificate,
     required this.certificateKey,
-  }) : certificateChain = certificate,
-       super.secure(
-         certificates: certificate,
-         onBadCertificate: allowBadCertificates,
-       );
+  })  : certificateChain = certificate,
+        super.secure(
+          certificates: certificate,
+          onBadCertificate: allowBadCertificates,
+        );
 
   @override
   SecurityContext get securityContext {

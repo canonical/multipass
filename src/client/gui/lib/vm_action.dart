@@ -14,48 +14,48 @@ enum VmAction {
   edit;
 
   String get name => switch (this) {
-    start => 'Start',
-    stop => 'Stop',
-    suspend => 'Suspend',
-    restart => 'Restart',
-    delete => 'Delete',
-    recover => 'Recover',
-    purge => 'Purge',
-    edit => 'Edit',
-  };
+        start => 'Start',
+        stop => 'Stop',
+        suspend => 'Suspend',
+        restart => 'Restart',
+        delete => 'Delete',
+        recover => 'Recover',
+        purge => 'Purge',
+        edit => 'Edit',
+      };
 
   String get pastTense => switch (this) {
-    start => 'Started',
-    stop => 'Stopped',
-    suspend => 'Suspended',
-    restart => 'Restarted',
-    delete => 'Deleted',
-    recover => 'Recovered',
-    purge => 'Purged',
-    edit => 'Edited',
-  };
+        start => 'Started',
+        stop => 'Stopped',
+        suspend => 'Suspended',
+        restart => 'Restarted',
+        delete => 'Deleted',
+        recover => 'Recovered',
+        purge => 'Purged',
+        edit => 'Edited',
+      };
 
   String get continuousTense => switch (this) {
-    start => 'Starting',
-    stop => 'Stopping',
-    suspend => 'Suspending',
-    restart => 'Restarting',
-    delete => 'Deleting',
-    recover => 'Recovering',
-    purge => 'Purging',
-    edit => 'Editing',
-  };
+        start => 'Starting',
+        stop => 'Stopping',
+        suspend => 'Suspending',
+        restart => 'Restarting',
+        delete => 'Deleting',
+        recover => 'Recovering',
+        purge => 'Purging',
+        edit => 'Editing',
+      };
 
   Set<Status> get allowedStatuses => switch (this) {
-    start => const {Status.STOPPED, Status.SUSPENDED},
-    stop => const {Status.RUNNING},
-    suspend => const {Status.RUNNING},
-    restart => const {Status.RUNNING},
-    delete => const {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
-    recover => const {Status.DELETED},
-    purge => const {Status.DELETED},
-    edit => const {Status.STOPPED},
-  };
+        start => const {Status.STOPPED, Status.SUSPENDED},
+        stop => const {Status.RUNNING},
+        suspend => const {Status.RUNNING},
+        restart => const {Status.RUNNING},
+        delete => const {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
+        recover => const {Status.DELETED},
+        purge => const {Status.DELETED},
+        edit => const {Status.STOPPED},
+      };
 }
 
 class VmActionButton extends StatelessWidget {

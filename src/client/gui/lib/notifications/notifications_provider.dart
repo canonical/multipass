@@ -49,8 +49,8 @@ class NotificationsNotifier extends AutoDisposeNotifier<BuiltList<Widget>> {
 
 final notificationsProvider =
     NotifierProvider.autoDispose<NotificationsNotifier, BuiltList<Widget>>(
-      NotificationsNotifier.new,
-    );
+  NotificationsNotifier.new,
+);
 
 extension ErrorNotificationWidgetRefExtension on WidgetRef {
   void Function(Object?, StackTrace) notifyError(

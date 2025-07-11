@@ -72,9 +72,8 @@ class Vms extends ConsumerWidget {
     );
 
     final enabledHeaderNames = ref.watch(enabledHeadersProvider).asMap();
-    final enabledHeaders = headers
-        .where((h) => enabledHeaderNames[h.name]!)
-        .toList();
+    final enabledHeaders =
+        headers.where((h) => enabledHeaderNames[h.name]!).toList();
 
     final infos = ref
         .watch(vmInfosProvider)

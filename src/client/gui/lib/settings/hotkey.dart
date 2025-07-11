@@ -15,9 +15,8 @@ class HotkeyNotifier extends Notifier<SingleActivator?> {
     final hotkeyString = ref.read(hotkeySettingProvider);
     if (hotkeyString == null) return null;
     final components = hotkeyString.toLowerCase().split('+');
-    final keyId = components
-        .map(int.tryParse)
-        .firstWhereOrNull((e) => e != null);
+    final keyId =
+        components.map(int.tryParse).firstWhereOrNull((e) => e != null);
     if (keyId == null) return null;
     final key = LogicalKeyboardKey.findKeyByKeyId(keyId);
     if (key == null) return null;
@@ -175,8 +174,8 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
     final keyCombination = modifiers.isNotEmpty
         ? '$modifiers+$keyLabel'
         : hasFocus
-        ? 'Input...'
-        : '';
+            ? 'Input...'
+            : '';
 
     return Focus(
       focusNode: focusNode,

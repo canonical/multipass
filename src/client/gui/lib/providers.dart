@@ -107,8 +107,8 @@ class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
 
 final allVmInfosProvider =
     NotifierProvider<AllVmInfosNotifier, List<DetailedInfoItem>>(
-      AllVmInfosNotifier.new,
-    );
+  AllVmInfosNotifier.new,
+);
 
 final vmInfosProvider = Provider((ref) {
   final existingVms = ref
@@ -198,8 +198,8 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
 
 final launchingVmsProvider =
     NotifierProvider<LaunchingVmsNotifier, BuiltList<DetailedInfoItem>>(
-      LaunchingVmsNotifier.new,
-    );
+  LaunchingVmsNotifier.new,
+);
 
 final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
   ref,
@@ -214,9 +214,7 @@ class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
 
   @override
   String build(String arg) {
-    file.parent
-        .create(recursive: true)
-        .then(
+    file.parent.create(recursive: true).then(
           (dir) => dir
               .watch()
               .where((event) => event.path == file.path)
@@ -334,8 +332,8 @@ const askTerminalCloseKey = 'askTerminalClose';
 // this provider is set with a value obtained asynchronously in main.dart
 final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(() {
-      throw UnimplementedError();
-    });
+  throw UnimplementedError();
+});
 
 final networksProvider = Provider.autoDispose((ref) {
   final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;

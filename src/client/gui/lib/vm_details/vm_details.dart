@@ -10,30 +10,30 @@ import 'vm_details_resources.dart';
 
 enum VmDetailsLocation { shells, details }
 
-final vmScreenLocationProvider = StateProvider.autoDispose
-    .family<VmDetailsLocation, String>((_, __) {
-      return VmDetailsLocation.shells;
-    });
+final vmScreenLocationProvider =
+    StateProvider.autoDispose.family<VmDetailsLocation, String>((_, __) {
+  return VmDetailsLocation.shells;
+});
 
 enum ActiveEditPage { resources, bridge, mounts }
 
-final activeEditPageProvider = StateProvider.autoDispose
-    .family<ActiveEditPage?, String>((ref, name) {
-      ref.listen(
-        vmInfoProvider(name).select((info) => info.instanceStatus.status),
-        (_, status) {
-          final isBridgeOrResources = [
-            ActiveEditPage.bridge,
-            ActiveEditPage.resources,
-          ].contains(ref.controller.state);
+final activeEditPageProvider =
+    StateProvider.autoDispose.family<ActiveEditPage?, String>((ref, name) {
+  ref.listen(
+    vmInfoProvider(name).select((info) => info.instanceStatus.status),
+    (_, status) {
+      final isBridgeOrResources = [
+        ActiveEditPage.bridge,
+        ActiveEditPage.resources,
+      ].contains(ref.controller.state);
 
-          if (isBridgeOrResources && status != Status.STOPPED) {
-            ref.invalidateSelf();
-          }
-        },
-      );
-      return null;
-    });
+      if (isBridgeOrResources && status != Status.STOPPED) {
+        ref.invalidateSelf();
+      }
+    },
+  );
+  return null;
+});
 
 class VmDetailsScreen extends ConsumerWidget {
   final String name;

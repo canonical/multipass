@@ -73,9 +73,7 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final content = ref
-        .watch(imagesProvider)
-        .when(
+    final content = ref.watch(imagesProvider).when(
           skipLoadingOnRefresh: false,
           data: _buildCatalogue,
           error: (error, _) {
@@ -155,9 +153,8 @@ class CatalogueScreen extends ConsumerWidget {
               return Wrap(
                 runSpacing: spacing,
                 spacing: spacing,
-                children: images
-                    .map((image) => ImageCard(image, cardWidth))
-                    .toList(),
+                children:
+                    images.map((image) => ImageCard(image, cardWidth)).toList(),
               );
             },
           ),
