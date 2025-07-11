@@ -4510,6 +4510,32 @@ TEST_F(Client, disable_zones_cmd_with_force_option)
     EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, disable_zones_cmd_confirm)
+{
+    std::stringstream cout, cerr;
+    std::istringstream cin;
+    mpt::MockTerminal term;
+    EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
+    EXPECT_CALL(term, cin()).WillRepeatedly(ReturnRef(cin));
+    EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(true));
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+
+    cin.str("yes\n");
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term), Eq(mp::ReturnCode::Ok));
+
+    cin.str("no\n");
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, disable_zones_cmd_on_failure)
+{
+    const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
