@@ -94,13 +94,20 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.numCores = value!,
     );
 
+    // Determine minimums based on image type
+    final isCore = imageInfo.aliasesInfo.any((a) => a.alias.contains('core'));
+    final minRam = isCore ? 512.mebi : 1024.mebi;
+    final minDisk = isCore ? 1.gibi : 5.gibi;
+
     final memorySlider = RamSlider(
       initialValue: defaultRam,
+      min: minRam,
       onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
     final diskSlider = DiskSlider(
       initialValue: defaultDisk,
+      min: minDisk,
       onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
