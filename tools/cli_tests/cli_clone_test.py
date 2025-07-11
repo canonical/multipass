@@ -100,6 +100,9 @@ class TestClone:
             assert output
             assert f"Cloned from {name} to {name}.clone1" in output
 
+        # Verify that the clone does not have any snapshots
+        validate_info_output(f"{name}-clone1", {"snapshot_count": "0"})
+
     def test_clone_verify_clone_has_different_properties(self):
         """ip, mac, hostname, etc."""
         name = uuid4_str("instance")
@@ -175,4 +178,3 @@ class TestClone:
         ) as clone_mac:
             assert src_mac and clone_mac
             assert src_mac.content != clone_mac.content
-
