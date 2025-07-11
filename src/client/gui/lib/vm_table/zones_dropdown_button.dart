@@ -102,10 +102,13 @@ class _ZoneToggleRow extends ConsumerWidget {
             ),
           ],
         ),
-        Switch(
-          value: available,
-          onChanged: (value) => client.zonesState([zoneName], value),
-          size: 20,
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Switch(
+            value: available,
+            onChanged: (value) => client.zonesState([zoneName], value),
+            size: 20,
+          ),
         ),
       ],
     );
