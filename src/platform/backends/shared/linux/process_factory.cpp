@@ -25,6 +25,8 @@
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/snap_utils.h>
 
+#include <signal.h>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -52,6 +54,15 @@ public:
     void setup_child_process() final
     {
         mp::BasicProcess::setup_child_process();
+
+        // This function runs after fork, but before exec, which is a perfect
+        // place to reset the signal masks.
+        // Unblock all signals for the child process
+        {
+            sigset_t set;
+            sigemptyset(&set);
+            sigprocmask(SIG_SETMASK, &set, nullptr);
+        }
 
         apparmor.next_exec_under_policy(process_spec->apparmor_profile_name().toLatin1());
     }
