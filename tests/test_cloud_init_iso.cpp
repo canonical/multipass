@@ -37,12 +37,13 @@ const std::string default_meta_data_content = fmt::format(meta_data_content_temp
 constexpr auto* network_config_data_content_template = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  eth0:
     match:
       macaddress: "{0}"
     dhcp4: true
     dhcp-identifier: mac
-  extra0:
+    set-name: eth0
+  eth1:
     match:
       macaddress: "{1}"
     dhcp4: true
@@ -50,6 +51,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: eth1
 )";
 
 auto read_returns_failed_ifstream =
