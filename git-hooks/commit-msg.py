@@ -103,7 +103,6 @@ def validate(msg):
     Returns a list of error messages for any rule violations.
     """
     return CommitMsgRulesChecker(msg).errors
-    # return [rule.value for rule in checker.errors] if checker.errors else []
 
 
 def handle_errors(errors):
