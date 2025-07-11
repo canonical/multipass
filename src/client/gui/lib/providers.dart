@@ -359,4 +359,5 @@ class SessionTerminalFontSizeNotifier extends Notifier<double> {
 
 final sessionTerminalFontSizeProvider =
     NotifierProvider<SessionTerminalFontSizeNotifier, double>(
-        SessionTerminalFontSizeNotifier.new);
+      SessionTerminalFontSizeNotifier.new,
+    );
