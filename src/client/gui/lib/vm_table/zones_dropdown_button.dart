@@ -99,7 +99,7 @@ class _ZoneToggleRow extends ConsumerWidget {
             ),
             Text(
               '$instanceCount running instance${instanceCount == 1 ? '' : 's'}',
-              style: TextStyle(fontSize: 12, color: Colors.black),
+              style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
             ),
           ],
         ),
