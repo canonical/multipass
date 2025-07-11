@@ -1,6 +1,6 @@
 [submodule "3rd-party/yaml-cpp"]
 	path = 3rd-party/yaml-cpp
-	url = https://github.com/canonical/yaml-cpp.git
+	url = https://github.com/jbeder/yaml-cpp.git
 	ignore = dirty
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh

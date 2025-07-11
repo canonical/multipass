@@ -115,9 +115,17 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
         default:
         {
             // Special handling for strings that look like octal numbers (e.g. "0755")
+            // or contain colons
             if (n.IsScalar())
             {
                 const std::string value = n.Scalar();
+                // If the node is a scalar string that contains a colon, emit it explicitly as a
+                // double-quoted string to prevent YAML from interpreting it as e.g. a timestamp.
+                if (value.find(':') != std::string::npos)
+                {
+                    emitter << YAML::DoubleQuoted << value;
+                    break;
+                }
                 // If the node is a scalar string that looks like an octal number, emit
                 // it explicitly as a string to prevent YAML from interpreting it as an octal value.
                 if (value.length() >= 2 && value[0] == '0' &&

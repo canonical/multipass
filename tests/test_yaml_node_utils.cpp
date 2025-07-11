@@ -189,3 +189,11 @@ TEST(UtilsTests, emitYamlWithOctalString)
     EXPECT_TRUE(result.find("regular_string: hello") != std::string::npos ||
                 result.find("regular_string: \"hello\"") != std::string::npos);
 }
+
+TEST(UtilsTests, emitYamlWithStringWithColons)
+{
+    YAML::Node node;
+    node["key"] = "value:with:colons";
+    const std::string result = mpu::emit_yaml(node);
+    EXPECT_TRUE(result.find("key: \"value:with:colons\"") != std::string::npos);
+}
