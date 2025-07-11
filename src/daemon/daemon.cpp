@@ -3232,9 +3232,20 @@ try // clang-format on
 {
     mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
 
-    for (const auto& zone_name : request->zones())
+    if (request->zones().empty())
     {
-        config->az_manager->get_zone(zone_name).set_available(request->available());
+        auto& az_manager = *config->az_manager;
+        for (auto&& zone : az_manager.get_zones())
+        {
+            az_manager.get_zone(zone.get().get_name()).set_available(request->available());
+        }
+    }
+    else
+    {
+        for (const auto& zone_name : request->zones())
+        {
+            config->az_manager->get_zone(zone_name).set_available(request->available());
+        }
     }
 
     status_promise->set_value(grpc::Status{});
