@@ -92,6 +92,7 @@ class _ZoneToggleRow extends ConsumerWidget {
               zoneName,
               style: TextStyle(
                 fontSize: 16,
+                height: 1.5,                
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
