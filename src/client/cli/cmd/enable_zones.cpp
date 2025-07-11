@@ -32,31 +32,8 @@ ReturnCode EnableZones::run(ArgParser* parser)
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    // If --all was specified, we need to fetch all zone names first
-    if (use_all_zones)
-    {
-        ZonesRequest zones_request{};
-        zones_request.set_verbosity_level(parser->verbosityLevel());
-
-        auto zones_on_success = [this](const ZonesReply& reply) {
-            // Populate the request with all zone names
-            for (const auto& zone : reply.zones())
-            {
-                request.add_zones(zone.name());
-            }
-            return Ok;
-        };
-
-        auto zones_on_failure = [this](const grpc::Status& status) {
-            return standard_failure_handler_for(name(), cerr, status);
-        };
-
-        // First, get all zones
-        if (const auto ret = dispatch(&RpcMethod::zones, zones_request, zones_on_success, zones_on_failure); ret != Ok)
-            return ret;
-    }
-
     AnimatedSpinner spinner{cout};
+    const auto use_all_zones = request.zones().empty();
     const auto message =
         use_all_zones ? "Enabling all zones" : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
     spinner.start(message);
@@ -113,10 +90,7 @@ ParseCode EnableZones::parse_args(ArgParser* parser)
     request.set_available(true);
     request.set_verbosity_level(parser->verbosityLevel());
 
-    // Store whether --all was used for later processing in run()
-    use_all_zones = parser->isSet(all_option_name);
-
-    if (!use_all_zones)
+    if (!parser->isSet(all_option_name))
     {
         for (const auto& zone_name : parser->positionalArguments())
             request.add_zones(zone_name.toStdString());
