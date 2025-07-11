@@ -15,6 +15,10 @@ class ZonesDropdownButton extends ConsumerWidget {
     return PopupMenuButton(
       tooltip: 'Change zone availability',
       position: PopupMenuPosition.under,
+      constraints: const BoxConstraints(
+        minWidth: 400, // Set minimum width for the popup menu
+        maxWidth: 500, // Set maximum width to prevent it from being too wide
+      ),
       child: OutlinedButton(
         onPressed: null,
         child: Row(
@@ -29,17 +33,20 @@ class ZonesDropdownButton extends ConsumerWidget {
         ),
       ),
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           enabled: false,
-          child: Padding(
-            padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 8),
-            child: Text(
+          child: Container(
+            width: double.infinity, // Take full width of the popup
+            padding: const EdgeInsets.only(left: 16, right: 24, top: 24, bottom: 8),
+            child: const Text(
               'Availability zones',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
+              maxLines: 1, // Prevent text wrapping
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -47,15 +54,16 @@ class ZonesDropdownButton extends ConsumerWidget {
           PopupMenuItem(
             enabled: false,
             padding: zone == zones.last
-                ? EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0)
-                : EdgeInsets.symmetric(horizontal: 24.0),
+                ? const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0)
+                : const EdgeInsets.symmetric(horizontal: 24.0),
             child: Container(
+              width: double.infinity, // Take full width of the popup
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.withAlpha(77)),
                 borderRadius: BorderRadius.circular(4),
               ),
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12), // Increased padding for better spacing
               child: _ZoneToggleRow(zone.name),
             ),
           ),
