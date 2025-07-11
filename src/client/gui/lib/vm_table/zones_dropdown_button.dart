@@ -21,6 +21,12 @@ class ZonesDropdownButton extends ConsumerWidget {
       ),
       child: OutlinedButton(
         onPressed: null,
+        style: OutlinedButton.styleFrom(
+          padding:
+              const EdgeInsets.only(left: 8, right: 4, top: 15, bottom: 15),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -37,7 +43,8 @@ class ZonesDropdownButton extends ConsumerWidget {
           enabled: false,
           child: Container(
             width: double.infinity, // Take full width of the popup
-            padding: const EdgeInsets.only(left: 16, right: 24, top: 24, bottom: 8),
+            padding:
+                const EdgeInsets.only(left: 8, right: 24, top: 24, bottom: 8),
             child: const Text(
               'Availability zones',
               style: TextStyle(
@@ -60,10 +67,10 @@ class ZonesDropdownButton extends ConsumerWidget {
               width: double.infinity, // Take full width of the popup
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.withAlpha(77)),
-                borderRadius: BorderRadius.circular(4),
               ),
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              padding: const EdgeInsets.all(12), // Increased padding for better spacing
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding:
+                  const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 16.0),
               child: _ZoneToggleRow(zone.name),
             ),
           ),
@@ -118,7 +125,7 @@ class _ZoneToggleRow extends ConsumerWidget {
           ],
         ),
         Text(
-          '$instanceCount running instance${instanceCount == 1 ? '' : 's'}',
+          '${instanceCount == 0 ? 'no' : instanceCount} running instance${instanceCount == 1 ? '' : 's'}',
           style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
         ),
       ],
