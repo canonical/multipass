@@ -3,7 +3,7 @@
 """
 Git commit-msg hook to validate commit messages according to team guidelines.
 
-Validates rules: 1-2, 4-6, 8-10, and 12.
+Validates rules: 1-2, 4-6, 8, 10, and 12.
 """
 import argparse
 import re
@@ -28,8 +28,6 @@ class CommitMsgRulesChecker:
         RULE5 =   "MSG5.  Limit the subject line to 50 characters (category included)."
         RULE6 =   "MSG6.  Do not end the subject line with a period."
         RULE8 =   "MSG8.  If adding a body, separate it from the subject with a blank line."
-        RULE9 =  ("MSG9.  Use multiple paragraphs in the body if needed. Separate them with a "
-                  "blank line.")
         RULE10 =  "MSG10. Do not include more than 1 consecutive blank line."
         RULE12 =  "MSG12. Wrap the body at 72 characters."
         # fmt: on
@@ -42,7 +40,6 @@ class CommitMsgRulesChecker:
             (self.Rules.RULE5, self.validate_rule5),
             (self.Rules.RULE6, self.validate_rule6),
             (self.Rules.RULE8, self.validate_rule8),
-            (self.Rules.RULE9, self.validate_rule9),
             (self.Rules.RULE10, self.validate_rule10),
             (self.Rules.RULE12, self.validate_rule12),
         ]
@@ -84,9 +81,6 @@ class CommitMsgRulesChecker:
 
     def validate_rule8(self):
         return not self.body or not self.body[0]
-
-    def validate_rule9(self):
-        return True  # TODO@no-merge
 
     def validate_rule10(self):
         both_blank = lambda l1, l2: not l1 and not l2
