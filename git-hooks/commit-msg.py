@@ -146,6 +146,15 @@ class TestCommitMsgRulesChecker:
                 This is the third paragraph.
                 """
             ),
+            textwrap.dedent(
+                """\
+                [fine] Just another one
+
+                With interspersed blank lines.
+
+                This is the last paragraph.
+                """
+            ),
         ]
 
         self._test_valid_msgs(valid_messages)
