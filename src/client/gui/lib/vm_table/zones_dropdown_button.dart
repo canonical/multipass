@@ -46,7 +46,9 @@ class ZonesDropdownButton extends ConsumerWidget {
         for (final zone in zones)
           PopupMenuItem(
             enabled: false,
-            padding: zone == zones.last ? EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0 ) : EdgeInsets.symmetric(horizontal: 24.0),
+            padding: zone == zones.last
+                ? EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0)
+                : EdgeInsets.symmetric(horizontal: 24.0),
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.withAlpha(77)),
@@ -82,34 +84,34 @@ class _ZoneToggleRow extends ConsumerWidget {
           .length;
     }));
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               zoneName,
               style: TextStyle(
                 fontSize: 16,
-                height: 1.5,                
+                height: 1.5,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
             ),
-            Text(
-              '$instanceCount running instance${instanceCount == 1 ? '' : 's'}',
-              style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Switch(
+                value: available,
+                onChanged: (value) => client.zonesState([zoneName], value),
+                size: 20,
+              ),
             ),
           ],
         ),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Switch(
-            value: available,
-            onChanged: (value) => client.zonesState([zoneName], value),
-            size: 20,
-          ),
+        Text(
+          '$instanceCount running instance${instanceCount == 1 ? '' : 's'}',
+          style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
         ),
       ],
     );
