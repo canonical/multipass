@@ -187,7 +187,7 @@ def multipass(*args, **kwargs):
             f"{multipass_path} {' '.join(args)}",
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
-            echo=echo
+            echo=echo,
         )
 
     class Cmd:
@@ -208,7 +208,7 @@ def multipass(*args, **kwargs):
                     f"{multipass_path} {' '.join(args)}",
                     logfile=(sys.stdout.buffer if config.print_cli_output else None),
                     timeout=timeout,
-                    echo=echo
+                    echo=echo,
                 )
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
                 self.pexpect_child.wait()
@@ -271,6 +271,13 @@ def multipass(*args, **kwargs):
             return f"<MultipassProxy cmd='multipass {' '.join(cmd.pexpect_child.command)}' {status}>"
 
     return ContextManagerProxy()
+
+
+def state(name):
+    """Retrieve state of a VM"""
+    with multipass("info", "--format=json", f"{name}").json() as output:
+        assert output
+        return output["info"][name]["state"]
 
 
 def validate_output(*args, properties, jq_filter=None):
