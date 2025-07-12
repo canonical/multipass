@@ -13,7 +13,7 @@ class RamSlider extends ConsumerWidget {
   final FormFieldSetter<int> onSaved;
 
   RamSlider({super.key, int? min, this.initialValue, required this.onSaved})
-    : min = min ?? 512.mebi;
+      : min = min ?? 512.mebi;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -120,9 +120,8 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
 }
 
 Future<void> _setTrayMenuError() async {
-  final keys = TrayMenu.instance.keys
-      .where((key) => key.startsWith('vm-'))
-      .toList();
+  final keys =
+      TrayMenu.instance.keys.where((key) => key.startsWith('vm-')).toList();
   for (final key in keys) {
     await TrayMenu.instance.remove(key);
   }
@@ -202,9 +201,8 @@ Future<void> _updateTrayMenu(
         label: 'Open in Multipass',
         callback: (_, __) {
           providerContainer
-                  .read(vmScreenLocationProvider(name).notifier)
-                  .state =
-              VmDetailsLocation.shells;
+              .read(vmScreenLocationProvider(name).notifier)
+              .state = VmDetailsLocation.shells;
           providerContainer.read(sidebarKeyProvider.notifier).set(key);
           final (:ids, :currentIndex) = providerContainer.read(
             shellIdsProvider(name),

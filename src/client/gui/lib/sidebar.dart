@@ -74,8 +74,7 @@ class SideBar extends ConsumerWidget {
 
     final instances = SidebarEntry(
       icon: SvgPicture.asset('assets/instances.svg'),
-      selected:
-          isSelected(VmTableScreen.sidebarKey) ||
+      selected: isSelected(VmTableScreen.sidebarKey) ||
           !expanded && selectedSidebarKey.startsWith('vm-'),
       label: 'Instances',
       badge: vmNames.length.toString(),
@@ -244,9 +243,8 @@ class SidebarEntry extends ConsumerWidget {
         onPressed: onPressed,
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-          backgroundColor: selected
-              ? const Color(0xff444444)
-              : Colors.transparent,
+          backgroundColor:
+              selected ? const Color(0xff444444) : Colors.transparent,
         ),
         child: Row(
           children: [

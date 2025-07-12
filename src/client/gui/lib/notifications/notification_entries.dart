@@ -139,19 +139,19 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
 
 class ErrorNotification extends SimpleNotification {
   ErrorNotification({super.key, required String text})
-    : super(
-        child: Text(text),
-        barColor: Colors.red,
-        icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-      );
+      : super(
+          child: Text(text),
+          barColor: Colors.red,
+          icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+        );
 }
 
 class SuccessNotification extends TimeoutNotification {
   const SuccessNotification({super.key, required super.child})
-    : super(
-        barColor: Colors.green,
-        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-      );
+      : super(
+          barColor: Colors.green,
+          icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+        );
 }
 
 class OperationNotification extends StatelessWidget {

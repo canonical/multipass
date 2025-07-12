@@ -71,7 +71,7 @@ class NotificationTile extends ConsumerWidget {
   final Widget notification;
 
   NotificationTile(this.notification)
-    : super(key: GlobalObjectKey(notification));
+      : super(key: GlobalObjectKey(notification));
 
   void removeSelf(WidgetRef ref) {
     ref.read(notificationsProvider.notifier).remove(notification);

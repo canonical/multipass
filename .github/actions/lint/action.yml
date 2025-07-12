@@ -61,6 +61,8 @@ runs:
     shell: bash
     run: |
       set -e -o pipefail
+      # Fetch flutter deps before running the formatter as it can influence the outcome.
+      3rd-party/flutter/bin/flutter pub get -C src/client/gui/
       if ! 3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed src/client/gui; then
         echo -n "##[error] Flutter code is not properly formatted. "
         echo "Run '3rd-party/flutter/bin/dart format' to fix formatting."

@@ -48,10 +48,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
-          ref
-              .read(bridgedProvider.notifier)
-              .set(value.toString())
-              .onError(
+          ref.read(bridgedProvider.notifier).set(value.toString()).onError(
                 ref.notifyError((e) => 'Failed to set bridged network: $e'),
               );
         }
@@ -61,8 +58,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         final message = networks.isEmpty
             ? 'No networks found.'
             : validBridgedNetwork
-            ? "Once established, you won't be able to unset the connection."
-            : 'No valid bridged network is set.';
+                ? "Once established, you won't be able to unset the connection."
+                : 'No valid bridged network is set.';
 
         return CheckboxListTile(
           contentPadding: EdgeInsets.zero,

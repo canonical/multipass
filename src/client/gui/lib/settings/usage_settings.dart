@@ -63,10 +63,7 @@ class UsageSettings extends ConsumerWidget {
         PassphraseField(
           hasPassphrase: hasPassphrase,
           onSave: (value) {
-            ref
-                .read(passphraseProvider.notifier)
-                .set(value)
-                .onError(
+            ref.read(passphraseProvider.notifier).set(value).onError(
                   ref.notifyError((e) => 'Failed to set passphrase: $e'),
                 );
           },
@@ -258,8 +255,7 @@ class _PassphraseFieldState extends State<PassphraseField> {
   void hasChanged() {
     Timer(100.milliseconds, () {
       setState(() {
-        changed =
-            (focus.hasFocus && widget.hasPassphrase) ||
+        changed = (focus.hasFocus && widget.hasPassphrase) ||
             controller.text.isNotEmpty;
       });
     });

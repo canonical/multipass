@@ -148,8 +148,8 @@ class TerminalNotifier
 
 final terminalProvider = NotifierProvider.autoDispose
     .family<TerminalNotifier, Terminal?, TerminalIdentifier>(
-      TerminalNotifier.new,
-    );
+  TerminalNotifier.new,
+);
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
@@ -213,9 +213,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     final name = widget.name;
     final action = VmAction.start;
     final operation = ref.read(grpcClientProvider).start([name]);
-    ref
-        .read(notificationsProvider.notifier)
-        .addOperation(
+    ref.read(notificationsProvider.notifier).addOperation(
           operation,
           loading: '${action.continuousTense} $name',
           onSuccess: (_) => '${action.pastTense} $name',
@@ -291,8 +289,8 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     ];
 
     final style = Theme.of(context).textButtonTheme.style?.copyWith(
-      backgroundColor: WidgetStatePropertyAll(Colors.transparent),
-    );
+          backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+        );
 
     contextMenuController.show(
       context: context,

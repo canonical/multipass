@@ -47,10 +47,7 @@ class VirtualizationSettings extends ConsumerWidget {
             value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
             items: {'': 'None', ...Map.fromIterable(networks)},
             onChanged: (value) {
-              ref
-                  .read(bridgedNetworkProvider.notifier)
-                  .set(value!)
-                  .onError(
+              ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
                     ref.notifyError((e) => 'Failed to set bridged network: $e'),
                   );
             },
