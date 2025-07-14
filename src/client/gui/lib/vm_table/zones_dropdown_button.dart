@@ -44,9 +44,9 @@ class ZonesDropdownButton extends ConsumerWidget {
           child: Container(
             width: double.infinity, // Take full width of the popup
             padding:
-                const EdgeInsets.only(left: 8, right: 24, top: 16, bottom: 8),
+                const EdgeInsets.only(left: 8, right: 16, top: 16, bottom: 12),
             child: const Text(
-              'Availability zones',
+              'Enable/disable zones',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
@@ -60,17 +60,15 @@ class ZonesDropdownButton extends ConsumerWidget {
         for (final zone in zones)
           PopupMenuItem(
             enabled: false,
-            padding: zone == zones.last
-                ? const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 16.0)
-                : const EdgeInsets.symmetric(horizontal: 24.0),
+            padding:  const EdgeInsets.only(left: 24.0, right: 12.0),
             child: Container(
               width: double.infinity, // Take full width of the popup
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.withAlpha(77)),
+                border: zone == zones.last ? Border() : Border(bottom: BorderSide(color: Colors.grey.withAlpha(77))),
               ),
               margin: const EdgeInsets.symmetric(vertical: 4),
               padding:
-                  const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 16.0),
+                  const EdgeInsets.only(top: 8.0, bottom: 16.0),
               child: _ZoneToggleRow(zone.name),
             ),
           ),
@@ -109,7 +107,6 @@ class _ZoneToggleRow extends ConsumerWidget {
               zoneName,
               style: TextStyle(
                 fontSize: 16,
-                height: 1.5,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
