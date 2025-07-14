@@ -69,10 +69,9 @@ Size computeDefaultWindowSize(Size? screenSize) {
   final defaultHeight = switch (screenHeight) {
     null || <= 576 => 450.0,
     >= 900 => 822.0,
-    _ =>
-      aspectRatioFactor != null
-          ? defaultWidth * aspectRatioFactor
-          : screenHeight * windowSizeFactor,
+    _ => aspectRatioFactor != null
+        ? defaultWidth * aspectRatioFactor
+        : screenHeight * windowSizeFactor,
   };
 
   final size = Size(defaultWidth, defaultHeight);

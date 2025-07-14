@@ -168,10 +168,8 @@ class _AppState extends ConsumerState<App> with WindowListener {
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
     final daemonAvailable = ref.read(daemonAvailableProvider);
-    final vmsRunning = ref
-        .read(vmStatusesProvider)
-        .values
-        .contains(Status.RUNNING);
+    final vmsRunning =
+        ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
     final closeJob = ref.read(guiSettingProvider(onAppCloseKey));
 
     // nothing to do

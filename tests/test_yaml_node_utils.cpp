@@ -23,7 +23,7 @@
 namespace mp = multipass;
 namespace mpu = mp::utils;
 
-TEST(UtilsTests, makeCloudInitMetaConfig)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfig)
 {
     const YAML::Node meta_data_node = mpu::make_cloud_init_meta_config("vm1");
     EXPECT_EQ(meta_data_node["instance-id"].as<std::string>(), "vm1");
@@ -31,7 +31,7 @@ TEST(UtilsTests, makeCloudInitMetaConfig)
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
-TEST(UtilsTests, makeCloudInitMetaConfigWithYAMLStr)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfigWithYAMLStr)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm2_e_e
@@ -44,17 +44,17 @@ cloud-name: multipass)";
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
-TEST(UtilsTests, addOneExtraInterfaceNonEmptyNetworkFileContent)
+TEST(YAMLNodeUtilsTests, addOneExtraInterfaceNonEmptyNetworkFileContent)
 {
     constexpr std::string_view original_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  eth0:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
     dhcp-identifier: mac
-  extra0:
+  eth1:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
@@ -66,12 +66,12 @@ ethernets:
     constexpr std::string_view expected_new_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  eth0:
     match:
       macaddress: "52:54:00:51:84:0c"
     dhcp4: true
     dhcp-identifier: mac
-  extra0:
+  eth1:
     match:
       macaddress: "52:54:00:d8:12:9b"
     dhcp4: true
@@ -79,7 +79,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
-  extra1:
+  eth2:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
@@ -87,6 +87,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: eth2
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
@@ -100,17 +101,18 @@ ethernets:
     EXPECT_EQ(mpu::emit_cloud_config(new_network_node), expected_new_network_config_file_content);
 }
 
-TEST(UtilsTests, addOneExtraInterfaceEmptyNetworkFileContent)
+TEST(YAMLNodeUtilsTests, addOneExtraInterfaceEmptyNetworkFileContent)
 {
     constexpr std::string_view expected_new_network_config_file_content = R"(#cloud-config
 version: 2
 ethernets:
-  default:
+  eth0:
     match:
       macaddress: "52:54:00:56:78:90"
     dhcp4: true
     dhcp-identifier: mac
-  extra0:
+    set-name: eth0
+  eth1:
     match:
       macaddress: "52:54:00:d8:12:9c"
     dhcp4: true
@@ -118,6 +120,7 @@ ethernets:
     dhcp4-overrides:
       route-metric: 200
     optional: true
+    set-name: eth1
 )";
 
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
@@ -129,7 +132,7 @@ ethernets:
     EXPECT_EQ(mpu::emit_cloud_config(new_network_node), expected_new_network_config_file_content);
 }
 
-TEST(UtilsTests, addOneExtraInterfaceFalseExtraInterface)
+TEST(YAMLNodeUtilsTests, addOneExtraInterfaceFalseExtraInterface)
 {
     const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", false};
     const auto new_network_node =
@@ -137,7 +140,7 @@ TEST(UtilsTests, addOneExtraInterfaceFalseExtraInterface)
     EXPECT_TRUE(new_network_node.IsNull());
 }
 
-TEST(UtilsTests, makeCloudInitMetaConfigWithIdTweakGeneratedId)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfigWithIdTweakGeneratedId)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm1
@@ -151,7 +154,7 @@ cloud-name: multipass)";
     EXPECT_EQ(meta_data_node["cloud-name"].as<std::string>(), "multipass");
 }
 
-TEST(UtilsTests, makeCloudInitMetaConfigWithIdTweakNewId)
+TEST(YAMLNodeUtilsTests, makeCloudInitMetaConfigWithIdTweakNewId)
 {
     constexpr std::string_view meta_data_content = R"(#cloud-config
 instance-id: vm1
@@ -185,4 +188,12 @@ TEST(UtilsTests, emitYamlWithOctalString)
                 result.find("not_octal: \"0abc\"") != std::string::npos);
     EXPECT_TRUE(result.find("regular_string: hello") != std::string::npos ||
                 result.find("regular_string: \"hello\"") != std::string::npos);
+}
+
+TEST(UtilsTests, emitYamlWithStringWithColons)
+{
+    YAML::Node node;
+    node["key"] = "value:with:colons";
+    const std::string result = mpu::emit_yaml(node);
+    EXPECT_TRUE(result.find("key: \"value:with:colons\"") != std::string::npos);
 }

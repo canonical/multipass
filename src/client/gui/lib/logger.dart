@@ -91,9 +91,8 @@ class MpPrettyPrinter extends LogPrinter {
     }).toList();
 
     final formatted = <String>[];
-    final stackTraceLength = methodCount != null
-        ? min(lines.length, methodCount)
-        : lines.length;
+    final stackTraceLength =
+        methodCount != null ? min(lines.length, methodCount) : lines.length;
 
     for (var count = 0; count < stackTraceLength; count++) {
       final line = lines[count];

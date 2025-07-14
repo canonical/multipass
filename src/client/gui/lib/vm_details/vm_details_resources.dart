@@ -60,10 +60,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: cpus,
             onSaved: (value) {
               if (value == null || value == cpus) return;
-              ref
-                  .read(cpusProvider.notifier)
-                  .set('$value')
-                  .onError(
+              ref.read(cpusProvider.notifier).set('$value').onError(
                     ref.notifyError((error) => 'Failed to set CPUs : $error'),
                   );
             },
@@ -79,10 +76,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: ram,
             onSaved: (value) {
               if (value == null || value == ram) return;
-              ref
-                  .read(ramProvider.notifier)
-                  .set('${value}B')
-                  .onError(
+              ref.read(ramProvider.notifier).set('${value}B').onError(
                     ref.notifyError((e) => 'Failed to set memory size: $e'),
                   );
             },
@@ -99,10 +93,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: disk,
             onSaved: (value) {
               if (value == null || value == disk) return;
-              ref
-                  .read(diskProvider.notifier)
-                  .set('${value}B')
-                  .onError(
+              ref.read(diskProvider.notifier).set('${value}B').onError(
                     ref.notifyError((e) => 'Failed to set disk size: $e'),
                   );
             },

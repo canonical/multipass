@@ -1402,8 +1402,9 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
         .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_FALSE(desc.network_data_config["ethernets"]["default"].IsNull());
-            EXPECT_FALSE(desc.network_data_config["ethernets"]["extra0"].IsDefined());
+            ASSERT_TRUE(desc.network_data_config["ethernets"]);
+            EXPECT_TRUE(desc.network_data_config["ethernets"]["eth0"]);
+            EXPECT_FALSE(desc.network_data_config["ethernets"]["eth1"].IsDefined());
         });
 
     send_command(launch_args);
@@ -1451,8 +1452,8 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
                                                    const mp::VirtualMachineDescription& desc) {
             EXPECT_THAT(desc.network_data_config, YAMLNodeContainsMap("ethernets"));
 
-            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("default"));
-            auto const& default_network_stanza = desc.network_data_config["ethernets"]["default"];
+            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("eth0"));
+            auto const& default_network_stanza = desc.network_data_config["ethernets"]["eth0"];
             EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
             EXPECT_THAT(default_network_stanza["match"],
                         YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
@@ -1507,15 +1508,15 @@ typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std:
 
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          LaunchWithBridges,
-                         Values(BridgeTestArgType({{"eth0", "extra0", "52:54:00:"}}, {"extra1"}),
+                         Values(BridgeTestArgType({{"eth0", "eth1", "52:54:00:"}}, {"eth2"}),
                                 BridgeTestArgType({{"name=eth0,mac=01:23:45:ab:cd:ef,mode=auto",
-                                                    "extra0",
+                                                    "eth1",
                                                     "01:23:45:ab:cd:ef"},
-                                                   {"wlan0", "extra1", "52:54:00:"}},
-                                                  {"extra2"}),
+                                                   {"wlan0", "eth2", "52:54:00:"}},
+                                                  {"eth3"}),
                                 BridgeTestArgType({{"name=eth0,mode=manual", "", ""},
-                                                   {"name=wlan0", "extra1", "52:54:00:"}},
-                                                  {"extra0", "extra2"})));
+                                                   {"name=wlan0", "eth1", "52:54:00:"}},
+                                                  {"eth2"})));
 
 TEST_P(MinSpaceRespectedSuite, acceptsLaunchWithEnoughExplicitMemory)
 {
