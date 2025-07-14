@@ -181,7 +181,7 @@ jobs:
         fi
 
     - name: Install nuget
-      if: ${{ contains(matrix.runs-on, 'macos-15') }}
+      if: ${{ contains(matrix.runs-on, 'macos-15') || contains(matrix.runs-on, 'macos-14') }}
       run: |
         brew install nuget mono
 
