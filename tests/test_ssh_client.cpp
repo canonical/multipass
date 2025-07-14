@@ -71,7 +71,10 @@ TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
     const int failure_code{127};
     auto client = make_ssh_client();
 
-    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+    REPLACE(ssh_channel_get_exit_state, [&failure_code](auto, std::uint32_t* pexit_code, auto, auto) {
+        *pexit_code = failure_code;
+        return SSH_OK;
+    });
 
     EXPECT_EQ(client.exec({"foo"}), failure_code);
 }

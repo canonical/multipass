@@ -1772,7 +1772,11 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
 {
     const int failure_code{GetParam()};
 
-    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+    REPLACE(ssh_channel_get_exit_state,
+            [&failure_code](auto, std::uint32_t* pexit_code, auto, auto) {
+                *pexit_code = failure_code;
+                return SSH_OK;
+            });
 
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
@@ -1794,7 +1798,11 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
 {
     const int failure_code{GetParam()};
 
-    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+    REPLACE(ssh_channel_get_exit_state,
+            [&failure_code](auto, std::uint32_t* pexit_code, auto, auto) {
+                *pexit_code = failure_code;
+                return SSH_OK;
+            });
 
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
