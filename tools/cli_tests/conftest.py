@@ -171,7 +171,7 @@ def ensure_sudo_auth():
         pytest.skip("Cannot authenticate sudo non-interactively")
 
 
-def wait_for_multipassd_ready(timeout=10):
+def wait_for_multipassd_ready(timeout=60):
     """
     Wait until Multipass daemon starts responding to the CLI commands.
     For that, the function tries to shell into a non-existent instance.
@@ -186,15 +186,11 @@ def wait_for_multipassd_ready(timeout=10):
     """
     deadline = time.time() + timeout
     while time.time() < deadline:
-        # The function  uses `shell` command to check if daemon is ready.
-        # An UUID is good enough to ensure that it does not exist.
-        nonexistent_instance_name = "6b76819d-faa8-404b-a65a-2183e5fe2cb6"
-        pattern = re.compile(f".*{nonexistent_instance_name}.*")
+        # The function uses the `find` command to check if daemon is ready.`
         try:
-            with multipass(
-                "shell", nonexistent_instance_name, timeout=5, interactive=True
-            ) as shell:
-                shell.expect(pattern)
+            if not multipass("find", timeout=10):
+                continue
+
             with multipass("version") as version:
                 version_out = version.content.splitlines() if version.content else []
                 # One line for multipass, one line for multipassd.
