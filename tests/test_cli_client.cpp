@@ -4490,6 +4490,13 @@ TEST_F(Client, enable_zones_cmd_passes_proper_request)
     EXPECT_THAT(send_command({"enable-zones", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, enable_zones_cmd_on_failure)
+{
+    const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
+    EXPECT_THAT(send_command({"enable-zones", "zone1"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 // disable_zones tests
 TEST_F(Client, disable_zones_cmd_help_ok)
 {
