@@ -32,9 +32,65 @@ from cli_tests.utils import (
 class TestVmLifecycle:
     """Virtual machine lifecycle tests."""
 
+    def test_launch_invalid_name(self):
+        invalid_names = [
+            "1nvalid-name",
+            "invalid.name",
+            "invalid$name",
+            "invalid(name)",
+            "invalid-name-",
+        ]
+
+        for name in invalid_names:
+            with multipass(
+                "launch",
+                "--cpus",
+                "2",
+                "--memory",
+                "1G",
+                "--disk",
+                "6G",
+                "--name",
+                name,
+            ) as output:
+                assert not output
+                assert "Invalid instance name supplied" in output
+
+    def test_lifecycle_ops_on_nonexistent(self):
+        name = uuid4_str("instance")
+        ops = [
+            "start",
+            "suspend",
+            "stop",
+            "delete",
+            "recover",
+            "restart",
+        ]
+
+        for op in ops:
+            with multipass(op, f"{name}") as output:
+                assert not output
+                assert "does not exist" in output
+
+    def test_launch_invalid_ram(self):
+        name = uuid4_str("instance")
+        with multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1CiG",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+        ) as output:
+            assert not output
+            assert "1CiG is not a valid memory size" in output
+
+    # TODO: Launch with custom cloud-init
+
     def test_launch_stop(self):
-        """Verify that taking a snapshot of a non-existent instance fails with
-        an appropriate error."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -50,13 +106,11 @@ class TestVmLifecycle:
             retry=3,
         )
 
-        validate_list_output(name, {"state": "Running"})
+        assert state(f"{name}") == "Running"
         assert multipass("stop", f"{name}")
-        validate_list_output(name, {"state": "Stopped"})
+        assert state(f"{name}") == "Stopped"
 
     def test_launch_stop_start(self):
-        """Verify that taking a snapshot of a non-existent instance fails with
-        an appropriate error."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -79,8 +133,6 @@ class TestVmLifecycle:
         assert state(f"{name}") == "Running"
 
     def test_launch_suspend_resume(self):
-        """Verify that taking a snapshot of a non-existent instance fails with
-        an appropriate error."""
         name = uuid4_str("instance")
 
         assert multipass(
@@ -101,3 +153,40 @@ class TestVmLifecycle:
         assert state(f"{name}") == "Suspended"
         assert multipass("start", f"{name}")
         assert state(f"{name}") == "Running"
+
+    def test_launch_delete_recover_purge(self):
+        name = uuid4_str("instance")
+
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+            retry=3,
+        )
+
+        assert state(f"{name}") == "Running"
+        assert multipass("delete", f"{name}")
+        assert state(f"{name}") == "Deleted"
+
+        with multipass("start", f"{name}") as output:
+            assert not output
+            assert f"Instance '{name}' is deleted." in output
+
+        assert multipass("recover", f"{name}")
+        assert state(f"{name}") == "Stopped"
+
+        assert multipass("start", f"{name}")
+
+        assert multipass("delete", f"{name}")
+        assert state(f"{name}") == "Deleted"
+
+        assert multipass("delete", f"{name}", "--purge")
+        with multipass("info", f"{name}") as output:
+            assert not output
+            assert "does not exist" in output
