@@ -175,7 +175,6 @@ class ResetTerminalFontIntent extends Intent {
 }
 
 class _VmTerminalState extends ConsumerState<VmTerminal> {
-  static const defaultFontSize = 13.0;
   static const minFontSize = 2.5;
   static const maxFontSize = 36.0;
   static const fontSizeStep = 0.5;
@@ -184,7 +183,6 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final contextMenuController = ContextMenuController();
   final terminalController = TerminalController();
   final focusNode = FocusNode();
-  var fontSize = defaultFontSize;
   late final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
 
   @override
@@ -360,7 +358,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           textStyle: TerminalStyle(
             fontFamily: 'UbuntuMono',
             fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-            fontSize: fontSize,
+            fontSize: ref.watch(sessionTerminalFontSizeProvider),
           ),
         );
       },
@@ -374,17 +372,25 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     final terminalActions = {
       IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
-        onInvoke: (_) => setState(() {
-          fontSize = min(fontSize + fontSizeStep, maxFontSize);
-        }),
+        onInvoke: (_) {
+          final currentSize = ref.read(sessionTerminalFontSizeProvider);
+          final newSize = min(currentSize + fontSizeStep, maxFontSize);
+          ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+        },
       ),
       DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
-        onInvoke: (_) => setState(() {
-          fontSize = max(fontSize - fontSizeStep, minFontSize);
-        }),
+        onInvoke: (_) {
+          final currentSize = ref.read(sessionTerminalFontSizeProvider);
+          final newSize = max(currentSize - fontSizeStep, minFontSize);
+          ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+        },
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
-        onInvoke: (_) => setState(() => fontSize = defaultFontSize),
+        onInvoke: (_) {
+          ref
+              .read(sessionTerminalFontSizeProvider.notifier)
+              .set(SessionTerminalFontSizeNotifier.defaultFontSize);
+        },
       ),
       PasteTextIntent: CallbackAction<PasteTextIntent>(
         onInvoke: (_) async {
