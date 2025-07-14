@@ -344,3 +344,17 @@ final networksProvider = Provider.autoDispose((ref) {
   }
   return BuiltSet<String>();
 });
+
+// Session-level terminal font size that resets on app restart
+class SessionTerminalFontSizeNotifier extends Notifier<double> {
+  static const defaultFontSize = 13.0;
+
+  @override
+  double build() => defaultFontSize;
+
+  void set(double value) => state = value;
+}
+
+final sessionTerminalFontSizeProvider =
+    NotifierProvider<SessionTerminalFontSizeNotifier, double>(
+        SessionTerminalFontSizeNotifier.new);
