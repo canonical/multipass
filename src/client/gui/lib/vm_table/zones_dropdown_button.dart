@@ -11,67 +11,84 @@ class ZonesDropdownButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final zones = ref.watch(zonesProvider);
+    final unavailableZones = zones.where((z) => !z.available).length;
 
-    return PopupMenuButton(
-      tooltip: 'Change zone availability',
-      position: PopupMenuPosition.under,
-      constraints: const BoxConstraints(
-        minWidth: 400, // Set minimum width for the popup menu
-        maxWidth: 500, // Set maximum width to prevent it from being too wide
-      ),
-      child: OutlinedButton(
-        onPressed: null,
-        style: OutlinedButton.styleFrom(
-          padding:
-              const EdgeInsets.only(left: 8, right: 4, top: 15, bottom: 15),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset('assets/zones.svg'),
-            const SizedBox(width: 8),
-            const Text('Zones', style: TextStyle(color: Colors.black)),
-            const SizedBox(width: 4),
-            const Icon(Icons.expand_more, color: Colors.black, size: 20),
+    return Row(
+      children: [
+        PopupMenuButton(
+          tooltip: 'Change zone availability',
+          position: PopupMenuPosition.under,
+          constraints: const BoxConstraints(
+            minWidth: 400, // Set minimum width for the popup menu
+            maxWidth: 500,
+          ),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              enabled: false,
+              child: Container(
+                width: double.infinity, // Take full width of the popup
+                padding: const EdgeInsets.only(
+                    left: 8, right: 16, top: 16, bottom: 12),
+                child: const Text(
+                  'Enable/disable zones',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                  maxLines: 1, // Prevent text wrapping
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            for (final zone in zones)
+              PopupMenuItem(
+                enabled: false,
+                padding: const EdgeInsets.only(left: 24.0, right: 12.0),
+                child: Container(
+                  width: double.infinity, // Take full width of the popup
+                  decoration: BoxDecoration(
+                    border: zone == zones.last
+                        ? Border()
+                        : Border(
+                            bottom:
+                                BorderSide(color: Colors.grey.withAlpha(77))),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                  child: _ZoneToggleRow(zone.name),
+                ),
+              ),
           ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          enabled: false,
-          child: Container(
-            width: double.infinity, // Take full width of the popup
-            padding:
-                const EdgeInsets.only(left: 8, right: 16, top: 16, bottom: 12),
-            child: const Text(
-              'Enable/disable zones',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-              maxLines: 1, // Prevent text wrapping
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        for (final zone in zones)
-          PopupMenuItem(
-            enabled: false,
-            padding:  const EdgeInsets.only(left: 24.0, right: 12.0),
-            child: Container(
-              width: double.infinity, // Take full width of the popup
-              decoration: BoxDecoration(
-                border: zone == zones.last ? Border() : Border(bottom: BorderSide(color: Colors.grey.withAlpha(77))),
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 4),
+          child: OutlinedButton(
+            onPressed: null,
+            style: OutlinedButton.styleFrom(
               padding:
-                  const EdgeInsets.only(top: 8.0, bottom: 16.0),
-              child: _ZoneToggleRow(zone.name),
+                  const EdgeInsets.only(left: 8, right: 4, top: 15, bottom: 15),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset('assets/zones.svg'),
+                const SizedBox(width: 8),
+                const Text('Zones', style: TextStyle(color: Colors.black)),
+                const SizedBox(width: 4),
+                const Icon(Icons.expand_more, color: Colors.black, size: 20),
+              ],
             ),
           ),
+        ),
+        if (unavailableZones > 0) ...[
+          const SizedBox(width: 8),
+          Icon(Icons.warning_rounded, color: Color(0xFFCC7701), size: 24),
+          const SizedBox(width: 4),
+          Text(
+            '$unavailableZones out of ${zones.length} zones ${unavailableZones == 1 ? 'is' : 'are'} unavailable',
+            style: TextStyle(color: Colors.black),
+          ),
+        ],
       ],
     );
   }
@@ -116,7 +133,7 @@ class _ZoneToggleRow extends ConsumerWidget {
               child: Switch(
                 value: available,
                 onChanged: (value) => client.zonesState([zoneName], value),
-                size: 20,
+                size: 28,
               ),
             ),
           ],
