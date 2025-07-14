@@ -44,7 +44,7 @@ class ZonesDropdownButton extends ConsumerWidget {
             for (final zone in zones)
               PopupMenuItem(
                 enabled: false,
-                padding: const EdgeInsets.only(left: 24.0, right: 12.0),
+                padding: const EdgeInsets.only(left: 24, right: 12),
                 child: Container(
                   width: double.infinity, // Take full width of the popup
                   decoration: BoxDecoration(
@@ -55,7 +55,7 @@ class ZonesDropdownButton extends ConsumerWidget {
                                 BorderSide(color: Colors.grey.withAlpha(77))),
                   ),
                   margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                  padding: const EdgeInsets.only(top: 8, bottom: 16),
                   child: _ZoneToggleRow(zone.name),
                 ),
               ),
@@ -64,7 +64,7 @@ class ZonesDropdownButton extends ConsumerWidget {
             onPressed: null,
             style: OutlinedButton.styleFrom(
               padding:
-                  const EdgeInsets.only(left: 8, right: 4, top: 15, bottom: 15),
+                  const EdgeInsets.only(left: 8, right: 4, top: 16, bottom: 16),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
