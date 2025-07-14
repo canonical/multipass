@@ -174,6 +174,10 @@ class ResetTerminalFontIntent extends Intent {
   const ResetTerminalFontIntent();
 }
 
+class SelectAllTerminalTextIntent extends Intent {
+  const SelectAllTerminalTextIntent();
+}
+
 class _VmTerminalState extends ConsumerState<VmTerminal> {
   static const defaultFontSize = 13.0;
   static const minFontSize = 2.5;
@@ -283,6 +287,16 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           Actions.maybeInvoke(
             context,
             PasteTextIntent(SelectionChangedCause.keyboard),
+          );
+        },
+      ),
+      ContextMenuButtonItem(
+        label: 'Select All',
+        onPressed: () {
+          ContextMenuController.removeAny();
+          Actions.maybeInvoke(
+            context,
+            const SelectAllTerminalTextIntent(),
           );
         },
       ),
@@ -402,6 +416,45 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           if (selection == null) return null;
           final text = terminal.buffer.getText(selection);
           await Clipboard.setData(ClipboardData(text: text));
+          return null;
+        },
+      ),
+      SelectAllTerminalTextIntent: CallbackAction<SelectAllTerminalTextIntent>(
+        onInvoke: (_) async {
+          // Select all text in the terminal buffer
+          final buffer = terminal.buffer;
+
+          // Check if there's any content to select
+          if (buffer.height == 0) return null;
+
+          // Find the last line with actual content
+          int lastContentLine = buffer.height - 1;
+          for (int i = buffer.height - 1; i >= 0; i--) {
+            final line = buffer.lines[i];
+            // Check if the line has any non-empty content
+            bool hasContent = false;
+            for (int j = 0; j < line.length; j++) {
+              if (line.getCodePoint(j) != 0 && line.getCodePoint(j) != 32) {
+                // not null and not space
+                hasContent = true;
+                break;
+              }
+            }
+            if (hasContent) {
+              lastContentLine = i;
+              break;
+            }
+          }
+
+          // Create a selection from the first line to the last line with content
+          // Start from the first line, first column
+          final start = buffer.createAnchor(0, 0);
+          // End at the last content line, last column
+          final end =
+              buffer.createAnchor(buffer.viewWidth - 1, lastContentLine);
+
+          // Set the selection to cover all meaningful text
+          terminalController.setSelection(start, end);
           return null;
         },
       ),
