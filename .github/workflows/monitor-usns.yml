@@ -1,4 +1,4 @@
-name: Snaps
+name: Monitor USNs
 
 on:
   schedule:
