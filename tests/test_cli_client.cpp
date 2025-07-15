@@ -4581,6 +4581,14 @@ TEST_F(Client, disable_zones_cmd_on_failure)
     EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
     EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::CommandFail));
 }
+TEST_F(Client, disable_zones_cmd_not_live_term_fails)
+{
+    NiceMock<mpt::MockTerminal> term;
+    EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(false));
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+
+    EXPECT_THROW(setup_client_and_run({"disable-zones", "zone1"}, term), std::runtime_error);
+}
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 {
