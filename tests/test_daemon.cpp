@@ -20,6 +20,8 @@
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
 #include "json_test_utils.h"
+#include "mock_availability_zone.h"
+#include "mock_availability_zone_manager.h"
 #include "mock_cert_provider.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
@@ -2384,3 +2386,38 @@ TEST_F(Daemon, setsUpPermissionInheritance)
 }
 
 } // namespace
+
+TEST_F(Daemon, zones_state_cmd_disable_all_zones)
+{
+    auto mock_az_manager = std::make_unique<NiceMock<multipass::test::MockAvailabilityZoneManager>>();
+    auto zone1 = std::make_unique<NiceMock<multipass::test::MockAvailabilityZone>>();
+    auto zone2 = std::make_unique<NiceMock<multipass::test::MockAvailabilityZone>>();
+
+    const std::string zone1_name = "zone1";
+    const std::string zone2_name = "zone2";
+
+    ON_CALL(*zone1, get_name()).WillByDefault(ReturnRef(zone1_name));
+    ON_CALL(*zone1, is_available()).WillByDefault(Return(true));
+    EXPECT_CALL(*zone1, set_available(false)).Times(1);
+
+    ON_CALL(*zone2, get_name()).WillByDefault(ReturnRef(zone2_name));
+    ON_CALL(*zone2, is_available()).WillByDefault(Return(true));
+    EXPECT_CALL(*zone2, set_available(false)).Times(1);
+
+    ON_CALL(*mock_az_manager, get_zones())
+        .WillByDefault(
+            Return(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{*zone1.get(), *zone2.get()}));
+    ON_CALL(*mock_az_manager, get_zone("zone1")).WillByDefault(ReturnRef(*zone1.get()));
+    ON_CALL(*mock_az_manager, get_zone("zone2")).WillByDefault(ReturnRef(*zone2.get()));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    std::promise<grpc::Status> status_promise;
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    daemon.zones_state(&request, &mock_server, &status_promise);
+    EXPECT_TRUE(status_promise.get_future().get().ok());
+}
