@@ -189,14 +189,6 @@ std::string get_alias_script_path(const std::string& alias)
 
     return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
 }
-
-std::filesystem::path multipass_final_storage_location()
-{
-    const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto mp_final_storage = user_specified_mp_storage.isEmpty() ? mp::utils::snap_common_dir()
-                                                                      : user_specified_mp_storage;
-    return std::filesystem::path{mp_final_storage.toStdString()};
-}
 } // namespace
 
 std::unique_ptr<QFile> multipass::platform::detail::find_os_release()
@@ -471,11 +463,13 @@ std::string multipass::platform::host_version()
                : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
 
-std::filesystem::path mp::platform::Platform::get_root_cert_path() const
+mp::fs::path mp::platform::Platform::get_root_cert_path() const
 {
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
+    auto snap_dir = [] { return fs::path{utils::snap_common_dir().toStdString()}; };
+
+    // the root certificate is always in the same place regardless of external storage directory
     return mp::utils::in_multipass_snap()
-               ? multipass_final_storage_location() / "data" / daemon_name / "certificates" /
-                     root_cert_file_name
-               : std::filesystem::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
+               ? snap_dir() / "data" / daemon_name / "certificates" / root_cert_file_name
+               : fs::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
 }
