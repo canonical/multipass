@@ -4567,6 +4567,30 @@ TEST_F(Client, disable_zones_cmd_not_live_term_fails)
     EXPECT_THROW(setup_client_and_run({"disable-zones", "zone1"}, term), std::runtime_error);
 }
 
+TEST_F(Client, disable_zones_cmd_confirm_multiple_zones)
+{
+    NiceMock<mpt::MockTerminal> term;
+    std::stringstream cin_stream;
+    cin_stream << "Yes\n";
+    ON_CALL(term, cin()).WillByDefault(ReturnRef(cin_stream));
+    ON_CALL(term, cin_is_live()).WillByDefault(Return(true));
+    ON_CALL(term, cout_is_live()).WillByDefault(Return(true));
+
+    std::stringstream cout_stream;
+    ON_CALL(term, cout()).WillByDefault(ReturnRef(cout_stream));
+    std::stringstream cerr_stream;
+    ON_CALL(term, cerr()).WillByDefault(ReturnRef(cerr_stream));
+
+    EXPECT_CALL(mock_daemon,
+                zones_state(An<grpc::ServerContext*>(),
+                            An<grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>*>()))
+        .WillOnce(Return(grpc::Status::OK));
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1", "zone2", "zone3"}, term), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout_stream.str(),
+                HasSubstr("This operation will forcefully stop the VMs in zone1, zone2 and zone3. Are you sure you "
+                          "want to continue? (Yes/no)"));
+}
+
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
