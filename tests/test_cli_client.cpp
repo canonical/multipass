@@ -154,6 +154,11 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 zones,
                 (grpc::ServerContext * context, (grpc::ServerReaderWriter<mp::ZonesReply, mp::ZonesRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status,
+                zones_state,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest> * server)),
+                (override));
 };
 
 struct Client : public Test
@@ -1141,6 +1146,45 @@ TEST_F(Client, DISABLE_ON_MACOS(launch_cmd_custom_image_http_ok))
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_with_zone_ok)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _));
+    EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, launch_cmd_with_empty_zone_fails)
+{
+    EXPECT_THAT(send_command({"launch", "--zone", ""}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, launch_cmd_with_invalid_zone_fails)
+{
+    const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("invalid_zone"));
+    mp::LaunchError launch_error;
+    launch_error.add_error_codes(mp::LaunchError::INVALID_ZONE);
+    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher, failure)));
+    EXPECT_THAT(send_command({"launch", "--zone", "invalid_zone"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, launch_cmd_with_unavailable_zone_fails)
+{
+    const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("unavailable_zone"));
+    mp::LaunchError launch_error;
+    launch_error.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
+    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher, failure)));
+    EXPECT_THAT(send_command({"launch", "--zone", "unavailable_zone"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, launch_cmd_with_timer)
+{
+    EXPECT_CALL(mock_daemon, launch(_, _));
+    EXPECT_THAT(send_command({"launch", "--timeout", "1"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, launch_cmd_cloudinit_option_with_valid_file_is_ok)
@@ -3931,6 +3975,137 @@ TEST_F(Client, zones_cmd_verbosity_forwarded)
     EXPECT_CALL(mock_daemon, zones)
         .WillOnce(WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(request_matcher, ok)));
     EXPECT_THAT(send_command({"zones", "-vv"}), Eq(mp::ReturnCode::Ok));
+}
+
+// enable_zones tests
+TEST_F(Client, enable_zones_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"enable-zones", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, enable_zones_cmd_success)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+    EXPECT_THAT(send_command({"enable-zones", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, enable_zones_cmd_no_zones_fails)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
+    EXPECT_THAT(send_command({"enable-zones"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, enable_zones_cmd_passes_proper_request)
+{
+    const auto request_matcher = AllOf(Property(&mp::ZonesStateRequest::available, true),
+                                       Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+
+    EXPECT_CALL(mock_daemon, zones_state)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher, ok)));
+
+    EXPECT_THAT(send_command({"enable-zones", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, enable_zones_cmd_on_failure)
+{
+    const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
+    EXPECT_THAT(send_command({"enable-zones", "zone1"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+// disable_zones tests
+TEST_F(Client, disable_zones_cmd_help_ok)
+{
+    EXPECT_THAT(send_command({"disable-zones", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_success)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_no_zones_fails)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
+    EXPECT_THAT(send_command({"disable-zones"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, disable_zones_cmd_passes_proper_request)
+{
+    const auto request_matcher = AllOf(Property(&mp::ZonesStateRequest::available, false),
+                                       Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+
+    EXPECT_CALL(mock_daemon, zones_state)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher, ok)));
+
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_with_force_option)
+{
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, disable_zones_cmd_confirm)
+{
+    std::stringstream cout, cerr;
+    std::istringstream cin;
+    mpt::MockTerminal term;
+    EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
+    EXPECT_CALL(term, cin()).WillRepeatedly(ReturnRef(cin));
+    EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(true));
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_daemon, zones_state(_, _));
+
+    cin.str("yes\n");
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term), Eq(mp::ReturnCode::Ok));
+
+    cin.str("no\n");
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, disable_zones_cmd_on_failure)
+{
+    const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::CommandFail));
+}
+TEST_F(Client, disable_zones_cmd_not_live_term_fails)
+{
+    NiceMock<mpt::MockTerminal> term;
+    EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(false));
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+
+    EXPECT_THROW(setup_client_and_run({"disable-zones", "zone1"}, term), std::runtime_error);
+}
+
+TEST_F(Client, disable_zones_cmd_confirm_multiple_zones)
+{
+    NiceMock<mpt::MockTerminal> term;
+    std::stringstream cin_stream;
+    cin_stream << "Yes\n";
+    ON_CALL(term, cin()).WillByDefault(ReturnRef(cin_stream));
+    ON_CALL(term, cin_is_live()).WillByDefault(Return(true));
+    ON_CALL(term, cout_is_live()).WillByDefault(Return(true));
+
+    std::stringstream cout_stream;
+    ON_CALL(term, cout()).WillByDefault(ReturnRef(cout_stream));
+    std::stringstream cerr_stream;
+    ON_CALL(term, cerr()).WillByDefault(ReturnRef(cerr_stream));
+
+    EXPECT_CALL(mock_daemon,
+                zones_state(An<grpc::ServerContext*>(),
+                            An<grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>*>()))
+        .WillOnce(Return(grpc::Status::OK));
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1", "zone2", "zone3"}, term), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cout_stream.str(),
+                HasSubstr("This operation will forcefully stop the VMs in zone1, zone2 and zone3. Are you sure you "
+                          "want to continue? (Yes/no)"));
 }
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
