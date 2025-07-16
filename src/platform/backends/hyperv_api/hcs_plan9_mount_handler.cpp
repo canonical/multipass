@@ -29,7 +29,7 @@ namespace multipass::hyperv::hcs
 
 namespace mpu = utils;
 
-constexpr auto kLogCategory = "hcs-plan9-mount-handler";
+constexpr static auto kLogCategory = "hcs-plan9-mount-handler";
 
 Plan9MountHandler::Plan9MountHandler(VirtualMachine* vm,
                                      const SSHKeyProvider* ssh_key_provider,
