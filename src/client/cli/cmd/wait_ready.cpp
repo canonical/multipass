@@ -67,9 +67,12 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             return ReturnCode::Retry;
         }
+
+        if (timer)
+            timer->stop();
+        spinner->stop();
+        
         // For any other error, we will handle it as a standard failure
-        cerr << "Error Code: " << status.error_code() << "\n"
-             << "Error Message: " << status.error_message() << "\n";
         return standard_failure_handler_for(name(), cerr, status);
     };
 
