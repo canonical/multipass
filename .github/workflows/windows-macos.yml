@@ -244,9 +244,8 @@ jobs:
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
-      run: | # TODO increase the cache size for standard runners
+      run: |
         ${{ env.ARCH_WRAPPER }} brew install ccache
-        ccache --max-size=700M
 
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
