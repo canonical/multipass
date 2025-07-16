@@ -112,7 +112,8 @@ auto resolve_ip_addresses(const std::string& hostname)
             {
             case AF_INET:
             {
-                constexpr static auto kSockaddrInSize = sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
+                constexpr static auto kSockaddrInSize =
+                    sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
                 if (ptr->ai_addrlen >= kSockaddrInSize)
                 {
                     const auto sockaddr_ipv4 = reinterpret_cast<LPSOCKADDR_IN>(ptr->ai_addr);
@@ -131,7 +132,8 @@ auto resolve_ip_addresses(const std::string& hostname)
             break;
             case AF_INET6:
             {
-                constexpr static auto kSockaddrIn6Size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
+                constexpr static auto kSockaddrIn6Size =
+                    sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
                 if (ptr->ai_addrlen >= kSockaddrIn6Size)
                 {
                     const auto sockaddr_ipv6 = reinterpret_cast<LPSOCKADDR_IN6>(ptr->ai_addr);
