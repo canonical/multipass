@@ -11,10 +11,6 @@ build
 *.buildinfo
 *.changes
 
-# only care about the encrypted file
-/tools/bot-data/*
-/tools/bot-data.tar.xz
-
 # snapcraft build artifacts
 parts
 prime
