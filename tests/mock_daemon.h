@@ -183,6 +183,13 @@ struct MockDaemon : public Daemon
                  std::promise<grpc::Status>*),
                 (override));
 
+    MOCK_METHOD(void,
+                wait_ready,
+                (const WaitReadyRequest*,
+                 (grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>*),
+                 std::promise<grpc::Status>*),
+                (override));
+
     template <typename Request, typename Reply>
     void set_promise_value(const Request*,
                            grpc::ServerReaderWriterInterface<Reply, Request>*,
