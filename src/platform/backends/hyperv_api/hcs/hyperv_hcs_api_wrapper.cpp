@@ -54,12 +54,12 @@ using lvl = mpl::Level;
 /**
  * Category for the log messages.
  */
-constexpr auto kLogCategory = "HyperV-HCS-Wrapper";
+constexpr static auto kLogCategory = "HyperV-HCS-Wrapper";
 
 /**
  * Default timeout value for HCS API operations
  */
-constexpr auto kDefaultOperationTimeout = std::chrono::seconds{240};
+constexpr static auto kDefaultOperationTimeout = std::chrono::seconds{240};
 
 // ---------------------------------------------------------
 
@@ -129,7 +129,7 @@ UniqueHcsSystem open_host_compute_system(const HCSAPITable& api, const std::stri
 
     // Windows API uses wide strings.
     const std::wstring name_w = maybe_widen{name};
-    constexpr auto kRequestedAccessLevel = GENERIC_ALL;
+    constexpr static auto kRequestedAccessLevel = GENERIC_ALL;
 
     UniqueHcsSystem system{};
     const ResultCode result = api.OpenComputeSystem(name_w.c_str(),
