@@ -68,7 +68,7 @@ using lvl = mpl::Level;
 /**
  * Category for the log messages.
  */
-constexpr auto kLogCategory = "HyperV-HCN-Wrapper";
+constexpr static auto kLogCategory = "HyperV-HCN-Wrapper";
 
 // ---------------------------------------------------------
 
@@ -82,8 +82,8 @@ constexpr auto kLogCategory = "HyperV-HCN-Wrapper";
  */
 auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
 {
-    constexpr auto kGUIDLength = 36;
-    constexpr auto kGUIDLengthWithBraces = kGUIDLength + 2;
+    constexpr static auto kGUIDLength = 36;
+    constexpr static auto kGUIDLengthWithBraces = kGUIDLength + 2;
 
     const auto input = [&guid_wstr]() {
         switch (guid_wstr.length())
@@ -242,7 +242,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
     /**
      * HcnCreateNetwork settings JSON template
      */
-    constexpr auto network_settings_template = LR"""(
+    constexpr static auto network_settings_template = LR"""(
     {{
         "SchemaVersion":
         {{
@@ -313,7 +313,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
     /**
      * HcnCreateEndpoint settings JSON template
      */
-    constexpr auto endpoint_settings_template = LR"(
+    constexpr static auto endpoint_settings_template = LR"(
     {{
         "SchemaVersion": {{
             "Major": 2,
