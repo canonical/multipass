@@ -1,4 +1,4 @@
-name: Monitor USNs
+name: Monitor USNs  # Ubuntu Security Notices
 
 on:
   schedule:
