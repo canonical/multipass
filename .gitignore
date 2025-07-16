@@ -5,6 +5,7 @@ cmake-build-*
 .DS_Store
 CMakeLists.txt.user
 build
+Testing
 
 # package build artifacts
 *.deb

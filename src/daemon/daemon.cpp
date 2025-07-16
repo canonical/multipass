@@ -3150,7 +3150,7 @@ try
     // If the force_manifest_network_download is true, it will download the manifests even if already cached.
     try 
     {
-        wait_update_manifests_all_and_optionally_applied_force(/*force_manifest_network_download=*/true);
+        wait_update_manifests_all_and_optionally_applied_force(/*force_manifest_network_download=*/false);
         logger.log(mpl::Level::debug, "daemon", "Successfully connected to image servers.");
         server->Write(response);
         status_promise->set_value(grpc::Status::OK);
@@ -3158,8 +3158,8 @@ try
     catch(const std::exception& e)
     {
         logger.log(mpl::Level::error, "daemon", fmt::format("Failed to connect to image servers: {}", e.what()));
-        status_promise->set_value(grpc::Status(grpc::StatusCode::UNAVAILABLE, e.what(), ""));
-    }
+        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    } 
 }
 catch (const std::exception& e)
 {
