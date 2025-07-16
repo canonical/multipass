@@ -45,9 +45,9 @@ namespace
 /**
  * Category for the log messages.
  */
-constexpr auto kLogCategory = "HyperV-Virtual-Machine";
-constexpr auto kVhdxFileName = "current.vhdx";
-constexpr auto kDefaultSSHPort = 22;
+constexpr static auto kLogCategory = "HyperV-Virtual-Machine";
+constexpr static auto kVhdxFileName = "current.vhdx";
+constexpr static auto kDefaultSSHPort = 22;
 
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
@@ -58,7 +58,7 @@ inline auto mac2uuid(std::string mac_addr)
     // 00000000-0000-0001-8000-0123456789ab
     mac_addr.erase(std::remove(mac_addr.begin(), mac_addr.end(), ':'), mac_addr.end());
     mac_addr.erase(std::remove(mac_addr.begin(), mac_addr.end(), '-'), mac_addr.end());
-    constexpr auto format_str = "db4bdbf0-dc14-407f-9780-{}";
+    constexpr static auto format_str = "db4bdbf0-dc14-407f-9780-{}";
     return fmt::format(format_str, mac_addr);
 }
 // db4bdbf0-dc14-407f-9780-f528c59b0c58
@@ -112,7 +112,7 @@ auto resolve_ip_addresses(const std::string& hostname)
             {
             case AF_INET:
             {
-                constexpr auto kSockaddrInSize = sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
+                constexpr static auto kSockaddrInSize = sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
                 if (ptr->ai_addrlen >= kSockaddrInSize)
                 {
                     const auto sockaddr_ipv4 = reinterpret_cast<LPSOCKADDR_IN>(ptr->ai_addr);
@@ -131,7 +131,7 @@ auto resolve_ip_addresses(const std::string& hostname)
             break;
             case AF_INET6:
             {
-                constexpr auto kSockaddrIn6Size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
+                constexpr static auto kSockaddrIn6Size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
                 if (ptr->ai_addrlen >= kSockaddrIn6Size)
                 {
                     const auto sockaddr_ipv6 = reinterpret_cast<LPSOCKADDR_IN6>(ptr->ai_addr);

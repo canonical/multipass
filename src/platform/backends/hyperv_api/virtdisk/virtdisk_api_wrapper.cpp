@@ -64,7 +64,7 @@ struct VirtDiskCreateError : FormattedExceptionBase<>
 /**
  * Category for the log messages.
  */
-constexpr auto kLogCategory = "HyperV-VirtDisk-Wrapper";
+constexpr static auto kLogCategory = "HyperV-VirtDisk-Wrapper";
 
 UniqueHandle open_virtual_disk(
     const VirtDiskAPITable& api,

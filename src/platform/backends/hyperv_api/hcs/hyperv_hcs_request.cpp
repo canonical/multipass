@@ -46,7 +46,7 @@ struct HcsRequestSettingsFormatters
 
     auto operator()(const std::monostate&)
     {
-        constexpr auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
+        constexpr static auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
         return std::basic_string<Char>{null_str.as<Char>()};
     }
 
