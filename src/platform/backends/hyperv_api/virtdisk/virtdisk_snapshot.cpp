@@ -26,7 +26,7 @@
 
 namespace
 {
-constexpr auto kLogCategory = "virtdisk-snapshot";
+constexpr static auto kLogCategory = "virtdisk-snapshot";
 }
 
 namespace multipass::hyperv::virtdisk
