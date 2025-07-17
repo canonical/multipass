@@ -27,6 +27,7 @@ add_library(commands STATIC
   common_cli.cpp
   create_alias.cpp
   delete.cpp
+  disks.cpp
   exec.cpp
   find.cpp
   get.cpp
