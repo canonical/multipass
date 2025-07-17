@@ -305,10 +305,6 @@ jobs:
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.workspace }}
 
-    - name: Throttle parallel build processes on arm64
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' }}
-      run: echo CMAKE_BUILD_PARALLEL_LEVEL=2 >> ${GITHUB_ENV}
-
     - name: Build
       run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
 
