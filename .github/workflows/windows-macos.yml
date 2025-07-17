@@ -217,8 +217,8 @@ jobs:
     - name: Install Sccache
       uses: mozilla-actions/sccache-action
 
-    - name: Set up Sccache
-      id: setup-sccache
+    - name: Generate cache key
+      id: generate-key
       run: |
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
@@ -228,7 +228,7 @@ jobs:
     - name: Download cache
       uses: actions/cache@v4
       with:
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-sccache.outputs.cache-key }}"
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.generate-key.outputs.cache-key }}"
         restore-keys: sccache-${{ matrix.runs-on }}
         path: ${{ env.SCCACHE_DIR }}
 
