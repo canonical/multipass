@@ -142,13 +142,13 @@ mp::BlockDevice::UPtr mp::QemuBlockDeviceFactory::load_block_device(const std::s
 
 mp::Path mp::QemuBlockDeviceFactory::get_block_device_path(const std::string& name, const Path& data_dir) const
 {
-    constexpr auto block_devices_dir = "block-devices";
-    constexpr auto images_subdir = "images";
+    // Store block device images directly in the data directory (e.g., extra-disks/)
+    // instead of creating nested block-devices/images/ subdirectories
     
-    auto block_dir = MP_UTILS.make_dir(QDir(data_dir), block_devices_dir);
-    auto images_dir = MP_UTILS.make_dir(QDir(block_dir), images_subdir);
+    // Ensure the data directory exists
+    MP_UTILS.make_dir(data_dir);
     
-    return images_dir + "/" + QString::fromStdString(name) + ".qcow2";
+    return data_dir + "/" + QString::fromStdString(name) + ".qcow2";
 }
 
 void mp::QemuBlockDeviceFactory::validate_name(const std::string& name) const
