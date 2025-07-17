@@ -335,10 +335,15 @@ TEST_F(Daemon, dataPathValid)
                 writableLocation(mp::StandardPaths::CacheLocation))
         .WillOnce(Return(cache_dir.path()));
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
-                writableLocation(mp::StandardPaths::AppDataLocation))
-        .WillOnce(Return(data_dir.path()));
+                writableLocation(mp::StandardPaths::GenericDataLocation))
+        .Times(2)
+        .WillRepeatedly(Return(data_dir.path()));
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(QString()));
+
+    EXPECT_CALL(mpt::MockUtils::mock_instance(),
+                make_dir(Eq(data_dir.filePath("multipassd")), Eq("data"), _))
+        .WillOnce(Return(data_dir.path()));
 
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
@@ -353,7 +358,9 @@ TEST_F(Daemon, dataPathWithStorageValid)
     QTemporaryDir storage_dir;
 
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_)).Times(0);
+    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
+                writableLocation(mp::StandardPaths::GenericDataLocation))
+        .Times(1);
 
     EXPECT_CALL(mock_platform, multipass_storage_location())
         .WillOnce(Return(mp::utils::get_multipass_storage()));

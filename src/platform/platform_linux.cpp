@@ -462,14 +462,3 @@ std::string multipass::platform::host_version()
                ? multipass::platform::detail::read_os_release()
                : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
-
-mp::fs::path mp::platform::Platform::get_root_cert_path() const
-{
-    constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
-    auto snap_dir = [] { return fs::path{utils::snap_common_dir().toStdString()}; };
-
-    // the root certificate is always in the same place regardless of external storage directory
-    return mp::utils::in_multipass_snap()
-               ? snap_dir() / "data" / daemon_name / "certificates" / root_cert_file_name
-               : fs::path{"/usr/local/share/ca-certificates"} / root_cert_file_name;
-}
