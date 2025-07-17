@@ -25,22 +25,24 @@
 namespace mp = multipass;
 
 mp::QemuBlockDevice::QemuBlockDevice(const std::string& name,
-                                      const Path& image_path,
-                                      const MemorySize& size,
-                                      const std::string& format,
-                                      const std::optional<std::string>& attached_vm)
+                                     const Path& image_path,
+                                     const MemorySize& size,
+                                     const std::string& format,
+                                     const std::optional<std::string>& attached_vm)
     : BaseBlockDevice(name, image_path, size, format, attached_vm)
 {
 }
 
-void mp::QemuBlockDevice::create_image_file(const std::string& name, const MemorySize& size, const Path& image_path)
+void mp::QemuBlockDevice::create_image_file(const std::string& name,
+                                            const MemorySize& size,
+                                            const Path& image_path)
 {
     // Create QCOW2 image using qemu-img
     auto process_spec = std::make_unique<QemuImgProcessSpec>(
         QStringList{"create", "-f", "qcow2", image_path, QString::number(size.in_bytes())},
         "",
         image_path);
-    
+
     mp::backend::checked_exec_qemu_img(std::move(process_spec),
-                                     fmt::format("Failed to create block device '{}'", name));
+                                       fmt::format("Failed to create block device '{}'", name));
 }

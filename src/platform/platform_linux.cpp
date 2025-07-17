@@ -32,8 +32,8 @@
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
 #include "backends/lxd/lxd_virtual_machine_factory.h"
-#include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "backends/qemu/qemu_block_device_factory.h"
+#include "backends/qemu/qemu_virtual_machine_factory.h"
 
 #ifdef VIRTUALBOX_ENABLED
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"

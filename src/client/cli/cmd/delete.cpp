@@ -104,9 +104,11 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
             DeleteRequest client_response;
 
             if (term->is_live())
-                client_response.set_delete_attached_disks(confirm_block_device_deletion(reply.attached_block_devices()));
+                client_response.set_delete_attached_disks(
+                    confirm_block_device_deletion(reply.attached_block_devices()));
             else
-                throw std::runtime_error{generate_block_device_deletion_msg(reply.attached_block_devices())};
+                throw std::runtime_error{
+                    generate_block_device_deletion_msg(reply.attached_block_devices())};
 
             client->Write(client_response);
         }
@@ -215,16 +217,20 @@ std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
         return fmt::format("{}.\n", no_purge_base_error_msg);
 }
 
-bool multipass::cmd::Delete::confirm_block_device_deletion(const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
+bool multipass::cmd::Delete::confirm_block_device_deletion(
+    const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
 {
-    static constexpr auto prompt_text = "This virtual machine has {} disk(s) attached that will be deleted as well: {}. Are you sure you want to continue? (Yes/no)";
+    static constexpr auto prompt_text =
+        "This virtual machine has {} disk(s) attached that will be deleted as well: {}. Are you "
+        "sure you want to continue? (Yes/no)";
     static constexpr auto invalid_input = "Please answer Yes/no";
     mp::PlainPrompter prompter{term};
 
     std::string device_list;
     for (int i = 0; i < attached_devices.size(); ++i)
     {
-        if (i > 0) device_list += ", ";
+        if (i > 0)
+            device_list += ", ";
         device_list += attached_devices[i];
     }
 
@@ -236,16 +242,21 @@ bool multipass::cmd::Delete::confirm_block_device_deletion(const google::protobu
     return std::regex_match(answer, mp::client::yes_answer);
 }
 
-std::string multipass::cmd::Delete::generate_block_device_deletion_msg(const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
+std::string multipass::cmd::Delete::generate_block_device_deletion_msg(
+    const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
 {
     std::string device_list;
     for (int i = 0; i < attached_devices.size(); ++i)
     {
-        if (i > 0) device_list += ", ";
+        if (i > 0)
+            device_list += ", ";
         device_list += attached_devices[i];
     }
 
-    return fmt::format("This virtual machine has {} disk(s) attached that will be deleted as well: {}. "
-                      "Unable to query client for confirmation. Please use the `--force` flag if that is what you want.",
-                      attached_devices.size(), device_list);
+    return fmt::format(
+        "This virtual machine has {} disk(s) attached that will be deleted as well: {}. "
+        "Unable to query client for confirmation. Please use the `--force` flag if that is what "
+        "you want.",
+        attached_devices.size(),
+        device_list);
 }
