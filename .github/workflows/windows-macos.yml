@@ -220,13 +220,12 @@ jobs:
     - name: Generate cache key
       id: generate-key
       run: |
-        # Find common base between main and HEAD to use as cache key.
-        # This avoids PRs from publishing caches.
+        # Use cache from common base between main and HEAD.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=sccache-${{ matrix.runs-on }}-$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: Restore cache
-      uses: actions/cache@v4
+      uses: actions/cache/restore@v4
       with:
         key: ${{ steps.generate-key.outputs.cache-key }}
         restore-keys: sccache-${{ matrix.runs-on }}
@@ -342,6 +341,13 @@ jobs:
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
+
+    - name: Save cache
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ steps.generate-key.outputs.cache-key }}
+        path: ${{ env.SCCACHE_DIR }}
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
