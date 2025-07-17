@@ -35,13 +35,15 @@ mp::ReturnCode cmd::BlockDelete::run(mp::ArgParser* parser)
     auto on_success = [](mp::DeleteBlockReply& reply) {
         if (!reply.error_message().empty())
         {
-            throw mp::ValidationException{fmt::format("Failed to delete block device: {}", reply.error_message())};
+            throw mp::ValidationException{
+                fmt::format("Failed to delete block device: {}", reply.error_message())};
         }
         return ReturnCode::Ok;
     };
 
     auto on_failure = [](grpc::Status& status) {
-        throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+        throw mp::ValidationException{
+            fmt::format("Failed to connect to daemon: {}", status.error_message())};
         return ReturnCode::CommandFail;
     };
 
@@ -65,9 +67,7 @@ QString cmd::BlockDelete::description() const
 
 mp::ParseCode cmd::BlockDelete::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name",
-                                "Name of the block device to delete.",
-                                "name");
+    parser->addPositionalArgument("name", "Name of the block device to delete.", "name");
 
     auto status = parser->commandParse(this);
 
@@ -78,7 +78,8 @@ mp::ParseCode cmd::BlockDelete::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() != 1)
     {
-        throw mp::ValidationException{"block-delete requires one argument: the name of the block device"};
+        throw mp::ValidationException{
+            "block-delete requires one argument: the name of the block device"};
     }
 
     request.set_name(parser->positionalArguments().first().toStdString());

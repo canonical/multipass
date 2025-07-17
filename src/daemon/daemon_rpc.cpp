@@ -501,8 +501,9 @@ grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal
     return emit_signal_and_wait_for_result(signal);
 }
 
-grpc::Status mp::DaemonRpc::create_block(grpc::ServerContext* context,
-                                      grpc::ServerReaderWriter<CreateBlockReply, CreateBlockRequest>* server)
+grpc::Status mp::DaemonRpc::create_block(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<CreateBlockReply, CreateBlockRequest>* server)
 {
     CreateBlockRequest request;
     server->Read(&request);
@@ -512,8 +513,9 @@ grpc::Status mp::DaemonRpc::create_block(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
-grpc::Status mp::DaemonRpc::delete_block(grpc::ServerContext* context,
-                                      grpc::ServerReaderWriter<DeleteBlockReply, DeleteBlockRequest>* server)
+grpc::Status mp::DaemonRpc::delete_block(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<DeleteBlockReply, DeleteBlockRequest>* server)
 {
     DeleteBlockRequest request;
     server->Read(&request);
@@ -523,8 +525,9 @@ grpc::Status mp::DaemonRpc::delete_block(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
-grpc::Status mp::DaemonRpc::attach_block(grpc::ServerContext* context,
-                                      grpc::ServerReaderWriter<AttachBlockReply, AttachBlockRequest>* server)
+grpc::Status mp::DaemonRpc::attach_block(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<AttachBlockReply, AttachBlockRequest>* server)
 {
     AttachBlockRequest request;
     server->Read(&request);
@@ -534,8 +537,9 @@ grpc::Status mp::DaemonRpc::attach_block(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
-grpc::Status mp::DaemonRpc::detach_block(grpc::ServerContext* context,
-                                      grpc::ServerReaderWriter<DetachBlockReply, DetachBlockRequest>* server)
+grpc::Status mp::DaemonRpc::detach_block(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<DetachBlockReply, DetachBlockRequest>* server)
 {
     DetachBlockRequest request;
     server->Read(&request);
@@ -545,8 +549,9 @@ grpc::Status mp::DaemonRpc::detach_block(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
-grpc::Status mp::DaemonRpc::list_blocks(grpc::ServerContext* context,
-                                     grpc::ServerReaderWriter<ListBlocksReply, ListBlocksRequest>* server)
+grpc::Status mp::DaemonRpc::list_blocks(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<ListBlocksReply, ListBlocksRequest>* server)
 {
     ListBlocksRequest request;
     server->Read(&request);

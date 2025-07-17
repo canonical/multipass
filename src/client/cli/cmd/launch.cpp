@@ -358,27 +358,30 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         {
             const auto& primary_disk_str = disk_values.first().toStdString();
             auto primary_disk_size = mp::MemorySize{primary_disk_str}; // throw if bad
-            
+
             // Validate minimum disk size (1GiB)
             const auto min_disk_size = mp::MemorySize{"1G"};
             if (primary_disk_size < min_disk_size)
             {
-                throw std::runtime_error(fmt::format("Primary disk size must be at least 1G, got '{}'", primary_disk_str));
+                throw std::runtime_error(
+                    fmt::format("Primary disk size must be at least 1G, got '{}'",
+                                primary_disk_str));
             }
-            
+
             request.set_disk_space(primary_disk_str);
 
             for (auto it = disk_values.constBegin() + 1; it != disk_values.constEnd(); ++it)
             {
                 const auto& disk_str = it->toStdString();
                 auto extra_disk_size = mp::MemorySize{disk_str}; // throw if bad
-                
+
                 // Validate minimum disk size (1GiB) for extra disks
                 if (extra_disk_size < min_disk_size)
                 {
-                    throw std::runtime_error(fmt::format("Extra disk size must be at least 1G, got '{}'", disk_str));
+                    throw std::runtime_error(
+                        fmt::format("Extra disk size must be at least 1G, got '{}'", disk_str));
                 }
-                
+
                 request.add_extra_disks(disk_str);
             }
         }

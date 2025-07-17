@@ -315,11 +315,11 @@ std::string mp::CSVFormatter::format(const ListBlocksReply& reply) const
     for (const auto& block : reply.block_devices())
     {
         fmt::format_to(std::back_inserter(buf),
-                      "{},{},{},{}\n",
-                      block.name(),
-                      block.size(),
-                      block.path(),
-                      block.attached_to().empty() ? "" : block.attached_to());
+                       "{},{},{},{}\n",
+                       block.name(),
+                       block.size(),
+                       block.path(),
+                       block.attached_to().empty() ? "" : block.attached_to());
     }
 
     return fmt::to_string(buf);

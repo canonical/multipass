@@ -26,9 +26,9 @@
 #include <multipass/utils.h>
 
 #include <QDir>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -61,27 +61,32 @@ mp::BlockDeviceManager::BlockDeviceManager(BlockDeviceFactory::UPtr factory, con
     load_metadata();
 }
 
-mp::BlockDevice::UPtr mp::BlockDeviceManager::create_block_device(const std::string& name, const MemorySize& size)
+mp::BlockDevice::UPtr mp::BlockDeviceManager::create_block_device(const std::string& name,
+                                                                  const MemorySize& size)
 {
     if (has_block_device(name))
         throw ValidationError(fmt::format("Block device '{}' already exists", name));
 
     auto device = device_factory->create_block_device(name, size, data_dir);
     auto* device_ptr = device.get();
-    
+
     // Store in registry
     block_devices[name] = std::move(device);
     save_metadata();
 
     mpl::log(mpl::Level::info, "block-device", fmt::format("Created block device '{}'", name));
-    
+
     // Return a copy for the caller (they get ownership)
-    return device_factory->load_block_device(device_ptr->name(), device_ptr->image_path(), 
-                                            device_ptr->size(), device_ptr->format(), 
-                                            device_ptr->attached_vm());
+    return device_factory->load_block_device(device_ptr->name(),
+                                             device_ptr->image_path(),
+                                             device_ptr->size(),
+                                             device_ptr->format(),
+                                             device_ptr->attached_vm());
 }
 
-mp::BlockDevice::UPtr mp::BlockDeviceManager::create_block_device_from_file(const std::string& name, const std::string& source_path)
+mp::BlockDevice::UPtr mp::BlockDeviceManager::create_block_device_from_file(
+    const std::string& name,
+    const std::string& source_path)
 {
     if (has_block_device(name))
         throw ValidationError(fmt::format("Block device '{}' already exists", name));
@@ -90,23 +95,27 @@ mp::BlockDevice::UPtr mp::BlockDeviceManager::create_block_device_from_file(cons
     QFileInfo source_file(QString::fromStdString(source_path));
     if (!source_file.exists())
         throw ValidationError(fmt::format("Source file '{}' does not exist", source_path));
-    
+
     if (!source_file.isFile())
         throw ValidationError(fmt::format("Source path '{}' is not a regular file", source_path));
 
     auto device = device_factory->create_block_device_from_file(name, source_path, data_dir);
     auto* device_ptr = device.get();
-    
+
     // Store in registry
     block_devices[name] = std::move(device);
     save_metadata();
 
-    mpl::log(mpl::Level::info, "block-device", fmt::format("Created block device '{}' from file '{}'", name, source_path));
-    
+    mpl::log(mpl::Level::info,
+             "block-device",
+             fmt::format("Created block device '{}' from file '{}'", name, source_path));
+
     // Return a copy for the caller (they get ownership)
-    return device_factory->load_block_device(device_ptr->name(), device_ptr->image_path(),
-                                            device_ptr->size(), device_ptr->format(),
-                                            device_ptr->attached_vm());
+    return device_factory->load_block_device(device_ptr->name(),
+                                             device_ptr->image_path(),
+                                             device_ptr->size(),
+                                             device_ptr->format(),
+                                             device_ptr->attached_vm());
 }
 
 void mp::BlockDeviceManager::delete_block_device(const std::string& name)
@@ -131,7 +140,8 @@ void mp::BlockDeviceManager::attach_block_device(const std::string& name, const 
     device->attach_to_vm(vm);
     save_metadata();
 
-    mpl::log(mpl::Level::info, "block-device",
+    mpl::log(mpl::Level::info,
+             "block-device",
              fmt::format("Attached block device '{}' to VM '{}'", name, vm));
 }
 
@@ -144,7 +154,8 @@ void mp::BlockDeviceManager::detach_block_device(const std::string& name, const 
     device->detach_from_vm();
     save_metadata();
 
-    mpl::log(mpl::Level::info, "block-device",
+    mpl::log(mpl::Level::info,
+             "block-device",
              fmt::format("Detached block device '{}' from VM '{}'", name, vm));
 }
 
@@ -171,15 +182,21 @@ std::vector<const mp::BlockDevice*> mp::BlockDeviceManager::list_block_devices()
 void mp::BlockDeviceManager::register_block_device(BlockDevice::UPtr device)
 {
     const auto& name = device->name();
-    
-    mpl::log(mpl::Level::debug, "block-device",
-             fmt::format("register_block_device called with name='{}', size={}, path='{}', attached_vm='{}'",
-                       device->name(), device->size().human_readable(), device->image_path().toStdString(),
-                       device->attached_vm() ? *device->attached_vm() : "none"));
+
+    mpl::log(
+        mpl::Level::debug,
+        "block-device",
+        fmt::format(
+            "register_block_device called with name='{}', size={}, path='{}', attached_vm='{}'",
+            device->name(),
+            device->size().human_readable(),
+            device->image_path().toStdString(),
+            device->attached_vm() ? *device->attached_vm() : "none"));
 
     if (block_devices.find(name) != block_devices.end())
     {
-        mpl::log(mpl::Level::error, "block-device",
+        mpl::log(mpl::Level::error,
+                 "block-device",
                  fmt::format("Block device '{}' already exists, cannot register", name));
         throw ValidationError(fmt::format("Block device '{}' already exists", name));
     }
@@ -187,29 +204,37 @@ void mp::BlockDeviceManager::register_block_device(BlockDevice::UPtr device)
     // Verify the image file exists
     if (!device->exists())
     {
-        mpl::log(mpl::Level::error, "block-device",
-                 fmt::format("Block device image file does not exist: {}", device->image_path().toStdString()));
-        throw std::runtime_error(fmt::format("Block device image file does not exist: {}", device->image_path().toStdString()));
+        mpl::log(mpl::Level::error,
+                 "block-device",
+                 fmt::format("Block device image file does not exist: {}",
+                             device->image_path().toStdString()));
+        throw std::runtime_error(fmt::format("Block device image file does not exist: {}",
+                                             device->image_path().toStdString()));
     }
 
     // Register the block device
     block_devices[name] = std::move(device);
     save_metadata();
-    
-    mpl::log(mpl::Level::info, "block-device",
-             fmt::format("Successfully registered block device '{}' with {} registered devices total",
-                       name, block_devices.size()));
+
+    mpl::log(
+        mpl::Level::info,
+        "block-device",
+        fmt::format("Successfully registered block device '{}' with {} registered devices total",
+                    name,
+                    block_devices.size()));
 }
 
 void mp::BlockDeviceManager::unregister_block_device(const std::string& name)
 {
-    mpl::log(mpl::Level::debug, "block-device",
+    mpl::log(mpl::Level::debug,
+             "block-device",
              fmt::format("unregister_block_device called for '{}'", name));
 
     auto it = block_devices.find(name);
     if (it == block_devices.end())
     {
-        mpl::log(mpl::Level::warning, "block-device",
+        mpl::log(mpl::Level::warning,
+                 "block-device",
                  fmt::format("Block device '{}' not found, cannot unregister", name));
         throw NotFoundError(fmt::format("Block device '{}' does not exist", name));
     }
@@ -217,10 +242,12 @@ void mp::BlockDeviceManager::unregister_block_device(const std::string& name)
     // Remove from registry (but don't delete the actual image file)
     block_devices.erase(it);
     save_metadata();
-    
-    mpl::log(mpl::Level::info, "block-device",
+
+    mpl::log(mpl::Level::info,
+             "block-device",
              fmt::format("Successfully unregistered block device '{}', {} devices remaining",
-                       name, block_devices.size()));
+                         name,
+                         block_devices.size()));
 }
 
 void mp::BlockDeviceManager::save_metadata() const
@@ -273,20 +300,23 @@ void mp::BlockDeviceManager::load_metadata()
 void mp::BlockDeviceManager::cleanup_orphaned_devices()
 {
     mpl::log(mpl::Level::info, "block-device", "Starting cleanup of orphaned block devices");
-    
+
     std::vector<std::string> devices_to_remove;
-    
+
     for (const auto& [name, device] : block_devices)
     {
         // Check if the device file actually exists
         if (!device->exists())
         {
-            mpl::log(mpl::Level::warning, "block-device",
-                     fmt::format("Block device '{}' file does not exist: {}", name, device->image_path().toStdString()));
+            mpl::log(mpl::Level::warning,
+                     "block-device",
+                     fmt::format("Block device '{}' file does not exist: {}",
+                                 name,
+                                 device->image_path().toStdString()));
             devices_to_remove.push_back(name);
             continue;
         }
-        
+
         // Check if the attached VM still exists (if device claims to be attached)
         if (device->attached_vm())
         {
@@ -294,15 +324,19 @@ void mp::BlockDeviceManager::cleanup_orphaned_devices()
             // We'll need to check this against the daemon's instance list
             // For now, we'll mark devices attached to non-existent VMs for cleanup
             // This will be enhanced when we integrate with the daemon
-            mpl::log(mpl::Level::debug, "block-device",
-                     fmt::format("Block device '{}' claims to be attached to VM '{}'", name, attached_vm));
+            mpl::log(mpl::Level::debug,
+                     "block-device",
+                     fmt::format("Block device '{}' claims to be attached to VM '{}'",
+                                 name,
+                                 attached_vm));
         }
     }
-    
+
     // Remove orphaned devices
     for (const auto& device_name : devices_to_remove)
     {
-        mpl::log(mpl::Level::info, "block-device",
+        mpl::log(mpl::Level::info,
+                 "block-device",
                  fmt::format("Removing orphaned block device '{}'", device_name));
         try
         {
@@ -310,15 +344,19 @@ void mp::BlockDeviceManager::cleanup_orphaned_devices()
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::error, "block-device",
-                     fmt::format("Failed to remove orphaned block device '{}': {}", device_name, e.what()));
+            mpl::log(mpl::Level::error,
+                     "block-device",
+                     fmt::format("Failed to remove orphaned block device '{}': {}",
+                                 device_name,
+                                 e.what()));
         }
     }
-    
+
     if (!devices_to_remove.empty())
     {
         save_metadata();
-        mpl::log(mpl::Level::info, "block-device",
+        mpl::log(mpl::Level::info,
+                 "block-device",
                  fmt::format("Cleaned up {} orphaned block devices", devices_to_remove.size()));
     }
     else
@@ -327,12 +365,13 @@ void mp::BlockDeviceManager::cleanup_orphaned_devices()
     }
 }
 
-void mp::BlockDeviceManager::validate_and_cleanup_attachments(const std::function<bool(const std::string&)>& vm_exists_checker)
+void mp::BlockDeviceManager::validate_and_cleanup_attachments(
+    const std::function<bool(const std::string&)>& vm_exists_checker)
 {
     mpl::log(mpl::Level::info, "block-device", "Validating block device attachments");
-    
+
     std::vector<std::string> devices_to_detach;
-    
+
     for (const auto& [name, device] : block_devices)
     {
         if (device->attached_vm())
@@ -340,13 +379,17 @@ void mp::BlockDeviceManager::validate_and_cleanup_attachments(const std::functio
             const auto& attached_vm = *device->attached_vm();
             if (!vm_exists_checker(attached_vm))
             {
-                mpl::log(mpl::Level::warning, "block-device",
-                         fmt::format("Block device '{}' is attached to non-existent VM '{}', detaching", name, attached_vm));
+                mpl::log(
+                    mpl::Level::warning,
+                    "block-device",
+                    fmt::format("Block device '{}' is attached to non-existent VM '{}', detaching",
+                                name,
+                                attached_vm));
                 devices_to_detach.push_back(name);
             }
         }
     }
-    
+
     // Detach devices from non-existent VMs
     for (const auto& device_name : devices_to_detach)
     {
@@ -356,21 +399,27 @@ void mp::BlockDeviceManager::validate_and_cleanup_attachments(const std::functio
             if (device)
             {
                 device->detach_from_vm();
-                mpl::log(mpl::Level::info, "block-device",
+                mpl::log(mpl::Level::info,
+                         "block-device",
                          fmt::format("Detached orphaned block device '{}'", device_name));
             }
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::error, "block-device",
-                     fmt::format("Failed to detach orphaned block device '{}': {}", device_name, e.what()));
+            mpl::log(mpl::Level::error,
+                     "block-device",
+                     fmt::format("Failed to detach orphaned block device '{}': {}",
+                                 device_name,
+                                 e.what()));
         }
     }
-    
+
     if (!devices_to_detach.empty())
     {
         save_metadata();
-        mpl::log(mpl::Level::info, "block-device",
-                 fmt::format("Detached {} orphaned block device attachments", devices_to_detach.size()));
+        mpl::log(
+            mpl::Level::info,
+            "block-device",
+            fmt::format("Detached {} orphaned block device attachments", devices_to_detach.size()));
     }
 }

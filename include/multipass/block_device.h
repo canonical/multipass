@@ -32,21 +32,21 @@ class BlockDevice : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<BlockDevice>;
-    
+
     virtual ~BlockDevice() = default;
-    
+
     // Core properties
     virtual const std::string& name() const = 0;
     virtual const Path& image_path() const = 0;
     virtual const MemorySize& size() const = 0;
     virtual const std::string& format() const = 0;
     virtual const std::optional<std::string>& attached_vm() const = 0;
-    
+
     // Operations
     virtual void attach_to_vm(const std::string& vm_name) = 0;
     virtual void detach_from_vm() = 0;
     virtual void delete_device() = 0;
-    
+
     // State queries
     virtual bool is_attached() const = 0;
     virtual bool exists() const = 0;

@@ -35,13 +35,15 @@ mp::ReturnCode cmd::BlockDetach::run(mp::ArgParser* parser)
     auto on_success = [](mp::DetachBlockReply& reply) {
         if (!reply.error_message().empty())
         {
-            throw mp::ValidationException{fmt::format("Failed to detach block device: {}", reply.error_message())};
+            throw mp::ValidationException{
+                fmt::format("Failed to detach block device: {}", reply.error_message())};
         }
         return ReturnCode::Ok;
     };
 
     auto on_failure = [](grpc::Status& status) {
-        throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+        throw mp::ValidationException{
+            fmt::format("Failed to connect to daemon: {}", status.error_message())};
         return ReturnCode::CommandFail;
     };
 
@@ -61,19 +63,17 @@ QString cmd::BlockDetach::short_help() const
 QString cmd::BlockDetach::description() const
 {
     return QStringLiteral("Detach a block device from a stopped VM instance. The VM\n"
-                         "must be in a stopped state to detach a block device.\n"
-                         "This operation does not delete the block device itself.");
+                          "must be in a stopped state to detach a block device.\n"
+                          "This operation does not delete the block device itself.");
 }
 
 mp::ParseCode cmd::BlockDetach::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name",
-                                "Name of the block device to detach",
-                                "name");
-    
+    parser->addPositionalArgument("name", "Name of the block device to detach", "name");
+
     parser->addPositionalArgument("instance",
-                                "Name of the VM instance to detach the block device from",
-                                "instance");
+                                  "Name of the VM instance to detach the block device from",
+                                  "instance");
 
     auto status = parser->commandParse(this);
 
@@ -84,8 +84,8 @@ mp::ParseCode cmd::BlockDetach::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() != 2)
     {
-        throw mp::ValidationException{
-            fmt::format("Wrong number of arguments given. Expected 2 (<block device name> <instance name>)")};
+        throw mp::ValidationException{fmt::format(
+            "Wrong number of arguments given. Expected 2 (<block device name> <instance name>)")};
     }
 
     const auto args = parser->positionalArguments();

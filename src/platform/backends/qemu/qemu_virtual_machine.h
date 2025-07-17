@@ -19,8 +19,8 @@
 
 #include "qemu_platform.h"
 
-#include <shared/base_virtual_machine.h>
 #include <multipass/block_device.h>
+#include <shared/base_virtual_machine.h>
 
 #include <multipass/network_interface.h>
 #include <multipass/process/process.h>
@@ -41,9 +41,10 @@ class QemuVirtualMachine : public QObject, public BaseVirtualMachine
     Q_OBJECT
 public:
     using MountArgs = std::unordered_map<std::string, std::pair<std::string, QStringList>>;
-    
+
     // Simple struct to track attached block device info for QEMU
-    struct AttachedBlockDevice {
+    struct AttachedBlockDevice
+    {
         std::string path;
         std::string format;
     };
@@ -76,8 +77,8 @@ public:
                                        const NetworkInterface& extra_interface) override;
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
-                                                             const VMMount& mount) override;
-                                                             
+                                                            const VMMount& mount) override;
+
     // Block device operations
     void attach_block_device(const std::string& name, const BlockDevice& device);
     void detach_block_device(const std::string& name);
@@ -129,7 +130,7 @@ private:
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;
-    
+
     // Track attached block devices
     std::unordered_map<std::string, AttachedBlockDevice> attached_block_devices;
 };

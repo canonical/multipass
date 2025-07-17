@@ -33,20 +33,21 @@ class BlockDeviceFactory : private DisabledCopyMove
 public:
     using UPtr = std::unique_ptr<BlockDeviceFactory>;
     virtual ~BlockDeviceFactory() = default;
-    
+
     virtual BlockDevice::UPtr create_block_device(const std::string& name,
-                                                   const MemorySize& size,
-                                                   const Path& data_dir) = 0;
-    
+                                                  const MemorySize& size,
+                                                  const Path& data_dir) = 0;
+
     virtual BlockDevice::UPtr create_block_device_from_file(const std::string& name,
-                                                             const std::string& source_path,
-                                                             const Path& data_dir) = 0;
-    
-    virtual BlockDevice::UPtr load_block_device(const std::string& name,
-                                                 const Path& image_path,
-                                                 const MemorySize& size,
-                                                 const std::string& format = "qcow2",
-                                                 const std::optional<std::string>& attached_vm = std::nullopt) = 0;
+                                                            const std::string& source_path,
+                                                            const Path& data_dir) = 0;
+
+    virtual BlockDevice::UPtr load_block_device(
+        const std::string& name,
+        const Path& image_path,
+        const MemorySize& size,
+        const std::string& format = "qcow2",
+        const std::optional<std::string>& attached_vm = std::nullopt) = 0;
 
 protected:
     BlockDeviceFactory() = default;

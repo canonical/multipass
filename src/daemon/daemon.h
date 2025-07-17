@@ -21,14 +21,13 @@
 #include "daemon_rpc.h"
 
 #include <multipass/async_periodic_download_task.h>
+#include <multipass/block_device_manager.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/format.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
-#include <multipass/block_device_manager.h>
-
 
 #include <chrono>
 #include <future>
@@ -169,39 +168,23 @@ public slots:
         grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
         std::promise<grpc::Status>* status_promise);
 
-    virtual void wait_ready(
-        const WaitReadyRequest* request,
-        grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
-        std::promise<grpc::Status>* status_promise);
-    virtual void create_block(const CreateBlockRequest* request,
-            grpc::ServerReaderWriterInterface<CreateBlockReply, CreateBlockRequest>* server,
-            std::promise<grpc::Status>* status_promise);
-    virtual void delete_block(const DeleteBlockRequest* request,
-            grpc::ServerReaderWriterInterface<DeleteBlockReply, DeleteBlockRequest>* server,
-            std::promise<grpc::Status>* status_promise);
-    virtual void attach_block(const AttachBlockRequest* request,
-            grpc::ServerReaderWriterInterface<AttachBlockReply, AttachBlockRequest>* server,
-            std::promise<grpc::Status>* status_promise);
-    virtual void detach_block(const DetachBlockRequest* request,
-            grpc::ServerReaderWriterInterface<DetachBlockReply, DetachBlockRequest>* server,
-            std::promise<grpc::Status>* status_promise);
-    virtual void list_blocks(const ListBlocksRequest* request,
-            grpc::ServerReaderWriterInterface<ListBlocksReply, ListBlocksRequest>* server,
-            std::promise<grpc::Status>* status_promise);
-
 virtual void create_block(const CreateBlockRequest* request,
         grpc::ServerReaderWriterInterface<CreateBlockReply, CreateBlockRequest>* server,
         std::promise<grpc::Status>* status_promise);
-virtual void delete_block(const DeleteBlockRequest* request,
+    virtual void delete_block(
+        const DeleteBlockRequest* request,
         grpc::ServerReaderWriterInterface<DeleteBlockReply, DeleteBlockRequest>* server,
         std::promise<grpc::Status>* status_promise);
-virtual void attach_block(const AttachBlockRequest* request,
+    virtual void attach_block(
+        const AttachBlockRequest* request,
         grpc::ServerReaderWriterInterface<AttachBlockReply, AttachBlockRequest>* server,
         std::promise<grpc::Status>* status_promise);
-virtual void detach_block(const DetachBlockRequest* request,
+    virtual void detach_block(
+        const DetachBlockRequest* request,
         grpc::ServerReaderWriterInterface<DetachBlockReply, DetachBlockRequest>* server,
         std::promise<grpc::Status>* status_promise);
-virtual void list_blocks(const ListBlocksRequest* request,
+    virtual void list_blocks(
+        const ListBlocksRequest* request,
         grpc::ServerReaderWriterInterface<ListBlocksReply, ListBlocksRequest>* server,
         std::promise<grpc::Status>* status_promise);
 
@@ -216,7 +199,10 @@ private:
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise,
                    bool start);
-    bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response, bool delete_attached_disks = false);
+    bool delete_vm(InstanceTable::iterator vm_it,
+                   bool purge,
+                   DeleteReply& response,
+                   bool delete_attached_disks = false);
     std::vector<std::string> get_attached_block_devices(const std::string& instance_name) const;
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
