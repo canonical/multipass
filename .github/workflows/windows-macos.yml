@@ -53,13 +53,13 @@ jobs:
 
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "mono": ""},'
 
         if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.host-my-apple }}" == "true" ]]; then
-          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64"},'
         fi
 
         MATRIX=${MATRIX%,}
@@ -93,8 +93,8 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
-      CCACHE_DIR: ${{ github.workspace }}/build/ccache
-      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
+      SCCACHE_DIR: ${{ github.workspace }}/build/sccache
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
     - name: Check out code
@@ -214,27 +214,23 @@ jobs:
         sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
         sudo chmod +x /opt/homebrew/bin/nuget
 
-    - name: Set up CCache
-      if: ${{ runner.os == 'macOS' }}
-      id: setup-ccache
-      run: |
-        ${{ env.ARCH_WRAPPER }} brew install ccache
+    - name: Install Sccache
+      uses: mozilla-actions/sccache-action
 
+    - name: Set up Sccache
+      id: setup-sccache
+      run: |
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
-        echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
-    - name: CCache
-      if: ${{ runner.os == 'macOS' }}
+    - name: Download cache
       uses: actions/cache@v4
       with:
-        key: "ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-\
-          ${{ steps.setup-ccache.outputs.cache-key }}"
-        restore-keys: |
-          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
-        path: ${{ env.CCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-sccache.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}
+        path: ${{ env.SCCACHE_DIR }}
 
     - name: Install OpenSSL from Choco
       if: ${{ runner.os == 'Windows' }}
@@ -284,10 +280,6 @@ jobs:
 
     - name: Build
       run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
-
-    - name: Clear CCache stats
-      if: ${{ runner.os == 'macOS' }}
-      run: ccache --show-stats --zero-stats
 
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
