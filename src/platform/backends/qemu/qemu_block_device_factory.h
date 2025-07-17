@@ -26,18 +26,19 @@ class QemuBlockDeviceFactory : public BlockDeviceFactory
 {
 public:
     BlockDevice::UPtr create_block_device(const std::string& name,
-                                           const MemorySize& size,
-                                           const Path& data_dir) override;
+                                          const MemorySize& size,
+                                          const Path& data_dir) override;
 
     BlockDevice::UPtr create_block_device_from_file(const std::string& name,
-                                                     const std::string& source_path,
-                                                     const Path& data_dir) override;
+                                                    const std::string& source_path,
+                                                    const Path& data_dir) override;
 
-    BlockDevice::UPtr load_block_device(const std::string& name,
-                                         const Path& image_path,
-                                         const MemorySize& size,
-                                         const std::string& format = "qcow2",
-                                         const std::optional<std::string>& attached_vm = std::nullopt) override;
+    BlockDevice::UPtr load_block_device(
+        const std::string& name,
+        const Path& image_path,
+        const MemorySize& size,
+        const std::string& format = "qcow2",
+        const std::optional<std::string>& attached_vm = std::nullopt) override;
 
 private:
     Path get_block_device_path(const std::string& name, const Path& data_dir) const;

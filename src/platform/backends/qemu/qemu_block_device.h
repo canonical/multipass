@@ -35,7 +35,9 @@ public:
                     const std::optional<std::string>& attached_vm = std::nullopt);
 
     // Create the device image file
-    static void create_image_file(const std::string& name, const MemorySize& size, const Path& image_path);
+    static void create_image_file(const std::string& name,
+                                  const MemorySize& size,
+                                  const Path& image_path);
 };
 } // namespace multipass
 

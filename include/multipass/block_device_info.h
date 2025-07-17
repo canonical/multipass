@@ -33,5 +33,5 @@ struct BlockDeviceInfo
     std::optional<std::string> attached_vm;
     std::string format{"qcow2"};
 };
-}
+} // namespace multipass
 #endif // MULTIPASS_BLOCK_DEVICE_INFO_H

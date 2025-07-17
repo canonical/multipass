@@ -412,7 +412,7 @@ std::string mp::JsonFormatter::format(const ListBlocksReply& reply) const
         block_obj.insert("name", QString::fromStdString(block.name()));
         block_obj.insert("size", QString::fromStdString(block.size()));
         block_obj.insert("path", QString::fromStdString(block.path()));
-        
+
         if (!block.attached_to().empty())
             block_obj.insert("attached_to", QString::fromStdString(block.attached_to()));
 

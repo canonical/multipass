@@ -402,7 +402,7 @@ std::string generate_block_devices_list(const mp::ListBlocksReply& reply)
     fmt::memory_buffer buf;
 
     const auto& block_devices = reply.block_devices();
-    
+
     // Debug logging
     mpl::debug("client", "generate_block_devices_list called");
     mpl::debug("client", "block_devices.size() = {}", block_devices.size());
@@ -417,21 +417,21 @@ std::string generate_block_devices_list(const mp::ListBlocksReply& reply)
     const std::string size_col_header = "Size";
     const std::string path_col_header = "Path";
     const std::string attached_col_header = "Attached to";
-    
+
     const auto name_column_width = mp::format::column_width(
         block_devices.begin(),
         block_devices.end(),
         [](const auto& block) -> int { return block.name().length(); },
         name_col_header.length(),
         24);
-    
+
     const auto size_column_width = mp::format::column_width(
         block_devices.begin(),
         block_devices.end(),
         [](const auto& block) -> int { return block.size().length(); },
         size_col_header.length(),
         10);
-    
+
     const auto path_column_width = mp::format::column_width(
         block_devices.begin(),
         block_devices.end(),
@@ -453,10 +453,13 @@ std::string generate_block_devices_list(const mp::ListBlocksReply& reply)
     mpl::debug("client", "Starting to iterate through block devices");
     for (const auto& block : block_devices)
     {
-        mpl::debug("client", "Processing block device: name={}, size={}, path={}, attached_to={}",
-                   block.name(), block.size(), block.path(),
+        mpl::debug("client",
+                   "Processing block device: name={}, size={}, path={}, attached_to={}",
+                   block.name(),
+                   block.size(),
+                   block.path(),
                    block.attached_to().empty() ? "--" : block.attached_to());
-        
+
         fmt::format_to(std::back_inserter(buf),
                        row_format,
                        block.name(),

@@ -41,6 +41,6 @@ private:
     ListBlocksRequest request;
     Formatter* chosen_formatter;
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_BLOCK_LIST_H

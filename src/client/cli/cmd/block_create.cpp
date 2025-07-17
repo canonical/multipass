@@ -30,7 +30,7 @@ namespace
 {
 constexpr auto default_block_size = "10G";
 constexpr auto min_block_size = "1G";
-}
+} // namespace
 
 mp::ReturnCode cmd::BlockCreate::run(mp::ArgParser* parser)
 {
@@ -42,13 +42,15 @@ mp::ReturnCode cmd::BlockCreate::run(mp::ArgParser* parser)
     auto on_success = [](mp::CreateBlockReply& reply) {
         if (!reply.error_message().empty())
         {
-            throw mp::ValidationException{fmt::format("Failed to create block device: {}", reply.error_message())};
+            throw mp::ValidationException{
+                fmt::format("Failed to create block device: {}", reply.error_message())};
         }
         return ReturnCode::Ok;
     };
 
     auto on_failure = [](grpc::Status& status) {
-        throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+        throw mp::ValidationException{
+            fmt::format("Failed to connect to daemon: {}", status.error_message())};
         return ReturnCode::CommandFail;
     };
 
@@ -72,18 +74,17 @@ QString cmd::BlockCreate::description() const
 
 mp::ParseCode cmd::BlockCreate::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name",
-                                "Name of the block device to create.",
-                                "name");
+    parser->addPositionalArgument("name", "Name of the block device to create.", "name");
 
-    QCommandLineOption sizeOption({"s", "size"},
-                                QString::fromStdString(fmt::format("Size of block device to create. "
-                                                                 "Positive integers, in bytes, or with K, M, G suffix."
-                                                                 "\nMinimum: {}, default: {}.",
-                                                                 min_block_size,
-                                                                 default_block_size)),
-                                "size",
-                                QString::fromUtf8(default_block_size));
+    QCommandLineOption sizeOption(
+        {"s", "size"},
+        QString::fromStdString(fmt::format("Size of block device to create. "
+                                           "Positive integers, in bytes, or with K, M, G suffix."
+                                           "\nMinimum: {}, default: {}.",
+                                           min_block_size,
+                                           default_block_size)),
+        "size",
+        QString::fromUtf8(default_block_size));
 
     parser->addOption(sizeOption);
 
@@ -96,7 +97,8 @@ mp::ParseCode cmd::BlockCreate::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() != 1)
     {
-        throw mp::ValidationException{"block-create requires one argument: the name of the block device"};
+        throw mp::ValidationException{
+            "block-create requires one argument: the name of the block device"};
     }
 
     request.set_name(parser->positionalArguments().first().toStdString());
@@ -110,14 +112,17 @@ mp::ParseCode cmd::BlockCreate::parse_args(mp::ArgParser* parser)
             if (size < mp::MemorySize{min_block_size})
             {
                 throw mp::ValidationException{
-                    fmt::format("Block device size '{}' is too small, minimum size is {}", size_str, min_block_size)};
+                    fmt::format("Block device size '{}' is too small, minimum size is {}",
+                                size_str,
+                                min_block_size)};
             }
             request.set_size(size_str);
         }
         catch (const std::invalid_argument&)
         {
-            throw mp::ValidationException{
-                fmt::format("Invalid block device size '{}', must be a positive number with K, M, or G suffix", size_str)};
+            throw mp::ValidationException{fmt::format(
+                "Invalid block device size '{}', must be a positive number with K, M, or G suffix",
+                size_str)};
         }
     }
     else

@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/block_device_manager.h>
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
 #include <multipass/days.h>
@@ -29,7 +30,6 @@
 #include <multipass/update_prompt.h>
 #include <multipass/url_downloader.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/block_device_manager.h>
 #include <multipass/vm_blueprint_provider.h>
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>

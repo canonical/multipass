@@ -45,7 +45,7 @@ service Rpc {
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
     rpc clone (stream CloneRequest) returns (stream CloneReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
-    
+
     // Block storage operations
     rpc create_block (stream CreateBlockRequest) returns (stream CreateBlockReply);
     rpc delete_block (stream DeleteBlockRequest) returns (stream DeleteBlockReply);

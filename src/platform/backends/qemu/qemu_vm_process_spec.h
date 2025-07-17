@@ -20,8 +20,8 @@
 #include "qemu_base_process_spec.h"
 #include "qemu_virtual_machine.h"
 
-#include <multipass/virtual_machine_description.h>
 #include <multipass/block_device_info.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <optional>
 #include <unordered_map>
@@ -42,12 +42,14 @@ public:
 
     static QString default_machine_type();
 
-    explicit QemuVMProcessSpec(const VirtualMachineDescription& desc,
-                                const QStringList& platform_args,
-                                const QemuVirtualMachine::MountArgs& mount_args,
-                                const std::optional<ResumeData>& resume_data,
-                                const QStringList& additional_args = QStringList(),
-                                const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice>& block_devices = {});
+    explicit QemuVMProcessSpec(
+        const VirtualMachineDescription& desc,
+        const QStringList& platform_args,
+        const QemuVirtualMachine::MountArgs& mount_args,
+        const std::optional<ResumeData>& resume_data,
+        const QStringList& additional_args = QStringList(),
+        const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice>&
+            block_devices = {});
 
     QStringList arguments() const override;
 
@@ -60,7 +62,8 @@ private:
     const QemuVirtualMachine::MountArgs mount_args;
     const std::optional<ResumeData> resume_data;
     const QStringList additional_args;
-    const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice> block_devices;
+    const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice>
+        block_devices;
 };
 
 } // namespace multipass

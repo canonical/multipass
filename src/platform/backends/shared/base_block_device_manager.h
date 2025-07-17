@@ -18,10 +18,10 @@
 #ifndef MULTIPASS_BASE_BLOCK_DEVICE_MANAGER_H
 #define MULTIPASS_BASE_BLOCK_DEVICE_MANAGER_H
 
+#include <multipass/block_device_info.h>
 #include <multipass/block_device_manager.h>
 #include <multipass/memory_size.h>
 #include <multipass/path.h>
-#include <multipass/block_device_info.h>
 
 #include <QJsonObject>
 #include <QString>
@@ -37,12 +37,12 @@ class BaseBlockDeviceManager : public BlockDeviceManager
 {
 public:
     explicit BaseBlockDeviceManager(const Path& data_dir);
-    
+
     void create_block_device(const std::string& name, const MemorySize& size) override;
     void delete_block_device(const std::string& name) override;
     void attach_block_device(const std::string& name, const std::string& vm) override;
     void detach_block_device(const std::string& name, const std::string& vm) override;
-    
+
     bool has_block_device(const std::string& name) const override;
     const BlockDeviceInfo* get_block_device(const std::string& name) const override;
     std::vector<BlockDeviceInfo> list_block_devices() const override;
@@ -52,15 +52,17 @@ public:
 protected:
     // Virtual methods that subclasses can override for backend-specific behavior
     virtual Path get_block_device_path(const std::string& name) const;
-    virtual void create_block_device_image(const std::string& name, const MemorySize& size, const Path& image_path);
+    virtual void create_block_device_image(const std::string& name,
+                                           const MemorySize& size,
+                                           const Path& image_path);
     virtual void remove_block_device_image(const Path& image_path);
-    
+
     void save_metadata() const;
     void load_metadata();
     void validate_name(const std::string& name) const;
     void validate_not_attached(const std::string& name) const;
     void validate_not_in_use(const std::string& name) const;
-    
+
     std::unordered_map<std::string, BlockDeviceInfo> block_devices;
     const Path data_dir;
     const Path images_dir;
