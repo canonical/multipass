@@ -28,7 +28,7 @@ class BlockCreate final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser *parser) override;
+    ReturnCode run(ArgParser* parser) override;
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
@@ -37,6 +37,6 @@ private:
     ParseCode parse_args(ArgParser* parser);
     CreateBlockRequest request;
 };
-}
-}
+} // namespace cmd
+} // namespace multipass
 #endif // MULTIPASS_BLOCK_CREATE_H

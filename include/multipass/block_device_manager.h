@@ -36,27 +36,29 @@ class BlockDeviceManager : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<BlockDeviceManager>;
-    
+
     explicit BlockDeviceManager(BlockDeviceFactory::UPtr factory, const Path& data_dir);
     virtual ~BlockDeviceManager() = default;
 
     // Block device operations that manage the registry
     BlockDevice::UPtr create_block_device(const std::string& name, const MemorySize& size);
-    BlockDevice::UPtr create_block_device_from_file(const std::string& name, const std::string& source_path);
+    BlockDevice::UPtr create_block_device_from_file(const std::string& name,
+                                                    const std::string& source_path);
     void delete_block_device(const std::string& name);
     void attach_block_device(const std::string& name, const std::string& vm);
     void detach_block_device(const std::string& name, const std::string& vm);
-    
+
     // Registry management
     bool has_block_device(const std::string& name) const;
     BlockDevice* get_block_device(const std::string& name) const;
     std::vector<const BlockDevice*> list_block_devices() const;
     void register_block_device(BlockDevice::UPtr device);
     void unregister_block_device(const std::string& name);
-    
+
     // Cleanup and validation operations
     void cleanup_orphaned_devices();
-    void validate_and_cleanup_attachments(const std::function<bool(const std::string&)>& vm_exists_checker);
+    void validate_and_cleanup_attachments(
+        const std::function<bool(const std::string&)>& vm_exists_checker);
 
 protected:
     void save_metadata() const;

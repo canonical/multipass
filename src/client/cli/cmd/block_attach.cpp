@@ -35,13 +35,15 @@ mp::ReturnCode cmd::BlockAttach::run(mp::ArgParser* parser)
     auto on_success = [](mp::AttachBlockReply& reply) {
         if (!reply.error_message().empty())
         {
-            throw mp::ValidationException{fmt::format("Failed to attach block device: {}", reply.error_message())};
+            throw mp::ValidationException{
+                fmt::format("Failed to attach block device: {}", reply.error_message())};
         }
         return ReturnCode::Ok;
     };
 
     auto on_failure = [](grpc::Status& status) {
-        throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+        throw mp::ValidationException{
+            fmt::format("Failed to connect to daemon: {}", status.error_message())};
         return ReturnCode::CommandFail;
     };
 
@@ -61,19 +63,17 @@ QString cmd::BlockAttach::short_help() const
 QString cmd::BlockAttach::description() const
 {
     return QStringLiteral("Attach a block device to a stopped VM instance. The block device\n"
-                         "must exist and not be attached to any other VM. The target VM\n"
-                         "must be in a stopped state.");
+                          "must exist and not be attached to any other VM. The target VM\n"
+                          "must be in a stopped state.");
 }
 
 mp::ParseCode cmd::BlockAttach::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name",
-                                "Name of the block device to attach",
-                                "name");
-    
+    parser->addPositionalArgument("name", "Name of the block device to attach", "name");
+
     parser->addPositionalArgument("instance",
-                                "Name of the VM instance to attach the block device to",
-                                "instance");
+                                  "Name of the VM instance to attach the block device to",
+                                  "instance");
 
     auto status = parser->commandParse(this);
 
@@ -86,8 +86,8 @@ mp::ParseCode cmd::BlockAttach::parse_args(mp::ArgParser* parser)
     {
         throw mp::ValidationException{
             fmt::format("Wrong number of arguments given. Expected 2 ({} {})",
-                      parser->positionalArguments()[0].toStdString(),
-                      "<instance>")};
+                        parser->positionalArguments()[0].toStdString(),
+                        "<instance>")};
     }
 
     const auto args = parser->positionalArguments();

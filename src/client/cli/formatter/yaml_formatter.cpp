@@ -360,7 +360,7 @@ std::string mp::YamlFormatter::format(const ListBlocksReply& reply) const
         YAML::Node block_node;
         block_node["size"] = block.size();
         block_node["path"] = block.path();
-        
+
         if (!block.attached_to().empty())
             block_node["attached_to"] = block.attached_to();
 

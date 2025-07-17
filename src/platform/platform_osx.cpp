@@ -28,8 +28,8 @@
 #include <multipass/virtual_machine_factory.h>
 
 #ifdef QEMU_ENABLED
-#include "backends/qemu/qemu_virtual_machine_factory.h"
 #include "backends/qemu/qemu_block_device_factory.h"
+#include "backends/qemu/qemu_virtual_machine_factory.h"
 #endif
 
 #ifdef VIRTUALBOX_ENABLED

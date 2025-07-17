@@ -27,10 +27,10 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 mp::BaseBlockDevice::BaseBlockDevice(const std::string& name,
-                                      const Path& image_path,
-                                      const MemorySize& size,
-                                      const std::string& format,
-                                      const std::optional<std::string>& attached_vm)
+                                     const Path& image_path,
+                                     const MemorySize& size,
+                                     const std::string& format,
+                                     const std::optional<std::string>& attached_vm)
     : device_name{name},
       device_image_path{image_path},
       device_size{size},
@@ -68,31 +68,35 @@ void mp::BaseBlockDevice::attach_to_vm(const std::string& vm_name)
 {
     validate_attach(vm_name);
     device_attached_vm = vm_name;
-    
-    mpl::log(mpl::Level::info, "block-device",
+
+    mpl::log(mpl::Level::info,
+             "block-device",
              fmt::format("Attached block device '{}' to VM '{}'", device_name, vm_name));
 }
 
 void mp::BaseBlockDevice::detach_from_vm()
 {
     validate_detach();
-    
+
     auto vm_name = *device_attached_vm;
     device_attached_vm = std::nullopt;
-    
-    mpl::log(mpl::Level::info, "block-device",
+
+    mpl::log(mpl::Level::info,
+             "block-device",
              fmt::format("Detached block device '{}' from VM '{}'", device_name, vm_name));
 }
 
 void mp::BaseBlockDevice::delete_device()
 {
     if (is_attached())
-        throw ValidationError(fmt::format("Block device '{}' is attached to VM '{}', cannot delete", 
-                                         device_name, *device_attached_vm));
-    
+        throw ValidationError(fmt::format("Block device '{}' is attached to VM '{}', cannot delete",
+                                          device_name,
+                                          *device_attached_vm));
+
     remove_image_file();
-    
-    mpl::log(mpl::Level::info, "block-device",
+
+    mpl::log(mpl::Level::info,
+             "block-device",
              fmt::format("Deleted block device '{}'", device_name));
 }
 
@@ -109,23 +113,26 @@ bool mp::BaseBlockDevice::exists() const
 void mp::BaseBlockDevice::remove_image_file()
 {
     if (!QFile::remove(device_image_path))
-        throw std::runtime_error(fmt::format("Failed to remove block device image: {}", 
-                                            device_image_path.toStdString()));
+        throw std::runtime_error(fmt::format("Failed to remove block device image: {}",
+                                             device_image_path.toStdString()));
 }
 
 void mp::BaseBlockDevice::validate_attach(const std::string& vm_name)
 {
     if (is_attached())
-        throw ValidationError(fmt::format("Block device '{}' is already attached to VM '{}'", 
-                                         device_name, *device_attached_vm));
-    
+        throw ValidationError(fmt::format("Block device '{}' is already attached to VM '{}'",
+                                          device_name,
+                                          *device_attached_vm));
+
     if (!exists())
-        throw NotFoundError(fmt::format("Block device '{}' image file does not exist: {}", 
-                                       device_name, device_image_path.toStdString()));
+        throw NotFoundError(fmt::format("Block device '{}' image file does not exist: {}",
+                                        device_name,
+                                        device_image_path.toStdString()));
 }
 
 void mp::BaseBlockDevice::validate_detach()
 {
     if (!is_attached())
-        throw ValidationError(fmt::format("Block device '{}' is not attached to any VM", device_name));
+        throw ValidationError(
+            fmt::format("Block device '{}' is not attached to any VM", device_name));
 }

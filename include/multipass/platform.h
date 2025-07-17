@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/alias_definition.h>
+#include <multipass/block_device_factory.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
@@ -28,7 +29,6 @@
 #include <multipass/sshfs_server_config.h>
 #include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/block_device_factory.h>
 #include <multipass/vm_image_vault.h>
 
 #include <QDir>

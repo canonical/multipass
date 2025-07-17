@@ -40,18 +40,23 @@ mp::ReturnCode cmd::Disks::run(mp::ArgParser* parser)
     auto on_success = [this](mp::ListBlocksReply& reply) {
         mpl::debug("client", "Disks::on_success called");
         mpl::debug("client", "Reply has {} block devices", reply.block_devices().size());
-        
-        for (int i = 0; i < reply.block_devices().size(); ++i) {
+
+        for (int i = 0; i < reply.block_devices().size(); ++i)
+        {
             const auto& block = reply.block_devices(i);
-            mpl::debug("client", "Block device {}: name={}, size={}, path={}, attached_to={}",
-                       i, block.name(), block.size(), block.path(),
+            mpl::debug("client",
+                       "Block device {}: name={}, size={}, path={}, attached_to={}",
+                       i,
+                       block.name(),
+                       block.size(),
+                       block.path(),
                        block.attached_to().empty() ? "--" : block.attached_to());
         }
-        
+
         mpl::debug("client", "About to call formatter->format()");
         auto formatted_output = chosen_formatter->format(reply);
         mpl::debug("client", "Formatter returned: '{}'", formatted_output);
-        
+
         cout << formatted_output;
         return ReturnCode::Ok;
     };
@@ -87,10 +92,10 @@ QString cmd::Disks::description() const
 mp::ParseCode cmd::Disks::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption formatOption("format",
-                                   "Output list in the requested format.\n"
-                                   "Valid formats are: table (default), json, csv and yaml",
-                                   "format",
-                                   "table");
+                                    "Output list in the requested format.\n"
+                                    "Valid formats are: table (default), json, csv and yaml",
+                                    "format",
+                                    "table");
 
     parser->addOption(formatOption);
 

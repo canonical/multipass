@@ -161,7 +161,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory);
     if (block_device_manager == nullptr)
-        block_device_manager = std::make_unique<BlockDeviceManager>(platform::block_device_factory_backend(), data_directory);
+        block_device_manager =
+            std::make_unique<BlockDeviceManager>(platform::block_device_factory_backend(),
+                                                 data_directory);
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())

@@ -23,10 +23,10 @@
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 
-#include <QFileInfo>
 #include <QDir>
-#include <QUuid>
+#include <QFileInfo>
 #include <QRandomGenerator>
+#include <QUuid>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -44,11 +44,11 @@ bool is_size_string(const QString& input)
     // Check if the input looks like a size (ends with K, M, G, or is just a number)
     if (input.isEmpty())
         return false;
-    
+
     QChar last_char = input.back().toUpper();
     if (last_char == 'K' || last_char == 'M' || last_char == 'G')
         return true;
-    
+
     // Check if it's just a number (would be interpreted as bytes)
     bool ok;
     input.toLongLong(&ok);
@@ -67,11 +67,11 @@ QString generate_unique_disk_name(const std::function<bool(const QString&)>& nam
     // Generate 2-character alphanumeric names with at least one letter
     const QString letters = "abcdefhijklmnopqrstuvwxyz"; // no g to avoid disk-8g
     const QString alphanumeric = "abcdefghijklmnopqrstuvwxyz0123456789";
-    
+
     for (int attempts = 0; attempts < 1000; ++attempts)
     {
         QString disk_id;
-        
+
         // Ensure at least one character is a letter
         if (QRandomGenerator::global()->bounded(2) == 0)
         {
@@ -85,19 +85,19 @@ QString generate_unique_disk_name(const std::function<bool(const QString&)>& nam
             disk_id += alphanumeric[QRandomGenerator::global()->bounded(alphanumeric.length())];
             disk_id += letters[QRandomGenerator::global()->bounded(letters.length())];
         }
-        
+
         QString disk_name = QString("disk-%1").arg(disk_id);
-        
+
         if (!name_exists_check(disk_name))
         {
             return disk_name;
         }
     }
-    
+
     // Fallback to UUID if all combinations are taken (very unlikely)
     return QString("disk-%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces).left(8));
 }
-}
+} // namespace
 
 mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
 {
@@ -110,9 +110,10 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
     auto on_create_success = [this](mp::CreateBlockReply& reply) {
         if (!reply.error_message().empty())
         {
-            throw mp::ValidationException{fmt::format("Failed to create block device: {}", reply.error_message())};
+            throw mp::ValidationException{
+                fmt::format("Failed to create block device: {}", reply.error_message())};
         }
-        
+
         // Extract the actual block device name from the server response
         std::string actual_block_name = create_request.name();
         if (!reply.log_line().empty())
@@ -126,66 +127,80 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
                 actual_block_name = log_line.substr(start, end - start);
             }
         }
-        
+
         // Server already logs the creation, so we don't need to print it again here
-        
+
         // Now attach the created disk using the actual name
         attach_request.set_block_name(actual_block_name);
         attach_request.set_instance_name(vm_name);
-        
+
         auto on_attach_success = [this, actual_block_name](mp::AttachBlockReply& attach_reply) {
             if (!attach_reply.error_message().empty())
             {
                 // Clean up the created block device since attachment failed
                 mp::DeleteBlockRequest delete_request;
                 delete_request.set_name(actual_block_name);
-                
+
                 auto on_delete_success = [](mp::DeleteBlockReply& delete_reply) {
                     return ReturnCode::Ok;
                 };
-                
+
                 auto on_delete_failure = [this](grpc::Status& delete_status) {
-                    cerr << fmt::format("Warning: Failed to clean up created block device: {}\n", delete_status.error_message());
+                    cerr << fmt::format("Warning: Failed to clean up created block device: {}\n",
+                                        delete_status.error_message());
                     return ReturnCode::Ok;
                 };
-                
+
                 // Attempt to clean up the block device
-                dispatch(&RpcMethod::delete_block, delete_request, on_delete_success, on_delete_failure);
-                
-                throw mp::ValidationException{fmt::format("Failed to attach block device: {}", attach_reply.error_message())};
+                dispatch(&RpcMethod::delete_block,
+                         delete_request,
+                         on_delete_success,
+                         on_delete_failure);
+
+                throw mp::ValidationException{
+                    fmt::format("Failed to attach block device: {}", attach_reply.error_message())};
             }
             // Server already logs the attachment, so we don't need to print it again here
             return ReturnCode::Ok;
         };
-        
+
         auto on_attach_failure = [this, actual_block_name](grpc::Status& status) {
             // Clean up the created block device since attachment failed
             mp::DeleteBlockRequest delete_request;
             delete_request.set_name(actual_block_name);
-            
+
             auto on_delete_success = [](mp::DeleteBlockReply& delete_reply) {
                 // Block device cleanup successful, no need to log
                 return ReturnCode::Ok;
             };
-            
+
             auto on_delete_failure = [this](grpc::Status& delete_status) {
                 // Log warning but don't fail the command since the main error is attachment failure
-                cerr << fmt::format("Warning: Failed to clean up created block device: {}\n", delete_status.error_message());
+                cerr << fmt::format("Warning: Failed to clean up created block device: {}\n",
+                                    delete_status.error_message());
                 return ReturnCode::Ok;
             };
-            
+
             // Attempt to clean up the block device (fire and forget)
-            dispatch(&RpcMethod::delete_block, delete_request, on_delete_success, on_delete_failure);
-            
-            throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+            dispatch(&RpcMethod::delete_block,
+                     delete_request,
+                     on_delete_success,
+                     on_delete_failure);
+
+            throw mp::ValidationException{
+                fmt::format("Failed to connect to daemon: {}", status.error_message())};
             return ReturnCode::CommandFail;
         };
-        
-        return dispatch(&RpcMethod::attach_block, attach_request, on_attach_success, on_attach_failure);
+
+        return dispatch(&RpcMethod::attach_block,
+                        attach_request,
+                        on_attach_success,
+                        on_attach_failure);
     };
 
     auto on_create_failure = [](grpc::Status& status) {
-        throw mp::ValidationException{fmt::format("Failed to connect to daemon: {}", status.error_message())};
+        throw mp::ValidationException{
+            fmt::format("Failed to connect to daemon: {}", status.error_message())};
         return ReturnCode::CommandFail;
     };
 
@@ -205,20 +220,20 @@ QString cmd::AddDisk::short_help() const
 QString cmd::AddDisk::description() const
 {
     return QStringLiteral("Add a disk to a VM instance. You can either specify a size to create\n"
-                         "a new disk (e.g., '10G'), or provide a path to an existing disk image\n"
-                         "file. Supported formats for QEMU: qcow2, raw, vmdk, vdi, vhd, vpc.\n"
-                         "The VM must be in a stopped state.");
+                          "a new disk (e.g., '10G'), or provide a path to an existing disk image\n"
+                          "file. Supported formats for QEMU: qcow2, raw, vmdk, vdi, vhd, vpc.\n"
+                          "The VM must be in a stopped state.");
 }
 
 mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("instance",
-                                "Name of the VM instance to add the disk to",
-                                "instance");
-    
+                                  "Name of the VM instance to add the disk to",
+                                  "instance");
+
     parser->addPositionalArgument("disk",
-                                "Disk size (e.g., '10G') or path to existing disk image file",
-                                "disk");
+                                  "Disk size (e.g., '10G') or path to existing disk image file",
+                                  "disk");
 
     auto status = parser->commandParse(this);
 
@@ -235,14 +250,14 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
     const auto args = parser->positionalArguments();
     vm_name = args.at(0).toStdString();
     disk_input = args.at(1).toStdString();
-    
+
     QString disk_qstring = QString::fromStdString(disk_input);
 
     // Determine if the input is a size or a file path
     if (is_size_string(disk_qstring))
     {
         is_size_input = true;
-        
+
         // Validate the size
         try
         {
@@ -250,15 +265,18 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
             if (size < mp::MemorySize{min_disk_size})
             {
                 throw mp::ValidationException{
-                    fmt::format("Disk size '{}' is too small, minimum size is {}", disk_input, min_disk_size)};
+                    fmt::format("Disk size '{}' is too small, minimum size is {}",
+                                disk_input,
+                                min_disk_size)};
             }
         }
         catch (const std::invalid_argument&)
         {
-            throw mp::ValidationException{
-                fmt::format("Invalid disk size '{}', must be a positive number with K, M, or G suffix", disk_input)};
+            throw mp::ValidationException{fmt::format(
+                "Invalid disk size '{}', must be a positive number with K, M, or G suffix",
+                disk_input)};
         }
-        
+
         // Set up create request with collision detection
         auto name_exists_check = [](const QString& name) {
             // For client-side, we can't check server state, so just return false
@@ -272,26 +290,28 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
     else
     {
         is_size_input = false;
-        
+
         // Validate the file path
         QFileInfo file_info(disk_qstring);
         if (!file_info.exists())
         {
-            throw mp::ValidationException{fmt::format("Disk image file '{}' does not exist", disk_input)};
+            throw mp::ValidationException{
+                fmt::format("Disk image file '{}' does not exist", disk_input)};
         }
-        
+
         if (!file_info.isFile())
         {
             throw mp::ValidationException{fmt::format("'{}' is not a regular file", disk_input)};
         }
-        
+
         if (!is_supported_disk_format(disk_qstring))
         {
             throw mp::ValidationException{
                 fmt::format("Unsupported disk format for '{}'. Supported formats: {}",
-                          disk_input, supported_formats.join(", ").toStdString())};
+                            disk_input,
+                            supported_formats.join(", ").toStdString())};
         }
-        
+
         // Set up create request with the source file path
         auto name_exists_check = [](const QString& name) {
             // For client-side, we can't check server state, so just return false

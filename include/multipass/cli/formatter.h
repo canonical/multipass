@@ -38,7 +38,7 @@ public:
     virtual std::string format(const NetworksReply& reply) const = 0;
     virtual std::string format(const FindReply& reply) const = 0;
     virtual std::string format(const VersionReply& reply,
-                              const std::string& client_version) const = 0;
+                               const std::string& client_version) const = 0;
     virtual std::string format(const AliasDict& aliases) const = 0;
     virtual std::string format(const ListBlocksReply& reply) const = 0;
 
