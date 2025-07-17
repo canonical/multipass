@@ -368,7 +368,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
     - name: Check out code
