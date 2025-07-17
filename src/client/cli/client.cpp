@@ -27,6 +27,7 @@
 #include "cmd/block_list.h"
 #include "cmd/clone.h"
 #include "cmd/delete.h"
+#include "cmd/disks.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -125,6 +126,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::BlockAttach>();
     add_command<cmd::BlockDetach>();
     add_command<cmd::BlockList>();
+    add_command<cmd::Disks>();
 
     sort_commands();
 
