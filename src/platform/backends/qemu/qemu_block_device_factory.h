@@ -29,6 +29,10 @@ public:
                                            const MemorySize& size,
                                            const Path& data_dir) override;
 
+    BlockDevice::UPtr create_block_device_from_file(const std::string& name,
+                                                     const std::string& source_path,
+                                                     const Path& data_dir) override;
+
     BlockDevice::UPtr load_block_device(const std::string& name,
                                          const Path& image_path,
                                          const MemorySize& size,

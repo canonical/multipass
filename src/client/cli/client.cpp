@@ -16,6 +16,7 @@
  */
 
 #include "client.h"
+#include "cmd/add_disk.h"
 #include "cmd/alias.h"
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
@@ -118,6 +119,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
     add_command<cmd::WaitReady>();
+    add_command<cmd::AddDisk>();
     add_command<cmd::BlockCreate>();
     add_command<cmd::BlockDelete>();
     add_command<cmd::BlockAttach>();

@@ -36,6 +36,7 @@ struct VMSpecs
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
+    std::vector<MemorySize> extra_disks;
     std::string default_mac_address;
     std::vector<NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
     std::string ssh_username;
@@ -52,6 +53,7 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
     return std::tie(a.num_cores,
                     a.mem_size,
                     a.disk_space,
+                    a.extra_disks,
                     a.default_mac_address,
                     a.extra_interfaces,
                     a.ssh_username,
@@ -62,6 +64,7 @@ inline bool operator==(const VMSpecs& a, const VMSpecs& b)
                     a.clone_count) == std::tie(b.num_cores,
                                                b.mem_size,
                                                b.disk_space,
+                                               b.extra_disks,
                                                b.default_mac_address,
                                                b.extra_interfaces,
                                                b.ssh_username,
