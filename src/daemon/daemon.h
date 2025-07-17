@@ -216,7 +216,8 @@ private:
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    std::promise<grpc::Status>* status_promise,
                    bool start);
-    bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
+    bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response, bool delete_attached_disks = false);
+    std::vector<std::string> get_attached_block_devices(const std::string& instance_name) const;
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
