@@ -133,16 +133,14 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    MP_UTILS.make_dir(
-        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().parent_path().u16string()),
-        fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
+    MP_UTILS.make_dir(QString::fromStdU16String(get_root_cert_path().parent_path().u16string()),
+                      fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
 
     MP_PLATFORM.setup_permission_inheritance(true);
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();
     if (!storage_path.isEmpty())
-        MP_UTILS.make_dir(storage_path,
-                          fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
+        MP_UTILS.make_dir(storage_path);
 
     if (cache_directory.isEmpty())
     {
@@ -153,10 +151,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     }
     if (data_directory.isEmpty())
     {
-        if (!storage_path.isEmpty())
-            data_directory = MP_UTILS.make_dir(storage_path, "data");
-        else
-            data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
+        data_directory =
+            MP_UTILS.make_dir(storage_path.isEmpty()
+                                  ? QString::fromStdU16String(get_default_daemon_path().u16string())
+                                  : storage_path,
+                              "data");
     }
 
     if (url_downloader == nullptr)
@@ -252,12 +251,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     }
 
     if (cert_provider == nullptr)
-        cert_provider = std::make_unique<mp::SSLCertProvider>(
-            MP_UTILS.make_dir(data_directory,
-                              "certificates",
-                              fs::perms::owner_all | fs::perms::group_exec |
-                                  fs::perms::others_exec),
-            server_name_from(server_address));
+        cert_provider =
+            std::make_unique<mp::SSLCertProvider>(MP_UTILS.make_dir(data_directory, "certificates"),
+                                                  server_name_from(server_address));
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
                                                                 std::move(factory),

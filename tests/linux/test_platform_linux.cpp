@@ -699,10 +699,11 @@ TEST_F(PlatformLinux, removeAliasScriptThrowsIfCannotRemoveScript)
 
 TEST_F(PlatformLinux, testSnapMultipassStorageLocation)
 {
+    auto unconfined_location = mp::get_root_cert_path();
+
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
     mpt::SetEnvScope env2("SNAP_COMMON", "common");
 
-    EXPECT_EQ(MP_PLATFORM.get_root_cert_path(),
-              "data/multipassd/certificates/multipass_root_cert.pem");
+    EXPECT_EQ(mp::get_root_cert_path(), unconfined_location);
 }
 } // namespace
