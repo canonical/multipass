@@ -15,43 +15,35 @@
  *
  */
 
-#pragma once
+#ifndef MULTIPASS_ADD_DISK_H
+#define MULTIPASS_ADD_DISK_H
 
-#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
 namespace multipass
 {
 namespace cmd
 {
-class Delete final : public Command
+class AddDisk final : public Command
 {
 public:
     using Command::Command;
-
-    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
-    {
-    }
-
-    ReturnCode run(ArgParser* parser) override;
-
+    ReturnCode run(ArgParser *parser) override;
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    AliasDict aliases;
-    DeleteRequest request;
-    std::string instance_args;
-    std::string snapshot_args;
-
     ParseCode parse_args(ArgParser* parser);
-    ParseCode parse_instances_snapshots(ArgParser* parser);
-    std::string generate_snapshot_purge_msg() const;
-    bool confirm_snapshot_purge() const;
-    std::string generate_block_device_deletion_msg(const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const;
-    bool confirm_block_device_deletion(const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const;
+    
+    // We'll use both create and attach requests depending on the input
+    CreateBlockRequest create_request;
+    AttachBlockRequest attach_request;
+    
+    bool is_size_input = false;  // true if input is a size, false if it's a file path
+    std::string vm_name;
+    std::string disk_input;  // either size or file path
 };
-} // namespace cmd
-} // namespace multipass
+}
+}
+#endif // MULTIPASS_ADD_DISK_H

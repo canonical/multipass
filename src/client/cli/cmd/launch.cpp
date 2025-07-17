@@ -203,11 +203,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                                   default_cpu_cores);
     QCommandLineOption diskOption(
         {"d", "disk"},
-        QString::fromStdString(
-            fmt::format("Disk space to allocate. Positive integers, in "
-                        "bytes, or decimals, with K, M, G suffix.\nMinimum: {}, default: {}.",
-                        min_disk_size,
-                        default_disk_size)),
+        QString::fromStdString(fmt::format(
+            "Disk space to allocate. The first value is for the primary disk, any "
+            "others for extra disks. Positive integers, in bytes, or decimals, with K, M, G "
+            "suffix.\nMinimum: {}, default: {}.",
+            min_disk_size,
+            default_disk_size)),
         "disk",
         QString::fromUtf8(default_disk_size));
 
@@ -352,11 +353,35 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(diskOption))
     {
-        auto arg_disk_size = parser->value(diskOption).toStdString();
+        const auto disk_values = parser->values(diskOption);
+        if (!disk_values.empty())
+        {
+            const auto& primary_disk_str = disk_values.first().toStdString();
+            auto primary_disk_size = mp::MemorySize{primary_disk_str}; // throw if bad
+            
+            // Validate minimum disk size (1GiB)
+            const auto min_disk_size = mp::MemorySize{"1G"};
+            if (primary_disk_size < min_disk_size)
+            {
+                throw std::runtime_error(fmt::format("Primary disk size must be at least 1G, got '{}'", primary_disk_str));
+            }
+            
+            request.set_disk_space(primary_disk_str);
 
-        mp::MemorySize{arg_disk_size}; // throw if bad
-
-        request.set_disk_space(arg_disk_size);
+            for (auto it = disk_values.constBegin() + 1; it != disk_values.constEnd(); ++it)
+            {
+                const auto& disk_str = it->toStdString();
+                auto extra_disk_size = mp::MemorySize{disk_str}; // throw if bad
+                
+                // Validate minimum disk size (1GiB) for extra disks
+                if (extra_disk_size < min_disk_size)
+                {
+                    throw std::runtime_error(fmt::format("Extra disk size must be at least 1G, got '{}'", disk_str));
+                }
+                
+                request.add_extra_disks(disk_str);
+            }
+        }
     }
 
     if (parser->isSet(mountOption))
