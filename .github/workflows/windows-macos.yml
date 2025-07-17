@@ -26,25 +26,6 @@ env:
   VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
 jobs:
-  CheckLint:
-    runs-on: ubuntu-latest
-    if: ${{ !cancelled() }}
-
-    permissions:
-      contents: read
-      checks: read
-
-    outputs:
-      conclusion: ${{ steps.check-lint.outputs.conclusion }}
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v5
-
-      - name: Check Lint Status
-        id: check-lint
-        uses: ./.github/actions/check-lint
-
   GetMatrix:
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
@@ -75,17 +56,13 @@ jobs:
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    needs: [CheckLint, GetMatrix]
+    needs: GetMatrix
 
     permissions:
       contents: read
       packages: write
 
-    # Proceed if Lint failed on a PR
-    if: ${{ !cancelled() && success() &&
-        (needs.CheckLint.outputs.conclusion == 'success' ||
-          (needs.CheckLint.outputs.conclusion == 'failure' && github.event_name == 'pull_request'))
-        }}
+    if: ${{ !cancelled() }}
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
