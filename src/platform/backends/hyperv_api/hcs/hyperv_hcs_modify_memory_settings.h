@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_MODIFY_MEMORY_SETTINGS_H
-#define MULTIPASS_HYPERV_API_HCS_MODIFY_MEMORY_SETTINGS_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -31,5 +30,3 @@ struct HcsModifyMemorySettings
 };
 
 } // namespace multipass::hyperv::hcs
-
-#endif

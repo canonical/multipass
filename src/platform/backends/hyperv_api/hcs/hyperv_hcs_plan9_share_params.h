@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_PLAN9_SHARE_PARAMS_H
-#define MULTIPASS_HYPERV_API_HCS_PLAN9_SHARE_PARAMS_H
+#pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_path.h>
 
@@ -108,5 +107,3 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsRemovePlan9ShareParameters, Cha
     auto format(const multipass::hyperv::hcs::HcsRemovePlan9ShareParameters& param,
                 FormatContext& ctx) const -> typename FormatContext::iterator;
 };
-
-#endif // MULTIPASS_HYPERV_API_HCS_ADD_9P_SHARE_PARAMS_H
