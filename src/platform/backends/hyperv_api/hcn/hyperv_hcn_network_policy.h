@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_NETWORK_POLICY_H
-#define MULTIPASS_HYPERV_API_HCN_NETWORK_POLICY_H
+#pragma once
 
 #include <hyperv_api/hcn/hyperv_hcn_network_policy_netadaptername.h>
 #include <hyperv_api/hcn/hyperv_hcn_network_policy_type.h>
@@ -56,5 +55,3 @@ struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkPolicy, Char>
     auto format(const multipass::hyperv::hcn::HcnNetworkPolicy& policy, FormatContext& ctx) const ->
         typename FormatContext::iterator;
 };
-
-#endif
