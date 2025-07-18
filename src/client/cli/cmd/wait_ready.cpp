@@ -17,16 +17,19 @@
 
 #include "wait_ready.h"
 #include "common_cli.h"
-
 #include "animated_spinner.h"
+
+#include <multipass/timer.h>
+#include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
-#include <multipass/timer.h>
+
+#include <chrono>
+#include <thread>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-namespace mpl = multipass::logging;
 
 mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
 {
@@ -35,29 +38,29 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
     {
         return parser->returnCodeFrom(ret);
     }
+    
+    mp::AnimatedSpinner spinner(cout);
+    spinner.start("Waiting for Multipass daemon to be ready");
 
-    if (!spinner){
-        spinner = std::make_unique<multipass::AnimatedSpinner>(cout);
-        spinner->start("Waiting for Multipass daemon to be ready...");
-    }
+    std::unique_ptr<mp::utils::Timer> timer;
 
     // If the user has specified a timeout, we will create a timer
     if (parser->isSet("timeout")){
         timer = cmd::make_timer(parser->value("timeout").toInt(),
-                                spinner.get(),
+                                &spinner,
                                 cerr,
                                 "Timed out waiting for Multipass daemon to be ready.");
         timer->start();
     }
     
-    auto on_success = [this](WaitReadyReply& reply) {
+    auto on_success = [this, &spinner, &timer](WaitReadyReply& reply) {
         if (timer)
             timer->stop();
-        spinner->stop();
+        spinner.stop();
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this, &spinner, &timer](grpc::Status& status) {
 
         if (status.error_code() == grpc::StatusCode::NOT_FOUND && 
             status.error_message() == "cannot connect to the multipass socket")
@@ -70,7 +73,7 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
 
         if (timer)
             timer->stop();
-        spinner->stop();
+        spinner.stop();
         
         // For any other error, we will handle it as a standard failure
         return standard_failure_handler_for(name(), cerr, status);
@@ -100,12 +103,11 @@ QString cmd::WaitReady::short_help() const
 QString cmd::WaitReady::description() const
 {
     return QStringLiteral(
-        "Wait for the Multipass daemon to be ready.\n"
-        "This command will block until the daemon is ready to accept requests.\n"
-        "It can be used to ensure that the daemon is running before executing "
-        "other commands.\n"
-        "If a timeout is specified, it will wait for that duration before "
-        "exiting with an error if the daemon is not ready.");
+        "Wait for the Multipass daemon to be ready. This command will block until the\n"
+        "daemon has initialized, fetched up-to-date image information, and is ready to\n"
+        "accept requests. Its main use is to prevent failures caused by incomplete\n"
+        "initialization in batch operations. An optional timeout aborts the command if\n"
+        "reached.");
 }
 
 mp::ParseCode cmd::WaitReady::parse_args(mp::ArgParser* parser)
