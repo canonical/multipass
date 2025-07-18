@@ -20,10 +20,13 @@
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
+#include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
+
+#include <multipass/constants.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -33,6 +36,10 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
 {
     void SetUp() override
     {
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("qemu"));
+
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
 
@@ -65,6 +72,9 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 
 TEST_F(TestDaemonClone, missingOnSrcInstance)

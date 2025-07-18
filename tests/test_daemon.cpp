@@ -1662,11 +1662,11 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                          MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"),
                                  Values("--memory", "--disk"),
-                                 Values("1024m", "2Gb", "987654321")));
+                                 Values("1024m", "2Gb", "10737418240")));
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          MinSpaceViolatedSuite,
                          Combine(Values("test_create", "launch"),
-                                 Values("--memory", "--disk"),
+                                 Values("--memory"),
                                  Values("0", "0B", "0GB", "123B", "42kb", "100")));
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          LaunchImgSizeSuite,

@@ -23,9 +23,12 @@
 #include <tests/mock_logger.h>
 #include <tests/mock_permission_utils.h>
 #include <tests/mock_platform.h>
+#include <tests/mock_settings.h>
 #include <tests/mock_utils.h>
 
 #include <src/daemon/daemon_rpc.h>
+
+#include <multipass/constants.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -44,6 +47,13 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
             .Times(AnyNumber())
             .WillRepeatedly(Return(QString()));
         EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
+    }
+
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("qemu"));
     }
 
     mp::Rpc::Stub make_secure_stub()
@@ -91,6 +101,9 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 };
 } // namespace
 
