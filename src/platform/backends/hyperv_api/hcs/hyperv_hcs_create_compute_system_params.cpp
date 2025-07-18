@@ -75,27 +75,37 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                         {5}
                     ]
                 }}
-            }},
+            }}
             {6}
         }}
     }}
     )json");
-
-    std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
-
-    constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
-
-    const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
-
-    if (schema_version >= HcsSchemaVersion::v25)
-    {
-        constexpr static auto requested_services = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr static auto requested_services = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             "Services": {
                 "Shutdown": {},
                 "Heartbeat": {}
             })json");
-        schema_version_dependent_vm_sections.emplace_back(requested_services.as<Char>());
-    }
+
+    constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+
+    std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
+    const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
+
+    auto append_version_dependent_section = [&schema_version_dependent_vm_sections,
+                                             &schema_version](auto section,
+                                                              HcsSchemaVersion version) {
+        if (schema_version >= version)
+        {
+            if (schema_version_dependent_vm_sections.empty())
+            {
+                // To emit an initial comma.
+                schema_version_dependent_vm_sections.push_back({});
+            }
+            schema_version_dependent_vm_sections.emplace_back(section);
+        }
+    };
+
+    append_version_dependent_section(requested_services.as<Char>(), HcsSchemaVersion::v25);
 
     return format_to(ctx.out(),
                      json_template.as<Char>(),
