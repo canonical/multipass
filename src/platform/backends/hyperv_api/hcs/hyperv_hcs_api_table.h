@@ -110,17 +110,21 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
     {
         return format_to(
             ctx.out(),
-            "CreateOperation: ({}) | WaitForOperationResult: ({}) | CreateComputeSystem: ({}) | "
-            "OpenComputeSystem: ({}) | StartComputeSystem: ({}) | ShutDownComputeSystem: ({}) | "
-            "PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
+            "CreateOperation: ({}) | WaitForOperationResult: ({}) | CloseOperation: ({}) | "
+            "CreateComputeSystem: ({}) | OpenComputeSystem: ({}) | StartComputeSystem: ({}) | "
+            "ShutDownComputeSystem: ({}) | TerminateComputeSystem: ({}) | CloseComputeSystem: ({}) "
+            "| PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
             "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
             "EnumerateComputeSystems: ({}) | LocalFree: ({})",
             static_cast<bool>(api.CreateOperation),
             static_cast<bool>(api.WaitForOperationResult),
+            static_cast<bool>(api.CloseOperation),
             static_cast<bool>(api.CreateComputeSystem),
             static_cast<bool>(api.OpenComputeSystem),
             static_cast<bool>(api.StartComputeSystem),
             static_cast<bool>(api.ShutDownComputeSystem),
+            static_cast<bool>(api.TerminateComputeSystem),
+            static_cast<bool>(api.CloseComputeSystem),
             static_cast<bool>(api.PauseComputeSystem),
             static_cast<bool>(api.ResumeComputeSystem),
             static_cast<bool>(api.ModifyComputeSystem),
@@ -128,6 +132,7 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
             static_cast<bool>(api.GrantVmAccess),
             static_cast<bool>(api.RevokeVmAccess),
             static_cast<bool>(api.EnumerateComputeSystems),
-            static_cast<bool>(api.LocalFree));
+            static_cast<bool>(api.LocalFree)
+        );
     }
 };

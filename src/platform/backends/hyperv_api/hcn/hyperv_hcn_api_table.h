@@ -49,7 +49,7 @@ struct HCNAPITable
     std::function<decltype(HcnOpenEndpoint)> OpenEndpoint = &HcnOpenEndpoint;
     // @ref https://learn.microsoft.com/en-us/virtualization/api/hcn/reference/hcndeleteendpoint
     std::function<decltype(HcnDeleteEndpoint)> DeleteEndpoint = &HcnDeleteEndpoint;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcn/reference/hcndeleteendpoint
+    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcn/reference/hcncloseendpoint
     std::function<decltype(HcnCloseEndpoint)> CloseEndpoint = &HcnCloseEndpoint;
     // @ref
     // https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
@@ -72,16 +72,19 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::HCNAPITable& api, FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
-                         "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | "
-                         "CreateEndpoint: ({}) | "
-                         "OpenEndpoint: ({}) | DeleteEndpoint: ({}) | CoTaskMemFree: ({})",
-                         static_cast<bool>(api.CreateNetwork),
-                         static_cast<bool>(api.OpenNetwork),
-                         static_cast<bool>(api.DeleteNetwork),
-                         static_cast<bool>(api.CreateEndpoint),
-                         static_cast<bool>(api.OpenEndpoint),
-                         static_cast<bool>(api.DeleteEndpoint),
-                         static_cast<bool>(api.CoTaskMemFree));
+        return format_to(
+            ctx.out(),
+            "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | CloseNetwork: ({}) | "
+            "CreateEndpoint: ({}) | OpenEndpoint: ({}) | DeleteEndpoint: ({}) | CloseEndpoint: "
+            "({}) | CoTaskMemFree: ({})",
+            static_cast<bool>(api.CreateNetwork),
+            static_cast<bool>(api.OpenNetwork),
+            static_cast<bool>(api.DeleteNetwork),
+            static_cast<bool>(api.CloseNetwork),
+            static_cast<bool>(api.CreateEndpoint),
+            static_cast<bool>(api.OpenEndpoint),
+            static_cast<bool>(api.DeleteEndpoint),
+            static_cast<bool>(api.CloseEndpoint),
+            static_cast<bool>(api.CoTaskMemFree));
     }
 };
