@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_SUBNET_H
-#define MULTIPASS_HYPERV_API_HCN_SUBNET_H
+#pragma once
 
 #include <hyperv_api/hcn/hyperv_hcn_route.h>
 
@@ -47,5 +46,3 @@ struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char>
     auto format(const multipass::hyperv::hcn::HcnSubnet& route, FormatContext& ctx) const ->
         typename FormatContext::iterator;
 };
-
-#endif

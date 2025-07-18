@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_CREATE_NETWORK_PARAMETERS_H
-#define MULTIPASS_HYPERV_API_HCN_CREATE_NETWORK_PARAMETERS_H
+#pragma once
 
 #include <hyperv_api/hcn/hyperv_hcn_ipam.h>
 #include <hyperv_api/hcn/hyperv_hcn_network_flags.h>
@@ -95,5 +94,3 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateNetworkParameters, Char>
                          fmt::join(params.policies, ","));
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_HCN_CREATE_NETWORK_PARAMETERS_H

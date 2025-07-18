@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_TESTS_HYPERV_API_HYPERV_TEST_UTILS_H
-#define MULTIPASS_TESTS_HYPERV_API_HYPERV_TEST_UTILS_H
+#pragma once
 
 #include <filesystem>
 #include <io.h>
@@ -88,5 +87,3 @@ inline auto make_tempfile_path(std::string extension)
 }
 
 } // namespace multipass::test
-
-#endif

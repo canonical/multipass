@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_WRAPPER
-#define MULTIPASS_HYPERV_API_HCN_WRAPPER
+#pragma once
 
 #include <hyperv_api/hcn/hyperv_hcn_api_table.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
@@ -92,5 +91,3 @@ private:
 };
 
 } // namespace multipass::hyperv::hcn
-
-#endif // MULTIPASS_HYPERV_API_HCN_WRAPPER

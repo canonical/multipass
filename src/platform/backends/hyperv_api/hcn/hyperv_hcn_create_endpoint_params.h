@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_CREATE_ENDPOINT_PARAMETERS_H
-#define MULTIPASS_HYPERV_API_HCN_CREATE_ENDPOINT_PARAMETERS_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -78,5 +77,3 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
                          params.mac_address);
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_HCN_CREATE_ENDPOINT_PARAMETERS_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_EXCEPTIONS_H
-#define MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_EXCEPTIONS_H
+#pragma once
 
 #include <multipass/exceptions/formatted_exception_base.h>
 
@@ -64,5 +63,3 @@ struct StartComputeSystemException : public FormattedExceptionBase<>
 };
 
 } // namespace multipass::hyperv
-
-#endif

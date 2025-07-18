@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_HCS_PLAN9_MOUNT_HANDLER_H
-#define MULTIPASS_HYPERV_HCS_PLAN9_MOUNT_HANDLER_H
+#pragma once
 
 #include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
 #include <multipass/mount_handler.h>
@@ -43,5 +42,3 @@ private:
 };
 
 } // namespace multipass::hyperv::hcs
-
-#endif

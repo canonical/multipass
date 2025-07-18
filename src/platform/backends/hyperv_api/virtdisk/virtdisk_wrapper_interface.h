@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_INTERFACE_H
-#define MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_INTERFACE_H
+#pragma once
 
 #include <hyperv_api/hyperv_api_operation_result.h>
 #include <hyperv_api/virtdisk/virtdisk_create_virtual_disk_params.h>
@@ -45,5 +44,3 @@ struct VirtDiskWrapperInterface
     virtual ~VirtDiskWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::virtdisk
-
-#endif
