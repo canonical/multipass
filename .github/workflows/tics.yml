@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, reactive, amd64, 2xlarge, noble]
+    runs-on: self-hosted-linux-amd64-noble-2xlarge-tiobe
 
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
