@@ -19,6 +19,7 @@
 #include "file_operations.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
+#include "mock_standard_paths.h"
 #include "temp_dir.h"
 
 #include <multipass/ssl_cert_provider.h>
@@ -95,12 +96,11 @@ TEST_F(SSLCertProviderFixture, persistsCertAndKey)
 
 TEST_F(SSLCertProviderFixture, createsDifferentCertsPerServerName)
 {
-    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    const auto& mock_paths = mpt::MockStandardPaths::mock_instance();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    // EXPECT_CALL(*mock_platform, get_root_cert_path())
-    //    .WillRepeatedly(
-    //        Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(mock_paths, writableLocation(mp::StandardPaths::GenericDataLocation))
+        .WillRepeatedly(Return(cert_dir));
 
     mp::SSLCertProvider cert_provider1{cert_dir, "test_server1"};
     mp::SSLCertProvider cert_provider2{cert_dir, "test_server2"};

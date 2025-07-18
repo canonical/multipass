@@ -379,6 +379,19 @@ TEST_F(Daemon, dataPathWithStorageValid)
     EXPECT_EQ(config->cache_directory, storage_dir.filePath("cache"));
 }
 
+TEST_F(Daemon, rootCertPathDoesntChangeWithStorage)
+{
+    QTemporaryDir storage_dir;
+
+    const auto base_location = mp::get_root_cert_path();
+    const auto base_storage = mp::utils::get_multipass_storage();
+
+    mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
+
+    EXPECT_EQ(base_location, mp::get_root_cert_path());
+    EXPECT_NE(base_storage, mp::utils::get_multipass_storage());
+}
+
 TEST_F(Daemon, blueprintsDownloadsFromCorrectURL)
 {
     mpt::TempDir cache_dir;
