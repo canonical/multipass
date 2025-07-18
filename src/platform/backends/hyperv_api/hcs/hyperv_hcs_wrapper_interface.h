@@ -22,6 +22,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
 #include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_request.h>
+#include <hyperv_api/hcs/hyperv_hcs_schema_version.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <filesystem>
@@ -54,6 +55,7 @@ struct HCSWrapperInterface
                                                      ComputeSystemState& state_out) const = 0;
     virtual OperationResult modify_compute_system(const std::string& compute_system_name,
                                                   const HcsRequest& request) const = 0;
+    virtual HcsSchemaVersion get_os_supported_schema_version() const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs
