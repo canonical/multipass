@@ -22,6 +22,7 @@
 #include <fmt/format.h>
 
 #include <string>
+#include <optional>
 
 struct WSAData;
 
@@ -47,6 +48,15 @@ private:
     WSAData* wsa_data{nullptr};
     const int wsa_init_result{-1};
 };
+
+struct windows_version
+{
+    std::uint32_t major;
+    std::uint32_t minor;
+    std::uint32_t build;
+};
+
+std::optional<windows_version> get_windows_version();
 
 } // namespace multipass::platform
 
