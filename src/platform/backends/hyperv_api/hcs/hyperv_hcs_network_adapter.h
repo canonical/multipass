@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_NETWORK_ADAPTER_H
-#define MULTIPASS_HYPERV_API_HCS_NETWORK_ADAPTER_H
+#pragma once
 
 #include <fmt/xchar.h>
 
@@ -45,5 +44,3 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsNetworkAdapter, Char>
     auto format(const multipass::hyperv::hcs::HcsNetworkAdapter& policy, FormatContext& ctx) const
         -> typename FormatContext::iterator;
 };
-
-#endif // MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H

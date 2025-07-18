@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_FACTORY_H
-#define MULTIPASS_HYPERV_API_HCS_VIRTUAL_MACHINE_FACTORY_H
+#pragma once
 
 #include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
 
@@ -83,5 +82,3 @@ private:
     static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass::hyperv
-
-#endif

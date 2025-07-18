@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_WRAPPER_INTERFACE_H
-#define MULTIPASS_HYPERV_API_HCN_WRAPPER_INTERFACE_H
+#pragma once
 
 #include <hyperv_api/hyperv_api_operation_result.h>
 
@@ -40,5 +39,3 @@ struct HCNWrapperInterface
     virtual ~HCNWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcn
-
-#endif // MULTIPASS_HYPERV_API_HCN_WRAPPER_INTERFACE_H
