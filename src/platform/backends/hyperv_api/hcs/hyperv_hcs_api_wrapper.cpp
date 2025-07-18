@@ -228,7 +228,7 @@ HCSWrapper::HCSWrapper(const HCSAPITable& api_table) : api{api_table}
 {
     mpl::debug(kLogCategory,
                "HCSWrapper::HCSWrapper(...) > Schema Version: {}, API table: {}",
-               get_os_supported_schema_version(),
+               SchemaUtils::instance().get_os_supported_schema_version(),
                api);
 }
 
