@@ -503,7 +503,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::create_network(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcn_operation(...)");
     }
 
     /******************************************************
@@ -564,7 +564,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::create_network(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_operation(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcn_operation(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::error,
             "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003");
@@ -623,7 +623,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
             mpl::Level::debug,
             "HCNWrapper::delete_network(...) > network_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: true");
+                                             "perform_hcn_operation(...) > result: true");
     }
 
     /******************************************************
@@ -677,7 +677,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
             mpl::Level::debug,
             "HCNWrapper::delete_network(...) > network_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: false");
+                                             "perform_hcn_operation(...) > result: false");
     }
 
     /******************************************************
@@ -781,7 +781,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
             mpl::Level::debug,
             "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: true",
+                                             "perform_hcn_operation(...) > result: true",
                                              testing::Exactly(2));
     }
 
@@ -832,9 +832,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
             "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(
             mpl::Level::error,
-            "open_network() > HcnOpenNetwork failed with 0x80004003!");
+            "open_network() > HcnOpenNetwork failed with 0x80004003");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: false");
+                                             "perform_hcn_operation(...) > result: false");
     }
 
     /******************************************************
@@ -941,9 +941,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
             mpl::Level::debug,
             "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: true");
+                                             "perform_hcn_operation(...) > result: true");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: false");
+                                             "perform_hcn_operation(...) > result: false");
     }
 
     /******************************************************
@@ -996,7 +996,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
                                              "HCNWrapper::delete_endpoint(...) > endpoint_guid: "
                                              "af3fb745-2f23-463c-8ded-443f876d9e81");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: true");
+                                             "perform_hcn_operation(...) > result: true");
     }
 
     /******************************************************
@@ -1046,7 +1046,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
                                              "HCNWrapper::delete_endpoint(...) > endpoint_guid: "
                                              "af3fb745-2f23-463c-8ded-443f876d9e81");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "perform_operation(...) > fn: 0x0, result: false");
+                                             "perform_hcn_operation(...) > result: false");
     }
 
     /******************************************************
