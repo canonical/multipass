@@ -131,7 +131,7 @@ struct fmt::formatter<multipass::hyperv::ResultCode, Char>
         const std::error_code ec{static_cast<HRESULT>(rc), std::system_category()};
         const auto hint_r = hint(rc);
         return format_to(ctx.out(),
-                         "{:#x}: {} {}",
+                         "{:#x}: {}{}",
                          static_cast<std::make_unsigned_t<HRESULT>>(rc),
                          ec.message(),
                          hint_r);
