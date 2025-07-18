@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_REQUEST_TYPE_H
-#define MULTIPASS_HYPERV_API_HCS_REQUEST_TYPE_H
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -60,5 +59,3 @@ private:
 };
 
 } // namespace multipass::hyperv::hcs
-
-#endif

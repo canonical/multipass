@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_STRING_CONVERSION_H
-#define MULTIPASS_HYPERV_API_STRING_CONVERSION_H
+#pragma once
 
 #include <codecvt>
 #include <locale>
@@ -96,5 +95,3 @@ struct fmt::formatter<multipass::hyperv::maybe_widen, Char>
     {                                                                                              \
         "" X, L"" X                                                                                \
     }
-
-#endif // MULTIPASS_HYPERV_API_STRING_CONVERSION_H

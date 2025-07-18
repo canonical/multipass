@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HYPERV_VIRTUAL_MACHINE_H
-#define MULTIPASS_HYPERV_API_HYPERV_VIRTUAL_MACHINE_H
+#pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
@@ -118,5 +117,3 @@ private:
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 };
 } // namespace multipass::hyperv
-
-#endif

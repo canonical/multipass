@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_API_TABLE
-#define MULTIPASS_HYPERV_API_HCS_API_TABLE
+#pragma once
 
 // clang-format off
 // (xmkg): clang-format is messing with the include order.
@@ -132,5 +131,3 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
             static_cast<bool>(api.LocalFree));
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_HCS_API_TABLE

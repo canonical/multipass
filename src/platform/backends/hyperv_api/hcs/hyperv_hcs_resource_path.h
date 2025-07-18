@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_RESOURCE_PATH_H
-#define MULTIPASS_HYPERV_API_HCS_RESOURCE_PATH_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -62,5 +61,3 @@ private:
 };
 
 } // namespace multipass::hyperv::hcs
-
-#endif
