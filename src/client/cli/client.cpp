@@ -16,11 +16,18 @@
  */
 
 #include "client.h"
+#include "cmd/add_disk.h"
 #include "cmd/alias.h"
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
+#include "cmd/block_attach.h"
+#include "cmd/block_create.h"
+#include "cmd/block_delete.h"
+#include "cmd/block_detach.h"
+#include "cmd/block_list.h"
 #include "cmd/clone.h"
 #include "cmd/delete.h"
+#include "cmd/disks.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -111,6 +118,13 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
+    add_command<cmd::AddDisk>();
+    add_command<cmd::BlockCreate>();
+    add_command<cmd::BlockDelete>();
+    add_command<cmd::BlockAttach>();
+    add_command<cmd::BlockDetach>();
+    add_command<cmd::BlockList>();
+    add_command<cmd::Disks>();
 
     sort_commands();
 
