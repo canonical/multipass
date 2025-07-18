@@ -15,11 +15,14 @@
  *
  */
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
+#include <hyperv_api/hcs/hyperv_hcs_schema_version.h>
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
 using multipass::hyperv::maybe_widen;
 using multipass::hyperv::hcs::CreateComputeSystemParameters;
+using multipass::hyperv::hcs::HcsSchemaVersion;
+using multipass::hyperv::hcs::SchemaUtils;
 
 template <typename Char>
 template <typename FormatContext>
@@ -73,15 +76,26 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                     ]
                 }}
             }},
-            "Services": {{
-                "Shutdown": {{}},
-                "Heartbeat": {{}}
-            }}
+            {6}
         }}
     }}
     )json");
 
+    std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
+
     constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+
+    const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
+
+    if (schema_version >= HcsSchemaVersion::v25)
+    {
+        constexpr static auto requested_services = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+            "Services": {
+                "Shutdown": {},
+                "Heartbeat": {}
+            })json");
+        schema_version_dependent_vm_sections.emplace_back(requested_services.as<Char>());
+    }
 
     return format_to(ctx.out(),
                      json_template.as<Char>(),
@@ -90,7 +104,8 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                      maybe_widen{params.name},
                      fmt::join(params.scsi_devices, comma.as<Char>()),
                      fmt::join(params.network_adapters, comma.as<Char>()),
-                     fmt::join(params.shares, comma.as<Char>()));
+                     fmt::join(params.shares, comma.as<Char>()),
+                     fmt::join(schema_version_dependent_vm_sections, comma.as<Char>()));
 }
 
 template auto fmt::formatter<CreateComputeSystemParameters, char>::format<fmt::format_context>(
