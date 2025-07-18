@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_IPAM_H
-#define MULTIPASS_HYPERV_API_HCN_IPAM_H
+#pragma once
 
 #include <hyperv_api/hcn/hyperv_hcn_ipam_type.h>
 #include <hyperv_api/hcn/hyperv_hcn_subnet.h>
@@ -52,5 +51,3 @@ struct fmt::formatter<multipass::hyperv::hcn::HcnIpam, Char>
     auto format(const multipass::hyperv::hcn::HcnIpam& ipam, FormatContext& ctx) const ->
         typename FormatContext::iterator;
 };
-
-#endif

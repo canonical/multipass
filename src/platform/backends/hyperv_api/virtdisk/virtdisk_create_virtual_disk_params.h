@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_VIRTDISK_CREATE_VIRTUAL_DISK_PARAMETERS_H
-#define MULTIPASS_HYPERV_API_VIRTDISK_CREATE_VIRTUAL_DISK_PARAMETERS_H
+#pragma once
 
 #include <filesystem>
 #include <variant>
@@ -68,5 +67,3 @@ struct fmt::formatter<multipass::hyperv::virtdisk::CreateVirtualDiskParameters, 
                          params.path.string());
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_VIRTDISK_CREATE_VIRTUAL_DISK_PARAMETERS_H

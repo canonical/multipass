@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_WRAPPER
-#define MULTIPASS_HYPERV_API_HCS_WRAPPER
+#pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
@@ -201,5 +200,3 @@ private:
 };
 
 } // namespace multipass::hyperv::hcs
-
-#endif // MULTIPASS_HYPERV_API_HCS_WRAPPER
