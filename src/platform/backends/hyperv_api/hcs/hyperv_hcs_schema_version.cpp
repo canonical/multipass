@@ -45,9 +45,15 @@ enum class WindowsBuildNumbers : std::uint32_t
 
 namespace multipass::hyperv::hcs
 {
+
+SchemaUtils::SchemaUtils(const Singleton<SchemaUtils>::PrivatePass& pass) noexcept
+    : Singleton<SchemaUtils>::Singleton{pass}
+{
+}
+
 // ---------------------------------------------------------
 
-HcsSchemaVersion get_os_supported_schema_version()
+HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
 {
     const static auto cached_schema_version = []() -> std::optional<HcsSchemaVersion> {
         if (const auto winver = platform::get_windows_version())
