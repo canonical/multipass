@@ -164,7 +164,7 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
         ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
     mpl::debug(kLogCategory,
-               "perform_operation(...) > fn: {}, result: {}",
+               "perform_hcn_operation(...) > fn: {}, result: {}",
                fmt::ptr(fn.template target<void*>()),
                static_cast<bool>(result));
 
