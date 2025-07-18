@@ -22,6 +22,8 @@
 
 #include <fmt/xchar.h>
 
+#include <multipass/singleton.h>
+
 namespace multipass::hyperv::hcs
 {
 
@@ -47,12 +49,17 @@ enum class HcsSchemaVersion
     v26 = 26
 };
 
-// ---------------------------------------------------------
+struct SchemaUtils : public Singleton<SchemaUtils>
+{
+    SchemaUtils(const Singleton<SchemaUtils>::PrivatePass&) noexcept;
+    // ---------------------------------------------------------
 
-/**
- * Retrieve the supported HCS schema version by the host.
- */
-[[nodiscard]] HcsSchemaVersion get_os_supported_schema_version();
+    /**
+     * Retrieve the supported HCS schema version by the host.
+     */
+    [[nodiscard]] virtual HcsSchemaVersion get_os_supported_schema_version() const;
+};
+
 } // namespace multipass::hyperv::hcs
 
 /**
