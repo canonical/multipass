@@ -172,10 +172,7 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
         return OperationResult{result, L"HCS operation failed!"};
     }
 
-    mpl::debug(kLogCategory,
-               "perform_hcs_operation(...) > fn: {}, result: {}",
-               fmt::ptr(fn.template target<void*>()),
-               static_cast<bool>(result));
+    mpl::debug(kLogCategory, "perform_hcs_operation(...) > result: {}", static_cast<bool>(result));
 
     return wait_for_operation_result(api, std::move(operation));
 }
