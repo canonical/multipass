@@ -65,8 +65,8 @@ bool is_supported_disk_format(const QString& file_path)
 QString generate_unique_disk_name(const std::function<bool(const QString&)>& name_exists_check)
 {
     // Generate 2-character alphanumeric names with at least one letter
-    const QString letters = "abcdefhijklmnopqrstuvwxyz"; // no g to avoid disk-8g
-    const QString alphanumeric = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const QString letters = "abcdefhijkmnpqrstuvwxyz"; // no g to avoid disk-8g
+    const QString alphanumeric = "abcdefghijkmnopqrstuvwxyz0123456789";
 
     for (int attempts = 0; attempts < 1000; ++attempts)
     {
@@ -231,9 +231,10 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
                                   "Name of the VM instance to add the disk to",
                                   "instance");
 
-    parser->addPositionalArgument("disk",
-                                  "Disk size (e.g., '10G') or path to existing disk image file",
-                                  "disk");
+    parser->addPositionalArgument(
+        "disk",
+        "Disk size (e.g., '10G') or path to existing disk image file (default: 10G)",
+        "disk");
 
     auto status = parser->commandParse(this);
 
@@ -242,14 +243,17 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->positionalArguments().count() != 2)
+    if (parser->positionalArguments().count() < 1)
     {
-        throw mp::ValidationException{"add-disk requires exactly 2 arguments: <instance> <disk>"};
+        throw mp::ValidationException{"add-disk requires 1 or 2 arguments: <instance> [<disk>]"};
     }
 
     const auto args = parser->positionalArguments();
     vm_name = args.at(0).toStdString();
-    disk_input = args.at(1).toStdString();
+    if (args.size() > 1)
+        disk_input = args.at(1).toStdString();
+    else
+        disk_input = default_disk_size;
 
     QString disk_qstring = QString::fromStdString(disk_input);
 
