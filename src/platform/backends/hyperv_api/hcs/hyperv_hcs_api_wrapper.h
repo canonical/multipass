@@ -195,13 +195,6 @@ struct HCSWrapper : public HCSWrapperInterface
     [[nodiscard]] OperationResult modify_compute_system(const std::string& compute_system_name,
                                                         const HcsRequest& request) const override;
 
-    // ---------------------------------------------------------
-
-    /**
-     * Retrieve the supported HCS schema version by the host.
-     */
-    [[nodiscard]] HcsSchemaVersion get_os_supported_schema_version() const override;
-
 private:
     const HCSAPITable api{};
 };
