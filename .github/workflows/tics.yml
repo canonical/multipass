@@ -8,7 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted-linux-amd64-noble-2xlarge-tiobe
+    strategy:
+      matrix:
+        os: [self-hosted-linux-amd64-noble-2xlarge-tiobe,
+          self-hosted-linux-amd64-noble-large-tiobe]
+    runs-on: ${{ matrix.os }}
 
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
