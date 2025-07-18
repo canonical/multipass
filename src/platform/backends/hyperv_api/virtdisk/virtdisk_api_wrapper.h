@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
-#define MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H
+#pragma once
 
 #include <hyperv_api/virtdisk/virtdisk_api_table.h>
 #include <hyperv_api/virtdisk/virtdisk_disk_info.h>
@@ -121,5 +120,3 @@ private:
 };
 
 } // namespace multipass::hyperv::virtdisk
-
-#endif // MULTIPASS_HYPERV_API_VIRTDISK_WRAPPER_H

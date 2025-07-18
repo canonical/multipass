@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_PLATFORM_WIN_H
-#define MULTIPASS_PLATFORM_WIN_H
+#pragma once
 
 #include <windows.h>
 
@@ -89,5 +88,3 @@ struct fmt::formatter<::GUID, Char>
                          guid.Data4[7]);
     }
 };
-
-#endif // MULTIPASS_PLATFORM_WIN_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_VIRTDISK_API_TABLE
-#define MULTIPASS_HYPERV_API_VIRTDISK_API_TABLE
+#pragma once
 
 // clang-format off
 #include <windows.h>
@@ -87,5 +86,3 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
             static_cast<bool>(api.CloseHandle));
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_VIRTDISK_API_TABLE

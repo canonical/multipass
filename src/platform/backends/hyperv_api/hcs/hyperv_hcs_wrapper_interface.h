@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
-#define MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H
+#pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
@@ -58,5 +57,3 @@ struct HCSWrapperInterface
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs
-
-#endif // MULTIPASS_HYPERV_API_HCS_WRAPPER_INTERFACE_H

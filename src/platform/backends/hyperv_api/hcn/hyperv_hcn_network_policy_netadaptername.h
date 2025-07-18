@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_NETWORK_POLICY_NETADAPTERNAME_H
-#define MULTIPASS_HYPERV_API_HCN_NETWORK_POLICY_NETADAPTERNAME_H
+#pragma once
 
 #include <fmt/format.h>
 
@@ -31,5 +30,3 @@ struct HcnNetworkPolicyNetAdapterName
 };
 
 } // namespace multipass::hyperv::hcn
-
-#endif

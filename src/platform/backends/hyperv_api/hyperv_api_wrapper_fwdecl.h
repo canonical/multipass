@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_WRAPPER_FWDECL_H
-#define MULTIPASS_HYPERV_API_WRAPPER_FWDECL_H
+#pragma once
 
 #include <memory>
 
@@ -42,5 +41,3 @@ using hcs_sptr_t = std::shared_ptr<multipass::hyperv::hcs::HCSWrapperInterface>;
 using hcn_sptr_t = std::shared_ptr<multipass::hyperv::hcn::HCNWrapperInterface>;
 using virtdisk_sptr_t = std::shared_ptr<multipass::hyperv::virtdisk::VirtDiskWrapperInterface>;
 } // namespace multipass::hyperv
-
-#endif
