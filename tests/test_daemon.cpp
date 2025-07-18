@@ -345,7 +345,9 @@ TEST_F(Daemon, dataPathValid)
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory, data_dir.filePath(mp::daemon_name));
+    // Qt -> std::filesystem -> Qt conversion has odd behaviors
+    EXPECT_EQ(config->data_directory,
+              data_dir.path() + mp::fs::path::preferred_separator + mp::daemon_name);
     EXPECT_EQ(config->cache_directory, cache_dir.path());
 }
 
