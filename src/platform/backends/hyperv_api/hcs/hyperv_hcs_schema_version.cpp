@@ -18,6 +18,87 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
+#include <multipass/platform_win.h>
+
+#include <optional>
+
+namespace
+{
+
+// https://www.wikiwand.com/en/articles/Windows_10_version_history
+// https://www.wikiwand.com/en/articles/Windows_11_version_history
+// https://www.wikiwand.com/en/articles/List_of_Microsoft_Windows_versions
+enum class WindowsBuildNumbers : std::uint32_t
+{
+    // April 2018 Update, April 30, 2018
+    win10_1809 = 17763,
+    // May 2019 Update, May 21, 2019
+    win10_19H1 = 18362,
+    // May 2020 Update, May 27, 2020
+    win10_20H1 = 19041,
+    // Codename "Vibranium", August 18, 2021
+    srv22_21H2 = 20348,
+    // Codename "Sun Valley", October 5, 2021
+    win11_21H2 = 22000
+};
+} // namespace
+
+namespace multipass::hyperv::hcs
+{
+// ---------------------------------------------------------
+
+HcsSchemaVersion get_os_supported_schema_version()
+{
+    const static auto cached_schema_version = []() -> std::optional<HcsSchemaVersion> {
+        if (const auto winver = platform::get_windows_version())
+        {
+            struct SchemaVersionBuildNumberMapping
+            {
+                HcsSchemaVersion version;
+                WindowsBuildNumbers required_build_number;
+            };
+
+            std::array schema_version_mappings{
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v20,
+                                                WindowsBuildNumbers::win10_1809},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v21,
+                                                WindowsBuildNumbers::win10_1809},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v22,
+                                                WindowsBuildNumbers::win10_19H1},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v23,
+                                                WindowsBuildNumbers::win10_19H1},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v24,
+                                                WindowsBuildNumbers::srv22_21H2},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v25,
+                                                WindowsBuildNumbers::srv22_21H2},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v26,
+                                                WindowsBuildNumbers::win11_21H2}};
+
+            // Sort descending, based on build number and version (when build number is equal)
+            std::sort(schema_version_mappings.begin(),
+                      schema_version_mappings.end(),
+                      [](const auto& lhs, const auto& rhs) {
+                          if (lhs.required_build_number != rhs.required_build_number)
+                          {
+                              return lhs.required_build_number > rhs.required_build_number;
+                          }
+                          return lhs.version > rhs.version;
+                      });
+
+            for (const auto& v : schema_version_mappings)
+            {
+                if (fmt::underlying(v.required_build_number) <= winver->build)
+                    return v.version;
+            }
+        }
+        return {};
+    }();
+
+    // If unable to determine default to the lowest possible schema version
+    return cached_schema_version.value_or(HcsSchemaVersion::v20);
+}
+} // namespace multipass::hyperv::hcs
+
 using multipass::hyperv::maybe_widen;
 using multipass::hyperv::hcs::HcsSchemaVersion;
 
