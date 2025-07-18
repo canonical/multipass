@@ -55,7 +55,6 @@ struct HCSWrapperInterface
                                                      ComputeSystemState& state_out) const = 0;
     virtual OperationResult modify_compute_system(const std::string& compute_system_name,
                                                   const HcsRequest& request) const = 0;
-    virtual HcsSchemaVersion get_os_supported_schema_version() const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs

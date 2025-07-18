@@ -46,6 +46,13 @@ enum class HcsSchemaVersion
     // Windows 11 SDK, version 21H2 (10.0.22000.194)
     v26 = 26
 };
+
+// ---------------------------------------------------------
+
+/**
+ * Retrieve the supported HCS schema version by the host.
+ */
+[[nodiscard]] HcsSchemaVersion get_os_supported_schema_version();
 } // namespace multipass::hyperv::hcs
 
 /**
