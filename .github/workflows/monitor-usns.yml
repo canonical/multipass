@@ -1,8 +1,9 @@
-name: Snaps
+name: Monitor USNs  # Ubuntu Security Notices
 
 on:
   schedule:
   - cron: '0 5 * * *'
+  workflow_dispatch:
 
 jobs:
   ProcessUSNs:
