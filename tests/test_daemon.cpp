@@ -341,15 +341,11 @@ TEST_F(Daemon, dataPathValid)
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(QString()));
 
-    EXPECT_CALL(mpt::MockUtils::mock_instance(),
-                make_dir(Eq(data_dir.filePath("multipassd")), Eq("data"), _))
-        .WillOnce(Return(data_dir.path()));
-
     config_builder.data_directory = "";
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory, data_dir.path());
+    EXPECT_EQ(config->data_directory, data_dir.filePath(mp::daemon_name));
     EXPECT_EQ(config->cache_directory, cache_dir.path());
 }
 
@@ -1017,6 +1013,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceConfined)
     mpt::TempDir temp_dir;
     mpt::SetEnvScope env_scope1("SNAP_NAME", "multipass");
     mpt::SetEnvScope env_scope2("SNAP_REAL_HOME", temp_dir.path().toUtf8());
+    mpt::SetEnvScope env_scope3("SNAP_COMMON", temp_dir.filePath("common").toUtf8());
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     config_builder.vault = std::move(mock_image_vault);
