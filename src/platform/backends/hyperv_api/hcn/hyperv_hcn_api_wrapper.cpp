@@ -159,14 +159,11 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
     // Perform the operation. The last argument of the all HCN operations (except
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
     // the API describing the error happened. Therefore, we can streamline all API
-    // calls through perform_operation to perform co
+    // calls through perform_hcn_operation.
     const auto result =
         ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
-    mpl::debug(kLogCategory,
-               "perform_hcn_operation(...) > fn: {}, result: {}",
-               fmt::ptr(fn.template target<void*>()),
-               static_cast<bool>(result));
+    mpl::debug(kLogCategory, "perform_hcn_operation(...) > result: {}", static_cast<bool>(result));
 
     // Error message is only valid when the operation resulted in an error.
     // Passing a nullptr is well-defined in "< C++23", but it's going to be
