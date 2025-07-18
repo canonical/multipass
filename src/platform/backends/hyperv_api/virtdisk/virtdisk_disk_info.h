@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_VIRTDISK_DISK_INFO_H
-#define MULTIPASS_HYPERV_API_VIRTDISK_DISK_INFO_H
+#pragma once
 
 #include <fmt/format.h>
 #include <fmt/std.h>
@@ -92,5 +91,3 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>
             params.provider_subtype);
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_VIRTDISK_DISK_INFO_H
