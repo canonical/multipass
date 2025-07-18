@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_REQUEST_H
-#define MULTIPASS_HYPERV_API_HCS_REQUEST_H
+#pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_modify_memory_settings.h>
 #include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
@@ -59,5 +58,3 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsRequest, Char>
     auto format(const multipass::hyperv::hcs::HcsRequest& param, FormatContext& ctx) const ->
         typename FormatContext::iterator;
 };
-
-#endif
