@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_PATH_H
-#define MULTIPASS_HYPERV_API_HCS_PATH_H
+#pragma once
 
 #include <fmt/xchar.h>
 
@@ -65,5 +64,3 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsPath, Char>
     auto format(const multipass::hyperv::hcs::HcsPath&, FormatContext&) const ->
         typename FormatContext::iterator;
 };
-
-#endif
