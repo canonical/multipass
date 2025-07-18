@@ -78,11 +78,14 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
         return format_to(
             ctx.out(),
             "CreateVirtualDisk: ({}) | OpenVirtualDisk ({}) | ResizeVirtualDisk: ({}) | "
-            "GetVirtualDiskInformation: ({}) | CloseHandle: ({})",
+            "MergeVirtualDisk: ({}) | GetVirtualDiskInformation: ({}) | SetVirtualDiskInformation: "
+            "({}) | CloseHandle: ({})",
             static_cast<bool>(api.CreateVirtualDisk),
             static_cast<bool>(api.OpenVirtualDisk),
             static_cast<bool>(api.ResizeVirtualDisk),
+            static_cast<bool>(api.MergeVirtualDisk),
             static_cast<bool>(api.GetVirtualDiskInformation),
+            static_cast<bool>(api.SetVirtualDiskInformation),
             static_cast<bool>(api.CloseHandle));
     }
 };
