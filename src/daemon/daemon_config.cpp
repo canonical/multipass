@@ -151,11 +151,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     }
     if (data_directory.isEmpty())
     {
-        data_directory =
-            MP_UTILS.make_dir(storage_path.isEmpty()
-                                  ? QString::fromStdU16String(get_default_daemon_path().u16string())
-                                  : storage_path,
-                              "data");
+        if (!storage_path.isEmpty())
+            data_directory = MP_UTILS.make_dir(storage_path, "data");
+        else
+            data_directory = QString::fromStdU16String(get_default_daemon_path().u16string());
     }
 
     if (url_downloader == nullptr)
