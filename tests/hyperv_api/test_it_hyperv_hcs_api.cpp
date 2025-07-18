@@ -61,7 +61,8 @@ TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
     const auto d_result = uut.terminate_compute_system(params.name);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
-    ASSERT_FALSE(d_result.status_msg.empty());
+    // Older schema versions does not return anything.
+    // ASSERT_FALSE(d_result.status_msg.empty());
 }
 
 TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
@@ -94,7 +95,8 @@ TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
     const auto d_result = uut.terminate_compute_system(params.name);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
-    ASSERT_FALSE(d_result.status_msg.empty());
+    // Older schema versions does not return anything.
+    // ASSERT_FALSE(d_result.status_msg.empty());
 
     ASSERT_FALSE(uut.get_compute_system_state(params.name, state));
 }
@@ -129,7 +131,8 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     const auto d_result = uut.terminate_compute_system(params.name);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
-    ASSERT_FALSE(d_result.status_msg.empty());
+    // Older schema versions does not return anything.
+    // ASSERT_FALSE(d_result.status_msg.empty());
 }
 
 TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
@@ -189,7 +192,8 @@ TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
     const auto d_result = uut.terminate_compute_system(params.name);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
-    ASSERT_FALSE(d_result.status_msg.empty());
+    // Older schema versions does not return anything.
+    // ASSERT_FALSE(d_result.status_msg.empty());
 }
 
 } // namespace multipass::test
