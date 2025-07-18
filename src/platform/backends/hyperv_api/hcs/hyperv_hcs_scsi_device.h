@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H
-#define MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H
+#pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_path.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device_type.h>
@@ -49,5 +48,3 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsScsiDevice, Char>
     auto format(const multipass::hyperv::hcs::HcsScsiDevice& policy, FormatContext& ctx) const ->
         typename FormatContext::iterator;
 };
-
-#endif // MULTIPASS_HYPERV_API_HCS_SCSI_DEVICE_H

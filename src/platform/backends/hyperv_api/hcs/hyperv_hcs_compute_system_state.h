@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_STATE_H
-#define MULTIPASS_HYPERV_API_HCS_CREATE_COMPUTE_SYSTEM_STATE_H
+#pragma once
 
 #include <algorithm>
 #include <cstdint>
@@ -113,5 +112,3 @@ struct fmt::formatter<multipass::hyperv::hcs::ComputeSystemState, Char>
         return format_to(ctx.out(), "{}", v);
     }
 };
-
-#endif
