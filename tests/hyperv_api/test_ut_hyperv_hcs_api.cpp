@@ -18,6 +18,7 @@
 #include "hyperv_api/hcs/hyperv_hcs_api_wrapper.h"
 #include "hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h"
 #include "hyperv_test_utils.h"
+#include "mock_schema_version.h"
 #include "tests/mock_logger.h"
 #include "gmock/gmock.h"
 
@@ -31,6 +32,7 @@ namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
 using testing::DoAll;
+using testing::NiceMock;
 using testing::Return;
 
 namespace multipass::test
@@ -45,6 +47,9 @@ using hyperv::hcs::HcsResourcePath;
 struct HyperVHCSAPI_UnitTests : public ::testing::Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+
+    const mpt::MockSchemaUtils::GuardedMock mock_schema_utils_injection =
+        mpt::MockSchemaUtils::inject<NiceMock>();
 
     void SetUp() override
     {
@@ -75,6 +80,10 @@ struct HyperVHCSAPI_UnitTests : public ::testing::Test
         EXPECT_NO_CALL(stub_mock_revoke_vm_access);
         EXPECT_NO_CALL(stub_mock_enumerate_compute_systems);
         EXPECT_NO_CALL(stub_mock_local_free);
+
+        // Use the most extensive version by default.
+        ON_CALL(*mock_schema_utils_injection.first, get_os_supported_schema_version())
+            .WillByDefault(Return(hyperv::hcs::HcsSchemaVersion::v26));
     }
 
     void TearDown() override
