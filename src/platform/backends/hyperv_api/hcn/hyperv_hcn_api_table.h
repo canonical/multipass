@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_API_TABLE
-#define MULTIPASS_HYPERV_API_HCN_API_TABLE
+#pragma once
 
 // clang-format off
 // (xmkg): clang-format is messing with the include order.
@@ -86,5 +85,3 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
                          static_cast<bool>(api.CoTaskMemFree));
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_HCN_API_TABLE
