@@ -51,11 +51,11 @@ struct TestClientCommon : public mpt::DaemonTestFixture
                 make_dir(A<const QDir&>(), A<const QString&>(), A<std::filesystem::perms>()))
             .WillByDefault([](const QDir& dir,
                               const QString& name,
-                              std::filesystem::perms permissions) -> mp::Path {
+                              std::filesystem::perms permissions) -> QString {
                 return MP_UTILS.Utils::make_dir(dir, name, permissions);
             });
         ON_CALL(*mock_utils, make_dir(A<const QDir&>(), A<std::filesystem::perms>()))
-            .WillByDefault([](const QDir& dir, std::filesystem::perms permissions) -> mp::Path {
+            .WillByDefault([](const QDir& dir, std::filesystem::perms permissions) -> QString {
                 return MP_UTILS.Utils::make_dir(dir, permissions);
             });
     }

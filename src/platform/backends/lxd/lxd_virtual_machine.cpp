@@ -194,7 +194,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
                                          const QString& bridge_name,
                                          const QString& storage_pool,
                                          const SSHKeyProvider& key_provider,
-                                         const mp::Path& instance_dir)
+                                         const QString& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
       username{desc.ssh_username},

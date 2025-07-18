@@ -290,11 +290,11 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
     return mp::utils::trim_end(output);
 }
 
-mp::Path mp::Utils::make_dir(const QDir& a_dir,
-                             const QString& name,
-                             std::filesystem::perms permissions) const
+QString mp::Utils::make_dir(const QDir& a_dir,
+                            const QString& name,
+                            std::filesystem::perms permissions) const
 {
-    mp::Path dir_path;
+    QString dir_path;
     bool success{false};
 
     if (name.isEmpty())
@@ -310,7 +310,8 @@ mp::Path mp::Utils::make_dir(const QDir& a_dir,
 
     if (!success)
     {
-        throw std::runtime_error(fmt::format("unable to create directory '{}'", dir_path));
+        throw std::runtime_error(
+            fmt::format("unable to create directory '{}'", dir_path.toStdString()));
     }
 
     if (permissions != std::filesystem::perms::none)
@@ -321,17 +322,17 @@ mp::Path mp::Utils::make_dir(const QDir& a_dir,
     return dir_path;
 }
 
-mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions) const
+QString mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions) const
 {
     return make_dir(dir, QString(), permissions);
 }
 
-QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
+QString mp::utils::backend_directory_path(const QString& path, const QString& subdirectory)
 {
     if (subdirectory.isEmpty())
         return path;
 
-    return mp::Path("%1/%2").arg(path).arg(subdirectory);
+    return QString("%1/%2").arg(path).arg(subdirectory);
 }
 
 QString mp::utils::get_multipass_storage()
@@ -346,7 +347,7 @@ QString mp::utils::make_uuid(const std::optional<std::string>& seed)
     return uuid.toString(QUuid::WithoutBraces);
 }
 
-std::string mp::utils::contents_of(const multipass::Path& file_path)
+std::string mp::utils::contents_of(const QString& file_path)
 {
     // TODO this should protect against long contents
     const std::string name{file_path.toStdString()};
@@ -359,7 +360,7 @@ std::string mp::utils::contents_of(const multipass::Path& file_path)
     return stream.str();
 }
 
-std::string mp::Utils::contents_of(const multipass::Path& file_path) const
+std::string mp::Utils::contents_of(const QString& file_path) const
 {
     return mp::utils::contents_of(file_path);
 }
@@ -587,9 +588,9 @@ void mp::utils::set_owner_for(mp::SSHSession& session,
                     relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
-mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
-                                         const mp::Path& backend_directory_name,
-                                         const mp::Path& instances_subdir) const
+QString mp::Utils::derive_instances_dir(const QString& data_dir,
+                                        const QString& backend_directory_name,
+                                        const QString& instances_subdir) const
 {
     if (backend_directory_name.isEmpty())
         return QDir(data_dir).filePath(instances_subdir);
@@ -616,7 +617,7 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
     return true;
 }
 
-mp::Path mp::Utils::default_mount_target(const Path& source) const
+QString mp::Utils::default_mount_target(const QString& source) const
 {
     return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
 }

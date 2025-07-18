@@ -21,7 +21,6 @@
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/network_interface_info.h>
-#include <multipass/path.h>
 #include <multipass/singleton.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -70,6 +69,6 @@ public:
     QemuPlatformFactory(const Singleton<QemuPlatformFactory>::PrivatePass& pass) noexcept
         : Singleton<QemuPlatformFactory>::Singleton{pass} {};
 
-    virtual QemuPlatform::UPtr make_qemu_platform(const Path& data_dir) const;
+    virtual QemuPlatform::UPtr make_qemu_platform(const QString& data_dir) const;
 };
 } // namespace multipass

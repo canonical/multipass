@@ -19,8 +19,6 @@
 
 #include <qemu_platform.h>
 
-#include <multipass/path.h>
-
 namespace multipass
 {
 // This class is the platform detail for QEMU on macOS
