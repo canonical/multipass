@@ -23,6 +23,7 @@
 #include <string>
 
 #include <fmt/format.h>
+#include <fmt/std.h>
 
 namespace multipass::hyperv
 {
@@ -112,11 +113,29 @@ struct fmt::formatter<multipass::hyperv::ResultCode, Char>
         return ctx.begin();
     }
 
+    std::string hint(const multipass::hyperv::ResultCode& rc) const
+    {
+        switch (static_cast<std::make_unsigned_t<HRESULT>>(rc))
+        {
+        // HCN: There are no more endpoints available from the endpoint mapper.
+        case 0x800706d9:
+        // HCS: The operation could not be started because a required feature is not installed
+        case 0x80370114:
+            return {"(Hint: Did you enable the `Virtual Machine Platform` feature?)"};
+        }
+        return "";
+    }
+
     template <typename FormatContext>
     auto format(const multipass::hyperv::ResultCode& rc, FormatContext& ctx) const
     {
         const std::error_code ec{static_cast<HRESULT>(rc), std::system_category()};
-        return format_to(ctx.out(), "{:#x}: {}", static_cast<std::make_unsigned_t<HRESULT>>(rc), ec.message());
+        const auto hint_r = hint(rc);
+        return format_to(ctx.out(),
+                         "{:#x}: {} {}",
+                         static_cast<std::make_unsigned_t<HRESULT>>(rc),
+                         ec.message(),
+                         hint_r);
     }
 };
 
