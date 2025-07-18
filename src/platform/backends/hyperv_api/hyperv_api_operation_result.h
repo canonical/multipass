@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_OPERATION_RESULT_H
-#define MULTIPASS_HYPERV_API_OPERATION_RESULT_H
+#pragma once
 
 #include <winerror.h>
 
@@ -156,5 +155,3 @@ struct fmt::formatter<multipass::hyperv::OperationResult, Char>
         return format_to(ctx.out(), "{}", opr.code);
     }
 };
-
-#endif // MULTIPASS_HYPERV_API_OPERATION_RESULT_H

@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_NETWORK_POLICY_TYPE_H
-#define MULTIPASS_HYPERV_API_HCN_NETWORK_POLICY_TYPE_H
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -164,5 +163,3 @@ private:
 };
 
 } // namespace multipass::hyperv::hcn
-
-#endif
