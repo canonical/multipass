@@ -345,4 +345,51 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasqLogsErrorWhenItDies)
     mp::ProcessState state{-1, mp::ProcessState::Error{QProcess::Crashed, msg}};
     emit dnsmasq_proc->finished(state);
 }
+
+TEST_F(DNSMasqServerMockedProcess, dnsmasqCallsKillWhenTerminateTimesOut)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "terminating");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "failed to terminate nicely, killing");
+
+    mp::Process* dnsmasq_proc = nullptr;
+    setup([this, &dnsmasq_proc](auto* process) {
+        InSequence seq;
+        setup_successful_start(process);
+        EXPECT_CALL(*process, running()).WillOnce(Return(true));
+        EXPECT_CALL(*process, terminate()).Times(1);
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+        EXPECT_CALL(*process, kill()).Times(1);
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
+        dnsmasq_proc = process;
+    });
+
+    {
+        auto dns = make_default_dnsmasq_server();
+        ASSERT_TRUE(dnsmasq_proc);
+    }
+}
+
+TEST_F(DNSMasqServerMockedProcess, dnsmasqBothTerminateAndKillTimesOut)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "terminating");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "failed to terminate nicely, killing");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "failed to kill (timed out)");
+
+    mp::Process* dnsmasq_proc = nullptr;
+    setup([this, &dnsmasq_proc](auto* process) {
+        InSequence seq;
+        setup_successful_start(process);
+        EXPECT_CALL(*process, running()).WillOnce(Return(true));
+        EXPECT_CALL(*process, terminate()).Times(1);
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+        EXPECT_CALL(*process, kill()).Times(1);
+        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(false));
+        dnsmasq_proc = process;
+    });
+
+    {
+        auto dns = make_default_dnsmasq_server();
+        ASSERT_TRUE(dnsmasq_proc);
+    }
+}
 } // namespace
