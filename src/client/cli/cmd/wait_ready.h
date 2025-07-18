@@ -19,12 +19,6 @@
 #define MULTIPASS_WAIT_READY_H
 
 #include <multipass/cli/command.h>
-#include "animated_spinner.h"
-#include <multipass/timer.h>
-
-
-#include <chrono>
-#include <thread>
 
 namespace multipass
 {
@@ -46,8 +40,6 @@ private:
     WaitReadyRequest request;
 
     ParseCode parse_args(ArgParser* parser);
-    std::unique_ptr<multipass::AnimatedSpinner> spinner;
-    std::unique_ptr<multipass::utils::Timer> timer;
 };
 } // namespace cmd
 } // namespace multipass

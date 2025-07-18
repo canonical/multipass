@@ -54,7 +54,7 @@ struct DaemonWaitReady : public mpt::DaemonTestFixture
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 
-    const std::string wait_msg = fmt::format("Waiting for Multipass daemon to be ready...");
+    const std::string wait_msg = fmt::format("Waiting for Multipass daemon to be ready");
 };
 
 TEST_F(DaemonWaitReady, checkUpdateManifestCall)
