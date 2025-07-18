@@ -22,6 +22,7 @@
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
 #include <multipass/logging/log.h>
+#include <multipass/platform_win.h>
 
 #include <ComputeDefs.h>
 
@@ -225,7 +226,10 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
 
 HCSWrapper::HCSWrapper(const HCSAPITable& api_table) : api{api_table}
 {
-    mpl::debug(kLogCategory, "HCSWrapper::HCSWrapper(...) > api_table: {}", api);
+    mpl::debug(kLogCategory,
+               "HCSWrapper::HCSWrapper(...) > Schema Version: {}, API table: {}",
+               get_os_supported_schema_version(),
+               api);
 }
 
 // ---------------------------------------------------------
@@ -419,6 +423,52 @@ OperationResult HCSWrapper::modify_compute_system(const std::string& compute_sys
                                  compute_system_name,
                                  json.c_str(),
                                  nullptr);
+}
+
+// ---------------------------------------------------------
+
+HcsSchemaVersion HCSWrapper::get_os_supported_schema_version() const
+{
+    const static auto cached_schema_version = []() -> std::optional<HcsSchemaVersion> {
+        if (const auto winver = platform::get_windows_version())
+        {
+            struct SchemaVersionBuildNumberMapping
+            {
+                HcsSchemaVersion version;
+                std::uint32_t required_build_number;
+            };
+
+            std::array schema_version_mappings{
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v20, 17763},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v21, 17763},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v22, 18362},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v23, 19041},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v24, 20348},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v25, 20348},
+                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v26, 22000}};
+
+            // Sort descending, based on build number and version (when build number is equal)
+            std::sort(schema_version_mappings.begin(),
+                      schema_version_mappings.end(),
+                      [](const auto& lhs, const auto& rhs) {
+                          if (lhs.required_build_number != rhs.required_build_number)
+                          {
+                              return lhs.required_build_number > rhs.required_build_number;
+                          }
+                          return lhs.version > rhs.version;
+                      });
+
+            for (const auto& v : schema_version_mappings)
+            {
+                if (v.required_build_number <= winver->build)
+                    return v.version;
+            }
+        }
+        return {};
+    }();
+
+    // If unable to determine default to the lowest possible schema version
+    return cached_schema_version.value_or(HcsSchemaVersion::v20);
 }
 
 } // namespace multipass::hyperv::hcs
