@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_HYPERV_API_HCN_NETWORK_FLAGS_H
-#define MULTIPASS_HYPERV_API_HCN_NETWORK_FLAGS_H
+#pragma once
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -114,5 +113,3 @@ struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkFlags, Char>
         return format_to(ctx.out(), "{}", fmt::join(parts, " | "));
     }
 };
-
-#endif
