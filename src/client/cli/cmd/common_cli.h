@@ -62,6 +62,7 @@ ReturnCode return_code_from(const SettingsException& e);
 QString describe_common_settings_keys();
 
 // parser helpers
+void add_instance_timeout(multipass::ArgParser*);
 void add_timeout(multipass::ArgParser*);
 int parse_timeout(const multipass::ArgParser* parser);
 std::unique_ptr<multipass::utils::Timer> make_timer(int timeout,
