@@ -115,7 +115,8 @@ struct fmt::formatter<multipass::hyperv::ResultCode, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::ResultCode& rc, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{:#x}", static_cast<std::make_unsigned_t<HRESULT>>(rc));
+        const std::error_code ec{static_cast<HRESULT>(rc), std::system_category()};
+        return format_to(ctx.out(), "{:#x}: {}", static_cast<std::make_unsigned_t<HRESULT>>(rc), ec.message());
     }
 };
 

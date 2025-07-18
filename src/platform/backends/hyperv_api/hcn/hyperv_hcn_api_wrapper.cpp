@@ -281,9 +281,8 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
     {
         mpl::log(hcn_errc_to_log_level(result),
                  kLogCategory,
-                 "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}: {}",
-                 result.code,
-                 static_cast<std::error_code>(result.code));
+                 "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}",
+                 result.code);
     }
 
     return result;
