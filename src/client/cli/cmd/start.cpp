@@ -31,7 +31,6 @@
 
 #include <cassert>
 #include <chrono>
-#include <cstdlib>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
