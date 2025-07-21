@@ -60,13 +60,13 @@ jobs:
 
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64", "mono": ""},'
 
         if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.host-my-apple }}" == "true" ]]; then
-          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64"},'
         fi
 
         MATRIX=${MATRIX%,}
@@ -105,7 +105,6 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       CCACHE_DIR: ${{ github.workspace }}/build/ccache
-      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     steps:
     - name: Check out code
@@ -259,10 +258,9 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v4
       with:
-        key: "ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-\
-          ${{ steps.setup-ccache.outputs.cache-key }}"
+        key: "ccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
         restore-keys: |
-          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
+          ccache-${{ matrix.runs-on }}
         path: ${{ env.CCACHE_DIR }}
 
     - name: Install OpenSSL from Choco
