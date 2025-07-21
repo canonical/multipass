@@ -92,7 +92,7 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      # Use artifacts from macos-13 and macos-latest in official package
+      # Use artifacts from x86 and ARM Macs in official package
       mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-artifact-name }}
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-arm64-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-file-name }}
