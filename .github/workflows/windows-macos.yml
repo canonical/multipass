@@ -123,6 +123,7 @@ jobs:
       if: ${{ matrix.arch }}
       run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
+      # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
       if: ${{ runner.os == 'macOS' }}
       run: |
@@ -361,6 +362,13 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v5
+
+      # TODO: find a friendlier approach for installing pip packages on GitHub runners
+    - name: Force pip to allow break-system-packages via pip.conf
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        mkdir -p ~/.pip
+        echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
