@@ -12,6 +12,9 @@ on:
   # 04:11 UTC every Sunday
   - cron: 11 4 * * 0
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: >

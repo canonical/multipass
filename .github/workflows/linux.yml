@@ -3,6 +3,9 @@ name: Linux
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 concurrency:
   group: linux-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -10,6 +13,10 @@ concurrency:
 jobs:
   CheckLint:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      checks: read
 
     outputs:
       conclusion: ${{ steps.check-lint.outputs.conclusion }}
@@ -46,6 +53,10 @@ jobs:
 
   BuildAndTest:
     needs: [GetMatrix, CheckLint]
+
+    permissions:
+      contents: read
+      packages: write
 
     # Proceed if Lint failed on a PR (but not if cancelled)
     if: ${{ !cancelled() && success() &&
