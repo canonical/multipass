@@ -12,6 +12,9 @@ on:
   merge_group:
     types: [checks_requested]
 
+permissions:
+  contents: read
+
 jobs:
   Lint:
     name: Lint

@@ -12,6 +12,9 @@ on:
   merge_group:
     types: [checks_requested]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
   cancel-in-progress: true
@@ -26,6 +29,10 @@ jobs:
   CheckLint:
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
+
+    permissions:
+      contents: read
+      checks: read
 
     outputs:
       conclusion: ${{ steps.check-lint.outputs.conclusion }}
@@ -64,6 +71,10 @@ jobs:
 
   BuildAndTest:
     needs: [CheckLint, GetMatrix]
+
+    permissions:
+      contents: read
+      packages: write
 
     # Proceed if Lint failed on a PR
     if: ${{ !cancelled() && success() &&

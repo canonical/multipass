@@ -1,0 +1,106 @@
+name: Dynamic CI
+
+on:
+  push:
+    branches:
+      - main
+      - release/[0-9]+.[0-9]+
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+  checks: read
+  packages: write
+
+jobs:
+  filter:
+    name: Filter changed files
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          # 'base' and 'ref' are ignored for pull requests
+          # For merge group events, compare against the target branch (main)
+          base: ${{ github.event.merge_group.base_ref }}
+          # For merge group events, use the merge group head ref
+          ref: ${{ github.event.merge_group.head_ref }}
+          filters: |
+            docs:
+              - '.github/workflows/automatic-doc-checks.yml'
+              - 'docs/**'
+            code:
+              - ".github/workflows/linux*"
+              - ".github/workflows/windows-macos.yml"
+              - "3rd-party/**"
+              - "completions/**"
+              - "data/**"
+              - "debian/**"
+              - "include/**"
+              - "packaging/**"
+              - "snap/**"
+              - "snap-wrappers/**"
+              - "src/**"
+              - "tests/**"
+              - "tools/**"
+              - ".gitmodules"
+              - "CMakeLists.txt"
+              - "vcpkg-configuration.json"
+              - "vcpkg.json"
+
+  docs:
+    name: Docs
+    needs: filter
+    if: needs.filter.outputs.docs == 'true'
+    uses: "./.github/workflows/automatic-doc-checks.yml"
+
+  lint:
+    name: Lint
+    needs: filter
+    uses: "./.github/workflows/lint.yml"
+
+  linux:
+    name: Linux
+    needs: filter
+    if: needs.filter.outputs.code == 'true'
+    uses: "./.github/workflows/linux.yml"
+    secrets: inherit
+
+  windows-macos:
+    name: Windows/macOS
+    needs: filter
+    if: needs.filter.outputs.code == 'true'
+    uses: "./.github/workflows/windows-macos.yml"
+    secrets: inherit
+
+  finalize:
+    name: Finalize
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [docs, lint, linux, windows-macos]
+    steps:
+      - name: Docs failure check
+        if: ${{
+            needs.docs.result == 'failure' || needs.docs.result == 'cancelled'
+          }}
+        run: exit 1
+
+      - name: Compilation failure check
+        if: ${{
+          needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
+          needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
+          needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
+          }}
+        run: exit 1

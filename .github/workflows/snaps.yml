@@ -4,6 +4,9 @@ on:
   schedule:
   - cron: '0 5 * * *'
 
+permissions:
+  contents: read
+
 jobs:
   ProcessUSNs:
     if: ${{ github.repository == 'canonical/multipass' }}
