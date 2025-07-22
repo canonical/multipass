@@ -59,5 +59,5 @@ std::filesystem::path mp::get_root_cert_path()
 {
     // the root cert is always in the same place so the client and daemon can find it
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
-    return get_default_daemon_path() / root_cert_file_name;
+    return get_default_daemon_path() / "certificates" / root_cert_file_name;
 }
