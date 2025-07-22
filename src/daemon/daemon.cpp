@@ -1559,7 +1559,7 @@ try
         }
         else
         {
-            // This is a standalone block-create operation - use global block-devices directory
+            // This is a standalone add-disk operation - use global block-devices directory
             if (!source_path.empty())
             {
                 // Create block device from existing disk image file
@@ -2258,7 +2258,7 @@ try
 
         // Clean up block devices for purged instances
         // TODO: Consider integrating block device cleanup directly into the VM deletion process
-        // ie. handling the VMs primary disk with the block-delete code
+        // ie. handling the VMs primary disk with the delete-disk code
 
         // Unregister the instance's primary disk block device
         try
@@ -2352,7 +2352,7 @@ try
     }
 
     // Perform immediate cleanup of orphaned block devices after purge
-    // This ensures block-list shows correct state without requiring daemon restart
+    // This ensures disks shows correct state without requiring daemon restart
     mpl::log(mpl::Level::debug, category, "Performing block device cleanup after purge operation");
 
     // First, cleanup orphaned devices (devices whose files no longer exist)
@@ -4634,7 +4634,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it,
         release_resources(name);
 
         // TODO: Consider integrating block device cleanup directly into the VM deletion process
-        // ie. handling the VMs primary disk with the block-delete code
+        // ie. handling the VMs primary disk with the delete-disk code
 
         // Unregister the instance's primary disk block device
         try
@@ -4676,7 +4676,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it,
         }
 
         // Perform immediate cleanup of orphaned block devices after purge
-        // This ensures block-list shows correct state without requiring daemon restart
+        // This ensures disks shows correct state without requiring daemon restart
         mpl::log(mpl::Level::debug,
                  category,
                  "Performing block device cleanup after purge operation");
