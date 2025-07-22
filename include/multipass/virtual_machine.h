@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "block_device.h"
 #include "disabled_copy_move.h"
 #include "ip_address.h"
 #include "network_interface.h"
@@ -121,6 +122,11 @@ public:
     virtual void load_snapshots() = 0;
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
+
+    // Block device operations
+    virtual void attach_block_device(const std::string& name, const BlockDevice& device) = 0;
+    virtual void detach_block_device(const std::string& name) = 0;
+    virtual bool has_block_device(const std::string& name) const = 0;
 
     QDir instance_directory() const;
 
