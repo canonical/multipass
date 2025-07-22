@@ -18,11 +18,6 @@ add_library(commands STATIC
   aliases.cpp
   animated_spinner.cpp
   authenticate.cpp
-  block_attach.cpp
-  block_create.cpp
-  block_delete.cpp
-  block_detach.cpp
-  block_list.cpp
   clone.cpp
   common_cli.cpp
   copy_disk.cpp
