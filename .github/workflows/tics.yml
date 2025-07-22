@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: >
+    runs-on: >-
       ${{
         github.event_name == 'workflow_dispatch' && inputs.smaller &&
         'self-hosted-linux-amd64-noble-large-tiobe' ||
