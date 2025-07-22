@@ -21,8 +21,6 @@
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
-#include "../platform/backends/qemu/qemu_virtual_machine.h"
-
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
@@ -1775,15 +1773,11 @@ try
     {
         block_device_manager->attach_block_device(block_name, instance_name);
 
-        // Get the QemuVirtualMachine instance and attach the block device
-        auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(vm.get());
-        if (qemu_vm)
+        // Attach the block device using the generic VirtualMachine interface
+        const auto* block_device = block_device_manager->get_block_device(block_name);
+        if (block_device)
         {
-            const auto* block_device = block_device_manager->get_block_device(block_name);
-            if (block_device)
-            {
-                qemu_vm->attach_block_device(block_name, *block_device);
-            }
+            vm->attach_block_device(block_name, *block_device);
         }
 
         mpl::log(
@@ -1862,12 +1856,8 @@ try
     {
         block_device_manager->detach_block_device(block_name, instance_name);
 
-        // Get the QemuVirtualMachine instance and detach the block device
-        auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(vm.get());
-        if (qemu_vm)
-        {
-            qemu_vm->detach_block_device(block_name);
-        }
+        // Detach the block device using the generic VirtualMachine interface
+        vm->detach_block_device(block_name);
 
         mpl::log(mpl::Level::info,
                  category,
@@ -2000,10 +1990,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             const auto* block_device = block_device_manager->get_block_device(block_device_name);
             if (block_device)
             {
-                auto qemu_vm = dynamic_cast<mp::QemuVirtualMachine*>(instance.get());
-                if (qemu_vm && !qemu_vm->has_block_device(block_device_name))
+                if (!instance->has_block_device(block_device_name))
                 {
-                    qemu_vm->attach_block_device(block_device_name, *block_device);
+                    instance->attach_block_device(block_device_name, *block_device);
                     mpl::log(mpl::Level::debug,
                              category,
                              fmt::format("Attached existing primary disk '{}' to instance '{}'",
@@ -4131,12 +4120,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                               std::make_optional(name));
 
                         // Also attach the primary disk to the VM instance
-                        auto qemu_vm =
-                            dynamic_cast<mp::QemuVirtualMachine*>(operative_instances[name].get());
-                        if (qemu_vm)
-                        {
-                            qemu_vm->attach_block_device(block_device_name, *block_device);
-                        }
+                        operative_instances[name]->attach_block_device(block_device_name, *block_device);
 
                         block_device_manager->register_block_device(std::move(block_device));
 
@@ -4189,13 +4173,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         // Create block device in global block-devices directory (like standalone disks)
                         block_device_manager->create_block_device(block_device_name, extra_disk_size);
 
-                        auto qemu_vm =
-                            dynamic_cast<mp::QemuVirtualMachine*>(operative_instances[name].get());
-                        if (qemu_vm)
-                        {
-                            auto block_device = block_device_manager->get_block_device(block_device_name);
-                            qemu_vm->attach_block_device(block_device_name, *block_device);
-                        }
+                        auto block_device = block_device_manager->get_block_device(block_device_name);
+                        operative_instances[name]->attach_block_device(block_device_name, *block_device);
 
                         // Register the attachment in the block device manager
                         block_device_manager->attach_block_device(block_device_name, name);
