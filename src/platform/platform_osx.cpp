@@ -385,3 +385,9 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 {
     return ux_id;
 }
+
+std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
+{
+    static const std::filesystem::path base_dir = "/var/root/Library/Application Support";
+    return base_dir / daemon_name;
+}

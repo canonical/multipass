@@ -1053,3 +1053,10 @@ long long mp::platform::Platform::get_total_ram() const
     GlobalMemoryStatusEx(&status);
     return status.ullTotalPhys;
 }
+
+std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
+{
+    // C:\ProgramData is stable and user agnostic
+    static const std::filesystem::path base_dir = "C:\\ProgramData";
+    return base_dir / daemon_name;
+}

@@ -335,9 +335,8 @@ TEST_F(Daemon, dataPathValid)
                 writableLocation(mp::StandardPaths::CacheLocation))
         .WillOnce(Return(cache_dir.path()));
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
-                writableLocation(mp::StandardPaths::GenericDataLocation))
-        .Times(2)
-        .WillRepeatedly(Return(data_dir.path()));
+                writableLocation(mp::StandardPaths::AppDataLocation))
+        .WillOnce(Return(data_dir.path()));
 
     EXPECT_CALL(mock_platform, multipass_storage_location()).WillOnce(Return(QString()));
 
@@ -345,9 +344,7 @@ TEST_F(Daemon, dataPathValid)
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    // Qt -> std::filesystem -> Qt conversion has odd behaviors
-    EXPECT_EQ(config->data_directory,
-              data_dir.path() + mp::fs::path::preferred_separator + mp::daemon_name);
+    EXPECT_EQ(config->data_directory, data_dir.path());
     EXPECT_EQ(config->cache_directory, cache_dir.path());
 }
 
@@ -356,9 +353,6 @@ TEST_F(Daemon, dataPathWithStorageValid)
     QTemporaryDir storage_dir;
 
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
-                writableLocation(mp::StandardPaths::GenericDataLocation))
-        .Times(1);
 
     EXPECT_CALL(mock_platform, multipass_storage_location())
         .WillOnce(Return(mp::utils::get_multipass_storage()));
@@ -381,12 +375,12 @@ TEST_F(Daemon, rootCertPathDoesntChangeWithStorage)
 {
     QTemporaryDir storage_dir;
 
-    const auto base_location = mp::get_root_cert_path();
+    const auto base_location = MP_PLATFORM.get_root_cert_path();
     const auto base_storage = mp::utils::get_multipass_storage();
 
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
 
-    EXPECT_EQ(base_location, mp::get_root_cert_path());
+    EXPECT_EQ(base_location, MP_PLATFORM.get_root_cert_path());
     EXPECT_NE(base_storage, mp::utils::get_multipass_storage());
 }
 

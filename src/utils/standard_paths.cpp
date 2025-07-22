@@ -15,8 +15,6 @@
  *
  */
 
-#include <multipass/constants.h>
-#include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 
 namespace mp = multipass;
@@ -41,23 +39,4 @@ QStringList mp::StandardPaths::standardLocations(StandardLocation type) const
 QString mp::StandardPaths::writableLocation(StandardLocation type) const
 {
     return QStandardPaths::writableLocation(type);
-}
-
-std::filesystem::path mp::get_default_daemon_path()
-{
-    using Path = std::filesystem::path;
-    const auto base_dir =
-        utils::in_multipass_snap()
-            ? Path{utils::snap_common_dir().toStdString()} / "data"
-            : Path{MP_STDPATHS.writableLocation(StandardPaths::GenericDataLocation)
-                       .toStdU16String()};
-
-    return base_dir / daemon_name;
-}
-
-std::filesystem::path mp::get_root_cert_path()
-{
-    // the root cert is always in the same place so the client and daemon can find it
-    constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
-    return get_default_daemon_path() / "certificates" / root_cert_file_name;
 }
