@@ -50,9 +50,9 @@ private:
     ParseCode parse_instances_snapshots(ArgParser* parser);
     std::string generate_snapshot_purge_msg() const;
     bool confirm_snapshot_purge() const;
-    std::string generate_block_device_deletion_msg(
+    std::string generate_block_device_detachment_msg(
         const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const;
-    bool confirm_block_device_deletion(
+    bool confirm_block_device_detachment(
         const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const;
 };
 } // namespace cmd

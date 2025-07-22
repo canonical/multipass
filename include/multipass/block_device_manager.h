@@ -55,10 +55,8 @@ public:
     void register_block_device(BlockDevice::UPtr device);
     void unregister_block_device(const std::string& name);
 
-    // Cleanup and validation operations
-    void cleanup_orphaned_devices();
-    void validate_and_cleanup_attachments(
-        const std::function<bool(const std::string&)>& vm_exists_checker);
+    // Registry synchronization
+    void sync_registry_with_filesystem();
 
 protected:
     void save_metadata() const;

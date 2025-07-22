@@ -505,14 +505,14 @@ message DeleteRequest {
     int32 verbosity_level = 3;
     bool purge_snapshots = 4;
     bool force = 5;
-    bool delete_attached_disks = 6;
+    bool detach_attached_disks = 6;
 }
 
 message DeleteReply {
     string log_line = 1;
     repeated string purged_instances = 2;
     bool confirm_snapshot_purging = 3;
-    bool confirm_block_device_deletion = 4;
+    bool confirm_block_device_detachment = 4;
     repeated string attached_block_devices = 5;
 }
 
