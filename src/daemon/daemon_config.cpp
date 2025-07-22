@@ -250,9 +250,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     }
 
     if (cert_provider == nullptr)
-        cert_provider =
-            std::make_unique<mp::SSLCertProvider>(MP_UTILS.make_dir(data_directory, "certificates"),
-                                                  server_name_from(server_address));
+        cert_provider = std::make_unique<mp::SSLCertProvider>(
+            MP_UTILS.make_dir(data_directory,
+                              "certificates",
+                              fs::perms::owner_all | fs::perms::group_exec |
+                                  fs::perms::others_exec),
+            server_name_from(server_address));
 
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
                                                                 std::move(factory),
