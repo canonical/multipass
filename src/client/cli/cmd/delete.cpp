@@ -221,7 +221,7 @@ bool multipass::cmd::Delete::confirm_block_device_deletion(
     const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
 {
     static constexpr auto prompt_text =
-        "This virtual machine has {} disk(s) attached that will be deleted as well: {}. Are you "
+        "This virtual machine has {} disk(s) attached that will be detached and will persist: {}. Are you "
         "sure you want to continue? (Yes/no)";
     static constexpr auto invalid_input = "Please answer Yes/no";
     mp::PlainPrompter prompter{term};
@@ -254,7 +254,7 @@ std::string multipass::cmd::Delete::generate_block_device_deletion_msg(
     }
 
     return fmt::format(
-        "This virtual machine has {} disk(s) attached that will be deleted as well: {}. "
+        "This virtual machine has {} disk(s) attached that will be detached and will persist: {}. "
         "Unable to query client for confirmation. Please use the `--force` flag if that is what "
         "you want.",
         attached_devices.size(),

@@ -1506,7 +1506,7 @@ try
 
         if (!instance_name.empty())
         {
-            // This is an add-disk operation - create in instance's extra-disks directory
+            // This is an add-disk operation - create in global block-devices directory and attach
             auto vm_it = operative_instances.find(instance_name);
             if (vm_it == operative_instances.end())
             {
@@ -1517,39 +1517,23 @@ try
                 return;
             }
 
-            // Get instance directory and create extra-disks subdirectory
-            auto instance_dir = config->factory->get_instance_directory(instance_name);
-            auto extra_disks_dir = QDir(instance_dir).filePath("extra-disks");
-
-            // Ensure the extra-disks directory exists
-            QDir().mkpath(extra_disks_dir);
-
             if (!source_path.empty())
             {
-                // Create block device from existing disk image file in instance's extra-disks
-                // directory
-                auto device_factory = platform::block_device_factory_backend();
-                auto device = device_factory->create_block_device_from_file(final_name,
-                                                                            source_path,
-                                                                            extra_disks_dir);
-
-                // Register the device with the block device manager for tracking
-                block_device_manager->register_block_device(std::move(device));
-
+                // Create block device from existing disk image file in global block-devices directory
+                block_device_manager->create_block_device_from_file(final_name, source_path);
                 mpl::log(
                     mpl::Level::info,
                     category,
                     fmt::format(
-                        "Created block device '{}' from file '{}' in instance '{}' extra-disks",
+                        "Created block device '{}' from file '{}'",
                         final_name,
-                        source_path,
-                        instance_name));
+                        source_path));
                 response.set_log_line(fmt::format("Created block device '{}' from file '{}'\n",
                                                  final_name, source_path));
             }
             else
             {
-                // Create block device with specified size in instance's extra-disks directory
+                // Create block device with specified size in global block-devices directory
                 const auto size = mp::MemorySize{request->size()};
 
                 if (size.in_bytes() == 0)
@@ -1561,17 +1545,10 @@ try
                     return;
                 }
 
-                auto device_factory = platform::block_device_factory_backend();
-                auto device =
-                    device_factory->create_block_device(final_name, size, extra_disks_dir);
-
-                // Register the device with the block device manager for tracking
-                block_device_manager->register_block_device(std::move(device));
-
+                block_device_manager->create_block_device(final_name, size);
                 mpl::log(mpl::Level::info,
                          category,
-                         fmt::format("Created block device '{}' with size {} in instance '{}' extra-disks",
-                                     final_name, request->size(), instance_name));
+                         fmt::format("Created block device '{}' with size {}", final_name, request->size()));
                 response.set_log_line(fmt::format("Created block device '{}' with size {}\n",
                                                  final_name, request->size()));
             }
@@ -3245,8 +3222,8 @@ try
             }
         }
 
-        // Handle block device confirmation if needed
-        if (!all_attached_disks.empty() && !force && !delete_attached_disks)
+        // Handle block device confirmation if needed (only when purging)
+        if (!all_attached_disks.empty() && !force && !delete_attached_disks && purge)
         {
             DeleteReply confirm_action{};
             confirm_action.set_confirm_block_device_deletion(true);
@@ -4201,21 +4178,16 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                 block_device_name,
                                 name));
 
-                        auto device_factory = platform::block_device_factory_backend();
-                        auto instance_dir = config->factory->get_instance_directory(name);
-                        auto extra_disks_dir = QDir(instance_dir).filePath("extra-disks");
-                        auto block_device = device_factory->create_block_device(block_device_name,
-                                                                                extra_disk_size,
-                                                                                extra_disks_dir);
+                        // Create block device in global block-devices directory (like standalone disks)
+                        block_device_manager->create_block_device(block_device_name, extra_disk_size);
 
                         auto qemu_vm =
                             dynamic_cast<mp::QemuVirtualMachine*>(operative_instances[name].get());
                         if (qemu_vm)
                         {
+                            auto block_device = block_device_manager->get_block_device(block_device_name);
                             qemu_vm->attach_block_device(block_device_name, *block_device);
                         }
-
-                        block_device_manager->register_block_device(std::move(block_device));
 
                         // Register the attachment in the block device manager
                         block_device_manager->attach_block_device(block_device_name, name);
