@@ -1451,11 +1451,21 @@ try
 
     try
     {
-        // Check for name collision and generate a new name if needed
+        // Check for name collision
         std::string final_name = name;
-        if (!instance_name.empty())
+        if (block_device_manager->has_block_device(final_name))
         {
-            // For add-disk operations, check for collisions and regenerate if needed
+            // If the name already exists, return an error
+            status_promise->set_value(grpc::Status(grpc::StatusCode::ALREADY_EXISTS,
+                                                   fmt::format("Block device '{}' already exists", final_name),
+                                                   ""));
+            return;
+        }
+        
+        // For add-disk operations with auto-generated names, regenerate if needed
+        if (!instance_name.empty() && final_name.substr(0, 5) == "disk-" && final_name.length() == 7)
+        {
+            // This looks like an auto-generated name, regenerate if collision
             int attempts = 0;
             while (block_device_manager->has_block_device(final_name) && attempts < 1000)
             {
