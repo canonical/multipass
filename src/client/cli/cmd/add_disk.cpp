@@ -106,6 +106,28 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
+    // If no instance name is provided, just create the block device without attaching
+    if (vm_name.empty())
+    {
+        auto on_create_success = [this](mp::CreateBlockReply& reply) {
+            if (!reply.error_message().empty())
+            {
+                throw mp::ValidationException{
+                    fmt::format("Failed to create block device: {}", reply.error_message())};
+            }
+            // Server already logs the creation, so we don't need to print it again here
+            return ReturnCode::Ok;
+        };
+
+        auto on_create_failure = [](grpc::Status& status) {
+            throw mp::ValidationException{
+                fmt::format("Failed to connect to daemon: {}", status.error_message())};
+            return ReturnCode::CommandFail;
+        };
+
+        return dispatch(&RpcMethod::create_block, create_request, on_create_success, on_create_failure);
+    }
+
     // Both size and file path cases use create_block, then attach
     auto on_create_success = [this](mp::CreateBlockReply& reply) {
         if (!reply.error_message().empty())
@@ -165,17 +187,80 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
         };
 
         auto on_attach_failure = [this, actual_block_name](grpc::Status& status) {
+            // Check if this is an instance not found error and we have a fallback option
+            if (!single_arg_fallback.empty() &&
+                (status.error_message().find("does not exist") != std::string::npos ||
+                 status.error_message().find("not found") != std::string::npos)) {
+                
+                // Clean up the created block device since we're going to retry
+                mp::DeleteBlockRequest delete_request;
+                delete_request.set_name(actual_block_name);
+
+                auto on_delete_success = [](mp::DeleteBlockReply& delete_reply) {
+                    return ReturnCode::Ok;
+                };
+
+                auto on_delete_failure = [](grpc::Status& delete_status) {
+                    // Ignore cleanup failures for fallback case
+                    return ReturnCode::Ok;
+                };
+
+                // Clean up the block device (fire and forget)
+                dispatch(&RpcMethod::delete_block,
+                         delete_request,
+                         on_delete_success,
+                         on_delete_failure);
+
+                // Retry as standalone disk creation with the original argument as size
+                try {
+                    // Validate that the fallback argument is a valid size
+                    auto size = mp::MemorySize{single_arg_fallback};
+                    if (size < mp::MemorySize{"1M"}) {
+                        throw std::invalid_argument("Size too small");
+                    }
+                    
+                    // Create new request for standalone disk
+                    mp::CreateBlockRequest fallback_request;
+                    auto name_exists_check = [](const QString& name) {
+                        return false; // Server will handle collision detection
+                    };
+                    fallback_request.set_name(generate_unique_disk_name(name_exists_check).toStdString());
+                    fallback_request.set_size(single_arg_fallback);
+                    // Leave instance_name empty for standalone creation
+                    
+                    auto fallback_success = [this](mp::CreateBlockReply& reply) {
+                        if (!reply.error_message().empty()) {
+                            throw mp::ValidationException{
+                                fmt::format("Failed to create block device: {}", reply.error_message())};
+                        }
+                        return ReturnCode::Ok;
+                    };
+
+                    auto fallback_failure = [](grpc::Status& fallback_status) {
+                        throw mp::ValidationException{
+                            fmt::format("Failed to connect to daemon: {}", fallback_status.error_message())};
+                        return ReturnCode::CommandFail;
+                    };
+
+                    return dispatch(&RpcMethod::create_block, fallback_request, fallback_success, fallback_failure);
+                }
+                catch (const std::invalid_argument&) {
+                    // The fallback argument is not a valid size either
+                    throw mp::ValidationException{
+                        fmt::format("Instance '{}' does not exist and '{}' is not a valid disk size",
+                                    vm_name, single_arg_fallback)};
+                }
+            }
+
             // Clean up the created block device since attachment failed
             mp::DeleteBlockRequest delete_request;
             delete_request.set_name(actual_block_name);
 
             auto on_delete_success = [](mp::DeleteBlockReply& delete_reply) {
-                // Block device cleanup successful, no need to log
                 return ReturnCode::Ok;
             };
 
             auto on_delete_failure = [this](grpc::Status& delete_status) {
-                // Log warning but don't fail the command since the main error is attachment failure
                 cerr << fmt::format("Warning: Failed to clean up created block device: {}\n",
                                     delete_status.error_message());
                 return ReturnCode::Ok;
@@ -188,7 +273,7 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
                      on_delete_failure);
 
             throw mp::ValidationException{
-                fmt::format("Failed to connect to daemon: {}", status.error_message())};
+                fmt::format("Failed to attach block device: {}", status.error_message())};
             return ReturnCode::CommandFail;
         };
 
@@ -198,7 +283,53 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
                         on_attach_failure);
     };
 
-    auto on_create_failure = [](grpc::Status& status) {
+    auto on_create_failure = [this](grpc::Status& status) {
+        // Check if this is an instance not found error and we have a fallback option
+        if (!single_arg_fallback.empty() &&
+            (status.error_message().find("does not exist") != std::string::npos ||
+             status.error_message().find("not found") != std::string::npos)) {
+            
+            // Retry as standalone disk creation with the original argument as size
+            try {
+                // Validate that the fallback argument is a valid size
+                auto size = mp::MemorySize{single_arg_fallback};
+                if (size < mp::MemorySize{"1M"}) {
+                    throw std::invalid_argument("Size too small");
+                }
+                
+                // Create new request for standalone disk
+                mp::CreateBlockRequest fallback_request;
+                auto name_exists_check = [](const QString& name) {
+                    return false; // Server will handle collision detection
+                };
+                fallback_request.set_name(generate_unique_disk_name(name_exists_check).toStdString());
+                fallback_request.set_size(single_arg_fallback);
+                // Leave instance_name empty for standalone creation
+                
+                auto fallback_success = [this](mp::CreateBlockReply& reply) {
+                    if (!reply.error_message().empty()) {
+                        throw mp::ValidationException{
+                            fmt::format("Failed to create block device: {}", reply.error_message())};
+                    }
+                    return ReturnCode::Ok;
+                };
+
+                auto fallback_failure = [](grpc::Status& fallback_status) {
+                    throw mp::ValidationException{
+                        fmt::format("Failed to connect to daemon: {}", fallback_status.error_message())};
+                    return ReturnCode::CommandFail;
+                };
+
+                return dispatch(&RpcMethod::create_block, fallback_request, fallback_success, fallback_failure);
+            }
+            catch (const std::invalid_argument&) {
+                // The fallback argument is not a valid size either
+                throw mp::ValidationException{
+                    fmt::format("Instance '{}' does not exist and '{}' is not a valid disk size",
+                                vm_name, single_arg_fallback)};
+            }
+        }
+
         throw mp::ValidationException{
             fmt::format("Failed to connect to daemon: {}", status.error_message())};
         return ReturnCode::CommandFail;
@@ -214,27 +345,36 @@ std::string cmd::AddDisk::name() const
 
 QString cmd::AddDisk::short_help() const
 {
-    return QStringLiteral("Add a disk to a VM instance");
+    return QStringLiteral("Add a disk to a VM instance or create a standalone disk");
 }
 
 QString cmd::AddDisk::description() const
 {
-    return QStringLiteral("Add a disk to a VM instance. You can either specify a size to create\n"
-                          "a new disk (e.g., '10G'), or provide a path to an existing disk image\n"
-                          "file. Supported formats for QEMU: qcow2, raw, vmdk, vdi, vhd, vpc.\n"
-                          "The VM must be in a stopped state.");
+    return QStringLiteral("Add a disk to a VM instance or create a standalone disk. You can either\n"
+                          "specify a size to create a new disk (e.g., '10G'), or provide a path to\n"
+                          "an existing disk image file. Supported formats for QEMU: qcow2, raw, vmdk,\n"
+                          "vdi, vhd, vpc.\n\n"
+                          "Usage:\n"
+                          "  multipass add-disk                    # Create standalone 10G disk\n"
+                          "  multipass add-disk 5G                 # Create standalone 5G disk\n"
+                          "  multipass add-disk myvm               # Add 10G disk to 'myvm'\n"
+                          "  multipass add-disk 5G myvm            # Add 5G disk to 'myvm'\n"
+                          "  multipass add-disk myvm 5G            # Add 5G disk to 'myvm'\n\n"
+                          "If no instance is specified, a standalone disk will be created that can\n"
+                          "later be attached to any VM using the attach-block command.\n"
+                          "When attaching to a VM, the VM must be in a stopped state.");
 }
 
 mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("instance",
-                                  "Name of the VM instance to add the disk to",
-                                  "instance");
+    parser->addPositionalArgument("arg1",
+                                  "Disk size (e.g., '10G'), disk image file path, or VM instance name",
+                                  "[arg1]");
 
     parser->addPositionalArgument(
-        "disk",
-        "Disk size (e.g., '10G') or path to existing disk image file (default: 10G)",
-        "disk");
+        "arg2",
+        "VM instance name (if arg1 is disk size/path) or disk size/path (if arg1 is instance name)",
+        "[arg2]");
 
     auto status = parser->commandParse(this);
 
@@ -243,17 +383,48 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
         return status;
     }
 
-    if (parser->positionalArguments().count() < 1)
-    {
-        throw mp::ValidationException{"add-disk requires 1 or 2 arguments: <instance> [<disk>]"};
-    }
-
     const auto args = parser->positionalArguments();
-    vm_name = args.at(0).toStdString();
-    if (args.size() > 1)
-        disk_input = args.at(1).toStdString();
-    else
+    
+    if (args.size() == 0)
+    {
+        // No arguments: create standalone disk with default size
         disk_input = default_disk_size;
+        vm_name = "";
+    }
+    else if (args.size() == 1)
+    {
+        QString arg1 = args.at(0);
+        
+        // For single argument, always try as instance name first (daemon will validate)
+        // If daemon says instance doesn't exist, we'll fall back to treating as size
+        vm_name = arg1.toStdString();
+        disk_input = default_disk_size;
+        
+        // Store the original argument for potential fallback
+        single_arg_fallback = arg1.toStdString();
+    }
+    else if (args.size() == 2)
+    {
+        QString arg1 = args.at(0);
+        QString arg2 = args.at(1);
+        
+        if (is_size_string(arg1))
+        {
+            // First arg is size, second is VM name: add specified size disk to VM
+            disk_input = arg1.toStdString();
+            vm_name = arg2.toStdString();
+        }
+        else
+        {
+            // First arg is VM name, second is size: add specified size disk to VM
+            vm_name = arg1.toStdString();
+            disk_input = arg2.toStdString();
+        }
+    }
+    else
+    {
+        throw mp::ValidationException{"add-disk accepts at most 2 arguments"};
+    }
 
     QString disk_qstring = QString::fromStdString(disk_input);
 

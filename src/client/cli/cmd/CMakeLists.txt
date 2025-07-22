@@ -36,6 +36,7 @@ add_library(commands STATIC
   launch.cpp
   list.cpp
   mount.cpp
+  move_disk.cpp
   networks.cpp
   prefer.cpp
   purge.cpp
