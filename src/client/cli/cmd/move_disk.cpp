@@ -50,15 +50,15 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
 
         if (!block_found)
         {
-            throw mp::ValidationException{
-                fmt::format("Block device '{}' not found", block_name)};
+            throw mp::ValidationException{fmt::format("Block device '{}' not found", block_name)};
         }
 
         // If already attached to the target instance, nothing to do
         if (current_instance == target_instance_name)
         {
             cout << fmt::format("Block device '{}' is already attached to instance '{}'\n",
-                               block_name, target_instance_name);
+                                block_name,
+                                target_instance_name);
             return ReturnCode::Ok;
         }
 
@@ -71,8 +71,8 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
             auto on_detach_success = [this](mp::DetachBlockReply& detach_reply) {
                 if (!detach_reply.error_message().empty())
                 {
-                    throw mp::ValidationException{
-                        fmt::format("Failed to detach block device: {}", detach_reply.error_message())};
+                    throw mp::ValidationException{fmt::format("Failed to detach block device: {}",
+                                                              detach_reply.error_message())};
                 }
 
                 // Now attach to the target instance
@@ -83,7 +83,8 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
                     if (!attach_reply.error_message().empty())
                     {
                         throw mp::ValidationException{
-                            fmt::format("Failed to attach block device: {}", attach_reply.error_message())};
+                            fmt::format("Failed to attach block device: {}",
+                                        attach_reply.error_message())};
                     }
                     return ReturnCode::Ok;
                 };
@@ -94,7 +95,10 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
                     return ReturnCode::CommandFail;
                 };
 
-                return dispatch(&RpcMethod::attach_block, attach_request, on_attach_success, on_attach_failure);
+                return dispatch(&RpcMethod::attach_block,
+                                attach_request,
+                                on_attach_success,
+                                on_attach_failure);
             };
 
             auto on_detach_failure = [](grpc::Status& status) {
@@ -103,7 +107,10 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
                 return ReturnCode::CommandFail;
             };
 
-            return dispatch(&RpcMethod::detach_block, detach_request, on_detach_success, on_detach_failure);
+            return dispatch(&RpcMethod::detach_block,
+                            detach_request,
+                            on_detach_success,
+                            on_detach_failure);
         }
         else
         {
@@ -114,8 +121,8 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
             auto on_attach_success = [this](mp::AttachBlockReply& attach_reply) {
                 if (!attach_reply.error_message().empty())
                 {
-                    throw mp::ValidationException{
-                        fmt::format("Failed to attach block device: {}", attach_reply.error_message())};
+                    throw mp::ValidationException{fmt::format("Failed to attach block device: {}",
+                                                              attach_reply.error_message())};
                 }
                 return ReturnCode::Ok;
             };
@@ -126,7 +133,10 @@ mp::ReturnCode cmd::MoveDisk::run(mp::ArgParser* parser)
                 return ReturnCode::CommandFail;
             };
 
-            return dispatch(&RpcMethod::attach_block, attach_request, on_attach_success, on_attach_failure);
+            return dispatch(&RpcMethod::attach_block,
+                            attach_request,
+                            on_attach_success,
+                            on_attach_failure);
         }
     };
 
@@ -162,7 +172,9 @@ QString cmd::MoveDisk::description() const
 
 mp::ParseCode cmd::MoveDisk::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("block-device", "Name of the block device to move", "block-device");
+    parser->addPositionalArgument("block-device",
+                                  "Name of the block device to move",
+                                  "block-device");
 
     parser->addPositionalArgument("instance",
                                   "Name of the VM instance to move the block device to",

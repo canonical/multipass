@@ -1459,14 +1459,16 @@ try
         if (block_device_manager->has_block_device(final_name))
         {
             // If the name already exists, return an error
-            status_promise->set_value(grpc::Status(grpc::StatusCode::ALREADY_EXISTS,
-                                                   fmt::format("Block device '{}' already exists", final_name),
-                                                   ""));
+            status_promise->set_value(
+                grpc::Status(grpc::StatusCode::ALREADY_EXISTS,
+                             fmt::format("Block device '{}' already exists", final_name),
+                             ""));
             return;
         }
-        
+
         // For add-disk operations with auto-generated names, regenerate if needed
-        if (!instance_name.empty() && final_name.substr(0, 5) == "disk-" && final_name.length() == 7)
+        if (!instance_name.empty() && final_name.substr(0, 5) == "disk-" &&
+            final_name.length() == 7)
         {
             // This looks like an auto-generated name, regenerate if collision
             int attempts = 0;
@@ -1527,17 +1529,17 @@ try
 
             if (!source_path.empty())
             {
-                // Create block device from existing disk image file in global block-devices directory
+                // Create block device from existing disk image file in global block-devices
+                // directory
                 block_device_manager->create_block_device_from_file(final_name, source_path);
-                mpl::log(
-                    mpl::Level::info,
-                    category,
-                    fmt::format(
-                        "Created block device '{}' from file '{}'",
-                        final_name,
-                        source_path));
+                mpl::log(mpl::Level::info,
+                         category,
+                         fmt::format("Created block device '{}' from file '{}'",
+                                     final_name,
+                                     source_path));
                 response.set_log_line(fmt::format("Created block device '{}' from file '{}'\n",
-                                                 final_name, source_path));
+                                                  final_name,
+                                                  source_path));
             }
             else
             {
@@ -1556,9 +1558,12 @@ try
                 block_device_manager->create_block_device(final_name, size);
                 mpl::log(mpl::Level::info,
                          category,
-                         fmt::format("Created block device '{}' with size {}", final_name, request->size()));
+                         fmt::format("Created block device '{}' with size {}",
+                                     final_name,
+                                     request->size()));
                 response.set_log_line(fmt::format("Created block device '{}' with size {}\n",
-                                                 final_name, request->size()));
+                                                  final_name,
+                                                  request->size()));
             }
         }
         else
@@ -1574,7 +1579,8 @@ try
                                      final_name,
                                      source_path));
                 response.set_log_line(fmt::format("Created block device '{}' from file '{}'\n",
-                                                 final_name, source_path));
+                                                  final_name,
+                                                  source_path));
             }
             else
             {
@@ -1593,9 +1599,12 @@ try
                 block_device_manager->create_block_device(final_name, size);
                 mpl::log(mpl::Level::info,
                          category,
-                         fmt::format("Created block device '{}' with size {}", final_name, request->size()));
+                         fmt::format("Created block device '{}' with size {}",
+                                     final_name,
+                                     request->size()));
                 response.set_log_line(fmt::format("Created block device '{}' with size {}\n",
-                                                 final_name, request->size()));
+                                                  final_name,
+                                                  request->size()));
             }
         }
         server->Write(response);
@@ -2139,14 +2148,41 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     // Perform block device cleanup on daemon startup
     mpl::log(mpl::Level::info, category, "Performing block device cleanup on daemon startup");
 
-    // First, cleanup orphaned devices (devices whose files no longer exist)
-    block_device_manager->cleanup_orphaned_devices();
+    // Synchronize block device registry with filesystem
+    block_device_manager->sync_registry_with_filesystem();
 
-    // Then, validate and cleanup attachments to non-existent VMs
-    auto vm_exists_checker = [this](const std::string& vm_name) -> bool {
-        return vm_instance_specs.find(vm_name) != vm_instance_specs.end();
-    };
-    block_device_manager->validate_and_cleanup_attachments(vm_exists_checker);
+    // Detach devices from non-existent VMs
+    for (const auto* device : block_device_manager->list_block_devices())
+    {
+        if (device->attached_vm())
+        {
+            const auto& attached_vm = *device->attached_vm();
+            if (vm_instance_specs.find(attached_vm) == vm_instance_specs.end())
+            {
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format("Detaching block device '{}' from non-existent VM '{}'",
+                                     device->name(),
+                                     attached_vm));
+                try
+                {
+                    auto* mutable_device = block_device_manager->get_block_device(device->name());
+                    if (mutable_device)
+                    {
+                        mutable_device->detach_from_vm();
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error,
+                             category,
+                             fmt::format("Failed to detach block device '{}': {}",
+                                         device->name(),
+                                         e.what()));
+                }
+            }
+        }
+    }
 
     mpl::log(mpl::Level::info, category, "Block device cleanup completed");
 }
@@ -2350,14 +2386,41 @@ try
     // This ensures disks shows correct state without requiring daemon restart
     mpl::log(mpl::Level::debug, category, "Performing block device cleanup after purge operation");
 
-    // First, cleanup orphaned devices (devices whose files no longer exist)
-    block_device_manager->cleanup_orphaned_devices();
+    // Synchronize block device registry with filesystem
+    block_device_manager->sync_registry_with_filesystem();
 
-    // Then, validate and cleanup attachments to non-existent VMs
-    auto vm_exists_checker = [this](const std::string& vm_name) -> bool {
-        return vm_instance_specs.find(vm_name) != vm_instance_specs.end();
-    };
-    block_device_manager->validate_and_cleanup_attachments(vm_exists_checker);
+    // Detach devices from non-existent VMs
+    for (const auto* device : block_device_manager->list_block_devices())
+    {
+        if (device->attached_vm())
+        {
+            const auto& attached_vm = *device->attached_vm();
+            if (vm_instance_specs.find(attached_vm) == vm_instance_specs.end())
+            {
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format("Detaching block device '{}' from non-existent VM '{}'",
+                                     device->name(),
+                                     attached_vm));
+                try
+                {
+                    auto* mutable_device = block_device_manager->get_block_device(device->name());
+                    if (mutable_device)
+                    {
+                        mutable_device->detach_from_vm();
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error,
+                             category,
+                             fmt::format("Failed to detach block device '{}': {}",
+                                         device->name(),
+                                         e.what()));
+                }
+            }
+        }
+    }
 
     mpl::log(mpl::Level::debug, category, "Block device cleanup after purge completed");
 
@@ -3192,55 +3255,53 @@ try
     if (status.ok())
     {
         const bool purge = request->purge();
-        const bool force = request->force();
         bool purge_snapshots = request->purge_snapshots();
-        bool delete_attached_disks = request->delete_attached_disks();
         auto instances_dirty = false;
 
         auto instance_snapshots_map =
             map_snapshots_to_instances(request->instance_snapshot_pairs());
 
-        // Check for attached block devices before proceeding
+        // Check for attached block devices before proceeding with purge
         std::vector<std::string> instances_with_attached_disks;
         std::vector<std::string> all_attached_disks;
 
-        for (const auto* selection :
-             {&instance_selection.operative_selection, &instance_selection.deleted_selection})
+        if (purge)
         {
-            for (const auto& vm_it : *selection)
+            for (const auto* selection :
+                 {&instance_selection.operative_selection, &instance_selection.deleted_selection})
             {
-                const auto& instance_name = vm_it->first;
-                auto attached_disks = get_attached_block_devices(instance_name);
-                if (!attached_disks.empty())
+                for (const auto& vm_it : *selection)
                 {
-                    instances_with_attached_disks.push_back(instance_name);
-                    all_attached_disks.insert(all_attached_disks.end(),
-                                              attached_disks.begin(),
-                                              attached_disks.end());
+                    const auto& instance_name = vm_it->first;
+                    auto attached_disks = get_attached_block_devices(instance_name);
+                    if (!attached_disks.empty())
+                    {
+                        instances_with_attached_disks.push_back(instance_name);
+                        all_attached_disks.insert(all_attached_disks.end(),
+                                                  attached_disks.begin(),
+                                                  attached_disks.end());
+                    }
                 }
             }
-        }
 
-        // Handle block device confirmation if needed (only when purging)
-        if (!all_attached_disks.empty() && !force && !delete_attached_disks && purge)
-        {
-            DeleteReply confirm_action{};
-            confirm_action.set_confirm_block_device_deletion(true);
-            for (const auto& disk : all_attached_disks)
-                confirm_action.add_attached_block_devices(disk);
+            // Handle block device confirmation if needed (only when purging)
+            if (!all_attached_disks.empty() && !request->force())
+            {
+                DeleteReply confirm_action{};
+                confirm_action.set_confirm_block_device_detachment(true);
+                for (const auto& disk : all_attached_disks)
+                    confirm_action.add_attached_block_devices(disk);
 
-            if (!server->Write(confirm_action))
-                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
-            DeleteRequest client_response;
-            if (!server->Read(&client_response))
-                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
+                if (!server->Write(confirm_action))
+                    throw std::runtime_error(
+                        "Cannot request confirmation from client. Aborting...");
+                DeleteRequest client_response;
+                if (!server->Read(&client_response))
+                    throw std::runtime_error("Cannot get confirmation from client. Aborting...");
 
-            if (!(delete_attached_disks = client_response.delete_attached_disks()))
-                return status_promise->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
-        }
-        else if (!all_attached_disks.empty() && force)
-        {
-            delete_attached_disks = true;
+                if (!client_response.detach_attached_disks())
+                    return status_promise->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
+            }
         }
 
         // avoid deleting if any snapshot is missing or if we don't get confirmation
@@ -3281,7 +3342,7 @@ try
                         vm_it->second->delete_snapshot(snapshot_name);
 
                 if (all) // we're asked to delete the VM
-                    instances_dirty |= delete_vm(vm_it, purge, response, delete_attached_disks);
+                    instances_dirty |= delete_vm(vm_it, purge, response);
             }
         }
 
@@ -4122,7 +4183,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                               std::make_optional(name));
 
                         // Also attach the primary disk to the VM instance
-                        operative_instances[name]->attach_block_device(block_device_name, *block_device);
+                        operative_instances[name]->attach_block_device(block_device_name,
+                                                                       *block_device);
 
                         block_device_manager->register_block_device(std::move(block_device));
 
@@ -4172,11 +4234,15 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                 block_device_name,
                                 name));
 
-                        // Create block device in global block-devices directory (like standalone disks)
-                        block_device_manager->create_block_device(block_device_name, extra_disk_size);
+                        // Create block device in global block-devices directory (like standalone
+                        // disks)
+                        block_device_manager->create_block_device(block_device_name,
+                                                                  extra_disk_size);
 
-                        auto block_device = block_device_manager->get_block_device(block_device_name);
-                        operative_instances[name]->attach_block_device(block_device_name, *block_device);
+                        auto block_device =
+                            block_device_manager->get_block_device(block_device_name);
+                        operative_instances[name]->attach_block_device(block_device_name,
+                                                                       *block_device);
 
                         // Register the attachment in the block device manager
                         block_device_manager->attach_block_device(block_device_name, name);
@@ -4541,91 +4607,11 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
 }
 
-bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it,
-                           bool purge,
-                           DeleteReply& response,
-                           bool delete_attached_disks)
+bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
 {
     auto& [name, instance] = *vm_it;
     auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
     auto instances_dirty = false;
-
-    // Delete attached block devices BEFORE VM shutdown if purging and requested
-    if (purge && delete_attached_disks)
-    {
-        mpl::log(mpl::Level::info,
-                 category,
-                 fmt::format("Purging instance '{}', delete_attached_disks={}",
-                             name,
-                             delete_attached_disks));
-
-        // Get attached devices before VM shutdown to ensure we capture all devices
-        // while the VM attachment information is still valid
-        auto attached_devices = get_attached_block_devices(name);
-        mpl::log(mpl::Level::info,
-                 category,
-                 fmt::format("Found {} attached block devices for instance '{}'",
-                             attached_devices.size(),
-                             name));
-
-        // Also check for any devices that might be attached but not properly tracked
-        // This handles cases where the attachment state might be inconsistent
-        auto all_devices = block_device_manager->list_block_devices();
-        for (const auto* device : all_devices)
-        {
-            if (device->attached_vm() && *device->attached_vm() == name)
-            {
-                // Skip the primary disk (handled separately) and devices already in our list
-                if (device->name() != name + "-disk" &&
-                    std::find(attached_devices.begin(), attached_devices.end(), device->name()) ==
-                        attached_devices.end())
-                {
-                    attached_devices.push_back(device->name());
-                    mpl::log(mpl::Level::debug,
-                             category,
-                             fmt::format("Found additional attached device '{}' for instance '{}'",
-                                         device->name(),
-                                         name));
-                }
-            }
-        }
-
-        for (const auto& device_name : attached_devices)
-        {
-            mpl::log(mpl::Level::info,
-                     category,
-                     fmt::format("Processing attached device: '{}'", device_name));
-            try
-            {
-                mpl::log(mpl::Level::debug,
-                         category,
-                         fmt::format("Deleting attached block device '{}' for purged instance '{}'",
-                                     device_name,
-                                     name));
-
-                block_device_manager->delete_block_device(device_name);
-
-                mpl::log(
-                    mpl::Level::info,
-                    category,
-                    fmt::format(
-                        "Successfully deleted attached block device '{}' for purged instance '{}'",
-                        device_name,
-                        name));
-            }
-            catch (const std::exception& e)
-            {
-                mpl::log(
-                    mpl::Level::warning,
-                    category,
-                    fmt::format(
-                        "Failed to delete attached block device '{}' for purged instance '{}': {}",
-                        device_name,
-                        name,
-                        e.what()));
-            }
-        }
-    }
 
     if (!vm_instance_specs[name].deleted)
     {
@@ -4654,6 +4640,81 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it,
     {
         response.add_purged_instances(name);
         release_resources(name);
+
+        // Detach all extra block devices from the VM during purge
+        // This ensures disks persist and can be reused after VM deletion
+        auto all_devices = block_device_manager->list_block_devices();
+        std::vector<std::string> detached_disks;
+
+        for (const auto* device : all_devices)
+        {
+            if (device->attached_vm() && *device->attached_vm() == name)
+            {
+                // Skip the primary disk (handled separately by VM shutdown)
+                if (device->name() != name + "-disk")
+                {
+                    detached_disks.push_back(device->name());
+                    mpl::log(mpl::Level::info,
+                             category,
+                             fmt::format("Detaching block device '{}' from purged instance '{}'",
+                                         device->name(),
+                                         name));
+                    try
+                    {
+                        auto* mutable_device =
+                            block_device_manager->get_block_device(device->name());
+                        if (mutable_device)
+                        {
+                            mutable_device->detach_from_vm();
+                            mpl::log(mpl::Level::info,
+                                     category,
+                                     fmt::format("Successfully detached block device '{}' from "
+                                                 "purged instance '{}'",
+                                                 device->name(),
+                                                 name));
+                        }
+                    }
+                    catch (const std::exception& e)
+                    {
+                        mpl::log(
+                            mpl::Level::warning,
+                            category,
+                            fmt::format(
+                                "Failed to detach block device '{}' from purged instance '{}': {}",
+                                device->name(),
+                                name,
+                                e.what()));
+                    }
+                }
+            }
+        }
+
+        // Report detached disks to user
+        if (!detached_disks.empty())
+        {
+            if (detached_disks.size() == 1)
+            {
+                mpl::log(
+                    mpl::Level::info,
+                    category,
+                    fmt::format("1 extra disk detached and will persist: {}", detached_disks[0]));
+            }
+            else
+            {
+                std::string disk_list;
+                for (size_t i = 0; i < detached_disks.size(); ++i)
+                {
+                    if (i > 0)
+                        disk_list += ", ";
+                    disk_list += detached_disks[i];
+                }
+                mpl::log(mpl::Level::info,
+                         category,
+                         fmt::format("{} extra disks detached and will persist: {}",
+                                     detached_disks.size(),
+                                     disk_list));
+            }
+        }
 
         // TODO: Consider integrating block device cleanup directly into the VM deletion process
         // ie. handling the VMs primary disk with the delete-disk code
@@ -4703,14 +4764,42 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it,
                  category,
                  "Performing block device cleanup after purge operation");
 
-        // First, cleanup orphaned devices (devices whose files no longer exist)
-        block_device_manager->cleanup_orphaned_devices();
+        // Synchronize block device registry with filesystem
+        block_device_manager->sync_registry_with_filesystem();
 
-        // Then, validate and cleanup attachments to non-existent VMs
-        auto vm_exists_checker = [this](const std::string& vm_name) -> bool {
-            return vm_instance_specs.find(vm_name) != vm_instance_specs.end();
-        };
-        block_device_manager->validate_and_cleanup_attachments(vm_exists_checker);
+        // Detach devices from non-existent VMs
+        for (const auto* device : block_device_manager->list_block_devices())
+        {
+            if (device->attached_vm())
+            {
+                const auto& attached_vm = *device->attached_vm();
+                if (vm_instance_specs.find(attached_vm) == vm_instance_specs.end())
+                {
+                    mpl::log(mpl::Level::warning,
+                             category,
+                             fmt::format("Detaching block device '{}' from non-existent VM '{}'",
+                                         device->name(),
+                                         attached_vm));
+                    try
+                    {
+                        auto* mutable_device =
+                            block_device_manager->get_block_device(device->name());
+                        if (mutable_device)
+                        {
+                            mutable_device->detach_from_vm();
+                        }
+                    }
+                    catch (const std::exception& e)
+                    {
+                        mpl::log(mpl::Level::error,
+                                 category,
+                                 fmt::format("Failed to detach block device '{}': {}",
+                                             device->name(),
+                                             e.what()));
+                    }
+                }
+            }
+        }
 
         mpl::log(mpl::Level::debug, category, "Block device cleanup after purge completed");
 

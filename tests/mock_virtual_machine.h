@@ -118,7 +118,10 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
 
     // Block device operations
-    MOCK_METHOD(void, attach_block_device, (const std::string& name, const BlockDevice& device), (override));
+    MOCK_METHOD(void,
+                attach_block_device,
+                (const std::string& name, const BlockDevice& device),
+                (override));
     MOCK_METHOD(void, detach_block_device, (const std::string& name), (override));
     MOCK_METHOD(bool, has_block_device, (const std::string& name), (const, override));
 

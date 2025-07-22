@@ -35,10 +35,10 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
-    
+
     std::string block_name;
     std::string target_instance_name;
-    
+
     ListBlocksRequest list_request;
     DetachBlockRequest detach_request;
     AttachBlockRequest attach_request;
