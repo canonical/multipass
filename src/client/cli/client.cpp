@@ -35,6 +35,7 @@
 #include "cmd/info.h"
 #include "cmd/launch.h"
 #include "cmd/list.h"
+#include "cmd/move_disk.h"
 #include "cmd/mount.h"
 #include "cmd/networks.h"
 #include "cmd/prefer.h"
@@ -126,6 +127,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::BlockAttach>();
     add_command<cmd::BlockDetach>();
     add_command<cmd::BlockList>();
+    add_command<cmd::MoveDisk>();
     add_command<cmd::Disks>();
 
     sort_commands();

@@ -1539,6 +1539,8 @@ try
                         final_name,
                         source_path,
                         instance_name));
+                response.set_log_line(fmt::format("Created block device '{}' from file '{}'\n",
+                                                 final_name, source_path));
             }
             else
             {
@@ -1563,9 +1565,10 @@ try
 
                 mpl::log(mpl::Level::info,
                          category,
-                         fmt::format("Created block device '{}' in instance '{}' extra-disks",
-                                     final_name,
-                                     instance_name));
+                         fmt::format("Created block device '{}' with size {} in instance '{}' extra-disks",
+                                     final_name, request->size(), instance_name));
+                response.set_log_line(fmt::format("Created block device '{}' with size {}\n",
+                                                 final_name, request->size()));
             }
         }
         else
@@ -1580,6 +1583,8 @@ try
                          fmt::format("Created block device '{}' from file '{}'",
                                      final_name,
                                      source_path));
+                response.set_log_line(fmt::format("Created block device '{}' from file '{}'\n",
+                                                 final_name, source_path));
             }
             else
             {
@@ -1598,11 +1603,11 @@ try
                 block_device_manager->create_block_device(final_name, size);
                 mpl::log(mpl::Level::info,
                          category,
-                         fmt::format("Created block device '{}'", final_name));
+                         fmt::format("Created block device '{}' with size {}", final_name, request->size()));
+                response.set_log_line(fmt::format("Created block device '{}' with size {}\n",
+                                                 final_name, request->size()));
             }
         }
-
-        response.set_log_line(fmt::format("Created block device '{}'\n", final_name));
         server->Write(response);
         status_promise->set_value(grpc::Status::OK);
     }
