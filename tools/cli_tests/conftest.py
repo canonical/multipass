@@ -22,17 +22,10 @@
 
 import sys
 import os
-import re
 import subprocess
 import shutil
-import threading
-import time
 import tempfile
-import select
-import shlex
-from contextlib import contextmanager
 
-import pexpect
 import pytest
 
 from cli_tests.utils import (
