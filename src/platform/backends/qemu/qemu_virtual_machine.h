@@ -80,9 +80,9 @@ public:
                                                             const VMMount& mount) override;
 
     // Block device operations
-    void attach_block_device(const std::string& name, const BlockDevice& device);
-    void detach_block_device(const std::string& name);
-    bool has_block_device(const std::string& name) const;
+    void attach_block_device(const std::string& name, const BlockDevice& device) override;
+    void detach_block_device(const std::string& name) override;
+    bool has_block_device(const std::string& name) const override;
 signals:
     void on_delete_memory_snapshot();
     void on_reset_network();

@@ -87,6 +87,20 @@ public:
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
+    // Block device operations - default implementations throw NotImplementedOnThisBackendException
+    void attach_block_device(const std::string& name, const BlockDevice& device) override
+    {
+        throw NotImplementedOnThisBackendException("block devices");
+    }
+    void detach_block_device(const std::string& name) override
+    {
+        throw NotImplementedOnThisBackendException("block devices");
+    }
+    bool has_block_device(const std::string& name) const override
+    {
+        throw NotImplementedOnThisBackendException("block devices");
+    }
+
 protected:
     virtual void require_snapshots_support() const;
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
