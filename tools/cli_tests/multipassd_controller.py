@@ -178,11 +178,9 @@ class MultipassdController:
         return False
 
     def _terminate_multipassd(self):
-        print("terminate")
         self.multipassd_proc.terminate()  # polite SIGTERM
         try:
             self.multipassd_proc.wait(timeout=10)
-            print("wait exit")
         except subprocess.TimeoutExpired:
             print("⏰ Graceful shutdown failed, killing forcefully...")
             self.multipassd_proc.kill()  # no mercy

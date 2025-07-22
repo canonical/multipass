@@ -19,14 +19,11 @@
 """Multipass command line tests for the clone feature."""
 
 import pytest
-import pexpect
 
 from cli_tests.utils import (
     uuid4_str,
     is_valid_ipv4_addr,
-    validate_list_output,
     validate_info_output,
-    file_exists,
     take_snapshot,
     multipass,
 )
