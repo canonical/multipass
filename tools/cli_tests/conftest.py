@@ -1,3 +1,4 @@
+# pylint: disable=broad-exception-caught
 #!/usr/bin/env python3
 
 #
@@ -28,15 +29,23 @@ import threading
 import time
 import tempfile
 import select
-import functools
 import shlex
 from contextlib import contextmanager
 
 import pexpect
 import pytest
 
-from cli_tests.utils import Output, multipass
+from cli_tests.utils import (
+    Output,
+    multipass,
+    uuid4_str,
+    mounts,
+    state,
+    get_sudo_tool,
+    die,
+)
 from cli_tests.config import config
+from cli_tests.multipassd_controller import MultipassdController
 
 
 def pytest_addoption(parser):
@@ -134,35 +143,6 @@ def pytest_assertrepr_compare(op, left, right):
     return None
 
 
-def die(exit_code, message):
-    """End testing process abruptly."""
-    sys.stderr.write(f"\n❌🔥 {message}\n")
-    # Flush both streams
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(exit_code)
-
-
-@functools.cache
-def get_sudo_tool():
-    if sys.platform == "win32":
-        sudo_tool = "gsudo"
-        install_hint = "winget install gsudo"
-    else:
-        sudo_tool = "sudo"
-        install_hint = "apt install sudo"
-
-    result = shutil.which(sudo_tool)
-
-    if not result:
-        die(
-            10,
-            f"❌ `{sudo_tool}` is required but not found. Install it with: `{install_hint}`",
-        )
-
-    return result
-
-
 @pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
@@ -189,62 +169,14 @@ def ensure_sudo_auth():
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
 
-
-def wait_for_multipassd_ready(timeout=60):
-    """
-    Wait until Multipass daemon starts responding to the CLI commands.
-    For that, the function tries to shell into a non-existent instance.
-    The daemon is expected to respond with "instance does not exists"
-    when it's up and running.
-
-    When the daemon starts, the function also verifies that the daemon's
-    version matches the CLI's version.
-
-    If any of these expectancies fail, it's a hard failure and it'll cause
-    the test executable to exit with an error code.
-    """
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        # The function uses the `find` command to check if daemon is ready.`
-        try:
-            if not multipass("find", timeout=10):
-                continue
-
-            with multipass("version") as version:
-                version_out = version.content.splitlines() if version.content else []
-                # One line for multipass, one line for multipassd.
-                if len(version_out) == 2:
-                    cli_ver = version_out[0].split()[-1]
-                    daemon_ver = version_out[1].split()[-1]
-                    if cli_ver == daemon_ver:
-                        return True  # No issues.
-
-                    sys.stderr.write(
-                        f"Version mismatch detected!\n"
-                        f"👉 CLI version: {cli_ver}\n"
-                        f"👉 Daemon version: {daemon_ver}\n"
-                    )
-                    sys.stderr.flush()
-                    return False
-        except pexpect.exceptions.EOF:
-            pass
-        except pexpect.exceptions.TIMEOUT:
-            pass
-
-        time.sleep(0.2)
-
-    sys.stderr.write("\n❌ Fatal error: The daemon did not respond in time!\n")
-    sys.stderr.flush()
-    return False
-
-
 def privileged_truncate_file(target, check=False):
     subprocess.run(
         [
             get_sudo_tool(),
             sys.executable,
             "-c",
-            f"open({shlex.quote(repr(target))}, 'w').close()",
+            "import sys; open(sys.argv[1], 'w').close()",
+            str(target),
         ],
         check=check,
         stdout=subprocess.DEVNULL,
@@ -258,45 +190,20 @@ def privileged_remove_path(target, check=False):
             get_sudo_tool(),
             sys.executable,
             "-c",
-            f"import shutil; shutil.rmtree({shlex.quote(repr(target))}, ignore_errors=True)",
+            "import shutil; import sys; shutil.rmtree(sys.argv[1], ignore_errors=True)",
+            str(target),
         ],
         check=check,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
 
-
 @pytest.fixture(autouse=True)
 def multipassd(store_config):
-    """Automatically manage the lifecycle of the multipassd daemon for tests.
-
-    - Skips daemon launch if `config.no_daemon` is False.
-    - Locates and runs `multipassd` from `config.build_root`.
-    - Optionally purges instance state if `config.remove_all_instances` is set.
-    - Starts `multipassd` in a subprocess with a watchdog thread that:
-        - Monitors output for known failure patterns (e.g., dnsmasq port conflict)
-        - Streams logs if `config.print_daemon_output` is enabled
-    - Waits for the daemon to become ready before tests run.
-    - Ensures clean shutdown on fixture teardown.
-
-    Yields:
-        subprocess.Popen: The running `multipassd` process handle, or None if skipped.
-
-    Raises:
-        SystemExit: If prerequisites are unmet, the daemon dies early, or readiness check fails.
-    """
-
     if config.no_daemon is False:
         sys.stdout.write("Skipping launching the daemon.")
         yield None
         return
-
-    multipassd_path = shutil.which("multipassd", path=config.build_root)
-    if not multipassd_path:
-        die(2, "Could not find 'multipassd' executable!")
-
-    multipassd_env = os.environ.copy()
-    multipassd_env["MULTIPASS_STORAGE"] = config.data_root
 
     if config.remove_all_instances:
         sys.stderr.flush()
@@ -305,87 +212,39 @@ def multipassd(store_config):
             config.data_root, "data/vault/multipassd-instance-image-records.json"
         )
         instances_dir = os.path.join(config.data_root, "data/vault/instances")
-
         privileged_truncate_file(instance_records_file)
         privileged_remove_path(instances_dir)
 
-    prologue = []
-    if sys.platform == "win32":
-        pass
-    else:
-        prologue = [get_sudo_tool(), "env", f"MULTIPASS_STORAGE={config.data_root}"]
-
-    @contextmanager
-    def run_process(cmd, **kwargs):
-        """Execute and yield a process."""
-        proc = subprocess.Popen(
-            cmd, **kwargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    controller = None
+    try:
+        controller = MultipassdController(
+            config.build_root, config.data_root, config.print_daemon_output
         )
-        try:
-            yield proc
-        finally:
-            proc.terminate()
-            try:
-                proc.wait(timeout=30)
-            except subprocess.TimeoutExpired:
-                proc.kill()
+        controller.start()
+        yield controller
+    except Exception as exc:
+        die(2, str(exc))
+    finally:
+        controller.stop()
 
-    with run_process(
-        prologue + [multipassd_path, "--logger=stderr"], env=multipassd_env
-    ) as multipassd_proc:
-        test_scope_exit = False
 
-        def monitor():
-            poll_interval = 0.5
-            while True:
-                if multipassd_proc.poll() is not None:
-
-                    # Graceful exit.
-                    if test_scope_exit and multipassd_proc.returncode == 0:
-                        return
-
-                    reason_dict = {
-                        r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?"
-                    }
-                    reasons = []
-
-                    for line in multipassd_proc.stdout:
-                        if config.print_daemon_output:
-                            print(line, end="")
-                        for k, v in reason_dict.items():
-                            if re.search(k, line):
-                                reasons.append(f"\nReason: {v}")
-
-                    die(
-                        5,
-                        f"FATAL: multipassd died with code {multipassd_proc.returncode}!\n"
-                        "\n".join(reasons),
-                    )
-                if config.print_daemon_output:
-                    rlist, _, _ = select.select(
-                        [multipassd_proc.stdout], [], [], poll_interval
-                    )
-                    for fd in rlist:
-                        line = fd.readline()
-                        if not line:
-                            continue  # EOF? maybe handle
-                        print(line, end="")
-                time.sleep(poll_interval)
-
-        # Spawn a watchdog thread to monitor multipassd's status
-        monitor_thread = threading.Thread(target=monitor, daemon=True)
-        monitor_thread.start()
-
-        if wait_for_multipassd_ready() is False:
-            print("⚠️ multipassd not ready, attempting graceful shutdown...")
-            multipassd_proc.terminate()  # polite SIGTERM
-            try:
-                multipassd_proc.wait(timeout=5)  # wait up to 5 sec
-            except subprocess.TimeoutExpired:
-                print("⏰ Graceful shutdown failed, killing forcefully...")
-                multipassd_proc.kill()  # no mercy
-                multipassd_proc.wait()  # ensure it's reaped
-            die(3, "Tests cannot proceed, daemon not responding in time.")
-
-        yield multipassd_proc
-        test_scope_exit = True
+@pytest.fixture(scope="function")
+def instance():
+    """Launch a VM and ensure cleanup."""
+    name = uuid4_str("instance")
+    assert multipass(
+        "launch",
+        "--cpus",
+        "2",
+        "--memory",
+        "1G",
+        "--disk",
+        "6G",
+        "--name",
+        name,
+        retry=3,
+    )
+    assert mounts(name) == {}
+    assert state(name) == "Running"
+    yield name
+    assert multipass("delete", name, "--purge")
