@@ -20,16 +20,22 @@
 
 import json
 import re
+import os
 import shutil
 import sys
 import time
 import uuid
+import tempfile
+import functools
 from collections import defaultdict
 from collections.abc import Sequence
 from pprint import pformat
+from contextlib import contextmanager
+from pathlib import Path
 
 import jq
 import pexpect
+import pytest
 from cli_tests.config import config
 
 
@@ -105,6 +111,13 @@ def retry(retries=3, delay=1.0):
 
     return decorator
 
+def die(exit_code, message):
+    """End testing process abruptly."""
+    sys.stderr.write(f"\n❌🔥 {message}\n")
+    # Flush both streams
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(exit_code)
 
 def uuid4_str(prefix="", suffix=""):
     """Generate an UUID4 string, prefixed/suffixed with the given params."""
@@ -117,6 +130,10 @@ def is_valid_ipv4_addr(ip_str):
     return bool(re.match(pattern, ip_str))
 
 
+def debug_interactive_shell(name):
+    with multipass("shell", name, interactive=True) as shell:
+        shell.interact()
+
 def get_default_timeout_for(cmd):
     default_timeouts = {
         "delete": 30,
@@ -124,6 +141,8 @@ def get_default_timeout_for(cmd):
         "launch": 600,
         "exec": 30,
         "start": 30,
+        "mount": 180,
+        "umount": 45,
     }
     if cmd in default_timeouts:
         return default_timeouts[cmd]
@@ -184,7 +203,7 @@ def multipass(*args, **kwargs):
 
     if kwargs.get("interactive"):
         return pexpect.spawn(
-            f"{multipass_path} {' '.join(args)}",
+            f"{multipass_path} {' '.join(str(arg) for arg in args)}",
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
             echo=echo,
@@ -205,7 +224,7 @@ def multipass(*args, **kwargs):
         def __init__(self):
             try:
                 self.pexpect_child = pexpect.spawn(
-                    f"{multipass_path} {' '.join(args)}",
+                    f"{multipass_path} {' '.join(str(arg) for arg in args)}",
                     logfile=(sys.stdout.buffer if config.print_cli_output else None),
                     timeout=timeout,
                     echo=echo,
@@ -273,11 +292,23 @@ def multipass(*args, **kwargs):
     return ContextManagerProxy()
 
 
-def state(name):
-    """Retrieve state of a VM"""
+def _retrieve_info_field(name, key):
     with multipass("info", "--format=json", f"{name}").json() as output:
         assert output
-        return output["info"][name]["state"]
+        return output["info"][name][key]
+
+
+def state(name):
+    """Retrieve state of a VM"""
+    return _retrieve_info_field(name, "state")
+
+
+def mounts(name):
+    return _retrieve_info_field(name, "mounts")
+
+
+def exec(name, *args, **kwargs):
+    return multipass("exec", name, "--", *args, **kwargs)
 
 
 def validate_output(*args, properties, jq_filter=None):
@@ -303,6 +334,12 @@ def validate_output(*args, properties, jq_filter=None):
                     f"  Expected: {v!r} (type: {type(v).__name__})\n"
                     f"  Actual:   {instance[k]!r} (type: {type(instance[k]).__name__})\n"
                 )
+
+
+@contextmanager
+def TempDirectory(*args, **kwargs):
+    with tempfile.TemporaryDirectory(*args, **kwargs) as tmp:
+        yield Path(tmp)
 
 
 def validate_list_output(name, properties):
@@ -457,3 +494,22 @@ def find_lineage(tree, target):
         return None
 
     return dfs(tree, [])
+
+@functools.cache
+def get_sudo_tool():
+    if sys.platform == "win32":
+        sudo_tool = "gsudo"
+        install_hint = "winget install gsudo"
+    else:
+        sudo_tool = "sudo"
+        install_hint = "apt install sudo"
+
+    result = shutil.which(sudo_tool)
+
+    if not result:
+        die(
+            10,
+            f"❌ `{sudo_tool}` is required but not found. Install it with: `{install_hint}`",
+        )
+
+    return result
