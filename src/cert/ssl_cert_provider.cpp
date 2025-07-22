@@ -19,7 +19,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssl_cert_provider.h>
-#include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
 #include "biomem.h"
@@ -376,7 +375,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
     if (!server_name.empty())
     {
-        const std::filesystem::path root_cert_path = mp::get_root_cert_path();
+        const std::filesystem::path root_cert_path = MP_PLATFORM.get_root_cert_path();
         if (std::filesystem::exists(root_cert_path) && QFile::exists(priv_key_path) &&
             QFile::exists(cert_path))
         {

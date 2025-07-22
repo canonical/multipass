@@ -462,3 +462,13 @@ std::string multipass::platform::host_version()
                ? multipass::platform::detail::read_os_release()
                : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
+
+std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
+{
+    using Path = std::filesystem::path;
+    const auto base_dir = utils::in_multipass_snap()
+                              ? Path{utils::snap_common_dir().toStdString()} / "data"
+                              : Path{"/home/root/.local/share"};
+
+    return base_dir / daemon_name;
+}

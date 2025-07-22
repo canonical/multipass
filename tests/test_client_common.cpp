@@ -23,6 +23,7 @@
 #include "mock_client_rpc.h"
 #include "mock_daemon.h"
 #include "mock_permission_utils.h"
+#include "mock_platform.h"
 #include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "stub_terminal.h"
@@ -101,6 +102,12 @@ TEST_F(TestClientCommon, usesCommonCertWhenItExists)
 TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
 {
     const auto common_cert_dir = temp_dir.path() + mp::common_client_cert_dir;
+
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{common_cert_dir.toStdU16String()}));
 
     EXPECT_CALL(*mock_cert_store, empty).WillOnce(Return(false));
     config_builder.client_cert_store = std::move(mock_cert_store);

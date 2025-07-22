@@ -133,7 +133,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
-    MP_UTILS.make_dir(QString::fromStdU16String(get_root_cert_path().parent_path().u16string()),
+    MP_UTILS.make_dir(QString::fromStdU16String(MP_PLATFORM.get_root_cert_dir().u16string()),
                       fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
 
     MP_PLATFORM.setup_permission_inheritance(true);
@@ -154,7 +154,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         if (!storage_path.isEmpty())
             data_directory = MP_UTILS.make_dir(storage_path, "data");
         else
-            data_directory = QString::fromStdU16String(get_default_daemon_path().u16string());
+            data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
     }
 
     if (url_downloader == nullptr)

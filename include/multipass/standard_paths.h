@@ -20,7 +20,6 @@
 #include "singleton.h"
 
 #include <QStandardPaths>
-#include <filesystem>
 
 #define MP_STDPATHS multipass::StandardPaths::instance()
 
@@ -64,7 +63,4 @@ public:
     virtual QStringList standardLocations(StandardLocation type) const;
     virtual QString writableLocation(StandardLocation type) const;
 };
-
-[[nodiscard]] std::filesystem::path get_default_daemon_path();
-[[nodiscard]] std::filesystem::path get_root_cert_path();
 } // namespace multipass
