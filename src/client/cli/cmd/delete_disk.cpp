@@ -65,7 +65,9 @@ mp::ReturnCode cmd::DeleteDisk::run(mp::ArgParser* parser)
                 if (!detach_reply.error_message().empty())
                 {
                     throw mp::ValidationException{
-                        fmt::format("Failed to detach block device '{}': {}", disk_name, detach_reply.error_message())};
+                        fmt::format("Failed to detach block device '{}': {}",
+                                    disk_name,
+                                    detach_reply.error_message())};
                 }
 
                 // Now delete the disk
@@ -75,7 +77,9 @@ mp::ReturnCode cmd::DeleteDisk::run(mp::ArgParser* parser)
                     if (!delete_reply.error_message().empty())
                     {
                         throw mp::ValidationException{
-                            fmt::format("Failed to delete block device '{}': {}", disk_name, delete_reply.error_message())};
+                            fmt::format("Failed to delete block device '{}': {}",
+                                        disk_name,
+                                        delete_reply.error_message())};
                     }
                     return ReturnCode::Ok;
                 };
@@ -86,7 +90,10 @@ mp::ReturnCode cmd::DeleteDisk::run(mp::ArgParser* parser)
                     return ReturnCode::CommandFail;
                 };
 
-                return dispatch(&RpcMethod::delete_block, delete_request, on_delete_success, on_delete_failure);
+                return dispatch(&RpcMethod::delete_block,
+                                delete_request,
+                                on_delete_success,
+                                on_delete_failure);
             };
 
             auto on_detach_failure = [](grpc::Status& status) {
@@ -95,7 +102,10 @@ mp::ReturnCode cmd::DeleteDisk::run(mp::ArgParser* parser)
                 return ReturnCode::CommandFail;
             };
 
-            return dispatch(&RpcMethod::detach_block, detach_request, on_detach_success, on_detach_failure);
+            return dispatch(&RpcMethod::detach_block,
+                            detach_request,
+                            on_detach_success,
+                            on_detach_failure);
         }
         else
         {
@@ -106,7 +116,9 @@ mp::ReturnCode cmd::DeleteDisk::run(mp::ArgParser* parser)
                 if (!delete_reply.error_message().empty())
                 {
                     throw mp::ValidationException{
-                        fmt::format("Failed to delete block device '{}': {}", disk_name, delete_reply.error_message())};
+                        fmt::format("Failed to delete block device '{}': {}",
+                                    disk_name,
+                                    delete_reply.error_message())};
                 }
                 return ReturnCode::Ok;
             };
@@ -117,7 +129,10 @@ mp::ReturnCode cmd::DeleteDisk::run(mp::ArgParser* parser)
                 return ReturnCode::CommandFail;
             };
 
-            return dispatch(&RpcMethod::delete_block, delete_request, on_delete_success, on_delete_failure);
+            return dispatch(&RpcMethod::delete_block,
+                            delete_request,
+                            on_delete_success,
+                            on_delete_failure);
         }
     };
 
@@ -161,8 +176,8 @@ mp::ParseCode cmd::DeleteDisk::parse_args(mp::ArgParser* parser)
 
     if (parser->positionalArguments().count() != 1)
     {
-        throw mp::ValidationException{fmt::format(
-            "Wrong number of arguments given. Expected 1 (<block device name>)")};
+        throw mp::ValidationException{
+            fmt::format("Wrong number of arguments given. Expected 1 (<block device name>)")};
     }
 
     const auto args = parser->positionalArguments();

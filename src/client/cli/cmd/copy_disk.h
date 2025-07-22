@@ -35,12 +35,11 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
-    ReturnCode proceed_with_copy(const std::string& source_disk_path,
-                                 const ListBlocksReply& reply);
-    
+    ReturnCode proceed_with_copy(const std::string& source_disk_path, const ListBlocksReply& reply);
+
     std::string source_disk_name;
     std::string custom_disk_name; // custom name specified with --name parameter
-    
+
     ListBlocksRequest list_request;
     CreateBlockRequest create_request;
 };

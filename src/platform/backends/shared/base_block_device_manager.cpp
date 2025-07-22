@@ -297,9 +297,11 @@ void mp::BlockDeviceManager::load_metadata()
     }
 }
 
-void mp::BlockDeviceManager::cleanup_orphaned_devices()
+void mp::BlockDeviceManager::sync_registry_with_filesystem()
 {
-    mpl::log(mpl::Level::info, "block-device", "Starting cleanup of orphaned block devices");
+    mpl::log(mpl::Level::info,
+             "block-device",
+             "Synchronizing block device registry with filesystem");
 
     std::vector<std::string> devices_to_remove;
 
@@ -362,64 +364,5 @@ void mp::BlockDeviceManager::cleanup_orphaned_devices()
     else
     {
         mpl::log(mpl::Level::info, "block-device", "No orphaned block devices found");
-    }
-}
-
-void mp::BlockDeviceManager::validate_and_cleanup_attachments(
-    const std::function<bool(const std::string&)>& vm_exists_checker)
-{
-    mpl::log(mpl::Level::info, "block-device", "Validating block device attachments");
-
-    std::vector<std::string> devices_to_detach;
-
-    for (const auto& [name, device] : block_devices)
-    {
-        if (device->attached_vm())
-        {
-            const auto& attached_vm = *device->attached_vm();
-            if (!vm_exists_checker(attached_vm))
-            {
-                mpl::log(
-                    mpl::Level::warning,
-                    "block-device",
-                    fmt::format("Block device '{}' is attached to non-existent VM '{}', detaching",
-                                name,
-                                attached_vm));
-                devices_to_detach.push_back(name);
-            }
-        }
-    }
-
-    // Detach devices from non-existent VMs
-    for (const auto& device_name : devices_to_detach)
-    {
-        try
-        {
-            auto* device = get_block_device(device_name);
-            if (device)
-            {
-                device->detach_from_vm();
-                mpl::log(mpl::Level::info,
-                         "block-device",
-                         fmt::format("Detached orphaned block device '{}'", device_name));
-            }
-        }
-        catch (const std::exception& e)
-        {
-            mpl::log(mpl::Level::error,
-                     "block-device",
-                     fmt::format("Failed to detach orphaned block device '{}': {}",
-                                 device_name,
-                                 e.what()));
-        }
-    }
-
-    if (!devices_to_detach.empty())
-    {
-        save_metadata();
-        mpl::log(
-            mpl::Level::info,
-            "block-device",
-            fmt::format("Detached {} orphaned block device attachments", devices_to_detach.size()));
     }
 }

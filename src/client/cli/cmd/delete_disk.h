@@ -35,9 +35,9 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
-    
+
     std::string disk_name;
-    
+
     ListBlocksRequest list_request;
     DetachBlockRequest detach_request;
     DeleteBlockRequest delete_request;

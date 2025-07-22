@@ -42,9 +42,9 @@ private:
 
     bool is_size_input = false; // true if input is a size, false if it's a file path
     std::string vm_name;
-    std::string disk_input; // either size or file path
+    std::string disk_input;          // either size or file path
     std::string single_arg_fallback; // stores original single argument for fallback logic
-    std::string custom_disk_name; // custom name specified with --name parameter
+    std::string custom_disk_name;    // custom name specified with --name parameter
 };
 } // namespace cmd
 } // namespace multipass

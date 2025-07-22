@@ -31,7 +31,8 @@ namespace cmd = multipass::cmd;
 namespace
 {
 // Generate copy names in format: {source-name}-copy-{xx} where xx is two random letters/numbers
-QString generate_copy_disk_name(const QString& source_name, const std::function<bool(const QString&)>& name_exists_check)
+QString generate_copy_disk_name(const QString& source_name,
+                                const std::function<bool(const QString&)>& name_exists_check)
 {
     // Generate copy names in format: {source-name}-copy-{xx} where xx is two random letters/numbers
     const QString letters = "abcdefhijkmnpqrstuvwxyz";
@@ -64,16 +65,20 @@ QString generate_copy_disk_name(const QString& source_name, const std::function<
     }
 
     // Fallback to UUID if all combinations are taken (very unlikely)
-    return QString("%1-copy-%2").arg(source_name, QUuid::createUuid().toString(QUuid::WithoutBraces).left(8));
+    return QString("%1-copy-%2")
+        .arg(source_name, QUuid::createUuid().toString(QUuid::WithoutBraces).left(8));
 }
 
-std::string get_copy_disk_name(const std::string& source_name, const std::string& custom_name, const std::function<bool(const QString&)>& name_exists_check)
+std::string get_copy_disk_name(const std::string& source_name,
+                               const std::string& custom_name,
+                               const std::function<bool(const QString&)>& name_exists_check)
 {
     if (!custom_name.empty())
     {
         return custom_name;
     }
-    return generate_copy_disk_name(QString::fromStdString(source_name), name_exists_check).toStdString();
+    return generate_copy_disk_name(QString::fromStdString(source_name), name_exists_check)
+        .toStdString();
 }
 } // namespace
 
@@ -92,7 +97,7 @@ mp::ReturnCode cmd::CopyDisk::run(mp::ArgParser* parser)
         std::string source_disk_path;
         std::string attached_instance;
         bool found = false;
-        
+
         for (const auto& block : reply.block_devices())
         {
             if (block.name() == source_disk_name)
@@ -119,24 +124,26 @@ mp::ReturnCode cmd::CopyDisk::run(mp::ArgParser* parser)
             InfoRequest info_request;
             info_request.add_instance_snapshot_pairs()->set_instance_name(attached_instance);
 
-            auto on_info_success = [this, attached_instance, source_disk_path, reply](mp::InfoReply& info_reply) {
-                if (!info_reply.details().empty())
-                {
-                    const auto& instance_info = info_reply.details(0);
-                    if (instance_info.instance_status().status() == InstanceStatus::RUNNING ||
-                        instance_info.instance_status().status() == InstanceStatus::STARTING ||
-                        instance_info.instance_status().status() == InstanceStatus::RESTARTING)
+            auto on_info_success =
+                [this, attached_instance, source_disk_path, reply](mp::InfoReply& info_reply) {
+                    if (!info_reply.details().empty())
                     {
-                        throw mp::ValidationException{
-                            fmt::format("Cannot copy block device '{}': it is attached to running VM '{}'. "
-                                       "Stop the VM first before copying the disk.", 
-                                       source_disk_name, attached_instance)};
+                        const auto& instance_info = info_reply.details(0);
+                        if (instance_info.instance_status().status() == InstanceStatus::RUNNING ||
+                            instance_info.instance_status().status() == InstanceStatus::STARTING ||
+                            instance_info.instance_status().status() == InstanceStatus::RESTARTING)
+                        {
+                            throw mp::ValidationException{fmt::format(
+                                "Cannot copy block device '{}': it is attached to running VM '{}'. "
+                                "Stop the VM first before copying the disk.",
+                                source_disk_name,
+                                attached_instance)};
+                        }
                     }
-                }
 
-                // VM is stopped, proceed with copy
-                return proceed_with_copy(source_disk_path, reply);
-            };
+                    // VM is stopped, proceed with copy
+                    return proceed_with_copy(source_disk_path, reply);
+                };
 
             auto on_info_failure = [](grpc::Status& status) {
                 throw mp::ValidationException{
@@ -160,7 +167,8 @@ mp::ReturnCode cmd::CopyDisk::run(mp::ArgParser* parser)
     return dispatch(&RpcMethod::list_blocks, list_request, on_list_success, on_list_failure);
 }
 
-mp::ReturnCode cmd::CopyDisk::proceed_with_copy(const std::string& source_disk_path, const mp::ListBlocksReply& reply)
+mp::ReturnCode cmd::CopyDisk::proceed_with_copy(const std::string& source_disk_path,
+                                                const mp::ListBlocksReply& reply)
 {
     // Create a lambda to check if a disk name exists
     auto name_exists_check = [&reply](const QString& name) {
@@ -175,14 +183,15 @@ mp::ReturnCode cmd::CopyDisk::proceed_with_copy(const std::string& source_disk_p
     };
 
     // Determine the name for the copy
-    std::string copy_name = get_copy_disk_name(source_disk_name, custom_disk_name, name_exists_check);
+    std::string copy_name =
+        get_copy_disk_name(source_disk_name, custom_disk_name, name_exists_check);
 
     // Set up the create request to copy from the source disk
     create_request.set_name(copy_name);
     create_request.set_source_path(source_disk_path);
 
     // Now create the copy
-    auto on_create_success = [this](mp::CreateBlockReply& create_reply) {
+    auto on_create_success = [](mp::CreateBlockReply& create_reply) {
         if (!create_reply.error_message().empty())
         {
             throw mp::ValidationException{
@@ -223,10 +232,12 @@ mp::ParseCode cmd::CopyDisk::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("source", "Name of the source block device to copy", "source");
 
-    QCommandLineOption nameOption(QStringList() << "n" << "name",
-                                  "Name for the copied block device. If not specified, "
-                                  "a name will be auto-generated in the format '<source>-copy-<xx>'.",
-                                  "name");
+    QCommandLineOption nameOption(
+        QStringList() << "n"
+                      << "name",
+        "Name for the copied block device. If not specified, "
+        "a name will be auto-generated in the format '<source>-copy-<xx>'.",
+        "name");
     parser->addOption(nameOption);
 
     auto status = parser->commandParse(this);

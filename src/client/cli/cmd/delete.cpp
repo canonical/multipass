@@ -99,16 +99,16 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
             client->Write(client_response);
         }
 
-        if (reply.confirm_block_device_deletion())
+        if (reply.confirm_block_device_detachment())
         {
             DeleteRequest client_response;
 
             if (term->is_live())
-                client_response.set_delete_attached_disks(
-                    confirm_block_device_deletion(reply.attached_block_devices()));
+                client_response.set_detach_attached_disks(
+                    confirm_block_device_detachment(reply.attached_block_devices()));
             else
                 throw std::runtime_error{
-                    generate_block_device_deletion_msg(reply.attached_block_devices())};
+                    generate_block_device_detachment_msg(reply.attached_block_devices())};
 
             client->Write(client_response);
         }
@@ -217,12 +217,12 @@ std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
         return fmt::format("{}.\n", no_purge_base_error_msg);
 }
 
-bool multipass::cmd::Delete::confirm_block_device_deletion(
+bool multipass::cmd::Delete::confirm_block_device_detachment(
     const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
 {
-    static constexpr auto prompt_text =
-        "This virtual machine has {} disk(s) attached that will be detached and will persist: {}. Are you "
-        "sure you want to continue? (Yes/no)";
+    static constexpr auto prompt_text = "This virtual machine has {} disk(s) attached that will be "
+                                        "detached and will persist: {}. Are you "
+                                        "sure you want to continue? (Yes/no)";
     static constexpr auto invalid_input = "Please answer Yes/no";
     mp::PlainPrompter prompter{term};
 
@@ -242,7 +242,7 @@ bool multipass::cmd::Delete::confirm_block_device_deletion(
     return std::regex_match(answer, mp::client::yes_answer);
 }
 
-std::string multipass::cmd::Delete::generate_block_device_deletion_msg(
+std::string multipass::cmd::Delete::generate_block_device_detachment_msg(
     const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
 {
     std::string device_list;
