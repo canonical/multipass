@@ -97,6 +97,15 @@ QString generate_unique_disk_name(const std::function<bool(const QString&)>& nam
     // Fallback to UUID if all combinations are taken (very unlikely)
     return QString("disk-%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces).left(8));
 }
+
+std::string get_disk_name(const std::string& custom_name, const std::function<bool(const QString&)>& name_exists_check)
+{
+    if (!custom_name.empty())
+    {
+        return custom_name;
+    }
+    return generate_unique_disk_name(name_exists_check).toStdString();
+}
 } // namespace
 
 mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
@@ -136,7 +145,8 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
                 fmt::format("Failed to create block device: {}", reply.error_message())};
         }
 
-        // Extract the actual block device name from the server response
+        // Always extract the actual block device name from the server response
+        // The server will either use our custom name or generate one if there's a conflict
         std::string actual_block_name = create_request.name();
         if (!reply.log_line().empty())
         {
@@ -224,7 +234,7 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
                     auto name_exists_check = [](const QString& name) {
                         return false; // Server will handle collision detection
                     };
-                    fallback_request.set_name(generate_unique_disk_name(name_exists_check).toStdString());
+                    fallback_request.set_name(get_disk_name(custom_disk_name, name_exists_check));
                     fallback_request.set_size(single_arg_fallback);
                     // Leave instance_name empty for standalone creation
                     
@@ -302,7 +312,7 @@ mp::ReturnCode cmd::AddDisk::run(mp::ArgParser* parser)
                 auto name_exists_check = [](const QString& name) {
                     return false; // Server will handle collision detection
                 };
-                fallback_request.set_name(generate_unique_disk_name(name_exists_check).toStdString());
+                fallback_request.set_name(get_disk_name(custom_disk_name, name_exists_check));
                 fallback_request.set_size(single_arg_fallback);
                 // Leave instance_name empty for standalone creation
                 
@@ -357,9 +367,12 @@ QString cmd::AddDisk::description() const
                           "Usage:\n"
                           "  multipass add-disk                    # Create standalone 10G disk\n"
                           "  multipass add-disk 5G                 # Create standalone 5G disk\n"
+                          "  multipass add-disk 5G --name cool-disk # Create 5G disk named 'cool-disk'\n"
                           "  multipass add-disk myvm               # Add 10G disk to 'myvm'\n"
                           "  multipass add-disk 5G myvm            # Add 5G disk to 'myvm'\n"
                           "  multipass add-disk myvm 5G            # Add 5G disk to 'myvm'\n\n"
+                          "Options:\n"
+                          "  --name <name>  Custom name for the disk (e.g., 'cool-disk')\n\n"
                           "If no instance is specified, a standalone disk will be created that can\n"
                           "later be attached to any VM using the attach-block command.\n"
                           "When attaching to a VM, the VM must be in a stopped state.");
@@ -376,11 +389,32 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
         "VM instance name (if arg1 is disk size/path) or disk size/path (if arg1 is instance name)",
         "[arg2]");
 
+    parser->addOption({"name", "Custom name for the disk (e.g., 'cool-disk')", "name"});
+
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
     {
         return status;
+    }
+
+    // Capture custom disk name if provided
+    if (parser->isSet("name"))
+    {
+        custom_disk_name = parser->value("name").toStdString();
+        
+        // Validate custom name (basic validation)
+        if (custom_disk_name.empty())
+        {
+            throw mp::ValidationException{"Custom disk name cannot be empty"};
+        }
+        
+        // Check for invalid characters (basic validation)
+        if (custom_disk_name.find('/') != std::string::npos ||
+            custom_disk_name.find('\\') != std::string::npos)
+        {
+            throw mp::ValidationException{"Custom disk name cannot contain path separators"};
+        }
     }
 
     const auto args = parser->positionalArguments();
@@ -458,7 +492,7 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
             // The server will handle actual collision detection
             return false;
         };
-        create_request.set_name(generate_unique_disk_name(name_exists_check).toStdString());
+        create_request.set_name(get_disk_name(custom_disk_name, name_exists_check));
         create_request.set_size(disk_input);
         create_request.set_instance_name(vm_name);
     }
@@ -493,7 +527,7 @@ mp::ParseCode cmd::AddDisk::parse_args(mp::ArgParser* parser)
             // The server will handle actual collision detection
             return false;
         };
-        create_request.set_name(generate_unique_disk_name(name_exists_check).toStdString());
+        create_request.set_name(get_disk_name(custom_disk_name, name_exists_check));
         create_request.set_source_path(file_info.absoluteFilePath().toStdString());
         create_request.set_size(""); // Explicitly set empty size for file path case
         create_request.set_instance_name(vm_name);

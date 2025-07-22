@@ -25,6 +25,7 @@ add_library(commands STATIC
   block_list.cpp
   clone.cpp
   common_cli.cpp
+  copy_disk.cpp
   create_alias.cpp
   delete.cpp
   disks.cpp

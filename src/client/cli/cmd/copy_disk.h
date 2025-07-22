@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_ADD_DISK_H
-#define MULTIPASS_ADD_DISK_H
+#ifndef MULTIPASS_COPY_DISK_H
+#define MULTIPASS_COPY_DISK_H
 
 #include <multipass/cli/command.h>
 
@@ -24,7 +24,7 @@ namespace multipass
 {
 namespace cmd
 {
-class AddDisk final : public Command
+class CopyDisk final : public Command
 {
 public:
     using Command::Command;
@@ -35,17 +35,13 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
-
-    // We'll use both create and attach requests depending on the input
-    CreateBlockRequest create_request;
-    AttachBlockRequest attach_request;
-
-    bool is_size_input = false; // true if input is a size, false if it's a file path
-    std::string vm_name;
-    std::string disk_input; // either size or file path
-    std::string single_arg_fallback; // stores original single argument for fallback logic
+    
+    std::string source_disk_name;
     std::string custom_disk_name; // custom name specified with --name parameter
+    
+    ListBlocksRequest list_request;
+    CreateBlockRequest create_request;
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_ADD_DISK_H
+#endif // MULTIPASS_COPY_DISK_H
