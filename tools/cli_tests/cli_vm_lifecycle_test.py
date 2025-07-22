@@ -22,7 +22,6 @@ import pytest
 
 from cli_tests.utils import (
     uuid4_str,
-    validate_list_output,
     multipass,
     state,
 )
@@ -87,8 +86,6 @@ class TestVmLifecycle:
         ) as output:
             assert not output
             assert "1CiG is not a valid memory size" in output
-
-    # TODO: Launch with custom cloud-init
 
     def test_launch_stop(self):
         name = uuid4_str("instance")
