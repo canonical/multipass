@@ -35,7 +35,7 @@ from pathlib import Path
 
 import jq
 import pexpect
-import pytest
+
 from cli_tests.config import config
 
 
