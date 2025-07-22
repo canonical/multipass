@@ -28,6 +28,8 @@ import threading
 import time
 import tempfile
 import select
+import functools
+import shlex
 from contextlib import contextmanager
 
 import pexpect
@@ -141,16 +143,33 @@ def die(exit_code, message):
     os._exit(exit_code)
 
 
+@functools.cache
+def get_sudo_tool():
+    if sys.platform == "win32":
+        sudo_tool = "gsudo"
+        install_hint = "winget install gsudo"
+    else:
+        sudo_tool = "sudo"
+        install_hint = "apt install sudo"
+
+    result = shutil.which(sudo_tool)
+
+    if not result:
+        die(
+            10,
+            f"❌ `{sudo_tool}` is required but not found. Install it with: `{install_hint}`",
+        )
+
+    return result
+
+
 @pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
-    if sys.platform == "win32":
-        # TODO: Ensure admin?
-        return  # Skip on Windows
     try:
         # Test if sudo is already authenticated
         result = subprocess.run(
-            ["sudo", "-n", "true"], capture_output=True, timeout=1, check=False
+            [get_sudo_tool(), "-n", "true"], capture_output=True, timeout=1, check=False
         )
 
         if result.returncode == 0:
@@ -166,7 +185,7 @@ def ensure_sudo_auth():
 
         sys.stdout.write(f"\n\n{message}")
         sys.stdout.flush()
-        subprocess.run(["sudo", "-v"], check=True)
+        subprocess.run([get_sudo_tool(), "-v"], check=True)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
 
@@ -219,6 +238,34 @@ def wait_for_multipassd_ready(timeout=60):
     return False
 
 
+def privileged_truncate_file(target, check=False):
+    subprocess.run(
+        [
+            get_sudo_tool(),
+            sys.executable,
+            "-c",
+            f"open({shlex.quote(repr(target))}, 'w').close()",
+        ],
+        check=check,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def privileged_remove_path(target, check=False):
+    subprocess.run(
+        [
+            get_sudo_tool(),
+            sys.executable,
+            "-c",
+            f"import shutil; shutil.rmtree({shlex.quote(repr(target))}, ignore_errors=True)",
+        ],
+        check=check,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
 @pytest.fixture(autouse=True)
 def multipassd(store_config):
     """Automatically manage the lifecycle of the multipassd daemon for tests.
@@ -257,25 +304,16 @@ def multipassd(store_config):
         instance_records_file = os.path.join(
             config.data_root, "data/vault/multipassd-instance-image-records.json"
         )
-        # FIXME: Cross-platform
-        subprocess.run(
-            ["sudo", "truncate", "-s", "0", instance_records_file], check=False
-        )
-        subprocess.run(
-            [
-                "sudo",
-                "rm",
-                "-rf",
-                os.path.join(config.data_root, "data/vault/instances"),
-            ],
-            check=False,
-        )
+        instances_dir = os.path.join(config.data_root, "data/vault/instances")
+
+        privileged_truncate_file(instance_records_file)
+        privileged_remove_path(instances_dir)
 
     prologue = []
     if sys.platform == "win32":
         pass
     else:
-        prologue = ["sudo", "env", f"MULTIPASS_STORAGE={config.data_root}"]
+        prologue = [get_sudo_tool(), "env", f"MULTIPASS_STORAGE={config.data_root}"]
 
     @contextmanager
     def run_process(cmd, **kwargs):
