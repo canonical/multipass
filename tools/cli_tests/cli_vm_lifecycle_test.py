@@ -190,3 +190,46 @@ class TestVmLifecycle:
         with multipass("info", f"{name}") as output:
             assert not output
             assert "does not exist" in output
+
+    def test_launch_delete_purge(self):
+        name1 = uuid4_str("instance")
+        name2 = uuid4_str("instance")
+
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name1,
+            retry=3,
+        )
+
+        assert multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name2,
+            retry=3,
+        )
+
+        assert multipass("delete", f"{name1}")
+        assert state(f"{name1}") == "Deleted"
+
+        assert multipass("delete", f"{name2}")
+        assert state(f"{name2}") == "Deleted"
+
+        assert multipass("purge")
+
+        for instance in [name1, name2]:
+            with multipass("info", f"{instance}") as output:
+                assert not output
+                assert "does not exist" in output
