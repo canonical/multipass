@@ -28,6 +28,7 @@ add_library(commands STATIC
   copy_disk.cpp
   create_alias.cpp
   delete.cpp
+  delete_disk.cpp
   disks.cpp
   exec.cpp
   find.cpp

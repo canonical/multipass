@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef MULTIPASS_COPY_DISK_H
-#define MULTIPASS_COPY_DISK_H
+#ifndef MULTIPASS_DELETE_DISK_H
+#define MULTIPASS_DELETE_DISK_H
 
 #include <multipass/cli/command.h>
 
@@ -24,7 +24,7 @@ namespace multipass
 {
 namespace cmd
 {
-class CopyDisk final : public Command
+class DeleteDisk final : public Command
 {
 public:
     using Command::Command;
@@ -35,15 +35,13 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
-    ReturnCode proceed_with_copy(const std::string& source_disk_path,
-                                 const ListBlocksReply& reply);
     
-    std::string source_disk_name;
-    std::string custom_disk_name; // custom name specified with --name parameter
+    std::string disk_name;
     
     ListBlocksRequest list_request;
-    CreateBlockRequest create_request;
+    DetachBlockRequest detach_request;
+    DeleteBlockRequest delete_request;
 };
 } // namespace cmd
 } // namespace multipass
-#endif // MULTIPASS_COPY_DISK_H
+#endif // MULTIPASS_DELETE_DISK_H
