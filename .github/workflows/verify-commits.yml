@@ -33,7 +33,6 @@ jobs:
             echo "$MSG"
 
             if ! ./git-hooks/commit-msg.py - <<< "$MSG"; then
-
               echo "❌"
               FAIL=1
             else
