@@ -1,0 +1,82 @@
+/* Cookie policy styling WILL BE REMOVED when implementation of new theme with vanilla is implemented */
+.cookie-policy {
+    overflow: auto;
+    top: 35%;
+    z-index: 50;
+    position: fixed;
+}
+
+dialog.cookie-policy {
+    background-color: var(--color-code-background);
+    color: var(--color-code-foreground);
+    height: auto;
+    max-height: 60vh;
+    max-width: 40rem;
+    padding: 0 1rem 0 1rem;
+    width: auto;
+}
+
+header.p-modal__header {
+    margin-bottom: .5rem;
+}
+
+header.p-modal__header::after {
+    background-color: #d9d9d9;
+    content: "";
+    height: 1px;
+    left: 0;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    position: absolute;
+    right: 0;
+}
+
+h2#cookie-policy-title.p-modal__title {
+    align-self: flex-end;
+    font-size: 1.5rem;
+    font-style: normal;
+    font-weight: 275;
+    line-height: 2rem;
+    margin: 0 0 1.05rem 0;
+    padding: 0.45rem 0 0 0;
+}
+
+.cookie-policy p {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    margin-top: 0;
+    padding-top: .4rem;
+}
+
+.cookie-policy p a {
+    text-decoration: none;
+    color: var(--color-link);
+}
+.cookie-policy button {
+    border-style: solid;
+    border-width: 1.5px;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 1rem;
+    font-weight: 400;
+    justify-content: center;
+    line-height: 1.5rem;
+    padding: calc(.4rem - 1px) 1rem;
+    text-align: center;
+    text-decoration: none;
+    transition-duration: .1s;
+    transition-property: background-color,border-color;
+    transition-timing-function: cubic-bezier(0.55,0.055,0.675,0.19);
+}
+
+.cookie-policy button {
+    background-color: #fff;
+    border-color: rgba(0,0,0,0.56);
+    color: #000;
+}
+
+.cookie-policy .p-button--positive {
+    background-color: #0e8420;
+    border-color: #0e8420;
+    color: #fff;
+}
