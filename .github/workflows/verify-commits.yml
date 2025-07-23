@@ -28,8 +28,11 @@ jobs:
           # loop over all commits in the PR (excluding merge base)
           git rev-list --reverse $BASE_SHA..$HEAD_SHA | while read -r COMMIT_SHA; do
             echo "-- Verifying commit $COUNTER: $COMMIT_SHA --"
-            if ! ./git-hooks/commit-msg.py - \
-                <<< "$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"; then
+
+            MSG="$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"
+            echo "$MSG"
+
+            if ! ./git-hooks/commit-msg.py - <<< "$MSG"; then
 
               echo "❌"
               FAIL=1
