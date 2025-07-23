@@ -371,7 +371,7 @@ def main():
     args = parser.parse_args()  # exits on error
 
     if args.tests:
-        sys.exit(run_tests())  # TODO@no-merge get this to run in CI
+        sys.exit(run_tests())
 
     if not args.commit_msg_file:
         print("Error: Expected a commit message file path", file=sys.stderr)
