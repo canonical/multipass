@@ -16,29 +16,18 @@ jobs:
 
       - name: List Commits
         run: |
-          echo "-- List of commits --"
+          set -e -o pipefail
 
           # Get the base and head commits for the PR
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          # Counter for commit numbering
           COUNTER=1
 
-          # Get all commits in the PR (excluding merge base)
+          # loop over all commits in the PR (excluding merge base)
           git rev-list --reverse $BASE_SHA..$HEAD_SHA | while read -r COMMIT_SHA; do
-            echo "--- Commit $COUNTER ---"
-            echo "$COMMIT_SHA"
-
-            # Get the full commit message (including body)
-            git log --format=%B -n 1 $COMMIT_SHA
-
-            # Add two blank lines between commits
-            echo ""
-            echo ""
+            echo "-- Verifying commit $COUNTER: $COMMIT_SHA --"
+            ./git-hooks/commit-msg.py - <<< $(git log -n1 --format=%B $COMMIT_SHA | head -c -1)
 
             COUNTER=$((COUNTER + 1))
           done
-
-          echo "-- End of commit list --"
-          echo "Found $COUNTER commit(s)."
