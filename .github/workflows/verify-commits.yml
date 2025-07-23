@@ -23,7 +23,8 @@ jobs:
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
           COUNTER=1
-          FAIL=0
+          echo "0" > fail.txt  # use a file to track failure status, as the while loop below runs in
+                               # a subshell and can't update variables outside
 
           # loop over all commits in the PR (excluding merge base)
           git rev-list --reverse $BASE_SHA..$HEAD_SHA | while read -r COMMIT_SHA; do
@@ -34,7 +35,7 @@ jobs:
 
             if ! ./git-hooks/commit-msg.py - <<< "$MSG"; then
               echo "❌"
-              FAIL=1
+              echo "1" > fail.txt
             else
               echo "✅"
             fi
@@ -42,6 +43,8 @@ jobs:
             COUNTER=$((COUNTER + 1))
           done
 
+          FAIL=$(cat fail.txt)
+          rm fail.txt
           if [ $FAIL -eq 1 ]; then
             echo "One or more commits failed validation"
             exit 1
