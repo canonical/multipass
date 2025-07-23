@@ -14,7 +14,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: List Commits
+      - name: Verify commit messages
         run: |
           set -e -o pipefail
 
