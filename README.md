@@ -171,39 +171,34 @@ before contributing to the project. <!-- TODO: link to guidelines -->
 
 ## Building Multipass
 
-<<<<<<< HEAD
-For build instructions, please refer to the following files:
-
-- [BUILD.linux.md](BUILD.linux.md) for Linux
-- [BUILD.macOS.md](BUILD.macOS.md) for macOS
-- [BUILD.windows.md](BUILD.windows.md) for Windows
-
-Please report any outdated information or inconsistencies in these files. Or, even better, submit a pull request with
-the changes! Our CI setup is also a good reference for building and testing Multipass.
-=======
-> 💡 **Qt version notice:** Multipass is tested with **Qt 6.2.4**.  
-> Newer versions like Qt 6.6+ may cause compatibility issues. Avoid using "latest stable" unless you're certain it's supported.
-
 Please follow the platform-specific build instructions in the files below:
 
 - [BUILD.linux.md](./BUILD.linux.md) for Linux  
 - [BUILD.macOS.md](./BUILD.macOS.md) for macOS  
 - [BUILD.windows.md](./BUILD.windows.md) for Windows  
 
-Please report any outdated information or inconsistencies in these files — or even better, submit a pull request to improve them!
+## Important Notices
 
-> 🛠️ You can also reference our [GitHub Actions CI](https://github.com/canonical/multipass/actions) to see how Multipass is built and tested across platforms.
+**Qt version compatibility**  
+Multipass is tested with **Qt 6.2.4**. Newer versions like Qt 6.6+ may cause compatibility issues. Avoid using "latest stable" unless you're certain it's supported.
 
-**Architecture note:** If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH` and `CMAKE_PREFIX_PATH` environment variables point to the correct Qt installation for your system architecture.
+**ARM64 and cross-compilation**  
+If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH` and `CMAKE_PREFIX_PATH` environment variables point to the correct Qt installation for your system architecture.
 
-**Homebrew notice:** While Multipass can be installed via Homebrew, this method is community-maintained and not officially supported. It is recommended to use the official installer from GitHub.
+**Homebrew**  
+While Multipass can be installed via Homebrew, this method is community-maintained and not officially supported. It is recommended to use the official installer from GitHub.
 
-**Windows/Hyper-V:** Hyper-V is required only if you are using the Hyper-V backend. It is not necessary for VirtualBox or WSL2.  
-To check if Hyper-V is enabled, run:
+**Windows / Hyper-V requirement**  
+Hyper-V is required only if you are using the Hyper-V backend. It is not necessary for VirtualBox or WSL2.  
+To check if Hyper-V is enabled, run this in PowerShell:
 
 ```powershell
 Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
->>>>>>> d43008d47 (docs: clarify Qt version and revise build instructions)
+```
+Please report any outdated information or inconsistencies in these files — or even better, submit a pull request to improve them!
+
+You can also reference our [GitHub Actions CI](https://github.com/canonical/multipass/actions) to see how Multipass is built and tested across platforms.
+
 
 ### Automatic linker selection
 
