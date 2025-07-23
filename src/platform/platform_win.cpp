@@ -49,6 +49,7 @@
 
 #include <aclapi.h>
 #include <sddl.h>
+#include <shlobj_core.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -345,6 +346,17 @@ QString systemprofile_app_data_path()
     ret = QDir{ret}.absoluteFilePath("AppData");
 
     return ret;
+}
+
+[[nodiscard]] mp::fs::path get_wellknown_path(int csidl)
+{
+    std::array<TCHAR, MAX_PATH + 1> buf{};
+    if (auto err = SHGetFolderPath(NULL, csidl, NULL, SHGFP_TYPE_CURRENT, buf.data()); err != S_OK)
+    {
+        throw std::system_error(err, std::system_category(), "Failed to get well known path");
+    }
+
+    return mp::fs::path{buf.data()};
 }
 
 DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
@@ -1056,7 +1068,9 @@ long long mp::platform::Platform::get_total_ram() const
 
 std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
-    // C:\ProgramData is stable and user agnostic
-    static const std::filesystem::path base_dir = "C:\\ProgramData";
-    return base_dir / daemon_name;
+    // CSIDL_COMMON_APPDATA returns C:\ProgramData normally
+    const auto base_dir = get_wellknown_path(CSIDL_COMMON_APPDATA);
+
+    // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
+    return base_dir / "Multipass";
 }
