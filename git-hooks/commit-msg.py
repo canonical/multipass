@@ -362,7 +362,7 @@ def main():
     Entry point for the commit-msg hook.
 
     Supports --tests flag to run unit tests, otherwise expects a single argument:
-    the path to the commit message file.
+    the path to the commit message file. Use a single dash (-) for stdin.
     """
     parser = argparse.ArgumentParser(description="Git commit message validator")
     parser.add_argument("--tests", action="store_true", help="Run unit tests")
@@ -373,15 +373,18 @@ def main():
     if args.tests:
         sys.exit(run_tests())  # TODO@no-merge get this to run in CI
 
-    commit_msg_file = Path(args.commit_msg_file)
     if not args.commit_msg_file:
         print("Error: Expected a commit message file path", file=sys.stderr)
         sys.exit(1)
 
     try:
-        msg = commit_msg_file.read_text(encoding="utf-8")
+        if args.commit_msg_file == "-":
+            msg = sys.stdin.read()
+        else:
+            commit_msg_file = Path(args.commit_msg_file)
+            msg = commit_msg_file.read_text(encoding="utf-8")
     except Exception as e:
-        print(f"Error reading commit msg file: {e}", file=sys.stderr)
+        print(f"Error reading commit msg: {e}", file=sys.stderr)
         sys.exit(2)
 
     sys.exit(handle_errors(validate(msg)))
