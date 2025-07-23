@@ -23,11 +23,19 @@ jobs:
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
           COUNTER=1
+          FAIL=0
 
           # loop over all commits in the PR (excluding merge base)
           git rev-list --reverse $BASE_SHA..$HEAD_SHA | while read -r COMMIT_SHA; do
             echo "-- Verifying commit $COUNTER: $COMMIT_SHA --"
-            ./git-hooks/commit-msg.py - <<< $(git log -n1 --format=%B $COMMIT_SHA | head -c -1)
+            if ! ./git-hooks/commit-msg.py - <<< $(git log -n1 --format=%B $COMMIT_SHA | head -c -1); then
+                FAIL=1
+            fi
 
             COUNTER=$((COUNTER + 1))
           done
+
+          if [ $FAILED -eq 1 ]; then
+            echo "One or more commits failed validation"
+            exit 1
+          fi
