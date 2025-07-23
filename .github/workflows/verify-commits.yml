@@ -30,10 +30,11 @@ jobs:
             echo "-- Verifying commit $COUNTER: $COMMIT_SHA --"
             if ! ./git-hooks/commit-msg.py - \
                 <<< "$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"; then
-                echo "❌"
-                FAIL=1
+
+              echo "❌"
+              FAIL=1
             else
-                echo "✅"
+              echo "✅"
             fi
 
             COUNTER=$((COUNTER + 1))
