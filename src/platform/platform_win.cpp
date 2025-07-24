@@ -348,15 +348,17 @@ QString systemprofile_app_data_path()
     return ret;
 }
 
-[[nodiscard]] mp::fs::path get_wellknown_path(int csidl)
+[[nodiscard]] mp::fs::path get_wellknown_path(REFKNOWNFOLDERID rfid)
 {
-    std::array<TCHAR, MAX_PATH + 1> buf{};
-    if (auto err = SHGetFolderPath(NULL, csidl, NULL, SHGFP_TYPE_CURRENT, buf.data()); err != S_OK)
+    PWSTR out = nullptr;
+    auto guard = sg::make_scope_guard([&out]() noexcept { ::CoTaskMemFree(out); });
+
+    if (auto err = SHGetKnownFolderPath(rfid, KF_FLAG_DEFAULT, NULL, &out); err != S_OK)
     {
         throw std::system_error(err, std::system_category(), "Failed to get well known path");
     }
 
-    return mp::fs::path{buf.data()};
+    return out;
 }
 
 DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
@@ -1068,8 +1070,8 @@ long long mp::platform::Platform::get_total_ram() const
 
 std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
-    // CSIDL_COMMON_APPDATA returns C:\ProgramData normally
-    const auto base_dir = get_wellknown_path(CSIDL_COMMON_APPDATA);
+    // FOLDERID_ProgramData returns C:\ProgramData normally
+    const auto base_dir = get_wellknown_path(FOLDERID_ProgramData);
 
     // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
     return base_dir / "Multipass";
