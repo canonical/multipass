@@ -30,13 +30,8 @@ runs:
       run: |
         set -e -o pipefail
 
-        echo "DEBUG: Exclusion pathspecs: ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }}" # TODO remove
-
         # On pull requests, HEAD^1 will always be the merge base
-        git diff --check HEAD^1                         \
-          ':!3rd-party/'     `# third-party submodules` \
-          ':!data/'          `# data files`             \
-          ':!docs/.sphinx/'  `# vendored`
+        git diff --check HEAD^1 -- ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }}
 
     - name: Check for missing newline at EOF
       shell: bash
@@ -45,12 +40,9 @@ runs:
 
         BAD_ENDING='(?:\n\n|[^\n])\z' # multiple or no newline at EOF
 
-        # using ":!<path>" for excluding pathspecs. Look for pathspec in `man gitglossary` for more
-        git grep --no-color -Ilz '' --      `# list text files in the repo; pathspecs follow` \
-          ':!3rd-party/'                    `# third-party submodules`                        \
-          ':!data/'                         `# data files`                                    \
-          ':!docs/.sphinx/'                 `# vendored starter pack`                         \
-          | xargs -0 grep -lzP "$BAD_ENDING" # grep their full contents for bad endings
+        git grep --no-color -Ilz '' --                               `# list text files`  \
+          ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }} `# but exclude some` \
+          | xargs -0 grep -lzP "$BAD_ENDING"                          # grep their full contents
 
         if [ $? -eq 0 ]; then
           echo "##[error] Files above end with multiple or no newline at all"
