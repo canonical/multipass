@@ -36,12 +36,11 @@ runs:
     - name: Check for missing newline at EOF
       shell: bash
       run: |
-        set -e -o pipefail
+        set +e  # xargs exits with 123 when grep finds no matches - the success case - so don't exit
 
         BAD_ENDING='(?:\n\n|[^\n])\z' # multiple or no newline at EOF
-
-        git grep --no-color -Ilz '' --                               `# list text files`  \
-          ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }} `# but exclude some` \
+        git grep --no-color -Ilz '' --                               `# list text files`   \
+          ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }} `# except exclusions` \
           | xargs -0 grep -lzP "$BAD_ENDING"                          # grep their full contents
 
         if [ $? -eq 0 ]; then
