@@ -14,3 +14,14 @@ runs:
           ':(exclude)3rd-party/'     `# third-party submodules` \
           ':(exclude)data/'          `# data files`             \
           ':(exclude)docs/.sphinx/'  `# vendored`
+
+    - name: Check for missing newline at EOF
+      shell: bash
+      run: |
+        set -e -o pipefail
+
+        git grep --no-color -Ilz '' | xargs -0 grep -lzP '(?:[^\n]|\n\n)\z'
+        if [ $? -eq 0 ]; then
+          echo "##[error] Files above end with multiple or no newline at all"
+          exit 1
+        fi
