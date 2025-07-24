@@ -2,12 +2,6 @@ name: TICS
 
 on:
   workflow_dispatch:
-    inputs:
-      smaller:
-        description: 'Run on a smaller runner'
-        required: false
-        default: false
-        type: boolean
   schedule:
   # 04:11 UTC every Sunday
   - cron: 11 4 * * 0
@@ -17,12 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: >-
-      ${{
-        github.event_name == 'workflow_dispatch' && inputs.smaller &&
-        'self-hosted-linux-amd64-noble-large-tiobe' ||
-        'self-hosted-linux-amd64-noble-2xlarge-tiobe'
-      }}
+    runs-on: self-hosted-linux-amd64-noble-large-tiobe
 
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
