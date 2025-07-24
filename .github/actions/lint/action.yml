@@ -23,6 +23,11 @@ runs:
 
   - name: Check whitespace
     uses: ./.github/actions/whitespace
+    with:
+      exclude: >-
+        '3rd-party/'    `# third-party submodules`
+        'data/'         `# data files`
+        'docs/.sphinx/' `# vendored starter pack`
 
   - name: Install clang-format
     shell: bash
