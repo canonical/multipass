@@ -20,7 +20,15 @@ runs:
       run: |
         set -e -o pipefail
 
-        git grep --no-color -Ilz '' | xargs -0 grep -lzP '(?:[^\n]|\n\n)\z'
+        BAD_ENDING='(?:\n\n|[^\n])\z' # multiple or no newline at EOF
+
+        # using ":!<path>" for excluding pathspecs. Look for pathspec in `man gitglossary` for more
+        git grep --no-color -Ilz '' --      `# list text files in the repo; pathspecs follow` \
+          ':!3rd-party/'                    `# third-party submodules`                        \
+          ':!data/'                         `# data files`                                    \
+          ':!docs/.sphinx/'                 `# vendored starter pack`                         \
+          | xargs -0 grep -lzP "$BAD_ENDING" # grep their full contents for bad endings
+
         if [ $? -eq 0 ]; then
           echo "##[error] Files above end with multiple or no newline at all"
           exit 1
