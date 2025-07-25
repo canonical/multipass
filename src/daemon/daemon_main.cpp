@@ -98,20 +98,20 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
                                                        // relevant settings handlers
 
     mp::Daemon daemon(std::move(config));
-    QObject::connect(&app,
-                     &QCoreApplication::aboutToQuit,
-                     &daemon,
-                     &mp::Daemon::shutdown_grpc_server,
-                     Qt::DirectConnection);
 
+    QObject::connect(&app,
+        &QCoreApplication::aboutToQuit,
+        &daemon,
+        &mp::Daemon::shutdown_grpc_server,
+        Qt::DirectConnection);
+        
     mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
-    mpl::log(mpl::Level::info,
-             "daemon",
-             fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    mpl::log(mpl::Level::info, "daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
 
     // Signal the signal handler that app has completed its basic initialization, and
     // ready to process signals.
     app_ready_signal.signal();
+    
     auto exit_code = QCoreApplication::exec();
     // QConcurrent::run() invocations are dispatched through the global
     // thread pool. Wait until all threads in the pool are properly cleaned up.

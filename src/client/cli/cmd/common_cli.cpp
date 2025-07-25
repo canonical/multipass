@@ -177,18 +177,34 @@ QString multipass::cmd::describe_common_settings_keys()
            " get --keys` to obtain the full list of available settings at any given time.";
 }
 
-void multipass::cmd::add_timeout(multipass::ArgParser* parser)
+namespace
+{
+void add_timeout_option(multipass::ArgParser* parser, const QString& extra_description = {})
 {
     QCommandLineOption timeout_option(
         "timeout",
         QString("Maximum time, in seconds, to wait for the command to complete. "
-                "Note that some background operations may continue beyond that. "
-                "By default, instance startup and initialization is limited to "
-                "%1 minutes each.")
-            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout)
-                     .count()),
+                "Note that some background operations may continue beyond that.") +
+            extra_description,
         "timeout");
     parser->addOption(timeout_option);
+}
+} // namespace
+
+void multipass::cmd::add_instance_timeout(multipass::ArgParser* parser)
+{
+    const auto instance_timeout_str =
+        QString (" By default, instance startup and initialization is limited to "
+                 "%1 minutes each.")
+            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout)
+                .count());
+    
+    add_timeout_option(parser, instance_timeout_str);
+}
+
+void multipass::cmd::add_timeout(multipass::ArgParser* parser)
+{
+    add_timeout_option(parser);
 }
 
 int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
