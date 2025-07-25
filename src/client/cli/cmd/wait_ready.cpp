@@ -16,14 +16,12 @@
  */
 
 #include "wait_ready.h"
-#include "common_cli.h"
 #include "animated_spinner.h"
+#include "common_cli.h"
 
 #include <multipass/timer.h>
-#include <multipass/constants.h>
-#include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/cli/argparser.h>
-#include <multipass/cli/formatter.h>
+#include <multipass/exceptions/cmd_exceptions.h>
 
 #include <chrono>
 #include <thread>
@@ -38,22 +36,23 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
     {
         return parser->returnCodeFrom(ret);
     }
-    
-    mp::AnimatedSpinner spinner(cout);
-    spinner.start("Waiting for Multipass daemon to be ready");
+
+    mp::AnimatedSpinner spinner{cout};
+    spinner.start("Waiting for the Multipass daemon to be ready");
 
     std::unique_ptr<mp::utils::Timer> timer;
 
     // If the user has specified a timeout, we will create a timer
-    if (parser->isSet("timeout")){
+    if (parser->isSet("timeout"))
+    {
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 &spinner,
                                 cerr,
-                                "Timed out waiting for Multipass daemon to be ready.");
+                                "Timed out waiting for the Multipass daemon to be ready.");
         timer->start();
     }
-    
-    auto on_success = [this, &spinner, &timer](WaitReadyReply& reply) {
+
+    auto on_success = [&spinner, &timer](WaitReadyReply& reply) {
         if (timer)
             timer->stop();
         spinner.stop();
@@ -61,9 +60,9 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &spinner, &timer](grpc::Status& status) {
-
-        if (status.error_code() == grpc::StatusCode::NOT_FOUND && 
-            status.error_message() == "cannot connect to the multipass socket")
+        if (status.error_code() == grpc::StatusCode::NOT_FOUND &&
+            (status.error_message() == "cannot connect to the multipass socket" ||
+             status.error_message() == "cannot connect to the image servers"))
         {
             // This is the expected state for when the daemon is not yet ready
             // Sleep for a short duration and signal to retry
@@ -74,17 +73,17 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
         if (timer)
             timer->stop();
         spinner.stop();
-        
+
         // For any other error, we will handle it as a standard failure
         return standard_failure_handler_for(name(), cerr, status);
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    
+
     ReturnCode return_code;
 
-    while ((return_code = dispatch(&RpcMethod::wait_ready, request, on_success, on_failure)) == 
-            ReturnCode::Retry)
+    while ((return_code = dispatch(&RpcMethod::wait_ready, request, on_success, on_failure)) ==
+           ReturnCode::Retry)
         ;
 
     return return_code;

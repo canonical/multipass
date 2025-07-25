@@ -194,11 +194,11 @@ void add_timeout_option(multipass::ArgParser* parser, const QString& extra_descr
 void multipass::cmd::add_instance_timeout(multipass::ArgParser* parser)
 {
     const auto instance_timeout_str =
-        QString (" By default, instance startup and initialization is limited to "
-                 "%1 minutes each.")
+        QString(" By default, instance startup and initialization is limited to "
+                "%1 minutes each.")
             .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout)
-                .count());
-    
+                     .count());
+
     add_timeout_option(parser, instance_timeout_str);
 }
 

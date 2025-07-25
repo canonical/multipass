@@ -253,7 +253,8 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::CloneRequest, mp::CloneReply>));
     EXPECT_CALL(daemon, wait_ready(_, _, _))
         .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
+            Invoke(&daemon,
+                   &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_keys"},
