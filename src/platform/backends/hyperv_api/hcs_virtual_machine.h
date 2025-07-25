@@ -21,6 +21,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 #include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
 
+#include <multipass/signal.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/base_virtual_machine.h>
 
@@ -99,6 +100,7 @@ private:
     VMStatusMonitor& monitor;
 
     hcs::HcsSystemHandle hcs_system{nullptr};
+    Signal shutdown_signal{};
 
     hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);
