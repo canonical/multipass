@@ -79,6 +79,7 @@ struct HyperVHCSAPI_UnitTests : public ::testing::Test
         EXPECT_NO_CALL(stub_mock_grant_vm_access);
         EXPECT_NO_CALL(stub_mock_revoke_vm_access);
         EXPECT_NO_CALL(stub_mock_enumerate_compute_systems);
+        EXPECT_NO_CALL(stub_mock_set_compute_system_callback);
         EXPECT_NO_CALL(stub_mock_local_free);
 
         // Use the most extensive version by default.
@@ -110,6 +111,8 @@ struct HyperVHCSAPI_UnitTests : public ::testing::Test
     ::testing::MockFunction<decltype(HcsRevokeVmAccess)> stub_mock_revoke_vm_access;
     ::testing::MockFunction<decltype(HcsEnumerateComputeSystems)>
         stub_mock_enumerate_compute_systems;
+    ::testing::MockFunction<decltype(HcsSetComputeSystemCallback)>
+        stub_mock_set_compute_system_callback;
     ::testing::MockFunction<decltype(::LocalFree)> stub_mock_local_free;
 
     // Initialize the API table with stub functions, so if any of these fire without
@@ -130,6 +133,7 @@ struct HyperVHCSAPI_UnitTests : public ::testing::Test
                                             stub_mock_grant_vm_access.AsStdFunction(),
                                             stub_mock_revoke_vm_access.AsStdFunction(),
                                             stub_mock_enumerate_compute_systems.AsStdFunction(),
+                                            stub_mock_set_compute_system_callback.AsStdFunction(),
                                             stub_mock_local_free.AsStdFunction()};
 
     // Sentinel values as mock API parameters. These handles are opaque handles and

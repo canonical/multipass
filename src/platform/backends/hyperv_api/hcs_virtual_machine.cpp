@@ -20,6 +20,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
+#include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
 #include <hyperv_api/hcs_plan9_mount_handler.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
@@ -199,6 +200,10 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
     const auto created_from_scratch = maybe_create_compute_system();
     const auto state = fetch_state_from_api();
 
+    hcs->set_compute_system_callback(vm_name,
+                                     this,
+                                     HCSVirtualMachine::compute_system_event_callback);
+
     mpl::debug(kLogCategory,
                "HCSVirtualMachine::HCSVirtualMachine() > `{}`, created_from_scratch: {}, state: {}",
                vm_name,
@@ -208,6 +213,34 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
     // Reflect compute system's state
     set_state(state);
     update_state();
+}
+
+void HCSVirtualMachine::compute_system_event_callback(void* event, void* context)
+{
+    mpl::debug(kLogCategory,
+               "compute_system_event_callback() >  event: {}, context: {}",
+               fmt::ptr(event),
+               fmt::ptr(context));
+    const auto type = hcs::parse_event(event);
+    auto vm = reinterpret_cast<HCSVirtualMachine*>(context);
+
+    switch (type)
+    {
+    case hcs::HcsEventType::SystemExited:
+    {
+        mpl::info(kLogCategory,
+                  "compute_system_event_callback() > {}:  SystemExited event received",
+                  vm->vm_name);
+        vm->state = State::off;
+        vm->update_state();
+    }
+    break;
+    case hcs::HcsEventType::Unknown:
+        mpl::info(kLogCategory,
+                  "compute_system_event_callback() > {}:  Unidentified event received",
+                  vm->vm_name);
+        break;
+    }
 }
 
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
@@ -467,6 +500,8 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         {
             // Fall back to SSH shutdown.
             ssh_exec("sudo shutdown -h now");
+            drop_ssh_session();
+            // We need to wait here.
         }
         break;
     case ShutdownPolicy::Halt:
@@ -479,9 +514,6 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         hcs->terminate_compute_system(vm_name);
         break;
     }
-
-    state = State::off;
-    update_state();
 }
 
 void HCSVirtualMachine::suspend()

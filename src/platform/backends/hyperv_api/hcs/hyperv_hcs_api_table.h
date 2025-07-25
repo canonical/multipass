@@ -82,6 +82,11 @@ struct HCSAPITable
     std::function<decltype(HcsEnumerateComputeSystems)> EnumerateComputeSystems =
         &HcsEnumerateComputeSystems;
 
+    // @ref
+    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcssetcomputesystemcallback
+    std::function<decltype(HcsSetComputeSystemCallback)> SetComputeSystemCallback =
+        &HcsSetComputeSystemCallback;
+
     /**
      * @brief LocalAlloc/LocalFree is used by the HCS API to manage memory for the status/error
      * messages. It's caller's responsibility to free the messages allocated by the API, that's
@@ -115,7 +120,7 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
             "ShutDownComputeSystem: ({}) | TerminateComputeSystem: ({}) | CloseComputeSystem: ({}) "
             "| PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
             "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
-            "EnumerateComputeSystems: ({}) | LocalFree: ({})",
+            "EnumerateComputeSystems: ({}) | SetComputeSystemCallback: ({}) | LocalFree: ({})",
             static_cast<bool>(api.CreateOperation),
             static_cast<bool>(api.WaitForOperationResult),
             static_cast<bool>(api.CloseOperation),
@@ -132,6 +137,7 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
             static_cast<bool>(api.GrantVmAccess),
             static_cast<bool>(api.RevokeVmAccess),
             static_cast<bool>(api.EnumerateComputeSystems),
+            static_cast<bool>(api.SetComputeSystemCallback),
             static_cast<bool>(api.LocalFree));
     }
 };

@@ -47,6 +47,7 @@ if(WIN32)
     hcn/hyperv_hcn_ipam.cpp
     hcn/hyperv_hcn_network_policy.cpp
     hcs/hyperv_hcs_api_wrapper.cpp
+    hcs/hyperv_hcs_event_type.cpp
     hcs/hyperv_hcs_scsi_device.cpp
     hcs/hyperv_hcs_schema_version.cpp
     hcs/hyperv_hcs_network_adapter.cpp
