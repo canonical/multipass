@@ -352,7 +352,18 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     // Grant access to the VHDX and the cloud-init ISO files.
     for (const auto& scsi : create_compute_system_params.scsi_devices)
     {
-        grant_access_to_paths({scsi.path.get()});
+        if (scsi.type == hcs::HcsScsiDeviceType::VirtualDisk())
+        {
+            std::vector<std::filesystem::path> lineage{};
+            if (virtdisk->list_virtual_disk_chain(scsi.path.get(), lineage))
+            {
+                grant_access_to_paths({lineage.begin(), lineage.end()});
+            }
+        }
+        else
+        {
+            grant_access_to_paths({scsi.path.get()});
+        }
     }
 
     return true;
