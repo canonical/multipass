@@ -461,8 +461,9 @@ grpc::Status mp::DaemonRpc::daemon_info(
         client_cert_from(context));
 }
 
-grpc::Status mp::DaemonRpc::wait_ready(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server)
+grpc::Status mp::DaemonRpc::wait_ready(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server)
 {
     WaitReadyRequest request;
     server->Read(&request);

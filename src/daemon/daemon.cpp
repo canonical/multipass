@@ -3131,13 +3131,13 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::wait_ready(const WaitReadyRequest* request,
-                       grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
-                       std::promise<grpc::Status>* status_promise)
+void mp::Daemon::wait_ready(
+    const WaitReadyRequest* request,
+    grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
+    std::promise<grpc::Status>* status_promise)
 try
 {
     WaitReadyReply response;
-
 
     mpl::ClientLogger<WaitReadyReply, WaitReadyRequest> logger{
         mpl::level_from(request->verbosity_level()),
@@ -3145,21 +3145,26 @@ try
         server};
 
     logger.log(mpl::Level::debug, "daemon", "Checking connection to image servers...");
-    
-    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image servers.
-    // If the force_manifest_network_download is true, it will download the manifests even if already cached.
-    try 
+
+    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image
+    // servers.
+    try
     {
-        wait_update_manifests_all_and_optionally_applied_force(/*force_manifest_network_download=*/false);
+        wait_update_manifests_all_and_optionally_applied_force(
+            /*force_manifest_network_download=*/false);
         logger.log(mpl::Level::debug, "daemon", "Successfully connected to image servers.");
-        server->Write(response);
         status_promise->set_value(grpc::Status::OK);
     }
-    catch(const std::exception& e)
+    catch (const mp::DownloadException& e)
     {
-        logger.log(mpl::Level::error, "daemon", fmt::format("Failed to connect to image servers: {}", e.what()));
-        status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-    } 
+        logger.log(mpl::Level::warning,
+                   "daemon",
+                   fmt::format("Failed to connect to image servers: {}", e.what()));
+        grpc::Status download_error_status{grpc::StatusCode::NOT_FOUND,
+                                           "cannot connect to the image servers",
+                                           ""};
+        status_promise->set_value(download_error_status);
+    }
 }
 catch (const std::exception& e)
 {

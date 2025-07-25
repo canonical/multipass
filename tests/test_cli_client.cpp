@@ -3307,10 +3307,24 @@ TEST_F(Client, waitReadyCmdHelpOk)
 
 TEST_F(Client, waitReadyCmdPollsDaemonOk)
 {
-    grpc::Status daemon_not_ready(grpc::StatusCode::NOT_FOUND, "cannot connect to the multipass socket");
+    grpc::Status daemon_not_ready(grpc::StatusCode::NOT_FOUND,
+                                  "cannot connect to the multipass socket");
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(daemon_not_ready));
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
+
+    EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, waitReadyCmdPollsOnImageServerConnectionFailure)
+{
+    grpc::Status daemon_not_connected_to_image_servers(grpc::StatusCode::NOT_FOUND,
+                                                       "cannot connect to the image servers");
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, wait_ready(_, _))
+        .WillOnce(Return(daemon_not_connected_to_image_servers));
     EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
 
     EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
@@ -3909,7 +3923,11 @@ TEST_F(AuthenticateCommandClient, authenticateCmdNoPassphrasePrompterFailsReturn
     EXPECT_EQ(cerr.str(), "Failed to read value\n");
 }
 
-const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell", "wait-ready"};
+const std::vector<std::string> timeout_commands{"launch",
+                                                "start",
+                                                "restart",
+                                                "shell",
+                                                "wait-ready"};
 const std::vector<std::string> valid_timeouts{"120", "1234567"};
 const std::vector<std::string> invalid_timeouts{"-1", "0", "a", "3min", "15.51", ""};
 
@@ -4034,7 +4052,6 @@ struct ClientLogMessageSuite : Client, WithParamInterface<std::vector<std::strin
             .WillByDefault(reply_log_message<mp::VersionReply, mp::VersionRequest>);
         ON_CALL(mock_daemon, wait_ready)
             .WillByDefault(reply_log_message<mp::WaitReadyReply, mp::WaitReadyRequest>);
-        
     }
 
     template <typename ReplyType, typename RequestType>
