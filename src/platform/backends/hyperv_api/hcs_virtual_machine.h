@@ -100,7 +100,6 @@ private:
     VMStatusMonitor& monitor;
 
     hcs::HcsSystemHandle hcs_system{nullptr};
-    Signal shutdown_signal{};
 
     hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);

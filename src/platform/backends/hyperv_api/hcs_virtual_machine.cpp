@@ -236,7 +236,6 @@ void HCSVirtualMachine::compute_system_event_callback(void* event, void* context
                   vm->vm_name);
         vm->state = State::off;
         vm->update_state();
-        vm->shutdown_signal.signal();
     }
     break;
     case hcs::HcsEventType::Unknown:
@@ -527,8 +526,20 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         break;
     }
 
-    // Wait until the machine shuts down.
-    shutdown_signal.wait_for(std::chrono::seconds{180});
+    auto on_timeout = [] {
+        throw std::runtime_error("timed out waiting for initialization to complete");
+    };
+
+    multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+        switch (current_state())
+        {
+        case VirtualMachine::State::stopped:
+        case VirtualMachine::State::off:
+            return multipass::utils::TimeoutAction::done;
+        default:
+            return multipass::utils::TimeoutAction::retry;
+        }
+    });
 }
 
 void HCSVirtualMachine::suspend()
