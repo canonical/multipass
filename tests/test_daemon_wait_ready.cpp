@@ -17,14 +17,15 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
-#include "mock_image_host.h"
-#include "mock_settings.h"
-#include "mock_permission_utils.h"
-#include "mock_utils.h"
 #include "mock_cert_provider.h"
+#include "mock_image_host.h"
+#include "mock_permission_utils.h"
+#include "mock_settings.h"
+#include "mock_utils.h"
 
 #include <src/daemon/daemon.h>
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
 
@@ -40,9 +41,10 @@ struct DaemonWaitReady : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
     }
-    
+
     mpt::MockSettings::GuardedMock mock_settings_injection =
         mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
@@ -54,7 +56,7 @@ struct DaemonWaitReady : public mpt::DaemonTestFixture
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 
-    const std::string wait_msg = fmt::format("Waiting for Multipass daemon to be ready");
+    const std::string wait_msg = fmt::format("Waiting for the Multipass daemon to be ready");
 };
 
 TEST_F(DaemonWaitReady, checkUpdateManifestCall)
@@ -74,16 +76,16 @@ TEST_F(DaemonWaitReady, checkUpdateManifestCall)
     EXPECT_TRUE(cerr_stream.str().empty());
 }
 
-TEST_F(DaemonWaitReady, updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
+TEST_F(DaemonWaitReady, updateManifestsThrowTriggersClientRetryPollingTillSuccess)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
-    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1).WillOnce([]() {
-        throw mp::DownloadException{"dummy_url", "dummy_cause"};
-    });
+    EXPECT_CALL(*mock_image_host, update_manifests(false))
+        .WillOnce([]() { throw mp::DownloadException{"dummy_url", "dummy_cause"}; })
+        .WillRepeatedly(Return());
 
     config_builder.image_hosts[0] = std::move(mock_image_host);
     mp::Daemon daemon{config_builder.build()};
-    
+
     send_command({"wait-ready"});
 }

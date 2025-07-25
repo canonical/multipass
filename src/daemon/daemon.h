@@ -167,9 +167,10 @@ public slots:
         grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
         std::promise<grpc::Status>* status_promise);
 
-    virtual void wait_ready(const WaitReadyRequest* request,
-                            grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
-                            std::promise<grpc::Status>* status_promise);
+    virtual void wait_ready(
+        const WaitReadyRequest* request,
+        grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
+        std::promise<grpc::Status>* status_promise);
 
 private:
     void release_resources(const std::string& instance);
