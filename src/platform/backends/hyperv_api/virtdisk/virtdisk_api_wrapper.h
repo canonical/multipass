@@ -115,6 +115,17 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
     virtual OperationResult get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                   VirtualDiskInfo& vdinfo) const override;
 
+    /**
+     * List all the virtual disks in a virtual disk chain.
+     *
+     * @param [in] vhdx_path The chain link to start from
+     * @param [out] chain The result
+     * @return OperationResult
+     */
+    virtual OperationResult list_virtual_disk_chain(
+        const std::filesystem::path& vhdx_path,
+        std::vector<std::filesystem::path>& chain) const override;
+
 private:
     const VirtDiskAPITable api{};
 };

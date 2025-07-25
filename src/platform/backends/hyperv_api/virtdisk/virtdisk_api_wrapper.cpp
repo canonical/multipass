@@ -21,8 +21,10 @@
 #include <windows.h>
 #include <initguid.h>
 #include <virtdisk.h>
+#include <strsafe.h>
 // clang-format on
 
+#include <fmt/std.h>
 #include <fmt/xchar.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
@@ -73,7 +75,7 @@ UniqueHandle open_virtual_disk(
     OPEN_VIRTUAL_DISK_FLAG flags = OPEN_VIRTUAL_DISK_FLAG::OPEN_VIRTUAL_DISK_FLAG_NONE,
     POPEN_VIRTUAL_DISK_PARAMETERS params = nullptr)
 {
-    mpl::debug(kLogCategory, "open_virtual_disk(...) > vhdx_path: {}", vhdx_path.string());
+    mpl::debug(kLogCategory, "open_virtual_disk(...) > vhdx_path: {}", vhdx_path);
     //
     // Specify UNKNOWN for both device and vendor so the system will use the
     // file extension to determine the correct VHD format.
@@ -282,7 +284,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 {
     mpl::debug(kLogCategory,
                "resize_virtual_disk(...) > vhdx_path: {}, new_size_bytes: {}",
-               vhdx_path.string(),
+               vhdx_path,
                new_size_bytes);
     const auto disk_handle = open_virtual_disk(api, vhdx_path);
 
@@ -325,7 +327,7 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     const std::filesystem::path& child) const
 {
     // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/master/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI.cpp
-    mpl::debug(kLogCategory, "merge_virtual_disk_to_parent(...) > child: {}", child.string());
+    mpl::debug(kLogCategory, "merge_virtual_disk_to_parent(...) > child: {}", child);
 
     OPEN_VIRTUAL_DISK_PARAMETERS open_params{};
     open_params.Version = OPEN_VIRTUAL_DISK_VERSION_1;
@@ -369,8 +371,8 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
 {
     mpl::debug(kLogCategory,
                "reparent_virtual_disk(...) > child: {}, new parent: {}",
-               child.string(),
-               parent.string());
+               child,
+               parent);
 
     OPEN_VIRTUAL_DISK_PARAMETERS open_parameters{};
     open_parameters.Version = OPEN_VIRTUAL_DISK_VERSION_2;
@@ -412,7 +414,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
 OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                        VirtualDiskInfo& vdinfo) const
 {
-    mpl::debug(kLogCategory, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path.string());
+    mpl::debug(kLogCategory, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path);
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp
     //
@@ -427,7 +429,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
     constexpr GET_VIRTUAL_DISK_INFO_VERSION what_to_get[] = {
         GET_VIRTUAL_DISK_INFO_SIZE,
         GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE,
-        GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
+        // GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
         GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE};
 
     for (const auto version : what_to_get)
@@ -515,6 +517,99 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
         }
     }
 
+    return {NOERROR, L""};
+}
+
+OperationResult VirtDiskWrapper::list_virtual_disk_chain(
+    const std::filesystem::path& vhdx_path,
+    std::vector<std::filesystem::path>& chain) const
+{
+
+    mpl::debug(kLogCategory, "list_virtual_disk_chain(...) > vhdx_path: {}", vhdx_path);
+    // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp#L285
+
+    // Check if given vhdx is a differencing disk.
+    std::filesystem::path current = vhdx_path;
+
+    auto alloc = [](const std::size_t sz = sizeof(GET_VIRTUAL_DISK_INFO)) {
+        return std::unique_ptr<GET_VIRTUAL_DISK_INFO, decltype(&std::free)>(
+            static_cast<GET_VIRTUAL_DISK_INFO*>(std::malloc(sz)),
+            std::free);
+    };
+
+    do
+    {
+        // Heap-alloc since we're going to re-allocate it for the trailing
+        // variable length array.
+        auto disk_info = alloc();
+        disk_info->Version = GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
+
+        const auto disk_handle = open_virtual_disk(api, current);
+
+        if (nullptr == disk_handle)
+            return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
+
+        chain.push_back(current);
+
+        ULONG sz = sizeof(GET_VIRTUAL_DISK_INFO);
+
+        // Here we are calling the GetVirtualDiskInformation function to obtain the parent disk
+        // path, if any. The API stores the parent's path into a variable array field, which needs
+        // to be allocated by us. Hence, the API first returns ERROR_INSUFFICIENT_BUFFER to tell us
+        // how much extra space is needed for storing the parent's path.
+        // If the disk does not have a parent, the API would return ERROR_VHD_INVALID_TYPE instead.
+        if (const auto r =
+                GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
+            r == ERROR_INSUFFICIENT_BUFFER)
+        {
+            // Reallocate the disk_info struct with the correct size, and also re-set
+            // the version field as it's not an in-place re-allocation.
+            disk_info = alloc(sz);
+            disk_info->Version = GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
+        }
+        else if (r == ERROR_VHD_INVALID_TYPE)
+        {
+            // End of the chain, or not a chain at all.
+            // Either way, end the loop.
+            break;
+        }
+        else
+            return OperationResult{E_FAIL, L"GetVirtualDiskInformation failed!"};
+
+        // This is the real call to obtain the parent path.
+        const auto r = GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
+
+        if (r == ERROR_SUCCESS)
+        {
+            // The ParentLocationBuffer field is multi-purposed. It might contain a single string,
+            // or multiple strings, each denoting a possible path for the VHDX file.
+            if (disk_info->ParentLocation.ParentResolved)
+            {
+                // Single string.
+                const auto parent_buffer_size =
+                    sz - FIELD_OFFSET(GET_VIRTUAL_DISK_INFO, ParentLocation.ParentLocationBuffer);
+                std::size_t parent_path_size = {0};
+                if (FAILED(StringCbLengthW(disk_info->ParentLocation.ParentLocationBuffer,
+                                           parent_buffer_size,
+                                           &parent_path_size)))
+                {
+                    return OperationResult{E_FAIL, L"StringCbLengthW failed!"};
+                }
+                current = std::wstring{disk_info->ParentLocation.ParentLocationBuffer,
+                                       parent_path_size / sizeof(wchar_t)};
+                continue;
+            }
+            else
+                // If ParentResolved is faise, that means ParentLocationBuffer contains multiple
+                // strings. The use-case for it is recording multiple possible paths for a disk.
+                // Hyper-V uses this feature to resolve moved disks, which is not typical for our
+                // use-case.
+                return OperationResult{E_FAIL, L"Parent virtual disk path resolution failed!"};
+        }
+    } while (true);
+    mpl::debug(kLogCategory,
+               "list_virtual_disk_chain(...) > final chain: {}",
+               fmt::join(chain, " | --> | "));
     return {NOERROR, L""};
 }
 

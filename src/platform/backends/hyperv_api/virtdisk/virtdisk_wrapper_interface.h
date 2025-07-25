@@ -41,6 +41,11 @@ struct VirtDiskWrapperInterface
                                                   const std::filesystem::path& parent) const = 0;
     virtual OperationResult get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                   VirtualDiskInfo& vdinfo) const = 0;
+
+    virtual OperationResult list_virtual_disk_chain(
+        const std::filesystem::path& vhdx_path,
+        std::vector<std::filesystem::path>& chain) const = 0;
+
     virtual ~VirtDiskWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::virtdisk
