@@ -36,6 +36,7 @@ namespace multipass::hyperv::hcs
  */
 struct HCSWrapperInterface
 {
+    using HcsSystemOpaqueHandle = std::shared_ptr<void>;
     virtual OperationResult create_compute_system(
         const CreateComputeSystemParameters& params) const = 0;
     virtual OperationResult start_compute_system(const std::string& compute_system_name) const = 0;
@@ -55,6 +56,10 @@ struct HCSWrapperInterface
                                                      ComputeSystemState& state_out) const = 0;
     virtual OperationResult modify_compute_system(const std::string& compute_system_name,
                                                   const HcsRequest& request) const = 0;
+    virtual OperationResult set_compute_system_callback(const std::string& compute_system_name,
+                                                        void* context,
+                                                        void (*callback)(void* hcs_event,
+                                                                         void* context)) const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs

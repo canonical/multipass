@@ -425,4 +425,38 @@ OperationResult HCSWrapper::modify_compute_system(const std::string& compute_sys
                                  nullptr);
 }
 
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::set_compute_system_callback(const std::string& compute_system_name,
+                                                        void* context,
+                                                        void (*callback)(void* hcs_event,
+                                                                         void* context)) const
+{
+    mpl::debug(kLogCategory,
+               "set_compute_system_callback(...) > name: {}, context: {}, callback: {}",
+               compute_system_name,
+               fmt::ptr(context),
+               fmt::ptr(callback));
+
+    auto system = open_host_compute_system(api, compute_system_name);
+
+    if (nullptr == system)
+    {
+        mpl::debug(kLogCategory,
+                   "set_compute_system_callback(...) > HcsOpenComputeSystem failed! {}",
+                   compute_system_name);
+        return OperationResult{E_INVALIDARG, L"HcsOpenComputeSystem failed!"};
+    }
+
+    const ResultCode result =
+        api.SetComputeSystemCallback(system.get(),
+                                     HCS_EVENT_OPTIONS::HcsEventOptionNone,
+                                     context,
+                                     reinterpret_cast<HCS_EVENT_CALLBACK>(callback));
+    // This function requires handle to be alive.
+    // FIXME:
+    system.release();
+    return {result, L""};
+}
+
 } // namespace multipass::hyperv::hcs

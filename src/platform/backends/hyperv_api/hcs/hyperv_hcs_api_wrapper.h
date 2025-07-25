@@ -195,6 +195,23 @@ struct HCSWrapper : public HCSWrapperInterface
     [[nodiscard]] OperationResult modify_compute_system(const std::string& compute_system_name,
                                                         const HcsRequest& request) const override;
 
+    // ---------------------------------------------------------
+
+    /**
+     * Set compute system callback for a HCS.
+     *
+     * @param compute_system_name Target compute system name
+     * @param context Context, which will be passed to the callback
+     * @param callback Callback function
+     *
+     * @return An object that evaluates to true on success, false otherwise.
+     * message() may contain details of failure when result is false.
+     */
+    virtual OperationResult set_compute_system_callback(
+        const std::string& compute_system_name,
+        void* context,
+        void (*callback)(void* hcs_event, void* context)) const override;
+
 private:
     const HCSAPITable api{};
 };
