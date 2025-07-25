@@ -49,6 +49,11 @@ struct HcsScsiDeviceType
         return HcsScsiDeviceType{"VirtualDisk"};
     }
 
+    bool operator==(const HcsScsiDeviceType& rhs) const
+    {
+        return value == rhs.value;
+    }
+
 private:
     constexpr HcsScsiDeviceType(std::string_view v) : value(v)
     {
