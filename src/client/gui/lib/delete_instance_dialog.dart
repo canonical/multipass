@@ -20,7 +20,8 @@ class DeleteInstanceDialog extends StatelessWidget {
         "You won't be able to recover ${multiple ? 'these instances' : 'this instance'}.",
       ),
       actionText: 'Delete',
-      onAction: () {
+      onAction: () 
+      {
         onDelete();
         Navigator.pop(context);
       },
