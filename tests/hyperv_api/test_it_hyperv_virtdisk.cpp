@@ -267,4 +267,61 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     }
 }
 
+TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
+{
+    uut_t uut{};
+    // Create parent
+    auto parent_temp_path = make_tempfile_path(".vhdx");
+    std::wprintf(L"Parent Path: %s\n",
+                 static_cast<std::filesystem::path>(parent_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.path = parent_temp_path;
+        params.size_in_bytes = kTestVhdxSize;
+
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+    // Create child #1
+    auto child1_temp_path = make_tempfile_path(".avhdx");
+
+    std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child1_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.predecessor = hyperv::virtdisk::ParentPathParameters{parent_temp_path};
+        params.path = child1_temp_path;
+
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+
+    // Create child #2
+    auto child2_temp_path = make_tempfile_path(".avhdx");
+    std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child2_temp_path).c_str());
+    {
+        hyperv::virtdisk::CreateVirtualDiskParameters params{};
+        params.predecessor = hyperv::virtdisk::ParentPathParameters{child1_temp_path};
+        params.path = child2_temp_path;
+
+        const auto result = uut.create_virtual_disk(params);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.status_msg.empty());
+    }
+
+    // Try to list
+
+    std::vector<std::filesystem::path> result{};
+    ASSERT_TRUE(uut.list_virtual_disk_chain(child2_temp_path, result));
+    ASSERT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], child2_temp_path);
+    EXPECT_EQ(result[1], child1_temp_path);
+    EXPECT_EQ(result[2], parent_temp_path);
+    for (const auto& path : result)
+    {
+        std::wprintf(L"Child Path: %s\n", path.c_str());
+    }
+}
+
 } // namespace multipass::test
