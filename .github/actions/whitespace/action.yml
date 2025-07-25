@@ -1,13 +1,49 @@
 name: Whitespace
 description: Run Whitespace steps
 
+inputs:
+  exclude:
+    description: 'Multiple strings parameter'
+    required: false
+    type: string
+
 runs:
   using: composite
   steps:
+    - name: Derive excluded pathspecs
+      shell: bash
+      id: derive-exclusions
+      run: |
+        set -e -o pipefail
+
+        # using ":!<path>" for exclusion pathspecs. Look for pathspec in `man gitglossary` for more
+        exclusions=""
+        for entry in ${{ inputs.exclude }}; do
+          echo "Excluding path: $entry"
+          exclusions+="':!$entry' "
+        done
+
+        echo "exclusion_pathspecs=$exclusions" >> $GITHUB_OUTPUT
+
     - name: Check for bad whitespace changes
       shell: bash
       run: |
         set -e -o pipefail
 
         # On pull requests, HEAD^1 will always be the merge base
-        git diff --check HEAD^1 ':(exclude)3rd-party/' ':(exclude)data/'
+        git diff --check HEAD^1 -- ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }}
+
+    - name: Check for missing newline at EOF
+      shell: bash
+      run: |
+        set +e  # xargs exits with 123 when grep finds no matches - the success case - so don't exit
+
+        BAD_ENDING='(?:\n\n|[^\n])\z' # multiple or no newline at EOF
+        git grep --no-color -Ilz '' --                               `# list text files`   \
+          ${{ steps.derive-exclusions.outputs.exclusion_pathspecs }} `# except exclusions` \
+          | xargs -0 grep -lzP "$BAD_ENDING"                          # grep their full contents
+
+        if [ $? -eq 0 ]; then
+          echo "##[error] Files above end with multiple or no newline at all"
+          exit 1
+        fi
