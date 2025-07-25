@@ -45,6 +45,71 @@ service Rpc {
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
     rpc clone (stream CloneRequest) returns (stream CloneReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
+
+    // Block storage operations
+    rpc create_block (stream CreateBlockRequest) returns (stream CreateBlockReply);
+    rpc delete_block (stream DeleteBlockRequest) returns (stream DeleteBlockReply);
+    rpc attach_block (stream AttachBlockRequest) returns (stream AttachBlockReply);
+    rpc detach_block (stream DetachBlockRequest) returns (stream DetachBlockReply);
+    rpc list_blocks (stream ListBlocksRequest) returns (stream ListBlocksReply);
+}
+
+// Block storage message definitions
+message CreateBlockRequest {
+    string name = 1;
+    string size = 2;
+    string source_path = 3;  // Optional: path to existing disk image file
+    string instance_name = 4;  // Optional: instance name for add-disk operations
+}
+
+message CreateBlockReply {
+    string log_line = 1;
+    string error_message = 2;
+}
+
+message DeleteBlockRequest {
+    string name = 1;
+}
+
+message DeleteBlockReply {
+    string log_line = 1;
+    string error_message = 2;
+}
+
+message AttachBlockRequest {
+    string block_name = 1;
+    string instance_name = 2;
+}
+
+message AttachBlockReply {
+    string log_line = 1;
+    string error_message = 2;
+}
+
+message DetachBlockRequest {
+    string block_name = 1;
+    string instance_name = 2;
+}
+
+message DetachBlockReply {
+    string log_line = 1;
+    string error_message = 2;
+}
+
+message ListBlocksRequest {
+    int32 verbosity_level = 1;
+}
+
+message BlockInfo {
+    string name = 1;
+    string size = 2;
+    string path = 3;
+    string attached_to = 4;
+}
+
+message ListBlocksReply {
+    string log_line = 1;
+    repeated BlockInfo block_devices = 2;
 }
 
 message LaunchRequest {
@@ -73,6 +138,7 @@ message LaunchRequest {
     bool permission_to_bridge = 13;
     int32 timeout = 14;
     string password = 15;
+    repeated string extra_disks = 16;
 }
 
 message LaunchError {
@@ -437,12 +503,16 @@ message DeleteRequest {
     bool purge = 2;
     int32 verbosity_level = 3;
     bool purge_snapshots = 4;
+    bool force = 5;
+    bool detach_attached_disks = 6;
 }
 
 message DeleteReply {
     string log_line = 1;
     repeated string purged_instances = 2;
     bool confirm_snapshot_purging = 3;
+    bool confirm_block_device_detachment = 4;
+    repeated string attached_block_devices = 5;
 }
 
 message UmountRequest {

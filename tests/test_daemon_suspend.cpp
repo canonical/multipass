@@ -25,6 +25,7 @@
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
 namespace mp = multipass;
@@ -40,6 +41,8 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+            .WillRepeatedly(Return("qemu")); // TODO lxd and libvirt migration, remove
 
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
