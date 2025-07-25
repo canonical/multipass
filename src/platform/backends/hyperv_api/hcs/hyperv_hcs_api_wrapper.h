@@ -48,6 +48,19 @@ struct HCSWrapper : public HCSWrapperInterface
     // ---------------------------------------------------------
 
     /**
+     * Open an existing Host Compute System
+     *
+     * @param api The HCS API table
+     * @param name Target Host Compute System's name
+     *
+     * @return auto UniqueHcsSystem non-nullptr on success.
+     */
+    virtual OperationResult open_compute_system(const std::string& compute_system_name,
+                                                HcsSystemHandle& out_hcs_system) const override;
+
+    // ---------------------------------------------------------
+
+    /**
      * Create a new Host Compute System
      *
      * @param [in] params Parameters for the new compute system
@@ -56,7 +69,8 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult create_compute_system(
-        const CreateComputeSystemParameters& params) const override;
+        const CreateComputeSystemParameters& params,
+        HcsSystemHandle& out_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -69,7 +83,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult start_compute_system(
-        const std::string& compute_system_name) const override;
+        const HcsSystemHandle& target_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -82,7 +96,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult shutdown_compute_system(
-        const std::string& compute_system_name) const override;
+        const HcsSystemHandle& target_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -95,7 +109,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult terminate_compute_system(
-        const std::string& compute_system_name) const override;
+        const HcsSystemHandle& target_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -108,7 +122,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult pause_compute_system(
-        const std::string& compute_system_name) const override;
+        const HcsSystemHandle& target_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -121,7 +135,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult resume_compute_system(
-        const std::string& compute_system_name) const override;
+        const HcsSystemHandle& target_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -134,7 +148,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult get_compute_system_properties(
-        const std::string& compute_system_name) const override;
+        const HcsSystemHandle& target_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -178,7 +192,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult get_compute_system_state(
-        const std::string& compute_system_name,
+        const HcsSystemHandle& target_hcs_system,
         ComputeSystemState& state_out) const override;
 
     // ---------------------------------------------------------
@@ -192,7 +206,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult modify_compute_system(const std::string& compute_system_name,
+    [[nodiscard]] OperationResult modify_compute_system(const HcsSystemHandle& target_hcs_system,
                                                         const HcsRequest& request) const override;
 
     // ---------------------------------------------------------
@@ -208,7 +222,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * message() may contain details of failure when result is false.
      */
     virtual OperationResult set_compute_system_callback(
-        const std::string& compute_system_name,
+        const HcsSystemHandle& target_hcs_system,
         void* context,
         void (*callback)(void* hcs_event, void* context)) const override;
 

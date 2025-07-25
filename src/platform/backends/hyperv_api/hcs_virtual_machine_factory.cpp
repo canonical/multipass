@@ -135,13 +135,23 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(kLogCategory, "remove_resources_for_impl() -> VM: {}", name);
-    // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
-    // the VM is stopped. The base class will take care of the nuking the VM folder.
-    const auto& [status, status_msg] = hcs_sptr->terminate_compute_system(name);
-    if (status)
+    hcs::HcsSystemHandle handle{nullptr};
+    if (hcs_sptr->open_compute_system(name, handle))
     {
-        mpl::warn(kLogCategory,
-                  "remove_resources_for_impl() -> Host compute system {} was still alive.",
+        // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
+        // the VM is stopped. The base class will take care of the nuking the VM folder.
+        const auto& [status, status_msg] = hcs_sptr->terminate_compute_system(handle);
+        if (status)
+        {
+            mpl::warn(kLogCategory,
+                      "remove_resources_for_impl() -> Host compute system {} was still alive.",
+                      name);
+        }
+    }
+    else
+    {
+        mpl::info(kLogCategory,
+                  "remove_resources_for_impl() -> Host compute system `{}` already terminated.",
                   name);
     }
 }

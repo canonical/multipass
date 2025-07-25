@@ -31,32 +31,39 @@
 namespace multipass::hyperv::hcs
 {
 
+using HcsSystemHandle = std::shared_ptr<void>;
 /**
  * Abstract interface for the Host Compute System API wrapper.
  */
 struct HCSWrapperInterface
 {
-    using HcsSystemOpaqueHandle = std::shared_ptr<void>;
-    virtual OperationResult create_compute_system(
-        const CreateComputeSystemParameters& params) const = 0;
-    virtual OperationResult start_compute_system(const std::string& compute_system_name) const = 0;
+
+    virtual OperationResult open_compute_system(const std::string& compute_system_name,
+                                                HcsSystemHandle& out_hcs_system) const = 0;
+
+    virtual OperationResult create_compute_system(const CreateComputeSystemParameters& params,
+                                                  HcsSystemHandle& out_hcs_system) const = 0;
+    virtual OperationResult start_compute_system(
+        const HcsSystemHandle& target_hcs_system) const = 0;
     virtual OperationResult shutdown_compute_system(
-        const std::string& compute_system_name) const = 0;
-    virtual OperationResult pause_compute_system(const std::string& compute_system_name) const = 0;
-    virtual OperationResult resume_compute_system(const std::string& compute_system_name) const = 0;
+        const HcsSystemHandle& target_hcs_system) const = 0;
+    virtual OperationResult pause_compute_system(
+        const HcsSystemHandle& target_hcs_system) const = 0;
+    virtual OperationResult resume_compute_system(
+        const HcsSystemHandle& target_hcs_system) const = 0;
     virtual OperationResult terminate_compute_system(
-        const std::string& compute_system_name) const = 0;
+        const HcsSystemHandle& target_hcs_system) const = 0;
     virtual OperationResult get_compute_system_properties(
-        const std::string& compute_system_name) const = 0;
+        const HcsSystemHandle& target_hcs_system) const = 0;
     virtual OperationResult grant_vm_access(const std::string& compute_system_name,
                                             const std::filesystem::path& file_path) const = 0;
     virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
                                              const std::filesystem::path& file_path) const = 0;
-    virtual OperationResult get_compute_system_state(const std::string& compute_system_name,
+    virtual OperationResult get_compute_system_state(const HcsSystemHandle& target_hcs_system,
                                                      ComputeSystemState& state_out) const = 0;
-    virtual OperationResult modify_compute_system(const std::string& compute_system_name,
+    virtual OperationResult modify_compute_system(const HcsSystemHandle& target_hcs_system,
                                                   const HcsRequest& request) const = 0;
-    virtual OperationResult set_compute_system_callback(const std::string& compute_system_name,
+    virtual OperationResult set_compute_system_callback(const HcsSystemHandle& target_hcs_system,
                                                         void* context,
                                                         void (*callback)(void* hcs_event,
                                                                          void* context)) const = 0;
