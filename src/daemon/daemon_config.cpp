@@ -133,6 +133,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     auto multiplexing_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
     mpl::set_logger(multiplexing_logger);
 
+    MP_UTILS.make_dir(QString::fromStdU16String(MP_PLATFORM.get_root_cert_dir().u16string()),
+                      fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
+
     MP_PLATFORM.setup_permission_inheritance(true);
 
     auto storage_path = MP_PLATFORM.multipass_storage_location();

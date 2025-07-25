@@ -80,7 +80,7 @@ sudo snap start multipass
 You can delete the original data at your discretion, to free up space:
 
 ```{code-block} text
-sudo rm -rf /var/snap/multipass/common/data/multipassd
+sudo rm -rf /var/snap/multipass/common/data/multipassd/vault
 sudo rm -rf /var/snap/multipass/common/cache/multipassd
 ```
 
@@ -160,7 +160,8 @@ Start-Service Multipass
 You can delete the original data at your discretion, to free up space:
 
 ```{code-block} powershell
-Remove-Item -Path "C:\ProgramData\Multipass\*" -Recurse
+Remove-Item -Path "C:\ProgramData\Multipass\cache\*" -Recurse
+Remove-Item -Path "C:\ProgramData\Multipass\data\vault\*" -Recurse
 ```
 
 ````

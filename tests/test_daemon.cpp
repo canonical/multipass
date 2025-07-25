@@ -353,7 +353,6 @@ TEST_F(Daemon, dataPathWithStorageValid)
     QTemporaryDir storage_dir;
 
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
-    EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_)).Times(0);
 
     EXPECT_CALL(mock_platform, multipass_storage_location())
         .WillOnce(Return(mp::utils::get_multipass_storage()));
@@ -370,6 +369,19 @@ TEST_F(Daemon, dataPathWithStorageValid)
 
     EXPECT_EQ(config->data_directory, storage_dir.filePath("data"));
     EXPECT_EQ(config->cache_directory, storage_dir.filePath("cache"));
+}
+
+TEST_F(Daemon, rootCertPathDoesntChangeWithStorage)
+{
+    QTemporaryDir storage_dir;
+
+    const auto base_location = MP_PLATFORM.get_root_cert_path();
+    const auto base_storage = mp::utils::get_multipass_storage();
+
+    mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
+
+    EXPECT_EQ(base_location, MP_PLATFORM.get_root_cert_path());
+    EXPECT_NE(base_storage, mp::utils::get_multipass_storage());
 }
 
 TEST_F(Daemon, blueprintsDownloadsFromCorrectURL)
@@ -997,6 +1009,7 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundMountsWorkspaceConfined)
     mpt::TempDir temp_dir;
     mpt::SetEnvScope env_scope1("SNAP_NAME", "multipass");
     mpt::SetEnvScope env_scope2("SNAP_REAL_HOME", temp_dir.path().toUtf8());
+    mpt::SetEnvScope env_scope3("SNAP_COMMON", temp_dir.filePath("common").toUtf8());
 
     config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     config_builder.vault = std::move(mock_image_vault);
