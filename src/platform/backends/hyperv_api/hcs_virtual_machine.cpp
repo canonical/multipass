@@ -200,9 +200,12 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
     const auto created_from_scratch = maybe_create_compute_system();
     const auto state = fetch_state_from_api();
 
-    hcs->set_compute_system_callback(vm_name,
-                                     this,
-                                     HCSVirtualMachine::compute_system_event_callback);
+    if (hcs->set_compute_system_callback(hcs_system,
+                                         this,
+                                         HCSVirtualMachine::compute_system_event_callback))
+    {
+        // TODO: Log
+    }
 
     mpl::debug(kLogCategory,
                "HCSVirtualMachine::HCSVirtualMachine() > `{}`, created_from_scratch: {}, state: {}",
@@ -281,17 +284,24 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
 
 bool HCSVirtualMachine::maybe_create_compute_system()
 {
+    const auto result = hcs->open_compute_system(vm_name, hcs_system);
+    if (result)
     {
-        hcs::ComputeSystemState cs_state{hcs::ComputeSystemState::unknown};
-        // Check if the VM already exist
-        const auto result = hcs->get_compute_system_state(vm_name, cs_state);
-
-        if (!(E_INVALIDARG == static_cast<HRESULT>(result.code)))
-        {
-            // Target compute system already exist, no need to re-create.
-            return false;
-        }
+        // Opened existing VM
+        return false;
     }
+
+    // {
+    //     hcs::ComputeSystemState cs_state{hcs::ComputeSystemState::unknown};
+    //     // Check if the VM already exist
+    //     const auto result = hcs->get_compute_system_state(vm_name, cs_state);
+
+    //     if (!(E_INVALIDARG == static_cast<HRESULT>(result.code)))
+    //     {
+    //         // Target compute system already exist, no need to re-create.
+    //         return false;
+    //     }
+    // }
 
     // FIXME: Handle suspend state?
 
@@ -374,7 +384,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         return params;
     }();
 
-    if (const auto create_result = hcs->create_compute_system(create_compute_system_params);
+    if (const auto create_result =
+            hcs->create_compute_system(create_compute_system_params, hcs_system);
         !create_result)
     {
         fmt::print(L"Create compute system failed: {}", create_result.status_msg);
@@ -460,14 +471,14 @@ void HCSVirtualMachine::start()
         case hcs::ComputeSystemState::paused:
         {
             mpl::debug(kLogCategory, "start() -> VM `{}` is in paused state, resuming", vm_name);
-            return hcs->resume_compute_system(vm_name);
+            return hcs->resume_compute_system(hcs_system);
         }
         case hcs::ComputeSystemState::created:
             [[fallthrough]];
         default:
         {
             mpl::debug(kLogCategory, "start() -> VM `{}` is in {} state, starting", vm_name, state);
-            return hcs->start_compute_system(vm_name);
+            return hcs->start_compute_system(hcs_system);
         }
         }
     }();
@@ -496,7 +507,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                    vm_name);
 
         // If the guest has integration modules enabled, we can use graceful shutdown.
-        if (!hcs->shutdown_compute_system(vm_name))
+        if (!hcs->shutdown_compute_system(hcs_system))
         {
             // Fall back to SSH shutdown.
             ssh_exec("sudo shutdown -h now");
@@ -511,7 +522,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                    vm_name);
         drop_ssh_session();
         // These are non-graceful variants. Just terminate the system immediately.
-        hcs->terminate_compute_system(vm_name);
+        hcs->terminate_compute_system(hcs_system);
         break;
     }
 }
@@ -519,7 +530,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(kLogCategory, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
-    const auto& [status, status_msg] = hcs->pause_compute_system(vm_name);
+    const auto& [status, status_msg] = hcs->pause_compute_system(hcs_system);
     set_state(fetch_state_from_api());
     update_state();
 }
@@ -582,7 +593,7 @@ void HCSVirtualMachine::update_state()
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
-    const auto result = hcs->get_compute_system_state(vm_name, compute_system_state);
+    const auto result = hcs->get_compute_system_state(hcs_system, compute_system_state);
     return compute_system_state;
 }
 
@@ -606,7 +617,7 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
         hcs::HcsResourcePath::Memory(),
         hcs::HcsRequestType::Update(),
         hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
-    hcs->modify_compute_system(vm_name, req);
+    hcs->modify_compute_system(hcs_system, req);
     // FIXME: Log the result.
 }
 
@@ -672,7 +683,8 @@ void HCSVirtualMachine::add_network_interface(int index,
         return add_network_adapter_req;
     }();
 
-    if (const auto result = hcs->modify_compute_system(vm_name, add_network_adapter_req); !result)
+    if (const auto result = hcs->modify_compute_system(hcs_system, add_network_adapter_req);
+        !result)
     {
         mpl::error(kLogCategory,
                    "add_network_interface() -> failed to add endpoint for network `{}` to compute "

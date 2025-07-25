@@ -16,10 +16,10 @@
  */
 
 #include "tests/common.h"
+#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+#include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 
 #include <fmt/xchar.h>
-
-#include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
 
 namespace multipass::test
 {
@@ -28,18 +28,20 @@ using uut_t = hyperv::hcs::HCSWrapper;
 
 struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
 {
+    hyperv::hcs::HcsSystemHandle handle{nullptr};
+    uut_t uut{};
+
     void SetUp() override
     {
-        uut_t uut{};
-        (void)uut.terminate_compute_system("test");
+
+        if (uut.open_compute_system("test", handle))
+            (void)uut.terminate_compute_system(handle);
+        handle.reset();
     }
 };
 
 TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
 {
-
-    uut_t uut{};
-
     hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
 
     hyperv::hcs::CreateComputeSystemParameters params{};
@@ -51,25 +53,24 @@ TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
     params.scsi_devices.push_back(
         hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
-    const auto c_result = uut.create_compute_system(params);
-    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    const auto c_result = uut.create_compute_system(params, handle);
+    ASSERT_TRUE(c_result);
+    ASSERT_TRUE(uut.get_compute_system_state(handle, state));
     ASSERT_EQ(state, decltype(state)::stopped);
 
     ASSERT_TRUE(c_result);
     ASSERT_TRUE(c_result.status_msg.empty());
 
-    const auto d_result = uut.terminate_compute_system(params.name);
+    const auto d_result = uut.terminate_compute_system(handle);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
+    handle.reset();
     // Older schema versions does not return anything.
     // ASSERT_FALSE(d_result.status_msg.empty());
 }
 
 TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
 {
-
-    uut_t uut{};
-
     hyperv::hcs::CreateComputeSystemParameters params{};
     params.name = "test";
     params.memory_size_mb = 1024;
@@ -80,32 +81,42 @@ TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
         hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
     hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
-    ASSERT_TRUE(uut.create_compute_system(params));
-    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_TRUE(uut.create_compute_system(params, handle));
+    ASSERT_TRUE(uut.get_compute_system_state(handle, state));
     ASSERT_EQ(state, decltype(state)::stopped);
-    ASSERT_TRUE(uut.start_compute_system(params.name));
-    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_TRUE(uut.start_compute_system(handle));
+    ASSERT_TRUE(uut.get_compute_system_state(handle, state));
     ASSERT_EQ(state, decltype(state)::running);
-    ASSERT_TRUE(uut.pause_compute_system(params.name));
-    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_TRUE(uut.pause_compute_system(handle));
+    ASSERT_TRUE(uut.get_compute_system_state(handle, state));
     ASSERT_EQ(state, decltype(state)::paused);
-    ASSERT_TRUE(uut.resume_compute_system(params.name));
-    ASSERT_TRUE(uut.get_compute_system_state(params.name, state));
+    ASSERT_TRUE(uut.resume_compute_system(handle));
+    ASSERT_TRUE(uut.get_compute_system_state(handle, state));
     ASSERT_EQ(state, decltype(state)::running);
-    const auto d_result = uut.terminate_compute_system(params.name);
+
+    bool called = false;
+    ASSERT_TRUE(uut.set_compute_system_callback(handle, &called, [](void* event, void* context) {
+        ASSERT_NE(nullptr, event);
+        ASSERT_NE(nullptr, context);
+        if (hyperv::hcs::parse_event(event) == hyperv::hcs::HcsEventType::SystemExited)
+        {
+            *static_cast<bool*>(context) = true;
+        }
+    }));
+
+    const auto d_result = uut.terminate_compute_system(handle);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
+    handle.reset();
+    ASSERT_TRUE(called);
     // Older schema versions does not return anything.
     // ASSERT_FALSE(d_result.status_msg.empty());
 
-    ASSERT_FALSE(uut.get_compute_system_state(params.name, state));
+    ASSERT_FALSE(uut.get_compute_system_state(handle, state));
 }
 
 TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
 {
-
-    uut_t uut{};
-
     hyperv::hcs::CreateComputeSystemParameters params{};
     params.name = "test";
     params.memory_size_mb = 1024;
@@ -115,31 +126,29 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     params.scsi_devices.push_back(
         hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
-    const auto c_result = uut.create_compute_system(params);
+    const auto c_result = uut.create_compute_system(params, handle);
 
     ASSERT_TRUE(c_result);
     ASSERT_TRUE(c_result.status_msg.empty());
 
-    const auto s_result = uut.start_compute_system(params.name);
+    const auto s_result = uut.start_compute_system(handle);
     ASSERT_TRUE(s_result);
     ASSERT_TRUE(s_result.status_msg.empty());
 
-    const auto p_result = uut.get_compute_system_properties(params.name);
+    const auto p_result = uut.get_compute_system_properties(handle);
     EXPECT_TRUE(p_result);
     std::wprintf(L"%s\n", p_result.status_msg.c_str());
 
-    const auto d_result = uut.terminate_compute_system(params.name);
+    const auto d_result = uut.terminate_compute_system(handle);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
+    handle.reset();
     // Older schema versions does not return anything.
     // ASSERT_FALSE(d_result.status_msg.empty());
 }
 
 TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
 {
-
-    uut_t uut{};
-
     hyperv::hcs::CreateComputeSystemParameters params{};
     params.name = "test";
     params.memory_size_mb = 1024;
@@ -149,16 +158,16 @@ TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
     params.scsi_devices.push_back(
         hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
 
-    const auto c_result = uut.create_compute_system(params);
+    const auto c_result = uut.create_compute_system(params, handle);
 
     ASSERT_TRUE(c_result);
     ASSERT_TRUE(c_result.status_msg.empty());
 
-    const auto s_result = uut.start_compute_system(params.name);
+    const auto s_result = uut.start_compute_system(handle);
     ASSERT_TRUE(s_result);
     ASSERT_TRUE(s_result.status_msg.empty());
 
-    const auto p_result = uut.get_compute_system_properties(params.name);
+    const auto p_result = uut.get_compute_system_properties(handle);
     EXPECT_TRUE(p_result);
     std::wprintf(L"%s\n", p_result.status_msg.c_str());
 
@@ -172,7 +181,7 @@ TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
                                        share};
     }();
 
-    const auto sh_a_result = uut.modify_compute_system(params.name, add_9p_req);
+    const auto sh_a_result = uut.modify_compute_system(handle, add_9p_req);
     EXPECT_TRUE(sh_a_result);
     std::wprintf(L"%s\n", sh_a_result.status_msg.c_str());
 
@@ -185,15 +194,44 @@ TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
                                        share};
     }();
 
-    const auto sh_r_result = uut.modify_compute_system(params.name, remove_9p_req);
+    const auto sh_r_result = uut.modify_compute_system(handle, remove_9p_req);
     EXPECT_TRUE(sh_r_result);
     std::wprintf(L"%s\n", sh_r_result.status_msg.c_str());
 
-    const auto d_result = uut.terminate_compute_system(params.name);
+    const auto d_result = uut.terminate_compute_system(handle);
+    ASSERT_TRUE(d_result);
+    std::wprintf(L"%s\n", d_result.status_msg.c_str());
+    handle.reset();
+    // Older schema versions does not return anything.
+    // ASSERT_FALSE(d_result.status_msg.empty());
+}
+
+TEST_F(HyperVHCSAPI_IntegrationTests, instance_with_snapshots)
+{
+    hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
+
+    hyperv::hcs::CreateComputeSystemParameters params{};
+    params.name = "test";
+    params.memory_size_mb = 1024;
+    params.processor_count = 1;
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"});
+    params.scsi_devices.push_back(
+        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"});
+
+    const auto c_result = uut.create_compute_system(params, handle);
+    ASSERT_TRUE(uut.get_compute_system_state(handle, state));
+    ASSERT_EQ(state, decltype(state)::stopped);
+
+    ASSERT_TRUE(c_result);
+    ASSERT_TRUE(c_result.status_msg.empty());
+
+    const auto d_result = uut.terminate_compute_system(handle);
     ASSERT_TRUE(d_result);
     std::wprintf(L"%s\n", d_result.status_msg.c_str());
     // Older schema versions does not return anything.
     // ASSERT_FALSE(d_result.status_msg.empty());
+    handle.reset();
 }
 
 } // namespace multipass::test

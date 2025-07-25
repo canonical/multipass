@@ -49,6 +49,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
     hcn_wrapper_t hcn{};
     hcs_wrapper_t hcs{};
     virtdisk_wrapper_t virtdisk{};
+    hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = []() {
         hyperv::hcn::CreateNetworkParameters network_parameters{};
@@ -92,7 +93,11 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         return vm_parameters;
     }();
 
-    (void)hcs.terminate_compute_system(create_vm_parameters.name);
+    if (hcs.open_compute_system(create_vm_parameters.name, handle))
+    {
+        (void)hcs.terminate_compute_system(handle);
+        handle.reset();
+    }
 
     // Create the test network
     {
@@ -114,17 +119,18 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     // Create test VM
     {
-        const auto& [status, status_msg] = hcs.create_compute_system(create_vm_parameters);
+        const auto& [status, status_msg] = hcs.create_compute_system(create_vm_parameters, handle);
         ASSERT_TRUE(status);
     }
 
     // Start test VM
     {
-        const auto& [status, status_msg] = hcs.start_compute_system(create_vm_parameters.name);
+        const auto& [status, status_msg] = hcs.start_compute_system(handle);
         ASSERT_TRUE(status);
     }
 
-    (void)hcs.terminate_compute_system(create_vm_parameters.name);
+    (void)hcs.terminate_compute_system(handle);
+    handle.reset();
     (void)hcn.delete_endpoint(endpoint_parameters.endpoint_guid);
     (void)hcn.delete_network(network_parameters.guid);
 }
@@ -134,6 +140,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     hcn_wrapper_t hcn{};
     hcs_wrapper_t hcs{};
     virtdisk_wrapper_t virtdisk{};
+    hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = []() {
         hyperv::hcn::CreateNetworkParameters network_parameters{};
@@ -191,9 +198,13 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             GTEST_LOG_(WARNING) << "The test network was already present, deleted it.";
         }
 
-        if (hcs.terminate_compute_system(create_vm_parameters.name))
+        if (hcs.open_compute_system(create_vm_parameters.name, handle))
         {
-            GTEST_LOG_(WARNING) << "The test system was already present, terminated it.";
+            if (hcs.terminate_compute_system(handle))
+            {
+                GTEST_LOG_(WARNING) << "The test system was already present, terminated it.";
+            }
+            handle.reset();
         }
     }
 
@@ -220,14 +231,14 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Create test VM
     {
-        const auto& [status, status_msg] = hcs.create_compute_system(create_vm_parameters);
+        const auto& [status, status_msg] = hcs.create_compute_system(create_vm_parameters, handle);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
 
     // Start test VM
     {
-        const auto& [status, status_msg] = hcs.start_compute_system(create_vm_parameters.name);
+        const auto& [status, status_msg] = hcs.start_compute_system(handle);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -239,16 +250,17 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             HcsRequestType::Add(),
             network_adapter};
         const auto& [status, status_msg] =
-            hcs.modify_compute_system(create_vm_parameters.name, add_network_adapter_req);
+            hcs.modify_compute_system(handle, add_network_adapter_req);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
 
-    EXPECT_TRUE(hcs.terminate_compute_system(create_vm_parameters.name))
+    EXPECT_TRUE(hcs.terminate_compute_system(handle))
         << "Terminate system failed!";
     EXPECT_TRUE(hcn.delete_endpoint(endpoint_parameters.endpoint_guid))
         << "Delete endpoint failed!";
     EXPECT_TRUE(hcn.delete_network(network_parameters.guid)) << "Delete network failed!";
+    handle.reset();
 }
 
 } // namespace multipass::test

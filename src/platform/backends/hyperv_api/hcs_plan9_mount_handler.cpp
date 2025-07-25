@@ -67,7 +67,13 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
                                params};
     }();
 
-    const auto result = hcs->modify_compute_system(vm->vm_name, req);
+    HcsSystemHandle handle{nullptr};
+    if (!hcs->open_compute_system(vm->vm_name, handle))
+    {
+        throw std::runtime_error{"Could not open Host Compute System for the mount"};
+    }
+
+    const auto result = hcs->modify_compute_system(handle, req);
 
     if (!result)
     {
@@ -146,7 +152,7 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
                                    hcs::HcsRequestType::Remove(),
                                    params};
         }();
-        if (!hcs->modify_compute_system(vm->vm_name, req))
+        if (!hcs->modify_compute_system(handle, req))
         {
             // TODO: Warn here
         }
@@ -179,7 +185,13 @@ void Plan9MountHandler::deactivate_impl(bool force)
                                params};
     }();
 
-    if (!hcs->modify_compute_system(vm->vm_name, req))
+    HcsSystemHandle handle{nullptr};
+    if (!hcs->open_compute_system(vm->vm_name, handle))
+    {
+        throw std::runtime_error{"Could not open Host Compute System for the unmount"};
+    }
+
+    if (!hcs->modify_compute_system(handle, req))
     {
         mpl::warn(kLogCategory, "Plan9 share removal failed.");
     }
