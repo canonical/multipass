@@ -18,6 +18,7 @@
 #pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
+#include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 #include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
 
 #include <multipass/virtual_machine_description.h>
@@ -95,8 +96,9 @@ private:
     hcs_sptr_t hcs{nullptr};
     hcn_sptr_t hcn{nullptr};
     virtdisk_sptr_t virtdisk{nullptr};
-
     VMStatusMonitor& monitor;
+
+    hcs::HcsSystemHandle hcs_system{nullptr};
 
     hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);
