@@ -742,8 +742,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: cef5b8f
-      resolved-ref: cef5b8f60d7b2717c6f2eef2163a8e11de3b8d3d
+      ref: main
+      resolved-ref: "90d7d290eac0a1876ef7a59ba266a253c9ffee45"
       url: "https://github.com/canonical/tray_menu.git"
     source: git
     version: "0.0.1"
