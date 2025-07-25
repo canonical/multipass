@@ -20,8 +20,6 @@ jobs:
       - name: Check for forbidden tag in code
         shell: bash
         run: |
-          set -e -o pipefail
-
           # On pull requests, HEAD^1 will always be the merge base, so diff against that. Look for forbidden strings,
           # but exclude legitimate cases.
           forbidden_regex='(?i)\bno[_-]?merge\b'
@@ -49,8 +47,6 @@ jobs:
       - name: Run clang-format through the diff
         shell: bash
         run: |
-          set -e -o pipefail
-
           # Ensure that the .clang-format configuration is valid
           clang-format-16  --dump-config > /dev/null
 
@@ -64,7 +60,6 @@ jobs:
       - name: Initialize Flutter submodule and verify installation
         shell: bash
         run: |
-          set -e -o pipefail
           git submodule update --init 3rd-party/flutter
           if [ ! -f "3rd-party/flutter/bin/dart" ]; then
             echo -n "##[error] Flutter submodule not initialized. "
@@ -75,7 +70,6 @@ jobs:
       - name: Run Flutter format check
         shell: bash
         run: |
-          set -e -o pipefail
           # Fetch flutter deps before running the formatter as it can influence the outcome.
           3rd-party/flutter/bin/flutter pub get -C src/client/gui/
           if ! 3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed src/client/gui; then
