@@ -236,6 +236,7 @@ void HCSVirtualMachine::compute_system_event_callback(void* event, void* context
                   vm->vm_name);
         vm->state = State::off;
         vm->update_state();
+        vm->shutdown_signal.signal();
     }
     break;
     case hcs::HcsEventType::Unknown:
@@ -525,6 +526,9 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         hcs->terminate_compute_system(hcs_system);
         break;
     }
+
+    // Wait until the machine shuts down.
+    shutdown_signal.wait_for(std::chrono::seconds{180});
 }
 
 void HCSVirtualMachine::suspend()
