@@ -92,7 +92,7 @@ protected:
                                                      std::shared_ptr<Snapshot> parent) override;
 
 private:
-    const VirtualMachineDescription description{};
+    VirtualMachineDescription description{};
     const std::string primary_network_guid{};
     hcs_sptr_t hcs{nullptr};
     hcn_sptr_t hcn{nullptr};
