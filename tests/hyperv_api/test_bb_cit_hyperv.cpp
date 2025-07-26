@@ -255,8 +255,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         ASSERT_TRUE(status_msg.empty());
     }
 
-    EXPECT_TRUE(hcs.terminate_compute_system(handle))
-        << "Terminate system failed!";
+    EXPECT_TRUE(hcs.terminate_compute_system(handle)) << "Terminate system failed!";
     EXPECT_TRUE(hcn.delete_endpoint(endpoint_parameters.endpoint_guid))
         << "Delete endpoint failed!";
     EXPECT_TRUE(hcn.delete_network(network_parameters.guid)) << "Delete network failed!";
