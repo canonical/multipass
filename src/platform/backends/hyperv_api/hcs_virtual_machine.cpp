@@ -613,8 +613,7 @@ void HCSVirtualMachine::update_cpus(int num_cores)
                "update_cpus() -> called for VM `{}`, num_cores `{}`",
                vm_name,
                num_cores);
-    // This is a no-op since HCS creates the VM from scratch
-    // every time in a cold boot.
+    description.num_cores = num_cores;
 }
 
 void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -623,8 +622,7 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
                "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
                vm_name,
                new_size.in_megabytes());
-    (void)new_size;
-    return;
+    description.mem_size = new_size;
 
     // The implementation below allows runtime resize of memory. Multipass currently does
     // not support runtime resize so commenting it out.
@@ -642,7 +640,16 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
                "resize_disk() -> called for VM `{}`, new_size `{}` MiB",
                vm_name,
                new_size.in_megabytes());
-    throw std::runtime_error{"Not yet implemented"};
+
+    if (get_num_snapshots() > 0)
+    {
+        throw ResizeDiskWithSnapshotsException{"Cannot resize the primary disk while there are "
+                                               "snapshots. To resize, delete the snapshots first."};
+    }
+
+    virtdisk->resize_virtual_disk(description.image.image_path.toStdString(), new_size.in_bytes());
+    // TODO: Check if succeeded.
+    description.disk_space = new_size;
 }
 
 void HCSVirtualMachine::add_network_interface(int index,

@@ -62,4 +62,9 @@ struct StartComputeSystemException : public FormattedExceptionBase<>
     using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
+struct ResizeDiskWithSnapshotsException : public FormattedExceptionBase<>
+{
+    using FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
 } // namespace multipass::hyperv
