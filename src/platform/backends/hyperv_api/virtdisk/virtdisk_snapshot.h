@@ -96,6 +96,11 @@ public:
         return "head.avhdx";
     }
 
+    /**
+     * Path for the head disk
+     */
+    std::filesystem::path make_head_disk_path() const;
+
 protected:
     void capture_impl() override;
     void erase_impl() override;
