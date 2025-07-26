@@ -630,12 +630,17 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
                "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
                vm_name,
                new_size.in_megabytes());
-    hcs::HcsRequest req{
-        hcs::HcsResourcePath::Memory(),
-        hcs::HcsRequestType::Update(),
-        hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
-    hcs->modify_compute_system(hcs_system, req);
-    // FIXME: Log the result.
+    (void)new_size;
+    return;
+
+    // The implementation below allows runtime resize of memory. Multipass currently does
+    // not support runtime resize so commenting it out.
+
+    // hcs::HcsRequest req{
+    //     hcs::HcsResourcePath::Memory(),
+    //     hcs::HcsRequestType::Update(),
+    //     hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
+    // hcs->modify_compute_system(hcs_system, req);
 }
 
 void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
