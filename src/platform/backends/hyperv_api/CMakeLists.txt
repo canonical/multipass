@@ -66,6 +66,7 @@ if(WIN32)
     fmt::fmt-header-only
     ztd::out_ptr
     utils
+    scope_guard
     computecore.lib
     computenetwork.lib
     virtdisk.lib
