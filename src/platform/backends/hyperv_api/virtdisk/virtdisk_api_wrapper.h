@@ -120,11 +120,13 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      *
      * @param [in] vhdx_path The chain link to start from
      * @param [out] chain The result
+     * @param [in] max_depth Maximum depth to list (optional)
      * @return OperationResult
      */
     virtual OperationResult list_virtual_disk_chain(
         const std::filesystem::path& vhdx_path,
-        std::vector<std::filesystem::path>& chain) const override;
+        std::vector<std::filesystem::path>& chain,
+        std::optional<std::size_t> max_depth = std::nullopt) const override;
 
 private:
     const VirtDiskAPITable api{};
