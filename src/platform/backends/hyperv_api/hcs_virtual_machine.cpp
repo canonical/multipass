@@ -513,6 +513,20 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             ssh_exec("sudo shutdown -h now");
             drop_ssh_session();
             // We need to wait here.
+            auto on_timeout = [] {
+                throw std::runtime_error("timed out waiting for initialization to complete");
+            };
+            multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+                switch (current_state())
+                {
+                case VirtualMachine::State::stopped:
+                case VirtualMachine::State::off:
+                    return multipass::utils::TimeoutAction::done;
+                default:
+                    return multipass::utils::TimeoutAction::retry;
+                }
+            });
+            return;
         }
         break;
     case ShutdownPolicy::Halt:
@@ -526,20 +540,8 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         break;
     }
 
-    auto on_timeout = [] {
-        throw std::runtime_error("timed out waiting for initialization to complete");
-    };
-
-    multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
-        switch (current_state())
-        {
-        case VirtualMachine::State::stopped:
-        case VirtualMachine::State::off:
-            return multipass::utils::TimeoutAction::done;
-        default:
-            return multipass::utils::TimeoutAction::retry;
-        }
-    });
+    state = State::off;
+    update_state();
 }
 
 void HCSVirtualMachine::suspend()
