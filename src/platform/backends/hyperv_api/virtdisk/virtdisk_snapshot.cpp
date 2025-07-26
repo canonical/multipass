@@ -180,7 +180,7 @@ void VirtDiskSnapshot::erase_impl()
     const auto& self_path = make_snapshot_path(*this);
     mpl::debug(kLogCategory,
                "erase_impl() -> parent: {}, self_path: {}",
-               parent->get_name(),
+               parent ? parent->get_name() : "<none>",
                self_path);
 
     //  1: Merge this to its parent
@@ -206,6 +206,7 @@ void VirtDiskSnapshot::erase_impl()
                     (ss.get_index() != this_index) &&
                     // set_parent() for the orphaned children happens before erase() call
                     // so they're already adopted by the self's parent at this point.
+                    // FIXME: Something is not right here.
                     (ss.get_parents_index() == parent->get_index());
             });
         reparent_snapshot_disks(children_to_reparent, parent_path);
