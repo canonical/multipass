@@ -22,6 +22,7 @@
 #include <hyperv_api/virtdisk/virtdisk_disk_info.h>
 
 #include <filesystem>
+#include <optional>
 
 namespace multipass::hyperv::virtdisk
 {
@@ -44,7 +45,8 @@ struct VirtDiskWrapperInterface
 
     virtual OperationResult list_virtual_disk_chain(
         const std::filesystem::path& vhdx_path,
-        std::vector<std::filesystem::path>& chain) const = 0;
+        std::vector<std::filesystem::path>& chain,
+        std::optional<std::size_t> max_depth = std::nullopt) const = 0;
 
     virtual ~VirtDiskWrapperInterface() = default;
 };
