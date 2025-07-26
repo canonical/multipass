@@ -29,12 +29,14 @@
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/platform_win.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/shared_backend_utils.h>
 #include <shared/windows/smb_mount_handler.h>
 
 #include <fmt/xchar.h>
+#include <scope_guard.hpp>
 
 #include <stdexcept>
 
@@ -200,13 +202,6 @@ HCSVirtualMachine::HCSVirtualMachine(hcs_sptr_t hcs_w,
     const auto created_from_scratch = maybe_create_compute_system();
     const auto state = fetch_state_from_api();
 
-    if (hcs->set_compute_system_callback(hcs_system,
-                                         this,
-                                         HCSVirtualMachine::compute_system_event_callback))
-    {
-        // TODO: Log
-    }
-
     mpl::debug(kLogCategory,
                "HCSVirtualMachine::HCSVirtualMachine() > `{}`, created_from_scratch: {}, state: {}",
                vm_name,
@@ -284,24 +279,24 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
 
 bool HCSVirtualMachine::maybe_create_compute_system()
 {
+    // Always reset the handle and create a new one.
+    hcs_system.reset();
+    auto attach_callback_handler = sg::make_scope_guard([this]() noexcept {
+        assert(hcs_system);
+        top_catch_all(kLogCategory, [this] {
+            hcs->set_compute_system_callback(hcs_system,
+                                             this,
+                                             HCSVirtualMachine::compute_system_event_callback);
+            // TODO: Log
+        });
+    });
+
     const auto result = hcs->open_compute_system(vm_name, hcs_system);
     if (result)
     {
         // Opened existing VM
         return false;
     }
-
-    // {
-    //     hcs::ComputeSystemState cs_state{hcs::ComputeSystemState::unknown};
-    //     // Check if the VM already exist
-    //     const auto result = hcs->get_compute_system_state(vm_name, cs_state);
-
-    //     if (!(E_INVALIDARG == static_cast<HRESULT>(result.code)))
-    //     {
-    //         // Target compute system already exist, no need to re-create.
-    //         return false;
-    //     }
-    // }
 
     // FIXME: Handle suspend state?
 
@@ -512,21 +507,6 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             // Fall back to SSH shutdown.
             ssh_exec("sudo shutdown -h now");
             drop_ssh_session();
-            // We need to wait here.
-            auto on_timeout = [] {
-                throw std::runtime_error("timed out waiting for initialization to complete");
-            };
-            multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
-                switch (current_state())
-                {
-                case VirtualMachine::State::stopped:
-                case VirtualMachine::State::off:
-                    return multipass::utils::TimeoutAction::done;
-                default:
-                    return multipass::utils::TimeoutAction::retry;
-                }
-            });
-            return;
         }
         break;
     case ShutdownPolicy::Halt:
@@ -534,14 +514,27 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::debug(kLogCategory,
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
                    vm_name);
-        drop_ssh_session();
         // These are non-graceful variants. Just terminate the system immediately.
         hcs->terminate_compute_system(hcs_system);
+        drop_ssh_session();
+
         break;
     }
 
-    state = State::off;
-    update_state();
+    // We need to wait here.
+    auto on_timeout = [] {
+        throw std::runtime_error("timed out waiting for initialization to complete");
+    };
+    multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+        switch (current_state())
+        {
+        case VirtualMachine::State::stopped:
+        case VirtualMachine::State::off:
+            return multipass::utils::TimeoutAction::done;
+        default:
+            return multipass::utils::TimeoutAction::retry;
+        }
+    });
 }
 
 void HCSVirtualMachine::suspend()
