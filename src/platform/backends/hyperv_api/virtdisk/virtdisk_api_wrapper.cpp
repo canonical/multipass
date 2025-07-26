@@ -520,9 +520,9 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
     return {NOERROR, L""};
 }
 
-OperationResult VirtDiskWrapper::list_virtual_disk_chain(
-    const std::filesystem::path& vhdx_path,
-    std::vector<std::filesystem::path>& chain) const
+OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::path& vhdx_path,
+                                                         std::vector<std::filesystem::path>& chain,
+                                                         std::optional<std::size_t> max_depth) const
 {
 
     mpl::debug(kLogCategory, "list_virtual_disk_chain(...) > vhdx_path: {}", vhdx_path);
@@ -606,7 +606,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(
                 // use-case.
                 return OperationResult{E_FAIL, L"Parent virtual disk path resolution failed!"};
         }
-    } while (true);
+    } while (!max_depth || --(*max_depth));
     mpl::debug(kLogCategory,
                "list_virtual_disk_chain(...) > final chain: {}",
                fmt::join(chain, " | --> | "));
