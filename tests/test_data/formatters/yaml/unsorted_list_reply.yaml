@@ -7,7 +7,7 @@ trusty-190611-1535:
   - state: Stopped
     ipv4:
       []
-    release: Ubuntu N/A
+    release: Fedora 42
 trusty-190611-1539:
   - state: Suspended
     ipv4:
@@ -17,4 +17,4 @@ trusty-190611-1542:
   - state: Running
     ipv4:
       []
-    release: Ubuntu N/A
+    release: Debian 12
