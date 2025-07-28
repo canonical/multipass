@@ -62,7 +62,7 @@ auto construct_single_instance_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("16.04 LTS");
+    list_entry->set_current_release("Ubuntu 16.04 LTS");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
     list_entry->add_ipv6("fdde:2681:7a2::4ca");
@@ -78,13 +78,13 @@ auto construct_multiple_instances_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("16.04 LTS");
+    list_entry->set_current_release("Ubuntu 16.04 LTS");
     list_entry->add_ipv4("10.21.124.56");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("18.04 LTS");
+    list_entry->set_current_release("Ubuntu 18.04 LTS");
 
     return list_reply;
 }
@@ -96,12 +96,12 @@ auto construct_unsorted_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("Debian 12");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("Fedora 42");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
@@ -869,9 +869,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &unsorted_list_reply,
      "Name                    State             IPv4             Image\n"
      "trusty-190611-1529      Deleted           --               Not Available\n"
-     "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
+     "trusty-190611-1535      Stopped           --               Fedora 42\n"
      "trusty-190611-1539      Suspended         --               Not Available\n"
-     "trusty-190611-1542      Running           --               Ubuntu N/A\n",
+     "trusty-190611-1542      Running           --               Debian 12\n",
      "table_list_unsorted"},
     {&table_formatter,
      &single_snapshot_list_reply,
@@ -1088,9 +1088,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &unsorted_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
      "trusty-190611-1529,Deleted,,,Not Available,\"\"\n"
-     "trusty-190611-1535,Stopped,,,Ubuntu N/A,\"\"\n"
+     "trusty-190611-1535,Stopped,,,Fedora 42,\"\"\n"
      "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
-     "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
+     "trusty-190611-1542,Running,,,Debian 12,\"\"\n",
      "csv_list_unsorted"},
     {&csv_formatter,
      &empty_list_snapshot_reply,
@@ -1188,7 +1188,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: Ubuntu N/A\n"
+     "    release: Fedora 42\n"
      "trusty-190611-1539:\n"
      "  - state: Suspended\n"
      "    ipv4:\n"
@@ -1198,7 +1198,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: Ubuntu N/A\n",
+     "    release: Debian 12\n",
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_list_snapshot_reply, "\n", "yaml_list_snapshot_empty"},
     {&yaml_formatter,
