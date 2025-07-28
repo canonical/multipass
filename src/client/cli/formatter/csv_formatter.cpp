@@ -166,9 +166,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                        mp::format::status_string_for(instance.instance_status()),
                        instance.ipv4_size() ? instance.ipv4(0) : "",
                        instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release().empty()
-                           ? "Not Available"
-                           : fmt::format("Ubuntu {}", instance.current_release()),
+                       instance.current_release().empty() ? "Not Available"
+                                                          : instance.current_release(),
                        fmt::join(instance.ipv4(), ","));
     }
 
