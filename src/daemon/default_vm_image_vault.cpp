@@ -69,6 +69,7 @@ auto image_to_json(const mp::VMImage& image)
     json.insert("original_release", QString::fromStdString(image.original_release));
     json.insert("current_release", QString::fromStdString(image.current_release));
     json.insert("release_date", QString::fromStdString(image.release_date));
+    json.insert("os", QString::fromStdString(image.os));
 
     QJsonArray aliases;
     for (const auto& alias : image.aliases)
@@ -128,6 +129,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         auto original_release = image["original_release"].toString().toStdString();
         auto current_release = image["current_release"].toString().toStdString();
         auto release_date = image["release_date"].toString().toStdString();
+        auto os = image["os"].toString().toStdString();
 
         std::vector<std::string> aliases;
         for (QJsonValueRef entry : image["aliases"].toArray())
@@ -160,7 +162,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         }
 
         reconstructed_records[key] = {
-            {image_path, image_id, original_release, current_release, release_date, aliases},
+            {image_path, image_id, original_release, current_release, release_date, os, aliases},
             {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }
@@ -670,6 +672,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         source_image.image_path = image_dir.filePath(file_info.fileName());
         source_image.original_release = info.release_title.toStdString();
         source_image.release_date = info.version.toStdString();
+        source_image.os = info.os.toStdString();
 
         for (const auto& alias : info.aliases)
         {
@@ -737,6 +740,7 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared
             prepared_image.original_release,
             prepared_image.current_release,
             prepared_image.release_date,
+            prepared_image.os,
             {}};
 }
 
