@@ -1,3 +1,3 @@
 Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots
-bogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => source,10.21.124.56,4,1
-bombastic,Stopped,,,,ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3
+bogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,Ubuntu 16.04 LTS,0.03 0.10 0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => source,10.21.124.56,4,1
+bombastic,Stopped,,,,ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,Ubuntu 18.04 LTS,,,,,,,,,3
