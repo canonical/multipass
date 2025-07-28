@@ -4,7 +4,7 @@ foo:
   - state: Running
     snapshot_count: 0
     image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac
-    image_release: 16.04 LTS
+    image_release: Ubuntu 16.04 LTS
     release: Ubuntu 16.04.3 LTS
     cpu_count: 1
     load:
