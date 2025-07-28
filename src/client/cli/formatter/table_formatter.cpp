@@ -173,9 +173,9 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
         fmt::format_to(dest,
                        "{}{}\n",
                        instance_details.id().substr(0, 12),
-                       !instance_details.image_release().empty()
-                           ? fmt::format(" (Ubuntu {})", instance_details.image_release())
-                           : "");
+                       instance_details.image_release().empty()
+                           ? ""
+                           : fmt::format(" ({})", instance_details.image_release()));
 
     fmt::format_to(dest,
                    "{:<16}{}\n",
