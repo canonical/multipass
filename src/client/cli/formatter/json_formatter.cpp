@@ -204,11 +204,10 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             ipv4_addrs.append(QString::fromStdString(ip));
         instance_obj.insert("ipv4", ipv4_addrs);
 
-        instance_obj.insert(
-            "release",
-            QString::fromStdString(instance.current_release().empty()
-                                       ? "Not Available"
-                                       : fmt::format("Ubuntu {}", instance.current_release())));
+        instance_obj.insert("release",
+                            QString::fromStdString(instance.current_release().empty()
+                                                       ? "Not Available"
+                                                       : instance.current_release()));
 
         instances.append(instance_obj);
     }
