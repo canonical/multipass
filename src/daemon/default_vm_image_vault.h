@@ -85,6 +85,7 @@ private:
                                    const Path& dest_dir);
     void persist_image_records();
     void persist_instance_records();
+    void amend_db();
 
     URLDownloader* const url_downloader;
     const QDir cache_dir;
