@@ -146,7 +146,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         if (!persistent.isBool())
             return {};
         auto remote_name = query["remote_name"].toString();
-        auto query_type = static_cast<mp::Query::Type>(query["type"].toInt());
+        auto query_type = static_cast<mp::Query::Type>(query["query_type"].toInt());
 
         std::chrono::system_clock::time_point last_accessed;
         auto last_accessed_count = static_cast<qint64>(record["last_accessed"].toDouble());
