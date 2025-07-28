@@ -1882,9 +1882,9 @@ try
         else
             entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-        // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         auto current_release = vm_image.original_release;
+        auto os = vm_image.os;
 
         if (!vm_image.id.empty() && current_release.empty())
         {
@@ -1899,7 +1899,7 @@ try
             }
         }
 
-        entry->set_current_release(current_release);
+        entry->set_current_release(mpu::trim(fmt::format("{} {}", os, current_release)));
 
         if (request->request_ipv4() && MP_UTILS.is_running(present_state))
         {
