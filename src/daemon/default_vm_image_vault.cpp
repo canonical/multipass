@@ -22,6 +22,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -31,8 +32,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image.h>
-
-#include <multipass/format.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -253,6 +252,12 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
       instance_image_records{load_db(data_dir.filePath(instance_db_name))}
 {
+    // TODO: Remove after Multipass 1.17
+    // The OS field will be unpopulated for existing images in the vault. As of 1.16, the only
+    // images in the prepared image records are Ubuntu images. Therefore, we can safely assume that
+    // if the OS field is empty, it was a previously existing Ubuntu cloud image. The same can be
+    // said for instance image records with instances created with the Alias Query::Type.
+    amend_db();
 }
 
 mp::DefaultVMImageVault::~DefaultVMImageVault()
@@ -793,4 +798,27 @@ void mp::DefaultVMImageVault::persist_instance_records()
 void mp::DefaultVMImageVault::persist_image_records()
 {
     persist_records(prepared_image_records, cache_dir.filePath(image_db_name));
+}
+
+void mp::DefaultVMImageVault::amend_db()
+{
+    for (auto& instance_image_entry : prepared_image_records)
+    {
+        auto& record = instance_image_entry.second;
+
+        if (record.image.os.empty())
+        {
+            record.image.os = "Ubuntu";
+        }
+    }
+
+    for (auto& instance_image_entry : instance_image_records)
+    {
+        auto& record = instance_image_entry.second;
+
+        if (record.query.query_type == Query::Type::Alias && record.image.os.empty())
+        {
+            record.image.os = "Ubuntu";
+        }
+    }
 }
