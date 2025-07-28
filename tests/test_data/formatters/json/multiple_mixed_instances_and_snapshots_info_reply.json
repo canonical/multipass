@@ -11,7 +11,7 @@
                 }
             },
             "image_hash": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
-            "image_release": "16.04 LTS",
+            "image_release": "Ubuntu 16.04 LTS",
             "ipv4": [
                 "10.21.124.56"
             ],
@@ -82,7 +82,7 @@
                 }
             },
             "image_hash": "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509",
-            "image_release": "18.04 LTS",
+            "image_release": "Ubuntu 18.04 LTS",
             "ipv4": [
             ],
             "load": [

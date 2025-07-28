@@ -1,2 +1,2 @@
 Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots
-foo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu 16.04.3 LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir => test_dir,10.168.32.2;200.3.123.29,1,0
+foo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu 16.04.3 LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,Ubuntu 16.04 LTS,0.45 0.51 0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir => test_dir,10.168.32.2;200.3.123.29,1,0
