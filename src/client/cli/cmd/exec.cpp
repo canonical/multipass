@@ -177,7 +177,7 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
         {
             if (args[0] == "sudo")
             {
-                // Use sudo to access the directory, but run the command as the ubuntu user,
+                // Use sudo to access the directory, but run the command as the default user,
                 // This preserves the correct SUDO_ environment variables
                 const auto sh_args =
                     fmt::format("cd {} && sudo -u {} {}", *dir, username, fmt::join(args, " "));
