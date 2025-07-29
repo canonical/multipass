@@ -81,6 +81,8 @@ struct SmbMountHandlerTest : public ::Test
         EXPECT_CALL(platform, get_username).WillOnce(Return(username));
         ON_CALL(utils, contents_of).WillByDefault(Return("irrelevant"));
         ON_CALL(utils, make_file_with_content(_, _)).WillByDefault(Return());
+        EXPECT_CALL(utils, make_uuid(std::make_optional(vm.vm_name)))
+            .WillOnce(Return(vm_name_uuid));
         EXPECT_CALL(utils, make_uuid(std::make_optional(target))).WillOnce(Return(target_uuid));
         EXPECT_CALL(utils, make_uuid(std::make_optional(username.toStdString())))
             .WillOnce(Return(username_uuid));
@@ -134,6 +136,7 @@ struct SmbMountHandlerTest : public ::Test
     NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
     std::string source{"source"}, target{"target"};
     QString target_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
+    QString vm_name_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
     mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
     mp::VMMount mount{source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
 
@@ -159,11 +162,7 @@ struct SmbMountHandlerTest : public ::Test
     std::string remote_cred_file{"/tmp/.smb_credentials"};
     std::string enc_key{"key"};
     std::string smb_share_name =
-        QString("%1_%2:%3")
-            .arg(target_uuid, QString::fromStdString(vm.vm_name), QString::fromStdString(target))
-            .left(80)
-            .toStdString();
-
+        fmt::format("{}-{}", vm_name_uuid.toStdString(), target_uuid.toStdString());
     std::string dpkg_command{"dpkg-query --show --showformat='${db:Status-Status}' cifs-utils"};
     std::string install_cifs_command{"sudo apt-get update && sudo apt-get install -y cifs-utils"};
     std::string mkdir_command{"mkdir -p " + target};
