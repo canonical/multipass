@@ -54,9 +54,27 @@ private:
         std::pair{Keys::mem_usage_key, R"(free -b | grep 'Mem:' | awk '{printf \$3}')"},
         std::pair{Keys::mem_total_key, R"(free -b | grep 'Mem:' | awk '{printf \$2}')"},
         std::pair{Keys::disk_usage_key,
-                  "df -t ext4 -t vfat -t btrfs --total -B1 --output=used | tail -n 1"},
+                  R"(
+                    df -B1 -t ext4 -t btrfs -t vfat --output=source,used,target \
+                    | tail -n +2 \
+                    | while read src used mp; do
+                        fsid=\$(stat -f -c '%d' \$mp)
+                        echo \$fsid \$used
+                    done \
+                    | sort -u -k1,1 \
+                    | awk '{ sum += \$2 } END { printf(\"%d\n\", sum) }'
+                  )"},
         std::pair{Keys::disk_total_key,
-                  "df -t ext4 -t vfat -t btrfs --total -B1 --output=size | tail -n 1"},
+                  R"(
+                    df -B1 -t ext4 -t btrfs -t vfat --output=source,size,target \
+                    | tail -n +2 \
+                    | while read src size mp; do
+                        fsid=\$(stat -f -c '%d' \$mp)
+                        echo \$fsid \$size
+                    done \
+                    | sort -u -k1,1 \
+                    | awk '{ sum += \$2 } END { printf(\"%d\n\", sum) }'
+                  )"},
         std::pair{Keys::cpus_key, "nproc"},
         std::pair{Keys::cpu_times_key, "head -n1 /proc/stat"},
         std::pair{Keys::uptime_key, "uptime -p | tail -c+4"},
