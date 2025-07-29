@@ -18,6 +18,8 @@ file(MAKE_DIRECTORY ${GRPC_GENERATED_SOURCE_DIR})
 
 if(NOT MSVC)
   add_compile_options(-Wno-error=pedantic)
+else()
+  add_compile_options(/bigobj)
 endif()
 
 generate_grpc_cpp(GRPC_GENERATED_SOURCES ${GRPC_GENERATED_SOURCE_DIR} ${MULTIPASS_PROTOCOL_SPEC})
