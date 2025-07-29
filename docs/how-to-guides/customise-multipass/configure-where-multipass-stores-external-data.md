@@ -151,6 +151,10 @@ Copy-Item -Path "C:\ProgramData\Multipass\*" -Destination "<path>" -Recurse
 It is important to copy any existing data to the new location. This avoids unauthenticated client issues, permission issues, and in general, to have any previously created instances available.
 ```
 
+You also need to edit the following configuration file so that the specified paths point to the new Multipass storage directory, otherwise your instances will fail to start:
+
+* `vault/multipassd-instance-image-records.json`: Update the "path" key for each instance.
+
 Finally, start the Multipass daemon:
 
 ```{code-block} powershell
@@ -200,6 +204,11 @@ Now you can transfer your data from the custom location back to its original loc
 sudo cp -r <path>/data /var/snap/multipass/common/data/multipassd
 sudo cp -r <path>/cache /var/snap/multipass/common/cache/multipassd
 ```
+
+You also need to edit the following configuration files so that the specified paths point to the original Multipass storage directory, otherwise your instances will fail to start:
+
+* `multipass-vm-instances.json`: Update the absolute path of the instance images in the "arguments" key for each instance.
+* `vault/multipassd-instance-image-records.json`: Update the "path" key for each instance.
 
 Finally, start the Multipass daemon:
 
@@ -270,6 +279,8 @@ Now you can transfer the data back to its original location:
 ```{code-block} powershell
 Copy-Item -Path "<path>\*" -Destination "C:\ProgramData\Multipass" -Recurse -Force
 ```
+
+Update the "path" key for each instance in `vault/multipassd-instance-image-records.json` to their original location.
 
 Finally, start the Multipass daemon:
 
