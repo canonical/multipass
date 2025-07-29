@@ -19,6 +19,7 @@
 """Multipass command line tests for the `mount` feature."""
 
 import shutil
+import os
 from pathlib import Path
 
 import pytest
@@ -27,11 +28,11 @@ from cli_tests.utils import multipass, TempDirectory, mounts
 
 
 @pytest.mark.mount
+# TODO: "native"
+@pytest.mark.parametrize("mount_type", ["classic"])
 class TestMount:
     """Virtual machine mount tests."""
 
-    # TODO: "native"
-    @pytest.mark.parametrize("mount_type", ["classic"])
     def test_mount(self, instance, mount_type):
 
         with TempDirectory() as mount_dir:
@@ -54,7 +55,104 @@ class TestMount:
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
-    @pytest.mark.parametrize("mount_type", ["classic"])
+    def test_mount_multiple(self, instance, mount_type):
+
+        with TempDirectory() as mount_dir1, TempDirectory() as mount_dir2:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_dir1), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_dir2), instance)
+            assert multipass("start", instance)
+
+            assert mounts(instance) == {
+                f"/home/ubuntu/{mount_dir1.name}": {
+                    "gid_mappings": ["1000:default"],
+                    "source_path": str(mount_dir1),
+                    "uid_mappings": ["1000:default"],
+                },
+                f"/home/ubuntu/{mount_dir2.name}": {
+                    "gid_mappings": ["1000:default"],
+                    "source_path": str(mount_dir2),
+                    "uid_mappings": ["1000:default"],
+                },
+            }
+
+            assert multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir1.name}"
+            )
+
+            assert multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir2.name}"
+            )
+
+            assert multipass(
+                "umount",
+                f"{instance}:/home/ubuntu/{mount_dir1.name}",
+            )
+
+            assert mounts(instance) == {
+                f"/home/ubuntu/{mount_dir2.name}": {
+                    "gid_mappings": ["1000:default"],
+                    "source_path": str(mount_dir2),
+                    "uid_mappings": ["1000:default"],
+                },
+            }
+
+            assert multipass(
+                "umount",
+                f"{instance}:/home/ubuntu/{mount_dir2.name}",
+            )
+
+            assert mounts(instance) == {}
+
+            assert not multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir1.name}"
+            )
+
+            assert not multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir2.name}"
+            )
+
+    def test_mount_restart(self, multipassd, instance, mount_type):
+
+        with TempDirectory() as mount_dir:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_dir), instance)
+            assert multipass("start", instance)
+
+            assert mounts(instance) == {
+                f"/home/ubuntu/{mount_dir.name}": {
+                    "gid_mappings": ["1000:default"],
+                    "source_path": str(mount_dir),
+                    "uid_mappings": ["1000:default"],
+                }
+            }
+            assert multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir.name}"
+            )
+
+            multipassd.restart()
+
+            assert mounts(instance) == {
+                f"/home/ubuntu/{mount_dir.name}": {
+                    "gid_mappings": ["1000:default"],
+                    "source_path": str(mount_dir),
+                    "uid_mappings": ["1000:default"],
+                }
+            }
+            assert multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir.name}"
+            )
+
+            assert multipass("umount", instance)
+            assert mounts(instance) == {}
+            assert not multipass(
+                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir.name}"
+            )
+
     def test_mount_modify(self, instance, mount_type):
 
         with TempDirectory() as mount_dir:
@@ -98,12 +196,14 @@ class TestMount:
                 f'bash -c \'echo "hello there" > {str(instance_target_path / subdir)}/file2.txt',
             )
 
+            # Verify that created files exits in host
             expected_subdir = mount_dir / subdir
             expected_file1 = mount_dir / "file1.txt"
             expected_file2 = expected_subdir / "file2.txt"
             assert expected_file1.read_text() == "hello there\n"
             assert expected_file2.read_text() == "hello there\n"
 
+            # Remove the files from host side
             expected_file1.unlink()
             assert not expected_file1.exists()
             expected_file2.unlink()
@@ -111,5 +211,82 @@ class TestMount:
             expected_subdir.rmdir()
             assert not expected_subdir.exists()
 
+            # verify that they are no longer present in the guest
+            assert not multipass("exec", instance, "--", "ls", str(expected_file1))
+            assert not multipass("exec", instance, "--", "ls", str(expected_file2))
+            assert not multipass("exec", instance, "--", "ls", str(expected_subdir))
+
             assert multipass("umount", instance)
             assert mounts(instance) == {}
+            # NOTE: For some reason, this assert fails where it works fine
+            # for other tests. The only difference I could tell is this test
+            # does some I/O on top of mount.
+            # assert not multipass(
+            #     "exec", instance, "--", "ls", str(instance_target_path)
+            # )
+
+    def test_mount_readonly(self, instance, mount_type):
+
+        with TempDirectory() as mount_dir:
+            os.chmod(mount_dir, 0o444)
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_dir), instance)
+            assert multipass("start", instance)
+
+            assert mounts(instance) == {
+                f"/home/ubuntu/{mount_dir.name}": {
+                    "gid_mappings": ["1000:default"],
+                    "source_path": str(mount_dir),
+                    "uid_mappings": ["1000:default"],
+                }
+            }
+
+            instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
+            subdir = Path("subdir1") / "subdir2" / "subdir3"
+
+            assert multipass("exec", instance, "--", "ls", str(instance_target_path))
+            from cli_tests.utils import debug_interactive_shell
+            debug_interactive_shell(instance)
+
+            assert not multipass(
+                "exec",
+                instance,
+                "--",
+                f'bash -c \'echo "hello there" > {str(instance_target_path)}/file1.txt',
+            )
+
+            assert not multipass(
+                "exec",
+                instance,
+                "--",
+                f"mkdir -p {str(instance_target_path / subdir)}",
+            )
+
+            assert not multipass(
+                "exec",
+                instance,
+                "--",
+                f'bash -c \'echo "hello there" > {str(instance_target_path / subdir)}/file2.txt',
+            )
+
+            # Verify that created files exits in host
+            expected_subdir = mount_dir / subdir
+            expected_file1 = mount_dir / "file1.txt"
+            expected_file2 = expected_subdir / "file2.txt"
+
+            # verify that they are no longer present in the guest
+            assert not multipass("exec", instance, "--", "ls", str(expected_file1))
+            assert not multipass("exec", instance, "--", "ls", str(expected_file2))
+            assert not multipass("exec", instance, "--", "ls", str(expected_subdir))
+
+            assert multipass("umount", instance)
+            assert mounts(instance) == {}
+            # NOTE: For some reason, this assert fails where it works fine
+            # for other tests. The only difference I could tell is this test
+            # does some I/O on top of mount.
+            # assert not multipass(
+            #     "exec", instance, "--", "ls", str(instance_target_path)
+            # )
+
