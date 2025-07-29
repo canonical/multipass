@@ -1,11 +1,11 @@
 name: multipass
 title: Multipass
 icon: data/multipass.gui.svg
-summary: Instant Ubuntu VMs
+summary: Instant cloud VMs
 description: |
-  Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that
-  simulates a cloud environment with support for cloud-init. Get Ubuntu
-  on-demand with clean integration to your IDE and version control on your
+  Multipass is a tool to launch and manage cloud VMs on Windows, Mac and Linux
+  that simulates a cloud environment with support for cloud-init. Get on-demand
+  cloud VMs with clean integration to your IDE and version control on your
   native platform.
 license: GPL-3.0
 
