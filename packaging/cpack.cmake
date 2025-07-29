@@ -61,7 +61,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
 endif ()
 
 # set (CPACK_PACKAGE_DESCRIPTION_FILE ...)
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to Ubuntu instances")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to cloud instances")
 
 if (MSVC)
   # multipassd depends on qemu-img.exe indirectly (called to convert qcow images to VHDX format)
