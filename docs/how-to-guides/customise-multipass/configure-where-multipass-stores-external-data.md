@@ -268,7 +268,7 @@ Remove-ItemProperty -Path "HKLM:System\CurrentControlSet\Control\Session Manager
 Now you can transfer the data back to its original location:
 
 ```{code-block} powershell
-Copy-Item -Path "<path>\*" -Destination "C:\ProgramData\Multipass" -Recurse
+Copy-Item -Path "<path>\*" -Destination "C:\ProgramData\Multipass" -Recurse -Force
 ```
 
 Finally, start the Multipass daemon:
@@ -280,7 +280,7 @@ Start-Service Multipass
 You can delete the data from the custom location at your discretion, to free up space:
 
 ```{code-block} powershell
-Remove-Item -Path "<path>" -Recurse
+Remove-Item -Path "<path>" -Recurse -Force
 ```
 
 ````
