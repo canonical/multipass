@@ -211,6 +211,7 @@ class MultipassdController:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            env = self.multipassd_env
         )
         self.start_monitoring()
         if not MultipassdController.wait_for_multipassd_ready():
