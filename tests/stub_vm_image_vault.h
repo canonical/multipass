@@ -35,7 +35,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                    const std::optional<std::string>&,
                                    const multipass::Path&) override
     {
-        return prepare({dummy_image.name(), {}, {}, {}, {}, {}});
+        return prepare({dummy_image.name(), {}, {}, {}, {}, {}, {}});
     };
 
     void remove(const std::string&) override{};

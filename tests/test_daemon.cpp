@@ -1526,10 +1526,10 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         .WillRepeatedly(
             DoDefault()); // returns an image that can be verified to exist for this instance
     EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _, _, _))
-        .WillOnce(
-            Return(mp::VMImage{"/path/to/nowhere", "", "", "", "", {}})); // an image that can't be
-                                                                          // verified to exist for
-                                                                          // this instance
+        .WillOnce(Return(
+            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})); // an image that can't be
+                                                                       // verified to exist for
+                                                                       // this instance
     config_builder.vault = std::move(mock_image_vault);
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1656,8 +1656,9 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image)
         .WillOnce(Return(
-            mp::VMImage{"/path/to/nowhere", "", "", "", "", {}})) // cause the Daemon's ctor to fail
-                                                                  // verifying that the img exists
+            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})) // cause the Daemon's ctor to
+                                                                      // fail verifying that the img
+                                                                      // exists
         .WillRepeatedly(DoDefault());
     config_builder.vault = std::move(mock_image_vault);
 
