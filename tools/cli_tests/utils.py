@@ -209,6 +209,28 @@ def multipass(*args, **kwargs):
             echo=echo,
         )
 
+    if sys.platform == "win32":
+        import pexpect.popen_spawn
+        import subprocess
+
+        class PopenCompatSpawn(pexpect.popen_spawn.PopenSpawn):
+            def __init__(self, command, **kwargs):
+                super().__init__(command, **kwargs)
+                self.command = command if isinstance(command, list) else command.split()
+
+            def isalive(self):
+                return self.proc.poll() is None
+
+            def terminate(self, wait=True, kill_on_timeout=True, timeout=5):
+                if self.isalive():
+                    self.proc.terminate()
+                    if wait:
+                        try:
+                            self.proc.wait(timeout=timeout)
+                        except subprocess.TimeoutExpired:
+                            if kill_on_timeout:
+                                self.proc.kill()
+
     class Cmd:
         """Run a Multipass CLI command and capture its output.
 
@@ -223,15 +245,26 @@ def multipass(*args, **kwargs):
 
         def __init__(self):
             try:
-                self.pexpect_child = pexpect.spawn(
-                    f"{multipass_path} {' '.join(str(arg) for arg in args)}",
-                    logfile=(sys.stdout.buffer if config.print_cli_output else None),
-                    timeout=timeout,
-                    echo=echo,
-                )
+                if not sys.platform == "win32":
+                    self.pexpect_child = pexpect.spawn(
+                        f"{multipass_path} {' '.join(str(arg) for arg in args)}",
+                        logfile=(sys.stdout.buffer if config.print_cli_output else None),
+                        timeout=timeout,
+                        echo=echo,
+                    )
+                else:
+                    self.pexpect_child = PopenCompatSpawn(
+                        f"{multipass_path} {' '.join(str(arg) for arg in args)}",
+                        logfile=(sys.stdout.buffer if config.print_cli_output else None),
+                        timeout=timeout,
+                    )
+
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
                 self.pexpect_child.wait()
                 self.output_text = self.pexpect_child.before.decode("utf-8")
+            except Exception as ex:
+                print(ex)
+                raise
             finally:
                 if self.pexpect_child.isalive():
                     sys.stderr.write(
