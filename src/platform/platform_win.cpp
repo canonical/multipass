@@ -1074,5 +1074,5 @@ std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
     const auto base_dir = get_wellknown_path(FOLDERID_ProgramData);
 
     // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
-    return base_dir / "Multipass";
+    return base_dir / "Multipass" / "data";
 }
