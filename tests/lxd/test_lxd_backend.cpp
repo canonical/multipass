@@ -992,6 +992,7 @@ TEST_F(LXDBackend, prepareSourceImageDoesNotModify)
                                      "bin",
                                      "baz",
                                      "the past",
+                                     "temple",
                                      {"fee", "fi", "fo", "fum"}};
 
     auto source_image = backend.prepare_source_image(original_image);
