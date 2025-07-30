@@ -27,6 +27,7 @@ import shutil
 import tempfile
 import asyncio
 import threading
+import logging
 from pathlib import Path
 
 import pytest
@@ -86,6 +87,10 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     """Validate command line args."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(levelname)s] %(message)s"
+    )
     if config.getoption("--build-root") is None:
         pytest.exit("ERROR: The `--build-root` argument is required.", returncode=1)
 
