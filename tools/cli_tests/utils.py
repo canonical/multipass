@@ -39,6 +39,9 @@ from pathlib import Path
 
 import jq
 import pexpect
+if sys.platform == "win32":
+    import pexpect.popen_spawn
+
 
 from cli_tests.config import config
 
@@ -374,13 +377,10 @@ def multipass(*args, **kwargs):
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
             echo=echo,
-            env=get_multipass_env()
+            env=get_multipass_env(),
         )
 
     if sys.platform == "win32":
-        import pexpect.popen_spawn
-        import subprocess
-
         class PopenCompatSpawn(pexpect.popen_spawn.PopenSpawn):
             def __init__(self, command, **kwargs):
                 super().__init__(command, **kwargs)
