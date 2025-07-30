@@ -17,6 +17,8 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 # Installation
 
+See [How to install Multipass](https://canonical.com/multipass/docs/install-multipass). In short:
+
 * On **Linux**, Multipass is available as a snap:
 
   ```
@@ -37,8 +39,6 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
   need to disable the firewall to launch a multipass instance successfully on macOS.
 
 * On **Windows**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
-
-For more information, see [How to install Multipass](https://canonical.com/multipass/docs/install-multipass).
 
 # Usage
 
@@ -180,6 +180,10 @@ Please follow the platform-specific build instructions in the files below:
 - [BUILD.macOS.md](./BUILD.macOS.md) for macOS  
 - [BUILD.windows.md](./BUILD.windows.md) for Windows  
 
+If you notice outdated information or inconsistencies in these files, please [open an issue](https://github.com/canonical/multipass/issues) or, even better, submit a pull request!
+
+You can also reference our [GitHub Actions CI](https://github.com/canonical/multipass/actions) to see how Multipass is built and tested across platforms.
+
 ### Generic build tips
 
 **Qt version compatibility**  
@@ -187,12 +191,6 @@ Multipass is tested with **Qt 6.2.4**. Newer patch versions along the 6.2 track 
 
 **ARM64 and cross-compilation**  
 If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH` and `CMAKE_PREFIX_PATH` environment variables point to the correct Qt installation for your system architecture.
-
-
-If you notice outdated information or inconsistencies in these files, please [open an issue](https://github.com/canonical/multipass/issues) or, even better, submit a pull request!
-
-You can also reference our [GitHub Actions CI](https://github.com/canonical/multipass/actions) to see how Multipass is built and tested across platforms.
-
 
 ### Automatic linker selection
 
