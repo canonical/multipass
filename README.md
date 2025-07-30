@@ -188,9 +188,6 @@ Multipass is tested with **Qt 6.2.4**. Newer patch versions along the 6.2 track 
 **ARM64 and cross-compilation**  
 If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH` and `CMAKE_PREFIX_PATH` environment variables point to the correct Qt installation for your system architecture.
 
-You may use your preferred package manager to install Multipass.  
-Note that only the official installers are supported.  
-See the [installation guide](https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/install-multipass/) for details.
 
 If you notice outdated information or inconsistencies in these files, please [open an issue](https://github.com/canonical/multipass/issues) or, even better, submit a pull request!
 
