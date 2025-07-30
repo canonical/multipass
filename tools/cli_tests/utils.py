@@ -148,6 +148,93 @@ def get_default_timeout_for(cmd):
         return default_timeouts[cmd]
     return 10
 
+def get_multipass_env():
+    multipass_env = os.environ.copy()
+    multipass_env["MULTIPASS_STORAGE"] = config.data_root
+    return multipass_env
+
+def get_multipass_path():
+    return shutil.which("multipass", path=config.build_root)
+
+def get_multipassd_path():
+    return shutil.which("multipassd", path=config.build_root)
+
+def authenticate_client_cert():
+    if sys.platform == "win32":
+        data_location = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    elif sys.platform == "darwin":
+        data_location = Path.home() / "Library" / "Application Support"
+    else:
+        # Not sure about this:
+        data_location = Path.home() / ".local" / "share"
+    # cat ~/snap/multipass/current/data/multipass-client-certificate/multipass_cert.pem | sudo tee -a /var/snap/multipass/common/data/multipassd/authenticated-certs/multipass_client_certs.pem > /dev/null
+    # snap restart multipass
+    src_path = data_location / "multipass-client-certificate" / "multipass_cert.pem"
+    dst_path = Path(config.data_root) / "data"/ "authenticated-certs" / "multipass_client_certs.pem"
+     # Ensure the destination directory exists
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    # Ensure the file exists (like `tee -a`, which creates it if missing)
+    dst_path.touch(exist_ok=True)
+    with src_path.open("rb") as src, dst_path.open("ab") as dst:
+        shutil.copyfileobj(src, dst)
+
+def strip_ansi_escape(input):
+    # https://stackoverflow.com/a/14693789/10872971
+    ansi_escape_8bit = re.compile(r'''
+        (?: # either 7-bit C1, two bytes, ESC Fe (omitting CSI)
+            \x1B
+            [@-Z\\-_]
+        |   # or a single 8-bit byte Fe (omitting CSI)
+            [\x80-\x9A\x9C-\x9F]
+        |   # or CSI + control codes
+            (?: # 7-bit CSI, ESC [
+                \x1B\[
+            |   # 8-bit CSI, 9B
+                \x9B
+            )
+            [0-?]*  # Parameter bytes
+            [ -/]*  # Intermediate bytes
+            [@-~]   # Final byte
+        )
+    ''', re.VERBOSE)
+    return ansi_escape_8bit.sub('', input)
+
+class ContextManagerProxy:
+    """Wrapper to avoid having to type multipass("command")() (note the parens)"""
+
+    def __init__(self, callable):
+        self.result = None
+        self.callable = callable
+
+    def _populate_result(self):
+        if self.result is None:
+            self.result = self.callable()
+            import traceback
+            traceback.print_stack()
+            print(f"after callable: {self.result}")
+
+    def __getattr__(self, name):
+        # Lazily run the command if someone tries to access attributes
+        self._populate_result()
+        return getattr(self.result, name)
+
+    def __enter__(self):
+        return self.callable.__enter__()
+
+    def __exit__(self, *a):
+        return self.callable.__exit__(*a)
+
+    def __contains__(self, item):
+        self._populate_result()
+        return self.result.__contains__(item)
+
+    def __bool__(self):
+        self._populate_result()
+        return self.result.__bool__()
+
+    def __repr__(self):
+        return strip_ansi_escape(self.result.content)
+
 
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context manager support.
@@ -183,7 +270,6 @@ def multipass(*args, **kwargs):
         - You can access output fields directly: `multipass("version").exitstatus`
         - You can use `in` or `bool()` checks on the result proxy.
     """
-    multipass_path = shutil.which("multipass", path=config.build_root)
 
     timeout = (
         kwargs.get("timeout")
@@ -203,10 +289,11 @@ def multipass(*args, **kwargs):
 
     if kwargs.get("interactive"):
         return pexpect.spawn(
-            f"{multipass_path} {' '.join(str(arg) for arg in args)}",
+            f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
             echo=echo,
+            env=get_multipass_env()
         )
 
     if sys.platform == "win32":
@@ -247,28 +334,30 @@ def multipass(*args, **kwargs):
             try:
                 if not sys.platform == "win32":
                     self.pexpect_child = pexpect.spawn(
-                        f"{multipass_path} {' '.join(str(arg) for arg in args)}",
+                        f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
                         logfile=(sys.stdout.buffer if config.print_cli_output else None),
                         timeout=timeout,
                         echo=echo,
+                        env=get_multipass_env()
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
-                        f"{multipass_path} {' '.join(str(arg) for arg in args)}",
+                        f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
                         logfile=(sys.stdout.buffer if config.print_cli_output else None),
                         timeout=timeout,
+                        env=get_multipass_env()
                     )
 
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
-                self.pexpect_child.wait()
                 self.output_text = self.pexpect_child.before.decode("utf-8")
+                self.pexpect_child.wait()
             except Exception as ex:
                 print(ex)
                 raise
             finally:
                 if self.pexpect_child.isalive():
                     sys.stderr.write(
-                        f"\n❌🔥 Terminating {multipass_path} {' '.join(args)}\n"
+                        f"\n❌🔥 Terminating {get_multipass_path()} {' '.join(args)}\n"
                     )
                     sys.stdout.flush()
                     sys.stderr.flush()
@@ -284,45 +373,7 @@ def multipass(*args, **kwargs):
             return False
 
     cmd = Cmd()
-
-    class ContextManagerProxy:
-        """Wrapper to avoid having to type multipass("command")() (note the parens)"""
-
-        def __init__(self):
-            self.result = None
-
-        def _populate_result(self):
-            if self.result is None:
-                self.result = cmd()
-
-        def __getattr__(self, name):
-            # Lazily run the command if someone tries to access attributes
-            self._populate_result()
-            return getattr(self.result, name)
-
-        def __enter__(self):
-            return cmd.__enter__()
-
-        def __exit__(self, *a):
-            return cmd.__exit__(*a)
-
-        def __contains__(self, item):
-            self._populate_result()
-            return self.result.__contains__(item)
-
-        def __bool__(self):
-            self._populate_result()
-            return self.result.__bool__()
-
-        def __repr__(self):
-            status = (
-                f"exit={self.result.content}"
-                if self.result is not None
-                else "not yet executed"
-            )
-            return f"<MultipassProxy cmd='multipass {' '.join(cmd.pexpect_child.command)}' {status}>"
-
-    return ContextManagerProxy()
+    return ContextManagerProxy(cmd)
 
 
 def _retrieve_info_field(name, key):
