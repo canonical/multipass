@@ -126,7 +126,7 @@ class AsyncMultipassdController:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             env=get_multipass_env(),
-            creationflags=creationflags
+            **({"creationflags": creationflags} if creationflags is not None else {})
         )
 
         # Start monitoring task
