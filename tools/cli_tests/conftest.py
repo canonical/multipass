@@ -240,7 +240,7 @@ def multipassd(store_config):
     bg_loop = BackgroundEventLoop()
     try:
         controller = AsyncMultipassdController(
-            config.build_root, config.data_root, config.print_daemon_output
+            bg_loop, config.build_root, config.data_root, config.print_daemon_output
         )
         fut = bg_loop.run(controller.start())
         fut.result(timeout=60)  # Wait for daemon startup
