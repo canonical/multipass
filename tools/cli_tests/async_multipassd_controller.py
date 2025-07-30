@@ -163,9 +163,9 @@ class AsyncMultipassdController:
             return
 
         if sys.platform == "win32":
-            # We need to send ctrl-c keystroke here.
+            # We need to send ctrl-c keystroke here because Windows has no
+            # notion of "signals" as in POSIX.
             send_ctrl_c(self.multipassd_proc.pid)
-            pass
         else:
             self.multipassd_proc.terminate()  # SIGTERM
 
