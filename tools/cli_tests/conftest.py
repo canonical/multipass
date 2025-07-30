@@ -25,6 +25,9 @@ import os
 import subprocess
 import shutil
 import tempfile
+import asyncio
+import threading
+from pathlib import Path
 
 import pytest
 
@@ -39,6 +42,7 @@ from cli_tests.utils import (
 )
 from cli_tests.config import config
 from cli_tests.multipassd_controller import MultipassdController
+from cli_tests.async_multipassd_controller import AsyncMultipassdController
 
 
 def pytest_addoption(parser):
@@ -85,6 +89,24 @@ def pytest_configure(config):
     if config.getoption("--build-root") is None:
         pytest.exit("ERROR: The `--build-root` argument is required.", returncode=1)
 
+def pytest_assertrepr_compare(op, left, right):
+    """Custom assert pretty-printer for `"pattern" in Output()`"""
+
+    print(f"pytest_assertrepr_compare > {op} {left} {right}")
+    from cli_tests.utils import ContextManagerProxy
+    if isinstance(right, Output) and op == "in":
+        lines = [
+            f"❌ A text matching the pattern `{left}` not found in actual CLI command output:",
+            "",  # Empty line for spacing
+        ]
+        # Split the content by lines and add each as a separate list item
+        content_lines = right.content.split("\n")
+        lines.extend(content_lines)
+        lines.append("")  # Empty line at the end
+
+        return lines
+
+    return None
 
 @pytest.fixture(autouse=True)
 def store_config(request):
@@ -118,23 +140,6 @@ def store_config(request):
         # Register finalizer to cleanup on exit
         request.addfinalizer(cleanup)
         config.data_root = tmpdir.name
-
-
-def pytest_assertrepr_compare(op, left, right):
-    """Custom assert pretty-printer for `"pattern" in Output()`"""
-    if isinstance(right, Output) and op == "in":
-        lines = [
-            f"❌ A text matching the pattern `{left}` not found in actual CLI command output:",
-            "",  # Empty line for spacing
-        ]
-        # Split the content by lines and add each as a separate list item
-        content_lines = right.content.split("\n")
-        lines.extend(content_lines)
-        lines.append("")  # Empty line at the end
-
-        return lines
-    return None
-
 
 @pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
@@ -184,12 +189,30 @@ def privileged_remove_path(target, check=False):
             sys.executable,
             "-c",
             "import shutil; import sys; shutil.rmtree(sys.argv[1], ignore_errors=True)",
-            str(target),
+            str(Path(target)),
         ],
         check=check,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
+class BackgroundEventLoop:
+    def __init__(self):
+        self.loop = asyncio.new_event_loop()
+        self.thread = threading.Thread(target=self._run_loop, daemon=True)
+        self.thread.start()
+
+    def _run_loop(self):
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+    def run(self, coro):
+        """Submit coroutine to background loop"""
+        return asyncio.run_coroutine_threadsafe(coro, self.loop)
+
+    def stop(self):
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        self.thread.join()
 
 @pytest.fixture(autouse=True)
 def multipassd(store_config):
@@ -209,16 +232,20 @@ def multipassd(store_config):
         privileged_remove_path(instances_dir)
 
     controller = None
+    bg_loop = BackgroundEventLoop()
     try:
-        controller = MultipassdController(
+        controller = AsyncMultipassdController(
             config.build_root, config.data_root, config.print_daemon_output
         )
-        controller.start()
+        fut = bg_loop.run(controller.start())
+        fut.result(timeout=60)  # Wait for daemon startup
         yield controller
     except Exception as exc:
         die(2, str(exc))
     finally:
-        controller.stop()
+        stop_fut = bg_loop.run(controller.stop())
+        stop_fut.result(timeout=15)
+        bg_loop.stop()
 
 
 @pytest.fixture(scope="function")
