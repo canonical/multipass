@@ -24,7 +24,8 @@ def send_ctrl_c(pid):
 
 
 class AsyncMultipassdController:
-    def __init__(self, build_root, data_root, print_daemon_output=True):
+    def __init__(self, asyncio_loop, build_root, data_root, print_daemon_output=True):
+        self.asyncio_loop = asyncio_loop
         self.build_root = build_root
         self.data_root = data_root
         self.print_daemon_output = print_daemon_output
@@ -152,10 +153,13 @@ class AsyncMultipassdController:
             except asyncio.CancelledError:
                 pass
 
-    async def restart(self):
+
+    def restart(self, timeout=60):
         """Restart the daemon"""
-        await self.stop()
-        await self.start()
+        f = self.asyncio_loop.run(self.stop())
+        f.result(timeout=timeout)
+        f = self.asyncio_loop.run(self.start())
+        f.result(timeout=timeout)
 
     async def _terminate_multipassd(self):
         """Terminate the multipassd process"""
