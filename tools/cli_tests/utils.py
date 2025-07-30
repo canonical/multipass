@@ -39,6 +39,7 @@ from pathlib import Path
 
 import jq
 import pexpect
+
 if sys.platform == "win32":
     import pexpect.popen_spawn
 
@@ -211,7 +212,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
 
     # Positional args to string literals
     arg_strs = [repr(a) for a in args]
-    # print('🔍 sys.path:', sys.path); 
+    # print('🔍 sys.path:', sys.path);
     full_expr = f"import sys; import {module_name}; {module_name}.{func_name}({', '.join(arg_strs)})"
 
     env = os.environ.copy()
@@ -371,6 +372,11 @@ def multipass(*args, **kwargs):
 
         return retry_wrapper()
 
+    if config.print_cli_output:
+        # Move to the next line since the CLI modifies the current line for
+        # updating progress message
+        sys.stderr.write("\n")
+
     if kwargs.get("interactive"):
         return pexpect.spawn(
             f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
@@ -381,6 +387,7 @@ def multipass(*args, **kwargs):
         )
 
     if sys.platform == "win32":
+
         class PopenCompatSpawn(pexpect.popen_spawn.PopenSpawn):
             def __init__(self, command, **kwargs):
                 super().__init__(command, **kwargs)
