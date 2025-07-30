@@ -55,6 +55,32 @@ public:
                  multipass::PingReply* response),
                 (override));
 
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::CreateBlockRequest,
+                                                   multipass::CreateBlockReply>*),
+                create_blockRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::DeleteBlockRequest,
+                                                   multipass::DeleteBlockReply>*),
+                delete_blockRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::AttachBlockRequest,
+                                                   multipass::AttachBlockReply>*),
+                attach_blockRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::DetachBlockRequest,
+                                                   multipass::DetachBlockReply>*),
+                detach_blockRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::ListBlocksRequest,
+                                                   multipass::ListBlocksReply>*),
+                list_blocksRaw,
+                (grpc::ClientContext * context),
+                (override));
+
     // originally private
     // NB: we're sort of relying on gRPC implementation here... but it's only for tests and we can
     // update as needed
@@ -376,6 +402,56 @@ public:
     MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::AuthenticateRequest,
                                                         multipass::AuthenticateReply>*),
                 PrepareAsyncauthenticateRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::CreateBlockRequest,
+                                                        multipass::CreateBlockReply>*),
+                Asynccreate_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::CreateBlockRequest,
+                                                        multipass::CreateBlockReply>*),
+                PrepareAsynccreate_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DeleteBlockRequest,
+                                                        multipass::DeleteBlockReply>*),
+                Asyncdelete_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DeleteBlockRequest,
+                                                        multipass::DeleteBlockReply>*),
+                PrepareAsyncdelete_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::AttachBlockRequest,
+                                                        multipass::AttachBlockReply>*),
+                Asyncattach_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::AttachBlockRequest,
+                                                        multipass::AttachBlockReply>*),
+                PrepareAsyncattach_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DetachBlockRequest,
+                                                        multipass::DetachBlockReply>*),
+                Asyncdetach_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DetachBlockRequest,
+                                                        multipass::DetachBlockReply>*),
+                PrepareAsyncdetach_blockRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ListBlocksRequest,
+                                                        multipass::ListBlocksReply>*),
+                Asynclist_blocksRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ListBlocksRequest,
+                                                        multipass::ListBlocksReply>*),
+                PrepareAsynclist_blocksRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
     MOCK_METHOD(

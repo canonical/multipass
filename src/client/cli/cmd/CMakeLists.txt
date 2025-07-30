@@ -13,14 +13,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(commands STATIC
+  add_disk.cpp
   alias.cpp
   aliases.cpp
   animated_spinner.cpp
   authenticate.cpp
   clone.cpp
   common_cli.cpp
+  copy_disk.cpp
   create_alias.cpp
   delete.cpp
+  delete_disk.cpp
+  disks.cpp
   exec.cpp
   find.cpp
   get.cpp
@@ -29,6 +33,7 @@ add_library(commands STATIC
   launch.cpp
   list.cpp
   mount.cpp
+  move_disk.cpp
   networks.cpp
   prefer.cpp
   purge.cpp

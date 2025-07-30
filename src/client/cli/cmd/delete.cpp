@@ -98,6 +98,20 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
 
             client->Write(client_response);
         }
+
+        if (reply.confirm_block_device_detachment())
+        {
+            DeleteRequest client_response;
+
+            if (term->is_live())
+                client_response.set_detach_attached_disks(
+                    confirm_block_device_detachment(reply.attached_block_devices()));
+            else
+                throw std::runtime_error{
+                    generate_block_device_detachment_msg(reply.attached_block_devices())};
+
+            client->Write(client_response);
+        }
     };
 
     return dispatch(&RpcMethod::delet, request, on_success, on_failure, streaming_callback);
@@ -133,7 +147,10 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     QCommandLineOption purge_option(
         {"p", "purge"},
         "Permanently delete specified instances and snapshots immediately");
-    parser->addOptions({all_option, purge_option});
+    QCommandLineOption force_option(
+        {"f", "force"},
+        "Force deletion without prompting for confirmation of attached block devices");
+    parser->addOptions({all_option, purge_option, force_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -145,6 +162,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 
     request.set_purge(parser->isSet(purge_option));
     request.set_verbosity_level(parser->verbosityLevel());
+    request.set_force(parser->isSet(force_option));
 
     status = parse_instances_snapshots(parser);
 
@@ -197,4 +215,48 @@ std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
             instance_args);
     else
         return fmt::format("{}.\n", no_purge_base_error_msg);
+}
+
+bool multipass::cmd::Delete::confirm_block_device_detachment(
+    const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
+{
+    static constexpr auto prompt_text = "This virtual machine has {} disk(s) attached that will be "
+                                        "detached and will persist: {}. Are you "
+                                        "sure you want to continue? (Yes/no)";
+    static constexpr auto invalid_input = "Please answer Yes/no";
+    mp::PlainPrompter prompter{term};
+
+    std::string device_list;
+    for (int i = 0; i < attached_devices.size(); ++i)
+    {
+        if (i > 0)
+            device_list += ", ";
+        device_list += attached_devices[i];
+    }
+
+    auto answer = prompter.prompt(fmt::format(prompt_text, attached_devices.size(), device_list));
+    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
+           !std::regex_match(answer, mp::client::no_answer))
+        answer = prompter.prompt(invalid_input);
+
+    return std::regex_match(answer, mp::client::yes_answer);
+}
+
+std::string multipass::cmd::Delete::generate_block_device_detachment_msg(
+    const google::protobuf::RepeatedPtrField<std::string>& attached_devices) const
+{
+    std::string device_list;
+    for (int i = 0; i < attached_devices.size(); ++i)
+    {
+        if (i > 0)
+            device_list += ", ";
+        device_list += attached_devices[i];
+    }
+
+    return fmt::format(
+        "This virtual machine has {} disk(s) attached that will be detached and will persist: {}. "
+        "Unable to query client for confirmation. Please use the `--force` flag if that is what "
+        "you want.",
+        attached_devices.size(),
+        device_list);
 }

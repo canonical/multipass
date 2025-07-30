@@ -1035,6 +1035,7 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
     const mp::VMSpecs specs{2,
                             mp::MemorySize{"3.21G"},
                             mp::MemorySize{"4.32M"},
+                            {},
                             "00:00:00:00:00:00",
                             {{"eth18", "18:18:18:18:18:18", true}},
                             "asdf",

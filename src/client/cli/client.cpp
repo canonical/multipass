@@ -16,11 +16,15 @@
  */
 
 #include "client.h"
+#include "cmd/add_disk.h"
 #include "cmd/alias.h"
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
 #include "cmd/clone.h"
+#include "cmd/copy_disk.h"
 #include "cmd/delete.h"
+#include "cmd/delete_disk.h"
+#include "cmd/disks.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -29,6 +33,7 @@
 #include "cmd/launch.h"
 #include "cmd/list.h"
 #include "cmd/mount.h"
+#include "cmd/move_disk.h"
 #include "cmd/networks.h"
 #include "cmd/prefer.h"
 #include "cmd/purge.h"
@@ -111,6 +116,11 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
+    add_command<cmd::AddDisk>();
+    add_command<cmd::CopyDisk>();
+    add_command<cmd::DeleteDisk>();
+    add_command<cmd::MoveDisk>();
+    add_command<cmd::Disks>();
 
     sort_commands();
 
