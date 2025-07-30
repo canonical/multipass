@@ -27,6 +27,10 @@ import time
 import uuid
 import tempfile
 import functools
+import subprocess
+import inspect
+import site
+import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from pprint import pformat
@@ -111,6 +115,7 @@ def retry(retries=3, delay=1.0):
 
     return decorator
 
+
 def die(exit_code, message):
     """End testing process abruptly."""
     sys.stderr.write(f"\n❌🔥 {message}\n")
@@ -118,6 +123,7 @@ def die(exit_code, message):
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(exit_code)
+
 
 def uuid4_str(prefix="", suffix=""):
     """Generate an UUID4 string, prefixed/suffixed with the given params."""
@@ -134,6 +140,7 @@ def debug_interactive_shell(name):
     with multipass("shell", name, interactive=True) as shell:
         shell.interact()
 
+
 def get_default_timeout_for(cmd):
     default_timeouts = {
         "delete": 30,
@@ -148,20 +155,90 @@ def get_default_timeout_for(cmd):
         return default_timeouts[cmd]
     return 10
 
+
 def get_multipass_env():
     multipass_env = os.environ.copy()
     multipass_env["MULTIPASS_STORAGE"] = config.data_root
     return multipass_env
 
+
 def get_multipass_path():
     return shutil.which("multipass", path=config.build_root)
+
 
 def get_multipassd_path():
     return shutil.which("multipassd", path=config.build_root)
 
-def authenticate_client_cert():
+
+def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
+    """
+    Run a top-level function with elevated privileges using sudo.
+
+    The function must be defined in an importable module (not __main__ or REPL).
+    PYTHONPATH is set to include the module's root and the user's site-packages
+    so that imports work correctly under sudo.
+
+    Args:
+        py_func: The function to run.
+        *args: Arguments to pass to the function.
+        check: If True, raise an error if the subprocess fails.
+        stdout: Where to redirect standard output (default: inherit).
+        stderr: Where to redirect standard error (default: inherit).
+    """
+    if not callable(py_func):
+        raise ValueError("Expected a callable")
+
+    def infer_pythonpath_root(module):
+        depth = len(module.__name__.split(".")) - 1
+        logging.debug(f"depth: {depth}")
+        return str(Path(module.__file__).resolve().parents[depth])
+
+    module = inspect.getmodule(py_func)
+    if module is None or not hasattr(module, "__file__"):
+        raise ValueError(
+            "Function must come from an importable module (not REPL or __main__)"
+        )
+
+    module_name = module.__name__
+    func_name = py_func.__name__
+    module_root = infer_pythonpath_root(module)
+
+    logging.debug(f"module.__file__ = {module.__file__}")
+    logging.debug(f"inferred PYTHONPATH = {module_root}")
+
+    # Positional args to string literals
+    arg_strs = [repr(a) for a in args]
+    # print('🔍 sys.path:', sys.path); 
+    full_expr = f"import sys; import {module_name}; {module_name}.{func_name}({', '.join(arg_strs)})"
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = (
+        # Before running the executable, we need to add two things to PYTHONPATH:
+        # 1) The test package's root directory
+        # 2) Current user's site-packages
+        # '2' is required since test dependencies are most likely installed at
+        # the user level. If not, root/admin's site-packages are already accessible
+        # to root by default.
+        f"{module_root}{os.pathsep}{site.getusersitepackages()}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
+
+    cmd = [
+        get_sudo_tool(),
+        # Ensure that the PYTHONPATH is propagated to the interpreter
+        "--preserve-env=PYTHONPATH",
+        sys.executable,
+        "-c",
+        full_expr,
+    ]
+
+    subprocess.run(cmd, check=check, stdout=stdout, stderr=stderr, env=env)
+
+
+def authenticate_client_cert(data_root):
     if sys.platform == "win32":
-        data_location = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        data_location = Path(
+            os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local")
+        )
     elif sys.platform == "darwin":
         data_location = Path.home() / "Library" / "Application Support"
     else:
@@ -170,17 +247,21 @@ def authenticate_client_cert():
     # cat ~/snap/multipass/current/data/multipass-client-certificate/multipass_cert.pem | sudo tee -a /var/snap/multipass/common/data/multipassd/authenticated-certs/multipass_client_certs.pem > /dev/null
     # snap restart multipass
     src_path = data_location / "multipass-client-certificate" / "multipass_cert.pem"
-    dst_path = Path(config.data_root) / "data"/ "authenticated-certs" / "multipass_client_certs.pem"
-     # Ensure the destination directory exists
+    dst_path = (
+        Path(data_root) / "data" / "authenticated-certs" / "multipass_client_certs.pem"
+    )
+    # Ensure the destination directory exists
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     # Ensure the file exists (like `tee -a`, which creates it if missing)
     dst_path.touch(exist_ok=True)
     with src_path.open("rb") as src, dst_path.open("ab") as dst:
         shutil.copyfileobj(src, dst)
 
+
 def strip_ansi_escape(input):
     # https://stackoverflow.com/a/14693789/10872971
-    ansi_escape_8bit = re.compile(r'''
+    ansi_escape_8bit = re.compile(
+        r"""
         (?: # either 7-bit C1, two bytes, ESC Fe (omitting CSI)
             \x1B
             [@-Z\\-_]
@@ -196,8 +277,11 @@ def strip_ansi_escape(input):
             [ -/]*  # Intermediate bytes
             [@-~]   # Final byte
         )
-    ''', re.VERBOSE)
-    return ansi_escape_8bit.sub('', input)
+    """,
+        re.VERBOSE,
+    )
+    return ansi_escape_8bit.sub("", input)
+
 
 class ContextManagerProxy:
     """Wrapper to avoid having to type multipass("command")() (note the parens)"""
@@ -209,9 +293,6 @@ class ContextManagerProxy:
     def _populate_result(self):
         if self.result is None:
             self.result = self.callable()
-            import traceback
-            traceback.print_stack()
-            print(f"after callable: {self.result}")
 
     def __getattr__(self, name):
         # Lazily run the command if someone tries to access attributes
@@ -335,17 +416,21 @@ def multipass(*args, **kwargs):
                 if not sys.platform == "win32":
                     self.pexpect_child = pexpect.spawn(
                         f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
-                        logfile=(sys.stdout.buffer if config.print_cli_output else None),
+                        logfile=(
+                            sys.stdout.buffer if config.print_cli_output else None
+                        ),
                         timeout=timeout,
                         echo=echo,
-                        env=get_multipass_env()
+                        env=get_multipass_env(),
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
                         f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
-                        logfile=(sys.stdout.buffer if config.print_cli_output else None),
+                        logfile=(
+                            sys.stdout.buffer if config.print_cli_output else None
+                        ),
                         timeout=timeout,
-                        env=get_multipass_env()
+                        env=get_multipass_env(),
                     )
 
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
@@ -578,6 +663,7 @@ def find_lineage(tree, target):
         return None
 
     return dfs(tree, [])
+
 
 @functools.cache
 def get_sudo_tool():
