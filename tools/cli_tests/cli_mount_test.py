@@ -247,8 +247,6 @@ class TestMount:
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
             assert multipass("exec", instance, "--", "ls", str(instance_target_path))
-            from cli_tests.utils import debug_interactive_shell
-            debug_interactive_shell(instance)
 
             assert not multipass(
                 "exec",
