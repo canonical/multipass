@@ -45,6 +45,9 @@ For more information, see [How to install Multipass](https://canonical.com/multi
 Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the
 Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
 
+For backend support and system requirements, refer to the
+[Multipass driver documentation](https://documentation.ubuntu.com/multipass/en/latest/explanation/driver/).
+
 ## Find available images
 
 ```
@@ -188,9 +191,6 @@ If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH
 You may use your preferred package manager to install Multipass.  
 Note that only the official installers are supported.  
 See the [installation guide](https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/install-multipass/) for details.
-
-For backend support and system requirements, refer to the  
-[Multipass driver documentation](https://documentation.ubuntu.com/multipass/en/latest/explanation/driver/).
 
 If you notice outdated information or inconsistencies in these files, please [open an issue](https://github.com/canonical/multipass/issues) or, even better, submit a pull request!
 
