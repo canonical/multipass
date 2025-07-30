@@ -54,7 +54,6 @@ ExternalProject_Add(qemu
       --disable-replication
       --disable-snappy
       --disable-lzo
-      --disable-live-block-migration
       --disable-vvfat
       --disable-curl
       --disable-tests
