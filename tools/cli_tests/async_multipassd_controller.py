@@ -9,6 +9,7 @@ import re
 import sys
 import subprocess
 import time
+import logging
 
 import pexpect
 
@@ -227,14 +228,13 @@ class AsyncMultipassdController:
 
                     else:
                         stdout, _ = await proc.communicate()
-                        print(stdout)
+                        logging.debug(stdout)
 
                 except asyncio.TimeoutError:
                     pass
 
             except Exception as exc:
-                print(exc)
-                pass
+                logging.error(exc)
 
             await asyncio.sleep(0.2)
 
