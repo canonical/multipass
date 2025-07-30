@@ -251,21 +251,21 @@ class TestMount:
 
             assert multipass("exec", instance, "--", "ls", str(instance_target_path))
 
-            assert not multipass(
+            assert multipass(
                 "exec",
                 instance,
                 "--",
                 f'bash -c \'echo "hello there" > {str(instance_target_path)}/file1.txt',
             )
 
-            assert not multipass(
+            assert multipass(
                 "exec",
                 instance,
                 "--",
                 f"mkdir -p {str(instance_target_path / subdir)}",
             )
 
-            assert not multipass(
+            assert multipass(
                 "exec",
                 instance,
                 "--",
