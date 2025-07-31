@@ -80,7 +80,7 @@ QString DisableZones::short_help() const
 
 QString DisableZones::description() const
 {
-    return QStringLiteral("Makes the given availability zones unavailable. Instances therein are"
+    return QStringLiteral("Makes the given availability zones unavailable. Instances therein are "
                           "forcefully switched off and remain unavailable until their zone is re-enabled "
                           "(simulating a loss of availability on a cloud provider).");
 }
