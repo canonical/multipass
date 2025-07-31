@@ -78,7 +78,9 @@ public:
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
-    [[nodiscard]] virtual std::filesystem::path get_root_cert_path() const;
+
+    [[nodiscard]] virtual std::filesystem::path get_root_cert_dir() const;
+    [[nodiscard]] std::filesystem::path get_root_cert_path() const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);
@@ -111,4 +113,10 @@ std::string host_version();
 
 inline multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
+}
+
+inline std::filesystem::path multipass::platform::Platform::get_root_cert_path() const
+{
+    constexpr auto* root_cert_file_name = "multipass_root_cert.pem";
+    return get_root_cert_dir() / root_cert_file_name;
 }

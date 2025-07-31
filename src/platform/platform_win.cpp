@@ -49,6 +49,7 @@
 
 #include <aclapi.h>
 #include <sddl.h>
+#include <shlobj_core.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -347,6 +348,19 @@ QString systemprofile_app_data_path()
     return ret;
 }
 
+[[nodiscard]] mp::fs::path get_wellknown_path(REFKNOWNFOLDERID rfid)
+{
+    PWSTR out = nullptr;
+    auto guard = sg::make_scope_guard([&out]() noexcept { ::CoTaskMemFree(out); });
+
+    if (auto err = SHGetKnownFolderPath(rfid, KF_FLAG_DEFAULT, NULL, &out); err != S_OK)
+    {
+        throw std::system_error(err, std::system_category(), "Failed to get well known path");
+    }
+
+    return out;
+}
+
 DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
 {
     LUID id;
@@ -495,16 +509,6 @@ BOOL signal_handler(DWORD dwCtrlType)
     default:
         return FALSE;
     }
-}
-
-std::filesystem::path multipass_final_storage_location()
-{
-    const auto user_specified_mp_storage = MP_PLATFORM.multipass_storage_location();
-    const auto mp_final_storage =
-        user_specified_mp_storage.isEmpty()
-            ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
-            : user_specified_mp_storage;
-    return std::filesystem::path{mp_final_storage.toStdString()};
 }
 } // namespace
 
@@ -1064,7 +1068,11 @@ long long mp::platform::Platform::get_total_ram() const
     return status.ullTotalPhys;
 }
 
-std::filesystem::path mp::platform::Platform::get_root_cert_path() const
+std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
-    return multipass_final_storage_location() / "data" / "certificates" / "multipass_root_cert.pem";
+    // FOLDERID_ProgramData returns C:\ProgramData normally
+    const auto base_dir = get_wellknown_path(FOLDERID_ProgramData);
+
+    // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
+    return base_dir / "Multipass" / "data";
 }

@@ -386,7 +386,8 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
     return ux_id;
 }
 
-std::filesystem::path mp::platform::Platform::get_root_cert_path() const
+std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
-    return std::filesystem::path{"/Library/Keychains/multipass_root_cert.pem"};
+    static const std::filesystem::path base_dir = "/usr/local/etc";
+    return base_dir / daemon_name;
 }

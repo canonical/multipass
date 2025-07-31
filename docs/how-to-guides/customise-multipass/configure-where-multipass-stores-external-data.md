@@ -9,7 +9,7 @@ This document demonstrates how to configure the location where Multipass stores 
 ```{caution}
 **Caveats:**
 - Multipass will not migrate your existing data; this article explains how to do it manually. If you do not transfer the data, you will have to re-download any Ubuntu images and reinitialise any instances that you need.
-- When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to deleted it manually.
+- When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to delete it manually.
 ```
 
 `````{tabs}
@@ -80,7 +80,7 @@ sudo snap start multipass
 You can delete the original data at your discretion, to free up space:
 
 ```{code-block} text
-sudo rm -rf /var/snap/multipass/common/data/multipassd
+sudo rm -rf /var/snap/multipass/common/data/multipassd/vault
 sudo rm -rf /var/snap/multipass/common/cache/multipassd
 ```
 
@@ -128,6 +128,12 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 First, open a PowerShell prompt with administration privileges.
 
+Stop Multipass instances:
+
+```{code-block} powershell
+multipass stop --all
+```
+
 Stop the Multipass daemon:
 
 ```{code-block} powershell
@@ -144,12 +150,17 @@ Set-ItemProperty -Path "HKLM:System\CurrentControlSet\Control\Session Manager\En
 Now you can transfer the data from its original location to the new location:
 
 ```{code-block} powershell
-Copy-Item -Path "C:\ProgramData\Multipass\*" -Destination "<path>" -Recurse
+Copy-Item -Path "C:\ProgramData\Multipass\*" -Recurse -Force -Destination "<path>"
 ```
 
 ```{caution}
 It is important to copy any existing data to the new location. This avoids unauthenticated client issues, permission issues, and in general, to have any previously created instances available.
 ```
+
+You also need to edit several settings so that the specified paths point to the new Multipass storage directory, otherwise your instances will fail to start:
+
+* `<path>/data/vault/multipassd-instance-image-records.json`: Update the "path" key for each instance.
+* Open Hyper-V Manager > For each instance right-click the instance and open the settings. Navigate to SCSI Controller > Hard Drive and update the Media path. Do the same for SCSI Controller > DVD Drive > Media Image file.
 
 Finally, start the Multipass daemon:
 
@@ -160,7 +171,8 @@ Start-Service Multipass
 You can delete the original data at your discretion, to free up space:
 
 ```{code-block} powershell
-Remove-Item -Path "C:\ProgramData\Multipass\*" -Recurse
+Remove-Item -Path "C:\ProgramData\Multipass\cache\*" -Recurse
+Remove-Item -Path "C:\ProgramData\Multipass\data\vault\*" -Recurse
 ```
 
 ````
@@ -199,6 +211,11 @@ Now you can transfer your data from the custom location back to its original loc
 sudo cp -r <path>/data /var/snap/multipass/common/data/multipassd
 sudo cp -r <path>/cache /var/snap/multipass/common/cache/multipassd
 ```
+
+You also need to edit the following configuration files so that the specified paths point to the original Multipass storage directory, otherwise your instances will fail to start:
+
+* `multipass-vm-instances.json`: Update the absolute path of the instance images in the "arguments" key for each instance.
+* `vault/multipassd-instance-image-records.json`: Update the "path" key for each instance.
 
 Finally, start the Multipass daemon:
 
@@ -252,6 +269,12 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 First, open a PowerShell prompt with administrator privileges.
 
+Stop Multipass instances:
+
+```{code-block} powershell
+multipass stop --all
+```
+
 Stop the Multipass daemon:
 
 ```{code-block} powershell
@@ -267,8 +290,10 @@ Remove-ItemProperty -Path "HKLM:System\CurrentControlSet\Control\Session Manager
 Now you can transfer the data back to its original location:
 
 ```{code-block} powershell
-Copy-Item -Path "<path>\*" -Destination "C:\ProgramData\Multipass" -Recurse
+Copy-Item -Path "<path>\*" -Destination "C:\ProgramData\Multipass" -Recurse -Force
 ```
+
+Follow the same instructions from setting up the custom image location to update the paths to their original location.
 
 Finally, start the Multipass daemon:
 
@@ -279,7 +304,7 @@ Start-Service Multipass
 You can delete the data from the custom location at your discretion, to free up space:
 
 ```{code-block} powershell
-Remove-Item -Path "<path>" -Recurse
+Remove-Item -Path "<path>" -Recurse -Force
 ```
 
 ````
