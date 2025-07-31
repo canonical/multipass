@@ -150,8 +150,8 @@ def get_default_timeout_for(cmd):
         "delete": 30,
         "stop": 180,
         "launch": 600,
-        "exec": 30,
-        "start": 30,
+        "exec": 90,
+        "start": 90,
         "mount": 180,
         "umount": 45,
     }
