@@ -42,7 +42,6 @@ from cli_tests.utils import (
     die,
 )
 from cli_tests.config import config
-from cli_tests.multipassd_controller import MultipassdController
 from cli_tests.async_multipassd_controller import AsyncMultipassdController
 
 
