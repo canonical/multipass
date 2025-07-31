@@ -294,14 +294,13 @@ class ContextManagerProxy:
         self.result = None
         self.callable = callable
 
-    def _populate_result(self):
-        if self.result is None:
-            self.result = self.callable()
-
-    def __getattr__(self, name):
-        # Lazily run the command if someone tries to access attributes
-        self._populate_result()
-        return getattr(self.result, name)
+    @staticmethod
+    def ensure_result(func):
+        def wrapper(self, *args, **kwargs):
+            if self.result is None:
+                self.result = self.callable()
+            return func(self, *args, **kwargs)
+        return wrapper
 
     def __enter__(self):
         return self.callable.__enter__()
@@ -309,14 +308,19 @@ class ContextManagerProxy:
     def __exit__(self, *a):
         return self.callable.__exit__(*a)
 
+    @ensure_result
+    def __getattr__(self, name):
+        return getattr(self.result, name)
+
+    @ensure_result
     def __contains__(self, item):
-        self._populate_result()
         return self.result.__contains__(item)
 
+    @ensure_result
     def __bool__(self):
-        self._populate_result()
         return self.result.__bool__()
 
+    @ensure_result
     def __repr__(self):
         return strip_ansi_escape(self.result.content)
 
