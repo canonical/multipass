@@ -84,6 +84,13 @@ class AsyncMultipassdController:
             if error_reason:
                 error_reasons.append(f"\nReason: {error_reason}")
 
+            multipassd_settings_changed_code = 42
+
+            # Daemon exited due to settings change. The controller should restart it.
+            if returncode == multipassd_settings_changed_code:
+                self.autorestart_attempts = self.autorestart_attempts + 1
+                return
+
             # Check exit status
             if (self.graceful_exit_initiated or self.autorestart_attempts > 0) and returncode == 0:
                 return  # Normal exit
