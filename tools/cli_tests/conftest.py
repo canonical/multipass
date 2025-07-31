@@ -152,7 +152,7 @@ def ensure_sudo_auth():
     try:
         # Test if sudo is already authenticated
         result = subprocess.run(
-            [get_sudo_tool(), "-n", "true"], capture_output=True, timeout=1, check=False
+            [*get_sudo_tool(), "-n", "true"], capture_output=True, timeout=1, check=False
         )
 
         if result.returncode == 0:
@@ -175,7 +175,7 @@ def ensure_sudo_auth():
 def privileged_truncate_file(target, check=False):
     subprocess.run(
         [
-            get_sudo_tool(),
+            *get_sudo_tool(),
             sys.executable,
             "-c",
             "import sys; open(sys.argv[1], 'w').close()",
@@ -190,7 +190,7 @@ def privileged_truncate_file(target, check=False):
 def privileged_remove_path(target, check=False):
     subprocess.run(
         [
-            get_sudo_tool(),
+            *get_sudo_tool(),
             sys.executable,
             "-c",
             "import shutil; import sys; shutil.rmtree(sys.argv[1], ignore_errors=True)",
