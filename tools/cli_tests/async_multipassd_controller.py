@@ -153,13 +153,13 @@ class AsyncMultipassdController:
             except asyncio.CancelledError:
                 pass
 
+    async def restart_async(self):
+        await self.stop()
+        await self.start()
 
     def restart(self, timeout=60):
         """Restart the daemon"""
-        f = self.asyncio_loop.run(self.stop())
-        f.result(timeout=timeout)
-        f = self.asyncio_loop.run(self.start())
-        f.result(timeout=timeout)
+        self.asyncio_loop.run(self.restart_async()).result(timeout=timeout)
 
     async def _terminate_multipassd(self):
         """Terminate the multipassd process"""
