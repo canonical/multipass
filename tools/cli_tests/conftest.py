@@ -252,6 +252,14 @@ def multipassd(store_config):
         stop_fut.result(timeout=15)
         bg_loop.stop()
 
+@pytest.fixture
+def windows_privileged_mounts(multipassd):
+    if sys.platform == "win32":
+        # Check if privileged mounts are already enabled
+        if "true" in multipass("get", "local.privileged-mounts"):
+            return
+        # multipassd.expect_restart()
+        assert multipass("set", "local.privileged-mounts=1")
 
 @pytest.fixture(scope="function")
 def instance():
