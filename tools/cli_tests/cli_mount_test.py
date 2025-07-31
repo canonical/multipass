@@ -20,18 +20,30 @@
 
 import shutil
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
 from cli_tests.utils import multipass, TempDirectory, mounts
 
+def expected_mount_gid():
+    if sys.platform == "win32":
+        return -2
+    return 1000
+
+def expected_mount_uid():
+    if sys.platform == "win32":
+        return -2
+    return 1000
 
 @pytest.mark.mount
 # TODO: "native"
 @pytest.mark.parametrize("mount_type", ["classic"])
 class TestMount:
     """Virtual machine mount tests."""
+
+
 
     def test_mount(self, instance, mount_type):
 
@@ -44,9 +56,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 }
             }
             assert multipass(
@@ -67,14 +79,14 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir1.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir1),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 },
                 f"/home/ubuntu/{mount_dir2.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir2),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 },
             }
 
@@ -93,9 +105,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir2.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir2),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 },
             }
 
@@ -126,9 +138,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 }
             }
             assert multipass(
@@ -139,9 +151,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 }
             }
             assert multipass(
@@ -167,9 +179,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 }
             }
 
@@ -240,9 +252,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": ["1000:default"],
+                    "gid_mappings": [f"{expected_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": ["1000:default"],
+                    "uid_mappings": [f"{expected_mount_uid()}:default"],
                 }
             }
 
