@@ -40,6 +40,7 @@ from cli_tests.utils import (
     state,
     get_sudo_tool,
     die,
+    wait_for_future
 )
 from cli_tests.config import config
 from cli_tests.async_multipassd_controller import AsyncMultipassdController
@@ -220,6 +221,7 @@ class BackgroundEventLoop:
 
 @pytest.fixture(autouse=True)
 def multipassd(store_config):
+
     if config.no_daemon is False:
         sys.stdout.write("Skipping launching the daemon.")
         yield None
@@ -237,27 +239,29 @@ def multipassd(store_config):
 
     controller = None
     bg_loop = BackgroundEventLoop()
+
     try:
         controller = AsyncMultipassdController(
             bg_loop, config.build_root, config.data_root, config.print_daemon_output
         )
-        fut = bg_loop.run(controller.start())
-        fut.result(timeout=60)  # Wait for daemon startup
+        wait_for_future(bg_loop.run(controller.start()))
         yield controller
     except Exception as exc:
         die(2, str(exc))
     finally:
-        stop_fut = bg_loop.run(controller.stop())
-        stop_fut.result(timeout=15)
+        if controller:
+            wait_for_future(bg_loop.run(controller.stop()))
+        sys.stderr.flush()
+        sys.stdout.flush()
         bg_loop.stop()
 
 @pytest.fixture
 def windows_privileged_mounts(multipassd):
     if sys.platform == "win32":
         # Check if privileged mounts are already enabled
-        if "true" in multipass("get", "local.privileged-mounts"):
-            return
-        # multipassd.expect_restart()
+        # if "true" in multipass("get", "local.privileged-mounts"):
+        #     return
+        multipassd.autorestart(1)
         assert multipass("set", "local.privileged-mounts=1")
 
 @pytest.fixture(scope="function")
