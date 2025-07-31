@@ -13,7 +13,7 @@ import logging
 
 import pexpect
 
-from cli_tests.utils import multipass, get_sudo_tool, die, get_multipass_env, authenticate_client_cert, get_multipassd_path, get_multipass_path, run_as_privileged
+from cli_tests.utils import multipass, get_sudo_tool, die, get_multipass_env, authenticate_client_cert, get_multipassd_path, get_multipass_path, run_as_privileged, get_client_cert_path
 from cli_tests.config import config
 
 def send_ctrl_c(pid):
@@ -135,8 +135,11 @@ class AsyncMultipassdController:
                         )
         await asyncio.wait_for(version_proc.wait(), timeout=10)
 
+        # It's important that we get the cert path here instead of under
+        # run_as_privileged.
+        cert_path = get_client_cert_path()
         # Authenticate the client against the daemon
-        run_as_privileged(authenticate_client_cert, config.data_root)
+        run_as_privileged(authenticate_client_cert, str(cert_path), config.data_root)
 
         # Create subprocess. The child process needs a new process group and a
         # new console to properly receive the Ctrl-C signal without interfering
