@@ -35,7 +35,7 @@ private:
     bool ask_for_confirmation = true;
     ZonesStateRequest request{};
     ParseCode parse_args(ArgParser* parser);
-    bool confirm();
+    bool confirm() const;
 };
 } // namespace multipass::cmd
 #endif // MULTIPASS_DISABLE_ZONES_H
