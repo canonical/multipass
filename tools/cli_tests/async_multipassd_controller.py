@@ -113,11 +113,7 @@ class AsyncMultipassdController:
         if self.autorestart_attempts > 0:
             logging.info(f"attempting daemon autorestart, attempts: {self.autorestart_attempts}")
             self.autorestart_attempts = self.autorestart_attempts - 1
-            self.asyncio_loop.run(
-                lambda: asyncio.create_task(self.start())
-            )
-            
-            # self.asyncio_loop.run(self.start())
+            self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start()))
 
     async def start(self):
         """Start the multipassd daemon"""
