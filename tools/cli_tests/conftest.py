@@ -168,7 +168,7 @@ def ensure_sudo_auth():
 
         sys.stdout.write(f"\n\n{message}")
         sys.stdout.flush()
-        subprocess.run([get_sudo_tool(), "-v"], check=True)
+        subprocess.run([*get_sudo_tool(), "-v"], check=True)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
 
