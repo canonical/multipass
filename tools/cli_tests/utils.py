@@ -229,7 +229,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
     cmd = [
         get_sudo_tool(),
         # Ensure that the PYTHONPATH is propagated to the interpreter
-        "--preserve-env=PYTHONPATH",
+        "--preserve-env" if sys.platform == "win32" else "--preserve-env=PYTHONPATH",
         sys.executable,
         "-c",
         full_expr,
