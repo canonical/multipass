@@ -40,6 +40,7 @@ def expected_mount_uid():
 @pytest.mark.mount
 # TODO: "native"
 @pytest.mark.parametrize("mount_type", ["classic"])
+@pytest.mark.usefixtures("windows_privileged_mounts")
 class TestMount:
     """Virtual machine mount tests."""
 
