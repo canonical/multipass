@@ -209,7 +209,7 @@ class AsyncMultipassdController:
 
         try:
             # Wait for graceful shutdown
-            await asyncio.wait_for(self.multipassd_proc.wait(), timeout=10)
+            await asyncio.wait_for(self.multipassd_proc.wait(), timeout=20)
         except asyncio.TimeoutError:
             print("⏰ Graceful shutdown failed, killing forcefully...")
             self.multipassd_proc.kill()  # SIGKILL
