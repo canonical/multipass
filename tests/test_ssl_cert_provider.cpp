@@ -98,9 +98,8 @@ TEST_F(SSLCertProviderFixture, createsDifferentCertsPerServerName)
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
 
     mp::SSLCertProvider cert_provider1{cert_dir, "test_server1"};
     mp::SSLCertProvider cert_provider2{cert_dir, "test_server2"};
@@ -118,9 +117,9 @@ TEST_F(SSLCertProviderFixture, reusesExistingValidServerCertificates)
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
+
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
@@ -157,7 +156,8 @@ WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
-    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 
@@ -183,9 +183,9 @@ TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenRootCertIsCorrupt)
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
+
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
@@ -222,7 +222,8 @@ WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
-    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 
@@ -248,9 +249,8 @@ TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenRootCertIsMissing)
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
 
     constexpr auto subordinate_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
@@ -274,7 +274,8 @@ WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
-    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 
@@ -298,9 +299,8 @@ TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenSubordCertIsMissing)
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
 
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
@@ -317,7 +317,8 @@ AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
 -----END CERTIFICATE-----)cert";
 
     const QDir dir{cert_dir};
-    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 
@@ -340,9 +341,9 @@ TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenSubordCertIsCorrupt)
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
+
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
@@ -379,7 +380,8 @@ WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
-    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 
@@ -405,9 +407,9 @@ TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenRootCertIsNotTheIssuer
     const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
     // move the multipass_root_cert.pem into the temporary directory so it will be deleted
     // automatically later
-    EXPECT_CALL(*mock_platform, get_root_cert_path())
-        .WillRepeatedly(
-            Return(std::filesystem::path{cert_dir.toStdU16String()} / "multipass_root_cert.pem"));
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
+
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
 MIIBzzCCAXWgAwIBAgIUAOtHJnyORHMBZb1g3Lub65TFMkgwCgYIKoZIzj0EAwIw
@@ -444,7 +446,8 @@ WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
-    const auto root_cert_path = dir.filePath("multipass_root_cert.pem");
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 

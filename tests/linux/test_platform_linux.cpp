@@ -697,12 +697,16 @@ TEST_F(PlatformLinux, removeAliasScriptThrowsIfCannotRemoveScript)
                          mpt::match_what(StrEq("No such file or directory")));
 }
 
-TEST_F(PlatformLinux, testSnapMultipassStorageLocation)
+TEST_F(PlatformLinux, testSnapMultipassCertLocation)
 {
+    const auto unconfined_location = MP_PLATFORM.get_root_cert_path();
+
     mpt::SetEnvScope env{"SNAP_NAME", "multipass"};
     mpt::SetEnvScope env2("SNAP_COMMON", "common");
 
-    EXPECT_EQ(MP_PLATFORM.get_root_cert_path(),
-              "data/multipassd/certificates/multipass_root_cert.pem");
+    const auto snap_location = MP_PLATFORM.get_root_cert_path();
+
+    EXPECT_NE(snap_location, unconfined_location);
+    EXPECT_EQ(snap_location.filename(), unconfined_location.filename());
 }
 } // namespace
