@@ -113,7 +113,7 @@ ParseCode DisableZones::parse_args(ArgParser* parser)
     return ParseCode::Ok;
 }
 
-bool DisableZones::confirm()
+bool DisableZones::confirm() const
 {
     // joins zones by comma with an 'and' for the last one e.g. 'zone1, zone2 and zone3'
     const auto format_zones = [this] {
