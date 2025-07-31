@@ -19,23 +19,23 @@ from cli_tests.config import config
 def send_ctrl_c(pid):
     subprocess.run(
     f'python -c "import ctypes; k=ctypes.windll.kernel32; k.FreeConsole(); k.AttachConsole({pid}); k.GenerateConsoleCtrlEvent(0, 0)"',
-        shell=True
+        shell=False,
     )
 
 
 class AsyncMultipassdController:
     def __init__(self, asyncio_loop, build_root, data_root, print_daemon_output=True):
+        if not get_multipassd_path():
+            die(11, "Could not find 'multipassd' executable!")
+
         self.asyncio_loop = asyncio_loop
         self.build_root = build_root
         self.data_root = data_root
         self.print_daemon_output = print_daemon_output
-
-        if not get_multipassd_path():
-            die(11, "Could not find 'multipassd' executable!")
-
         self.multipassd_proc = None
         self.monitor_task = None
-        self.graceful_exit = False
+        self.graceful_exit_initiated = False
+        self.autorestart_attempts = 0
 
     async def _read_stream(self, stream):
         """Read from stream line by line and print if enabled"""
@@ -85,7 +85,7 @@ class AsyncMultipassdController:
                 error_reasons.append(f"\nReason: {error_reason}")
 
             # Check exit status
-            if self.graceful_exit and returncode == 0:
+            if (self.graceful_exit_initiated or self.autorestart_attempts > 0) and returncode == 0:
                 return  # Normal exit
 
             # Abnormal exit
@@ -97,8 +97,24 @@ class AsyncMultipassdController:
             stdout_task.cancel()
             raise
 
+    def _on_daemon_exit(self, task):
+        self.graceful_exit_initiated = False
+        self.multipassd_proc = None
+        self.monitor_task = None
+        logging.info("daemon exit")
+
+        if self.autorestart_attempts > 0:
+            logging.info(f"attempting daemon autorestart, attempts: {self.autorestart_attempts}")
+            self.autorestart_attempts = self.autorestart_attempts - 1
+            self.asyncio_loop.run(
+                lambda: asyncio.create_task(self.start())
+            )
+            
+            # self.asyncio_loop.run(self.start())
+
     async def start(self):
         """Start the multipassd daemon"""
+
         prologue = []
         creationflags = None
         if sys.platform == "win32":
@@ -132,6 +148,7 @@ class AsyncMultipassdController:
 
         # Start monitoring task
         self.monitor_task = asyncio.create_task(self._monitor())
+        self.monitor_task.add_done_callback(self._on_daemon_exit)
 
         await asyncio.sleep(0)  # Yield control
 
@@ -143,15 +160,21 @@ class AsyncMultipassdController:
 
     async def stop(self):
         """Stop the multipassd daemon"""
-        self.graceful_exit = True
+        self.graceful_exit_initiated = True
         await self._terminate_multipassd()
-        # Cancel monitor task
-        if self.monitor_task and not self.monitor_task.done():
-            self.monitor_task.cancel()
+        # Wait for the monitor task instead?
+        if self.monitor_task:
             try:
-                await self.monitor_task
-            except asyncio.CancelledError:
-                pass
+                await asyncio.wait_for(self.monitor_task, timeout=10)
+            except asyncio.TimeoutError:
+                print("⚠️ monitor_task still not done, cancelling it...")
+                self.monitor_task.cancel()
+                try:
+                    await self.monitor_task
+                except asyncio.CancelledError:
+                    print("🪓 monitor_task cancelled")
+            except Exception as e:
+                print(f"💥 monitor_task failed: {e}")
 
     async def restart_async(self):
         await self.stop()
@@ -160,6 +183,10 @@ class AsyncMultipassdController:
     def restart(self, timeout=60):
         """Restart the daemon"""
         self.asyncio_loop.run(self.restart_async()).result(timeout=timeout)
+
+
+    def autorestart(self, times=1):
+        self.autorestart_attempts = times
 
     async def _terminate_multipassd(self):
         """Terminate the multipassd process"""
