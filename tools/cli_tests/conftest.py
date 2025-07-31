@@ -209,7 +209,10 @@ class BackgroundEventLoop:
 
     def _run_loop(self):
         asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
+        try:
+            self.loop.run_forever()
+        finally:
+            self.loop.close()
 
     def run(self, coro):
         """Submit coroutine to background loop"""
