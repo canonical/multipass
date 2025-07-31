@@ -204,7 +204,7 @@ def privileged_remove_path(target, check=False):
 class BackgroundEventLoop:
     def __init__(self):
         self.loop = asyncio.new_event_loop()
-        self.thread = threading.Thread(target=self._run_loop, daemon=True)
+        self.thread = threading.Thread(target=self._run_loop, name="asyncio-loop-thr")
         self.thread.start()
 
     def _run_loop(self):
