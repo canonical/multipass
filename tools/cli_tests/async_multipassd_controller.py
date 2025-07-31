@@ -128,7 +128,7 @@ class AsyncMultipassdController:
             # No prologue needed -- just pass it via process env
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NEW_CONSOLE
         else:
-            prologue = [get_sudo_tool(), "env", f"MULTIPASS_STORAGE={self.data_root}"]
+            prologue = [*get_sudo_tool(), "env", f"MULTIPASS_STORAGE={self.data_root}"]
 
         # Call multipass cli to create the client certs
         version_proc = await asyncio.create_subprocess_exec(
