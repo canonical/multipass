@@ -218,8 +218,11 @@ class BackgroundEventLoop:
         """Submit coroutine to background loop"""
         return asyncio.run_coroutine_threadsafe(coro, self.loop)
 
+    def run_fn(self, fn):
+        self.loop.call_soon_threadsafe(fn)
+
     def stop(self):
-        self.loop.call_soon_threadsafe(self.loop.stop)
+        self.run_fn(self.loop.stop)
         self.thread.join()
 
 @pytest.fixture(autouse=True)
@@ -262,9 +265,8 @@ def multipassd(store_config):
 def windows_privileged_mounts(multipassd):
     if sys.platform == "win32":
         # Check if privileged mounts are already enabled
-        # if "true" in multipass("get", "local.privileged-mounts"):
-        #     return
-        multipassd.autorestart(1)
+        if "true" in multipass("get", "local.privileged-mounts"):
+            return
         assert multipass("set", "local.privileged-mounts=1")
 
 @pytest.fixture(scope="function")
