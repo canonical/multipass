@@ -43,7 +43,6 @@ import pexpect
 if sys.platform == "win32":
     import pexpect.popen_spawn
 
-
 from cli_tests.config import config
 
 
@@ -198,6 +197,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
         return str(Path(module.__file__).resolve().parents[depth])
 
     module = inspect.getmodule(py_func)
+
     if module is None or not hasattr(module, "__file__"):
         raise ValueError(
             "Function must come from an importable module (not REPL or __main__)"
@@ -209,12 +209,10 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
 
     logging.debug(f"module.__file__ = {module.__file__}")
     logging.debug(f"inferred PYTHONPATH = {module_root}")
-
     # Positional args to string literals
     arg_strs = [repr(a) for a in args]
     # print('🔍 sys.path:', sys.path);
     full_expr = f"import sys; import {module_name}; {module_name}.{func_name}({', '.join(arg_strs)})"
-
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         # Before running the executable, we need to add two things to PYTHONPATH:
@@ -227,7 +225,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
     )
 
     cmd = [
-        get_sudo_tool(),
+        *get_sudo_tool(),
         # Ensure that the PYTHONPATH is propagated to the interpreter
         "--preserve-env" if sys.platform == "win32" else "--preserve-env=PYTHONPATH",
         sys.executable,
@@ -681,9 +679,11 @@ def get_sudo_tool():
     if sys.platform == "win32":
         sudo_tool = "gsudo"
         install_hint = "winget install gsudo"
+        default_args = ["--direct"]
     else:
         sudo_tool = "sudo"
         install_hint = "apt install sudo"
+        default_args = []
 
     result = shutil.which(sudo_tool)
 
@@ -693,4 +693,5 @@ def get_sudo_tool():
             f"❌ `{sudo_tool}` is required but not found. Install it with: `{install_hint}`",
         )
 
-    return result
+    return [result] + default_args
+
