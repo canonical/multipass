@@ -235,8 +235,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
 
     subprocess.run(cmd, check=check, stdout=stdout, stderr=stderr, env=env)
 
-
-def authenticate_client_cert(data_root):
+def get_client_cert_path():
     if sys.platform == "win32":
         data_location = Path(
             os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local")
@@ -248,7 +247,9 @@ def authenticate_client_cert(data_root):
         data_location = Path.home() / ".local" / "share"
     # cat ~/snap/multipass/current/data/multipass-client-certificate/multipass_cert.pem | sudo tee -a /var/snap/multipass/common/data/multipassd/authenticated-certs/multipass_client_certs.pem > /dev/null
     # snap restart multipass
-    src_path = data_location / "multipass-client-certificate" / "multipass_cert.pem"
+    return data_location / "multipass-client-certificate" / "multipass_cert.pem"
+
+def authenticate_client_cert(client_cert_path, data_root):
     dst_path = (
         Path(data_root) / "data" / "authenticated-certs" / "multipass_client_certs.pem"
     )
@@ -256,7 +257,8 @@ def authenticate_client_cert(data_root):
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     # Ensure the file exists (like `tee -a`, which creates it if missing)
     dst_path.touch(exist_ok=True)
-    with src_path.open("rb") as src, dst_path.open("ab") as dst:
+    with Path(client_cert_path).open("rb") as src, dst_path.open("ab") as dst:
+        logging.debug(f"auth {client_cert_path} -> {dst_path}")
         shutil.copyfileobj(src, dst)
 
 
