@@ -36,7 +36,7 @@ dependencies:
   tray_menu:
     git:
       url: https://github.com/canonical/tray_menu.git
-      ref: cef5b8f
+      ref: main
   two_dimensional_scrollables: ^0.3.3
   url_launcher: ^6.3.1
   win32: ^5.14.0
