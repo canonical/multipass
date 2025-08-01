@@ -43,7 +43,7 @@ struct CustomManifest
 class CustomVMImageHost final : public BaseVMImageHost
 {
 public:
-    CustomVMImageHost(const QString& arch, URLDownloader* downloader);
+    CustomVMImageHost(URLDownloader* downloader);
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
