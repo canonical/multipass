@@ -1,0 +1,44 @@
+{   
+    "Debian": {
+        "aliases": "bookworm, debian",
+        "os": "debian",
+        "release": "bookworm",
+        "release_codename": "Bookworm",
+        "release_title": "12",
+        "items": {
+            "x86_64": {
+                "image_location": "http://cloud.debian.org/images/cloud/bookworm/20250703-2162/debian-12-generic-amd64-20250703-2162.qcow2",
+                "id": "sha512:xlHC8/0e40LyJXJJWahql62AQCfD8FfgMYlFXQk9B6AGOQkpoi3w+VpSaSkbrcYZlkvei/nioztvOgH0kolQaA",
+                "version": "20250703",
+                "size": "346030080"
+            },
+            "arm64": {
+                "image_location": "http://cloud.debian.org/images/cloud/bookworm/20250703-2162/debian-12-generic-arm64-20250703-2162.qcow2",
+                "id": "sha512:Z0Z/pWRbXPyzE7XP9TZfsgOgtyN+DSmw9SNkRk1i+6HUQU6q2A4Om0Z8OkKBhxd9tW+Cilpkgl1bORwSuhkDpA",
+                "version": "20250703",
+                "size": "433061888"
+            }
+        }
+    },
+    "Fedora": {
+        "aliases": "fedora",
+        "os": "fedora",
+        "release": "",
+        "release_codename": "",
+        "release_title": "42",
+        "items": {
+            "x86_64": {
+                "image_location": "https://kojipkgs.fedoraproject.org/compose/cloud/latest-Fedora-Cloud-42/compose/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-20250801.0.x86_64.qcow2",
+                "id": "3c5a4f3b5e8253df5d73df365f091edb7812f2e3d988e62c5295ed20c0ff35e1",
+                "version": "20250801",
+                "size": "573112320"
+            },
+            "arm64": {
+                "image_location": "https://kojipkgs.fedoraproject.org/compose/cloud/latest-Fedora-Cloud-42/compose/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-42-20250801.0.aarch64.qcow2",
+                "id": "697408d81062609c20ddc15ee0c67e606e10da27e99df1b21b893ced2f941f95",
+                "version": "20250801",
+                "size": "534118400"
+            }
+        }
+    }
+}
