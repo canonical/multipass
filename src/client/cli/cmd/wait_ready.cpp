@@ -19,9 +19,9 @@
 #include "animated_spinner.h"
 #include "common_cli.h"
 
-#include <multipass/timer.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/exceptions/cmd_exceptions.h>
+#include <multipass/timer.h>
 
 #include <chrono>
 #include <thread>
@@ -60,9 +60,7 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this, &spinner, &timer](grpc::Status& status) {
-        if (status.error_code() == grpc::StatusCode::NOT_FOUND &&
-            (status.error_message() == "cannot connect to the multipass socket" ||
-             status.error_message() == "cannot connect to the image servers"))
+        if (status.error_code() == grpc::StatusCode::NOT_FOUND)
         {
             // This is the expected state for when the daemon is not yet ready
             // Sleep for a short duration and signal to retry

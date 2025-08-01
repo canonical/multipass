@@ -81,7 +81,9 @@ TEST_F(DaemonWaitReady, updateManifestsThrowTriggersClientRetryPollingTillSucces
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
     EXPECT_CALL(*mock_image_host, update_manifests(false))
-        .WillOnce([]() { throw mp::DownloadException{"dummy_url", "dummy_cause"}; })
+        .WillOnce([]() {
+            throw mp::DownloadException{"dummy_url", "dummy_cause"};
+        })
         .WillRepeatedly(Return());
 
     config_builder.image_hosts[0] = std::move(mock_image_host);
