@@ -265,7 +265,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                         bridgedOption,
                         mountOption});
 
-    mp::cmd::add_timeout(parser);
+    mp::cmd::add_instance_timeout(parser);
 
     auto status = parser->commandParse(this);
 
