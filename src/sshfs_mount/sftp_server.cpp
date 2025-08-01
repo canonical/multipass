@@ -253,6 +253,20 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
                ? (default_found == id_maps.cend() ? default_id : default_found->first)
                : found->first;
 }
+
+int chown_shim(const char* path, unsigned int uid, unsigned int gid)
+{
+    // Do not bother calling the chown if IDs are set to no_id_available
+    // (e.g. in Windows)
+    if (uid == static_cast<decltype(gid)>(mp::no_id_info_available) ||
+        gid == static_cast<decltype(gid)>(mp::no_id_info_available))
+    {
+        return 0;
+    }
+
+    return MP_PLATFORM.chown(path, uid, gid);
+}
+
 } // namespace
 
 mp::SftpServer::SftpServer(SSHSession&& session,
@@ -585,7 +599,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     int rev_uid = reverse_uid_for(parent_dir.ownerId(), parent_dir.ownerId());
     int rev_gid = reverse_gid_for(parent_dir.groupId(), parent_dir.groupId());
 
-    if (MP_PLATFORM.chown(filename, rev_uid, rev_gid) < 0)
+    if (chown_shim(filename, rev_uid, rev_gid) < 0)
     {
         mpl::log(mpl::Level::trace,
                  category,
@@ -720,7 +734,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         auto new_uid = reverse_uid_for(current_dir.ownerId(), current_dir.ownerId());
         auto new_gid = reverse_gid_for(current_dir.groupId(), current_dir.groupId());
 
-        if (MP_PLATFORM.chown(filename, new_uid, new_gid) < 0)
+        if (chown_shim(filename, new_uid, new_gid) < 0)
         {
             mpl::log(mpl::Level::trace,
                      category,
@@ -1179,9 +1193,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.chown(filename.u8string().c_str(),
-                              reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                              reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        if (chown_shim(filename.u8string().c_str(),
+                       reverse_uid_for(msg->attr->uid, msg->attr->uid),
+                       reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
         {
             mpl::log(mpl::Level::trace,
                      category,
