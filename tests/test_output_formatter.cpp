@@ -62,7 +62,7 @@ auto construct_single_instance_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("16.04 LTS");
+    list_entry->set_current_release("Ubuntu 16.04 LTS");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
     list_entry->add_ipv6("fdde:2681:7a2::4ca");
@@ -78,13 +78,13 @@ auto construct_multiple_instances_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("16.04 LTS");
+    list_entry->set_current_release("Ubuntu 16.04 LTS");
     list_entry->add_ipv4("10.21.124.56");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("18.04 LTS");
+    list_entry->set_current_release("Ubuntu 18.04 LTS");
 
     return list_reply;
 }
@@ -96,12 +96,12 @@ auto construct_unsorted_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("Debian 12");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("Fedora 42");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
@@ -259,7 +259,7 @@ auto construct_single_instance_info_reply()
     auto info_entry = info_reply.add_details();
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("Ubuntu 16.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -313,7 +313,7 @@ auto construct_multiple_instances_info_reply()
     auto info_entry = info_reply.add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("Ubuntu 16.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -345,7 +345,7 @@ auto construct_multiple_instances_info_reply()
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("Ubuntu 18.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -461,7 +461,7 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("Ubuntu 18.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -476,7 +476,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     auto info_entry = info_reply.add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("Ubuntu 16.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -545,7 +545,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("Ubuntu 18.04 LTS");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -869,9 +869,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &unsorted_list_reply,
      "Name                    State             IPv4             Image\n"
      "trusty-190611-1529      Deleted           --               Not Available\n"
-     "trusty-190611-1535      Stopped           --               Ubuntu N/A\n"
+     "trusty-190611-1535      Stopped           --               Fedora 42\n"
      "trusty-190611-1539      Suspended         --               Not Available\n"
-     "trusty-190611-1542      Running           --               Ubuntu N/A\n",
+     "trusty-190611-1542      Running           --               Debian 12\n",
      "table_list_unsorted"},
     {&table_formatter,
      &single_snapshot_list_reply,
@@ -1088,9 +1088,9 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      &unsorted_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4\n"
      "trusty-190611-1529,Deleted,,,Not Available,\"\"\n"
-     "trusty-190611-1535,Stopped,,,Ubuntu N/A,\"\"\n"
+     "trusty-190611-1535,Stopped,,,Fedora 42,\"\"\n"
      "trusty-190611-1539,Suspended,,,Not Available,\"\"\n"
-     "trusty-190611-1542,Running,,,Ubuntu N/A,\"\"\n",
+     "trusty-190611-1542,Running,,,Debian 12,\"\"\n",
      "csv_list_unsorted"},
     {&csv_formatter,
      &empty_list_snapshot_reply,
@@ -1119,7 +1119,8 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,10.168.32.2,2001:67c:1562:8007::aac:423a,"
      "Ubuntu "
      "16.04.3 "
-     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
+     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,Ubuntu 16.04 LTS,0.45 "
+     "0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
      "=> test_dir,10.168.32.2;200.3.123.29,1,0\n",
      "csv_info_single_instance"},
@@ -1148,10 +1149,12 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
      "usage,Memory "
      "total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,10.21.124.56,,Ubuntu 16.04.3 "
-     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
+     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,Ubuntu 16.04 LTS,0.03 "
+     "0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
      "source,10.21.124.56,4,1\nbombastic,Stopped,,,,"
-     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\n",
+     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,Ubuntu 18.04 "
+     "LTS,,,,,,,,,3\n",
      "csv_info_multiple_instances"},
 
     {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
@@ -1188,7 +1191,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: Ubuntu N/A\n"
+     "    release: Fedora 42\n"
      "trusty-190611-1539:\n"
      "  - state: Suspended\n"
      "    ipv4:\n"
@@ -1198,7 +1201,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    ipv4:\n"
      "      []\n"
-     "    release: Ubuntu N/A\n",
+     "    release: Debian 12\n",
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_list_snapshot_reply, "\n", "yaml_list_snapshot_empty"},
     {&yaml_formatter,
@@ -1239,7 +1242,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    snapshot_count: 0\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-     "    image_release: 16.04 LTS\n"
+     "    image_release: Ubuntu 16.04 LTS\n"
      "    release: Ubuntu 16.04.3 LTS\n"
      "    cpu_count: 1\n"
      "    load:\n"
@@ -1278,7 +1281,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    snapshot_count: 1\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-     "    image_release: 16.04 LTS\n"
+     "    image_release: Ubuntu 16.04 LTS\n"
      "    release: Ubuntu 16.04.3 LTS\n"
      "    cpu_count: 4\n"
      "    load:\n"
@@ -1305,7 +1308,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-     "    image_release: 18.04 LTS\n"
+     "    image_release: Ubuntu 18.04 LTS\n"
      "    release: ~\n"
      "    cpu_count: ~\n"
      "    disks:\n"
@@ -1386,7 +1389,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-     "    image_release: 18.04 LTS\n"
+     "    image_release: Ubuntu 18.04 LTS\n"
      "    release: ~\n"
      "    cpu_count: ~\n"
      "    disks:\n"
@@ -1426,7 +1429,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Running\n"
      "    snapshot_count: 2\n"
      "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-     "    image_release: 16.04 LTS\n"
+     "    image_release: Ubuntu 16.04 LTS\n"
      "    release: Ubuntu 16.04.3 LTS\n"
      "    cpu_count: 4\n"
      "    load:\n"
@@ -1481,7 +1484,7 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "  - state: Stopped\n"
      "    snapshot_count: 3\n"
      "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-     "    image_release: 18.04 LTS\n"
+     "    image_release: Ubuntu 18.04 LTS\n"
      "    release: ~\n"
      "    cpu_count: ~\n"
      "    disks:\n"
@@ -1630,7 +1633,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"image_hash\": "
      "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-     "            \"image_release\": \"16.04 LTS\",\n"
+     "            \"image_release\": \"Ubuntu 16.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "                \"10.168.32.2\",\n"
      "                \"200.3.123.29\"\n"
@@ -1687,7 +1690,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"image_hash\": "
      "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-     "            \"image_release\": \"16.04 LTS\",\n"
+     "            \"image_release\": \"Ubuntu 16.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "                \"10.21.124.56\"\n"
      "            ],\n"
@@ -1723,7 +1726,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"image_hash\": "
      "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-     "            \"image_release\": \"18.04 LTS\",\n"
+     "            \"image_release\": \"Ubuntu 18.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "            ],\n"
      "            \"load\": [\n"
@@ -1863,7 +1866,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"image_hash\": "
      "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-     "            \"image_release\": \"18.04 LTS\",\n"
+     "            \"image_release\": \"Ubuntu 18.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "            ],\n"
      "            \"load\": [\n"
@@ -1895,7 +1898,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"image_hash\": "
      "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-     "            \"image_release\": \"16.04 LTS\",\n"
+     "            \"image_release\": \"Ubuntu 16.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "                \"10.21.124.56\"\n"
      "            ],\n"
@@ -1967,7 +1970,7 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
      "            },\n"
      "            \"image_hash\": "
      "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-     "            \"image_release\": \"18.04 LTS\",\n"
+     "            \"image_release\": \"Ubuntu 18.04 LTS\",\n"
      "            \"ipv4\": [\n"
      "            ],\n"
      "            \"load\": [\n"
