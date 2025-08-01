@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/image_host/ubuntu_image_host.h>
@@ -176,9 +177,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
         }
     }
 
-    // TODO: Throw a specific exception type here so callers can be more specific about what to
-    // catch and what to allow through.
-    throw std::runtime_error(
+    throw mp::ImageNotFoundException(
         fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 }
 
