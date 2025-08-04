@@ -505,6 +505,14 @@ def mounts(name):
 def exec(name, *args, **kwargs):
     return multipass("exec", name, "--", *args, **kwargs)
 
+def shell(name):
+    # We have to disable buffering to get proper "interactive" shell
+    # hence the `stdbuf` shenanigans.
+    if sys.platform == "win32":
+        return multipass("exec", name, "--", "stdbuf", "-oL", "-eL", "bash", "-i", interactive=True)
+    else:
+        return multipass("shell", name, interactive=True)
+
 
 def validate_output(*args, properties, jq_filter=None):
     with multipass(*args).json() as output:
