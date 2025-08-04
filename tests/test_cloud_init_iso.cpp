@@ -218,8 +218,10 @@ TEST_F(CloudInitIso, readsIsoFileJolietVolumeDescriptorMalformed)
 
     auto read_returns_five_bytes_string =
         [](std::ifstream& file, char* buffer, std::streamsize size) -> std::ifstream& {
-        EXPECT_EQ(5, size);
-        EXPECT_NE(nullptr, buffer);
+        [&] {
+            ASSERT_EQ(5, size);
+            ASSERT_NE(nullptr, buffer);
+        }();
         constexpr char buf[] = {'N', 'o', 'n', 'J', 'o'};
         std::memcpy(buffer, buf, size);
         return file;
