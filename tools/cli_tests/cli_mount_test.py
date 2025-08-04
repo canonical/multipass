@@ -18,7 +18,6 @@
 
 """Multipass command line tests for the `mount` feature."""
 
-import shutil
 import os
 import sys
 from pathlib import Path
@@ -43,8 +42,6 @@ def expected_mount_uid():
 @pytest.mark.usefixtures("windows_privileged_mounts")
 class TestMount:
     """Virtual machine mount tests."""
-
-
 
     def test_mount(self, instance, mount_type):
 
@@ -189,27 +186,30 @@ class TestMount:
             instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
-            assert multipass("exec", instance, "--", "ls", str(instance_target_path))
+
+            assert multipass("exec", instance, "--", "ls", instance_target_path.as_posix())
 
             assert multipass(
                 "exec",
                 instance,
                 "--",
-                f'bash -c \'echo "hello there" > {str(instance_target_path)}/file1.txt',
+                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"'''
+            )
+
+
+            assert multipass(
+                "exec",
+                instance,
+                "--",
+                f"mkdir -p {(instance_target_path / subdir).as_posix()}",
             )
 
             assert multipass(
                 "exec",
                 instance,
                 "--",
-                f"mkdir -p {str(instance_target_path / subdir)}",
-            )
-
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                f'bash -c \'echo "hello there" > {str(instance_target_path / subdir)}/file2.txt',
+                "bash", "-c",
+                f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
             )
 
             # Verify that created files exits in host
@@ -228,9 +228,9 @@ class TestMount:
             assert not expected_subdir.exists()
 
             # verify that they are no longer present in the guest
-            assert not multipass("exec", instance, "--", "ls", str(expected_file1))
-            assert not multipass("exec", instance, "--", "ls", str(expected_file2))
-            assert not multipass("exec", instance, "--", "ls", str(expected_subdir))
+            assert not multipass("exec", instance, "--", "ls", expected_file1.as_posix())
+            assert not multipass("exec", instance, "--", "ls", expected_file2.as_posix())
+            assert not multipass("exec", instance, "--", "ls", expected_subdir.as_posix())
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
@@ -245,6 +245,7 @@ class TestMount:
 
         with TempDirectory() as mount_dir:
             os.chmod(mount_dir, 0o444)
+
             if mount_type == "native":
                 assert multipass("stop", instance)
 
@@ -262,13 +263,13 @@ class TestMount:
             instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
-            assert multipass("exec", instance, "--", "ls", str(instance_target_path))
+            assert multipass("exec", instance, "--", "ls", instance_target_path.as_posix())
 
             assert multipass(
                 "exec",
                 instance,
                 "--",
-                f'bash -c \'echo "hello there" > {str(instance_target_path)}/file1.txt',
+                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"'''
             )
 
             assert multipass(
@@ -282,7 +283,8 @@ class TestMount:
                 "exec",
                 instance,
                 "--",
-                f'bash -c \'echo "hello there" > {str(instance_target_path / subdir)}/file2.txt',
+                "bash", "-c",
+                f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
             )
 
             # Verify that created files exits in host
@@ -291,9 +293,9 @@ class TestMount:
             expected_file2 = expected_subdir / "file2.txt"
 
             # verify that they are no longer present in the guest
-            assert not multipass("exec", instance, "--", "ls", str(expected_file1))
-            assert not multipass("exec", instance, "--", "ls", str(expected_file2))
-            assert not multipass("exec", instance, "--", "ls", str(expected_subdir))
+            assert not multipass("exec", instance, "--", "ls", expected_file1.as_posix())
+            assert not multipass("exec", instance, "--", "ls", expected_file2.as_posix())
+            assert not multipass("exec", instance, "--", "ls", expected_subdir.as_posix())
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
