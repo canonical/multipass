@@ -26,6 +26,7 @@ from cli_tests.utils import (
     validate_list_output,
     validate_info_output,
     multipass,
+    shell
 )
 
 
@@ -109,8 +110,9 @@ def test_shell():
 
     validate_list_output(name, {"state": "Running"})
 
-    with multipass("shell", f"{name}", interactive=True) as vm_shell:
+    with shell(name) as vm_shell:
         vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
+
         # Send a command and expect output
         vm_shell.sendline('echo "Hello from multipass"')
         vm_shell.expect("Hello from multipass")
@@ -121,23 +123,25 @@ def test_shell():
         vm_shell.expect(r"/home/ubuntu")
         vm_shell.expect(r"ubuntu@.*:.*\$")
 
-        # Verify the basics
-
         # Core count
         vm_shell.sendline("nproc")
         vm_shell.expect("2")
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
 
         # User name
         vm_shell.sendline("whoami")
         vm_shell.expect("ubuntu")
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
 
         # Hostname
         vm_shell.sendline("hostname")
         vm_shell.expect(f"{name}")
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
 
         # Ubuntu Series
         vm_shell.sendline("grep --color=never '^VERSION=' /etc/os-release")
         vm_shell.expect(r'VERSION="22\.04\..* LTS \(Jammy Jellyfish\)"')
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
 
         # Exit the shell
         vm_shell.sendline("exit")
