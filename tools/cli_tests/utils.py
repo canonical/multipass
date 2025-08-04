@@ -41,7 +41,8 @@ import jq
 import pexpect
 
 if sys.platform == "win32":
-    import pexpect.popen_spawn
+    from pexpect.popen_spawn import PopenSpawn
+    from cli_tests.pexpect_winptyspawn import WinptySpawn
 
 from cli_tests.config import config
 
@@ -381,21 +382,13 @@ def multipass(*args, **kwargs):
         # updating progress message
         sys.stderr.write("\n")
 
-    if kwargs.get("interactive"):
-        return pexpect.spawn(
-            f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
-            logfile=(sys.stdout.buffer if config.print_cli_output else None),
-            timeout=timeout,
-            echo=echo,
-            env=get_multipass_env(),
-        )
-
     if sys.platform == "win32":
-
-        class PopenCompatSpawn(pexpect.popen_spawn.PopenSpawn):
+        # PopenSpawn is just "good enough" for non-interactive stuff.
+        class PopenCompatSpawn(PopenSpawn):
             def __init__(self, command, **kwargs):
                 super().__init__(command, **kwargs)
                 self.command = command if isinstance(command, list) else command.split()
+                print(self.command)
 
             def isalive(self):
                 return self.proc.poll() is None
@@ -409,6 +402,28 @@ def multipass(*args, **kwargs):
                         except subprocess.TimeoutExpired:
                             if kill_on_timeout:
                                 self.proc.kill()
+            def close(self):
+                self.terminate()
+
+    if kwargs.get("interactive"):
+        if sys.platform == "win32":
+            return WinptySpawn(
+                f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
+                logfile=(sys.stdout if config.print_cli_output else None),
+                timeout=timeout,
+                encoding="utf-8",
+                codec_errors='replace',
+                env=get_multipass_env(),
+            )
+
+        return pexpect.spawn(
+            f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
+            logfile=(sys.stdout.buffer if config.print_cli_output else None),
+            timeout=timeout,
+            echo=echo,
+            env=get_multipass_env(),
+        )
+
 
     class Cmd:
         """Run a Multipass CLI command and capture its output.
@@ -436,7 +451,7 @@ def multipass(*args, **kwargs):
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
-                        f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
+                        [get_multipass_path(), *args],
                         logfile=(
                             sys.stdout.buffer if config.print_cli_output else None
                         ),
