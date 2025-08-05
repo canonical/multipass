@@ -24,17 +24,10 @@ from pathlib import Path
 
 import pytest
 
-from cli_tests.utils import multipass, TempDirectory, mounts
+from cli_tests.utilities import TempDirectory
 
-def expected_mount_gid():
-    if sys.platform == "win32":
-        return -2
-    return 1000
+from cli_tests.multipass import multipass, mounts, default_mount_uid, default_mount_gid
 
-def expected_mount_uid():
-    if sys.platform == "win32":
-        return -2
-    return 1000
 
 @pytest.mark.mount
 # TODO: "native"
@@ -54,9 +47,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
             assert multipass(
@@ -77,14 +70,14 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir1.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir1),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
                 f"/home/ubuntu/{mount_dir2.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir2),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
 
@@ -103,9 +96,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir2.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir2),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
 
@@ -136,9 +129,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
             assert multipass(
@@ -149,9 +142,9 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
             assert multipass(
@@ -177,25 +170,25 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
             instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
-
-            assert multipass("exec", instance, "--", "ls", instance_target_path.as_posix())
+            assert multipass(
+                "exec", instance, "--", "ls", instance_target_path.as_posix()
+            )
 
             assert multipass(
                 "exec",
                 instance,
                 "--",
-                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"'''
+                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"''',
             )
-
 
             assert multipass(
                 "exec",
@@ -208,7 +201,7 @@ class TestMount:
                 "exec",
                 instance,
                 "--",
-                rf'''bash -c "echo 'hello there' > {(instance_target_path / subdir / "file2.txt").as_posix()}"'''
+                rf'''bash -c "echo 'hello there' > {(instance_target_path / subdir / "file2.txt").as_posix()}"''',
             )
 
             # Verify that created files exits in host
@@ -227,9 +220,15 @@ class TestMount:
             assert not expected_subdir.exists()
 
             # verify that they are no longer present in the guest
-            assert not multipass("exec", instance, "--", "ls", expected_file1.as_posix())
-            assert not multipass("exec", instance, "--", "ls", expected_file2.as_posix())
-            assert not multipass("exec", instance, "--", "ls", expected_subdir.as_posix())
+            assert not multipass(
+                "exec", instance, "--", "ls", expected_file1.as_posix()
+            )
+            assert not multipass(
+                "exec", instance, "--", "ls", expected_file2.as_posix()
+            )
+            assert not multipass(
+                "exec", instance, "--", "ls", expected_subdir.as_posix()
+            )
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
@@ -253,22 +252,24 @@ class TestMount:
 
             assert mounts(instance) == {
                 f"/home/ubuntu/{mount_dir.name}": {
-                    "gid_mappings": [f"{expected_mount_gid()}:default"],
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
                     "source_path": str(mount_dir),
-                    "uid_mappings": [f"{expected_mount_uid()}:default"],
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
             instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
-            assert multipass("exec", instance, "--", "ls", instance_target_path.as_posix())
+            assert multipass(
+                "exec", instance, "--", "ls", instance_target_path.as_posix()
+            )
 
             assert multipass(
                 "exec",
                 instance,
                 "--",
-                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"'''
+                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"''',
             )
 
             assert multipass(
@@ -282,7 +283,8 @@ class TestMount:
                 "exec",
                 instance,
                 "--",
-                "bash", "-c",
+                "bash",
+                "-c",
                 f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
             )
 
@@ -292,9 +294,15 @@ class TestMount:
             expected_file2 = expected_subdir / "file2.txt"
 
             # verify that they are no longer present in the guest
-            assert not multipass("exec", instance, "--", "ls", expected_file1.as_posix())
-            assert not multipass("exec", instance, "--", "ls", expected_file2.as_posix())
-            assert not multipass("exec", instance, "--", "ls", expected_subdir.as_posix())
+            assert not multipass(
+                "exec", instance, "--", "ls", expected_file1.as_posix()
+            )
+            assert not multipass(
+                "exec", instance, "--", "ls", expected_file2.as_posix()
+            )
+            assert not multipass(
+                "exec", instance, "--", "ls", expected_subdir.as_posix()
+            )
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
