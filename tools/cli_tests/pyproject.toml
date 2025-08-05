@@ -21,5 +21,7 @@ markers = [
     "mount: Mount tests.",
     "resource: VM resource modification tests",
     "settings: Tests for the available settings",
-    "shell: VM shell tests"
+    "shell: VM shell tests",
+    "launch: Launch tests",
+    "list: List tests"
 ]
