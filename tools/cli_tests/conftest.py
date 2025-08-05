@@ -34,12 +34,7 @@ import pytest
 
 from cli_tests.utilities import uuid4_str, wait_for_future, die, get_sudo_tool
 
-from cli_tests.multipass import (
-    Output,
-    multipass,
-    mounts,
-    state,
-)
+from cli_tests.multipass import Output, multipass, mounts, state, default_driver_name
 from cli_tests.config import config
 from cli_tests.controller import AsyncMultipassdController
 
@@ -82,6 +77,12 @@ def pytest_addoption(parser):
         help="Remove all instances from `data-root` before starting testing.",
     )
 
+    parser.addoption(
+        "--driver",
+        default=default_driver_name(),
+        help="Backend to use.",
+    )
+
 
 def pytest_configure(config):
     """Validate command line args."""
@@ -116,6 +117,7 @@ def store_config(request):
     config.print_daemon_output = request.config.getoption("--print-daemon-output")
     config.print_cli_output = request.config.getoption("--print-cli-output")
     config.remove_all_instances = request.config.getoption("--remove-all-instances")
+    config.driver = request.config.getoption("--driver")
 
     # If user gave --data-root, use it
     if not config.data_root:
@@ -261,6 +263,13 @@ def multipassd(store_config):
         sys.stderr.flush()
         sys.stdout.flush()
         bg_loop.stop()
+
+
+@pytest.fixture(autouse=True)
+def set_driver(multipassd):
+    if multipass("get", "local.driver") != config.driver:
+        assert multipass("set", f"local.driver={config.driver}")
+        multipassd.wait_for_restart()
 
 
 @pytest.fixture
