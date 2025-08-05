@@ -20,13 +20,8 @@
 
 import pytest
 
-from cli_tests.utils import (
-    uuid4_str,
-    is_valid_ipv4_addr,
-    validate_info_output,
-    take_snapshot,
-    multipass,
-)
+from cli_tests.utilities import uuid4_str, is_valid_ipv4_addr
+from cli_tests.multipass import multipass, validate_info_output, take_snapshot
 
 
 @pytest.mark.clone
