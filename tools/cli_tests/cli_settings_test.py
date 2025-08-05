@@ -18,6 +18,7 @@
 
 """Multipass command line e2e tests"""
 
+import sys
 import pytest
 
 from cli_tests.multipass import multipass, default_driver_name
@@ -28,6 +29,7 @@ class TestSettings:
 
     def test_get_all_keys(self):
         expected_keys = [
+            *(["client.apps.windows-terminal.profiles"] if sys.platform == "win32" else []),
             "client.primary-name",
             "local.bridged-network",
             "local.driver",
@@ -41,7 +43,7 @@ class TestSettings:
             assert keys_split == expected_keys
 
     def test_get_disabled_primary_name(self):
-        assert multipass("set", 'client.primary-name=""')
+        assert multipass("set", 'client.primary-name=')
         assert multipass("get", "client.primary-name") == "<empty>"
 
     def test_set_primary_name(self):
