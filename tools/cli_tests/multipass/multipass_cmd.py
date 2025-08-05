@@ -24,7 +24,7 @@ import pexpect
 
 if sys.platform == "win32":
     from pexpect.popen_spawn import PopenSpawn
-    from cli_tests.pexpect_winptyspawn import WinptySpawn
+    from cli_tests.utilities import WinptySpawn
 
 
 from cli_tests.utilities import retry, strip_ansi_escape
