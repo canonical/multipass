@@ -32,18 +32,16 @@ from pathlib import Path
 
 import pytest
 
-from cli_tests.utils import (
+from cli_tests.utilities import uuid4_str, wait_for_future, die, get_sudo_tool
+
+from cli_tests.multipass import (
     Output,
     multipass,
-    uuid4_str,
     mounts,
     state,
-    get_sudo_tool,
-    die,
-    wait_for_future
 )
 from cli_tests.config import config
-from cli_tests.async_multipassd_controller import AsyncMultipassdController
+from cli_tests.controller import AsyncMultipassdController
 
 
 def pytest_addoption(parser):
@@ -87,18 +85,14 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     """Validate command line args."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(levelname)s] %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
     if config.getoption("--build-root") is None:
         pytest.exit("ERROR: The `--build-root` argument is required.", returncode=1)
+
 
 def pytest_assertrepr_compare(op, left, right):
     """Custom assert pretty-printer for `"pattern" in Output()`"""
 
-    print(f"pytest_assertrepr_compare > {op} {left} {right}")
-    from cli_tests.utils import ContextManagerProxy
     if isinstance(right, Output) and op == "in":
         lines = [
             f"❌ A text matching the pattern `{left}` not found in actual CLI command output:",
@@ -108,10 +102,9 @@ def pytest_assertrepr_compare(op, left, right):
         content_lines = right.content.split("\n")
         lines.extend(content_lines)
         lines.append("")  # Empty line at the end
-
         return lines
-
     return None
+
 
 @pytest.fixture(autouse=True)
 def store_config(request):
@@ -146,13 +139,17 @@ def store_config(request):
         request.addfinalizer(cleanup)
         config.data_root = tmpdir.name
 
+
 @pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
     try:
         # Test if sudo is already authenticated
         result = subprocess.run(
-            [*get_sudo_tool(), "-n", "true"], capture_output=True, timeout=1, check=False
+            [*get_sudo_tool(), "-n", "true"],
+            capture_output=True,
+            timeout=1,
+            check=False,
         )
 
         if result.returncode == 0:
@@ -171,6 +168,7 @@ def ensure_sudo_auth():
         subprocess.run([*get_sudo_tool(), "-v"], check=True)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
+
 
 def privileged_truncate_file(target, check=False):
     subprocess.run(
@@ -201,6 +199,7 @@ def privileged_remove_path(target, check=False):
         stderr=subprocess.DEVNULL,
     )
 
+
 class BackgroundEventLoop:
     def __init__(self):
         self.loop = asyncio.new_event_loop()
@@ -224,6 +223,7 @@ class BackgroundEventLoop:
     def stop(self):
         self.run_fn(self.loop.stop)
         self.thread.join()
+
 
 @pytest.fixture(autouse=True)
 def multipassd(store_config):
@@ -252,6 +252,7 @@ def multipassd(store_config):
         )
         wait_for_future(bg_loop.run(controller.start()))
         yield controller
+        logging.debug("multipassd fixture return")
     except Exception as exc:
         die(2, str(exc))
     finally:
@@ -261,6 +262,7 @@ def multipassd(store_config):
         sys.stdout.flush()
         bg_loop.stop()
 
+
 @pytest.fixture
 def windows_privileged_mounts(multipassd):
     if sys.platform == "win32":
@@ -268,6 +270,7 @@ def windows_privileged_mounts(multipassd):
         if "true" in multipass("get", "local.privileged-mounts"):
             return
         assert multipass("set", "local.privileged-mounts=1")
+
 
 @pytest.fixture(scope="function")
 def instance():
