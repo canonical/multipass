@@ -20,14 +20,14 @@
 
 import pytest
 
-from cli_tests.utils import (
-    uuid4_str,
+from cli_tests.utilities import uuid4_str, is_within_tolerance
+
+from cli_tests.multipass import (
+    get_ram_size,
+    get_core_count,
+    get_disk_size,
     validate_list_output,
     multipass,
-    is_size_in_ballpark,
-    get_ram_size,
-    get_disk_size,
-    get_core_count,
 )
 
 
@@ -55,21 +55,20 @@ class TestVmResource:
 
         validate_list_output(name, {"state": "Running"})
 
-        assert is_size_in_ballpark(get_ram_size(name), 1024)
-        assert is_size_in_ballpark(get_disk_size(name), 6144)
+        assert is_within_tolerance(get_ram_size(name), 1024)
+        assert is_within_tolerance(get_disk_size(name), 6144)
         assert get_core_count(name) == 2
 
         assert not multipass("set", f"local.{name}.memory=2G")
         assert not multipass("set", f"local.{name}.disk=10G")
         assert not multipass("set", f"local.{name}.cpus=3")
 
-        assert is_size_in_ballpark(get_ram_size(name), 1024)
-        assert is_size_in_ballpark(get_disk_size(name), 6144)
+        assert is_within_tolerance(get_ram_size(name), 1024)
+        assert is_within_tolerance(get_disk_size(name), 6144)
         assert get_core_count(name) == 2
 
         # Remove the instance.
         assert multipass("delete", f"{name}")
-
 
     def test_modify_vm(self):
         """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
@@ -92,18 +91,19 @@ class TestVmResource:
 
         validate_list_output(name, {"state": "Running"})
 
-        assert is_size_in_ballpark(get_ram_size(name), 1024)
-        assert is_size_in_ballpark(get_disk_size(name), 6144)
+        assert is_within_tolerance(get_ram_size(name), 1024)
+        assert is_within_tolerance(get_disk_size(name), 6144)
         assert get_core_count(name) == 2
 
         assert multipass("stop", name)
         assert multipass("set", f"local.{name}.memory=2G")
         assert multipass("set", f"local.{name}.disk=10G")
         assert multipass("set", f"local.{name}.cpus=3")
+
         assert multipass("start", name)
 
-        assert is_size_in_ballpark(get_ram_size(name), 2048)
-        assert is_size_in_ballpark(get_disk_size(name), 10240)
+        assert is_within_tolerance(get_ram_size(name), 2048)
+        assert is_within_tolerance(get_disk_size(name), 10240)
         assert get_core_count(name) == 3
 
         # Remove the instance.
