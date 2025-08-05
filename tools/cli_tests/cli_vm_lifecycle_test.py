@@ -20,11 +20,9 @@
 
 import pytest
 
-from cli_tests.utils import (
-    uuid4_str,
-    multipass,
-    state,
-)
+from cli_tests.utilities import uuid4_str
+
+from cli_tests.multipass import multipass, state
 
 
 @pytest.mark.lifecycle

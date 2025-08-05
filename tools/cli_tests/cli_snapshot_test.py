@@ -20,18 +20,20 @@
 
 import pytest
 
-from cli_tests.utils import (
+from cli_tests.utilities import (
     uuid4_str,
-    validate_list_output,
-    validate_info_output,
-    build_snapshot_tree,
-    collapse_to_snapshot_tree,
     find_lineage,
-    file_exists,
-    take_snapshot,
-    multipass,
 )
 
+from cli_tests.multipass import (
+    validate_info_output,
+    validate_list_output,
+    build_snapshot_tree,
+    collapse_to_snapshot_tree,
+    file_exists,
+    take_snapshot,
+    multipass
+)
 
 @pytest.mark.snapshot
 class TestSnapshot:

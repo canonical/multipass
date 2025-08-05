@@ -20,13 +20,16 @@
 
 import pexpect
 
-from cli_tests.utils import (
+from cli_tests.utilities import (
     is_valid_ipv4_addr,
     uuid4_str,
+)
+
+from cli_tests.multipass import (
     validate_list_output,
     validate_info_output,
     multipass,
-    shell
+    shell,
 )
 
 
