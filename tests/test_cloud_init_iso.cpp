@@ -217,8 +217,19 @@ TEST_F(CloudInitIso, readsIsoFileJolietVolumeDescriptorMalformed)
         .WillOnce(original_implementation_of_read);
 
     auto read_returns_five_bytes_string =
-        [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& {
-        std::strcpy(buffer, "NonJo");
+        [](std::ifstream& file, char* buffer, std::streamsize size) -> std::ifstream& {
+        if (size != 5)
+        {
+            throw std::invalid_argument{"Size must be 5."};
+        }
+
+        if (nullptr == buffer)
+        {
+            throw std::invalid_argument{"Buffer must not be null!"};
+        }
+
+        constexpr char buf[] = {'N', 'o', 'n', 'J', 'o'};
+        std::memcpy(buffer, buf, size);
         return file;
     };
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))

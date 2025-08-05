@@ -215,8 +215,6 @@ void merge_yaml_entries(YAML::Node& ours,
 }
 
 // Abstract all of the following YAML schema boilerplate
-
-// Begin YAML schema handling abstraction
 struct BlueprintSchemaHandler
 {
     const YAML::Node& blueprint_config;
@@ -412,7 +410,6 @@ mp::Query blueprint_from_yaml_node(YAML::Node& blueprint_config,
     };
     return handler.handle();
 }
-// End YAML schema handling abstraction
 
 } // end anonymous namespace
 
