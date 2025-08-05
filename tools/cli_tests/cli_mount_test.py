@@ -208,8 +208,7 @@ class TestMount:
                 "exec",
                 instance,
                 "--",
-                "bash", "-c",
-                f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
+                rf'''bash -c "echo 'hello there' > {(instance_target_path / subdir / "file2.txt").as_posix()}"'''
             )
 
             # Verify that created files exits in host
