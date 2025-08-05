@@ -236,6 +236,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
 
     subprocess.run(cmd, check=check, stdout=stdout, stderr=stderr, env=env)
 
+
 def get_client_cert_path():
     if sys.platform == "win32":
         data_location = Path(
@@ -249,6 +250,7 @@ def get_client_cert_path():
     # cat ~/snap/multipass/current/data/multipass-client-certificate/multipass_cert.pem | sudo tee -a /var/snap/multipass/common/data/multipassd/authenticated-certs/multipass_client_certs.pem > /dev/null
     # snap restart multipass
     return data_location / "multipass-client-certificate" / "multipass_cert.pem"
+
 
 def authenticate_client_cert(client_cert_path, data_root):
     dst_path = (
@@ -301,6 +303,7 @@ class ContextManagerProxy:
             if self.result is None:
                 self.result = self.callable()
             return func(self, *args, **kwargs)
+
         return wrapper
 
     def __enter__(self):
@@ -402,6 +405,7 @@ def multipass(*args, **kwargs):
                         except subprocess.TimeoutExpired:
                             if kill_on_timeout:
                                 self.proc.kill()
+
             def close(self):
                 self.terminate()
 
@@ -412,7 +416,7 @@ def multipass(*args, **kwargs):
                 logfile=(sys.stdout if config.print_cli_output else None),
                 timeout=timeout,
                 encoding="utf-8",
-                codec_errors='replace',
+                codec_errors="replace",
                 env=get_multipass_env(),
             )
 
@@ -423,7 +427,6 @@ def multipass(*args, **kwargs):
             echo=echo,
             env=get_multipass_env(),
         )
-
 
     class Cmd:
         """Run a Multipass CLI command and capture its output.
@@ -505,11 +508,14 @@ def mounts(name):
 def exec(name, *args, **kwargs):
     return multipass("exec", name, "--", *args, **kwargs)
 
+
 def shell(name):
     # We have to disable buffering to get proper "interactive" shell
     # hence the `stdbuf` shenanigans.
     if sys.platform == "win32":
-        return multipass("exec", name, "--", "stdbuf", "-oL", "-eL", "bash", "-i", interactive=True)
+        return multipass(
+            "exec", name, "--", "stdbuf", "-oL", "-eL", "bash", "-i", interactive=True
+        )
     else:
         return multipass("shell", name, interactive=True)
 
@@ -720,6 +726,7 @@ def get_sudo_tool():
 
     return [result] + default_args
 
+
 def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
     """
     Wait for a Future to complete without blocking signal handling.
@@ -748,3 +755,36 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
         raise fut.exception()
 
     return fut.result()
+
+
+def is_size_in_ballpark(
+    actual_size, expected_size, lb_tolerance=0.1, ub_tolerance=0.02
+):
+    expected_ram_lb = int(expected_size * (1 - lb_tolerance))
+    expected_ram_ub = int(expected_size * (1 + ub_tolerance))
+    return expected_ram_lb <= int(actual_size) <= expected_ram_ub
+
+
+def get_ram_size(name):
+    with multipass(
+        "exec",
+        name,
+        "--",
+        "awk '/MemTotal/ { printf \"%d\\n\", $2 / 1024 }' /proc/meminfo",
+    ) as result:
+        assert result
+        return result.content.strip()
+
+
+def get_disk_size(name):
+    with multipass(
+        "exec", name, "--", "bash -c 'df -m --output=size / | tail -1'"
+    ) as result:
+        assert result
+        return result.content.strip()
+
+
+def get_core_count(name):
+    with multipass("exec", name, "--", "nproc") as result:
+        assert result
+        return int(result.content)

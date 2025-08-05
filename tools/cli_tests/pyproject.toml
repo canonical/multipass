@@ -19,4 +19,5 @@ markers = [
     "slow: The tests that known to have a slow run time.",
     "lifecycle: Basic VM lifecycle tests.",
     "mount: Mount tests.",
+    "resource: VM resource modification tests"
 ]
