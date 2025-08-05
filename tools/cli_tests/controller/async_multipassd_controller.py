@@ -3,24 +3,29 @@
 """Asyncio-based Multipassd Controller"""
 
 import asyncio
-import shutil
-import os
 import re
 import sys
 import subprocess
 import time
 import logging
 
-import pexpect
 
-from cli_tests.utils import multipass, get_sudo_tool, die, get_multipass_env, authenticate_client_cert, get_multipassd_path, get_multipass_path, run_as_privileged, get_client_cert_path
+from cli_tests.utilities import (
+    BooleanLatch,
+    get_sudo_tool,
+    run_as_privileged,
+    send_ctrl_c,
+    die,
+)
+
+from cli_tests.multipass import (
+    get_multipassd_path,
+    get_multipass_env,
+    get_multipass_path,
+    get_client_cert_path,
+    authenticate_client_cert
+)
 from cli_tests.config import config
-
-def send_ctrl_c(pid):
-    subprocess.run(
-    f'python -c "import ctypes; k=ctypes.windll.kernel32; k.FreeConsole(); k.AttachConsole({pid}); k.GenerateConsoleCtrlEvent(0, 0)"',
-        shell=False,
-    )
 
 
 class AsyncMultipassdController:
@@ -36,6 +41,7 @@ class AsyncMultipassdController:
         self.monitor_task = None
         self.graceful_exit_initiated = False
         self.autorestart_attempts = 0
+        self.daemon_ready_event = BooleanLatch()
 
     async def _read_stream(self, stream):
         """Read from stream line by line and print if enabled"""
@@ -45,9 +51,9 @@ class AsyncMultipassdController:
                 if not line:
                     break
 
-                line = line.decode('utf-8', errors='replace')
+                line = line.decode("utf-8", errors="replace")
                 if self.print_daemon_output:
-                    print(line, end='')
+                    print(line, end="")
 
                 # Check for known error patterns
                 for pattern, reason in self._get_error_patterns().items():
@@ -62,10 +68,8 @@ class AsyncMultipassdController:
 
     def _get_error_patterns(self):
         return {
-            r".*dnsmasq: failed to create listening socket.*":
-                "Could not bind dnsmasq to port 53, is there another process running?",
-            r'.*Failed to get shared "write" lock':
-                "Cannot open a image file for writing, is another process holding a write lock?",
+            r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?",
+            r'.*Failed to get shared "write" lock': "Cannot open a image file for writing, is another process holding a write lock?",
         }
 
     async def _monitor(self):
@@ -73,7 +77,9 @@ class AsyncMultipassdController:
         error_reasons = []
 
         # Create tasks to read both stdout and stderr
-        stdout_task = asyncio.create_task(self._read_stream(self.multipassd_proc.stdout))
+        stdout_task = asyncio.create_task(
+            self._read_stream(self.multipassd_proc.stdout)
+        )
 
         try:
             # Wait for process to exit
@@ -92,7 +98,9 @@ class AsyncMultipassdController:
                 return
 
             # Check exit status
-            if (self.graceful_exit_initiated or self.autorestart_attempts > 0) and returncode == 0:
+            if (
+                self.graceful_exit_initiated or self.autorestart_attempts > 0
+            ) and returncode == 0:
                 return  # Normal exit
 
             # Abnormal exit
@@ -108,10 +116,13 @@ class AsyncMultipassdController:
         self.graceful_exit_initiated = False
         self.multipassd_proc = None
         self.monitor_task = None
+        self.daemon_ready_event.clear()
         logging.info("daemon exit")
 
         if self.autorestart_attempts > 0:
-            logging.info(f"attempting daemon autorestart, attempts: {self.autorestart_attempts}")
+            logging.info(
+                f"attempting daemon autorestart, attempts: {self.autorestart_attempts}"
+            )
             self.autorestart_attempts = self.autorestart_attempts - 1
             self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start()))
 
@@ -122,17 +133,20 @@ class AsyncMultipassdController:
         creationflags = None
         if sys.platform == "win32":
             # No prologue needed -- just pass it via process env
-            creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NEW_CONSOLE
+            creationflags = (
+                subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NEW_CONSOLE
+            )
         else:
             prologue = [*get_sudo_tool(), "env", f"MULTIPASS_STORAGE={self.data_root}"]
 
         # Call multipass cli to create the client certs
         version_proc = await asyncio.create_subprocess_exec(
-                            get_multipass_path(), "version",
-                            stdout=asyncio.subprocess.PIPE,
-                            stderr=asyncio.subprocess.STDOUT,
-                            env=get_multipass_env()
-                        )
+            get_multipass_path(),
+            "version",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            env=get_multipass_env(),
+        )
         await asyncio.wait_for(version_proc.wait(), timeout=10)
 
         # It's important that we get the cert path here instead of under
@@ -145,11 +159,14 @@ class AsyncMultipassdController:
         # new console to properly receive the Ctrl-C signal without interfering
         # with the test process itself.
         self.multipassd_proc = await asyncio.create_subprocess_exec(
-            *prologue, get_multipassd_path(), "--logger=stderr", "--verbosity=trace",
+            *prologue,
+            get_multipassd_path(),
+            "--logger=stderr",
+            "--verbosity=trace",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             env=get_multipass_env(),
-            **({"creationflags": creationflags} if creationflags is not None else {})
+            **({"creationflags": creationflags} if creationflags is not None else {}),
         )
 
         # Start monitoring task
@@ -163,6 +180,7 @@ class AsyncMultipassdController:
             print("⚠️ multipassd not ready, attempting graceful shutdown...")
             await self._terminate_multipassd()
             die(12, "Tests cannot proceed, daemon not responding in time.")
+        self.daemon_ready_event.set()
 
     async def stop(self):
         """Stop the multipassd daemon"""
@@ -190,9 +208,18 @@ class AsyncMultipassdController:
         """Restart the daemon"""
         self.asyncio_loop.run(self.restart_async()).result(timeout=timeout)
 
-
     def autorestart(self, times=1):
         self.autorestart_attempts = times
+
+    def wait_for_shutdown(self, timeout=60):
+        self.daemon_ready_event.wait_until(False, timeout=timeout)
+
+    def wait_for_start(self, timeout=60):
+        self.daemon_ready_event.wait_until(True, timeout=timeout)
+
+    def wait_for_restart(self, timeout=60):
+        self.wait_for_shutdown(timeout=timeout)
+        self.wait_for_start(timeout=timeout)
 
     async def _terminate_multipassd(self):
         """Terminate the multipassd process"""
@@ -228,10 +255,11 @@ class AsyncMultipassdController:
             try:
                 # Check if daemon responds to find command
                 proc = await asyncio.create_subprocess_exec(
-                    get_multipass_path(), "find",
+                    get_multipass_path(),
+                    "find",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.STDOUT,
-                    env=get_multipass_env()
+                    env=get_multipass_env(),
                 )
 
                 try:
@@ -239,10 +267,11 @@ class AsyncMultipassdController:
                     if proc.returncode == 0:
                         # Check version match
                         version_proc = await asyncio.create_subprocess_exec(
-                            get_multipass_path(), "version",
+                            get_multipass_path(),
+                            "version",
                             stdout=asyncio.subprocess.PIPE,
                             stderr=asyncio.subprocess.STDOUT,
-                            env=get_multipass_env()
+                            env=get_multipass_env(),
                         )
 
                         stdout, _ = await version_proc.communicate()
