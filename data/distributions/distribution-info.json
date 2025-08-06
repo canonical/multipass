@@ -7,16 +7,16 @@
         "release_title": "12",
         "items": {
             "x86_64": {
-                "image_location": "http://cloud.debian.org/images/cloud/bookworm/20250703-2162/debian-12-generic-amd64-20250703-2162.qcow2",
-                "id": "sha512:xlHC8/0e40LyJXJJWahql62AQCfD8FfgMYlFXQk9B6AGOQkpoi3w+VpSaSkbrcYZlkvei/nioztvOgH0kolQaA",
-                "version": "20250703",
-                "size": "346030080"
+                "image_location": "http://cloud.debian.org/images/cloud/bookworm/20250804-2194/debian-12-generic-amd64-20250804-2194.qcow2",
+                "id": "sha512:251161733705e529a4d24d3be41326551351c1056588811d575bc6d34f3ea5007a15a30132357be1918d15e5f46e19e776541ad4bd6edf759bde769528ac008c",
+                "version": "20250804",
+                "size": 444896256
             },
             "arm64": {
-                "image_location": "http://cloud.debian.org/images/cloud/bookworm/20250703-2162/debian-12-generic-arm64-20250703-2162.qcow2",
-                "id": "sha512:Z0Z/pWRbXPyzE7XP9TZfsgOgtyN+DSmw9SNkRk1i+6HUQU6q2A4Om0Z8OkKBhxd9tW+Cilpkgl1bORwSuhkDpA",
-                "version": "20250703",
-                "size": "433061888"
+                "image_location": "http://cloud.debian.org/images/cloud/bookworm/20250804-2194/debian-12-generic-arm64-20250804-2194.qcow2",
+                "id": "sha512:47dfcea967686c39ac9d3e4c900bee69f5524e413d52123bd10af8b576f6be5b4924231a23a07838f43ff7f6f7d669a3721ac11aa6f0a4b4161830fe695864bf",
+                "version": "20250804",
+                "size": 432209920
             }
         }
     },
