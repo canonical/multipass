@@ -31,8 +31,14 @@ public:
 
     MOCK_METHOD(QString, copy_to_dir, (const QString&, const QDir&), (const, override));
 
-    MOCK_METHOD(QString, compute_hash, (QIODevice&), (const, override));
-    MOCK_METHOD(QString, compute_file_hash, (const QString&), (const, override));
+    MOCK_METHOD(QString,
+                compute_hash,
+                (QIODevice&, const QCryptographicHash::Algorithm),
+                (const, override));
+    MOCK_METHOD(QString,
+                compute_file_hash,
+                (const QString&, const QCryptographicHash::Algorithm),
+                (const, override));
     MOCK_METHOD(void, verify_file_hash, (const QString&, const QString&), (const, override));
 
     MOCK_METHOD(QString, extract_file, (const QString&, const Decoder&, bool), (const, override));
