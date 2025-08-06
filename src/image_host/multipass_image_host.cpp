@@ -208,4 +208,6 @@ void mp::MultipassVMImageHost::fetch_manifests(const bool force_update)
 
 void mp::MultipassVMImageHost::clear()
 {
+    manifest = std::pair<std::string, std::unique_ptr<MultipassManifest>>{};
+}
 }
