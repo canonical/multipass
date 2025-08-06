@@ -131,19 +131,39 @@ mp::MultipassVMImageHost::MultipassVMImageHost(URLDownloader* downloader)
 
 std::optional<mp::VMImageInfo> mp::MultipassVMImageHost::info_for(const Query& query)
 {
-    return {};
+    auto mp_manifest = manifest_from(query.remote_name);
+
+    auto it = mp_manifest->image_records.find(query.release);
+
+    if (it == mp_manifest->image_records.end())
+        return std::nullopt;
+
+    return *it->second;
 }
 
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::MultipassVMImageHost::all_info_for(
     const Query& query)
 {
-    return {};
+    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
+
+    auto image = info_for(query);
+    if (image != std::nullopt)
+        images.push_back(std::make_pair(query.remote_name, *image));
+
+    return images;
 }
 
-std::vector<mp::VMImageInfo> mp::MultipassVMImageHost::all_images_for(const std::string& remote_name,
-                                                                   const bool allow_unsupported)
+std::vector<mp::VMImageInfo> mp::MultipassVMImageHost::all_images_for(
+    const std::string& remote_name,
+    const bool allow_unsupported)
 {
-    return {};
+    std::vector<mp::VMImageInfo> images;
+    auto mp_manifest = manifest_from(remote_name);
+    std::copy(mp_manifest->products.begin(),
+              mp_manifest->products.end(),
+              std::back_inserter(images));
+
+    return images;
 }
 
 std::vector<std::string> mp::MultipassVMImageHost::supported_remotes()
