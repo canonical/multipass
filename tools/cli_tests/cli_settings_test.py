@@ -25,6 +25,7 @@ from cli_tests.multipass import multipass, default_driver_name
 
 
 @pytest.mark.settings
+@pytest.mark.usefixtures("multipassd")
 class TestSettings:
 
     def test_get_all_keys(self):

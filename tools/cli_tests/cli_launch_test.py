@@ -25,6 +25,7 @@ from cli_tests.multipass import multipass, validate_list_output, validate_info_o
 
 
 @pytest.mark.launch
+@pytest.mark.usefixtures("multipassd")
 class TestLaunch:
     """CLI VM launch tests."""
 
