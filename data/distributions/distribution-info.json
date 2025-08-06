@@ -1,7 +1,7 @@
 {   
     "Debian": {
         "aliases": "bookworm, debian",
-        "os": "debian",
+        "os": "Debian",
         "release": "bookworm",
         "release_codename": "Bookworm",
         "release_title": "12",
@@ -22,7 +22,7 @@
     },
     "Fedora": {
         "aliases": "fedora",
-        "os": "fedora",
+        "os": "Fedora",
         "release": "",
         "release_codename": "",
         "release_title": "42",
