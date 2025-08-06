@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/image_host/multipass_image_host.h>
 #include <multipass/logging/log.h>
@@ -36,6 +37,13 @@ namespace
 constexpr auto category = "multipass_image_host";
 constexpr auto manifest_endpoint{"https://raw.githubusercontent.com/canonical/multipass/refs/heads/"
                                  "main/data/distributions/distribution-info.json"};
+
+auto get_manifest_url()
+{
+    return qEnvironmentVariable(mp::distributions_url_env_var).isEmpty()
+               ? manifest_endpoint
+               : qEnvironmentVariable(mp::distributions_url_env_var);
+}
 
 auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
 {
@@ -63,7 +71,7 @@ auto fetch_image_info(const QString& arch,
 
     try
     {
-        mp_manifest = url_downloader->download(QUrl{manifest_endpoint}, force_update);
+        mp_manifest = url_downloader->download(QUrl{get_manifest_url()}, force_update);
     }
     catch (mp::DownloadException& e)
     {

@@ -44,6 +44,7 @@ constexpr auto home_automount_dir = "Home";
 
 constexpr auto multipass_storage_env_var = "MULTIPASS_STORAGE";
 constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
+constexpr auto distributions_url_env_var = "MULTIPASS_DISTRIBUTIONS_URL";
 
 constexpr auto winterm_profile_guid =
     "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows
