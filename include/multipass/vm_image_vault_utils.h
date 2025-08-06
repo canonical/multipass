@@ -25,6 +25,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <QCryptographicHash>
+
 #define MP_IMAGE_VAULT_UTILS multipass::ImageVaultUtils::instance()
 
 namespace multipass
@@ -40,8 +42,12 @@ public:
     using DefaultDecoderT = XzImageDecoder;
 
     virtual QString copy_to_dir(const QString& file, const QDir& output_dir) const;
-    [[nodiscard]] virtual QString compute_hash(QIODevice& device) const;
-    [[nodiscard]] virtual QString compute_file_hash(const QString& file) const;
+    [[nodiscard]] virtual QString compute_hash(
+        QIODevice& device,
+        const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;
+    [[nodiscard]] virtual QString compute_file_hash(
+        const QString& file,
+        const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;
 
     virtual void verify_file_hash(const QString& file, const QString& hash) const;
 
