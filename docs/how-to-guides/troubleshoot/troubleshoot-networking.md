@@ -329,6 +329,26 @@ Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\h
 
 Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
 
+
+#### Wi-Fi upload speed degrading when using external switch with Hyper-V
+
+If you're using Multipass on Windows and have created an External Switch connected to your Wi-Fi adapter in Hyper-V, you may notice your upload speeds degrade severely, often dropping to around 1 Mbit/s. This issue is due to a long-standing limitation in Windows networking, where certain offload features interfere with Hyper-V’s virtual networking performance. Fortunately, there’s a reliable workaround to restore your original speeds.
+
+##### Workaround
+
+The following steps will help you disable the Large Send Offload feature for the Hyper-V virtual ethernet adapter, which should resolve the upload speed issue:
+
+1. Open Device Manager.
+2. Expand Network Adapters.
+3. Find the entry named Hyper-V Virtual Ethernet Adapter #N (Where “N” is the one connected to Wi-Fi).
+4. Right-click > Properties.
+5. Go to the Advanced tab.
+6. Locate and disable both of the following:
+   * Large Send Offload v2 (IPv4)
+   * Large Send Offload v2 (IPv6)
+7. Click OK and restart your networking or your machine if needed
+
+
 <!-- Discourse contributors
 <small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @candlerb , @sergiusens , @nhart , @andreitoterman , @tmihoc , @luisp , @ricab , @gzanchi , @naynayu , @QuantumLibet </small>
 -->
