@@ -54,8 +54,8 @@ private:
     void clear() override;
     MultipassManifest* manifest_from(const std::string& remote_name);
 
+    const QString arch;
     std::pair<std::string, std::unique_ptr<MultipassManifest>> manifest;
     std::string remote;
-    const QString arch;
 };
 } // namespace multipass

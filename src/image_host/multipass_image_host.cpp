@@ -31,7 +31,7 @@ mp::MultipassManifest::MultipassManifest(std::vector<VMImageInfo>&& images)
 }
 
 mp::MultipassVMImageHost::MultipassVMImageHost(URLDownloader* downloader)
-    : BaseVMImageHost{downloader}, arch{QSysInfo::currentCpuArchitecture()}
+    : BaseVMImageHost{downloader}, arch{QSysInfo::currentCpuArchitecture()}, manifest{}, remote{}
 {
 }
 
