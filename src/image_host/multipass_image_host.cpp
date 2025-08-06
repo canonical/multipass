@@ -36,6 +36,7 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "multipass_image_host";
+constexpr auto no_remote{""};
 constexpr auto manifest_endpoint{"https://raw.githubusercontent.com/canonical/multipass/refs/heads/"
                                  "main/data/distributions/distribution-info.json"};
 
@@ -192,6 +193,17 @@ mp::VMImageInfo mp::MultipassVMImageHost::info_for_full_hash_impl(const std::str
 
 void mp::MultipassVMImageHost::fetch_manifests(const bool force_update)
 {
+    try
+    {
+        std::unique_ptr<mp::MultipassManifest> mp_manifest =
+            std::make_unique<mp::MultipassManifest>(
+                fetch_image_info(arch, url_downloader, force_update));
+        manifest = std::make_pair(no_remote, std::move(mp_manifest));
+    }
+    catch (mp::DownloadException& e)
+    {
+        throw e;
+    }
 }
 
 void mp::MultipassVMImageHost::clear()
