@@ -26,6 +26,7 @@ from cli_tests.multipass import multipass, state
 
 
 @pytest.mark.lifecycle
+@pytest.mark.usefixtures("multipassd")
 class TestVmLifecycle:
     """Virtual machine lifecycle tests."""
 
