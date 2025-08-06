@@ -1,6 +1,6 @@
 {   
     "Debian": {
-        "aliases": "bookworm, debian",
+        "aliases": "debian, bookworm",
         "arch": "amd64",
         "os": "Debian",
         "release": "bookworm",
