@@ -26,7 +26,7 @@
         "arch": "amd64",
         "os": "Fedora",
         "release": "",
-        "release_codename": "",
+        "release_codename": "42",
         "release_title": "42",
         "items": {
             "amd64": {
