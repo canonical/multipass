@@ -24,7 +24,7 @@
         "aliases": "fedora",
         "os": "Fedora",
         "release": "",
-        "release_codename": "",
+        "release_codename": "42",
         "release_title": "42",
         "items": {
             "x86_64": {
