@@ -25,6 +25,7 @@ from cli_tests.multipass import multipass, validate_info_output, take_snapshot
 
 
 @pytest.mark.clone
+@pytest.mark.usefixtures("multipassd")
 class TestClone:
     """Clone tests."""
 
