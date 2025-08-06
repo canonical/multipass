@@ -170,7 +170,7 @@ std::vector<mp::VMImageInfo> mp::MultipassVMImageHost::all_images_for(
 
 std::vector<std::string> mp::MultipassVMImageHost::supported_remotes()
 {
-    return {};
+    return std::vector<std::string>{remote};
 }
 
 void mp::MultipassVMImageHost::for_each_entry_do_impl(const Action& action)
