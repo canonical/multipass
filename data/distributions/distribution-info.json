@@ -2,7 +2,7 @@
     "Debian": {
         "aliases": "bookworm, debian",
         "arch": "amd64",
-        "os": "debian",
+        "os": "Debian",
         "release": "bookworm",
         "release_codename": "Bookworm",
         "release_title": "12",
@@ -24,7 +24,7 @@
     "Fedora": {
         "aliases": "fedora",
         "arch": "amd64",
-        "os": "fedora",
+        "os": "Fedora",
         "release": "",
         "release_codename": "",
         "release_title": "42",
