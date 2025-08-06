@@ -214,4 +214,12 @@ void mp::MultipassVMImageHost::clear()
 {
     manifest = std::pair<std::string, std::unique_ptr<MultipassManifest>>{};
 }
+
+mp::MultipassManifest* mp::MultipassVMImageHost::manifest_from(const std::string& remote_name)
+{
+    if (remote_name != manifest.first)
+        throw std::runtime_error(
+            fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
+
+    return manifest.second.get();
 }
