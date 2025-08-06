@@ -619,6 +619,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
     QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_wait_ready, &daemon, &mp::Daemon::wait_ready);
 }
 
 enum class InstanceGroup
@@ -3124,6 +3125,46 @@ try
 
     server->Write(response);
     status_promise->set_value(grpc::Status{});
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::wait_ready(
+    const WaitReadyRequest* request,
+    grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    WaitReadyReply response;
+
+    mpl::ClientLogger<WaitReadyReply, WaitReadyRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    logger.log(mpl::Level::debug, "daemon", "Checking connection to image servers...");
+
+    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image
+    // servers.
+    try
+    {
+        wait_update_manifests_all_and_optionally_applied_force(
+            /*force_manifest_network_download=*/false);
+        logger.log(mpl::Level::debug, "daemon", "Successfully connected to image servers.");
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const mp::DownloadException& e)
+    {
+        logger.log(mpl::Level::warning,
+                   "daemon",
+                   fmt::format("Failed to connect to image servers: {}", e.what()));
+        grpc::Status download_error_status{grpc::StatusCode::NOT_FOUND,
+                                           "cannot connect to the image servers",
+                                           ""};
+        status_promise->set_value(download_error_status);
+    }
 }
 catch (const std::exception& e)
 {
