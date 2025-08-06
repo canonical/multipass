@@ -15,17 +15,28 @@
  *
  */
 
+#include <multipass/exceptions/download_exception.h>
 #include <multipass/image_host/multipass_image_host.h>
+#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 
 #include <fmt/format.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include <utility>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+
 namespace
 {
+constexpr auto category = "multipass_image_host";
+constexpr auto manifest_endpoint{"https://raw.githubusercontent.com/canonical/multipass/refs/heads/"
+                                 "main/data/distributions/distribution-info.json"};
+
 auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
 {
     std::unordered_map<std::string, const mp::VMImageInfo*> map;
@@ -41,6 +52,63 @@ auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
+auto fetch_image_info(const QString& arch,
+                      mp::URLDownloader* url_downloader,
+                      const bool force_update = false)
+{
+    std::vector<mp::VMImageInfo> images;
+
+    mpl::log(mpl::Level::debug, category, "Fetching images from {}", get_manifest_url());
+    QByteArray mp_manifest;
+
+    try
+    {
+        mp_manifest = url_downloader->download(QUrl{manifest_endpoint}, force_update);
+    }
+    catch (mp::DownloadException& e)
+    {
+        mpl::log(mpl::Level::warning, category, "Failed to download manifest: {}", e);
+        return images;
+    }
+
+    const auto manifest_doc = QJsonDocument::fromJson(mp_manifest);
+    if (!manifest_doc.isObject())
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 "Failed to parse manifest: file does not contain a valid JSON object");
+        return images;
+    }
+
+    const QJsonObject root_obj = manifest_doc.object();
+
+    mpl::log(mpl::Level::debug, category, "Found {} items", root_obj.size());
+
+    for (auto it = root_obj.begin(); it != root_obj.end(); ++it)
+    {
+        const QString distro_name = it.key();
+        const QJsonObject distro_obj = it.value().toObject();
+
+        QStringList aliases = distro_obj.value("aliases").toString().split(",", Qt::SkipEmptyParts);
+        for (QString& alias : aliases)
+            alias = alias.trimmed();
+
+        images.push_back(mp::VMImageInfo{aliases,
+                                         distro_obj["os"].toString(),
+                                         distro_obj["release"].toString(),
+                                         distro_obj["release_codename"].toString(),
+                                         distro_obj["release_title"].toString(),
+                                         true,
+                                         distro_obj["items"][arch]["image_location"].toString(),
+                                         distro_obj["items"][arch]["id"].toString(),
+                                         "",
+                                         distro_obj["items"][arch]["version"].toString(),
+                                         distro_obj["items"][arch]["size"].toInt(-1),
+                                         true});
+    }
+
+    return images;
+}
 } // namespace
 
 mp::MultipassManifest::MultipassManifest(std::vector<VMImageInfo>&& images)
