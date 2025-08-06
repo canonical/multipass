@@ -36,6 +36,7 @@ from cli_tests.multipass import (
 )
 
 @pytest.mark.snapshot
+@pytest.mark.usefixtures("multipassd")
 class TestSnapshot:
     """Snapshot tests."""
 
