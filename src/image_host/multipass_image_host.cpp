@@ -17,6 +17,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/image_host/multipass_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/query.h>
@@ -177,7 +178,16 @@ void mp::MultipassVMImageHost::for_each_entry_do_impl(const Action& action)
 
 mp::VMImageInfo mp::MultipassVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
 {
-    return {};
+    for (const auto& product : manifest.second->products)
+    {
+        if (product.id.toStdString() == full_hash)
+        {
+            return product;
+        }
+    }
+
+    throw mp::ImageNotFoundException(
+        fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 }
 
 void mp::MultipassVMImageHost::fetch_manifests(const bool force_update)
