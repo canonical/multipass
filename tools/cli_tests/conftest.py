@@ -227,7 +227,7 @@ class BackgroundEventLoop:
         self.thread.join()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="function")
 def multipassd(store_config):
 
     if config.no_daemon is False:
