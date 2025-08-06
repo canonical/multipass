@@ -21,7 +21,6 @@
 #include <multipass/vm_image_vault_utils.h>
 #include <multipass/xz_image_decoder.h>
 
-#include <QCryptographicHash>
 #include <QFileInfo>
 
 #include <stdexcept>
@@ -49,30 +48,47 @@ QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output
     return new_location;
 }
 
-QString mp::ImageVaultUtils::compute_hash(QIODevice& device) const
+QString mp::ImageVaultUtils::compute_hash(QIODevice& device,
+                                          const QCryptographicHash::Algorithm algo) const
 {
-    QCryptographicHash hash{QCryptographicHash::Sha256};
+    QCryptographicHash hash{algo};
     if (!hash.addData(std::addressof(device)))
         throw std::runtime_error("Failed to read data from device to hash");
 
     return hash.result().toHex();
 }
 
-QString mp::ImageVaultUtils::compute_file_hash(const QString& path) const
+QString mp::ImageVaultUtils::compute_file_hash(const QString& path,
+                                               const QCryptographicHash::Algorithm algo) const
 {
     QFile file{path};
     if (!MP_FILEOPS.open(file, QFile::ReadOnly))
         throw std::runtime_error(fmt::format("Failed to open {}", path));
 
-    return compute_hash(file);
+    return compute_hash(file, algo);
 }
 
 void mp::ImageVaultUtils::verify_file_hash(const QString& file, const QString& hash) const
 {
-    const auto file_hash = compute_file_hash(file);
+    const QString sha512_prefix = QStringLiteral("sha512:");
+    QString hash_to_check = hash;
+    QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256;
 
-    if (file_hash != hash)
-        throw std::runtime_error(fmt::format("Hash of {} does not match {}", file, hash));
+    if (hash.startsWith(sha512_prefix, Qt::CaseInsensitive))
+    {
+        hash_to_check = hash.mid(sha512_prefix.length());
+        algo = QCryptographicHash::Sha512;
+    }
+
+    const auto file_hash = compute_file_hash(file, algo);
+
+    if (file_hash.compare(hash_to_check, Qt::CaseInsensitive) != 0)
+    {
+        throw std::runtime_error(fmt::format("Hash of {} does not match (expected {} but got {})",
+                                             file.toStdString(),
+                                             hash_to_check.toStdString(),
+                                             file_hash.toStdString()));
+    }
 }
 
 QString mp::ImageVaultUtils::extract_file(const QString& file,
