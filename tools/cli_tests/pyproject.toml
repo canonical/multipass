@@ -23,5 +23,6 @@ markers = [
     "settings: Tests for the available settings",
     "shell: VM shell tests",
     "launch: Launch tests",
-    "list: List tests"
+    "list: List tests",
+    "alias: Alias tests",
 ]
