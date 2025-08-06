@@ -31,7 +31,7 @@ from cli_tests.multipass import multipass, mounts, default_mount_uid, default_mo
 @pytest.mark.mount
 # TODO: "native"
 @pytest.mark.parametrize("mount_type", ["classic"])
-@pytest.mark.usefixtures("windows_privileged_mounts")
+@pytest.mark.usefixtures("multipassd", "windows_privileged_mounts")
 class TestMount:
     """Virtual machine mount tests."""
 
