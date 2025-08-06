@@ -32,6 +32,7 @@ from cli_tests.multipass import (
 
 
 @pytest.mark.resource
+@pytest.mark.usefixtures("multipassd")
 class TestVmResource:
 
     def test_modify_vm_while_running(self):
