@@ -107,7 +107,7 @@ def pytest_assertrepr_compare(op, left, right):
     return None
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def store_config(request):
     """Store the given command line args in a global variable so
     they would be accessible to all functions in the module."""
@@ -227,9 +227,16 @@ class BackgroundEventLoop:
         self.thread.join()
 
 
-@pytest.fixture(scope="function")
-def multipassd(store_config):
+from contextlib import contextmanager
 
+
+def set_driver():
+    if multipass("get", "local.driver") != config.driver:
+        assert multipass("set", f"local.driver={config.driver}")
+        multipassd.wait_for_restart()
+
+@contextmanager
+def multipassd_impl():
     if config.no_daemon is False:
         sys.stdout.write("Skipping launching the daemon.")
         yield None
@@ -253,6 +260,7 @@ def multipassd(store_config):
             bg_loop, config.build_root, config.data_root, config.print_daemon_output
         )
         wait_for_future(bg_loop.run(controller.start()))
+        set_driver()
         yield controller
         logging.debug("multipassd fixture return")
     except Exception as exc:
@@ -265,12 +273,16 @@ def multipassd(store_config):
         bg_loop.stop()
 
 
-@pytest.fixture(autouse=True)
-def set_driver(multipassd):
-    if multipass("get", "local.driver") != config.driver:
-        assert multipass("set", f"local.driver={config.driver}")
-        multipassd.wait_for_restart()
+@pytest.fixture(scope="function")
+def multipassd(store_config):
+    with multipassd_impl() as daemon:
+        yield daemon
 
+@pytest.fixture(scope="class")
+def multipassd_class_scoped(store_config, request):
+    with multipassd_impl() as daemon:
+        request.cls.multipassd = daemon
+        yield daemon
 
 @pytest.fixture
 def windows_privileged_mounts(multipassd):
