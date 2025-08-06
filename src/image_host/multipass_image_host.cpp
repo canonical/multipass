@@ -175,6 +175,10 @@ std::vector<std::string> mp::MultipassVMImageHost::supported_remotes()
 
 void mp::MultipassVMImageHost::for_each_entry_do_impl(const Action& action)
 {
+    for (const auto& info : manifest.second->products)
+    {
+        action(manifest.first, info);
+    }
 }
 
 mp::VMImageInfo mp::MultipassVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
