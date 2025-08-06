@@ -28,16 +28,16 @@
         "release_title": "42",
         "items": {
             "x86_64": {
-                "image_location": "https://kojipkgs.fedoraproject.org/compose/cloud/latest-Fedora-Cloud-42/compose/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-20250801.0.x86_64.qcow2",
-                "id": "3c5a4f3b5e8253df5d73df365f091edb7812f2e3d988e62c5295ed20c0ff35e1",
-                "version": "20250801",
-                "size": "573112320"
+                "image_location": "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2",
+                "id": "e401a4db2e5e04d1967b6729774faa96da629bcf3ba90b67d8d9cce9906bec0f",
+                "version": "20250409",
+                "size": 533069824
             },
             "arm64": {
-                "image_location": "https://kojipkgs.fedoraproject.org/compose/cloud/latest-Fedora-Cloud-42/compose/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-42-20250801.0.aarch64.qcow2",
-                "id": "697408d81062609c20ddc15ee0c67e606e10da27e99df1b21b893ced2f941f95",
-                "version": "20250801",
-                "size": "534118400"
+                "image_location": "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-42-1.1.aarch64.qcow2",
+                "id": "e10658419a8d50231037dc781c3155aa94180a8c7a74e5cac2a6b09eaa9342b7",
+                "version": "20250409",
+                "size": 532217856
             }
         }
     }
