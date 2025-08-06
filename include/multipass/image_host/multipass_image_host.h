@@ -32,6 +32,7 @@ class URLDownloader;
 struct MultipassManifest
 {
     const std::vector<VMImageInfo> products;
+    const std::unordered_map<std::string, const VMImageInfo*> image_records;
 
     MultipassManifest(std::vector<VMImageInfo>&& images);
 };

@@ -24,9 +24,27 @@
 #include <utility>
 
 namespace mp = multipass;
+namespace
+{
+auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
+{
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
+    for (const auto& image : images)
+    {
+        map[image.id.toStdString()] = &image;
+        for (const auto& alias : image.aliases)
+        {
+            map[alias.toStdString()] = &image;
+        }
+    }
+
+    return map;
+}
+
+} // namespace
 
 mp::MultipassManifest::MultipassManifest(std::vector<VMImageInfo>&& images)
-    : products{std::move(images)}
+    : products{std::move(images)}, image_records{map_aliases_to_vm_info(products)}
 {
 }
 
