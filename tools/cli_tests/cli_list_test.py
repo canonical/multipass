@@ -26,6 +26,7 @@ from cli_tests.multipass import (
 
 
 @pytest.mark.list
+@pytest.mark.usefixtures("multipassd")
 class TestList:
     """List tests."""
 

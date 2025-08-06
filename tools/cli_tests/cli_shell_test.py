@@ -24,6 +24,7 @@ from pexpect import EOF as pexpect_eof
 
 
 @pytest.mark.shell
+@pytest.mark.usefixtures("multipassd")
 class TestShell:
     def test_shell(self, instance):
         """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
