@@ -25,4 +25,5 @@ markers = [
     "launch: Launch tests",
     "list: List tests",
     "alias: Alias tests",
+    "transfer: Transfer tests",
 ]
