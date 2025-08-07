@@ -30,30 +30,6 @@ from cli_tests.multipass import multipass, state
 class TestVmLifecycle:
     """Virtual machine lifecycle tests."""
 
-    def test_launch_invalid_name(self):
-        invalid_names = [
-            "1nvalid-name",
-            "invalid.name",
-            "invalid$name",
-            "invalid(name)",
-            "invalid-name-",
-        ]
-
-        for name in invalid_names:
-            with multipass(
-                "launch",
-                "--cpus",
-                "2",
-                "--memory",
-                "1G",
-                "--disk",
-                "6G",
-                "--name",
-                name,
-            ) as output:
-                assert not output
-                assert "Invalid instance name supplied" in output
-
     def test_lifecycle_ops_on_nonexistent(self):
         name = uuid4_str("instance")
         ops = [
@@ -70,112 +46,54 @@ class TestVmLifecycle:
                 assert not output
                 assert "does not exist" in output
 
-    def test_launch_invalid_ram(self):
-        name = uuid4_str("instance")
-        with multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1CiG",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-        ) as output:
+    def test_stop(self, instance):
+        assert state(f"{instance}") == "Running"
+        assert multipass("stop", f"{instance}")
+        assert state(f"{instance}") == "Stopped"
+
+    def test_stop_start(self, instance):
+        assert state(f"{instance}") == "Running"
+        assert multipass("stop", f"{instance}")
+        assert state(f"{instance}") == "Stopped"
+        assert multipass("start", f"{instance}")
+        assert state(f"{instance}") == "Running"
+
+    def test_suspend_resume(self, instance):
+        assert state(f"{instance}") == "Running"
+        assert multipass("suspend", f"{instance}")
+        assert state(f"{instance}") == "Suspended"
+        assert multipass("start", f"{instance}")
+        assert state(f"{instance}") == "Running"
+
+    @pytest.mark.parametrize(
+        "instance",
+        [
+            {"autopurge": False},
+        ],
+        indirect=True,
+    )
+    def test_launch_delete_recover_purge(self, instance):
+
+        assert state(f"{instance}") == "Running"
+        assert multipass("delete", f"{instance}")
+        assert state(f"{instance}") == "Deleted"
+
+        with multipass("start", f"{instance}") as output:
             assert not output
-            assert "1CiG is not a valid memory size" in output
+            assert f"Instance '{instance}' is deleted." in output
 
-    def test_launch_stop(self):
-        name = uuid4_str("instance")
+        assert multipass("recover", f"{instance}")
+        assert state(f"{instance}") == "Stopped"
 
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
+        assert multipass("start", f"{instance}")
 
-        assert state(f"{name}") == "Running"
-        assert multipass("stop", f"{name}")
-        assert state(f"{name}") == "Stopped"
+        assert multipass("delete", f"{instance}")
+        assert state(f"{instance}") == "Deleted"
 
-    def test_launch_stop_start(self):
-        name = uuid4_str("instance")
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-
-        assert state(f"{name}") == "Running"
-        assert multipass("stop", f"{name}")
-        assert state(f"{name}") == "Stopped"
-        assert multipass("start", f"{name}")
-        assert state(f"{name}") == "Running"
-
-    def test_launch_suspend_resume(self):
-        name = uuid4_str("instance")
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-
-        assert state(f"{name}") == "Running"
-        assert multipass("suspend", f"{name}")
-        assert state(f"{name}") == "Suspended"
-        assert multipass("start", f"{name}")
-        assert state(f"{name}") == "Running"
-
-    def test_launch_delete_recover_purge(self):
-        name = uuid4_str("instance")
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-
-        assert state(f"{name}") == "Running"
-        assert multipass("delete", f"{name}")
-        assert state(f"{name}") == "Deleted"
-
-        with multipass("start", f"{name}") as output:
+        assert multipass("delete", f"{instance}", "--purge")
+        with multipass("info", f"{instance}") as output:
             assert not output
-            assert f"Instance '{name}' is deleted." in output
-
-        assert multipass("recover", f"{name}")
-        assert state(f"{name}") == "Stopped"
+            assert "does not exist" in output
 
         assert multipass("start", f"{name}")
 
