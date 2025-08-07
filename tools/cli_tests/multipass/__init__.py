@@ -42,3 +42,4 @@ from .validate import (
     validate_info_snapshot_output,
 )
 from .cmd_output import Output
+from .imageutils import image_name_to_version
