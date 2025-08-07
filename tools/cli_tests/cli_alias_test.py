@@ -104,3 +104,11 @@ class TestAlias:
                 },
             },
         }
+        assert multipass("unalias", "si")
+        assert multipass("unalias", "foo.wai")
+        assert multipass("aliases", "--format=json").json() == {
+            "active-context": "bar",
+            "contexts": {
+                "bar": {},
+            },
+        }
