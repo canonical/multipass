@@ -171,6 +171,13 @@ def multipass(*args, **kwargs):
             def close(self):
                 self.terminate()
 
+    env = get_multipass_env()
+
+    env_args = kwargs.get("env")
+
+    if env_args:
+        env.update(env_args)
+
     if kwargs.get("interactive"):
         if sys.platform == "win32":
             return WinptySpawn(
@@ -179,7 +186,7 @@ def multipass(*args, **kwargs):
                 timeout=timeout,
                 encoding="utf-8",
                 codec_errors="replace",
-                env=get_multipass_env(),
+                env=env,
             )
 
         return pexpect.spawn(
@@ -187,7 +194,7 @@ def multipass(*args, **kwargs):
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
             echo=echo,
-            env=get_multipass_env(),
+            env=env,
         )
 
     class Cmd:
@@ -212,7 +219,7 @@ def multipass(*args, **kwargs):
                         ),
                         timeout=timeout,
                         echo=echo,
-                        env=get_multipass_env(),
+                        env=env,
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
@@ -221,7 +228,7 @@ def multipass(*args, **kwargs):
                             sys.stdout.buffer if config.print_cli_output else None
                         ),
                         timeout=timeout,
-                        env=get_multipass_env(),
+                        env=env,
                     )
 
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
