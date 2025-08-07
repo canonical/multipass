@@ -26,6 +26,7 @@ from cli_tests.multipass import (
     validate_list_output,
     validate_info_output,
     image_name_to_version,
+    exec
 )
 
 
