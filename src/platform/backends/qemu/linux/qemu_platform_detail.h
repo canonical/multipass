@@ -59,7 +59,7 @@ private:
 
     [[nodiscard]] static Subnets get_subnets(const Path& network_dir);
 
-    [[nodiscard]] static std::vector<std::pair<QString, std::string>> get_subnets_list(const Subnets&);
+    [[nodiscard]] static SubnetList get_subnets_list(const Subnets&);
 
     const Path network_dir;
     const Subnets subnets;

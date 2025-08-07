@@ -36,16 +36,14 @@ namespace
 {
 constexpr auto immediate_wait = 100; // period to wait for immediate dnsmasq failures, in ms
 
-auto make_dnsmasq_process(const mp::Path& data_dir,
-                          const std::vector<std::pair<QString, std::string>>& subnets,
-                          const QString& conf_file_path)
+auto make_dnsmasq_process(const mp::Path& data_dir, const mp::SubnetList& subnets, const QString& conf_file_path)
 {
     auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, subnets, conf_file_path);
     return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const std::vector<std::pair<QString, std::string>>& subnets)
+mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const SubnetList& subnets)
     : data_dir{data_dir}, conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
     conf_file.open();
@@ -203,9 +201,8 @@ void mp::DNSMasqServer::start_dnsmasq()
         throw std::runtime_error{dnsmasq_failure_msg(dnsmasq_cmd->process_state())};
 }
 
-mp::DNSMasqServer::UPtr mp::DNSMasqServerFactory::make_dnsmasq_server(
-    const mp::Path& network_dir,
-    const std::vector<std::pair<QString, std::string>>& subnets) const
+mp::DNSMasqServer::UPtr mp::DNSMasqServerFactory::make_dnsmasq_server(const mp::Path& network_dir,
+                                                                      const SubnetList& subnets) const
 {
     return std::make_unique<mp::DNSMasqServer>(network_dir, subnets);
 }
