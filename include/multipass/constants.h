@@ -31,6 +31,7 @@ constexpr auto release_remote = "release";
 constexpr auto daily_remote = "daily";
 constexpr auto appliance_remote = "appliance";
 constexpr auto snapcraft_remote = "snapcraft";
+constexpr auto core_remote = "core";
 
 constexpr auto min_memory_size = "128M";
 constexpr auto min_disk_size = "512M";
