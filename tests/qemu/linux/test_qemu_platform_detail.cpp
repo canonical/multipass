@@ -244,6 +244,41 @@ TEST_F(QemuPlatformDetail, platform_args_generate_net_resources_removes_works_as
     qemu_platform_detail.remove_resources_for(vswitch.name);
 }
 
+TEST_F(QemuPlatformDetail, tap_devices_are_removed_on_destruction)
+{
+    mp::VirtualMachineDescription vm_desc;
+    mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
+    vm_desc.extra_interfaces = {extra_interface};
+
+    QString tap_name;
+
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("ip"),
+                           ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
+                           _))
+        .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
+            tap_name = opts.last();
+            return false;
+        });
+
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+
+    const auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
+
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"), ElementsAre(QString("addr"), QString("show"), tap_name), _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"), ElementsAre(QString("link"), QString("delete"), tap_name), _))
+        .WillOnce(Return(true));
+}
+
 TEST_F(QemuPlatformDetail, platform_health_check_calls_expected_methods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
