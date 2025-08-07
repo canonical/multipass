@@ -307,5 +307,5 @@ def windows_privileged_mounts(multipassd):
 def instance(request):
     """Launch a VM and ensure cleanup."""
 
-    with launch(request.param if hasattr(request, "param") else None) as inst:
-        return inst
+    with launch(request.param if hasattr(request, "param") else None) as inst: # pylint: disable=R1732
+        yield inst
