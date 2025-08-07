@@ -53,6 +53,18 @@ def file_exists(vm_name, *paths):
     )
 
 
+def read_file(vm_name, path):
+    """Return True if a file exists in the given VM, False otherwise."""
+    return multipass(
+        "exec",
+        f"{vm_name}",
+        "--",
+        "cat",
+        path,
+        timeout=180,
+    )
+
+
 def exec(name, *args, **kwargs):
     return multipass("exec", name, "--", *args, **kwargs)
 
