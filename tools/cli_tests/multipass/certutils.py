@@ -32,8 +32,7 @@ def get_client_cert_path():
     else:
         # Not sure about this:
         data_location = Path.home() / ".local" / "share"
-    # cat ~/snap/multipass/current/data/multipass-client-certificate/multipass_cert.pem | sudo tee -a /var/snap/multipass/common/data/multipassd/authenticated-certs/multipass_client_certs.pem > /dev/null
-    # snap restart multipass
+
     return data_location / "multipass-client-certificate" / "multipass_cert.pem"
 
 
