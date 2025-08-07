@@ -34,7 +34,14 @@ import pytest
 
 from cli_tests.utilities import uuid4_str, wait_for_future, die, get_sudo_tool
 
-from cli_tests.multipass import Output, multipass, mounts, state, default_driver_name
+from cli_tests.multipass import (
+    Output,
+    multipass,
+    mounts,
+    state,
+    default_driver_name,
+    launch,
+)
 from cli_tests.config import config
 from cli_tests.controller import AsyncMultipassdController
 
@@ -300,58 +307,5 @@ def windows_privileged_mounts(multipassd):
 def instance(request):
     """Launch a VM and ensure cleanup."""
 
-    # Default configuration
-    cfg = {
-        "cpus": 2,
-        "memory": "1G",
-        "disk": "6G",
-        "name": uuid4_str("instance"),
-        "retry": 3,
-        "image": "noble",
-        "autopurge": True,
-    }
-
-    logging.debug(f"instance: {cfg}")
-
-    # if the test sent us something, merge it
-    if hasattr(request, "param"):
-        cfg.update(request.param)
-
-    assert multipass(
-        "launch",
-        "--cpus",
-        cfg["cpus"],
-        "--memory",
-        cfg["memory"],
-        "--disk",
-        cfg["disk"],
-        "--name",
-        cfg["name"],
-        cfg["image"],
-        retry=cfg["retry"],
-    )
-
-    class VMHandle:
-        def __init__(self, cfg: dict):
-            self._cfg = cfg
-
-        # give the helper something to stringify
-        def __str__(self):
-            return self.name
-
-        # surface the config as attributes
-        def __getattr__(self, item):
-            try:
-                return self._cfg[item]
-            except KeyError as exc:
-                raise AttributeError(item) from exc
-
-        def __repr__(self):
-            return f"<VMHandle {self.name}>"
-
-    assert mounts(cfg["name"]) == {}
-    assert state(cfg["name"]) == "Running"
-    yield VMHandle(cfg)
-    #yield cfg["name"]
-    if cfg["autopurge"]:
-        assert multipass("delete", cfg["name"], "--purge")
+    with launch(request.param if hasattr(request, "param") else None) as inst:
+        return inst
