@@ -100,8 +100,7 @@ void set_ip_forward()
     }
 }
 
-mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir,
-                                         const std::vector<std::pair<QString, std::string>>& subnets)
+mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir, const mp::SubnetList& subnets)
 {
     set_ip_forward();
     return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, subnets);
@@ -144,10 +143,9 @@ mp::QemuPlatformDetail::Subnet::~Subnet()
     return subnets;
 }
 
-[[nodiscard]] std::vector<std::pair<QString, std::string>> mp::QemuPlatformDetail::get_subnets_list(
-    const Subnets& subnets)
+[[nodiscard]] mp::SubnetList mp::QemuPlatformDetail::get_subnets_list(const Subnets& subnets)
 {
-    std::vector<std::pair<QString, std::string>> out{};
+    SubnetList out{};
     out.reserve(subnets.size());
 
     for (const auto& [_, subnet] : subnets)
