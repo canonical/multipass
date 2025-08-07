@@ -29,6 +29,7 @@ from .helpers import (
     get_ram_size,
     mounts,
     shell,
+    snapshot_count,
     state,
     default_driver_name,
     default_mount_gid,

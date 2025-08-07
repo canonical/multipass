@@ -41,6 +41,10 @@ def mounts(name):
     return _retrieve_info_field(name, "mounts")
 
 
+def snapshot_count(name):
+    return int(_retrieve_info_field(name, "snapshot_count"))
+
+
 def file_exists(vm_name, *paths):
     """Return True if a file exists in the given VM, False otherwise."""
     return multipass(
@@ -55,13 +59,15 @@ def file_exists(vm_name, *paths):
 
 def read_file(vm_name, path):
     """Return True if a file exists in the given VM, False otherwise."""
-    return multipass(
-        "exec",
-        f"{vm_name}",
-        "--",
-        "cat",
-        path,
-        timeout=180,
+    return str(
+        multipass(
+            "exec",
+            f"{vm_name}",
+            "--",
+            "cat",
+            path,
+            timeout=180,
+        )
     )
 
 
