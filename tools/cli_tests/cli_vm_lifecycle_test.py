@@ -22,7 +22,7 @@ import pytest
 
 from cli_tests.utilities import uuid4_str
 
-from cli_tests.multipass import multipass, state
+from cli_tests.multipass import multipass, state, launch
 
 
 @pytest.mark.lifecycle
@@ -95,55 +95,19 @@ class TestVmLifecycle:
             assert not output
             assert "does not exist" in output
 
-        assert multipass("start", f"{name}")
+    def test_delete_purge(self):
+        with launch({"autopurge": False}) as name1, launch(
+            {"autopurge": False}
+        ) as name2:
+            assert multipass("delete", f"{name1}")
+            assert state(f"{name1}") == "Deleted"
 
-        assert multipass("delete", f"{name}")
-        assert state(f"{name}") == "Deleted"
+            assert multipass("delete", f"{name2}")
+            assert state(f"{name2}") == "Deleted"
 
-        assert multipass("delete", f"{name}", "--purge")
-        with multipass("info", f"{name}") as output:
-            assert not output
-            assert "does not exist" in output
+            assert multipass("purge")
 
-    def test_launch_delete_purge(self):
-        name1 = uuid4_str("instance")
-        name2 = uuid4_str("instance")
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name1,
-            retry=3,
-        )
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name2,
-            retry=3,
-        )
-
-        assert multipass("delete", f"{name1}")
-        assert state(f"{name1}") == "Deleted"
-
-        assert multipass("delete", f"{name2}")
-        assert state(f"{name2}") == "Deleted"
-
-        assert multipass("purge")
-
-        for instance in [name1, name2]:
-            with multipass("info", f"{instance}") as output:
-                assert not output
-                assert "does not exist" in output
+            for instance in [name1, name2]:
+                with multipass("info", f"{instance}") as output:
+                    assert not output
+                    assert "does not exist" in output
