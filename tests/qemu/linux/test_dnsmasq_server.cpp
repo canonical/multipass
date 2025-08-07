@@ -113,6 +113,12 @@ TEST_F(DNSMasqServer, startsDnsmasqProcess)
     EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), make_subnets(dummy_bridge, default_subnet)));
 }
 
+TEST_F(DNSMasqServer, factory_creates_dnsmasq_process)
+{
+    EXPECT_NO_THROW(
+        MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(data_dir.path(), make_subnets(dummy_bridge, default_subnet)));
+}
+
 TEST_F(DNSMasqServer, findsIp)
 {
     auto dns = make_default_dnsmasq_server();
