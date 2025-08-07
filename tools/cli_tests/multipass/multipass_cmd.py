@@ -35,7 +35,7 @@ from cli_tests.multipass.cmd_output import Output
 
 def get_default_timeout_for(cmd):
     default_timeouts = {
-        "delete": 30,
+        "delete": 90,
         "stop": 180,
         "launch": 600,
         "exec": 90,
