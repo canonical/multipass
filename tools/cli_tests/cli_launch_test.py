@@ -20,8 +20,13 @@
 
 import pytest
 
-from cli_tests.utilities import uuid4_str, is_valid_ipv4_addr
-from cli_tests.multipass import multipass, validate_list_output, validate_info_output
+from cli_tests.utilities import is_valid_ipv4_addr
+from cli_tests.multipass import (
+    multipass,
+    validate_list_output,
+    validate_info_output,
+    image_name_to_version,
+)
 
 
 @pytest.mark.launch
@@ -29,54 +34,53 @@ from cli_tests.multipass import multipass, validate_list_output, validate_info_o
 class TestLaunch:
     """CLI VM launch tests."""
 
-    def test_launch_noble(self):
+    @pytest.mark.parametrize(
+        "instance",
+        [
+            {"image": "noble", "name": "noble-vm", "autopurge": False},
+            {"image": "jammy", "name": "jammy-vm", "autopurge": False},
+            {"image": "focal", "name": "focal-vm", "autopurge": False},
+        ],
+        indirect=True,
+    )
+    def test_launch(self, instance):
         """Try to launch an Ubuntu 24.04 VM with 2 CPUs 1GiB RAM and 6G disk.
         Then, validate the basics."""
-        name = uuid4_str("instance")
 
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            "noble",
-            retry=3,
-        )
+        print(f"which image: {instance.image}")
 
         validate_list_output(
-            name,
+            instance,
             {
                 "state": "Running",
-                "release": "Ubuntu 24.04 LTS",
+                "release": f"Ubuntu {image_name_to_version(instance.image)} LTS",
                 "ipv4": is_valid_ipv4_addr,
             },
         )
 
         validate_info_output(
-            name,
+            instance,
             {
                 "cpu_count": "2",
                 "snapshot_count": "0",
                 "state": "Running",
                 "mounts": {},
-                "image_release": "24.04 LTS",
+                "image_release": f"{image_name_to_version(instance.image)} LTS",
                 "ipv4": is_valid_ipv4_addr,
             },
         )
 
         # Try to stop the instance
-        assert multipass("stop", f"{name}")
-        validate_info_output(name, {"state": "Stopped"})
+        assert multipass("stop", f"{instance}")
+        validate_info_output(instance, {"state": "Stopped"})
 
         # Try to start the instance
-        assert multipass("start", f"{name}")
-        validate_info_output(name, {"state": "Running"})
+        assert multipass("start", f"{instance}")
+        validate_info_output(instance, {"state": "Running"})
 
         # Remove the instance.
-        assert multipass("delete", f"{name}")
-        validate_info_output(name, {"state": "Deleted"})
+        assert multipass("delete", f"{instance}")
+        validate_info_output(instance, {"state": "Deleted"})
+
+        assert multipass("purge")
+        assert multipass("list", "--format=json") == {"list": []}
