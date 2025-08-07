@@ -181,7 +181,17 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
             }
             else
             {
-                const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
+                QString image_key;
+                // Prioritize UEFI images
+                if (items.contains("uefi1.img"))
+                    image_key = "uefi1.img";
+                // For Ubuntu Core images
+                else if (product["os"] == "ubuntu-core" && items.contains("img.xz"))
+                    image_key = "img.xz";
+                // Last resort, use img
+                else
+                    image_key = "disk1.img";
+
                 image = items[image_key].toObject();
                 image_location = image["path"].toString();
                 sha256 = image["sha256"].toString();
