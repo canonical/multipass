@@ -24,8 +24,30 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
+namespace
+{
+[[nodiscard]] QStringList make_dnsmasq_subnet_args(const mp::SubnetList& subnets)
+{
+    QStringList out{};
+    for (const auto& [bridge_name, subnet] : subnets)
+    {
+        const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
+        const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
+        const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
+
+        out << QString("--interface=%1").arg(bridge_name)
+            << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string())) << "--dhcp-range"
+            << QString("%1,%2,infinite")
+                   .arg(QString::fromStdString(start_ip.as_string()))
+                   .arg(QString::fromStdString(end_ip.as_string()));
+    }
+
+    return out;
+}
+} // namespace
+
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir,
-                                           const std::vector<std::pair<QString, std::string>>& subnets,
+                                           const SubnetList& subnets,
                                            const QString& conf_file_path)
     : data_dir(data_dir), subnets(subnets), conf_file_path{conf_file_path}
 {
@@ -50,20 +72,7 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
                              // This is to prevent it trying to read /etc/dnsmasq.conf
                              << QString("--conf-file=%1").arg(conf_file_path);
 
-    for (const auto& [bridge_name, subnet] : subnets)
-    {
-        const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
-        const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
-        const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
-
-        out << QString("--interface=%1").arg(bridge_name)
-            << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string())) << "--dhcp-range"
-            << QString("%1,%2,infinite")
-                   .arg(QString::fromStdString(start_ip.as_string()))
-                   .arg(QString::fromStdString(end_ip.as_string()));
-    }
-
-    return out;
+    return out << make_dnsmasq_subnet_args(subnets);
 }
 
 mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
