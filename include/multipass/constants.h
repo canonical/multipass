@@ -27,6 +27,8 @@ namespace multipass
 constexpr auto client_name = "multipass";
 constexpr auto daemon_name = "multipassd";
 
+constexpr auto release_remote = "release";
+constexpr auto daily_remote = "daily";
 constexpr auto snapcraft_remote = "snapcraft";
 
 constexpr auto min_memory_size = "128M";
