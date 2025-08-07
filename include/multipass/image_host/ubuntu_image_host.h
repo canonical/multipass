@@ -29,9 +29,6 @@
 
 namespace multipass
 {
-constexpr auto release_remote = "release";
-constexpr auto daily_remote = "daily";
-
 class URLDownloader;
 class UbuntuVMImageRemote;
 class UbuntuVMImageHost final : public BaseVMImageHost
