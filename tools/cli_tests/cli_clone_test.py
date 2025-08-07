@@ -21,7 +21,16 @@
 import pytest
 
 from cli_tests.utilities import uuid4_str, is_valid_ipv4_addr
-from cli_tests.multipass import multipass, validate_info_output, take_snapshot
+from cli_tests.multipass import (
+    multipass,
+    validate_info_output,
+    take_snapshot,
+    snapshot_count,
+    state,
+    file_exists,
+    read_file,
+    exec,
+)
 
 
 @pytest.mark.clone
@@ -52,12 +61,12 @@ class TestClone:
             assert f"Cloned from {instance} to {instance}.clone1" in output
 
         # Verify that the clone does not have any snapshots
-        validate_info_output(f"{instance}-clone1", {"snapshot_count": "0"})
+        assert snapshot_count(f"{instance}-clone1") == 0
 
     def test_clone_verify_clone_has_different_properties(self, instance):
         """ip, mac, hostname, etc."""
-        assert multipass("stop", f"{instance}")
-        validate_info_output(instance, {"state": "Stopped"})
+        assert multipass("stop", instance)
+        assert state(instance) == "Stopped"
 
         with multipass("clone", f"{instance}") as output:
             assert output
@@ -79,21 +88,14 @@ class TestClone:
             },
         )
 
-        src_cloud_init_instance_id = multipass(
-            "exec", f"{instance}", "--", "cat /var/lib/cloud/data/instance-id"
-        )
-        clone_cloud_init_instance_id = multipass(
-            "exec", f"{instance}-clone1", "--", "cat /var/lib/cloud/data/instance-id"
-        )
+        assert file_exists(instance, "/var/lib/cloud/data/instance-id")
+        assert file_exists(f"{instance}-clone1", "/var/lib/cloud/data/instance-id")
 
-        assert src_cloud_init_instance_id
-        assert clone_cloud_init_instance_id
-
-        assert (
-            src_cloud_init_instance_id.content != clone_cloud_init_instance_id.content
+        assert read_file(instance, "/var/lib/cloud/data/instance-id") != read_file(
+            f"{instance}-clone1", "/var/lib/cloud/data/instance-id"
         )
 
-        assert f"{instance}-clone1" in multipass("exec", f"{instance}-clone1", "--", "hostname")
+        assert f"{instance}-clone1" in exec(f"{instance}-clone1", "hostname")
 
         # Verify that clone's primary interface has a different MAC address than
         # the src.
