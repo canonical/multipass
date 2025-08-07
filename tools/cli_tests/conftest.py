@@ -235,6 +235,7 @@ def set_driver():
         assert multipass("set", f"local.driver={config.driver}")
         multipassd.wait_for_restart()
 
+
 @contextmanager
 def multipassd_impl():
     if config.no_daemon is False:
@@ -278,11 +279,13 @@ def multipassd(store_config):
     with multipassd_impl() as daemon:
         yield daemon
 
+
 @pytest.fixture(scope="class")
 def multipassd_class_scoped(store_config, request):
     with multipassd_impl() as daemon:
         request.cls.multipassd = daemon
         yield daemon
+
 
 @pytest.fixture
 def windows_privileged_mounts(multipassd):
@@ -294,22 +297,61 @@ def windows_privileged_mounts(multipassd):
 
 
 @pytest.fixture(scope="function")
-def instance():
+def instance(request):
     """Launch a VM and ensure cleanup."""
-    name = uuid4_str("instance")
+
+    # Default configuration
+    cfg = {
+        "cpus": 2,
+        "memory": "1G",
+        "disk": "6G",
+        "name": uuid4_str("instance"),
+        "retry": 3,
+        "image": "noble",
+        "autopurge": True,
+    }
+
+    logging.debug(f"instance: {cfg}")
+
+    # if the test sent us something, merge it
+    if hasattr(request, "param"):
+        cfg.update(request.param)
+
     assert multipass(
         "launch",
         "--cpus",
-        "2",
+        cfg["cpus"],
         "--memory",
-        "1G",
+        cfg["memory"],
         "--disk",
-        "6G",
+        cfg["disk"],
         "--name",
-        name,
-        retry=3,
+        cfg["name"],
+        cfg["image"],
+        retry=cfg["retry"],
     )
-    assert mounts(name) == {}
-    assert state(name) == "Running"
-    yield name
-    assert multipass("delete", name, "--purge")
+
+    class VMHandle:
+        def __init__(self, cfg: dict):
+            self._cfg = cfg
+
+        # give the helper something to stringify
+        def __str__(self):
+            return self.name
+
+        # surface the config as attributes
+        def __getattr__(self, item):
+            try:
+                return self._cfg[item]
+            except KeyError as exc:
+                raise AttributeError(item) from exc
+
+        def __repr__(self):
+            return f"<VMHandle {self.name}>"
+
+    assert mounts(cfg["name"]) == {}
+    assert state(cfg["name"]) == "Running"
+    yield VMHandle(cfg)
+    #yield cfg["name"]
+    if cfg["autopurge"]:
+        assert multipass("delete", cfg["name"], "--purge")
