@@ -31,21 +31,14 @@ from cli_tests.multipass import (
 class TestAlias:
     """Alias command tests."""
 
-    def test_create_alias(self):
-        instance = uuid4_str("instance")
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            instance,
-            retry=3,
-        )
+    @pytest.mark.parametrize(
+        "instance",
+        [
+            {"assert": {"purge": False}},
+        ],
+        indirect=True,
+    )
+    def test_create_alias(self, instance):
         """Try to list instances whilst there are none."""
         assert multipass("prefer", "default")
         assert multipass("alias", f"{instance}:whoami", "wai")
