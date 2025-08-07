@@ -97,8 +97,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
         "0 "s + hw_addr + " "s + expected_ip +
         " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 
-    [[nodiscard]] static std::vector<std::pair<QString, std::string>> make_subnets(const QString& bridge,
-                                                                                   const std::string& subnet)
+    [[nodiscard]] static mp::SubnetList make_subnets(const QString& bridge, const std::string& subnet)
     {
         return {{bridge, subnet}};
     }
