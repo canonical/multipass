@@ -33,99 +33,42 @@ class TestClone:
         name = uuid4_str("instance")
         assert not multipass("clone", f"{name}")
 
-    def test_clone_running_instance(self):
-        name = uuid4_str("instance")
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-
-        with multipass("clone", f"{name}") as output:
+    def test_clone_running_instance(self, instance):
+        with multipass("clone", f"{instance}") as output:
             assert not output
             assert "Multipass can only clone stopped instances." in output
 
-    def test_clone_to_self(self):
-        name = uuid4_str("instance")
+    def test_clone_to_self(self, instance):
+        assert multipass("stop", f"{instance}")
 
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-        assert multipass("stop", f"{name}")
-
-        with multipass("clone", f"{name}", "--name", f"{name}") as output:
+        with multipass("clone", f"{instance}", "--name", f"{instance}") as output:
             assert not output
             assert "already exist" in output
 
-    def test_clone_instance_with_snapshot(self):
-        name = uuid4_str("instance")
-
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-        take_snapshot(name, "snapshot1")
-        with multipass("clone", f"{name}") as output:
+    def test_clone_instance_with_snapshot(self, instance):
+        take_snapshot(instance, "snapshot1")
+        with multipass("clone", f"{instance}") as output:
             assert output
-            assert f"Cloned from {name} to {name}.clone1" in output
+            assert f"Cloned from {instance} to {instance}.clone1" in output
 
         # Verify that the clone does not have any snapshots
-        validate_info_output(f"{name}-clone1", {"snapshot_count": "0"})
+        validate_info_output(f"{instance}-clone1", {"snapshot_count": "0"})
 
-    def test_clone_verify_clone_has_different_properties(self):
+    def test_clone_verify_clone_has_different_properties(self, instance):
         """ip, mac, hostname, etc."""
-        name = uuid4_str("instance")
+        assert multipass("stop", f"{instance}")
+        validate_info_output(instance, {"state": "Stopped"})
 
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            retry=3,
-        )
-
-        assert multipass("stop", f"{name}")
-        validate_info_output(name, {"state": "Stopped"})
-
-        with multipass("clone", f"{name}") as output:
+        with multipass("clone", f"{instance}") as output:
             assert output
-            assert f"Cloned from {name} to {name}-clone1" in output
+            assert f"Cloned from {instance} to {instance}-clone1" in output
 
-        validate_info_output(f"{name}-clone1", {"state": "Stopped"})
-        assert multipass("start", f"{name}")
-        assert multipass("start", f"{name}-clone1")
+        validate_info_output(f"{instance}-clone1", {"state": "Stopped"})
+        assert multipass("start", f"{instance}")
+        assert multipass("start", f"{instance}-clone1")
 
         validate_info_output(
-            f"{name}-clone1",
+            f"{instance}-clone1",
             {
                 "cpu_count": "2",
                 "snapshot_count": "0",
@@ -137,10 +80,10 @@ class TestClone:
         )
 
         src_cloud_init_instance_id = multipass(
-            "exec", f"{name}", "--", "cat /var/lib/cloud/data/instance-id"
+            "exec", f"{instance}", "--", "cat /var/lib/cloud/data/instance-id"
         )
         clone_cloud_init_instance_id = multipass(
-            "exec", f"{name}-clone1", "--", "cat /var/lib/cloud/data/instance-id"
+            "exec", f"{instance}-clone1", "--", "cat /var/lib/cloud/data/instance-id"
         )
 
         assert src_cloud_init_instance_id
@@ -150,20 +93,20 @@ class TestClone:
             src_cloud_init_instance_id.content != clone_cloud_init_instance_id.content
         )
 
-        assert f"{name}-clone1" in multipass("exec", f"{name}-clone1", "--", "hostname")
+        assert f"{instance}-clone1" in multipass("exec", f"{instance}-clone1", "--", "hostname")
 
         # Verify that clone's primary interface has a different MAC address than
         # the src.
         with multipass(
             "exec",
-            f"{name}",
+            f"{instance}",
             "--",
             "bash",
             "-c",
             "\"ip route get 1 | awk '{print $5}' | xargs -I{} cat /sys/class/net/{}/address\"",
         ) as src_mac, multipass(
             "exec",
-            f"{name}-clone1",
+            f"{instance}-clone1",
             "--",
             "bash",
             "-c",
