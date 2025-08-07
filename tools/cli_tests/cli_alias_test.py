@@ -20,7 +20,6 @@
 
 import pytest
 
-from cli_tests.utilities import uuid4_str
 from cli_tests.multipass import (
     multipass,
 )
