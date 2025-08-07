@@ -40,6 +40,8 @@ class Output:
             return (self.exitstatus == value.exitstatus) and (
                 self.content == value.content
             )
+        if isinstance(value, dict):
+            return self.json() == value
         raise NotImplementedError
 
     def __str__(self):
