@@ -32,16 +32,19 @@ def launch(cfg_override=None):
         "cpus": 2,
         "memory": "1G",
         "disk": "6G",
-        "name": uuid4_str("instance"),
         "retry": 3,
         "image": "noble",
         "autopurge": True,
+        "assert": {"purge": True},
     }
 
     cfg = default_cfg
 
     if cfg_override:
         cfg.update(cfg_override)
+
+    if "name" not in cfg:
+        cfg["name"] = uuid4_str("instance")
 
     logging.debug(f"launch_new_instance: {cfg}")
 
@@ -59,13 +62,13 @@ def launch(cfg_override=None):
         retry=cfg["retry"],
     )
 
-    class VMHandle:
-        def __init__(self, cfg: dict):
-            self._cfg = cfg
+    class VMHandle(str):
+        __slots__ = ("_cfg",)
 
-        # give the helper something to stringify
-        def __str__(self):
-            return self.name
+        def __new__(cls, cfg: dict):
+            obj = super().__new__(cls, cfg["name"])
+            obj._cfg = cfg
+            return obj
 
         # surface the config as attributes
         def __getattr__(self, item):
@@ -74,12 +77,8 @@ def launch(cfg_override=None):
             except KeyError as exc:
                 raise AttributeError(item) from exc
 
-        def __repr__(self):
-            return f"<VMHandle {self.name}>"
-
     assert mounts(cfg["name"]) == {}
     assert state(cfg["name"]) == "Running"
     yield VMHandle(cfg)
-    # yield cfg["name"]
     if cfg["autopurge"]:
-        assert multipass("delete", cfg["name"], "--purge")
+        assert multipass("delete", cfg["name"], "--purge") or not cfg["assert"]["purge"]
