@@ -20,7 +20,7 @@
 
 import pytest
 
-from cli_tests.utilities import is_valid_ipv4_addr
+from cli_tests.utilities import is_valid_ipv4_addr, uuid4_str
 from cli_tests.multipass import (
     multipass,
     validate_list_output,
@@ -84,3 +84,59 @@ class TestLaunch:
 
         assert multipass("purge")
         assert multipass("list", "--format=json") == {"list": []}
+
+    def test_launch_invalid_name(self):
+        invalid_names = [
+            "1nvalid-name",
+            "invalid.name",
+            "invalid$name",
+            "invalid(name)",
+            "invalid-name-",
+        ]
+
+        for name in invalid_names:
+            with multipass(
+                "launch",
+                "--cpus",
+                "2",
+                "--memory",
+                "1G",
+                "--disk",
+                "6G",
+                "--name",
+                name,
+            ) as output:
+                assert not output
+                assert "Invalid instance name supplied" in output
+
+    def test_launch_invalid_ram(self):
+        name = uuid4_str("instance")
+        with multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1CiG",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+        ) as output:
+            assert not output
+            assert "1CiG is not a valid memory size" in output
+
+    def test_launch_invalid_disk(self):
+        name = uuid4_str("instance")
+        with multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6CiG",
+            "--name",
+            name,
+        ) as output:
+            assert not output
+            assert "6CiG is not a valid memory size" in output
