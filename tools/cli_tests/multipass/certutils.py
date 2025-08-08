@@ -15,14 +15,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
-import os
+"""Helpers for locating and appending Multipass certificates."""
+
 import logging
+import os
 import shutil
+import sys
 from pathlib import Path
 
 
 def get_client_cert_path():
+    """Return the default location of the Multipass client certificate for the current OS."""
     if sys.platform == "win32":
         data_location = Path(
             os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local")
@@ -37,6 +40,10 @@ def get_client_cert_path():
 
 
 def authenticate_client_cert(client_cert_path, data_root):
+    """
+    Append the given client certificate to the authenticated certs bundle
+    under <data_root>/data/authenticated-certs/multipass_client_certs.pem.
+    """
     dst_path = (
         Path(data_root) / "data" / "authenticated-certs" / "multipass_client_certs.pem"
     )
