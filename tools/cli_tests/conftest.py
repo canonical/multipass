@@ -32,7 +32,7 @@ from pathlib import Path
 
 import pytest
 
-from cli_tests.utilities import uuid4_str, wait_for_future, die, get_sudo_tool
+from cli_tests.utilities import uuid4_str, wait_for_future, get_sudo_tool
 
 from cli_tests.multipass import (
     Output,
@@ -272,7 +272,7 @@ def multipassd_impl():
         yield controller
         logging.debug("multipassd fixture return")
     except Exception as exc:
-        die(2, str(exc))
+        pytest.fail(f"multipassd failed: {exc}", pytrace=True)
     finally:
         if controller:
             wait_for_future(bg_loop.run(controller.stop()))
