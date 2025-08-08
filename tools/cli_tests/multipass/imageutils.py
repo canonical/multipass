@@ -16,8 +16,19 @@
 #
 #
 
+"""Utility for translating image metadata."""
+
 
 def image_name_to_version(image):
-    return {"noble": "24.04", "jammy": "22.04", "focal": "20.04", "bionic": "18.04"}[
-        image
-    ]
+    """Return the Ubuntu version string for a given Multipass image codename."""
+
+    mapping = {
+        "noble": "24.04",
+        "jammy": "22.04",
+        "focal": "20.04",
+        "bionic": "18.04",
+    }
+    try:
+        return mapping[image]
+    except KeyError as exc:
+        raise ValueError(f"Unknown image codename: {image!r}") from exc

@@ -18,7 +18,7 @@
 
 import re
 
-from .cmd_json_output import JsonOutput
+from cli_tests.multipass.cmd_json_output import JsonOutput
 
 
 class Output:

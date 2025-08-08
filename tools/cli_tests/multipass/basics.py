@@ -16,6 +16,8 @@
 #
 #
 
+"""Helpers for resolving Multipass executables and environment settings."""
+
 import os
 import shutil
 
@@ -23,14 +25,17 @@ from cli_tests.config import config
 
 
 def get_multipass_env():
+    """Return an environment dict for running Multipass with a custom storage root."""
     multipass_env = os.environ.copy()
     multipass_env["MULTIPASS_STORAGE"] = config.data_root
     return multipass_env
 
 
 def get_multipass_path():
+    """Resolve the 'multipass' binary."""
     return shutil.which("multipass", path=config.build_root)
 
 
 def get_multipassd_path():
+    """Resolve the 'multipassd' binary."""
     return shutil.which("multipassd", path=config.build_root)

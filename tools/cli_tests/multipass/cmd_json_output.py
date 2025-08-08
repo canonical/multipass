@@ -16,8 +16,9 @@
 #
 #
 
-import jq
 import json
+
+import jq
 
 
 class JsonOutput(dict):
