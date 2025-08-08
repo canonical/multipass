@@ -183,7 +183,7 @@ def multipass(*args, **kwargs):
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
-                        [get_multipass_path(), *args],
+                        [get_multipass_path(), *map(str, args)],
                         logfile=(
                             sys.stdout.buffer if config.print_cli_output else None
                         ),
