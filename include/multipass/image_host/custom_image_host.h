@@ -22,10 +22,7 @@
 
 #include <QString>
 
-#include <memory>
 #include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 namespace multipass
@@ -59,7 +56,7 @@ private:
     CustomManifest* manifest_from(const std::string& remote_name);
 
     const QString arch;
-    std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
-    std::vector<std::string> remotes;
+    std::pair<std::string, std::unique_ptr<CustomManifest>> manifest;
+    std::string remote;
 };
 } // namespace multipass

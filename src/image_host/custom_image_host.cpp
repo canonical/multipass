@@ -15,103 +15,39 @@
  *
  */
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
-#include <multipass/format.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/image_host/custom_image_host.h>
-#include <multipass/platform.h>
+#include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
-#include <multipass/utils.h>
 
-#include <QMap>
-#include <QUrl>
+#include <fmt/format.h>
+
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #include <utility>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto no_remote = "";
+constexpr auto category = "custom_image_host";
+constexpr auto no_remote{""};
+constexpr auto manifest_endpoint{"https://raw.githubusercontent.com/canonical/multipass/refs/heads/"
+                                 "main/data/distributions/distribution-info.json"};
 
-struct BaseImageInfo
+auto get_manifest_url()
 {
-    const QString last_modified;
-    const QString hash;
-};
-
-struct CustomImageInfo
-{
-    QString url_prefix;
-    QStringList aliases;
-    QString os;
-    QString release;
-    QString release_string;
-    QString release_codename;
-};
-
-const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
-    {{"x86_64"},
-     {{{"ubuntu-core-16-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/16/stable/current/",
-        {"core", "core16"},
-        "Ubuntu",
-        "core-16",
-        "Core 16",
-        "Core 16"}},
-      {{"ubuntu-core-18-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/18/stable/current/",
-        {"core18"},
-        "Ubuntu",
-        "core-18",
-        "Core 18",
-        "Core 18"}},
-      {{"ubuntu-core-20-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/20/stable/current/",
-        {"core20"},
-        "Ubuntu",
-        "core-20",
-        "Core 20",
-        "Core 20"}},
-      {{"ubuntu-core-22-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/22/stable/current/",
-        {"core22"},
-        "Ubuntu",
-        "core-22",
-        "Core 22",
-        "Core 22"}},
-      {{"ubuntu-core-24-amd64.img.xz"},
-       {"https://cdimage.ubuntu.com/ubuntu-core/24/stable/current/",
-        {"core24"},
-        "Ubuntu",
-        "core-24",
-        "Core 24",
-        "Core 24"}}}}};
-
-auto base_image_info_for(mp::URLDownloader* url_downloader,
-                         const QString& image_url,
-                         const QString& hash_url,
-                         const QString& image_file,
-                         const bool force_update = false)
-{
-    const auto last_modified =
-        QLocale::c().toString(url_downloader->last_modified({image_url}), "yyyyMMdd");
-    const auto sha256_sums = url_downloader->download({hash_url}, force_update).split('\n');
-    QString hash;
-
-    for (const QString line : sha256_sums) // intentional copy
-    {
-        if (line.trimmed().endsWith(image_file))
-        {
-            hash = line.split(' ').first();
-            break;
-        }
-    }
-
-    return BaseImageInfo{last_modified, hash};
+    return qEnvironmentVariable(mp::distributions_url_env_var).isEmpty()
+               ? manifest_endpoint
+               : qEnvironmentVariable(mp::distributions_url_env_var);
 }
 
-auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
+auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
 {
     std::unordered_map<std::string, const mp::VMImageInfo*> map;
     for (const auto& image : images)
@@ -126,50 +62,75 @@ auto map_aliases_to_vm_info_for(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto full_image_info_for(const QMap<QString, CustomImageInfo>& custom_image_info,
-                         mp::URLDownloader* url_downloader,
-                         const bool force_update = false)
+auto fetch_image_info(const QString& arch,
+                      mp::URLDownloader* url_downloader,
+                      const bool force_update = false)
 {
-    auto fetch_one_image_info =
-        [force_update, url_downloader](
-            const std::pair<const QString, CustomImageInfo>& image_info_pair) -> mp::VMImageInfo {
-        const auto& [image_file_name, custom_image_info] = image_info_pair;
-        const QString image_url{custom_image_info.url_prefix + image_info_pair.first};
-        const QString hash_url{custom_image_info.url_prefix + QStringLiteral("SHA256SUMS")};
+    std::vector<mp::VMImageInfo> images;
 
-        const auto base_image_info =
-            base_image_info_for(url_downloader, image_url, hash_url, image_file_name, force_update);
+    mpl::log(mpl::Level::debug, category, "Fetching images from {}", get_manifest_url());
+    QByteArray mp_manifest;
 
-        return mp::VMImageInfo{custom_image_info.aliases,
-                               custom_image_info.os,
-                               custom_image_info.release,
-                               custom_image_info.release_string,
-                               custom_image_info.release_codename,
-                               true,                 // supported
-                               image_url,            // image_location
-                               base_image_info.hash, // id
-                               "",
-                               base_image_info.last_modified, // version
-                               0,
-                               true};
-    };
+    try
+    {
+        mp_manifest = url_downloader->download(QUrl{get_manifest_url()}, force_update);
+    }
+    catch (mp::DownloadException& e)
+    {
+        mpl::log(mpl::Level::warning, category, "Failed to download manifest: {}", e);
+        return images;
+    }
 
-    return std::make_unique<mp::CustomManifest>(
-        mp::utils::parallel_transform(custom_image_info.toStdMap(), fetch_one_image_info));
+    const auto manifest_doc = QJsonDocument::fromJson(mp_manifest);
+    if (!manifest_doc.isObject())
+    {
+        mpl::log(mpl::Level::warning,
+                 category,
+                 "Failed to parse manifest: file does not contain a valid JSON object");
+        return images;
+    }
+
+    const QJsonObject root_obj = manifest_doc.object();
+
+    mpl::log(mpl::Level::debug, category, "Found {} items", root_obj.size());
+
+    for (auto it = root_obj.begin(); it != root_obj.end(); ++it)
+    {
+        const QString distro_name = it.key();
+        const QJsonObject distro_obj = it.value().toObject();
+
+        QStringList aliases = distro_obj.value("aliases").toString().split(",", Qt::SkipEmptyParts);
+        for (QString& alias : aliases)
+            alias = alias.trimmed();
+
+        images.push_back(mp::VMImageInfo{aliases,
+                                         distro_obj["os"].toString(),
+                                         distro_obj["release"].toString(),
+                                         distro_obj["release_codename"].toString(),
+                                         distro_obj["release_title"].toString(),
+                                         true,
+                                         distro_obj["items"][arch]["image_location"].toString(),
+                                         distro_obj["items"][arch]["id"].toString(),
+                                         "",
+                                         distro_obj["items"][arch]["version"].toString(),
+                                         distro_obj["items"][arch]["size"].toInt(-1),
+                                         true});
+    }
+
+    return images;
 }
-
 } // namespace
 
 mp::CustomManifest::CustomManifest(std::vector<VMImageInfo>&& images)
-    : products{std::move(images)}, image_records{map_aliases_to_vm_info_for(products)}
+    : products{std::move(images)}, image_records{map_aliases_to_vm_info(products)}
 {
 }
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
     : BaseVMImageHost{downloader},
       arch{QSysInfo::currentCpuArchitecture()},
-      custom_image_info{},
-      remotes{no_remote}
+      manifest{},
+      remote{no_remote}
 {
 }
 
@@ -197,11 +158,6 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
     return images;
 }
 
-mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
-{
-    return {};
-}
-
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name,
                                                                    const bool allow_unsupported)
 {
@@ -214,50 +170,57 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::st
     return images;
 }
 
+std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
+{
+    return std::vector<std::string>{remote};
+}
+
 void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    for (const auto& manifest : custom_image_info)
+    for (const auto& info : manifest.second->products)
     {
-        for (const auto& info : manifest.second->products)
-        {
-            action(manifest.first, info);
-        }
+        action(manifest.first, info);
     }
 }
 
-std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
+mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
 {
-    return remotes;
+    for (const auto& product : manifest.second->products)
+    {
+        if (product.id.toStdString() == full_hash)
+        {
+            return product;
+        }
+    }
+
+    throw mp::ImageNotFoundException(
+        fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 }
 
 void mp::CustomVMImageHost::fetch_manifests(const bool force_update)
 {
-    for (const auto& spec : {std::make_pair(no_remote, multipass_image_info[arch])})
+    try
     {
-        try
-        {
-            std::unique_ptr<mp::CustomManifest> custom_manifest =
-                full_image_info_for(spec.second, url_downloader, force_update);
-            custom_image_info.emplace(spec.first, std::move(custom_manifest));
-        }
-        catch (mp::DownloadException& e)
-        {
-            throw e;
-        }
+        std::unique_ptr<mp::CustomManifest> custom_manifest = std::make_unique<mp::CustomManifest>(
+            fetch_image_info(arch, url_downloader, force_update));
+        manifest = std::make_pair(no_remote, std::move(custom_manifest));
+    }
+    catch (mp::DownloadException& e)
+    {
+        throw e;
     }
 }
 
 void mp::CustomVMImageHost::clear()
 {
-    custom_image_info.clear();
+    manifest = std::pair<std::string, std::unique_ptr<CustomManifest>>{};
 }
 
 mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
 {
-    auto it = custom_image_info.find(remote_name);
-    if (it == custom_image_info.end())
+    if (remote_name != manifest.first)
         throw std::runtime_error(
             fmt::format("Remote \"{}\" is unknown or unreachable.", remote_name));
 
-    return it->second.get();
+    return manifest.second.get();
 }

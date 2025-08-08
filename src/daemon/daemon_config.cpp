@@ -20,7 +20,6 @@
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/image_host/custom_image_host.h>
-#include <multipass/image_host/multipass_image_host.h>
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
@@ -163,7 +162,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (image_hosts.empty())
     {
         image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get()));
-        image_hosts.push_back(std::make_unique<mp::MultipassVMImageHost>(url_downloader.get()));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
                 {mp::release_remote,
