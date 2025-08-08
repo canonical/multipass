@@ -29,19 +29,20 @@ import asyncio
 import threading
 import logging
 from pathlib import Path
+from contextlib import contextmanager
+
 
 import pytest
 
-from cli_tests.utilities import uuid4_str, wait_for_future, get_sudo_tool
+from cli_tests.utilities import wait_for_future, get_sudo_tool
 
 from cli_tests.multipass import (
     Output,
     multipass,
-    mounts,
-    state,
     default_driver_name,
     launch,
 )
+
 from cli_tests.config import config
 from cli_tests.controller import AsyncMultipassdController
 
@@ -234,13 +235,10 @@ class BackgroundEventLoop:
         self.thread.join()
 
 
-from contextlib import contextmanager
-
-
-def set_driver():
+def set_driver(controller):
     if multipass("get", "local.driver") != config.driver:
         assert multipass("set", f"local.driver={config.driver}")
-        multipassd.wait_for_restart()
+        controller.wait_for_restart()
 
 
 @contextmanager
@@ -268,7 +266,7 @@ def multipassd_impl():
             bg_loop, config.build_root, config.data_root, config.print_daemon_output
         )
         wait_for_future(bg_loop.run(controller.start()))
-        set_driver()
+        set_driver(controller)
         yield controller
         logging.debug("multipassd fixture return")
     except Exception as exc:
@@ -307,5 +305,7 @@ def windows_privileged_mounts(multipassd):
 def instance(request):
     """Launch a VM and ensure cleanup."""
 
-    with launch(request.param if hasattr(request, "param") else None) as inst: # pylint: disable=R1732
+    with launch(
+        request.param if hasattr(request, "param") else None
+    ) as inst:  # pylint: disable=R1732
         yield inst
