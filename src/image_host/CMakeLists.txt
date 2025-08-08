@@ -15,7 +15,6 @@
 add_library(image_host STATIC
   base_image_host.cpp
   custom_image_host.cpp
-  multipass_image_host.cpp
   ubuntu_image_host.cpp)
 
 target_link_libraries(image_host PRIVATE
