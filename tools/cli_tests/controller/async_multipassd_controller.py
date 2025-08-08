@@ -9,13 +9,14 @@ import subprocess
 import time
 import logging
 
+import pytest
+
 
 from cli_tests.utilities import (
     BooleanLatch,
     get_sudo_tool,
     run_as_privileged,
     send_ctrl_c,
-    die,
 )
 
 from cli_tests.multipass import (
@@ -23,7 +24,7 @@ from cli_tests.multipass import (
     get_multipass_env,
     get_multipass_path,
     get_client_cert_path,
-    authenticate_client_cert
+    authenticate_client_cert,
 )
 from cli_tests.config import config
 
@@ -31,7 +32,7 @@ from cli_tests.config import config
 class AsyncMultipassdController:
     def __init__(self, asyncio_loop, build_root, data_root, print_daemon_output=True):
         if not get_multipassd_path():
-            die(11, "Could not find 'multipassd' executable!")
+            pytest.exit("Could not find 'multipassd' executable!", returncode=11)
 
         self.asyncio_loop = asyncio_loop
         self.build_root = build_root
@@ -105,7 +106,7 @@ class AsyncMultipassdController:
 
             # Abnormal exit
             reasons = "\n".join(error_reasons) if error_reasons else ""
-            die(12, f"FATAL: multipassd died with code {returncode}!{reasons}")
+            pytest.exit(f"FATAL: multipassd died with code {returncode}!{reasons}", returncode=12)
 
         except asyncio.CancelledError:
             # Task was cancelled, this is expected during shutdown
@@ -179,7 +180,7 @@ class AsyncMultipassdController:
         if not await self.wait_for_multipassd_ready():
             print("⚠️ multipassd not ready, attempting graceful shutdown...")
             await self._terminate_multipassd()
-            die(12, "Tests cannot proceed, daemon not responding in time.")
+            pytest.exit("Tests cannot proceed, multipassd not responding in time.", returncode=12)
         self.daemon_ready_event.set()
 
     async def stop(self):

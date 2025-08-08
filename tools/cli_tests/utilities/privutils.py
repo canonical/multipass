@@ -25,7 +25,7 @@ import os
 import site
 import subprocess
 
-from .procutils import die
+import pytest
 
 
 @functools.cache
@@ -42,9 +42,9 @@ def get_sudo_tool():
     result = shutil.which(sudo_tool)
 
     if not result:
-        die(
-            10,
+        pytest.exit(
             f"❌ `{sudo_tool}` is required but not found. Install it with: `{install_hint}`",
+            returncode=10,
         )
 
     return [result] + default_args
