@@ -164,6 +164,12 @@ jobs:
           python \
           wget
 
+    - name: Combine the macOS package
+      id: combine-package
+      if: ${{ matrix.runs-on == 'macos-13' }}
+      run: |
+        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade distlib
+
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v3
