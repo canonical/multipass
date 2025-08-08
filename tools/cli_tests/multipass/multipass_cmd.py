@@ -16,24 +16,27 @@
 #
 #
 
-import sys
-import subprocess
+"""Wrapper for running Multipass CLI commands in tests with retry, timeouts, and interactive support."""
 
+
+import subprocess
+import sys
 
 import pexpect
 
-if sys.platform == "win32":
-    from pexpect.popen_spawn import PopenSpawn
-    from cli_tests.utilities import WinptySpawn
-
-
-from cli_tests.utilities import retry, strip_ansi_escape
 from cli_tests.config import config
 from cli_tests.multipass import get_multipass_env, get_multipass_path
 from cli_tests.multipass.cmd_output import Output
+from cli_tests.utilities import retry, strip_ansi_escape
+
+if sys.platform == "win32":
+    from pexpect.popen_spawn import PopenSpawn
+
+    from cli_tests.utilities import WinptySpawn
 
 
 def get_default_timeout_for(cmd):
+    """Return the default timeout (in seconds) for a given Multipass command, or 10 if not listed."""
     default_timeouts = {
         "delete": 90,
         "stop": 180,
@@ -46,49 +49,6 @@ def get_default_timeout_for(cmd):
     if cmd in default_timeouts:
         return default_timeouts[cmd]
     return 10
-
-
-class ContextManagerProxy:
-    """Wrapper to avoid having to type multipass("command")() (note the parens)"""
-
-    def __init__(self, callable):
-        self.result = None
-        self.callable = callable
-
-    @staticmethod
-    def ensure_result(func):
-        def wrapper(self, *args, **kwargs):
-            if self.result is None:
-                self.result = self.callable()
-            return func(self, *args, **kwargs)
-
-        return wrapper
-
-    def __enter__(self):
-        return self.callable.__enter__()
-
-    def __exit__(self, *a):
-        return self.callable.__exit__(*a)
-
-    @ensure_result
-    def __getattr__(self, name):
-        return getattr(self.result, name)
-
-    @ensure_result
-    def __contains__(self, item):
-        return self.result.__contains__(item)
-
-    @ensure_result
-    def __bool__(self):
-        return self.result.__bool__()
-
-    @ensure_result
-    def __eq__(self, value):
-        return self.result.__eq__(value)
-
-    @ensure_result
-    def __repr__(self):
-        return strip_ansi_escape(self.result.content)
 
 
 def multipass(*args, **kwargs):
@@ -256,4 +216,4 @@ def multipass(*args, **kwargs):
             return False
 
     cmd = Cmd()
-    return ContextManagerProxy(cmd)
+    return cmd()
