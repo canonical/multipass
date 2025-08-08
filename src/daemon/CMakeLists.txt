@@ -38,7 +38,6 @@ target_link_libraries(daemon
   platform
   rpc
   settings
-  simplestreams
   ssh
   sshfs_mount
   utils
