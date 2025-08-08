@@ -63,10 +63,10 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 
     // Make the lock file stale after a while to avoid deadlocking
     // on process crashes, etc.
-    lock.setStaleLockTime(kStaleLockTime);
+    MP_FILEOPS.setStaleLockTime(lock, kStaleLockTime);
 
     // Acquire lock file before attempting to write.
-    if (!lock.tryLock(kLockAcquireTimeout))
+    if (!MP_FILEOPS.tryLock(lock, kLockAcquireTimeout))
     { // wait up to 10s
         throw std::runtime_error(fmt::format("Could not acquire lock for '{}'", file_name));
     }
