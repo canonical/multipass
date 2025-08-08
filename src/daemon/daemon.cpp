@@ -428,7 +428,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
 
         dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
 
-        if (!dont_allow_auto && (remote == "release" || remote == "daily"))
+        if (!dont_allow_auto && (remote == mp::release_remote || remote == mp::daily_remote))
             dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
     }
 
@@ -1670,7 +1670,7 @@ try
                                                      server};
     FindReply response;
 
-    const auto default_remote{"release"};
+    const auto default_remote{mp::release_remote};
 
     if (!request->search_string().empty())
     {
