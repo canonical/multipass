@@ -22,7 +22,7 @@ import sys
 from .threadutils import BooleanLatch
 from .functional import retry, wait_for_future
 from .privutils import run_as_privileged, get_sudo_tool
-from .procutils import send_ctrl_c, die
+from .procutils import send_ctrl_c
 from .temputils import TempDirectory
 from .textutils import strip_ansi_escape, uuid4_str, is_valid_ipv4_addr
 from .treeutils import find_lineage, merge

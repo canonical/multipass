@@ -30,12 +30,3 @@ def send_ctrl_c(pid):
         )
     else:
         raise NotImplementedError
-
-
-def die(exit_code, message):
-    """End testing process abruptly."""
-    sys.stderr.write(f"\n❌🔥 {message}\n")
-    # Flush both streams
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(exit_code)
