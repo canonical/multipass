@@ -53,6 +53,10 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
     constexpr static auto kLockAcquireTimeout = std::chrono::seconds{10};
     const QFileInfo fi{file_name};
 
+    const auto dir = fi.absoluteDir();
+    if (!MP_FILEOPS.mkpath(fi.absoluteDir(), "."))
+        throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
+
     // Interprocess lock file to ensure that we can synchronize the request from
     // both the daemon and the client.
     QLockFile lock(fi.absoluteFilePath() + u".lock"_qs);
@@ -74,10 +78,6 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
     // or the attempts are exhausted.
     for (auto attempt = 0; attempt < max_attempts; attempt++)
     {
-        auto dir = fi.absoluteDir();
-        if (!MP_FILEOPS.mkpath(dir, "."))
-            throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
-
         QSaveFile db_file{file_name};
         if (!MP_FILEOPS.open(db_file, QIODevice::WriteOnly))
             throw std::runtime_error{
