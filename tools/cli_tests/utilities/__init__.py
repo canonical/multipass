@@ -25,7 +25,7 @@ from .privutils import run_as_privileged, get_sudo_tool
 from .procutils import send_ctrl_c, die
 from .temputils import TempDirectory
 from .textutils import strip_ansi_escape, uuid4_str, is_valid_ipv4_addr
-from .treeutils import find_lineage
+from .treeutils import find_lineage, merge
 from .mathutils import is_within_tolerance
 
 if sys.platform == "win32":
