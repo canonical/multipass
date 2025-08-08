@@ -11,6 +11,13 @@ py-modules = []
 [tool.pylint."MESSAGES CONTROL"]
 disable = ["logging-fstring-interpolation"]
 
+[tool.pylint.master]
+known-first-party = ["cli_tests"]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["cli_tests"]
+
 [tool.pytest.ini_options]
 filterwarnings = ["ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"]
 markers = [
