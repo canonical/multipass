@@ -16,17 +16,22 @@
 #
 #
 
+"""Context manager for launching a Multipass VM in CLI tests."""
 
-from contextlib import contextmanager
+
 import logging
+from contextlib import contextmanager
+from copy import deepcopy
 
-from cli_tests.utilities import uuid4_str
-from .multipass_cmd import multipass
-from .helpers import mounts, state
+from cli_tests.utilities import merge, uuid4_str
+
+from .helpers import mounts, multipass, state
 
 
 @contextmanager
 def launch(cfg_override=None):
+    """Launch a VM with defaults (optionally overridden) and yield a handle, purging on exit by default."""
+
     # Default configuration
     default_cfg = {
         "cpus": 2,
@@ -38,10 +43,10 @@ def launch(cfg_override=None):
         "assert": {"purge": True},
     }
 
-    cfg = default_cfg
+    cfg = deepcopy(default_cfg)
 
     if cfg_override:
-        cfg.update(cfg_override)
+        merge(cfg, cfg_override)
 
     if "name" not in cfg:
         cfg["name"] = uuid4_str("instance")
@@ -63,6 +68,8 @@ def launch(cfg_override=None):
     )
 
     class VMHandle(str):
+        """String-like handle (the instance name) exposing config as attributes."""
+
         __slots__ = ("_cfg",)
 
         def __new__(cls, cfg: dict):
