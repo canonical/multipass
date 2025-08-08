@@ -15,8 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from collections.abc import Mapping
+
 
 def find_lineage(tree, target):
+    """Return path of keys from root to target in a nested dict, or None if not found."""
+
     def dfs(node, path):
         for key, child in node.items():
             new_path = path + [key]
@@ -28,3 +32,14 @@ def find_lineage(tree, target):
         return None
 
     return dfs(tree, [])
+
+
+def merge(dst: dict, src: Mapping) -> dict:
+    """Recursively update dict `dst` with `src` (like .update(), but nested)."""
+
+    for k, v in src.items():
+        if k in dst and isinstance(dst[k], Mapping) and isinstance(v, Mapping):
+            merge(dst[k], v)
+        else:
+            dst[k] = v
+    return dst
