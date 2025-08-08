@@ -17,9 +17,8 @@
 
 #pragma once
 
-#include "common_image_host.h"
-
 #include <multipass/constants.h>
+#include <multipass/image_host/base_image_host.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <QString>
@@ -30,13 +29,9 @@
 
 namespace multipass
 {
-constexpr auto release_remote = "release";
-constexpr auto daily_remote = "daily";
-constexpr auto appliance_remote = "appliance";
-
 class URLDownloader;
 class UbuntuVMImageRemote;
-class UbuntuVMImageHost final : public CommonVMImageHost
+class UbuntuVMImageHost final : public BaseVMImageHost
 {
 public:
     UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
@@ -51,7 +46,7 @@ public:
 private:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
-    void fetch_manifests(const bool is_force_update_from_network) override;
+    void fetch_manifests(const bool force_update) override;
     void clear() override;
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
@@ -59,7 +54,6 @@ private:
     std::string remote_url_from(const std::string& remote_name);
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
-    URLDownloader* const url_downloader;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
     QString index_path;
 };

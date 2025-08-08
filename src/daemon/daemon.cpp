@@ -34,6 +34,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -53,7 +54,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
 
@@ -4002,12 +4002,11 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
         async_op_result.status_promise->set_value(async_op_result.status);
 }
 
-void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
+void mp::Daemon::update_manifests_all(const bool force_update)
 {
     auto launch_update_manifests_from_vm_image_host =
-        [is_force_update_from_network](
-            const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
-        vm_image_host_ptr->update_manifests(is_force_update_from_network);
+        [force_update](const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
+        vm_image_host_ptr->update_manifests(force_update);
     };
 
     utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);

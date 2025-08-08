@@ -15,25 +15,21 @@
  *
  */
 
-#include "image_host_remote_count.h"
+#pragma once
 
-#include <multipass/image_host/vm_image_host.h>
-#include <multipass/vm_image_info.h>
-
-#include <set>
+#include <stdexcept>
 #include <string>
 
-namespace mp = multipass;
-namespace mpt = multipass::test;
+#include <multipass/format.h>
 
-size_t mpt::count_remotes(mp::VMImageHost& host)
+namespace multipass
 {
-    std::set<std::string> remotes;
-    auto counting_action = [&remotes](const std::string& remote, const VMImageInfo&) {
-        remotes.insert(remote);
-    };
-    host.update_manifests(false);
-    host.for_each_entry_do(counting_action);
-
-    return remotes.size();
-}
+class ImageNotFoundException : public std::runtime_error
+{
+public:
+    ImageNotFoundException(const std::string& hash)
+        : std::runtime_error{fmt::format("Image with hash \"{}\" not found", hash)}
+    {
+    }
+};
+} // namespace multipass
