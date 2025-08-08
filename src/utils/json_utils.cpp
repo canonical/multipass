@@ -76,7 +76,7 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
     // The retry logic is here because the destination file might be locked for any reason
     // (e.g. OS background indexing) so we will retry writing it until it's successful
     // or the attempts are exhausted.
-    for (auto attempt = 0; attempt < max_attempts; attempt++)
+    for (auto attempt = 1; attempt <= max_attempts; attempt++)
     {
         QSaveFile db_file{file_name};
         if (!MP_FILEOPS.open(db_file, QIODevice::WriteOnly))
