@@ -18,7 +18,7 @@
 from collections.abc import Sequence
 from pprint import pformat
 
-from .multipass_cmd import multipass
+from cli_tests.multipass import multipass
 
 
 def validate_output(*args, properties, jq_filter=None):
