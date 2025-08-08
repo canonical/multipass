@@ -19,7 +19,7 @@
 
 from collections import defaultdict
 
-from .multipass_cmd import multipass
+from cli_tests.multipass import multipass
 
 
 def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment=""):
