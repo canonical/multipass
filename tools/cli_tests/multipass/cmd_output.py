@@ -56,6 +56,9 @@ class Output:
     def __bool__(self):
         return self.exitstatus == 0
 
+    def __repr__(self):
+        return f"<output: {self.content} {self.exitstatus}>"
+
     def json(self):
         """Cast output to JsonOutput."""
         return JsonOutput(self.content, self.exitstatus)
