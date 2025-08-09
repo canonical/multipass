@@ -129,7 +129,12 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
         if (product["arch"].toString() != arch)
             continue;
 
-        const auto product_aliases = product["aliases"].toString().split(",");
+        auto product_aliases = product["aliases"].toString().split(",");
+
+        if (product_aliases.contains("lts"))
+        {
+            product_aliases << "ubuntu";
+        }
 
         const auto release = product["release"].toString();
         const auto release_title = product["release_title"].toString();
