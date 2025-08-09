@@ -113,7 +113,7 @@ def get_ram_size(name):
         "awk '/MemTotal/ { printf \"%d\\n\", $2 / 1024 }' /proc/meminfo",
     ) as result:
         assert result
-        return result.content
+        return int(result.content)
 
 
 def get_disk_size(name):
@@ -122,7 +122,7 @@ def get_disk_size(name):
         "exec", name, "--", "bash -c 'df -m --output=size / | tail -1'"
     ) as result:
         assert result
-        return result.content
+        return int(result.content)
 
 
 def get_core_count(name):
