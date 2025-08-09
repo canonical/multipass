@@ -18,8 +18,7 @@
 
 import pytest
 
-from cli_tests.utilities import uuid4_str
-from cli_tests.multipass import multipass, validate_list_output, shell
+from cli_tests.multipass import shell
 from pexpect import EOF as pexpect_eof
 
 
