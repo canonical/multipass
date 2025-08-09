@@ -3,31 +3,29 @@
 """Asyncio-based Multipassd Controller"""
 
 import asyncio
-import re
-import sys
-import subprocess
-import time
 import logging
+import re
+import subprocess
+import sys
+import time
 
 import pytest
 from pytest import Session
 
-
+from cli_tests.config import config
+from cli_tests.multipass import (
+    authenticate_client_cert,
+    get_client_cert_path,
+    get_multipass_env,
+    get_multipass_path,
+    get_multipassd_path,
+)
 from cli_tests.utilities import (
     BooleanLatch,
     get_sudo_tool,
     run_as_privileged,
     send_ctrl_c,
 )
-
-from cli_tests.multipass import (
-    get_multipassd_path,
-    get_multipass_env,
-    get_multipass_path,
-    get_client_cert_path,
-    authenticate_client_cert,
-)
-from cli_tests.config import config
 
 
 class TestSessionFailure(RuntimeError):
