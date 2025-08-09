@@ -15,15 +15,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import shutil
 import functools
-import logging
-from pathlib import Path
 import inspect
-import sys
+import logging
 import os
+import shutil
 import site
 import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
