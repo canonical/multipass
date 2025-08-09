@@ -45,3 +45,4 @@ from .validate import (
 from .cmd_output import Output
 from .imageutils import image_name_to_version
 from .launch import launch
+from .fileutils import nuke_all_instances

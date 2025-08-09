@@ -41,6 +41,7 @@ from cli_tests.multipass import (
     multipass,
     default_driver_name,
     launch,
+    nuke_all_instances,
 )
 
 from cli_tests.config import config
@@ -180,36 +181,6 @@ def ensure_sudo_auth():
         pytest.skip("Cannot authenticate sudo non-interactively")
 
 
-def privileged_truncate_file(target, check=False):
-    subprocess.run(
-        [
-            *get_sudo_tool(),
-            sys.executable,
-            "-c",
-            "import sys; open(sys.argv[1], 'w').close()",
-            str(target),
-        ],
-        check=check,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-
-def privileged_remove_path(target, check=False):
-    subprocess.run(
-        [
-            *get_sudo_tool(),
-            sys.executable,
-            "-c",
-            "import shutil; import sys; shutil.rmtree(sys.argv[1], ignore_errors=True)",
-            str(Path(target)),
-        ],
-        check=check,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-
 class BackgroundEventLoop:
     def __init__(self):
         self.loop = asyncio.new_event_loop()
@@ -249,14 +220,7 @@ def multipassd_impl():
         return
 
     if config.remove_all_instances:
-        sys.stderr.flush()
-        sys.stdout.flush()
-        instance_records_file = os.path.join(
-            config.data_root, "data/vault/multipassd-instance-image-records.json"
-        )
-        instances_dir = os.path.join(config.data_root, "data/vault/instances")
-        privileged_truncate_file(instance_records_file)
-        privileged_remove_path(instances_dir)
+        run_as_privileged(nuke_all_instances, config.data_root)
 
     controller = None
     bg_loop = BackgroundEventLoop()
