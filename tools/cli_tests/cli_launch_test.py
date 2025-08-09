@@ -38,9 +38,9 @@ class TestLaunch:
     @pytest.mark.parametrize(
         "instance",
         [
-            {"image": "noble", "name": "noble-vm", "autopurge": False},
-            {"image": "jammy", "name": "jammy-vm", "autopurge": False},
-            {"image": "focal", "name": "focal-vm", "autopurge": False},
+            {"image": "noble", "autopurge": False},
+            {"image": "jammy", "autopurge": False},
+            {"image": "focal", "autopurge": False},
         ],
         indirect=True,
     )
