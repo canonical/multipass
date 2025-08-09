@@ -18,6 +18,7 @@
 #
 
 import threading
+import asyncio
 
 
 class BooleanLatch:
@@ -45,3 +46,28 @@ class BooleanLatch:
 
     def wait(self):
         self.wait_until(True)
+
+
+class BackgroundEventLoop:
+    def __init__(self):
+        self.loop = asyncio.new_event_loop()
+        self.thread = threading.Thread(target=self._run_loop, name="asyncio-loop-thr")
+        self.thread.start()
+
+    def _run_loop(self):
+        asyncio.set_event_loop(self.loop)
+        try:
+            self.loop.run_forever()
+        finally:
+            self.loop.close()
+
+    def run(self, coro):
+        """Submit coroutine to background loop"""
+        return asyncio.run_coroutine_threadsafe(coro, self.loop)
+
+    def run_fn(self, fn):
+        self.loop.call_soon_threadsafe(fn)
+
+    def stop(self):
+        self.run_fn(self.loop.stop)
+        self.thread.join()
