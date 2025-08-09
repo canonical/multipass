@@ -209,8 +209,6 @@ def multipassd_impl():
         set_driver(controller)
         yield controller
         logging.debug("multipassd fixture return")
-    except Exception as exc:
-        pytest.fail(f"multipassd failed: {exc}", pytrace=True)
     finally:
         if controller:
             wait_for_future(bg_loop.run(controller.stop()))
