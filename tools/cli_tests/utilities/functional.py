@@ -15,8 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import pexpect
 import time
+
+import pexpect
 
 
 def retry(retries=3, delay=1.0):
