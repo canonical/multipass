@@ -108,6 +108,8 @@ def get_ram_size(name):
         "exec",
         name,
         "--",
+        "bash",
+        "-c",
         "awk '/MemTotal/ { printf \"%d\\n\", $2 / 1024 }' /proc/meminfo",
     ) as result:
         assert result
