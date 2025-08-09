@@ -10,6 +10,7 @@ import time
 import logging
 
 import pytest
+from pytest import Session
 
 
 from cli_tests.utilities import (
@@ -27,6 +28,14 @@ from cli_tests.multipass import (
     authenticate_client_cert,
 )
 from cli_tests.config import config
+
+
+class TestSessionFailure(RuntimeError):
+    pass
+
+
+class TestCaseFailure(RuntimeError):
+    pass
 
 
 class AsyncMultipassdController:
@@ -104,14 +113,27 @@ class AsyncMultipassdController:
             ) and returncode == 0:
                 return  # Normal exit
 
+            # Disable autorestart on abnormal exit.
+            self.autorestart(0)
             # Abnormal exit
             reasons = "\n".join(error_reasons) if error_reasons else ""
-            pytest.exit(f"FATAL: multipassd died with code {returncode}!{reasons}", returncode=12)
+
+            # If the daemon has exited with a failure, subsequent attempts are most likely
+            # to fail. Hence, abort the whole session.
+            if returncode == 1:
+                raise TestSessionFailure(
+                    f"FATAL: multipassd died with code {returncode}!{reasons}"
+                )
+            raise TestCaseFailure(
+                f"FATAL: multipassd died with code {returncode}!{reasons}"
+            )
 
         except asyncio.CancelledError:
             # Task was cancelled, this is expected during shutdown
             stdout_task.cancel()
             raise
+        finally:
+            logging.info("daemon monitor exit")
 
     def _on_daemon_exit(self, task):
         self.graceful_exit_initiated = False
@@ -171,16 +193,38 @@ class AsyncMultipassdController:
         )
 
         # Start monitoring task
-        self.monitor_task = asyncio.create_task(self._monitor())
+        self.monitor_task = asyncio.create_task(self._monitor(), name="monitor_task")
         self.monitor_task.add_done_callback(self._on_daemon_exit)
 
-        await asyncio.sleep(0)  # Yield control
+        ready_task = asyncio.create_task(
+            self.wait_for_multipassd_ready(), name="wait_for_ready_task"
+        )
+
+        done, _ = await asyncio.wait(
+            {ready_task, self.monitor_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for task in done:
+            if task.get_name() == "monitor_task":
+                # No longer needed.
+                ready_task.cancel()
+                # This is going to re-raise the exception thrown by the task.
+                try:
+                    await task
+                except TestSessionFailure as ex:
+                    Session.shouldfail = str(ex)
+                    raise
 
         # Wait for daemon to be ready
-        if not await self.wait_for_multipassd_ready():
+        if not await ready_task:
             print("⚠️ multipassd not ready, attempting graceful shutdown...")
             await self._terminate_multipassd()
-            pytest.exit("Tests cannot proceed, multipassd not responding in time.", returncode=12)
+            pytest.exit(
+                "Tests cannot proceed, multipassd not responding in time.",
+                returncode=12,
+            )
+
         self.daemon_ready_event.set()
 
     async def stop(self):
