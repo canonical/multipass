@@ -19,7 +19,7 @@
 
 import sys
 
-from .threadutils import BooleanLatch
+from .threadutils import BooleanLatch, BackgroundEventLoop
 from .functional import retry, wait_for_future
 from .privutils import run_as_privileged, get_sudo_tool
 from .procutils import send_ctrl_c
