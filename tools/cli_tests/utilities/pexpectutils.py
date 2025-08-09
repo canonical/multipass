@@ -21,23 +21,37 @@ import sys
 if not sys.platform == "win32":
     raise ImportError("WinptySpawn is Windows-only.")
 
-import time
 import threading
-from queue import Queue, Empty
+import time
+from queue import Empty, Queue
 
-from pexpect.spawnbase import SpawnBase
 from pexpect.exceptions import EOF
-from winpty import PtyProcess, Backend
+from pexpect.spawnbase import SpawnBase
+from winpty import Backend, PtyProcess
+
 
 class WinptySpawn(SpawnBase):
 
-    def __init__(self, command, encoding='utf-8', codec_errors='strict',
-                 timeout=30, maxread=2000, searchwindowsize=None,
-                 logfile=None, **kwargs):
+    def __init__(
+        self,
+        command,
+        encoding="utf-8",
+        codec_errors="strict",
+        timeout=30,
+        maxread=2000,
+        searchwindowsize=None,
+        logfile=None,
+        **kwargs
+    ):
 
-        super(WinptySpawn, self).__init__(timeout=timeout, maxread=maxread,
-                searchwindowsize=searchwindowsize, logfile=logfile,
-                encoding=encoding, codec_errors=codec_errors)
+        super(WinptySpawn, self).__init__(
+            timeout=timeout,
+            maxread=maxread,
+            searchwindowsize=searchwindowsize,
+            logfile=logfile,
+            encoding=encoding,
+            codec_errors=codec_errors,
+        )
 
         self.pty_proc = PtyProcess.spawn(command, **kwargs, backend=Backend.ConPTY)
 
@@ -65,7 +79,7 @@ class WinptySpawn(SpawnBase):
                 return buf[:size]
             else:
                 self.flag_eof = True
-                raise EOF('End Of File (EOF).')
+                raise EOF("End Of File (EOF).")
 
         if timeout == -1:
             timeout = self.timeout
@@ -86,7 +100,7 @@ class WinptySpawn(SpawnBase):
                 buf += incoming
 
         r, self._buf = buf[:size], buf[size:]
-        self._log(r, 'read')
+        self._log(r, "read")
         return r
 
     def write(self, s):
@@ -108,7 +122,7 @@ class WinptySpawn(SpawnBase):
         return self.pty_proc.isalive()
 
     def send(self, s):
-        self._log(s, 'send')
+        self._log(s, "send")
         self.write(s)
 
     def sendline(self, s=""):
@@ -118,10 +132,10 @@ class WinptySpawn(SpawnBase):
         self.terminate()
 
     def wait(self):
-        '''Wait for the subprocess to finish.
+        """Wait for the subprocess to finish.
 
         Returns the exit code.
-        '''
+        """
         status = self.pty_proc.wait()
         if status >= 0:
             self.exitstatus = status

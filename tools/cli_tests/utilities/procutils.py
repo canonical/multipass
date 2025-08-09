@@ -17,9 +17,8 @@
 #
 #
 
-import sys
-import os
 import subprocess
+import sys
 
 
 def send_ctrl_c(pid):

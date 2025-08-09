@@ -27,7 +27,7 @@ import pexpect
 from cli_tests.config import config
 from cli_tests.multipass import get_multipass_env, get_multipass_path
 from cli_tests.multipass.cmd_output import Output
-from cli_tests.utilities import retry, strip_ansi_escape
+from cli_tests.utilities import retry
 
 if sys.platform == "win32":
     from pexpect.popen_spawn import PopenSpawn
