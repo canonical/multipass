@@ -47,7 +47,7 @@ auto make_map()
 }
 
 const std::map<std::string, std::unique_ptr<mp::Formatter>> formatters{make_map()};
-const std::set<std::string> unwanted_aliases{"ubuntu", "default"};
+const std::set<std::string> unwanted_aliases{"default"};
 
 } // namespace
 
