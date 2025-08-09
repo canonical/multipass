@@ -21,20 +21,21 @@
 """Pytest customizations."""
 
 import sys
-import os
 import subprocess
 import shutil
 import tempfile
-import asyncio
-import threading
 import logging
-from pathlib import Path
 from contextlib import contextmanager
 
 
 import pytest
 
-from cli_tests.utilities import wait_for_future, get_sudo_tool
+from cli_tests.utilities import (
+    wait_for_future,
+    get_sudo_tool,
+    run_as_privileged,
+    BackgroundEventLoop,
+)
 
 from cli_tests.multipass import (
     Output,
@@ -179,31 +180,6 @@ def ensure_sudo_auth():
         subprocess.run([*get_sudo_tool(), "-v"], check=True)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
-
-
-class BackgroundEventLoop:
-    def __init__(self):
-        self.loop = asyncio.new_event_loop()
-        self.thread = threading.Thread(target=self._run_loop, name="asyncio-loop-thr")
-        self.thread.start()
-
-    def _run_loop(self):
-        asyncio.set_event_loop(self.loop)
-        try:
-            self.loop.run_forever()
-        finally:
-            self.loop.close()
-
-    def run(self, coro):
-        """Submit coroutine to background loop"""
-        return asyncio.run_coroutine_threadsafe(coro, self.loop)
-
-    def run_fn(self, fn):
-        self.loop.call_soon_threadsafe(fn)
-
-    def stop(self):
-        self.run_fn(self.loop.stop)
-        self.thread.join()
 
 
 def set_driver(controller):
