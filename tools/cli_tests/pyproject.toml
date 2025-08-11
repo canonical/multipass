@@ -38,4 +38,5 @@ markers = [
     "alias: Alias tests",
     "transfer: Transfer tests",
     "authenticate: Authenticate tests",
+    "help: Help tests",
 ]
