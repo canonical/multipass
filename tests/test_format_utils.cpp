@@ -117,8 +117,9 @@ TEST(AliasFilter, unwantedAliasesFilteredOut)
 
     mp::format::filter_aliases(aliases);
 
-    EXPECT_EQ(aliases.size(), 1);
-    EXPECT_EQ(aliases[0], "devel");
+    EXPECT_EQ(aliases.size(), 2);
+    EXPECT_EQ(aliases[0], "ubuntu");
+    EXPECT_EQ(aliases[1], "devel");
 }
 
 TEST(AliasFilter, singleCharacterAliasesFilteredOut)
@@ -171,9 +172,10 @@ TEST(AliasFilter, mixedAliasesFilteredOut)
 
     mp::format::filter_aliases(aliases);
 
-    EXPECT_THAT(aliases.size(), Eq(2));
+    EXPECT_THAT(aliases.size(), Eq(3));
     EXPECT_THAT(aliases[0], Eq("lts"));
     EXPECT_THAT(aliases[1], Eq("eoan"));
+    EXPECT_THAT(aliases[2], Eq("ubuntu"));
 }
 
 TEST(AliasFilter, atLeastOneAliasLeft)
@@ -182,7 +184,6 @@ TEST(AliasFilter, atLeastOneAliasLeft)
     auto image = reply.add_images_info();
 
     image->add_aliases("d");
-    image->add_aliases("");
 
     auto aliases = image->aliases();
 

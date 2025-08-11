@@ -673,6 +673,7 @@ auto construct_find_multiple_reply()
     image_entry->set_version("20190516");
     image_entry->add_aliases("ubuntu");
     image_entry->add_aliases("lts");
+    image_entry->set_remote_name("release");
 
     image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -698,6 +699,7 @@ auto construct_find_multiple_reply_duplicate_image()
     image_entry->set_release("Core 18");
     image_entry->set_version("20190520");
     image_entry->add_aliases("core18");
+    image_entry->set_remote_name("core");
 
     image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
@@ -2142,7 +2144,7 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&table_formatter,
      &find_multiple_reply,
      "Image                       Aliases           Version          Description\n"
-     "lts                                           20190516         Ubuntu 18.04 LTS\n"
+     "ubuntu                      lts               20190516         Ubuntu 18.04 LTS\n"
      "daily:19.10                 eoan,devel        20190516         Ubuntu 19.10\n"
      "\n"
      "Blueprint (deprecated)      Aliases           Version          Description\n"
@@ -2158,8 +2160,8 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&table_formatter,
      &find_multiple_reply_duplicate_image,
      "Image                       Aliases           Version          Description\n"
-     "core18                                        20190520         Ubuntu Core 18\n"
      "snapcraft:core18                              20190520         Snapcraft builder for core18\n"
+     "core:core18                                   20190520         Ubuntu Core 18\n"
      "\n",
      "table_find_multiple_duplicate_image"},
     {&json_formatter, &empty_find_reply, json_empty_find_reply, "json_find_empty"},
@@ -2235,12 +2237,13 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "            \"remote\": \"daily\",\n"
      "            \"version\": \"20190516\"\n"
      "        },\n"
-     "        \"lts\": {\n"
+     "        \"ubuntu\": {\n"
      "            \"aliases\": [\n"
+     "                \"lts\"\n"
      "            ],\n"
      "            \"os\": \"Ubuntu\",\n"
      "            \"release\": \"18.04 LTS\",\n"
-     "            \"remote\": \"\",\n"
+     "            \"remote\": \"release\",\n"
      "            \"version\": \"20190516\"\n"
      "        }\n"
      "    }\n"
@@ -2254,12 +2257,12 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    \"errors\": [\n"
      "    ],\n"
      "    \"images\": {\n"
-     "        \"core18\": {\n"
+     "        \"core:core18\": {\n"
      "            \"aliases\": [\n"
      "            ],\n"
      "            \"os\": \"Ubuntu\",\n"
      "            \"release\": \"Core 18\",\n"
-     "            \"remote\": \"\",\n"
+     "            \"remote\": \"core\",\n"
      "            \"version\": \"20190520\"\n"
      "        },\n"
      "        \"snapcraft:core18\": {\n"
@@ -2295,14 +2298,14 @@ const std::vector<FormatterParamType> find_formatter_outputs{
     {&csv_formatter,
      &find_multiple_reply,
      "Image,Remote,Aliases,OS,Release,Version,Type\n"
-     "lts,,,Ubuntu,18.04 LTS,20190516,Cloud Image\n"
+     "ubuntu,release,lts,Ubuntu,18.04 LTS,20190516,Cloud Image\n"
      "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image\n"
      "anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint (deprecated)\n",
      "csv_find_multiple"},
     {&csv_formatter,
      &find_multiple_reply_duplicate_image,
      "Image,Remote,Aliases,OS,Release,Version,Type\n"
-     "core18,,,Ubuntu,Core 18,20190520,Cloud Image\n"
+     "core:core18,core,,Ubuntu,Core 18,20190520,Cloud Image\n"
      "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520,Cloud Image\n",
      "csv_find_multiple_duplicate_image"},
     {&yaml_formatter, &empty_find_reply, yaml_empty_find_reply, "yaml_find_empty"},
@@ -2365,13 +2368,13 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "    release: 19.10\n"
      "    version: 20190516\n"
      "    remote: daily\n"
-     "  lts:\n"
+     "  ubuntu:\n"
      "    aliases:\n"
-     "      []\n"
+     "      - lts\n"
      "    os: Ubuntu\n"
      "    release: 18.04 LTS\n"
      "    version: 20190516\n"
-     "    remote: \"\"\n",
+     "    remote: release\n",
      "yaml_find_multiple"},
     {&yaml_formatter,
      &find_multiple_reply_duplicate_image,
@@ -2380,13 +2383,13 @@ const std::vector<FormatterParamType> find_formatter_outputs{
      "blueprints (deprecated):\n"
      "  {}\n"
      "images:\n"
-     "  core18:\n"
+     "  \"core:core18\":\n"
      "    aliases:\n"
      "      []\n"
      "    os: Ubuntu\n"
      "    release: Core 18\n"
      "    version: 20190520\n"
-     "    remote: \"\"\n"
+     "    remote: core\n"
      "  \"snapcraft:core18\":\n"
      "    aliases:\n"
      "      []\n"
