@@ -43,4 +43,4 @@ class JsonOutput(dict):
 
     def jq(self, query):
         """Real jq queries using the jq library"""
-        return jq.compile(query).input(dict(self)).all()
+        return jq.compile(query).input(dict(self))

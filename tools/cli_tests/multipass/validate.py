@@ -24,7 +24,7 @@ from cli_tests.multipass import multipass
 def validate_output(*args, properties, jq_filter=None):
     with multipass(*args).json() as output:
         assert output.exitstatus == 0
-        result = output.jq(jq_filter) if jq_filter else output
+        result = output.jq(jq_filter).all() if jq_filter else output
         assert len(result) == 1
         [instance] = result
         for k, v in properties.items():
