@@ -29,7 +29,7 @@ class Output:
         self.exitstatus = exitstatus
 
     def __contains__(self, pattern):
-        return re.search(pattern, self.content) is not None
+        return re.search(pattern, self.content, flags=re.MULTILINE) is not None
 
     def __eq__(self, value):
         if isinstance(value, str):
