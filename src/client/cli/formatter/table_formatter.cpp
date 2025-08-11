@@ -38,13 +38,13 @@ void format_images(Dest&& dest,
     fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
     for (const auto& image : images_info)
     {
-        auto aliases = image.aliases_info();
+        auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
         fmt::format_to(
             dest,
             "{:<28}{:<18}{:<17}{:<}\n",
-            mp::format::image_string_for(aliases[0]),
+            mp::format::image_string_for(image.remote_name(), aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
             fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
