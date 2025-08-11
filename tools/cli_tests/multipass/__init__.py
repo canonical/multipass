@@ -34,6 +34,9 @@ from .helpers import (
     default_driver_name,
     default_mount_gid,
     default_mount_uid,
+    get_default_interface_name,
+    get_mac_addr_of,
+    get_cloudinit_instance_id,
 )
 from .multipass_cmd import multipass
 from .snapshot import build_snapshot_tree, collapse_to_snapshot_tree, take_snapshot
