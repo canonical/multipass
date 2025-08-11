@@ -20,12 +20,13 @@
 
 import pytest
 
-from cli_tests.utilities import is_valid_ipv4_addr, uuid4_str
+from cli_tests.utilities import is_valid_ipv4_addr
 from cli_tests.multipass import (
     multipass,
     validate_list_output,
     validate_info_output,
     image_name_to_version,
+    random_vm_name
 )
 
 
@@ -110,7 +111,7 @@ class TestLaunch:
                 assert "Invalid instance name supplied" in output
 
     def test_launch_invalid_ram(self):
-        name = uuid4_str("instance")
+        name = random_vm_name()
         with multipass(
             "launch",
             "--cpus",
@@ -126,7 +127,7 @@ class TestLaunch:
             assert "1CiG is not a valid memory size" in output
 
     def test_launch_invalid_disk(self):
-        name = uuid4_str("instance")
+        name = random_vm_name()
         with multipass(
             "launch",
             "--cpus",

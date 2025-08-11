@@ -20,7 +20,7 @@
 
 import pytest
 
-from cli_tests.utilities import uuid4_str, is_within_tolerance
+from cli_tests.utilities import is_within_tolerance
 
 from cli_tests.multipass import (
     get_ram_size,
@@ -28,6 +28,7 @@ from cli_tests.multipass import (
     get_disk_size,
     validate_list_output,
     multipass,
+    random_vm_name
 )
 
 
@@ -38,7 +39,7 @@ class TestVmResource:
     def test_modify_vm_while_running(self):
         """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
         Then, try to shell into it and execute some basic commands."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -74,7 +75,7 @@ class TestVmResource:
     def test_modify_vm(self):
         """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
         Then, try to shell into it and execute some basic commands."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
