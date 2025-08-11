@@ -103,9 +103,7 @@ class TestFind:
             "find",
             param["name"],
             "--format=json",
-            "--show-unsupported"
-            if "unsupported" in param and param["unsupported"]
-            else "",
+            *(["--show-unsupported"] if param.get("unsupported") else []),
         ).json() as output:
             assert output
             images = output["images"]
