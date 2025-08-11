@@ -18,7 +18,6 @@
 
 """Wrapper for running Multipass CLI commands in tests with retry, timeouts, and interactive support."""
 
-
 import subprocess
 import sys
 
@@ -43,6 +42,7 @@ def get_default_timeout_for(cmd):
         "launch": 600,
         "exec": 90,
         "start": 90,
+        "restart": 120,
         "mount": 180,
         "umount": 45,
     }
