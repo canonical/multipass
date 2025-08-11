@@ -601,9 +601,7 @@ auto construct_find_one_reply()
     image_entry->set_os("Ubuntu");
     image_entry->set_release("18.04 LTS");
     image_entry->set_version("20190516");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("ubuntu");
+    image_entry->add_aliases("ubuntu");
 
     return reply;
 }
@@ -615,10 +613,8 @@ auto construct_find_one_reply_no_os()
     auto image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("core18");
-    alias_entry->set_remote_name("snapcraft");
+    image_entry->add_aliases("core18");
+    image_entry->set_remote_name("snapcraft");
 
     return reply;
 }
@@ -631,26 +627,17 @@ auto construct_find_multiple_reply()
     image_entry->set_os("Ubuntu");
     image_entry->set_release("18.04 LTS");
     image_entry->set_version("20190516");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("ubuntu");
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("lts");
+    image_entry->add_aliases("ubuntu");
+    image_entry->add_aliases("lts");
 
     image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
     image_entry->set_release("19.10");
     image_entry->set_version("20190516");
-
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("19.10");
-    alias_entry->set_remote_name("daily");
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("eoan");
-    alias_entry->set_remote_name("daily");
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("devel");
-    alias_entry->set_remote_name("daily");
+    image_entry->add_aliases("19.10");
+    image_entry->add_aliases("eoan");
+    image_entry->add_aliases("devel");
+    image_entry->set_remote_name("daily");
 
     return reply;
 }
@@ -663,17 +650,13 @@ auto construct_find_multiple_reply_duplicate_image()
     image_entry->set_os("Ubuntu");
     image_entry->set_release("Core 18");
     image_entry->set_version("20190520");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("core18");
+    image_entry->add_aliases("core18");
 
     image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
-
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("core18");
-    alias_entry->set_remote_name("snapcraft");
+    image_entry->add_aliases("core18");
+    image_entry->set_remote_name("snapcraft");
 
     return reply;
 }

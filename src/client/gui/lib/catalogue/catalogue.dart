@@ -29,17 +29,17 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
 // the current LTS > other releases sorted by most recent > current devel > core images
 List<ImageInfo> sortImages(List<ImageInfo> images) {
   final ltsIndex = images.indexWhere((image) {
-    return image.aliasesInfo.any((a) => a.alias == 'lts');
+    return image.aliases.any((a) => a == 'lts');
   });
   final lts = ltsIndex != -1 ? images.removeAt(ltsIndex) : null;
 
   final develIndex = images.indexWhere((image) {
-    return image.aliasesInfo.any((a) => a.alias == 'devel');
+    return image.aliases.any((a) => a == 'devel');
   });
   final devel = develIndex != -1 ? images.removeAt(develIndex) : null;
 
   bool coreFilter(ImageInfo image) {
-    return image.aliasesInfo.any((a) => a.alias.contains('core'));
+    return image.aliases.any((a) => a.contains('core'));
   }
 
   int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {

@@ -1173,26 +1173,21 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
                  const std::string& remote_name,
-                 const mp::VMImageInfo& info,
-                 const std::string& default_remote)
+                 const mp::VMImageInfo& info)
 {
     if (!info.aliases.empty())
     {
         auto entry = container->Add();
         for (const auto& alias : info.aliases)
         {
-            auto alias_entry = entry->add_aliases_info();
-            if (remote_name != default_remote)
-            {
-                alias_entry->set_remote_name(remote_name);
-            }
-            alias_entry->set_alias(alias.toStdString());
+            entry->add_aliases(alias.toStdString());
         }
 
         entry->set_os(info.os.toStdString());
         entry->set_release(info.release_title.toStdString());
         entry->set_version(info.version.toStdString());
         entry->set_codename(info.release_codename.toStdString());
+        entry->set_remote_name(remote_name);
     }
 }
 
@@ -1719,7 +1714,7 @@ try
                                    ? remote
                                    : "";
 
-            add_aliases(response.mutable_images_info(), remote_name, info, "");
+            add_aliases(response.mutable_images_info(), remote_name, info);
         }
     }
     else if (request->remote_name().empty())
@@ -1729,17 +1724,16 @@ try
         for (const auto& image_host : config->image_hosts)
         {
             std::unordered_set<std::string> images_found;
-            auto action =
-                [&images_found, &default_remote, request, &response](const std::string& remote,
-                                                                     const mp::VMImageInfo& info) {
-                    if (remote != mp::snapcraft_remote &&
-                        (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                        images_found.find(info.release_title.toStdString()) == images_found.end())
-                    {
-                        add_aliases(response.mutable_images_info(), remote, info, default_remote);
-                        images_found.insert(info.release_title.toStdString());
-                    }
-                };
+            auto action = [&images_found, request, &response](const std::string& remote,
+                                                              const mp::VMImageInfo& info) {
+                if (remote != mp::snapcraft_remote &&
+                    (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    images_found.find(info.release_title.toStdString()) == images_found.end())
+                {
+                    add_aliases(response.mutable_images_info(), remote, info);
+                    images_found.insert(info.release_title.toStdString());
+                }
+            };
 
             image_host->for_each_entry_do(action);
         }
@@ -1753,7 +1747,7 @@ try
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
         for (const auto& info : vm_images_info)
-            add_aliases(response.mutable_images_info(), remote, info, "");
+            add_aliases(response.mutable_images_info(), remote, info);
     }
 
     server->Write(response);

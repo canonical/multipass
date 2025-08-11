@@ -109,19 +109,16 @@ TEST(AliasFilter, unwantedAliasesFilteredOut)
     auto reply = mp::FindReply();
     auto image = reply.add_images_info();
 
-    auto alias = image->add_aliases_info();
-    alias->set_alias("ubuntu");
-    alias = image->add_aliases_info();
-    alias->set_alias("default");
-    alias = image->add_aliases_info();
-    alias->set_alias("devel");
+    image->add_aliases("ubuntu");
+    image->add_aliases("default");
+    image->add_aliases("devel");
 
-    auto aliases = image->aliases_info();
+    auto aliases = image->aliases();
 
     mp::format::filter_aliases(aliases);
 
     EXPECT_EQ(aliases.size(), 1);
-    EXPECT_EQ(aliases[0].alias(), "devel");
+    EXPECT_EQ(aliases[0], "devel");
 }
 
 TEST(AliasFilter, singleCharacterAliasesFilteredOut)
@@ -129,19 +126,16 @@ TEST(AliasFilter, singleCharacterAliasesFilteredOut)
     auto reply = mp::FindReply();
     auto image = reply.add_images_info();
 
-    auto alias = image->add_aliases_info();
-    alias->set_alias("a");
-    alias = image->add_aliases_info();
-    alias->set_alias("b");
-    alias = image->add_aliases_info();
-    alias->set_alias("devel");
+    image->add_aliases("a");
+    image->add_aliases("b");
+    image->add_aliases("devel");
 
-    auto aliases = image->aliases_info();
+    auto aliases = image->aliases();
 
     mp::format::filter_aliases(aliases);
 
     EXPECT_EQ(aliases.size(), 1);
-    EXPECT_EQ(aliases[0].alias(), "devel");
+    EXPECT_EQ(aliases[0], "devel");
 }
 
 TEST(AliasFilter, wantedAliasesNotFilteredOut)
@@ -149,21 +143,18 @@ TEST(AliasFilter, wantedAliasesNotFilteredOut)
     auto reply = mp::FindReply();
     auto image = reply.add_images_info();
 
-    auto alias = image->add_aliases_info();
-    alias->set_alias("lts");
-    alias = image->add_aliases_info();
-    alias->set_alias("devel");
-    alias = image->add_aliases_info();
-    alias->set_alias("eoan");
+    image->add_aliases("lts");
+    image->add_aliases("devel");
+    image->add_aliases("eoan");
 
-    auto aliases = image->aliases_info();
+    auto aliases = image->aliases();
 
     mp::format::filter_aliases(aliases);
 
     EXPECT_THAT(aliases.size(), Eq(3));
-    EXPECT_THAT(aliases[0].alias(), Eq("lts"));
-    EXPECT_THAT(aliases[1].alias(), Eq("devel"));
-    EXPECT_THAT(aliases[2].alias(), Eq("eoan"));
+    EXPECT_THAT(aliases[0], Eq("lts"));
+    EXPECT_THAT(aliases[1], Eq("devel"));
+    EXPECT_THAT(aliases[2], Eq("eoan"));
 }
 
 TEST(AliasFilter, mixedAliasesFilteredOut)
@@ -171,22 +162,18 @@ TEST(AliasFilter, mixedAliasesFilteredOut)
     auto reply = mp::FindReply();
     auto image = reply.add_images_info();
 
-    auto alias = image->add_aliases_info();
-    alias->set_alias("lts");
-    alias = image->add_aliases_info();
-    alias->set_alias("d");
-    alias = image->add_aliases_info();
-    alias->set_alias("eoan");
-    alias = image->add_aliases_info();
-    alias->set_alias("ubuntu");
+    image->add_aliases("lts");
+    image->add_aliases("d");
+    image->add_aliases("eoan");
+    image->add_aliases("ubuntu");
 
-    auto aliases = image->aliases_info();
+    auto aliases = image->aliases();
 
     mp::format::filter_aliases(aliases);
 
     EXPECT_THAT(aliases.size(), Eq(2));
-    EXPECT_THAT(aliases[0].alias(), Eq("lts"));
-    EXPECT_THAT(aliases[1].alias(), Eq("eoan"));
+    EXPECT_THAT(aliases[0], Eq("lts"));
+    EXPECT_THAT(aliases[1], Eq("eoan"));
 }
 
 TEST(AliasFilter, atLeastOneAliasLeft)
@@ -194,14 +181,15 @@ TEST(AliasFilter, atLeastOneAliasLeft)
     auto reply = mp::FindReply();
     auto image = reply.add_images_info();
 
-    auto alias = image->add_aliases_info();
-    alias->set_alias("d");
-    auto aliases = image->aliases_info();
+    image->add_aliases("d");
+    image->add_aliases("");
+
+    auto aliases = image->aliases();
 
     mp::format::filter_aliases(aliases);
 
     EXPECT_EQ(aliases.size(), 1);
-    EXPECT_EQ(aliases[0].alias(), "d");
+    EXPECT_EQ(aliases[0], "d");
 }
 
 TEST(StaticFormatFunctions, columnWidthOnEmptyInputWorks)
