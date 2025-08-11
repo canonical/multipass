@@ -18,6 +18,7 @@
 """Test helpers for running `multipass` commands and querying instance info."""
 
 import sys
+import re
 from pathlib import Path
 
 from .multipass_cmd import multipass
@@ -108,12 +109,13 @@ def get_ram_size(name):
         "exec",
         name,
         "--",
-        "bash",
-        "-c",
-        "awk '/MemTotal/ { printf \"%d\\n\", $2 / 1024 }' /proc/meminfo",
+        "cat /proc/meminfo",
     ) as result:
         assert result
-        return int(result.content)
+        match = re.search(r"^MemTotal:\s+(\d+)\s+kB", str(result), re.MULTILINE)
+        assert match
+        mem_kb = int(match.group(1))
+        return mem_kb // 1024
 
 
 def get_disk_size(name):
@@ -130,6 +132,26 @@ def get_core_count(name):
     with multipass("exec", name, "--", "nproc") as result:
         assert result
         return int(result.content)
+
+
+def get_cloudinit_instance_id(name):
+    assert file_exists(name, "/var/lib/cloud/data/instance-id")
+    return read_file(name, "/var/lib/cloud/data/instance-id")
+
+
+def get_default_interface_name(name):
+    with multipass("exec", name, "--", "ip -o route get 1") as output:
+        assert output
+        # 1.0.0.0 via 192.168.35.1 dev br0 src 192.168.35.83 uid 1000 \    cache
+        return output.content.split()[4].strip()
+
+
+def get_mac_addr_of(name, interface_name):
+    with multipass(
+        "exec", name, "--", f"cat /sys/class/net/{interface_name}/address"
+    ) as output:
+        assert output
+        return str(output).strip()
 
 
 def default_driver_name():

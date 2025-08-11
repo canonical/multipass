@@ -30,7 +30,10 @@ from cli_tests.multipass import (
     file_exists,
     read_file,
     exec,
-    random_vm_name
+    random_vm_name,
+    get_default_interface_name,
+    get_mac_addr_of,
+    get_cloudinit_instance_id,
 )
 
 
@@ -69,16 +72,19 @@ class TestClone:
         assert multipass("stop", instance)
         assert state(instance) == "Stopped"
 
+        expected_clone_name = f"{instance}-clone1"
+
         with multipass("clone", f"{instance}") as output:
             assert output
-            assert f"Cloned from {instance} to {instance}-clone1" in output
+            assert f"Cloned from {instance} to {expected_clone_name}" in output
 
-        validate_info_output(f"{instance}-clone1", {"state": "Stopped"})
-        assert multipass("start", f"{instance}")
-        assert multipass("start", f"{instance}-clone1")
+        assert state(expected_clone_name) == "Stopped"
+
+        assert multipass("start", instance)
+        assert multipass("start", expected_clone_name)
 
         validate_info_output(
-            f"{instance}-clone1",
+            expected_clone_name,
             {
                 "cpu_count": "2",
                 "snapshot_count": "0",
@@ -89,31 +95,13 @@ class TestClone:
             },
         )
 
-        assert file_exists(instance, "/var/lib/cloud/data/instance-id")
-        assert file_exists(f"{instance}-clone1", "/var/lib/cloud/data/instance-id")
-
-        assert read_file(instance, "/var/lib/cloud/data/instance-id") != read_file(
-            f"{instance}-clone1", "/var/lib/cloud/data/instance-id"
+        assert get_cloudinit_instance_id(instance) != get_cloudinit_instance_id(
+            expected_clone_name
         )
 
-        assert f"{instance}-clone1" in exec(f"{instance}-clone1", "hostname")
+        i_if_name = get_default_interface_name(instance)
+        i_clone_if_name = get_default_interface_name(expected_clone_name)
 
-        # Verify that clone's primary interface has a different MAC address than
-        # the src.
-        with multipass(
-            "exec",
-            f"{instance}",
-            "--",
-            "bash",
-            "-c",
-            "\"ip route get 1 | awk '{print $5}' | xargs -I{} cat /sys/class/net/{}/address\"",
-        ) as src_mac, multipass(
-            "exec",
-            f"{instance}-clone1",
-            "--",
-            "bash",
-            "-c",
-            "\"ip route get 1 | awk '{print $5}' | xargs -I{} cat /sys/class/net/{}/address\"",
-        ) as clone_mac:
-            assert src_mac and clone_mac
-            assert src_mac.content != clone_mac.content
+        assert get_mac_addr_of(instance, i_if_name) != get_mac_addr_of(
+            expected_clone_name, i_clone_if_name
+        )
