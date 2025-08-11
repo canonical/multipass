@@ -19,6 +19,7 @@
 #include "base_cloud_init_config.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
+#include "rust/cxx.h"
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
@@ -38,13 +39,13 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/bool_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snapshot.h>
+#include <multipass/src/lib.rs.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
@@ -204,7 +205,6 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 template <typename T>
 auto name_from(const std::string& requested_name,
                const std::string& blueprint_name,
-               mp::NameGenerator& name_gen,
                const T& currently_used_names)
 {
     if (!requested_name.empty())
@@ -217,12 +217,19 @@ auto name_from(const std::string& requested_name,
     }
     else
     {
-        auto name = name_gen.make_name();
+        // Create a Rust petname generator with 2 words and "-" separator
+        auto petname_generator = multipass::new_petname(2, "-");
+        auto rust_name = multipass::make_name(*petname_generator);
+        std::string name{rust_name.c_str(), rust_name.size()};
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
             if (currently_used_names.find(name) != currently_used_names.end())
+            {
+                rust_name = multipass::make_name(*petname_generator);
+                name = std::string{rust_name.c_str(), rust_name.size()};
                 continue;
+            }
             return name;
         }
         throw std::runtime_error("unable to generate a unique name");
@@ -3313,10 +3320,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         server->Write(reply);
     }
 
-    auto name = name_from(checked_args.instance_name,
-                          blueprint_name,
-                          *config->name_generator,
-                          operative_instances);
+    auto name = name_from(checked_args.instance_name, blueprint_name, operative_instances);
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,

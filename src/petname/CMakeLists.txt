@@ -14,25 +14,34 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-set(PETNAME_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/petname)
-set(PETNAME_GENERATED_HEADER ${PETNAME_GENERATED_SOURCE_DIR}/names.h)
-file(MAKE_DIRECTORY ${PETNAME_GENERATED_SOURCE_DIR})
-
-add_executable(text_to_string_array
-  text_to_string_array.cpp)
+# Build the Rust static library and generate CXX bridge headers
+if(WIN32)
+  set(RUST_LIB_NAME "multipass.lib")
+  set(CARGO_PATH_ENV "PATH=%USERPROFILE%\\.cargo\\bin;$ENV{PATH}")
+else()
+  set(RUST_LIB_NAME "libmultipass.a")
+  set(CARGO_PATH_ENV "PATH=$ENV{HOME}/.cargo/bin:$ENV{PATH}")
+endif()
 
 add_custom_command(
-  OUTPUT "${PETNAME_GENERATED_HEADER}"
-  COMMAND $<TARGET_FILE:text_to_string_array>
-  ARGS ${CMAKE_CURRENT_SOURCE_DIR}/adjectives.txt ${CMAKE_CURRENT_SOURCE_DIR}/adverbs.txt
-       ${CMAKE_CURRENT_SOURCE_DIR}/names.txt ${PETNAME_GENERATED_HEADER}
-  DEPENDS text_to_string_array
-  COMMENT "Converting petnames to c++ header"
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release/${RUST_LIB_NAME} ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.cc
+  COMMAND ${CMAKE_COMMAND} -E env "${CARGO_PATH_ENV}" cargo build --release --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_CURRENT_BINARY_DIR}
+  DEPENDS ${CMAKE_SOURCE_DIR}/Cargo.toml ${CMAKE_SOURCE_DIR}/src/lib.rs ${CMAKE_SOURCE_DIR}/src/petname/mod.rs
+  COMMENT "Building petname Rust library"
   VERBATIM)
 
-set_source_files_properties(${PETNAME_GENERATED_HEADER} PROPERTIES GENERATED TRUE)
+# Create a target for the Rust library
+add_custom_target(multipass_petname ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release/${RUST_LIB_NAME} ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.cc)
 
-add_library(petname STATIC
-  ${PETNAME_GENERATED_HEADER}
-  petname.cpp
-  make_name_generator.cpp)
+# Create an interface library that just links the Rust static library
+add_library(petname INTERFACE)
+target_include_directories(petname INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge)
+target_link_libraries(petname INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/release/${RUST_LIB_NAME})
+
+# On Windows, link required system libraries for Rust std
+if(WIN32)
+  target_link_libraries(petname INTERFACE ntdll userenv ws2_32 bcrypt)
+endif()
+
+# Add the Rust library as a dependency for the petname library
+add_dependencies(petname multipass_petname)
