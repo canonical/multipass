@@ -40,4 +40,5 @@ markers = [
     "authenticate: Authenticate tests",
     "help: Help tests",
     "version: Version tests",
+    "find: Find tests",
 ]
