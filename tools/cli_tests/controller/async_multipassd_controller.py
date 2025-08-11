@@ -23,7 +23,7 @@ from cli_tests.multipass import (
 from cli_tests.utilities import (
     BooleanLatch,
     get_sudo_tool,
-    run_as_privileged,
+    run_as_subprocess,
     send_ctrl_c,
 )
 
@@ -174,7 +174,9 @@ class AsyncMultipassdController:
         # run_as_privileged.
         cert_path = get_client_cert_path()
         # Authenticate the client against the daemon
-        run_as_privileged(authenticate_client_cert, str(cert_path), config.data_root)
+        run_as_subprocess(
+            authenticate_client_cert, str(cert_path), config.data_root, privileged=True
+        )
 
         # Create subprocess. The child process needs a new process group and a
         # new console to properly receive the Ctrl-C signal without interfering

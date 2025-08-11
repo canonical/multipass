@@ -33,7 +33,7 @@ import pytest
 from cli_tests.utilities import (
     wait_for_future,
     get_sudo_tool,
-    run_as_privileged,
+    run_as_subprocess,
     BackgroundEventLoop,
 )
 
@@ -196,7 +196,7 @@ def multipassd_impl():
         return
 
     if config.remove_all_instances:
-        run_as_privileged(nuke_all_instances, config.data_root)
+        run_as_subprocess(nuke_all_instances, config.data_root, privileged=True)
 
     controller = None
     bg_loop = BackgroundEventLoop()

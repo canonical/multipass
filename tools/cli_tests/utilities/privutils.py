@@ -50,7 +50,9 @@ def get_sudo_tool():
     return [result] + default_args
 
 
-def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
+def run_as_subprocess(
+    py_func, *args, check=True, stdout=None, stderr=None, privileged=False
+):
     """
     Run a top-level function with elevated privileges using sudo.
 
@@ -64,6 +66,7 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
         check: If True, raise an error if the subprocess fails.
         stdout: Where to redirect standard output (default: inherit).
         stderr: Where to redirect standard error (default: inherit).
+        privileged: Whether the subprocess should be run with elevated privileges. (default: False)
     """
     if not callable(py_func):
         raise ValueError("Expected a callable")
@@ -101,13 +104,21 @@ def run_as_privileged(py_func, *args, check=True, stdout=None, stderr=None):
         f"{module_root}{os.pathsep}{site.getusersitepackages()}{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
 
+    cmd_prologue = []
+    if privileged:
+        cmd_prologue = [
+            *get_sudo_tool(),
+            "--preserve-env"
+            if sys.platform == "win32"
+            else "--preserve-env=PYTHONPATH",
+        ]
+
     cmd = [
-        *get_sudo_tool(),
-        # Ensure that the PYTHONPATH is propagated to the interpreter
-        "--preserve-env" if sys.platform == "win32" else "--preserve-env=PYTHONPATH",
         sys.executable,
         "-c",
         full_expr,
     ]
 
-    subprocess.run(cmd, check=check, stdout=stdout, stderr=stderr, env=env)
+    return subprocess.run(
+        [*cmd_prologue, *cmd], check=check, stdout=stdout, stderr=stderr, env=env
+    )
