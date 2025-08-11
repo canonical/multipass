@@ -146,16 +146,13 @@ message FindRequest {
 }
 
 message FindReply {
-    message AliasInfo {
-        string remote_name = 1;
-        string alias = 2;
-    }
     message ImageInfo {
         string os = 1;
         string release = 2;
         string version = 3;
-        repeated AliasInfo aliases_info = 4;
+        repeated string aliases = 4;
         string codename = 5;
+        string remote_name = 6;
     }
     bool show_images = 1;
     bool show_blueprints = 2;
