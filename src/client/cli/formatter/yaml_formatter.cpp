@@ -42,18 +42,18 @@ std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
         YAML::Node image_node;
         image_node["aliases"] = std::vector<std::string>{};
 
-        auto aliases = image.aliases_info();
+        auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
-        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
-            image_node["aliases"].push_back(alias->alias());
+        for (int i = 1; i < aliases.size(); ++i)
+            image_node["aliases"].push_back(aliases[i]);
 
         image_node["os"] = image.os();
         image_node["release"] = image.release();
         image_node["version"] = image.version();
-        image_node["remote"] = aliases[0].remote_name();
+        image_node["remote"] = image.remote_name();
 
-        images_node[mp::format::image_string_for(aliases[0])] = image_node;
+        images_node[mp::format::image_string_for(image.remote_name(), aliases[0])] = image_node;
     }
 
     return images_node;
