@@ -42,6 +42,10 @@ means to obtain these dependencies is with Homebrew <https://brew.sh/>.
 
     brew install cmake openssl@3
 
+### Rust toolchain
+
+Multipass requires Rust for building. Install the Rust toolchain from: https://rustup.rs/
+
 Building
 ---------------------------------------
 

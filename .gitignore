@@ -25,3 +25,8 @@ snap/.snapcraft/state
 packaging/windows/wix/obj/*
 packaging/windows/custom-actions/packages/*
 packaging/windows/custom-actions/x64/*
+
+
+# Added by cargo
+
+/target

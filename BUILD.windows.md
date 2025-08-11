@@ -13,7 +13,7 @@ Powershell.exe"
 
 After chocolatey is installed you can now install the rest of the dependencies:
 
-    choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img openssl -yfd
+    choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img openssl rustup.install -yfd
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker. Search for
 Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable
@@ -27,6 +27,10 @@ to search for "Add or remove programs", find "Microsoft Visual Studio Installer"
 
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
+
+### Rust toolchain
+
+Multipass requires Rust for building. You can install it via Chocolatey (included in the command above) or from: https://rustup.rs/
 
 ### Qt6
 
