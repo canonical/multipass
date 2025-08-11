@@ -18,13 +18,13 @@
 
 """Context manager for launching a Multipass VM in CLI tests."""
 
-
 import logging
 from contextlib import contextmanager
 from copy import deepcopy
 
-from cli_tests.utilities import merge, uuid4_str
+from cli_tests.utilities import merge
 
+from .nameutils import random_vm_name
 from .helpers import mounts, multipass, state
 
 
@@ -49,7 +49,7 @@ def launch(cfg_override=None):
         merge(cfg, cfg_override)
 
     if "name" not in cfg:
-        cfg["name"] = uuid4_str("instance")
+        cfg["name"] = random_vm_name()
 
     logging.debug(f"launch_new_instance: {cfg}")
 

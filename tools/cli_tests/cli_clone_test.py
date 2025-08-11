@@ -20,7 +20,7 @@
 
 import pytest
 
-from cli_tests.utilities import uuid4_str, is_valid_ipv4_addr
+from cli_tests.utilities import is_valid_ipv4_addr
 from cli_tests.multipass import (
     multipass,
     validate_info_output,
@@ -30,6 +30,7 @@ from cli_tests.multipass import (
     file_exists,
     read_file,
     exec,
+    random_vm_name
 )
 
 
@@ -39,7 +40,7 @@ class TestClone:
     """Clone tests."""
 
     def test_clone_nonexistent_instance(self):
-        name = uuid4_str("instance")
+        name = random_vm_name()
         assert not multipass("clone", f"{name}")
 
     def test_clone_running_instance(self, instance):
