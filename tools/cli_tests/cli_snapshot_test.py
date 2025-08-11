@@ -21,7 +21,6 @@
 import pytest
 
 from cli_tests.utilities import (
-    uuid4_str,
     find_lineage,
 )
 
@@ -32,8 +31,10 @@ from cli_tests.multipass import (
     collapse_to_snapshot_tree,
     file_exists,
     take_snapshot,
-    multipass
+    multipass,
+    random_vm_name,
 )
+
 
 @pytest.mark.snapshot
 @pytest.mark.usefixtures("multipassd")
@@ -43,13 +44,13 @@ class TestSnapshot:
     def test_take_snapshot_of_nonexistent_instance(self):
         """Verify that taking a snapshot of a non-existent instance fails with
         an appropriate error."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
         assert f'instance "{name}" does not exist' in multipass("snapshot", f"{name}")
 
     def test_try_restore_snapshot_of_nonexistent_instance(self):
         """Verify that restoring a snapshot for a non-existent instance fails
         with an appropriate error."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
         assert f'instance "{name}" does not exist' in multipass(
             "restore", f"{name}.snapshot1"
         )
@@ -57,7 +58,7 @@ class TestSnapshot:
     def test_take_snapshot(self):
         """Ensure that a snapshot can be successfully created for a newly
         launched instance."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -80,7 +81,7 @@ class TestSnapshot:
     def test_take_snapshot_name_conflict(self):
         """Validate that attempting to create a snapshot with a duplicate name
         fails gracefully."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -110,7 +111,7 @@ class TestSnapshot:
     def test_snapshot_restore_while_running(self):
         """Ensure restoring a snapshot while the instance is running fails with
         a proper error message."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -143,7 +144,7 @@ class TestSnapshot:
     def test_take_snapshot_linear_history(self):
         """Verify that a linear chain of snapshots can be created, each
         referencing the correct parent."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -171,7 +172,7 @@ class TestSnapshot:
     def test_take_snapshot_delete_linear_history(self):
         """Confirm that deleting a snapshot in a linear history reduces the
         snapshot count appropriately."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -207,7 +208,7 @@ class TestSnapshot:
     def test_take_snapshot_and_restore_linear(self):
         """Test restoring each snapshot in a linear chain and verify file system
         state consistency after each restore."""
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -270,7 +271,7 @@ class TestSnapshot:
         destructively and verifies file presence and snapshot consistency at
         each step.
         """
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",
@@ -341,7 +342,7 @@ class TestSnapshot:
         binary-style snapshot tree. Each node spawns two child snapshots via
         destructive restore + snapshot.
         """
-        name = uuid4_str("instance")
+        name = random_vm_name()
 
         assert multipass(
             "launch",

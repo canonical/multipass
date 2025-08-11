@@ -20,9 +20,7 @@
 
 import pytest
 
-from cli_tests.utilities import uuid4_str
-
-from cli_tests.multipass import multipass, state, launch
+from cli_tests.multipass import multipass, state, launch, random_vm_name
 
 
 @pytest.mark.lifecycle
@@ -31,7 +29,7 @@ class TestVmLifecycle:
     """Virtual machine lifecycle tests."""
 
     def test_lifecycle_ops_on_nonexistent(self):
-        name = uuid4_str("instance")
+        name = random_vm_name()
         ops = [
             "start",
             "suspend",
