@@ -396,7 +396,7 @@ class TestSnapshot:
         with multipass(
             "info", "--format=json", "--snapshots", f"{name}"
         ).json() as output:
-            result = output.jq(f'.info["{name}"].snapshots')[0]
+            result = output.jq(f'.info["{name}"].snapshots').first()
             expected_snapshot_tree = {
                 "snapshot2a": {
                     "snapshot3a": {},
@@ -418,7 +418,7 @@ class TestSnapshot:
         with multipass(
             "info", "--format=json", "--snapshots", f"{name}"
         ).json() as output:
-            result = output.jq(f'.info["{name}"].snapshots')[0]
+            result = output.jq(f'.info["{name}"].snapshots').first()
             expected_snapshot_tree = {
                 "snapshot2a": {
                     "snapshot3a": {},
@@ -438,7 +438,7 @@ class TestSnapshot:
         with multipass(
             "info", "--format=json", "--snapshots", f"{name}"
         ).json() as output:
-            result = output.jq(f'.info["{name}"].snapshots')[0]
+            result = output.jq(f'.info["{name}"].snapshots').first()
             expected_snapshot_tree = {
                 "snapshot3a": {},
                 "snapshot3b": {},
@@ -456,7 +456,7 @@ class TestSnapshot:
         with multipass(
             "info", "--format=json", "--snapshots", f"{name}"
         ).json() as output:
-            result = output.jq(f'.info["{name}"].snapshots')[0]
+            result = output.jq(f'.info["{name}"].snapshots').first()
             expected_snapshot_tree = {
                 "snapshot3a": {},
                 "snapshot3b": {},
