@@ -24,3 +24,8 @@ packaging/windows/custom-actions/x64/*
 
 # Python artifacts
 *.pyc
+
+
+# Added by cargo
+
+/target

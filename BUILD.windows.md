@@ -43,6 +43,10 @@ For Windows 11:
 1. Go to "Developer Settings"
 2. Enable "Developer mode"
 
+### Rust toolchain
+
+Multipass requires Rust for building. You can install it via Chocolatey (included in the command above) or from: https://rustup.rs/
+
 ### Qt6
 
 To install Qt6, use `aqt`. First install it with chocolatey:
