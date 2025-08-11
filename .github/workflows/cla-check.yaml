@@ -7,5 +7,9 @@ jobs:
   cla-check:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug print context
+        run: node -e "console.log(JSON.stringify(require('@actions/github').context, null, 2))"
       - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@v2
+        uses: sharder996/has-signed-canonical-cla@patch-1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

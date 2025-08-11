@@ -98,9 +98,4 @@ jobs:
         run: exit 1
 
       - name: Compilation failure check
-        if: ${{
-          needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
-          needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
-          needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
-          }}
         run: exit 1
