@@ -203,6 +203,14 @@ parts:
     - -DMULTIPASS_UPSTREAM=origin
     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
     override-build: |
+      # Install Rust stable toolchain
+      if [ ! -f "$HOME/.cargo/env" ]; then
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+        source $HOME/.cargo/env
+      fi
+      # Ensure Rust is in PATH for this build
+      export PATH="$HOME/.cargo/bin:$PATH"
+
       craftctl default
       set -e
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/

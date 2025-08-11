@@ -10,6 +10,10 @@ sudo apt install devscripts equivs
 mk-build-deps -s sudo -i
 ```
 
+### Rust toolchain
+
+Multipass requires Rust for building. Install the Rust toolchain from: https://rustup.rs/
+
 ## Building
 
 First, go into the repository root and get all the submodules:

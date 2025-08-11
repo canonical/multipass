@@ -60,6 +60,9 @@ jobs:
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+              - "Cargo.toml"
+              - "Cargo.lock"
+              - "build.rs"
             hooks:
               - "git-hooks/**"
 

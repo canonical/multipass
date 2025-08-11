@@ -2,9 +2,9 @@
 #include "multipass/cli/client_common.h"
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
-#include "multipass/name_generator.h"
 #include "multipass/platform.h"
 #include "multipass/settings/settings.h"
+#include "multipass/src/lib.rs.h"
 #include "multipass/standard_paths.h"
 #include "multipass/utils.h"
 #include "multipass/version.h"
@@ -32,9 +32,9 @@ char* generate_petname()
     static constexpr auto error = "failed generating petname";
     try
     {
-        static mp::NameGenerator::UPtr generator = mp::make_default_name_generator();
-        const auto name = generator->make_name();
-        return strdup(name.c_str());
+        static rust::Box<multipass::Petname> generator = multipass::new_petname(2, "-");
+        const auto name = multipass::make_name(*generator);
+        return strdup(std::string(name).c_str());
     }
     catch (const std::exception& e)
     {

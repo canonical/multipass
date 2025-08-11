@@ -22,7 +22,6 @@
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/logging/multiplexing_logger.h>
-#include <multipass/name_generator.h>
 #include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssh/ssh_key_provider.h>
@@ -46,7 +45,6 @@ struct DaemonConfig
     const std::unique_ptr<VirtualMachineFactory> factory;
     const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     const std::unique_ptr<VMImageVault> vault;
-    const std::unique_ptr<NameGenerator> name_generator;
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
     const std::unique_ptr<CertStore> client_cert_store;
@@ -66,7 +64,6 @@ struct DaemonConfigBuilder
     std::unique_ptr<VirtualMachineFactory> factory;
     std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     std::unique_ptr<VMImageVault> vault;
-    std::unique_ptr<NameGenerator> name_generator;
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     std::unique_ptr<CertProvider> cert_provider;
     std::unique_ptr<CertStore> client_cert_store;
