@@ -116,7 +116,7 @@ class TestHelp:
             assert output
 
             matches = re.findall(
-                r"^ {2}(\w+)\s+(.*)\r$", output.content, flags=re.MULTILINE
+                r"^ {2}(\w+)\s+(.+?)\r?$", output.content, flags=re.MULTILINE
             )
 
             assert ALL_COMMANDS == matches
