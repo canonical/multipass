@@ -36,18 +36,32 @@ void format_images(Dest&& dest,
                    std::string type)
 {
     fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
-    for (const auto& image : images_info)
+
+    std::vector<const mp::FindReply_ImageInfo*> sorted_images;
+    sorted_images.reserve(static_cast<size_t>(images_info.size()));
+    for (const auto& img : images_info)
     {
-        auto aliases = image.aliases();
+        sorted_images.push_back(&img);
+    }
+
+    std::stable_sort(sorted_images.begin(),
+                     sorted_images.end(),
+                     [](const mp::FindReply_ImageInfo* a, const mp::FindReply_ImageInfo* b) {
+                         return a->remote_name() > b->remote_name();
+                     });
+
+    for (const auto* image : sorted_images)
+    {
+        auto aliases = image->aliases();
         mp::format::filter_aliases(aliases);
 
         fmt::format_to(
             dest,
             "{:<28}{:<18}{:<17}{:<}\n",
-            mp::format::image_string_for(image.remote_name(), aliases[0]),
+            mp::format::image_string_for(image->remote_name(), aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
-            image.version(),
-            fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+            image->version(),
+            fmt::format("{}{}", image->os().empty() ? "" : image->os() + " ", image->release()));
     }
     fmt::format_to(dest, "\n");
 }
