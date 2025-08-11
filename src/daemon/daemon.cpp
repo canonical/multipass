@@ -1665,8 +1665,6 @@ try
                                                      server};
     FindReply response;
 
-    const auto default_remote{mp::release_remote};
-
     if (!request->search_string().empty())
     {
         if (!request->remote_name().empty())
@@ -1710,7 +1708,7 @@ try
 
             auto remote_name = (!request->remote_name().empty() ||
                                 (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                 remote != default_remote))
+                                 remote != mp::release_remote))
                                    ? remote
                                    : "";
 
