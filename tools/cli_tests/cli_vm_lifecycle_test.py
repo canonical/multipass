@@ -73,7 +73,6 @@ class TestVmLifecycle:
         indirect=True,
     )
     def test_launch_delete_recover_purge(self, instance):
-
         assert state(f"{instance}") == "Running"
         assert multipass("delete", f"{instance}")
         assert state(f"{instance}") == "Deleted"
@@ -96,9 +95,10 @@ class TestVmLifecycle:
             assert "does not exist" in output
 
     def test_delete_purge(self):
-        with launch({"autopurge": False}) as name1, launch(
-            {"autopurge": False}
-        ) as name2:
+        with (
+            launch({"autopurge": False}) as name1,
+            launch({"autopurge": False}) as name2,
+        ):
             assert multipass("delete", f"{name1}")
             assert state(f"{name1}") == "Deleted"
 
@@ -111,3 +111,39 @@ class TestVmLifecycle:
                 with multipass("info", f"{instance}") as output:
                     assert not output
                     assert "does not exist" in output
+
+    def test_lifecycle_multiple(self):
+        with (
+            launch({"autopurge": False}) as name1,
+            launch({"autopurge": False}) as name2,
+        ):
+            assert multipass("stop", name1, name2)
+            assert state(name1) == "Stopped" and state(name2) == "Stopped"
+
+            assert multipass("start", name1, name2)
+            assert state(name1) == "Running" and state(name2) == "Running"
+
+            assert multipass("suspend", name1, name2)
+            assert state(name1) == "Suspended" and state(name2) == "Suspended"
+
+            assert multipass("start", name1, name2)
+            assert state(name1) == "Running" and state(name2) == "Running"
+
+            assert multipass("restart", name1, name2)
+            assert state(name1) == "Running" and state(name2) == "Running"
+
+            assert multipass("delete", name1, name2)
+            assert state(name1) == "Deleted" and state(name2) == "Deleted"
+
+            assert multipass("recover", name1, name2)
+            assert state(name1) == "Stopped" and state(name2) == "Stopped"
+
+            assert multipass("delete", name1, name2)
+            assert state(name1) == "Deleted" and state(name2) == "Deleted"
+
+            assert multipass("purge")
+
+            with multipass("info", name1, name2) as output:
+                assert not output
+                assert f'instance "{name1}" does not exist' in output
+                assert f'instance "{name2}" does not exist' in output
