@@ -1,0 +1,3 @@
+Image,Remote,Aliases,OS,Release,Version,Type
+core:core18,core,,Ubuntu,Core 18,20190520,Cloud Image
+snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520,Cloud Image

@@ -1,0 +1,17 @@
+errors:
+  []
+images:
+  "core:core18":
+    aliases:
+      []
+    os: Ubuntu
+    release: Core 18
+    version: 20190520
+    remote: core
+  "snapcraft:core18":
+    aliases:
+      []
+    os: ""
+    release: Snapcraft builder for core18
+    version: 20190520
+    remote: snapcraft

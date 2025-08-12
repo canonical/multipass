@@ -1,0 +1,18 @@
+errors:
+  []
+images:
+  "daily:19.10":
+    aliases:
+      - eoan
+      - devel
+    os: Ubuntu
+    release: 19.10
+    version: 20190516
+    remote: daily
+  ubuntu:
+    aliases:
+      - lts
+    os: Ubuntu
+    release: 18.04 LTS
+    version: 20190516
+    remote: release

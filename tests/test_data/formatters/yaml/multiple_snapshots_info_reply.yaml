@@ -1,0 +1,33 @@
+errors:
+  - ~
+bogus-instance:
+  - snapshots:
+      - snapshot2:
+          size: ~
+          cpu_count: 2
+          disk_space: 4.9GiB
+          memory_size: 0.9GiB
+          mounts:
+            source:
+              source_path: /home/user/source
+            Home:
+              source_path: /home/user
+          created: "1972-01-01T10:00:20.021Z"
+          parent: snapshot1
+          children:
+            - snapshot3
+            - snapshot4
+          comment: ~
+messier-87:
+  - snapshots:
+      - black-hole:
+          size: ~
+          cpu_count: 1
+          disk_space: 1024GiB
+          memory_size: 128GiB
+          mounts: ~
+          created: "2019-04-10T11:59:59Z"
+          parent: ~
+          children:
+            []
+          comment: Captured by EHT
