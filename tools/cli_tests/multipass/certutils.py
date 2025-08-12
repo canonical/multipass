@@ -23,6 +23,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from cli_tests.config import config
 from .basics import SNAP_MULTIPASSD_STORAGE
 
 
@@ -35,8 +36,11 @@ def get_client_cert_path():
     elif sys.platform == "darwin":
         data_location = Path.home() / "Library" / "Application Support"
     else:
-        # Not sure about this:
-        data_location = Path.home() / ".local" / "share"
+        if config.daemon_controller == "snapd":
+            data_location = Path.home() / "snap" / "multipass" / "current" / "data"
+        else:
+            # Not sure about this:
+            data_location = Path.home() / ".local" / "share"
 
     return data_location / "multipass-client-certificate" / "multipass_cert.pem"
 
