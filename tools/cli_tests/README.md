@@ -5,7 +5,7 @@ TODO: Elaborate more.
 ## To run
 
 ```bash
-pytest -s tools/cli_tests/cli_tests.py --build-root build/bin/ --data-root=/tmp/multipass-test --remove-all-instances -vv
+pytest -s tools/cli_tests/cli_tests.py --bin-dir build/bin/ --data-root=/tmp/multipass-test --remove-all-instances -vv
 ```
 
 ## Useful commands
