@@ -1,0 +1,31 @@
+{
+    "errors": [
+    ],
+    "info": {
+        "bogus-instance": {
+            "snapshots": {
+                "snapshot2": {
+                    "children": [
+                        "snapshot3",
+                        "snapshot4"
+                    ],
+                    "comment": "This is a comment with some\nnew\r\nlines.",
+                    "cpu_count": "2",
+                    "created": "1972-01-01T10:00:20.021Z",
+                    "disk_space": "4.9GiB",
+                    "memory_size": "0.9GiB",
+                    "mounts": {
+                        "Home": {
+                            "source_path": "/home/user"
+                        },
+                        "source": {
+                            "source_path": "/home/user/source"
+                        }
+                    },
+                    "parent": "snapshot1",
+                    "size": "128MiB"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,37 @@
+errors:
+  - ~
+bombastic:
+  - state: Stopped
+    snapshot_count: 3
+    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509
+    image_release: 18.04 LTS
+    release: ~
+    cpu_count: ~
+    disks:
+      - sda1:
+          used: ~
+          total: ~
+    memory:
+      usage: ~
+      total: ~
+    ipv4:
+      []
+    mounts: ~
+bogus-instance:
+  - snapshots:
+      - snapshot2:
+          size: ~
+          cpu_count: 2
+          disk_space: 4.9GiB
+          memory_size: 0.9GiB
+          mounts:
+            source:
+              source_path: /home/user/source
+            Home:
+              source_path: /home/user
+          created: "1972-01-01T10:00:20.021Z"
+          parent: snapshot1
+          children:
+            - snapshot3
+            - snapshot4
+          comment: ~

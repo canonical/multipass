@@ -1,0 +1,36 @@
+errors:
+  - ~
+foo:
+  - state: Running
+    snapshot_count: 0
+    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac
+    image_release: 16.04 LTS
+    release: Ubuntu 16.04.3 LTS
+    cpu_count: 1
+    load:
+      - 0.45
+      - 0.51
+      - 0.15
+    disks:
+      - sda1:
+          used: 1288490188
+          total: 5153960756
+    memory:
+      usage: 60817408
+      total: 1503238554
+    ipv4:
+      - 10.168.32.2
+      - 200.3.123.29
+    mounts:
+      foo:
+        uid_mappings:
+          - "1000:1000"
+        gid_mappings:
+          - "1000:1000"
+        source_path: /home/user/foo
+      test_dir:
+        uid_mappings:
+          - "1000:1000"
+        gid_mappings:
+          - "1000:1000"
+        source_path: /home/user/test_dir

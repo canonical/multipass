@@ -1,0 +1,3 @@
+Name              Type   Description
+en0               eth    Ether
+wlx0123456789ab   wifi   Wireless

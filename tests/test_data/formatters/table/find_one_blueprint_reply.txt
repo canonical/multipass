@@ -1,0 +1,3 @@
+Blueprint (deprecated)      Aliases           Version          Description
+anbox-cloud-appliance                         latest           Anbox Cloud Appliance
+
