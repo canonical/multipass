@@ -5,7 +5,6 @@
 import asyncio
 import logging
 import re
-import subprocess
 import sys
 import time
 
@@ -18,14 +17,13 @@ from cli_tests.multipass import (
     get_client_cert_path,
     get_multipass_env,
     get_multipass_path,
-    get_multipassd_path,
 )
 from cli_tests.utilities import (
     BooleanLatch,
-    get_sudo_tool,
     run_as_subprocess,
-    send_ctrl_c,
 )
+
+from .multipassd_controller import MultipassdController
 
 
 class TestSessionFailure(RuntimeError):
@@ -36,83 +34,69 @@ class TestCaseFailure(RuntimeError):
     pass
 
 
-class AsyncMultipassdController:
-    def __init__(self, asyncio_loop, build_root, data_root, print_daemon_output=True):
-        if not get_multipassd_path():
-            pytest.exit("Could not find 'multipassd' executable!", returncode=11)
-
+class MultipassdGovernor:
+    def __init__(
+        self, controller: MultipassdController, asyncio_loop, print_daemon_output=True
+    ):
         self.asyncio_loop = asyncio_loop
-        self.build_root = build_root
-        self.data_root = data_root
         self.print_daemon_output = print_daemon_output
-        self.multipassd_proc = None
+        self.controller = controller
+        self.daemon_ready_event = BooleanLatch()
+        self._reset_state()
+
+    def _reset_state(self):
         self.monitor_task = None
         self.graceful_exit_initiated = False
-        self.autorestart_attempts = 0
-        self.daemon_ready_event = BooleanLatch()
-
-    async def _read_stream(self, stream):
-        """Read from stream line by line and print if enabled"""
-        while True:
-            try:
-                line = await stream.readline()
-                if not line:
-                    break
-
-                line = line.decode("utf-8", errors="replace")
-                if self.print_daemon_output:
-                    print(line, end="")
-
-                # Check for known error patterns
-                for pattern, reason in self._get_error_patterns().items():
-                    if re.search(pattern, line):
-                        return reason
-
-            except Exception as e:
-                if self.print_daemon_output:
-                    print(f"Error reading stream: {e}", file=sys.stderr)
-                break
-        return None
+        self.daemon_ready_event.clear()
 
     def _get_error_patterns(self):
         return {
             r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?",
-            r'.*Failed to get shared "write" lock': "Cannot open a image file for writing, is another process holding a write lock?",
+            r'.*Failed to get shared "write" lock': "Cannot open an image file for writing, is another process holding a write lock?",
         }
+
+    async def _read_stream(self):
+        """Read from stream line by line and print if enabled"""
+
+        try:
+            async for line in self.controller.follow_output():
+                if self.print_daemon_output:
+                    print(line, end="")
+
+                for pattern, reason in self._get_error_patterns().items():
+                    if re.search(pattern, line):
+                        return reason
+
+        except asyncio.CancelledError:
+            # Handle it gracefully.
+            pass
+        except Exception as e:
+            if self.print_daemon_output:
+                print(f"Error in log reader: {e}", file=sys.stderr)
 
     async def _monitor(self):
         """Monitor the daemon process"""
         error_reasons = []
 
         # Create tasks to read both stdout and stderr
-        stdout_task = asyncio.create_task(
-            self._read_stream(self.multipassd_proc.stdout)
-        )
+        stdout_task = asyncio.create_task(self._read_stream())
 
         try:
             # Wait for process to exit
-            returncode = await self.multipassd_proc.wait()
+            returncode = await self.controller.wait_exit()
 
-            # Wait for stream reading to complete
+            # Wait for stream reading to complete.
+            if not stdout_task.done():
+                stdout_task.cancel()
+
             error_reason = await stdout_task
             if error_reason:
                 error_reasons.append(f"\nReason: {error_reason}")
 
-            multipassd_settings_changed_code = 42
-
-            # Daemon exited due to settings change. The controller should restart it.
-            if returncode == multipassd_settings_changed_code:
-                self.autorestart_attempts = self.autorestart_attempts + 1
-                return
-
             # Check exit status
-            if (
-                self.graceful_exit_initiated or self.autorestart_attempts > 0
-            ) and returncode == 0:
+            if (self.graceful_exit_initiated and returncode == 0) or returncode == 42:
                 return  # Normal exit
 
-            # Disable autorestart on abnormal exit.
-            self.autorestart(0)
             # Abnormal exit
             reasons = "\n".join(error_reasons) if error_reasons else ""
 
@@ -133,33 +117,20 @@ class AsyncMultipassdController:
         finally:
             logging.info("daemon monitor exit")
 
-    def _on_daemon_exit(self, task):
-        self.graceful_exit_initiated = False
-        self.multipassd_proc = None
-        self.monitor_task = None
-        self.daemon_ready_event.clear()
+    async def _on_daemon_exit(self, _):
+        multipassd_settings_changed_code = 42
+        daemon_exit_code = await self.controller.exit_code()
+        needs_restarting = (
+            not self.controller.supports_self_autorestart()
+            and daemon_exit_code == multipassd_settings_changed_code
+        )
+        self._reset_state()
         logging.info("daemon exit")
-
-        if self.autorestart_attempts > 0:
-            logging.info(
-                f"attempting daemon autorestart, attempts: {self.autorestart_attempts}"
-            )
-            self.autorestart_attempts = self.autorestart_attempts - 1
+        if needs_restarting:
+            logging.info("attempting daemon autorestart")
             self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start()))
 
-    async def start(self):
-        """Start the multipassd daemon"""
-
-        prologue = []
-        creationflags = None
-        if sys.platform == "win32":
-            # No prologue needed -- just pass it via process env
-            creationflags = (
-                subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NEW_CONSOLE
-            )
-        else:
-            prologue = [*get_sudo_tool(), "env", f"MULTIPASS_STORAGE={self.data_root}"]
-
+    async def _ensure_client_certs_are_created(self):
         # Call multipass cli to create the client certs
         version_proc = await asyncio.create_subprocess_exec(
             get_multipass_path(),
@@ -170,6 +141,7 @@ class AsyncMultipassdController:
         )
         await asyncio.wait_for(version_proc.wait(), timeout=10)
 
+    def _authenticate_client_cert(self):
         # It's important that we get the cert path here instead of under
         # run_as_privileged.
         cert_path = get_client_cert_path()
@@ -178,24 +150,19 @@ class AsyncMultipassdController:
             authenticate_client_cert, str(cert_path), config.data_root, privileged=True
         )
 
-        # Create subprocess. The child process needs a new process group and a
-        # new console to properly receive the Ctrl-C signal without interfering
-        # with the test process itself.
-        self.multipassd_proc = await asyncio.create_subprocess_exec(
-            *prologue,
-            get_multipassd_path(),
-            "--logger=stderr",
-            "--verbosity=trace",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            env=get_multipass_env(),
-            **({"creationflags": creationflags} if creationflags is not None else {}),
-        )
+    async def start(self):
+        """Start the multipassd daemon"""
+
+        await self._ensure_client_certs_are_created()
+        self._authenticate_client_cert()
+
+        await self.controller.start()
 
         # Start monitoring task
         self.monitor_task = asyncio.create_task(self._monitor(), name="monitor_task")
-        self.monitor_task.add_done_callback(self._on_daemon_exit)
-
+        self.monitor_task.add_done_callback(
+            lambda t: asyncio.create_task(self._on_daemon_exit(t))
+        )
         ready_task = asyncio.create_task(
             self.wait_for_multipassd_ready(), name="wait_for_ready_task"
         )
@@ -218,8 +185,8 @@ class AsyncMultipassdController:
 
         # Wait for daemon to be ready
         if not await ready_task:
-            print("⚠️ multipassd not ready, attempting graceful shutdown...")
-            await self._terminate_multipassd()
+            logging.warn("⚠️ multipassd not ready, attempting graceful shutdown...")
+            await self.controller.stop()
             pytest.exit(
                 "Tests cannot proceed, multipassd not responding in time.",
                 returncode=12,
@@ -230,8 +197,8 @@ class AsyncMultipassdController:
     async def stop(self):
         """Stop the multipassd daemon"""
         self.graceful_exit_initiated = True
-        await self._terminate_multipassd()
-        # Wait for the monitor task instead?
+        await self.controller.stop()
+
         if self.monitor_task:
             try:
                 await asyncio.wait_for(self.monitor_task, timeout=10)
@@ -253,9 +220,6 @@ class AsyncMultipassdController:
         """Restart the daemon"""
         self.asyncio_loop.run(self.restart_async()).result(timeout=timeout)
 
-    def autorestart(self, times=1):
-        self.autorestart_attempts = times
-
     def wait_for_shutdown(self, timeout=60):
         self.daemon_ready_event.wait_until(False, timeout=timeout)
 
@@ -263,31 +227,14 @@ class AsyncMultipassdController:
         self.daemon_ready_event.wait_until(True, timeout=timeout)
 
     def wait_for_restart(self, timeout=60):
+        # Restart events are opaque to us when the controller supports
+        # self auto-restart. We need to ensure that the daemon is ready, though.
+        if self.controller.supports_self_autorestart():
+            # FIXME: Find a better solution to this
+            time.sleep(10)
+            return
         self.wait_for_shutdown(timeout=timeout)
         self.wait_for_start(timeout=timeout)
-
-    async def _terminate_multipassd(self):
-        """Terminate the multipassd process"""
-        if not self.multipassd_proc:
-            return
-
-        if sys.platform == "win32":
-            # We need to send ctrl-c keystroke here because Windows has no
-            # notion of "signals" as in POSIX.
-            send_ctrl_c(self.multipassd_proc.pid)
-        else:
-            self.multipassd_proc.terminate()  # SIGTERM
-
-        try:
-            # Wait for graceful shutdown
-            await asyncio.wait_for(self.multipassd_proc.wait(), timeout=20)
-        except asyncio.TimeoutError:
-            print("⏰ Graceful shutdown failed, killing forcefully...")
-            self.multipassd_proc.kill()  # SIGKILL
-            await self.multipassd_proc.wait()
-        finally:
-            sys.stderr.flush()
-            sys.stdout.flush()
 
     @staticmethod
     async def wait_for_multipassd_ready(timeout=60):
@@ -339,6 +286,13 @@ class AsyncMultipassdController:
 
                     else:
                         stdout, _ = await proc.communicate()
+                        if (
+                            b"The client is not authenticated with the Multipass service"
+                            in stdout
+                        ):
+                            logging.error("Client is not authenticated.")
+                            Session.shouldfail = "Client is not authenticated."
+                            return False
                         logging.debug(stdout)
 
                 except asyncio.TimeoutError:

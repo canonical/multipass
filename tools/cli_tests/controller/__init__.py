@@ -17,4 +17,6 @@
 #
 #
 
-from .async_multipassd_controller import AsyncMultipassdController
+from .multipassd_governor import MultipassdGovernor
+from .multipassd_controller import MultipassdController
+from .standalone_mulitpassd_controller import StandaloneMultipassdController
