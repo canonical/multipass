@@ -36,9 +36,10 @@ jobs:
         uses: ./.github/actions/whitespace
         with:
           exclude: >-
-            '3rd-party/'    `# third-party submodules`
-            'data/'         `# data files`
-            'docs/.sphinx/' `# vendored starter pack`
+            '3rd-party/'        `# third-party submodules`
+            'data/'             `# data files`
+            'docs/.sphinx/'     `# vendored starter pack`
+            'tests/test_data/'  `# test data`
 
       - name: Install clang-format
         shell: bash
@@ -51,7 +52,11 @@ jobs:
           clang-format-16  --dump-config > /dev/null
 
           # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
-          git diff -U0 --no-color HEAD^1 | clang-format-diff-16 -p1 | tee ${HOME}/clang-diff
+          git diff -U0 --no-color HEAD^1 \
+            | grep -vE '^\+\+\+ b/tests/test_data/formatters/' \
+            | clang-format-diff-16 -p1 \
+            | tee ${HOME}/clang-diff
+
           if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
             echo "##[error] Please apply the above diff to correct formatting"
             exit 1
