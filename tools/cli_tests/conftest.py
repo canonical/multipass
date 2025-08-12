@@ -82,6 +82,12 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
+        "--print-all-output",
+        action="store_true",
+        help="Shorthand for --print-daemon-output and --print-cli-output.",
+    )
+
+    parser.addoption(
         "--remove-all-instances",
         action="store_true",
         help="Remove all instances from `data-root` before starting testing.",
@@ -163,6 +169,11 @@ def store_config(request):
     config.data_root = request.config.getoption("--data-root")
     config.print_daemon_output = request.config.getoption("--print-daemon-output")
     config.print_cli_output = request.config.getoption("--print-cli-output")
+
+    if request.config.getoption("--print-all-output"):
+        config.print_daemon_output = True
+        config.print_cli_output = True
+
     config.remove_all_instances = request.config.getoption("--remove-all-instances")
     config.driver = request.config.getoption("--driver")
     config.daemon_controller = request.config.getoption("--daemon-controller")
