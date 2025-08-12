@@ -35,11 +35,11 @@ def make_test_tmp_dir_for_snap(snap_name):
 
 
 @contextmanager
-def TempDirectory():
+def TempDirectory(delete=True):
     tmp_root = None
     if config.daemon_controller == "snapd":
         run_as_subprocess(make_test_tmp_dir_for_snap, "multipass", privileged=True)
         tmp_root = get_snap_temp_root("multipass")
 
-    with tempfile.TemporaryDirectory(dir=tmp_root) as tmp:
+    with tempfile.TemporaryDirectory(dir=tmp_root, delete=delete) as tmp:
         yield Path(tmp)
