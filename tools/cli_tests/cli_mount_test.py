@@ -29,14 +29,12 @@ from cli_tests.multipass import multipass, mounts, default_mount_uid, default_mo
 
 
 @pytest.mark.mount
-# TODO: "native"
-@pytest.mark.parametrize("mount_type", ["classic"])
+@pytest.mark.parametrize("mount_type", ["classic", "native"])
 @pytest.mark.usefixtures("multipassd", "windows_privileged_mounts")
 class TestMount:
     """Virtual machine mount tests."""
 
     def test_mount(self, instance, mount_type):
-
         with TempDirectory() as mount_dir:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -58,7 +56,6 @@ class TestMount:
             assert mounts(instance) == {}
 
     def test_mount_multiple(self, instance, mount_type):
-
         with TempDirectory() as mount_dir1, TempDirectory() as mount_dir2:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -118,7 +115,6 @@ class TestMount:
             # )
 
     def test_mount_restart(self, multipassd, instance, mount_type):
-
         with TempDirectory() as mount_dir:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -159,7 +155,6 @@ class TestMount:
             # )
 
     def test_mount_modify(self, instance, mount_type):
-
         with TempDirectory() as mount_dir:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -239,7 +234,6 @@ class TestMount:
             # )
 
     def test_mount_readonly(self, instance, mount_type):
-
         with TempDirectory() as mount_dir:
             os.chmod(mount_dir, 0o444)
 
@@ -260,31 +254,44 @@ class TestMount:
             instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
+            # Native mounts shouldn't allow write to read-only targets.
+            # At least it's the case with the QEMU native mounts.
+            cannot_write = mount_type == "native"
+
             assert multipass(
                 "exec", instance, "--", "ls", instance_target_path.as_posix()
             )
 
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"''',
+            assert (
+                multipass(
+                    "exec",
+                    instance,
+                    "--",
+                    rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"''',
+                )
+                or cannot_write
             )
 
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                f"mkdir -p {str(instance_target_path / subdir)}",
+            assert (
+                multipass(
+                    "exec",
+                    instance,
+                    "--",
+                    f"mkdir -p {str(instance_target_path / subdir)}",
+                )
+                or cannot_write
             )
 
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                "bash",
-                "-c",
-                f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
+            assert (
+                multipass(
+                    "exec",
+                    instance,
+                    "--",
+                    "bash",
+                    "-c",
+                    f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
+                )
+                or cannot_write
             )
 
             # Verify that created files exits in host
@@ -292,15 +299,20 @@ class TestMount:
             expected_file1 = mount_dir / "file1.txt"
             expected_file2 = expected_subdir / "file2.txt"
 
-            # verify that they are no longer present in the guest
-            assert not multipass(
-                "exec", instance, "--", "ls", expected_file1.as_posix()
+            # verify that they are not present in the guest
+            assert (
+                not multipass("exec", instance, "--", "ls", expected_file1.as_posix())
+                or cannot_write
             )
-            assert not multipass(
-                "exec", instance, "--", "ls", expected_file2.as_posix()
+
+            assert (
+                not multipass("exec", instance, "--", "ls", expected_file2.as_posix())
+                or cannot_write
             )
-            assert not multipass(
-                "exec", instance, "--", "ls", expected_subdir.as_posix()
+
+            assert (
+                not multipass("exec", instance, "--", "ls", expected_subdir.as_posix())
+                or cannot_write
             )
 
             assert multipass("umount", instance)
