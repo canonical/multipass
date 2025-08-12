@@ -19,6 +19,7 @@
 
 #include "path.h"
 #include <multipass/format.h>
+#include <multipass/test_data_path.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -29,9 +30,8 @@ namespace mpt = multipass::test;
 
 QString mpt::test_data_path()
 {
-    QDir dir{QCoreApplication::applicationDirPath()};
-    const auto test_data_dir_exists = dir.cd("test_data");
-    if (!test_data_dir_exists)
+    QDir dir{multipass::test_data_path};
+    if (!dir.exists())
         throw std::runtime_error("could not find test_data directory");
     return QDir::toNativeSeparators(dir.path()) + QDir::separator();
 }
