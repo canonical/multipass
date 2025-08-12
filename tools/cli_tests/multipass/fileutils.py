@@ -32,7 +32,6 @@ def nuke_all_instances(data_root):
     data_root = Path(data_root)
 
     if data_root != Path(SNAP_MULTIPASSD_STORAGE):
-        print("data root is not multipassd")
         data_root /= "data"
 
     vault_dir = data_root / "vault"
