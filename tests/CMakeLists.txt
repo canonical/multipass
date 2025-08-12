@@ -202,6 +202,13 @@ endforeach()
 
 file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} PATTERN "*\.in" EXCLUDE)
 
+set(TEST_DATA_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_data")
+configure_file(
+  test_data_path.h.in
+  ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/test_data_path.h
+  @ONLY)
+target_include_directories(multipass_tests PRIVATE ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/gen)
+
 # Mock binaries for testing BasicProcess (cross-platform compatible)
 add_executable(mock_process
   mock_process.cpp)
