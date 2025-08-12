@@ -23,6 +23,8 @@ import pytest
 from cli_tests.multipass import multipass
 from cli_tests.utilities import TempDirectory
 
+from cli_tests.config import config
+
 
 @pytest.mark.authenticate
 @pytest.mark.usefixtures("multipassd")
@@ -35,9 +37,12 @@ class TestAuthenticate:
 
         with TempDirectory() as empty_home_dir:
             # This will fail.
-            assert "Please authenticate" in multipass(
-                "list", env={"HOME": str(empty_home_dir)}
-            )
+
+            # If snap, remove the cert.
+            if config.daemon_controller == "standalone":
+                assert "Please authenticate" in multipass(
+                    "list", env={"HOME": str(empty_home_dir)}
+                )
 
             # Invalid password.
             assert "Passphrase is not correct" in multipass(
