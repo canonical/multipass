@@ -190,17 +190,47 @@ endif()
 
 target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
 
-file(GLOB_RECURSE MANIFEST_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "test_data/*.in")
+file(GLOB_RECURSE TEST_DATA_FILES
+     CONFIGURE_DEPENDS
+     RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+     "test_data/*")
 
-foreach (MANIFEST_IN IN LISTS MANIFEST_FILES)
-  string(REGEX REPLACE "\.in$" "" MANIFEST_OUT ${MANIFEST_IN})
-  configure_file(
-    ${MANIFEST_IN}
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MANIFEST_OUT}
-    @ONLY)
+set(TEMPLATE_FILES "")
+set(PLAIN_TEST_DATA_FILES "")
+foreach(f IN LISTS TEST_DATA_FILES)
+    if (f MATCHES "\\.in$")
+        list(APPEND TEMPLATE_FILES "${f}")
+    else()
+        list(APPEND PLAIN_TEST_DATA_FILES "${f}")
+    endif()
 endforeach()
 
-file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} PATTERN "*\.in" EXCLUDE)
+foreach(f IN LISTS TEMPLATE_FILES)
+    string(REGEX REPLACE "\\.in$" "" out_rel "${f}")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/${f}"
+        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${out_rel}"
+        @ONLY
+    )
+endforeach()
+
+set(COPIED_PLAIN_FILES "")
+foreach(f IN LISTS PLAIN_TEST_DATA_FILES)
+    set(src "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
+    set(dst "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${f}")
+    get_filename_component(dst_dir "${dst}" DIRECTORY)
+    file(MAKE_DIRECTORY "${dst_dir}")
+
+    add_custom_command(
+        OUTPUT "${dst}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${src}" "${dst}"
+        DEPENDS "${src}"
+    )
+    list(APPEND COPIED_PLAIN_FILES "${dst}")
+endforeach()
+
+add_custom_target(copy_test_data ALL DEPENDS ${COPIED_PLAIN_FILES})
+add_dependencies(multipass_tests copy_test_data)
 
 set(TEST_DATA_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_data")
 configure_file(
