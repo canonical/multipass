@@ -182,24 +182,23 @@ def store_config(request):
     if not config.data_root:
         if config.daemon_controller == "standalone":
             # Otherwise, create a temp dir for the whole session
-            tmpdir = TempDirectory()
+            with TempDirectory(delete=False) as tmpdir:
+                def cleanup():
+                    """Since the daemon owns the data_root on startup
+                    a non-root user cannot remove it. Therefore, try
+                    privilege escalation if nuking as normal fails."""
+                    try:
+                        shutil.rmtree(str(tmpdir))
+                        print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
+                    except PermissionError:
+                        print(
+                            f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}"
+                        )
+                        subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
 
-            def cleanup():
-                """Since the daemon owns the data_root on startup
-                a non-root user cannot remove it. Therefore, try
-                privilege escalation if nuking as normal fails."""
-                try:
-                    shutil.rmtree(str(tmpdir))
-                    print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
-                except PermissionError:
-                    print(
-                        f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}"
-                    )
-                    subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
-
-            # Register finalizer to cleanup on exit
-            request.addfinalizer(cleanup)
-            config.data_root = tmpdir.name
+                # Register finalizer to cleanup on exit
+                request.addfinalizer(cleanup)
+                config.data_root = str(tmpdir)
         elif config.daemon_controller == "snapd":
             config.data_root = SNAP_MULTIPASSD_STORAGE
             config.bin_dir = SNAP_BIN_DIR
