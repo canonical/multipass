@@ -1,0 +1,4 @@
+Image,Remote,Aliases,OS,Release,Version,Type
+ubuntu,release,lts,Ubuntu,18.04 LTS,20190516,Cloud Image
+daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image
+anbox-cloud-appliance,,,,Anbox Cloud Appliance,latest,Blueprint (deprecated)

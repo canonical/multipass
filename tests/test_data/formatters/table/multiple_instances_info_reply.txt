@@ -1,0 +1,25 @@
+Name:           bogus-instance
+State:          Running
+Snapshots:      1
+IPv4:           10.21.124.56
+Release:        Ubuntu 16.04.3 LTS
+Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)
+CPU(s):         4
+Load:           0.03 0.10 0.15
+Disk usage:     1.8GiB out of 6.3GiB
+Memory usage:   37.0MiB out of 1.5GiB
+Mounts:         /home/user/source => source
+                    UID map: 1000:501
+                    GID map: 1000:501
+
+Name:           bombastic
+State:          Stopped
+Snapshots:      3
+IPv4:           --
+Release:        --
+Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)
+CPU(s):         --
+Load:           --
+Disk usage:     --
+Memory usage:   --
+Mounts:         --

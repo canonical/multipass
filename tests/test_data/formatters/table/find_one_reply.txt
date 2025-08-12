@@ -1,0 +1,3 @@
+Image                       Aliases           Version          Description
+ubuntu                                        20190516         Ubuntu 18.04 LTS
+

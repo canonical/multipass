@@ -1,0 +1,16 @@
+{
+    "blueprints (deprecated)": {
+        "anbox-cloud-appliance": {
+            "aliases": [
+            ],
+            "os": "",
+            "release": "Anbox Cloud Appliance",
+            "remote": "",
+            "version": "latest"
+        }
+    },
+    "errors": [
+    ],
+    "images": {
+    }
+}
