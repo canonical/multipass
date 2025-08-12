@@ -109,7 +109,7 @@ def pytest_configure(config):
         and config.getoption("--bin-dir") is None
     ):
         pytest.exit(
-            "ERROR: The `--build-root` argument is required when 'standalone' controller is used.",
+            "ERROR: The `--bin-dir` argument is required when 'standalone' controller is used.",
             returncode=1,
         )
 
