@@ -17,25 +17,33 @@
 #
 #
 
-import os
 import shutil
 import contextlib
+import logging
+from pathlib import Path
+
+from .basics import SNAP_MULTIPASSD_STORAGE
 
 
 def nuke_all_instances(data_root):
     """Remove the instances directory and clean all instance records at the
     specified data root."""
 
-    instance_records_file = os.path.join(
-        data_root, "data/vault/multipassd-instance-image-records.json"
-    )
+    data_root = Path(data_root)
 
-    instances_dir = os.path.join(data_root, "data/vault/instances")
+    if data_root != Path(SNAP_MULTIPASSD_STORAGE):
+        print("data root is not multipassd")
+        data_root /= "data"
 
-    shutil.rmtree(instances_dir, ignore_errors=True)
+    vault_dir = data_root / "vault"
+    instance_records_file = vault_dir / "multipassd-instance-image-records.json"
+    instances_dir = vault_dir / "instances"
+
+    shutil.rmtree(str(instances_dir), ignore_errors=True)
 
     # Opening via w might override the permissions. Doing it via r+ preserves
     # the existing permissions.
     with contextlib.suppress(FileNotFoundError):
         with open(instance_records_file, "r+", encoding="utf-8") as f:
             f.truncate(0)
+            logging.debug(f"truncated {instance_records_file}")

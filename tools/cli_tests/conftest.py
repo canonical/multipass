@@ -23,7 +23,6 @@
 import sys
 import subprocess
 import shutil
-import tempfile
 import logging
 from contextlib import contextmanager
 
@@ -35,6 +34,7 @@ from cli_tests.utilities import (
     get_sudo_tool,
     run_as_subprocess,
     BackgroundEventLoop,
+    TempDirectory,
 )
 
 from cli_tests.multipass import (
@@ -43,30 +43,30 @@ from cli_tests.multipass import (
     default_driver_name,
     launch,
     nuke_all_instances,
+    SNAP_MULTIPASSD_STORAGE,
+    SNAP_BIN_DIR,
 )
 
 from cli_tests.config import config
-from cli_tests.controller import AsyncMultipassdController
+from cli_tests.controller import (
+    MultipassdGovernor,
+    SnapdMultipassdController,
+    StandaloneMultipassdController,
+)
 
 
 def pytest_addoption(parser):
     """Populate command line args for the CLI tests."""
     parser.addoption(
-        "--build-root",
+        "--bin-dir",
         action="store",
-        help="Build root directory for multipass.",
+        help="Directory to look for the multipass binaries.",
     )
 
     parser.addoption(
         "--data-root",
         action="store",
         help="Data root directory for multipass.",
-    )
-
-    parser.addoption(
-        "--no-daemon",
-        action="store_false",
-        help="Do not automatically launch the daemon for the tests.",
     )
 
     parser.addoption(
@@ -93,12 +93,25 @@ def pytest_addoption(parser):
         help="Backend to use.",
     )
 
+    parser.addoption(
+        "--daemon-controller",
+        default="standalone",
+        help="Daemon controller to use.",
+    )
+
 
 def pytest_configure(config):
     """Validate command line args."""
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-    if config.getoption("--build-root") is None:
-        pytest.exit("ERROR: The `--build-root` argument is required.", returncode=1)
+
+    if (
+        config.getoption("--daemon-controller") == "standalone"
+        and config.getoption("--bin-dir") is None
+    ):
+        pytest.exit(
+            "ERROR: The `--build-root` argument is required when 'standalone' controller is used.",
+            returncode=1,
+        )
 
 
 def pytest_assertrepr_compare(op, left, right):
@@ -117,39 +130,68 @@ def pytest_assertrepr_compare(op, left, right):
     return None
 
 
+def pytest_collection_modifyitems(config, items):
+    if (
+        config.getoption("--daemon-controller") == "standalone"
+        and config.getoption("--driver") == "qemu"
+    ):
+        ## Check if installed qemu supports uid/gid mapping
+        qemu = shutil.which("qemu-system-x86_64")
+        if qemu:
+            out = subprocess.check_output([qemu, "--help"], text=True)
+            if all(s in out for s in ["uid_map", "gid_map"]):
+                # Supports uid/gid mapping
+                return
+    else:
+        # Non-standalone deployments use the Multipass-shipped QEMU.
+        return
+
+    skip_marker = pytest.mark.skip(
+        reason=f"Skipped -- QEMU in environment {qemu} does not support UID/GID mapping."
+    )
+    for item in items:
+        mount = getattr(item, "callspec", None)
+        if mount and mount.params.get("mount_type") == "native":
+            item.add_marker(skip_marker)
+
+
 @pytest.fixture(autouse=True, scope="session")
 def store_config(request):
     """Store the given command line args in a global variable so
     they would be accessible to all functions in the module."""
-    config.build_root = request.config.getoption("--build-root")
+    config.bin_dir = request.config.getoption("--bin-dir")
     config.data_root = request.config.getoption("--data-root")
-    config.no_daemon = request.config.getoption("--no-daemon")
     config.print_daemon_output = request.config.getoption("--print-daemon-output")
     config.print_cli_output = request.config.getoption("--print-cli-output")
     config.remove_all_instances = request.config.getoption("--remove-all-instances")
     config.driver = request.config.getoption("--driver")
+    config.daemon_controller = request.config.getoption("--daemon-controller")
 
     # If user gave --data-root, use it
     if not config.data_root:
-        # Otherwise, create a temp dir for the whole session
-        tmpdir = tempfile.TemporaryDirectory()
+        if config.daemon_controller == "standalone":
+            # Otherwise, create a temp dir for the whole session
+            tmpdir = TempDirectory()
 
-        def cleanup():
-            """Since the daemon owns the data_root on startup
-            a non-root user cannot remove it. Therefore, try
-            privilege escalation if nuking as normal fails."""
-            try:
-                shutil.rmtree(tmpdir.name)
-                print(f"\n🧹 ✅ Cleaned up {tmpdir.name} normally.")
-            except PermissionError:
-                print(
-                    f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir.name}"
-                )
-                subprocess.run(["sudo", "rm", "-rf", tmpdir.name], check=True)
+            def cleanup():
+                """Since the daemon owns the data_root on startup
+                a non-root user cannot remove it. Therefore, try
+                privilege escalation if nuking as normal fails."""
+                try:
+                    shutil.rmtree(str(tmpdir))
+                    print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
+                except PermissionError:
+                    print(
+                        f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}"
+                    )
+                    subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
 
-        # Register finalizer to cleanup on exit
-        request.addfinalizer(cleanup)
-        config.data_root = tmpdir.name
+            # Register finalizer to cleanup on exit
+            request.addfinalizer(cleanup)
+            config.data_root = tmpdir.name
+        elif config.daemon_controller == "snapd":
+            config.data_root = SNAP_MULTIPASSD_STORAGE
+            config.bin_dir = SNAP_BIN_DIR
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -188,33 +230,37 @@ def set_driver(controller):
         controller.wait_for_restart()
 
 
+def make_daemon_controller(kind):
+    if kind == "standalone":
+        return StandaloneMultipassdController(config.data_root)
+    if kind == "snapd":
+        return SnapdMultipassdController()
+    if kind == "none":
+        return None
+
+    raise NotImplementedError(f"No such daemon controller is known: `{kind}`")
+
+
 @contextmanager
 def multipassd_impl():
-    if config.no_daemon is False:
+    if config.daemon_controller == "none":
         sys.stdout.write("Skipping launching the daemon.")
         yield None
         return
 
-    if config.remove_all_instances:
-        run_as_subprocess(nuke_all_instances, config.data_root, privileged=True)
-
-    controller = None
-    bg_loop = BackgroundEventLoop()
-
-    try:
-        controller = AsyncMultipassdController(
-            bg_loop, config.build_root, config.data_root, config.print_daemon_output
+    with BackgroundEventLoop() as loop:
+        governor = MultipassdGovernor(
+            make_daemon_controller(config.daemon_controller),
+            loop,
+            config.print_daemon_output,
         )
-        wait_for_future(bg_loop.run(controller.start()))
-        set_driver(controller)
-        yield controller
-        logging.debug("multipassd fixture return")
-    finally:
-        if controller:
-            wait_for_future(bg_loop.run(controller.stop()))
-        sys.stderr.flush()
-        sys.stdout.flush()
-        bg_loop.stop()
+        wait_for_future(loop.run(governor.stop()))
+        if config.remove_all_instances:
+            run_as_subprocess(nuke_all_instances, config.data_root, privileged=True)
+        wait_for_future(loop.run(governor.start()))
+        set_driver(governor)
+        yield governor
+        wait_for_future(loop.run(governor.stop()))
 
 
 @pytest.fixture(scope="function")
@@ -243,7 +289,5 @@ def windows_privileged_mounts(multipassd):
 def instance(request):
     """Launch a VM and ensure cleanup."""
 
-    with launch(
-        request.param if hasattr(request, "param") else None
-    ) as inst:  # pylint: disable=R1732
+    with launch(request.param if hasattr(request, "param") else None) as inst:  # pylint: disable=R1732
         yield inst

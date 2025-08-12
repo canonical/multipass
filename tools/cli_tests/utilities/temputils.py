@@ -19,8 +19,27 @@ from contextlib import contextmanager
 from pathlib import Path
 import tempfile
 
+from cli_tests.config import config
+from cli_tests.utilities import run_as_subprocess
+
+
+def get_snap_temp_root(snap_name):
+    return f"/var/snap/{snap_name}/common/tmp"
+
+
+def make_test_tmp_dir_for_snap(snap_name):
+    # Make it behave as a real temp dir.
+    p = Path(get_snap_temp_root(snap_name))
+    p.mkdir(exist_ok=True)
+    p.chmod(0o1777)
+
 
 @contextmanager
-def TempDirectory(*args, **kwargs):
-    with tempfile.TemporaryDirectory(*args, **kwargs) as tmp:
+def TempDirectory():
+    tmp_root = None
+    if config.daemon_controller == "snapd":
+        run_as_subprocess(make_test_tmp_dir_for_snap, "multipass", privileged=True)
+        tmp_root = get_snap_temp_root("multipass")
+
+    with tempfile.TemporaryDirectory(dir=tmp_root) as tmp:
         yield Path(tmp)

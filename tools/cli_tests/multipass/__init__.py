@@ -17,7 +17,13 @@
 #
 #
 
-from .basics import get_multipass_env, get_multipass_path, get_multipassd_path
+from .basics import (
+    get_multipass_env,
+    get_multipass_path,
+    get_multipassd_path,
+    SNAP_MULTIPASSD_STORAGE,
+    SNAP_BIN_DIR,
+)
 from .certutils import authenticate_client_cert, get_client_cert_path
 from .helpers import (
     debug_interactive_shell,
