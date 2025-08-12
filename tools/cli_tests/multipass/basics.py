@@ -24,18 +24,23 @@ import shutil
 from cli_tests.config import config
 
 
+SNAP_MULTIPASSD_STORAGE = "/var/snap/multipass/common/data/multipassd"
+SNAP_BIN_DIR = "/snap/bin"
+
+
 def get_multipass_env():
     """Return an environment dict for running Multipass with a custom storage root."""
     multipass_env = os.environ.copy()
-    multipass_env["MULTIPASS_STORAGE"] = config.data_root
+    if config.data_root and config.data_root != SNAP_MULTIPASSD_STORAGE:
+        multipass_env["MULTIPASS_STORAGE"] = config.data_root
     return multipass_env
 
 
 def get_multipass_path():
     """Resolve the 'multipass' binary."""
-    return shutil.which("multipass", path=config.build_root)
+    return shutil.which("multipass", path=config.bin_dir)
 
 
 def get_multipassd_path():
     """Resolve the 'multipassd' binary."""
-    return shutil.which("multipassd", path=config.build_root)
+    return shutil.which("multipassd", path=config.bin_dir)
