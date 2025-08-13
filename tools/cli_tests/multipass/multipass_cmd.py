@@ -170,10 +170,14 @@ def multipass(*args, **kwargs):
         """
 
         def __init__(self):
+            self.pexpect_child = None
             try:
+                pexpect_child_args = [get_multipass_path(), *map(str, args)]
+                print(f"pexpect_child_args: {pexpect_child_args}")
                 if not sys.platform == "win32":
                     self.pexpect_child = pexpect.spawn(
-                        f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
+                        get_multipass_path(),
+                        [*map(str, args)],
                         logfile=(
                             sys.stdout.buffer if config.print_cli_output else None
                         ),
@@ -183,7 +187,7 @@ def multipass(*args, **kwargs):
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
-                        [get_multipass_path(), *map(str, args)],
+                        *pexpect_child_args,
                         logfile=(
                             sys.stdout.buffer if config.print_cli_output else None
                         ),
@@ -198,9 +202,9 @@ def multipass(*args, **kwargs):
                 print(ex)
                 raise
             finally:
-                if self.pexpect_child.isalive():
+                if self.pexpect_child and self.pexpect_child.isalive():
                     sys.stderr.write(
-                        f"\n❌🔥 Terminating {get_multipass_path()} {' '.join(args)}\n"
+                        f"\n❌🔥 Terminating {' '.join(pexpect_child_args)}\n"
                     )
                     sys.stdout.flush()
                     sys.stderr.flush()
