@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@v2
+        uses: sharder996/has-signed-canonical-cla@patch-2
