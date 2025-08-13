@@ -24,7 +24,8 @@ import sys
 import subprocess
 import shutil
 import logging
-from contextlib import contextmanager
+
+from contextlib import contextmanager, ExitStack
 
 
 import pytest
@@ -183,6 +184,7 @@ def store_config(request):
         if config.daemon_controller == "standalone":
             # Otherwise, create a temp dir for the whole session
             with TempDirectory(delete=False) as tmpdir:
+
                 def cleanup():
                     """Since the daemon owns the data_root on startup
                     a non-root user cannot remove it. Therefore, try
@@ -258,19 +260,30 @@ def multipassd_impl():
         yield None
         return
 
-    with BackgroundEventLoop() as loop:
+    with ExitStack() as stack:
+        loop = stack.enter_context(BackgroundEventLoop())
         governor = MultipassdGovernor(
             make_daemon_controller(config.daemon_controller),
             loop,
             config.print_daemon_output,
         )
+
+        # Ensure that the governor.stop() is called on context exit.
+        stack.callback(lambda: wait_for_future(loop.run(governor.stop())))
+
+        # Stop the governor if already running (for cleanup)
         wait_for_future(loop.run(governor.stop()))
+
         if config.remove_all_instances:
             run_as_subprocess(nuke_all_instances, config.data_root, privileged=True)
+
+        # Start the governor
         wait_for_future(loop.run(governor.start()))
+
+        # Ensure the right driver is set
         set_driver(governor)
+
         yield governor
-        wait_for_future(loop.run(governor.stop()))
 
 
 @pytest.fixture(scope="function")
