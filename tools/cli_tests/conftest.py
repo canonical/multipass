@@ -149,13 +149,19 @@ def pytest_collection_modifyitems(config, items):
             if all(s in out for s in ["uid_map", "gid_map"]):
                 # Supports uid/gid mapping
                 return
+        skip_marker = pytest.mark.skip(
+            reason=f"Skipped -- QEMU in environment {qemu} does not support UID/GID mapping."
+        )
+    elif sys.platform == "win32":
+        # We cannot test native mounts in Windows (yet) since it requires
+        # password authentication.
+        skip_marker = pytest.mark.skip(
+            reason=f"Skipped -- Testing native mounts in Windows is not supported yet."
+        )
     else:
         # Non-standalone deployments use the Multipass-shipped QEMU.
         return
 
-    skip_marker = pytest.mark.skip(
-        reason=f"Skipped -- QEMU in environment {qemu} does not support UID/GID mapping."
-    )
     for item in items:
         mount = getattr(item, "callspec", None)
         if mount and mount.params.get("mount_type") == "native":
