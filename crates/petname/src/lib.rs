@@ -1,9 +1,9 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-const ADJECTIVES: &str = include_str!("adjectives.txt");
-const ADVERBS: &str = include_str!("adverbs.txt");
-const NAMES: &str = include_str!("names.txt");
+const ADJECTIVES: &str = include_str!("../../../src/petname/adjectives.txt");
+const ADVERBS: &str = include_str!("../../../src/petname/adverbs.txt");
+const NAMES: &str = include_str!("../../../src/petname/names.txt");
 
 pub enum NumWords {
     One,
@@ -138,6 +138,23 @@ pub fn test_ffi_integration_test() -> bool {
         assert!(name.contains("-"));
         assert!(!name.is_empty());
     }).is_ok()
+}
+
+// CXX FFI Bridge for this module
+#[cxx::bridge(namespace = "multipass::petname")]
+mod ffi {
+    extern "Rust" {
+        type Petname;
+        fn new_petname(num_words: i32, separator: &str) -> Box<Petname>;
+        fn make_name(petname: &mut Petname) -> String;
+
+        // Test functions
+        fn test_generates_the_requested_num_words() -> bool;
+        fn test_uses_custom_separator() -> bool;
+        fn test_generates_two_tokens_by_default() -> bool;
+        fn test_can_generate_at_least_hundred_unique_names() -> bool;
+        fn test_ffi_integration_test() -> bool;
+    }
 }
 
 #[cfg(test)]
