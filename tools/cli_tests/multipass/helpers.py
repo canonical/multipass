@@ -19,6 +19,7 @@
 
 import sys
 import re
+import os
 from pathlib import Path
 
 from .multipass_cmd import multipass
@@ -186,11 +187,13 @@ def default_mount_gid():
     """Return default GID for mounted files inside the instance."""
     if sys.platform == "win32":
         return -2
-    return 1000
+    # Use gid of the user that's running the tests
+    return os.getgid()
 
 
 def default_mount_uid():
     """Return default UID for mounted files inside the instance."""
     if sys.platform == "win32":
         return -2
-    return 1000
+    # Use uid of the user that's running the tests
+    return os.getuid()
