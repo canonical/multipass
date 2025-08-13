@@ -1,15 +1,16 @@
-[package]
-name = "multipass"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "crates/petname",
+    # Future oxidized modules will be added here:
+    # "crates/utils",
+    # "crates/network",
+    # etc.
+]
 
-[lib]
-path = "src/lib.rs"
-crate-type = ["staticlib"]
-
-[dependencies]
+# Root workspace configuration
+[workspace.dependencies]
 cxx = "1.0"
 rand = "0.8"
 
-[build-dependencies]
-cxx-build = "1.0"
+[workspace.dependencies.cxx-build]
+version = "1.0"
