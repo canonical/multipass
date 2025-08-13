@@ -72,6 +72,9 @@ jobs:
       run: |
         dart pub global activate cobertura
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
       with:
