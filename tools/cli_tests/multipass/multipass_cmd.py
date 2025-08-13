@@ -110,10 +110,9 @@ def multipass(*args, **kwargs):
     if sys.platform == "win32":
         # PopenSpawn is just "good enough" for non-interactive stuff.
         class PopenCompatSpawn(PopenSpawn):
-            def __init__(self, command, **kwargs):
-                super().__init__(command, **kwargs)
-                self.command = command if isinstance(command, list) else command.split()
-                print(self.command)
+            def __init__(self, command, args, **kwargs):
+                super().__init__([command, *map(str, args)], **kwargs)
+
 
             def isalive(self):
                 return self.proc.poll() is None
@@ -187,7 +186,8 @@ def multipass(*args, **kwargs):
                     )
                 else:
                     self.pexpect_child = PopenCompatSpawn(
-                        *pexpect_child_args,
+                        get_multipass_path(),
+                        [*map(str, args)],
                         logfile=(
                             sys.stdout.buffer if config.print_cli_output else None
                         ),
