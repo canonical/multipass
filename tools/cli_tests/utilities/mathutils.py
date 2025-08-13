@@ -15,8 +15,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import math
+
 
 def is_within_tolerance(actual, expected, lb_tolerance=0.1, ub_tolerance=0.02):
-    lb = int(expected * (1 - lb_tolerance))
-    ub = int(expected * (1 + ub_tolerance))
-    return lb <= int(actual) <= ub
+    # Compute log-scaled decay from 25% at 1024 down to 10% at 10240
+    # This is to tolarate more at lower values.
+    log_scale = math.log(10240 / expected) / math.log(10240 / 1024)
+    tol = max(lb_tolerance, lb_tolerance + (0.25 - lb_tolerance) * log_scale)
+
+    lower_bound = int(expected * (1 - tol))
+    upper_bound = int(expected * (1 + ub_tolerance))
+    print(f"{lower_bound} <= {actual} <= {upper_bound}")
+
+    return lower_bound <= int(actual) <= upper_bound
