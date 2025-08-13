@@ -97,8 +97,6 @@ def locale_available(loc):
 
 @pytest.mark.help
 @pytest.mark.parametrize("loc", LOCALES)
-# No need for daemon.
-# @pytest.mark.usefixtures("multipassd_class_scoped")
 class TestHelp:
     """Alias command tests."""
 
