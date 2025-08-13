@@ -19,9 +19,10 @@
 
 import threading
 import asyncio
-import contextlib
+import time
 from concurrent.futures import Future
-from typing import Callable, Optional
+from typing import Callable
+from contextlib import suppress
 
 
 class BooleanLatch:
@@ -52,8 +53,9 @@ class BooleanLatch:
 
 
 class BackgroundEventLoop:
-    def __init__(self, name: str = "asyncio-loop-thr"):
+    def __init__(self, name: str = "background-event-loop"):
         self.loop = asyncio.new_event_loop()
+        # self.loop.set_debug(True)
         self.thread = threading.Thread(target=self._run_loop, name=name, daemon=True)
         self._started = False
         self._stopped = False
@@ -64,7 +66,6 @@ class BackgroundEventLoop:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
-        # self.loop.wait()
         self.shutdown()
 
     # ---- lifecycle ----
@@ -75,48 +76,168 @@ class BackgroundEventLoop:
         self.thread.start()
 
     def _run_loop(self) -> None:
-        asyncio.set_event_loop(self.loop)
-        try:
-            self.loop.run_forever()
-        finally:
-            self.loop.close()
+        self.loop.run_forever()
 
     def shutdown(self, cancel_timeout: float = 5.0) -> None:
         if self._stopped:
             return
         self._stopped = True
 
-        # cancel all tasks in the loop, then stop
-        async def _graceful_cancel():
-            tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-            for t in tasks:
-                t.cancel()
-            if tasks:
-                with contextlib.suppress(asyncio.CancelledError):
-                    await asyncio.gather(*tasks)
-
-        fut = asyncio.run_coroutine_threadsafe(_graceful_cancel(), self.loop)
-        try:
-            fut.result(timeout=cancel_timeout)
-        except Exception:
-            pass  # best-effort; we’re shutting down anyway
-
+        # Poll the loop for 30s for any upcoming scheduled tasks.
+        self.run(self.drain_loop_until(30)).result()
+        # Declare the loop officially closed.
         self.loop.call_soon_threadsafe(self.loop.stop)
+        # Join the worker thread.
         self.thread.join()
+        # Close the loop
+        self.loop.close()
+        self.loop = None
 
     # ---- submission helpers ----
     def run(self, coro) -> Future:
         """Submit a coroutine to the background loop; returns concurrent.futures.Future."""
-        if self._stopped:
-            raise RuntimeError("BackgroundEventLoop is stopped")
-        if not self._started:
-            self.start()
-        return asyncio.run_coroutine_threadsafe(coro, self.loop)
+        try:
+            return asyncio.run_coroutine_threadsafe(coro, self.loop)
+        except Exception:
+            with suppress(Exception):
+                coro.close()
+            raise
 
     def run_fn(self, fn: Callable[[], None]) -> None:
         """Schedule a plain callable on the loop thread."""
-        if self._stopped:
-            raise RuntimeError("BackgroundEventLoop is stopped")
-        if not self._started:
-            self.start()
+
         self.loop.call_soon_threadsafe(fn)
+
+    async def drain_loop_until(self, timeout: float = 5.0):
+        """Cancel and await tasks until none remain or timeout reached.
+        Ensure a graceful shutdown for all the tasks scheduled.
+        """
+
+        deadline = time.monotonic() + timeout
+        seen: set[asyncio.Task] = set()
+
+        while True:
+            # All tasks except *this* one
+            current = {
+                t
+                for t in asyncio.all_tasks(self.loop)
+                if t is not asyncio.current_task()
+            }
+            # Tasks we haven't handled yet
+            new = [t for t in current if t not in seen]
+
+            if not new:
+                break  # No new tasks left
+
+            # Cancel the newcomers
+            for t in new:
+                if not t.done():
+                    t.cancel()
+
+            # Await their completion, bounded by remaining time
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*new, return_exceptions=True),
+                    timeout=max(0.0, deadline - time.monotonic()),
+                )
+            except asyncio.TimeoutError:
+                # Still stuck tasks — optional debug output
+                for t in new:
+                    if not t.done():
+                        t.print_stack()
+                break
+
+            seen.update(new)
+
+            # Stop if we've hit the deadline
+            if time.monotonic() >= deadline:
+                break
+
+
+class AsyncSubprocess:
+    """Context manager for subprocess with guaranteed cleanup."""
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.proc = None
+
+    async def __aenter__(self):
+        # Shield the spawn so it completes even if we get cancelled mid-await.
+        fut = asyncio.shield(asyncio.create_subprocess_exec(*self.args, **self.kwargs))
+        try:
+            self.proc = await fut
+            return self.proc
+        except asyncio.CancelledError:
+            # If cancellation hit mid-spawn, the process may already exist.
+            # Finish the spawn to obtain the handle, clean it up, then re-raise.
+            try:
+                self.proc = await fut
+            except Exception:
+                # Spawn actually failed; nothing to clean.
+                raise
+            # Drain & close deterministically
+            if self.proc.returncode is None:
+                with suppress(ProcessLookupError):
+                    self.proc.terminate()
+                try:
+                    await asyncio.wait_for(self.proc.communicate(), 5)
+                except asyncio.TimeoutError:
+                    with suppress(ProcessLookupError):
+                        self.proc.kill()
+                    await self.proc.communicate()
+            raise
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        p = self.proc
+        self.proc = None
+
+        try:
+            if p.returncode is None:
+                # Try to end things gracefully
+                with suppress(ProcessLookupError):
+                    p.terminate()
+                try:
+                    await asyncio.wait_for(p.communicate(), 5)
+                except TimeoutError:
+                    with suppress(ProcessLookupError):
+                        p.kill()
+
+                await p.communicate()
+        except asyncio.CancelledError:
+            # Ensure the subprocess is cleaned after.
+            await p.communicate()
+            # We did the cleanup; now propagate cancel.
+            raise
+        # return False -> propagate any exception from the 'with' body
+        return False
+
+
+def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
+    """
+    Wait for a Future to complete without blocking signal handling.
+
+    Args:
+        fut: The Future to wait for
+        timeout: Maximum time to wait in seconds (default: 60)
+        poll_interval: How often to check if done in seconds (default: 0.1)
+
+    Returns:
+        The result of the Future
+
+    Raises:
+        TimeoutError: If the Future doesn't complete within timeout
+        Exception: Whatever exception the Future raised, if any
+    """
+    start_time = time.time()
+
+    while not fut.done() and (time.time() - start_time) < timeout:
+        time.sleep(poll_interval)
+
+    if not fut.done():
+        raise TimeoutError(f"Operation timed out after {timeout} seconds")
+
+    if fut.exception():
+        raise fut.exception()
+
+    return fut.result()
