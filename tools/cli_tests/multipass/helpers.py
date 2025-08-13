@@ -53,7 +53,7 @@ def snapshot_count(name):
     return int(_retrieve_info_field(name, "snapshot_count"))
 
 
-def file_exists(vm_name, *paths):
+def path_exists(vm_name, *paths):
     """Return True if all given paths exist in the instance, False otherwise."""
     return bool(
         multipass(
@@ -77,6 +77,32 @@ def read_file(vm_name, path):
             "cat",
             Path(path).as_posix(),
             timeout=180,
+        )
+    )
+
+
+def create_directory(vm_name, path):
+    return bool(
+        multipass(
+            "exec",
+            vm_name,
+            "--",
+            "mkdir",
+            "-p",
+            f"{Path(path).as_posix()}",
+        )
+    )
+
+
+def write_file(vm_name, path, contents):
+    return bool(
+        multipass(
+            "exec",
+            vm_name,
+            "--",
+            "bash",
+            "-c",
+            rf"""echo '{contents}' > {Path(path).as_posix()}""",
         )
     )
 
@@ -106,53 +132,47 @@ def shell(name):
 
 def get_ram_size(name):
     """Return total RAM (in MiB) reported by /proc/meminfo inside the instance."""
-    with multipass(
-        "exec",
-        name,
-        "--",
-        "cat /proc/meminfo",
-    ) as result:
-        assert result
+    with multipass("exec", name, "--", "cat", "/proc/meminfo") as result:
+        assert result, f"Failed: {result.content} ({result.exitstatus})"
         match = re.search(r"^MemTotal:\s+(\d+)\s+kB", str(result), re.MULTILINE)
-        assert match
+        assert match, f"No MemTotal in: {result.content}!"
         mem_kb = int(match.group(1))
         return mem_kb // 1024
 
 
 def get_disk_size(name):
     """Return root filesystem size (in MiB) inside the instance."""
-    with multipass(
-        "exec", name, "--", "bash -c 'df -m --output=size / | tail -1'"
-    ) as result:
-        assert result
-        return int(result.content)
+    with multipass("exec", name, "--", "df", "-m", "--output=size", "/") as result:
+        assert result, f"Failed: {result.content} ({result.exitstatus})"
+        _, blocks_1m = result.content.split()
+        return int(blocks_1m.strip())
 
 
 def get_core_count(name):
     """Return the number of CPU cores inside the instance."""
     with multipass("exec", name, "--", "nproc") as result:
-        assert result
+        assert result, f"Failed: {result.content} ({result.exitstatus})"
         return int(result.content)
 
 
 def get_cloudinit_instance_id(name):
-    assert file_exists(name, "/var/lib/cloud/data/instance-id")
+    assert path_exists(name, "/var/lib/cloud/data/instance-id")
     return read_file(name, "/var/lib/cloud/data/instance-id")
 
 
 def get_default_interface_name(name):
-    with multipass("exec", name, "--", "ip -o route get 1") as output:
-        assert output
+    with multipass("exec", name, "--", "ip", "-o", "route", "get", "1") as result:
+        assert result, f"Failed: {result.content} ({result.exitstatus})"
         # 1.0.0.0 via 192.168.35.1 dev br0 src 192.168.35.83 uid 1000 \    cache
-        return output.content.split()[4].strip()
+        return result.content.split()[4].strip()
 
 
 def get_mac_addr_of(name, interface_name):
     with multipass(
-        "exec", name, "--", f"cat /sys/class/net/{interface_name}/address"
-    ) as output:
-        assert output
-        return str(output).strip()
+        "exec", name, "--", "cat", f"/sys/class/net/{interface_name}/address"
+    ) as result:
+        assert result, f"Failed: {result.content} ({result.exitstatus})"
+        return str(result).strip()
 
 
 def default_driver_name():

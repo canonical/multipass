@@ -21,7 +21,7 @@
 import pytest
 
 from cli_tests.utilities import TempDirectory
-from cli_tests.multipass import multipass, file_exists, read_file
+from cli_tests.multipass import multipass, path_exists, read_file
 
 
 @pytest.mark.transfer
@@ -38,7 +38,7 @@ class TestTransfer:
 
             # Push
             assert multipass("transfer", str(file), f"{instance}:.")
-            assert file_exists(instance, "testfile.txt")
+            assert path_exists(instance, "testfile.txt")
 
             # Pull
             pull_file = tmp / "testfile_pull.txt"
@@ -63,7 +63,7 @@ class TestTransfer:
             assert multipass(
                 "transfer", "--parents", str(file), f"{instance}:bar/baz/testfile.txt"
             )
-            assert file_exists(instance, "bar/baz/testfile.txt")
+            assert path_exists(instance, "bar/baz/testfile.txt")
 
             # This must fail, but it does not.
             # assert not multipass(
@@ -94,8 +94,8 @@ class TestTransfer:
             # Push
             assert not multipass("transfer", str(tmp), f"{instance}:dest")
             assert multipass("transfer", "--recursive", str(tmp), f"{instance}:dest")
-            assert file_exists(instance, "dest/testfile1.txt")
-            assert file_exists(instance, "dest/bar/testfile2.txt")
+            assert path_exists(instance, "dest/testfile1.txt")
+            assert path_exists(instance, "dest/bar/testfile2.txt")
             assert (
                 read_file(instance, "dest/testfile1.txt") == "hello from the other side"
             )

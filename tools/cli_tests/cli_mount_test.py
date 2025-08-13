@@ -25,7 +25,19 @@ import pytest
 
 from cli_tests.utilities import TempDirectory
 
-from cli_tests.multipass import multipass, mounts, default_mount_uid, default_mount_gid
+from cli_tests.multipass import (
+    multipass,
+    mounts,
+    default_mount_uid,
+    default_mount_gid,
+    write_file,
+    create_directory,
+    path_exists,
+)
+
+
+def expected_mount_dir(src_dir_name):
+    return Path("/home") / "ubuntu" / src_dir_name
 
 
 @pytest.mark.mount
@@ -49,9 +61,8 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
-            assert multipass(
-                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir.name}"
-            )
+
+            assert path_exists(instance, expected_mount_dir(mount_dir.name))
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
@@ -77,13 +88,8 @@ class TestMount:
                 },
             }
 
-            assert multipass(
-                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir1.name}"
-            )
-
-            assert multipass(
-                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir2.name}"
-            )
+            assert path_exists(instance, expected_mount_dir(mount_dir1.name))
+            assert path_exists(instance, expected_mount_dir(mount_dir2.name))
 
             assert multipass(
                 "umount",
@@ -129,9 +135,8 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
-            assert multipass(
-                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir.name}"
-            )
+
+            assert path_exists(instance, expected_mount_dir(mount_dir.name))
 
             multipassd.restart()
 
@@ -142,9 +147,8 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
-            assert multipass(
-                "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir.name}"
-            )
+
+            assert path_exists(instance, expected_mount_dir(mount_dir.name))
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
@@ -173,29 +177,16 @@ class TestMount:
             instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
-            assert multipass(
-                "exec", instance, "--", "ls", instance_target_path.as_posix()
+            assert path_exists(instance, instance_target_path)
+
+            assert write_file(
+                instance, instance_target_path / "file1.txt", "hello there"
             )
 
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"''',
-            )
+            assert create_directory(instance, instance_target_path / subdir)
 
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                f"mkdir -p {(instance_target_path / subdir).as_posix()}",
-            )
-
-            assert multipass(
-                "exec",
-                instance,
-                "--",
-                rf'''bash -c "echo 'hello there' > {(instance_target_path / subdir / "file2.txt").as_posix()}"''',
+            assert write_file(
+                instance, instance_target_path / subdir / "file2.txt", "hello there"
             )
 
             # Verify that created files exits in host
@@ -214,15 +205,9 @@ class TestMount:
             assert not expected_subdir.exists()
 
             # verify that they are no longer present in the guest
-            assert not multipass(
-                "exec", instance, "--", "ls", expected_file1.as_posix()
-            )
-            assert not multipass(
-                "exec", instance, "--", "ls", expected_file2.as_posix()
-            )
-            assert not multipass(
-                "exec", instance, "--", "ls", expected_subdir.as_posix()
-            )
+            assert not path_exists(instance, expected_file1)
+            assert not path_exists(instance, expected_file2)
+            assert not path_exists(instance, expected_subdir)
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
@@ -258,38 +243,21 @@ class TestMount:
             # At least it's the case with the QEMU native mounts.
             cannot_write = mount_type == "native"
 
-            assert multipass(
-                "exec", instance, "--", "ls", instance_target_path.as_posix()
-            )
+            assert path_exists(instance, instance_target_path)
 
             assert (
-                multipass(
-                    "exec",
-                    instance,
-                    "--",
-                    rf'''bash -c "echo 'hello there' > {(instance_target_path / "file1.txt").as_posix()}"''',
-                )
+                write_file(instance, instance_target_path / "file1.txt", "hello there")
                 or cannot_write
             )
 
             assert (
-                multipass(
-                    "exec",
-                    instance,
-                    "--",
-                    f"mkdir -p {str(instance_target_path / subdir)}",
-                )
+                create_directory(instance, instance_target_path / subdir)
                 or cannot_write
             )
 
             assert (
-                multipass(
-                    "exec",
-                    instance,
-                    "--",
-                    "bash",
-                    "-c",
-                    f'"echo \\"hello there\\" > {(instance_target_path / subdir).as_posix()}/file2.txt"',
+                write_file(
+                    instance, instance_target_path / subdir / "file2.txt", "hello there"
                 )
                 or cannot_write
             )
@@ -300,20 +268,9 @@ class TestMount:
             expected_file2 = expected_subdir / "file2.txt"
 
             # verify that they are not present in the guest
-            assert (
-                not multipass("exec", instance, "--", "ls", expected_file1.as_posix())
-                or cannot_write
-            )
-
-            assert (
-                not multipass("exec", instance, "--", "ls", expected_file2.as_posix())
-                or cannot_write
-            )
-
-            assert (
-                not multipass("exec", instance, "--", "ls", expected_subdir.as_posix())
-                or cannot_write
-            )
+            assert not path_exists(instance, expected_file1) or cannot_write
+            assert not path_exists(instance, expected_file2) or cannot_write
+            assert not path_exists(instance, expected_subdir) or cannot_write
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
