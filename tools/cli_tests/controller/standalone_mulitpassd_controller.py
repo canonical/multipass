@@ -72,7 +72,7 @@ class StandaloneMultipassdController:
         )
 
     async def stop(self, graceful=True) -> None:
-        if not self._proc:
+        if self._proc is None:
             return
 
         if not graceful:
@@ -93,6 +93,7 @@ class StandaloneMultipassdController:
 
     async def restart(self) -> None:
         await self.stop()
+        await self.wait_exit()
         await self.start()
 
     async def follow_output(self) -> AsyncIterator[str]:
@@ -102,6 +103,8 @@ class StandaloneMultipassdController:
         while True:
             line = await self._proc.stdout.readline()
             if not line:
+                # Drain
+                await self._proc.communicate()
                 break
             yield line.decode("utf-8", "replace")
 

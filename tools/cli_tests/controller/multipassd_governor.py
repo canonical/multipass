@@ -7,6 +7,7 @@ import logging
 import re
 import sys
 import time
+from contextlib import suppress
 
 import pytest
 from pytest import Session
@@ -20,6 +21,7 @@ from cli_tests.multipass import (
 )
 from cli_tests.utilities import (
     BooleanLatch,
+    AsyncSubprocess,
     run_as_subprocess,
 )
 
@@ -42,6 +44,7 @@ class MultipassdGovernor:
         self.print_daemon_output = print_daemon_output
         self.controller = controller
         self.daemon_ready_event = BooleanLatch()
+        self.monitor_task = None
         self._reset_state()
 
     def _reset_state(self):
@@ -57,7 +60,7 @@ class MultipassdGovernor:
 
     async def _read_stream(self):
         """Read from stream line by line and print if enabled"""
-
+        logging.info("multipassd-governor :: read_stream start")
         try:
             async for line in self.controller.follow_output():
                 if self.print_daemon_output:
@@ -73,6 +76,7 @@ class MultipassdGovernor:
         except Exception as e:
             if self.print_daemon_output:
                 print(f"Error in log reader: {e}", file=sys.stderr)
+        logging.info("multipassd-governor :: read_stream finish")
 
     async def _monitor(self):
         """Monitor the daemon process"""
@@ -114,10 +118,14 @@ class MultipassdGovernor:
             # Task was cancelled, this is expected during shutdown
             stdout_task.cancel()
             raise
-        finally:
-            logging.info("daemon monitor exit")
 
-    async def _on_daemon_exit(self, _):
+    async def on_monitor_exit(self, task):
+        logging.info(
+            f"multipassd-governor :: monitor task exited (cancelled: {task.cancelled()})"
+        )
+        if task.cancelled():
+            return
+
         multipassd_settings_changed_code = 42
         daemon_exit_code = await self.controller.exit_code()
         needs_restarting = (
@@ -125,21 +133,20 @@ class MultipassdGovernor:
             and daemon_exit_code == multipassd_settings_changed_code
         )
         self._reset_state()
-        logging.info("daemon exit")
         if needs_restarting:
-            logging.info("attempting daemon autorestart")
+            logging.info("multipassd-governor :: daemon auto-restarting")
             self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start()))
 
     async def _ensure_client_certs_are_created(self):
         # Call multipass cli to create the client certs
-        version_proc = await asyncio.create_subprocess_exec(
+        async with AsyncSubprocess(
             get_multipass_path(),
             "version",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
             env=get_multipass_env(),
-        )
-        await asyncio.wait_for(version_proc.wait(), timeout=10)
+        ) as version_proc:
+            await asyncio.wait_for(version_proc.wait(), timeout=10)
 
     def _authenticate_client_cert(self):
         # It's important that we get the cert path here instead of under
@@ -152,6 +159,16 @@ class MultipassdGovernor:
 
     async def start(self):
         """Start the multipassd daemon"""
+        logging.info("multipassd-governor :: start called")
+
+        def _cancel(t: asyncio.Task | None):
+            if t and not t.done():
+                t.cancel()
+
+        async def _drain(t: asyncio.Task | None):
+            if t:
+                with suppress(asyncio.CancelledError):
+                    await t
 
         await self._ensure_client_certs_are_created()
         self._authenticate_client_cert()
@@ -159,43 +176,46 @@ class MultipassdGovernor:
         await self.controller.start()
 
         # Start monitoring task
-        self.monitor_task = asyncio.create_task(self._monitor(), name="monitor_task")
-        self.monitor_task.add_done_callback(
-            lambda t: asyncio.create_task(self._on_daemon_exit(t))
+        monitor_task = asyncio.create_task(self._monitor(), name="monitor_task")
+        monitor_task.add_done_callback(
+            lambda t: asyncio.create_task(self.on_monitor_exit(t))
         )
+
         ready_task = asyncio.create_task(
             self.wait_for_multipassd_ready(), name="wait_for_ready_task"
         )
 
         done, _ = await asyncio.wait(
-            {ready_task, self.monitor_task},
+            {ready_task, monitor_task},
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-        for task in done:
-            if task.get_name() == "monitor_task":
-                # No longer needed.
-                ready_task.cancel()
-                # This is going to re-raise the exception thrown by the task.
-                try:
-                    await task
-                except TestSessionFailure as ex:
-                    Session.shouldfail = str(ex)
-                    raise
+        if monitor_task in done:
+            _cancel(ready_task)
+            await _drain(ready_task)
+            try:
+                await monitor_task
+                asyncio.current_task().cancel()
+                await asyncio.sleep(0)
+            except TestSessionFailure as ex:
+                Session.shouldfail = str(ex)
+                raise
 
         # Wait for daemon to be ready
         if not await ready_task:
-            logging.warn("⚠️ multipassd not ready, attempting graceful shutdown...")
+            logging.warning("⚠️ multipassd not ready, attempting graceful shutdown...")
             await self.controller.stop()
             pytest.exit(
                 "Tests cannot proceed, multipassd not responding in time.",
                 returncode=12,
             )
 
+        self.monitor_task = monitor_task
         self.daemon_ready_event.set()
 
     async def stop(self):
         """Stop the multipassd daemon"""
+        logging.info("multipassd-governor :: stop called")
         self.graceful_exit_initiated = True
         await self.controller.stop()
 
@@ -245,59 +265,61 @@ class MultipassdGovernor:
 
         while time.time() < deadline:
             try:
-                # Check if daemon responds to find command
-                proc = await asyncio.create_subprocess_exec(
+                find_stdout = None
+                find_exitcode = 0
+                async with AsyncSubprocess(
                     get_multipass_path(),
                     "find",
+                    "noble",
+                    stdin=asyncio.subprocess.DEVNULL,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.STDOUT,
                     env=get_multipass_env(),
-                )
+                ) as find_proc:
+                    find_stdout, _ = await find_proc.communicate()
+                    find_exitcode = find_proc.returncode
 
-                try:
-                    await asyncio.wait_for(proc.wait(), timeout=10)
-                    if proc.returncode == 0:
-                        # Check version match
-                        version_proc = await asyncio.create_subprocess_exec(
-                            get_multipass_path(),
-                            "version",
-                            stdout=asyncio.subprocess.PIPE,
-                            stderr=asyncio.subprocess.STDOUT,
-                            env=get_multipass_env(),
+                if find_exitcode != 0:
+                    if (
+                        b"The client is not authenticated with the Multipass service"
+                        in find_stdout
+                    ):
+                        logging.error("Client is not authenticated.")
+                        Session.shouldfail = "Client is not authenticated."
+                        return False
+                    logging.debug(find_stdout)
+
+                # Otherwise, verify the version
+                async with AsyncSubprocess(
+                    get_multipass_path(),
+                    "version",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    env=get_multipass_env(),
+                ) as version_proc:
+                    stdout, _ = await version_proc.communicate()
+                    version_lines = stdout.decode().strip().splitlines()
+
+                    if len(version_lines) == 2:
+                        cli_ver = version_lines[0].split()[-1]
+                        daemon_ver = version_lines[1].split()[-1]
+
+                        if cli_ver == daemon_ver:
+                            return True
+
+                        sys.stderr.write(
+                            f"Version mismatch detected!\n"
+                            f"👉 CLI version: {cli_ver}\n"
+                            f"👉 Daemon version: {daemon_ver}\n"
                         )
+                        sys.stderr.flush()
+                        return False
 
-                        stdout, _ = await version_proc.communicate()
-                        version_lines = stdout.decode().strip().splitlines()
-
-                        if len(version_lines) == 2:
-                            cli_ver = version_lines[0].split()[-1]
-                            daemon_ver = version_lines[1].split()[-1]
-
-                            if cli_ver == daemon_ver:
-                                return True
-
-                            sys.stderr.write(
-                                f"Version mismatch detected!\n"
-                                f"👉 CLI version: {cli_ver}\n"
-                                f"👉 Daemon version: {daemon_ver}\n"
-                            )
-                            sys.stderr.flush()
-                            return False
-
-                    else:
-                        stdout, _ = await proc.communicate()
-                        if (
-                            b"The client is not authenticated with the Multipass service"
-                            in stdout
-                        ):
-                            logging.error("Client is not authenticated.")
-                            Session.shouldfail = "Client is not authenticated."
-                            return False
-                        logging.debug(stdout)
-
-                except asyncio.TimeoutError:
-                    pass
-
+            except asyncio.TimeoutError:
+                # Try again.
+                continue
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logging.error(exc)
 

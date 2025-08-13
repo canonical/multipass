@@ -19,8 +19,13 @@
 
 import sys
 
-from .threadutils import BooleanLatch, BackgroundEventLoop
-from .functional import retry, wait_for_future
+from .threadutils import (
+    BooleanLatch,
+    BackgroundEventLoop,
+    AsyncSubprocess,
+    wait_for_future,
+)
+from .functional import retry
 from .privutils import run_as_subprocess, get_sudo_tool
 from .procutils import send_ctrl_c
 from .temputils import TempDirectory
