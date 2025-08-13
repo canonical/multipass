@@ -56,6 +56,7 @@ class MultipassdGovernor:
         return {
             r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?",
             r'.*Failed to get shared "write" lock': "Cannot open an image file for writing, is another process holding a write lock?",
+            r'.*Only one usage of each socket address': "Could not bind gRPC port -- is there another daemon process running?"
         }
 
     async def _read_stream(self):
