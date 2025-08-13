@@ -27,7 +27,7 @@ from cli_tests.multipass import (
     take_snapshot,
     snapshot_count,
     state,
-    file_exists,
+    path_exists,
     read_file,
     exec,
     random_vm_name,

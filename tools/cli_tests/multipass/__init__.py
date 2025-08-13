@@ -28,8 +28,10 @@ from .certutils import authenticate_client_cert, get_client_cert_path
 from .helpers import (
     debug_interactive_shell,
     exec,
-    file_exists,
+    path_exists,
     read_file,
+    write_file,
+    create_directory,
     get_core_count,
     get_disk_size,
     get_ram_size,

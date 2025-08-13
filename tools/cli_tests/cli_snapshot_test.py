@@ -29,7 +29,7 @@ from cli_tests.multipass import (
     validate_list_output,
     build_snapshot_tree,
     collapse_to_snapshot_tree,
-    file_exists,
+    path_exists,
     take_snapshot,
     multipass,
     random_vm_name,
@@ -239,27 +239,27 @@ class TestSnapshot:
         assert multipass("restore", f"{name}.snapshot1", "--destructive")
         validate_info_output(name, {"snapshot_count": "3"})
 
-        assert file_exists(name, "before_snapshot1")
-        assert not file_exists(name, "before_snapshot2")
-        assert not file_exists(name, "before_snapshot3")
+        assert path_exists(name, "before_snapshot1")
+        assert not path_exists(name, "before_snapshot2")
+        assert not path_exists(name, "before_snapshot3")
 
         assert multipass("stop", f"{name}")
 
         assert multipass("restore", f"{name}.snapshot2", "--destructive")
         validate_info_output(name, {"snapshot_count": "3"})
 
-        assert file_exists(name, "before_snapshot1")
-        assert file_exists(name, "before_snapshot2")
-        assert not file_exists(name, "before_snapshot3")
+        assert path_exists(name, "before_snapshot1")
+        assert path_exists(name, "before_snapshot2")
+        assert not path_exists(name, "before_snapshot3")
 
         assert multipass("stop", f"{name}")
 
         assert multipass("restore", f"{name}.snapshot3", "--destructive")
         validate_info_output(name, {"snapshot_count": "3"})
 
-        assert file_exists(name, "before_snapshot1")
-        assert file_exists(name, "before_snapshot2")
-        assert file_exists(name, "before_snapshot3")
+        assert path_exists(name, "before_snapshot1")
+        assert path_exists(name, "before_snapshot2")
+        assert path_exists(name, "before_snapshot3")
 
         assert multipass("stop", f"{name}")
 
@@ -305,26 +305,26 @@ class TestSnapshot:
         assert multipass("restore", f"{name}.snapshot1", "--destructive")
         validate_info_output(name, {"snapshot_count": "3"})
 
-        assert file_exists(name, "before_snapshot1")
-        assert not file_exists(name, "before_snapshot2a")
-        assert not file_exists(name, "before_snapshot3a")
+        assert path_exists(name, "before_snapshot1")
+        assert not path_exists(name, "before_snapshot2a")
+        assert not path_exists(name, "before_snapshot3a")
 
         assert multipass("stop", f"{name}")
 
         assert multipass("restore", f"{name}.snapshot2a", "--destructive")
         validate_info_output(name, {"snapshot_count": "3"})
 
-        assert file_exists(name, "before_snapshot1")
-        assert file_exists(name, "before_snapshot2a")
-        assert not file_exists(name, "before_snapshot3a")
+        assert path_exists(name, "before_snapshot1")
+        assert path_exists(name, "before_snapshot2a")
+        assert not path_exists(name, "before_snapshot3a")
 
         assert multipass("stop", f"{name}")
 
         take_snapshot(name, "snapshot3b", "snapshot2a")
         validate_info_output(name, {"snapshot_count": "4"})
 
-        assert file_exists(name, "before_snapshot1")
-        assert file_exists(name, "before_snapshot3b")
+        assert path_exists(name, "before_snapshot1")
+        assert path_exists(name, "before_snapshot3b")
 
         assert multipass("stop", f"{name}")
 
@@ -390,7 +390,7 @@ class TestSnapshot:
         # We'll expect all checkpoint files to exist
         lineage = find_lineage(snapshot_tree, "snapshot5b")
         for ancestor in lineage:
-            assert file_exists(name, f"before_{ancestor}")
+            assert path_exists(name, f"before_{ancestor}")
 
         assert multipass("stop", f"{name}")
 
