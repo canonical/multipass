@@ -20,6 +20,7 @@ import sys
 import subprocess
 import asyncio
 from asyncio.subprocess import Process
+from contextlib import suppress
 from typing import AsyncIterator, Optional
 
 from cli_tests.utilities import send_ctrl_c, get_sudo_tool
@@ -60,7 +61,7 @@ class StandaloneMultipassdController:
         self._env = get_multipass_env()
 
     async def start(self) -> None:
-        if self._proc and not self._proc.returncode:
+        if self._proc and self._proc.returncode is None:
             raise ChildProcessError("Process not exited yet!")
 
         self._proc = await asyncio.create_subprocess_exec(
@@ -83,12 +84,14 @@ class StandaloneMultipassdController:
         if sys.platform == "win32":
             send_ctrl_c(self._proc.pid)
         else:
-            self._proc.terminate()
+            with suppress(ProcessLookupError):
+                self._proc.terminate()
 
         try:
             await asyncio.wait_for(self._proc.wait(), timeout=20)
         except asyncio.TimeoutError:
-            self._proc.kill()
+            with suppress(ProcessLookupError):
+                self._proc.kill()
             await self._proc.wait()
 
     async def restart(self) -> None:
