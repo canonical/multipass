@@ -122,18 +122,18 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
                                       const HcsSystemHandle& system,
                                       Args&&... args)
 {
+    if (nullptr == system)
+    {
+        mpl::error(kLogCategory,
+                   "perform_hcs_operation(...) > Host Compute System handle is null!");
+        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
+    }
+
     auto operation = create_operation(api);
 
     if (nullptr == operation)
     {
         mpl::error(kLogCategory, "perform_hcs_operation(...) > HcsCreateOperation failed!");
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
-    }
-
-    if (nullptr == system)
-    {
-        mpl::error(kLogCategory,
-                   "perform_hcs_operation(...) > Host Compute System handle is null!");
         return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
     }
 
@@ -295,7 +295,7 @@ OperationResult HCSWrapper::pause_compute_system(const HcsSystemHandle& target_h
 OperationResult HCSWrapper::resume_compute_system(const HcsSystemHandle& target_hcs_system) const
 {
     mpl::debug(kLogCategory,
-               "resume_compute_system(...) > name: ({})",
+               "resume_compute_system(...) > handle: ({})",
                fmt::ptr(target_hcs_system.get()));
     return perform_hcs_operation(api, api.ResumeComputeSystem, target_hcs_system, nullptr);
 }
@@ -392,7 +392,7 @@ OperationResult HCSWrapper::modify_compute_system(const HcsSystemHandle& target_
                                                   const HcsRequest& params) const
 {
     mpl::debug(kLogCategory,
-               "modify_compute_system(...) > handle: {}, params: {}",
+               "modify_compute_system(...) > handle: ({}), params: {}",
                fmt::ptr(target_hcs_system.get()),
                params);
 
