@@ -26,25 +26,6 @@ env:
   VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
 jobs:
-  CheckLint:
-    runs-on: ubuntu-latest
-    if: ${{ !cancelled() }}
-
-    permissions:
-      contents: read
-      checks: read
-
-    outputs:
-      conclusion: ${{ steps.check-lint.outputs.conclusion }}
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v5
-
-      - name: Check Lint Status
-        id: check-lint
-        uses: ./.github/actions/check-lint
-
   GetMatrix:
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
@@ -60,13 +41,12 @@ jobs:
 
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "target": "13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "target": "14", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-15", "arch": "arm64", "target": "15", "mono": ""},'
+        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64", "mono": ""},'
 
         if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.host-my-apple }}" == "true" ]]; then
-          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64", "target": "12"},'
-          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64", "target": "12"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64"},'
+          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64"},'
         fi
 
         MATRIX=${MATRIX%,}
@@ -75,17 +55,13 @@ jobs:
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   BuildAndTest:
-    needs: [CheckLint, GetMatrix]
+    needs: GetMatrix
 
     permissions:
       contents: read
       packages: write
 
-    # Proceed if Lint failed on a PR
-    if: ${{ !cancelled() && success() &&
-        (needs.CheckLint.outputs.conclusion == 'success' ||
-          (needs.CheckLint.outputs.conclusion == 'failure' && github.event_name == 'pull_request'))
-        }}
+    if: ${{ !cancelled() }}
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -93,19 +69,18 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      # Use artifacts from macos-13 and macos-14 in official package
+      # Use artifacts from x86 and ARM Macs in official package
       mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-arm64-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-arm64-package-file-name }}
 
     runs-on: ${{ matrix.runs-on }}
-    continue-on-error: ${{ contains(matrix.runs-on, 'macos-13') || contains(matrix.runs-on, 'macos-14') || contains(matrix.runs-on, 'macos-15') }}
+    continue-on-error: ${{ contains(matrix.runs-on, 'macos') }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       CCACHE_DIR: ${{ github.workspace }}/build/ccache
-      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     steps:
     - name: Check out code
@@ -138,6 +113,7 @@ jobs:
       if: ${{ matrix.arch }}
       run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
 
+      # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
       if: ${{ runner.os == 'macOS' }}
       run: |
@@ -197,7 +173,7 @@ jobs:
         fi
 
     - name: Install nuget
-      if: ${{ contains(matrix.runs-on, 'macos-15') || contains(matrix.runs-on, 'macos-14') }}
+      if: ${{ contains(matrix.runs-on, 'macos-latest') }}
       run: |
         brew install nuget mono
 
@@ -233,9 +209,8 @@ jobs:
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
-      run: | # TODO increase the cache size for standard runners
+      run: |
         ${{ env.ARCH_WRAPPER }} brew install ccache
-        ccache --max-size=700M
 
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
@@ -247,10 +222,9 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v4
       with:
-        key: "ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}-\
-          ${{ steps.setup-ccache.outputs.cache-key }}"
+        key: "ccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
         restore-keys: |
-          ccache-${{ runner.os }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ matrix.arch }}
+          ccache-${{ matrix.runs-on }}
         path: ${{ env.CCACHE_DIR }}
 
     - name: Install OpenSSL from Choco
@@ -294,10 +268,6 @@ jobs:
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.workspace }}
-
-    - name: Throttle parallel build processes on arm64
-      if: ${{ runner.os == 'macOS' && matrix.arch == 'arm64' }}
-      run: echo CMAKE_BUILD_PARALLEL_LEVEL=2 >> ${GITHUB_ENV}
 
     - name: Build
       run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
@@ -374,11 +344,18 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
     - name: Check out code
       uses: actions/checkout@v5
+
+      # TODO: find a friendlier approach for installing pip packages on GitHub runners
+    - name: Force pip to allow break-system-packages via pip.conf
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        mkdir -p ~/.pip
+        echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
