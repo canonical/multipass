@@ -31,6 +31,7 @@ from .helpers import (
     path_exists,
     read_file,
     write_file,
+    move_path,
     create_directory,
     get_core_count,
     get_disk_size,
