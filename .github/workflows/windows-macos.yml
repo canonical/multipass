@@ -165,7 +165,7 @@ jobs:
           wget
 
     - name: Install dependencies from pip
-      if: ${{ matrix.runs-on == 'macos-13' }}
+      if: ${{ runner.os == 'macOS' }}
       run: |
         ${ARCH_WRAPPER} python3 -m pip install --user --upgrade distlib
 
