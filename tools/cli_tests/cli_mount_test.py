@@ -425,12 +425,11 @@ class TestMount:
                 or cannot_write
             )
 
-            # verify that they are not present in the guest
-            assert not path_exists(instance, mount_dst / "file1.txt") or cannot_write
-            assert not path_exists(instance, mount_dst / subdir) or cannot_write
+            # verify that they are present in the guest
+            assert path_exists(instance, mount_dst / "file1.txt") or cannot_write
+            assert path_exists(instance, mount_dst / subdir) or cannot_write
             assert (
-                not path_exists(instance, mount_dst / subdir / "file2.txt")
-                or cannot_write
+                path_exists(instance, mount_dst / subdir / "file2.txt") or cannot_write
             )
 
             assert multipass("umount", instance)
