@@ -77,6 +77,93 @@ class TestMount:
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
+    def test_mount_to_specific_target(self, instance, mount_type):
+        with TempDirectory() as mount_src:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            custom_target_path = "/tmp/target-mount-path"
+
+            assert multipass(
+                "mount",
+                "--type",
+                mount_type,
+                str(mount_src),
+                f"{instance}:{custom_target_path}",
+            )
+            assert multipass("start", instance)
+
+            assert mounts(instance) == {
+                custom_target_path: {
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
+                    "source_path": str(mount_src),
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
+                }
+            }
+
+            assert path_exists(instance, custom_target_path)
+            assert multipass("umount", instance)
+            assert mounts(instance) == {}
+
+    def test_mount_same_src_again(self, instance, mount_type):
+        with TempDirectory() as mount_src:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            custom_target_path_1 = "/tmp/target-mount-path-1"
+            custom_target_path_2 = "/tmp/target-mount-path-2"
+            custom_target_path_3 = "/tmp/target-mount-path-3"
+
+            assert multipass(
+                "mount",
+                "--type",
+                mount_type,
+                str(mount_src),
+                f"{instance}:{custom_target_path_1}",
+            )
+
+            assert multipass(
+                "mount",
+                "--type",
+                mount_type,
+                str(mount_src),
+                f"{instance}:{custom_target_path_2}",
+            )
+
+            assert multipass(
+                "mount",
+                "--type",
+                mount_type,
+                str(mount_src),
+                f"{instance}:{custom_target_path_3}",
+            )
+
+            assert multipass("start", instance)
+
+            assert mounts(instance) == {
+                custom_target_path_1: {
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
+                    "source_path": str(mount_src),
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
+                },
+                custom_target_path_2: {
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
+                    "source_path": str(mount_src),
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
+                },
+                custom_target_path_3: {
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
+                    "source_path": str(mount_src),
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
+                },
+            }
+
+            assert path_exists(instance, custom_target_path_1)
+            assert path_exists(instance, custom_target_path_2)
+            assert path_exists(instance, custom_target_path_3)
+            assert multipass("umount", instance)
+            assert mounts(instance) == {}
+
     def test_mount_multiple(self, instance, mount_type):
         with (
             TempDirectory() as mount_src1,
