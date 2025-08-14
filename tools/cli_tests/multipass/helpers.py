@@ -100,6 +100,14 @@ def write_file(vm_name, path, contents):
     )
 
 
+def move_path(vm_name, src, dst):
+    return bool(
+        multipass(
+            "exec", vm_name, "--", "mv", Path(src).as_posix(), Path(dst).as_posix()
+        )
+    )
+
+
 def exec(name, *args, **kwargs):
     """Run the given command inside the instance."""
     return multipass("exec", name, "--", *args, **kwargs)

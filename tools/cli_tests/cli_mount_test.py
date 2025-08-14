@@ -35,6 +35,7 @@ from cli_tests.multipass import (
     create_directory,
     path_exists,
     read_file,
+    move_path,
 )
 
 
@@ -49,6 +50,9 @@ def src_to_dst(src_path):
             return Path(self).as_posix()
 
     yield PosixStrPath("/home") / "ubuntu" / src_path.name
+
+
+# todo: test custom uid/gid maps
 
 
 @pytest.mark.mount
@@ -314,6 +318,65 @@ class TestMount:
             assert not path_exists(instance, expected_file1)
             assert not path_exists(instance, expected_file2)
             assert not path_exists(instance, expected_subdir)
+
+            assert multipass("umount", instance)
+            assert mounts(instance) == {}
+            # NOTE: For some reason, this assert fails where it works fine
+            # for other tests. The only difference I could tell is this test
+            # does some I/O on top of mount.
+            # assert not multipass(
+            #     "exec", instance, "--", "ls", str(instance_target_path)
+            # )
+
+    def test_mount_rename(self, instance, mount_type):
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
+            assert multipass("start", instance)
+
+            assert mounts(instance) == {
+                str(mount_dst): {
+                    "gid_mappings": [f"{default_mount_gid()}:default"],
+                    "source_path": str(mount_src),
+                    "uid_mappings": [f"{default_mount_uid()}:default"],
+                }
+            }
+
+            subdir = Path("subdir1") / "subdir2" / "subdir3"
+
+            assert path_exists(instance, mount_dst)
+            assert write_file(instance, mount_dst / "file1.txt", "hello there")
+            assert create_directory(instance, mount_dst / subdir)
+            assert write_file(instance, mount_dst / subdir / "file2.txt", "hello there")
+
+            assert move_path(
+                instance,
+                mount_dst / subdir / "file2.txt",
+                mount_dst / subdir / "file2_moved.txt",
+            )
+
+            assert not path_exists(instance, mount_dst / subdir / "file2.txt")
+            assert path_exists(instance, mount_dst / subdir / "file2_moved.txt")
+
+            assert move_path(
+                instance, mount_dst / "subdir1", mount_dst / "subdir1_moved"
+            )
+
+            assert not path_exists(instance, mount_dst / subdir)
+            assert not path_exists(instance, mount_dst / subdir / "file2.txt")
+            assert path_exists(instance, mount_dst / "file1.txt")
+            assert path_exists(instance, mount_dst / mount_dst / "subdir1_moved")
+            assert path_exists(
+                instance,
+                mount_dst
+                / mount_dst
+                / "subdir1_moved"
+                / "subdir2"
+                / "subdir3"
+                / "file2_moved.txt",
+            )
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
