@@ -188,8 +188,10 @@ code injection (now or in the future).
 
 #### Helper tools
 
-- Consider setting your commit template to the .gitmessage file in the repository root.
+- Consider setting your commit template to the .gitmessage file in the repository root:
+  * `git config --local commit.template .gitmessage`
 - Consider adding the commit-msg file in the repository root as a git hook (in .git/hooks)
+  * `ln -s ../../git-hooks/commit-msg.py .git/hooks/commit-msg`
 
 ### Dependencies (DEP)
 
