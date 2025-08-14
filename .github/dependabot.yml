@@ -7,3 +7,10 @@ updates:
     # Check the vcpkg registry for updates every day (weekdays)
     schedule:
       interval: "daily"
+  # Enable version updates for selected git submodules
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    allow:
+      - dependency-name: "3rd-party/vcpkg"
+    schedule:
+      interval: "daily"
