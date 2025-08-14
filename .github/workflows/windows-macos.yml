@@ -148,6 +148,11 @@ jobs:
           python \
           wget
 
+    - name: Install dependencies from pip
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade distlib
+
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v3
