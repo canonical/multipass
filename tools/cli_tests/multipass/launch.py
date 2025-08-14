@@ -53,7 +53,7 @@ def launch(cfg_override=None):
 
     logging.debug(f"launch_new_instance: {cfg}")
 
-    assert multipass(
+    with multipass(
         "launch",
         "--cpus",
         cfg["cpus"],
@@ -65,7 +65,8 @@ def launch(cfg_override=None):
         cfg["name"],
         cfg["image"],
         retry=cfg["retry"],
-    )
+    ) as launch_r:
+        assert launch_r, f"Failed to launch VM `{cfg['name']}`: {str(launch_r)}"
 
     class VMHandle(str):
         """String-like handle (the instance name) exposing config as attributes."""
@@ -88,4 +89,6 @@ def launch(cfg_override=None):
     assert state(cfg["name"]) == "Running"
     yield VMHandle(cfg)
     if cfg["autopurge"]:
-        assert multipass("delete", cfg["name"], "--purge") or not cfg["assert"]["purge"]
+        with multipass("delete", cfg["name"], "--purge") as result:
+            if cfg["assert"]["purge"]:
+                assert result, f"Failed to purge VM `{cfg['name']}`: {str(result)}"
