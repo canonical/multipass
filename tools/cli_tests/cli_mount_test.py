@@ -362,15 +362,13 @@ class TestMount:
                 or cannot_write
             )
 
-            # Verify that created files exits in host
-            expected_subdir = mount_src / subdir
-            expected_file1 = mount_src / "file1.txt"
-            expected_file2 = expected_subdir / "file2.txt"
-
             # verify that they are not present in the guest
-            assert not path_exists(instance, expected_file1) or cannot_write
-            assert not path_exists(instance, expected_file2) or cannot_write
-            assert not path_exists(instance, expected_subdir) or cannot_write
+            assert not path_exists(instance, mount_dst / "file1.txt") or cannot_write
+            assert not path_exists(instance, mount_dst / subdir) or cannot_write
+            assert (
+                not path_exists(instance, mount_dst / subdir / "file2.txt")
+                or cannot_write
+            )
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
