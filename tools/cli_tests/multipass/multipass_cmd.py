@@ -113,7 +113,6 @@ def multipass(*args, **kwargs):
             def __init__(self, command, args, **kwargs):
                 super().__init__([command, *map(str, args)], **kwargs)
 
-
             def isalive(self):
                 return self.proc.poll() is None
 
@@ -211,7 +210,10 @@ def multipass(*args, **kwargs):
                     self.pexpect_child.terminate()
 
         def __call__(self):
-            return Output(self.output_text, self.pexpect_child.exitstatus)
+            return Output(
+                self.output_text,
+                self.pexpect_child.exitstatus,
+            )
 
         def __enter__(self):
             return self.__call__()

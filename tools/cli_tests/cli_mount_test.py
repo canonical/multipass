@@ -20,6 +20,7 @@
 
 import os
 from pathlib import Path
+from contextlib import contextmanager
 
 import pytest
 
@@ -33,11 +34,21 @@ from cli_tests.multipass import (
     write_file,
     create_directory,
     path_exists,
+    read_file,
 )
 
 
-def expected_mount_dir(src_dir_name):
-    return Path("/home") / "ubuntu" / src_dir_name
+@contextmanager
+def src_to_dst(src_path):
+    class PosixStrPath(Path):
+        """To ensure that VM paths are stringified as POSIX paths."""
+
+        def __str__(self):
+            # Calling as_posix() from self leads to recursion since it depends
+            # on __str__
+            return Path(self).as_posix()
+
+    yield PosixStrPath("/home") / "ubuntu" / src_path.name
 
 
 @pytest.mark.mount
@@ -47,66 +58,71 @@ class TestMount:
     """Virtual machine mount tests."""
 
     def test_mount(self, instance, mount_type):
-        with TempDirectory() as mount_dir:
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
 
-            assert multipass("mount", "--type", mount_type, str(mount_dir), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
             assert multipass("start", instance)
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir.name}": {
+                str(mount_dst): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir),
+                    "source_path": str(mount_src),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
-            assert path_exists(instance, expected_mount_dir(mount_dir.name))
+            assert path_exists(instance, mount_dst)
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
     def test_mount_multiple(self, instance, mount_type):
-        with TempDirectory() as mount_dir1, TempDirectory() as mount_dir2:
+        with (
+            TempDirectory() as mount_src1,
+            src_to_dst(mount_src1) as mount_dst1,
+            TempDirectory() as mount_src2,
+            src_to_dst(mount_src2) as mount_dst2,
+        ):
             if mount_type == "native":
                 assert multipass("stop", instance)
 
-            assert multipass("mount", "--type", mount_type, str(mount_dir1), instance)
-            assert multipass("mount", "--type", mount_type, str(mount_dir2), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_src1), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_src2), instance)
             assert multipass("start", instance)
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir1.name}": {
+                str(mount_dst1): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir1),
+                    "source_path": str(mount_src1),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
-                f"/home/ubuntu/{mount_dir2.name}": {
+                str(mount_dst2): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir2),
+                    "source_path": str(mount_src2),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
 
-            assert path_exists(instance, expected_mount_dir(mount_dir1.name))
-            assert path_exists(instance, expected_mount_dir(mount_dir2.name))
+            assert path_exists(instance, mount_dst1)
+            assert path_exists(instance, mount_dst2)
 
             assert multipass(
                 "umount",
-                f"{instance}:/home/ubuntu/{mount_dir1.name}",
+                f"{instance}:{str(mount_dst1)}",
             )
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir2.name}": {
+                str(mount_dst2): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir2),
+                    "source_path": str(mount_src2),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
 
             assert multipass(
                 "umount",
-                f"{instance}:/home/ubuntu/{mount_dir2.name}",
+                f"{instance}:{str(mount_dst2)}",
             )
 
             assert mounts(instance) == {}
@@ -120,35 +136,46 @@ class TestMount:
             #     "exec", instance, "--", "ls", f"/home/ubuntu/{mount_dir2.name}"
             # )
 
-    def test_mount_restart(self, multipassd, instance, mount_type):
-        with TempDirectory() as mount_dir:
+    @pytest.mark.parametrize("restart_type", ["vm", "daemon"])
+    def test_mount_restart(self, multipassd, instance, mount_type, restart_type):
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
 
-            assert multipass("mount", "--type", mount_type, str(mount_dir), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
             assert multipass("start", instance)
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir.name}": {
+                str(mount_dst): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir),
+                    "source_path": str(mount_src),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
-            assert path_exists(instance, expected_mount_dir(mount_dir.name))
+            assert path_exists(instance, mount_dst)
+            assert write_file(instance, mount_dst / "test_file.txt", "mount doom")
+            assert path_exists(instance, mount_dst / "test_file.txt")
+            assert (mount_src / "test_file.txt").read_text() == "mount doom\n"
 
-            multipassd.restart()
+            if restart_type == "daemon":
+                multipassd.restart()
+            elif restart_type == "vm":
+                assert multipass("restart", instance)
+            else:
+                pytest.fail(f"Unknown restart type {restart_type}")
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir.name}": {
+                str(mount_dst): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir),
+                    "source_path": str(mount_src),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
-            assert path_exists(instance, expected_mount_dir(mount_dir.name))
+            assert path_exists(instance, mount_dst)
+            assert path_exists(instance, mount_dst / "test_file.txt")
+            assert read_file(instance, mount_dst / "test_file.txt") == "mount doom"
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
@@ -159,39 +186,31 @@ class TestMount:
             # )
 
     def test_mount_modify(self, instance, mount_type):
-        with TempDirectory() as mount_dir:
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
 
-            assert multipass("mount", "--type", mount_type, str(mount_dir), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
             assert multipass("start", instance)
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir.name}": {
+                str(mount_dst): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir),
+                    "source_path": str(mount_src),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
-            instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
-            assert path_exists(instance, instance_target_path)
-
-            assert write_file(
-                instance, instance_target_path / "file1.txt", "hello there"
-            )
-
-            assert create_directory(instance, instance_target_path / subdir)
-
-            assert write_file(
-                instance, instance_target_path / subdir / "file2.txt", "hello there"
-            )
+            assert path_exists(instance, mount_dst)
+            assert write_file(instance, mount_dst / "file1.txt", "hello there")
+            assert create_directory(instance, mount_dst / subdir)
+            assert write_file(instance, mount_dst / subdir / "file2.txt", "hello there")
 
             # Verify that created files exits in host
-            expected_subdir = mount_dir / subdir
-            expected_file1 = mount_dir / "file1.txt"
+            expected_subdir = mount_src / subdir
+            expected_file1 = mount_src / "file1.txt"
             expected_file2 = expected_subdir / "file2.txt"
             assert expected_file1.read_text() == "hello there\n"
             assert expected_file2.read_text() == "hello there\n"
@@ -219,52 +238,46 @@ class TestMount:
             # )
 
     def test_mount_readonly(self, instance, mount_type):
-        with TempDirectory() as mount_dir:
-            os.chmod(mount_dir, 0o444)
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
+            os.chmod(mount_src, 0o444)
 
             if mount_type == "native":
                 assert multipass("stop", instance)
 
-            assert multipass("mount", "--type", mount_type, str(mount_dir), instance)
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
             assert multipass("start", instance)
 
             assert mounts(instance) == {
-                f"/home/ubuntu/{mount_dir.name}": {
+                str(mount_dst): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
-                    "source_path": str(mount_dir),
+                    "source_path": str(mount_src),
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 }
             }
 
-            instance_target_path = Path("/home") / "ubuntu" / mount_dir.name
             subdir = Path("subdir1") / "subdir2" / "subdir3"
 
             # Native mounts shouldn't allow write to read-only targets.
             # At least it's the case with the QEMU native mounts.
             cannot_write = mount_type == "native"
 
-            assert path_exists(instance, instance_target_path)
+            assert path_exists(instance, mount_dst)
 
             assert (
-                write_file(instance, instance_target_path / "file1.txt", "hello there")
+                write_file(instance, mount_dst / "file1.txt", "hello there")
                 or cannot_write
             )
 
-            assert (
-                create_directory(instance, instance_target_path / subdir)
-                or cannot_write
-            )
+            assert create_directory(instance, mount_dst / subdir) or cannot_write
 
             assert (
-                write_file(
-                    instance, instance_target_path / subdir / "file2.txt", "hello there"
-                )
+                write_file(instance, mount_dst / subdir / "file2.txt", "hello there")
                 or cannot_write
             )
 
             # Verify that created files exits in host
-            expected_subdir = mount_dir / subdir
-            expected_file1 = mount_dir / "file1.txt"
+            expected_subdir = mount_src / subdir
+            expected_file1 = mount_src / "file1.txt"
             expected_file2 = expected_subdir / "file2.txt"
 
             # verify that they are not present in the guest
