@@ -154,8 +154,8 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
 
     handle_ssh_events();
 
-    int exit_status = -1;
-    int exit_signal_status = 0;
+    uint32_t exit_status = static_cast<uint32_t>(-1);
+    char* exit_signal_status = nullptr;
     int result = ssh_channel_get_exit_state(channel.get(), &exit_status, &exit_signal_status);
     
     switch (result) {
