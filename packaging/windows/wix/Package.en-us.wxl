@@ -3,7 +3,7 @@ This file contains the declaration of all the localizable strings.
 -->
 <WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en-US">
     <String Id="WelcomeDlgDescription"
-        Value="[ProductName]: Ubuntu at your fingertips.&#13;&#13;Welcome to the [ProductName] installer. This will set up [ProductName] on your computer.&#13;&#13;[ProductName] gives you Ubuntu VMs in seconds. Just run `multipass launch` and it'll do all the setup for you.&#13;&#13;For more information, visit https://canonical.com/multipass/&#13;&#13;&#13;You will be guided through the steps necessary to install this software." />
+        Value="[ProductName]: Cloud VMs at your fingertips.&#13;&#13;Welcome to the [ProductName] installer. This will set up [ProductName] on your computer.&#13;&#13;[ProductName] gives you cloud VMs in seconds. Just run `multipass launch` and it'll do all the setup for you.&#13;&#13;For more information, visit https://canonical.com/multipass/&#13;&#13;&#13;You will be guided through the steps necessary to install this software." />
     <String Id="FeatureUpdateReqd"
         Value="This application requires Windows 10 Version 1803 (April 2018 Update) or later." />
 

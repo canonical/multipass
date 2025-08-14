@@ -473,7 +473,7 @@ TEST_F(ImageVault, usesImageFromPrepare)
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, source_image.id, "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{hosts,
@@ -506,7 +506,7 @@ TEST_F(ImageVault, imagePurgedExpired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, source_image.id, "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly,
                                       default_query,
@@ -535,7 +535,7 @@ TEST_F(ImageVault, imageExistsNotExpired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, source_image.id, "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly,
                                       default_query,

@@ -53,7 +53,7 @@ struct LibVirtBackend : public Test
                                                       "",
                                                       {},
                                                       "ubuntu",
-                                                      {dummy_image.name(), "", "", "", "", {}},
+                                                      {dummy_image.name(), "", "", "", "", "", {}},
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},

@@ -184,9 +184,9 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
         fmt::format_to(std::back_inserter(buf),
                        "{}{}\n",
                        instance_details.id().substr(0, 12),
-                       !instance_details.image_release().empty()
-                           ? fmt::format(" (Ubuntu {})", instance_details.image_release())
-                           : "");
+                       instance_details.image_release().empty()
+                           ? ""
+                           : fmt::format(" ({})", instance_details.image_release()));
 
     fmt::format_to(std::back_inserter(buf),
                    "{:<16}{}\n",
@@ -304,9 +304,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                        state_column_width,
                        ipv4_size ? instance.ipv4(0) : "--",
                        ip_column_width,
-                       instance.current_release().empty()
-                           ? "Not Available"
-                           : fmt::format("Ubuntu {}", instance.current_release()));
+                       instance.current_release().empty() ? "Not Available"
+                                                          : instance.current_release());
 
         for (int i = 1; i < ipv4_size; ++i)
         {
