@@ -82,7 +82,7 @@ Name                    State             IPv4             Image
 dancing-chipmunk        Running           192.168.64.8     Ubuntu 24.04 LTS
 phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
 docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
-                                          172.17.0.1               
+                                          172.17.0.1
 ```
 
 ## Learn more about an instance
@@ -147,7 +147,7 @@ Name                    State             IPv4             Image
 dancing-chipmunk        Deleted           --               Ubuntu 24.04 LTS
 phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
 docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
-                                          172.17.0.1               
+                                          172.17.0.1
 ```
 
 If you want to completely get rid of it:
@@ -171,14 +171,30 @@ before contributing to the project. <!-- TODO: link to guidelines -->
 
 ## Building Multipass
 
-For build instructions, please refer to the following files:
+Please follow the platform-specific build instructions in the files below:
 
-- [BUILD.linux.md](BUILD.linux.md) for Linux
-- [BUILD.macOS.md](BUILD.macOS.md) for macOS
-- [BUILD.windows.md](BUILD.windows.md) for Windows
+* [BUILD.linux.md](./BUILD.linux.md) for Linux
+* [BUILD.macOS.md](./BUILD.macOS.md) for macOS
+* [BUILD.windows.md](./BUILD.windows.md) for Windows
 
-Please report any outdated information or inconsistencies in these files. Or, even better, submit a pull request with
-the changes! Our CI setup is also a good reference for building and testing Multipass.
+### Generic build tips
+
+**Qt version compatibility**
+Multipass is tested with **Qt 6.2.4**. Newer patch versions along the 6.2 track (e.g. 6.2.8) should be fine. Newer minor versions may work, but they may cause compatibility issues.
+
+**ARM64 and cross-compilation**
+If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH` and `CMAKE_PREFIX_PATH` environment variables point to the correct Qt installation for your system architecture.
+
+You may use your preferred package manager to install Multipass.
+Note that only the official installers are supported.
+See the [installation guide](https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/install-multipass/) for details.
+
+For backend support and system requirements, refer to the
+[Multipass driver documentation](https://documentation.ubuntu.com/multipass/en/latest/explanation/driver/).
+
+If you notice outdated information or inconsistencies in these files, please [open an issue](https://github.com/canonical/multipass/issues) or, even better, submit a pull request!
+
+You can also reference our [GitHub Actions CI](https://github.com/canonical/multipass/actions) to see how Multipass is built and tested across platforms.
 
 ### Automatic linker selection
 
