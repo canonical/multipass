@@ -48,6 +48,18 @@ jobs:
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage
 
+    - name: Add Flutter to $PATH
+      run: |
+        echo "$GITHUB_WORKSPACE/3rd-party/flutter/bin" >> $GITHUB_PATH
+
+    - name: Install Dart analysis tools
+      run: |
+        dart pub global activate cobertura
+
+    - name: Install Flutter deps
+      working-directory: src/client/gui
+      run: flutter pub get
+
     - name: BuildAndTest
       run: |
         cmake --build ${{ env.BUILD_DIR }} \
@@ -65,13 +77,6 @@ jobs:
               --object-directory ${{ env.BUILD_DIR }} \
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
               --gcov-ignore-parse-errors
-
-    - name: Install Dart
-      uses: dart-lang/setup-dart@v1
-
-    - name: Install Dart analysis tools
-      run: |
-        dart pub global activate cobertura
 
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
