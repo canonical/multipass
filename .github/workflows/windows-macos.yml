@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check Lint Status
         id: check-lint
@@ -109,7 +109,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
@@ -378,7 +378,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
