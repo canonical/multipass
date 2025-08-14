@@ -54,14 +54,14 @@
 #include <WS2tcpip.h>
 #include <WinSock2.h>
 #include <aclapi.h>
-#include <sddl.h>
-#include <shlobj_core.h>
 #include <in6addr.h>
 #include <inaddr.h>
 #include <iphlpapi.h>
 #include <netioapi.h>
 #include <objbase.h>
 #include <sddl.h>
+#include <shlobj_core.h>
+
 // clang-format off
 #include <security.h>
 #include <secext.h>
