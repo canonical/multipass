@@ -73,6 +73,7 @@ namespace mpu = multipass::utils;
 namespace
 {
 static const auto none = QStringLiteral("none");
+static constexpr auto kLogCategory = "platform-win";
 
 time_t time_t_from(const FILETIME* ft)
 {
@@ -690,7 +691,12 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
-    return -1;
+    logging::trace(kLogCategory,
+                   "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
+                   path,
+                   uid,
+                   gid);
+    return 0;
 }
 
 // new_ACL returns a new ACL unique ptr that retains all existing Hyper-V ACEs or NULL if no entries
