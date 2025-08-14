@@ -429,7 +429,6 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
     constexpr GET_VIRTUAL_DISK_INFO_VERSION what_to_get[] = {
         GET_VIRTUAL_DISK_INFO_SIZE,
         GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE,
-        // GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
         GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE};
 
     for (const auto version : what_to_get)

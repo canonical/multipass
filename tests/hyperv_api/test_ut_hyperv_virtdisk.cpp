@@ -587,21 +587,21 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
                         VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
                 },
                 Return(ERROR_SUCCESS)))
-            .WillOnce(DoAll(
-                [](HANDLE VirtualDiskHandle,
-                   PULONG VirtualDiskInfoSize,
-                   PGET_VIRTUAL_DISK_INFO VirtualDiskInfo,
-                   PULONG SizeUsed) {
-                    ASSERT_EQ(mock_handle_object, VirtualDiskHandle);
-                    ASSERT_NE(nullptr, VirtualDiskInfoSize);
-                    ASSERT_EQ(sizeof(GET_VIRTUAL_DISK_INFO), *VirtualDiskInfoSize);
-                    ASSERT_NE(nullptr, VirtualDiskInfo);
-                    ASSERT_EQ(nullptr, SizeUsed);
-                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
-                              VirtualDiskInfo->Version);
-                    VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
-                },
-                Return(ERROR_SUCCESS)))
+            // .WillOnce(DoAll(
+            //     [](HANDLE VirtualDiskHandle,
+            //        PULONG VirtualDiskInfoSize,
+            //        PGET_VIRTUAL_DISK_INFO VirtualDiskInfo,
+            //        PULONG SizeUsed) {
+            //         ASSERT_EQ(mock_handle_object, VirtualDiskHandle);
+            //         ASSERT_NE(nullptr, VirtualDiskInfoSize);
+            //         ASSERT_EQ(sizeof(GET_VIRTUAL_DISK_INFO), *VirtualDiskInfoSize);
+            //         ASSERT_NE(nullptr, VirtualDiskInfo);
+            //         ASSERT_EQ(nullptr, SizeUsed);
+            //         ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
+            //                   VirtualDiskInfo->Version);
+            //         VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
+            //     },
+            //     Return(ERROR_SUCCESS)))
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    PULONG VirtualDiskInfoSize,
@@ -632,7 +632,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
         ASSERT_TRUE(status_msg.empty());
 
         ASSERT_TRUE(info.size.has_value());
-        ASSERT_TRUE(info.smallest_safe_virtual_size.has_value());
+        // ASSERT_TRUE(info.smallest_safe_virtual_size.has_value());
         ASSERT_TRUE(info.provider_subtype.has_value());
         ASSERT_TRUE(info.virtual_storage_type.has_value());
 
@@ -642,7 +642,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
         ASSERT_EQ(info.size->sector, 4444444);
 
         ASSERT_STREQ(info.virtual_storage_type.value().c_str(), "vhdx");
-        ASSERT_EQ(info.smallest_safe_virtual_size.value(), 123456);
+        // ASSERT_EQ(info.smallest_safe_virtual_size.value(), 123456);
         ASSERT_STREQ(info.provider_subtype.value().c_str(), "dynamic");
     }
 }
@@ -699,6 +699,21 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
                 },
                 Return(ERROR_SUCCESS)))
             .WillOnce(Return(ERROR_INVALID_PARAMETER))
+            // .WillOnce(DoAll(
+            //     [](HANDLE VirtualDiskHandle,
+            //        PULONG VirtualDiskInfoSize,
+            //        PGET_VIRTUAL_DISK_INFO VirtualDiskInfo,
+            //        PULONG SizeUsed) {
+            //         ASSERT_EQ(mock_handle_object, VirtualDiskHandle);
+            //         ASSERT_NE(nullptr, VirtualDiskInfoSize);
+            //         ASSERT_EQ(sizeof(GET_VIRTUAL_DISK_INFO), *VirtualDiskInfoSize);
+            //         ASSERT_NE(nullptr, VirtualDiskInfo);
+            //         ASSERT_EQ(nullptr, SizeUsed);
+            //         ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
+            //                   VirtualDiskInfo->Version);
+            //         VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
+            //     },
+            //     Return(ERROR_SUCCESS)))
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    PULONG VirtualDiskInfoSize,
@@ -709,22 +724,18 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
                     ASSERT_EQ(sizeof(GET_VIRTUAL_DISK_INFO), *VirtualDiskInfoSize);
                     ASSERT_NE(nullptr, VirtualDiskInfo);
                     ASSERT_EQ(nullptr, SizeUsed);
-                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE,
-                              VirtualDiskInfo->Version);
-                    VirtualDiskInfo->SmallestSafeVirtualSize = 123456;
+                    ASSERT_EQ(GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE, VirtualDiskInfo->Version);
+                    VirtualDiskInfo->ProviderSubtype = 3; // dynamic
                 },
-                Return(ERROR_SUCCESS)))
-            .WillOnce(Return(ERROR_INVALID_PARAMETER));
+                Return(ERROR_SUCCESS)));
 
         EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
-        logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_virtual_disk(...) > vhdx_path: test.vhdx");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
         logger_scope.mock_logger->expect_log(mpl::Level::warning,
                                              "get_virtual_disk_info(...) > failed to get 6");
-        logger_scope.mock_logger->expect_log(mpl::Level::warning,
-                                             "get_virtual_disk_info(...) > failed to get 7");
     }
 
     {
@@ -736,15 +747,16 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
 
         ASSERT_TRUE(info.size.has_value());
         ASSERT_FALSE(info.virtual_storage_type.has_value());
-        ASSERT_TRUE(info.smallest_safe_virtual_size.has_value());
-        ASSERT_FALSE(info.provider_subtype.has_value());
+        // ASSERT_TRUE(info.smallest_safe_virtual_size.has_value());
+        ASSERT_TRUE(info.provider_subtype.has_value());
 
         ASSERT_EQ(info.size->virtual_, 1111111);
         ASSERT_EQ(info.size->block, 2222222);
         ASSERT_EQ(info.size->physical, 3333333);
         ASSERT_EQ(info.size->sector, 4444444);
 
-        ASSERT_EQ(info.smallest_safe_virtual_size.value(), 123456);
+        ASSERT_STREQ(info.provider_subtype.value().c_str(), "dynamic");
+        // ASSERT_EQ(info.smallest_safe_virtual_size.value(), 123456);
     }
 }
 
