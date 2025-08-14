@@ -69,16 +69,9 @@ def path_exists(vm_name, *paths):
 
 def read_file(vm_name, path):
     """Read the given file from the instance and return its contents as a string."""
-    return str(
-        multipass(
-            "exec",
-            vm_name,
-            "--",
-            "cat",
-            Path(path).as_posix(),
-            timeout=180,
-        )
-    )
+    return multipass(
+        "exec", vm_name, "--", "cat", Path(path).as_posix(), timeout=180
+    ).content
 
 
 def create_directory(vm_name, path):
