@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Enable version updates for vcpkg
+  - package-ecosystem: "vcpkg"
+    # Look for `vcpkg.json` file in the root directory
+    directory: "/"
+    # Check the vcpkg registry for updates every day (weekdays)
+    schedule:
+      interval: "daily"
