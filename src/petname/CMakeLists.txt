@@ -14,25 +14,54 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-set(PETNAME_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/petname)
-set(PETNAME_GENERATED_HEADER ${PETNAME_GENERATED_SOURCE_DIR}/names.h)
-file(MAKE_DIRECTORY ${PETNAME_GENERATED_SOURCE_DIR})
+# Build the petname Rust crate as a standalone library
+if(WIN32)
+  set(RUST_LIB_NAME "multipass_petname.lib")
+  set(CARGO_PATH_ENV "PATH=%USERPROFILE%\\.cargo\\bin;$ENV{PATH}")
+else()
+  set(RUST_LIB_NAME "libmultipass_petname.a")
+  set(CARGO_PATH_ENV "PATH=$ENV{HOME}/.cargo/bin:$ENV{PATH}")
+endif()
 
-add_executable(text_to_string_array
-  text_to_string_array.cpp)
+# Set the target directory for this specific crate
+set(PETNAME_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/petname-target)
+set(PETNAME_CRATE_DIR ${CMAKE_SOURCE_DIR}/crates/petname)
 
 add_custom_command(
-  OUTPUT "${PETNAME_GENERATED_HEADER}"
-  COMMAND $<TARGET_FILE:text_to_string_array>
-  ARGS ${CMAKE_CURRENT_SOURCE_DIR}/adjectives.txt ${CMAKE_CURRENT_SOURCE_DIR}/adverbs.txt
-       ${CMAKE_CURRENT_SOURCE_DIR}/names.txt ${PETNAME_GENERATED_HEADER}
-  DEPENDS text_to_string_array
-  COMMENT "Converting petnames to c++ header"
+  OUTPUT
+    ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME}
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.h
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.cc
+  COMMAND ${CMAKE_COMMAND} -E env "${CARGO_PATH_ENV}"
+    cargo build --release --manifest-path ${PETNAME_CRATE_DIR}/Cargo.toml --target-dir ${PETNAME_TARGET_DIR}
+  DEPENDS
+    ${PETNAME_CRATE_DIR}/Cargo.toml
+    ${PETNAME_CRATE_DIR}/src/lib.rs
+    ${PETNAME_CRATE_DIR}/build.rs
+    ${CMAKE_SOURCE_DIR}/src/petname/adjectives.txt
+    ${CMAKE_SOURCE_DIR}/src/petname/adverbs.txt
+    ${CMAKE_SOURCE_DIR}/src/petname/names.txt
+  COMMENT "Building petname Rust crate"
   VERBATIM)
 
-set_source_files_properties(${PETNAME_GENERATED_HEADER} PROPERTIES GENERATED TRUE)
+# Create a target for the petname Rust library
+add_custom_target(multipass_petname_crate ALL
+  DEPENDS
+    ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME}
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.h
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.cc)
 
-add_library(petname STATIC
-  ${PETNAME_GENERATED_HEADER}
-  petname.cpp
-  make_name_generator.cpp)
+# Create an interface library that links the petname Rust static library
+add_library(petname INTERFACE)
+target_include_directories(petname INTERFACE
+  ${PETNAME_TARGET_DIR}/cxxbridge
+  ${PETNAME_TARGET_DIR}/cxxbridge/rust)
+target_link_libraries(petname INTERFACE ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME})
+
+# On Windows, link required system libraries for Rust std
+if(WIN32)
+  target_link_libraries(petname INTERFACE ntdll ws2_32 userenv bcrypt)
+endif()
+
+# Add the Rust library as a dependency for the petname library
+add_dependencies(petname multipass_petname_crate)

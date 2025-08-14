@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "crates/petname",
+    # Future oxidized modules will be added here:
+    # "crates/utils",
+    # "crates/network",
+    # etc.
+]
+
+# Root workspace configuration
+[workspace.dependencies]
+cxx = "1.0"
+rand = "0.8"
+
+[workspace.dependencies.cxx-build]
+version = "1.0"

@@ -92,7 +92,6 @@ add_executable(multipass_tests
   test_new_release_monitor.cpp
   test_output_formatter.cpp
   test_persistent_settings_handler.cpp
-  test_petname.cpp
   test_private_pass_provider.cpp
   test_qemuimg_process_spec.cpp
   test_remote_settings_handler.cpp

@@ -1,13 +1,30 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include "multipass/dart_ffi.h"
 #include "multipass/cli/client_common.h"
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
-#include "multipass/name_generator.h"
 #include "multipass/platform.h"
 #include "multipass/settings/settings.h"
 #include "multipass/standard_paths.h"
 #include "multipass/utils.h"
 #include "multipass/version.h"
+#include <multipass-petname/src/lib.rs.h>
 
 #include <QStorageInfo>
 
@@ -32,9 +49,10 @@ char* generate_petname()
     static constexpr auto error = "failed generating petname";
     try
     {
-        static mp::NameGenerator::UPtr generator = mp::make_default_name_generator();
-        const auto name = generator->make_name();
-        return strdup(name.c_str());
+        static rust::Box<multipass::petname::Petname> generator =
+            multipass::petname::new_petname(2, "-");
+        const auto name = multipass::petname::make_name(*generator);
+        return strdup(std::string(name).c_str());
     }
     catch (const std::exception& e)
     {
