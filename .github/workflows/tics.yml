@@ -66,8 +66,9 @@ jobs:
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
               --gcov-ignore-parse-errors
 
-    - name: Install Dart
-      uses: dart-lang/setup-dart@v1
+    - name: Add Flutter to $PATH
+      run: |
+        echo "$GITHUB_WORKSPACE/3rd-party/flutter/bin" >> $GITHUB_PATH
 
     - name: Install Dart analysis tools
       run: |
