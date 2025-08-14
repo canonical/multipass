@@ -339,6 +339,8 @@ TEST_F(TestDaemonMount, mountUsesResolvedSource)
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     // setup to make the daemon happy
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, setStaleLockTime, FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, tryLock, FileOps);
     MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, mkpath, FileOps);
     MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, commit, FileOps);
     MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*mock_file_ops,

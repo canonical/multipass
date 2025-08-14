@@ -171,6 +171,16 @@ bool mp::FileOps::commit(QSaveFile& file) const
     return file.commit();
 }
 
+void mp::FileOps::setStaleLockTime(QLockFile& lock, std::chrono::milliseconds time) const
+{
+    lock.setStaleLockTime(time);
+}
+
+bool mp::FileOps::tryLock(QLockFile& lock, std::chrono::milliseconds timeout) const
+{
+    return lock.tryLock(timeout);
+}
+
 std::unique_ptr<mp::NamedFd> mp::FileOps::open_fd(const fs::path& path, int flags, int perms) const
 {
     const auto fd = ::open(path.string().c_str(), flags | O_BINARY, perms);
