@@ -16,13 +16,14 @@ mkdir -p ${3}usr/local/bin
 ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass" "${3}usr/local/bin/multipass"
 
 ### Set up symlink for bash competions
-# If HomeBrew installed (only looking for default path)
+# If Homebrew installed (only looking for default path)
+export PATH="${3}opt/homebrew/bin:$PATH"
 if [ -d "${3}$(brew --prefix)/etc/bash_completion.d" ]; then
     ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/bash/multipass" \
             "${3}$(brew --prefix)/etc/bash_completion.d/multipass"
-    echo "Installed Bash completion file for HomeBrew"
+    echo "Installed Bash completion file for Homebrew"
 else
-    echo "HomeBrew is not installed"
+    echo "Homebrew is not installed"
 fi
 
 # If MacPorts installed
