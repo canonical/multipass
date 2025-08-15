@@ -56,7 +56,7 @@ class MultipassdGovernor:
         return {
             r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?",
             r'.*Failed to get shared "write" lock': "Cannot open an image file for writing, is another process holding a write lock?",
-            r'.*Only one usage of each socket address': "Could not bind gRPC port -- is there another daemon process running?"
+            r".*Only one usage of each socket address": "Could not bind gRPC port -- is there another daemon process running?",
         }
 
     async def _read_stream(self):
@@ -251,8 +251,10 @@ class MultipassdGovernor:
         # Restart events are opaque to us when the controller supports
         # self auto-restart. We need to ensure that the daemon is ready, though.
         if self.controller.supports_self_autorestart():
-            # FIXME: Find a better solution to this
-            time.sleep(10)
+            self.asyncio_loop.run(self.controller.wait_for_self_autorestart()).result()
+            logging.info("multipassd-governor :: daemon auto-restart detected")
+            # Wait until daemon is ready
+            self.asyncio_loop.run(self.wait_for_multipassd_ready()).result()
             return
         self.wait_for_shutdown(timeout=timeout)
         self.wait_for_start(timeout=timeout)
