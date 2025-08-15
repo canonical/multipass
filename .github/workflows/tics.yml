@@ -94,7 +94,7 @@ jobs:
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
       with:
-        mode: diagnostic
+        mode: qserver
         project: multipass
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
