@@ -360,6 +360,11 @@ def multipassd(store_config):
         yield daemon
 
 
+@pytest.fixture
+def feat_snapshot(store_config):
+    yield config.driver != "lxd"
+
+
 @pytest.fixture(scope="class")
 def multipassd_class_scoped(store_config, request):
     with multipassd_impl() as daemon:
