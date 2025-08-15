@@ -19,13 +19,27 @@
 import re
 
 from cli_tests.multipass.cmd_json_output import JsonOutput
+from cli_tests.config import config
+
+
+def strip_lxd_deprecation_notice(text: str) -> str:
+    # Remove both parts in sequence
+    return re.sub(
+        r"\*\*\* Warning! The .*? driver is deprecated.*?remain in LXD\.\n\n",
+        "",
+        text,
+        flags=re.S,
+    )
 
 
 class Output:
     """A type to store text command output."""
 
     def __init__(self, content, exitstatus):
-        self.content = content.strip()
+        if config.driver == "lxd":
+            content = strip_lxd_deprecation_notice(content)
+
+        self.content = content
         self.exitstatus = exitstatus
 
     def __contains__(self, pattern):
