@@ -20,11 +20,16 @@ import json
 
 import jq
 
+from cli_tests.config import config
+
 
 class JsonOutput(dict):
     """A type to store JSON command output."""
 
     def __init__(self, content, exitstatus):
+        if config.driver == "lxd":
+            # Strip the deprecation notice
+            content = content[content.find("{") :]
         self.content = content.strip()
         self.exitstatus = exitstatus
         try:
