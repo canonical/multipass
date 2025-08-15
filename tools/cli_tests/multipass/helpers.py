@@ -28,14 +28,26 @@ from .multipass_cmd import multipass
 def _retrieve_info_field(name, key):
     """Run `multipass info` for the given instance and return the specified field from the JSON output."""
     with multipass("info", "--format=json", f"{name}").json() as output:
-        assert output
+        assert output, (
+            f"_retrieve_info_field({name}, {key}) failed ({output.exitstatus}): {str(output)}"
+        )
+        assert "info" in output, (
+            f"`info` output does not contain `info` key!: {str(output)}"
+        )
+
+        assert name in output["info"], (
+            f"`info` output does not contain `{name}` key: {str(output)}"
+        )
+        assert key in output["info"][name], (
+            f"`info[{name}]` output does not contain `{key}` key: {str(output)}"
+        )
         return output["info"][name][key]
 
 
 def debug_interactive_shell(name):
     """Open an interactive shell session inside the instance for debugging."""
-    with multipass("shell", name, interactive=True) as shell:
-        shell.interact()
+    with multipass("shell", name, interactive=True) as sh:
+        sh.interact()
 
 
 def state(name):
