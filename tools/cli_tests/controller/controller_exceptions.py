@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -17,10 +16,6 @@
 #
 #
 
-from .multipassd_governor import MultipassdGovernor
-from .multipassd_controller import MultipassdController
-from .standalone_mulitpassd_controller import StandaloneMultipassdController
-from .snap_multipassd_controller import SnapdMultipassdController
-from .winsvc_multipassd_controller import WinsvcMultipassdController
-from .launchd_multipassd_controller import LaunchdMultipassdController
-from .controller_exceptions import ControllerPrerequisiteError
+
+class ControllerPrerequisiteError(Exception):
+    pass
