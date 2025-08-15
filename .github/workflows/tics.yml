@@ -27,6 +27,16 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - name: Stop other TICS processes
+      run: |
+        set -x
+        export TICSAUTHTOKEN=${{ secrets.TICSAUTHTOKEN }}
+        curl --silent --show-error "https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/" > install_tics.sh
+        . ./install_tics.sh
+
+        # Run additional TiCS maintenance commands
+        TICSMaintenance -project multipass -detach
+
     - name: Install build dependencies
       run: |
         sudo apt-get update
