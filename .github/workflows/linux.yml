@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check Lint Status
         id: check-lint
@@ -98,7 +98,7 @@ jobs:
       uses: canonical/setup-lxd@a3c85fc6fb7fff43fcfeae87659e41a8f635b7dd
 
     - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
@@ -339,7 +339,7 @@ jobs:
     timeout-minutes: 15
     steps:
     - name: Download the built snap
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
 

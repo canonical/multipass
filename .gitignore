@@ -21,14 +21,6 @@ prime
 stage
 snap/.snapcraft/state
 
-# Flutter build artifacts
-src/client/gui/lib/generated
-src/client/gui/build
-src/client/gui/.dart_tool
-src/client/gui/flutter*.log
-.flutter-plugins
-.flutter-plugins-dependencies
-
 # wix build artifacts
 packaging/windows/wix/obj/*
 packaging/windows/custom-actions/packages/*

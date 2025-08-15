@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check Lint Status
         id: check-lint
@@ -109,7 +109,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
@@ -163,6 +163,11 @@ jobs:
           pkg-config \
           python \
           wget
+
+    - name: Install dependencies from pip
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade distlib
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
@@ -262,7 +267,7 @@ jobs:
 
     - name: Install cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.0.3
+      uses: lukka/get-cmake@v4.1.0
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
@@ -373,19 +378,19 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
       if: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
       if: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
 

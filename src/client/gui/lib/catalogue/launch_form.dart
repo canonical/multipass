@@ -27,7 +27,8 @@ final randomNameProvider = Provider.autoDispose(
 
 String imageName(ImageInfo imageInfo) {
   final result = '${imageInfo.os} ${imageInfo.release}';
-  return imageInfo.aliasesInfo.any((a) => a.alias.contains('core'))
+  return imageInfo.aliasesInfo
+          .any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a.alias))
       ? result
       : '$result ${imageInfo.codename}';
 }
@@ -94,13 +95,21 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.numCores = value!,
     );
 
+    // Determine minimums based on image type
+    final isCore = imageInfo.aliasesInfo
+        .any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a.alias));
+    final minRam = isCore ? 512.mebi : 1024.mebi;
+    final minDisk = isCore ? 1.gibi : 5.gibi;
+
     final memorySlider = RamSlider(
       initialValue: defaultRam,
+      min: minRam,
       onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
     final diskSlider = DiskSlider(
       initialValue: defaultDisk,
+      min: minDisk,
       onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
