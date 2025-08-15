@@ -35,20 +35,20 @@ if sys.platform == "win32":
 
 
 def get_default_timeout_for(cmd):
-    """Return the default timeout (in seconds) for a given Multipass command, or 10 if not listed."""
+    """Return the default timeout (in seconds) for a given Multipass command, or 30 if not listed."""
     default_timeouts = {
-        "delete": 90,
-        "stop": 180,
         "launch": 600,
+        "stop": 180,
+        "mount": 180,
+        "restart": 120,
+        "delete": 90,
         "exec": 90,
         "start": 90,
-        "restart": 120,
-        "mount": 180,
         "umount": 45,
     }
     if cmd in default_timeouts:
         return default_timeouts[cmd]
-    return 10
+    return 30
 
 
 def multipass(*args, **kwargs):
