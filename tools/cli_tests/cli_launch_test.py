@@ -26,7 +26,9 @@ from cli_tests.multipass import (
     validate_list_output,
     validate_info_output,
     image_name_to_version,
-    random_vm_name
+    random_vm_name,
+    snapshot_count,
+    info,
 )
 
 
@@ -44,7 +46,7 @@ class TestLaunch:
         ],
         indirect=True,
     )
-    def test_launch(self, instance):
+    def test_launch(self, instance, feat_snapshot):
         """Try to launch an Ubuntu 24.04 VM with 2 CPUs 1GiB RAM and 6G disk.
         Then, validate the basics."""
 
@@ -63,13 +65,17 @@ class TestLaunch:
             instance,
             {
                 "cpu_count": "2",
-                "snapshot_count": "0",
                 "state": "Running",
                 "mounts": {},
                 "image_release": f"{image_name_to_version(instance.image)} LTS",
                 "ipv4": is_valid_ipv4_addr,
             },
         )
+
+        if feat_snapshot:
+            assert snapshot_count(instance) == 0
+        else:
+            assert "snapshot_count" not in info(instance)
 
         # Try to stop the instance
         assert multipass("stop", f"{instance}")
