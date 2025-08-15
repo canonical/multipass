@@ -126,3 +126,6 @@ class StandaloneMultipassdController:
 
     def supports_self_autorestart(self):
         return False
+
+    def wait_for_self_autorestart(self):
+        pass
