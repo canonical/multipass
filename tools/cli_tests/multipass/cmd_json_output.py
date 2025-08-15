@@ -30,7 +30,7 @@ class JsonOutput(dict):
         try:
             super().__init__(json.loads(content))
         except json.JSONDecodeError:
-            super().__init__()
+            raise
 
     def __enter__(self):
         return self
