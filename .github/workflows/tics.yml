@@ -76,9 +76,6 @@ jobs:
           exit 1
         fi
 
-    - name: Setup tmate session
-      uses: canonical/action-tmate@main
-
     - name: Convert lcov to Cobertura XML
       run: |
         python -m venv .venv
