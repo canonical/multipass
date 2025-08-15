@@ -47,9 +47,7 @@ jobs:
       run: |
         cmake -S . -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage \
-              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-              -DCMAKE_CXX_FLAGS="-I${GITHUB_WORKSPACE}/include" \
-              -DCMAKE_C_FLAGS="-I${GITHUB_WORKSPACE}/include"
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Add Flutter to $PATH
       run: |
@@ -69,6 +67,18 @@ jobs:
               --target covreport \
               -j$(nproc)
 
+    - name: Make compile_commands.json available to analyzers
+      run: |
+        if [ -f "${{ env.BUILD_DIR }}/compile_commands.json" ]; then
+          ln -sf "${{ env.BUILD_DIR }}/compile_commands.json" "${GITHUB_WORKSPACE}/compile_commands.json"
+        else
+          echo "compile_commands.json not found in ${{ env.BUILD_DIR }}"
+          exit 1
+        fi
+
+    - name: Setup tmate session
+      uses: canonical/action-tmate@main
+
     - name: Convert lcov to Cobertura XML
       run: |
         python -m venv .venv
@@ -84,7 +94,7 @@ jobs:
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
       with:
-        mode: qserver
+        mode: diagnostic
         project: multipass
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
