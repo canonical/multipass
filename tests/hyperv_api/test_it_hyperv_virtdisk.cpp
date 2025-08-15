@@ -315,6 +315,10 @@ TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
     std::vector<std::filesystem::path> result{};
     ASSERT_TRUE(uut.list_virtual_disk_chain(child2_temp_path, result));
     ASSERT_EQ(result.size(), 3);
+
+    EXPECT_TRUE(std::filesystem::equivalent(result[0], child2_temp_path));
+    EXPECT_TRUE(std::filesystem::equivalent(result[1], child1_temp_path));
+    EXPECT_TRUE(std::filesystem::equivalent(result[2], parent_temp_path));
     EXPECT_EQ(result[0], child2_temp_path);
     EXPECT_EQ(result[1], child1_temp_path);
     EXPECT_EQ(result[2], parent_temp_path);
