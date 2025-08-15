@@ -27,6 +27,7 @@ import logging
 from contextlib import contextmanager, ExitStack
 
 import pytest
+from pytest import Session
 
 from cli_tests.utilities import (
     wait_for_future,
@@ -51,6 +52,7 @@ from cli_tests.controller import (
     MultipassdGovernor,
     SnapdMultipassdController,
     StandaloneMultipassdController,
+    ControllerPrerequisiteError,
 )
 
 
@@ -276,12 +278,16 @@ def set_driver(controller):
 
 
 def make_daemon_controller(kind):
-    if kind == "standalone":
-        return StandaloneMultipassdController(config.data_root)
-    if kind == "snapd":
-        return SnapdMultipassdController()
-    if kind == "none":
-        return None
+    try:
+        if kind == "standalone":
+            return StandaloneMultipassdController(config.data_root)
+        if kind == "snapd":
+            return SnapdMultipassdController()
+        if kind == "none":
+            return None
+    except ControllerPrerequisiteError as exc:
+        Session.shouldfail = str(exc)
+        raise
 
     raise NotImplementedError(f"No such daemon controller is known: `{kind}`")
 
