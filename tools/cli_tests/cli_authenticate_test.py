@@ -18,6 +18,8 @@
 
 """Multipass command line tests for the VM lifecycle."""
 
+import sys
+
 import pytest
 
 from cli_tests.multipass import multipass
@@ -29,7 +31,7 @@ from cli_tests.config import config
 @pytest.mark.authenticate
 @pytest.mark.usefixtures("multipassd")
 class TestAuthenticate:
-    """CLI authenticate tests."""
+    """CLI authentication behavior tests."""
 
     def test_authenticate(self, multipassd):
         assert multipass("set", "local.passphrase=therewillbesecrets")
@@ -38,8 +40,10 @@ class TestAuthenticate:
         with TempDirectory() as empty_home_dir:
             # This will fail.
 
-            # If snap, remove the cert.
-            if config.daemon_controller == "standalone":
+            if config.daemon_controller == "standalone" and sys.platform != "win32":
+                # Overriding home for snap is convoluted, and QT in Windows does not
+                # respect APPDATA overrides so this approach only works on platforms
+                # that respect HOME.
                 assert "Please authenticate" in multipass(
                     "list", env={"HOME": str(empty_home_dir)}
                 )
