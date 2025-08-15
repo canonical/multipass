@@ -134,14 +134,6 @@ jobs:
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
-    - name: CCache
-      uses: actions/cache@v4
-      with:
-        key: ccache-${{ runner.os }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.cache-key }}
-        restore-keys: |
-          ccache-${{ runner.os }}-${{ matrix.build-type }}-
-        path: ~/.ccache
-
     - name: Set up coverage
       id: coverage-setup
       if: ${{ matrix.build-type == 'Coverage' }}
