@@ -18,7 +18,6 @@
 
 from typing import AsyncIterator, Protocol, Optional
 
-
 class MultipassdController(Protocol):
     """Abstracts how multipassd is run/controlled."""
 
@@ -33,4 +32,5 @@ class MultipassdController(Protocol):
         """Return exit code if available; else None. Should return promptly if stopped."""
 
     def supports_self_autorestart(self) -> bool: ...
+    async def wait_for_self_autorestart(self) -> None: ...
     async def exit_code(self) -> Optional[int]: ...

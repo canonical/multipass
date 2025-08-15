@@ -19,25 +19,35 @@
 import sys
 import asyncio
 import os
+import subprocess
 from asyncio.subprocess import Process
 from typing import AsyncIterator, Optional
 
 from cli_tests.utilities import get_sudo_tool
+from .controller_exceptions import ControllerPrerequisiteError
 
 
 class SnapdMultipassdController:
-    service_name: str = "multipass"
+    snap_name: str = "multipass"
     daemon_service_name: str = "multipass.multipassd"
 
     def __init__(self):
-        if sys.platform == "win32":
-            raise RuntimeError("Snap backend requires Linux host.")
+        if sys.platform != "linux":
+            raise ControllerPrerequisiteError("Snap controller requies a Linux host.")
         self._logs_proc: Optional[Process] = None
+        self._active_enter_timestamp_monotonic = None
 
-        # stop if already running
-        # Check if installed?
-        # sudo snap list multipass
-        # multipass  1.16.0   15347  latest/stable  canonical✓  -
+        ret = subprocess.run(
+            ["snap", "list", self.snap_name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+
+        if ret.returncode != 0:
+            raise ControllerPrerequisiteError(
+                f"`{self.snap_name}` snap is not installed!"
+            )
 
     async def _run(self, *args, timeout=30, to_completion=True):
         # run snap with sudo when necessary
@@ -83,18 +93,21 @@ class SnapdMultipassdController:
         return properties["current"]
 
     async def start(self) -> None:
-        await self._run("snap", "start", self.service_name)
+        await self._run("snap", "start", self.snap_name)
+        self._active_enter_timestamp_monotonic = (
+            await self._get_active_enter_timestamp_monotonic()
+        )
 
     async def stop(self, graceful=True) -> None:
-        await self._run("snap", "stop", self.service_name)
+        await self._run("snap", "stop", self.snap_name)
 
     async def restart(self) -> None:
-        await self._run("snap", "restart", self.service_name)
+        await self._run("snap", "restart", self.snap_name)
 
     async def follow_output(self) -> AsyncIterator[str]:
         """Yield decoded log lines (utf-8, replace errors)."""
         proc = await self._run(
-            "snap", "logs", self.service_name, "-f", to_completion=False
+            "snap", "logs", self.snap_name, "-f", to_completion=False
         )
         try:
             while True:
@@ -125,17 +138,41 @@ class SnapdMultipassdController:
             await asyncio.sleep(0.5)
         return await self.exit_code()
 
+    async def wait_for_self_autorestart(self, timeout=60):
+        async def _wait():
+            current = self._active_enter_timestamp_monotonic
+            while current == self._active_enter_timestamp_monotonic:
+                current = await self._get_active_enter_timestamp_monotonic()
+                await asyncio.sleep(0.3)  # polling interval
+            self._active_enter_timestamp_monotonic = current
+
+        await asyncio.wait_for(_wait(), timeout)
+
     def supports_self_autorestart(self) -> bool:
         return True
 
-    async def exit_code(self) -> Optional[int]:
+    async def _get_systemctl_property(
+        self, service_name, property_name
+    ) -> Optional[str]:
         status, content = await self._run(
             "systemctl",
             "show",
             "-p",
-            "ExecMainStatus",
+            property_name,
             "--value",
-            f"snap.{self.daemon_service_name}.service",
+            service_name,
         )
         if status == 0:
-            return int(content)
+            return content
+
+    async def _get_active_enter_timestamp_monotonic(self):
+        r = await self._get_systemctl_property(
+            f"snap.{self.daemon_service_name}.service", "ActiveEnterTimestampMonotonic"
+        )
+        return int(r) if r else None
+
+    async def exit_code(self) -> Optional[int]:
+        r = await self._get_systemctl_property(
+            f"snap.{self.daemon_service_name}.service", "ExecMainStatus"
+        )
+        return int(r) if r else None
