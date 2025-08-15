@@ -25,7 +25,7 @@ from cli_tests.config import config
 def strip_lxd_deprecation_notice(text: str) -> str:
     # Remove both parts in sequence
     return re.sub(
-        r"\*\*\* Warning! The .*? driver is deprecated.*?remain in LXD\.\n\n",
+        r"\*\*\* Warning! The .*? driver is deprecated.*?remain in LXD\.(?:\r\n|\r|\n){2}",
         "",
         text,
         flags=re.S,
@@ -39,7 +39,7 @@ class Output:
         if config.driver == "lxd":
             content = strip_lxd_deprecation_notice(content)
 
-        self.content = content
+        self.content = content.strip()
         self.exitstatus = exitstatus
 
     def __contains__(self, pattern):
