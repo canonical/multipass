@@ -29,8 +29,8 @@ class JsonOutput(dict):
         self.exitstatus = exitstatus
         try:
             super().__init__(json.loads(content))
-        except json.JSONDecodeError:
-            raise
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Failed parsing JSON content: {content}") from e
 
     def __enter__(self):
         return self
