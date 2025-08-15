@@ -24,9 +24,7 @@ import sys
 import subprocess
 import shutil
 import logging
-
 from contextlib import contextmanager, ExitStack
-
 
 import pytest
 
@@ -104,6 +102,30 @@ def pytest_addoption(parser):
         "--daemon-controller",
         default="standalone",
         help="Daemon controller to use.",
+    )
+
+    parser.addoption(
+        "--vm-cpus",
+        default="2",
+        help="Default CPU count to use for launching test VMs.",
+    )
+
+    parser.addoption(
+        "--vm-memory",
+        default="1G",
+        help="Default memory size to use for launching test VMs.",
+    )
+
+    parser.addoption(
+        "--vm-disk",
+        default="6G",
+        help="Default disk size to use for launching test VMs.",
+    )
+
+    parser.addoption(
+        "--vm-image",
+        default="noble",
+        help="Default image to use for launching test VMs.",
     )
 
 
@@ -184,6 +206,11 @@ def store_config(request):
     config.remove_all_instances = request.config.getoption("--remove-all-instances")
     config.driver = request.config.getoption("--driver")
     config.daemon_controller = request.config.getoption("--daemon-controller")
+
+    config.vm.cpus = request.config.getoption("--vm-cpus")
+    config.vm.memory = request.config.getoption("--vm-memory")
+    config.vm.disk = request.config.getoption("--vm-disk")
+    config.vm.image = request.config.getoption("--vm-image")
 
     # If user gave --data-root, use it
     if not config.data_root:

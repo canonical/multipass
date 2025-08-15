@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 
 from cli_tests.utilities import merge
+from cli_tests.config import config
 
 from .nameutils import random_vm_name
 from .helpers import mounts, multipass, state
@@ -34,11 +35,11 @@ def launch(cfg_override=None):
 
     # Default configuration
     default_cfg = {
-        "cpus": 2,
-        "memory": "1G",
-        "disk": "6G",
+        "cpus": config.vm.cpus,
+        "memory": config.vm.memory,
+        "disk": config.vm.disk,
         "retry": 3,
-        "image": "noble",
+        "image": config.vm.image,
         "autopurge": True,
         "assert": {"purge": True},
     }
