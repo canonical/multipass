@@ -2,7 +2,6 @@
 
 TODO: Elaborate more.
 
-
 ## Installing deps
 
 ```bash
@@ -31,7 +30,7 @@ sudo kill -TERM $(pidof multipassd)
 
 * If a test case takes >1m to complete, mark it with `@pytest.mark.slow`
 
-## TL;DR;
+## TL; DR; 
 
 ```bash
 sudo apt install python3-pip
