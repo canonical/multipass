@@ -26,6 +26,8 @@ import pytest
 
 from cli_tests.utilities import TempDirectory
 
+from cli_tests.config import config
+
 from cli_tests.multipass import (
     multipass,
     mounts,
@@ -78,6 +80,11 @@ class TestMount:
             }
 
             assert path_exists(instance, mount_dst)
+
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
+
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
@@ -106,6 +113,11 @@ class TestMount:
             }
 
             assert path_exists(instance, custom_target_path)
+
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
+
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
@@ -165,6 +177,11 @@ class TestMount:
             assert path_exists(instance, custom_target_path_1)
             assert path_exists(instance, custom_target_path_2)
             assert path_exists(instance, custom_target_path_3)
+
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
+
             assert multipass("umount", instance)
             assert mounts(instance) == {}
 
@@ -197,6 +214,10 @@ class TestMount:
 
             assert path_exists(instance, mount_dst1)
             assert path_exists(instance, mount_dst2)
+
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
 
             assert multipass(
                 "umount",
@@ -268,7 +289,12 @@ class TestMount:
             assert path_exists(instance, mount_dst / "test_file.txt")
             assert read_file(instance, mount_dst / "test_file.txt") == "mount doom"
 
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
+
             assert multipass("umount", instance)
+
             assert mounts(instance) == {}
 
             # FIXME: Right now the mount folder is not removed after umount.
@@ -318,6 +344,10 @@ class TestMount:
             assert not path_exists(instance, expected_file1)
             assert not path_exists(instance, expected_file2)
             assert not path_exists(instance, expected_subdir)
+
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
@@ -378,6 +408,10 @@ class TestMount:
                 / "file2_moved.txt",
             )
 
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
+
             assert multipass("umount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
@@ -431,6 +465,10 @@ class TestMount:
             assert (
                 path_exists(instance, mount_dst / subdir / "file2.txt") or cannot_write
             )
+
+            # LXD cannot hot-unmount.
+            if config.driver == "lxd":
+                assert multipass("stop", instance)
 
             assert multipass("umount", instance)
             assert mounts(instance) == {}
