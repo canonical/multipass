@@ -34,6 +34,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -53,7 +54,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
 
@@ -436,7 +436,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
 
         dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
 
-        if (!dont_allow_auto && (remote == "release" || remote == "daily"))
+        if (!dont_allow_auto && (remote == mp::release_remote || remote == mp::daily_remote))
             dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
     }
 
@@ -1199,26 +1199,21 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
                  const std::string& remote_name,
-                 const mp::VMImageInfo& info,
-                 const std::string& default_remote)
+                 const mp::VMImageInfo& info)
 {
     if (!info.aliases.empty())
     {
         auto entry = container->Add();
         for (const auto& alias : info.aliases)
         {
-            auto alias_entry = entry->add_aliases_info();
-            if (remote_name != default_remote)
-            {
-                alias_entry->set_remote_name(remote_name);
-            }
-            alias_entry->set_alias(alias.toStdString());
+            entry->add_aliases(alias.toStdString());
         }
 
         entry->set_os(info.os.toStdString());
         entry->set_release(info.release_title.toStdString());
         entry->set_version(info.version.toStdString());
         entry->set_codename(info.release_codename.toStdString());
+        entry->set_remote_name(remote_name);
     }
 }
 
@@ -1737,8 +1732,6 @@ try
     response.set_show_images(request->show_images());
     response.set_show_blueprints(request->show_blueprints());
 
-    const auto default_remote{"release"};
-
     if (!request->search_string().empty())
     {
         if (!request->remote_name().empty())
@@ -1787,11 +1780,11 @@ try
 
                 auto remote_name = (!request->remote_name().empty() ||
                                     (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                     remote != default_remote))
+                                     remote != mp::release_remote))
                                        ? remote
                                        : "";
 
-                add_aliases(response.mutable_images_info(), remote_name, info, "");
+                add_aliases(response.mutable_images_info(), remote_name, info);
             }
         }
 
@@ -1820,7 +1813,7 @@ try
                 else
                     (*info).aliases = QStringList({(*info).id.left(12)});
 
-                add_aliases(response.mutable_blueprints_info(), "", *info, "");
+                add_aliases(response.mutable_blueprints_info(), "", *info);
             }
         }
     }
@@ -1833,14 +1826,13 @@ try
             for (const auto& image_host : config->image_hosts)
             {
                 std::unordered_set<std::string> images_found;
-                auto action = [&images_found, &default_remote, request, &response](
-                                  const std::string& remote,
-                                  const mp::VMImageInfo& info) {
+                auto action = [&images_found, request, &response](const std::string& remote,
+                                                                  const mp::VMImageInfo& info) {
                     if (remote != mp::snapcraft_remote &&
                         (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
                         images_found.find(info.release_title.toStdString()) == images_found.end())
                     {
-                        add_aliases(response.mutable_images_info(), remote, info, default_remote);
+                        add_aliases(response.mutable_images_info(), remote, info);
                         images_found.insert(info.release_title.toStdString());
                     }
                 };
@@ -1854,7 +1846,7 @@ try
             auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
 
             for (const auto& info : vm_blueprints_info)
-                add_aliases(response.mutable_blueprints_info(), "", info, "");
+                add_aliases(response.mutable_blueprints_info(), "", info);
         }
     }
     else
@@ -1866,7 +1858,7 @@ try
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
         for (const auto& info : vm_images_info)
-            add_aliases(response.mutable_images_info(), remote, info, "");
+            add_aliases(response.mutable_images_info(), remote, info);
     }
 
     server->Write(response);
@@ -4002,12 +3994,11 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
         async_op_result.status_promise->set_value(async_op_result.status);
 }
 
-void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
+void mp::Daemon::update_manifests_all(const bool force_update)
 {
     auto launch_update_manifests_from_vm_image_host =
-        [is_force_update_from_network](
-            const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
-        vm_image_host_ptr->update_manifests(is_force_update_from_network);
+        [force_update](const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
+        vm_image_host_ptr->update_manifests(force_update);
     };
 
     utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);

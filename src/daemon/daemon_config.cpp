@@ -17,12 +17,11 @@
 
 #include "daemon_config.h"
 
-#include "custom_image_host.h"
-#include "ubuntu_image_host.h"
-
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
+#include <multipass/image_host/custom_image_host.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
@@ -165,9 +164,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
     {
-        image_hosts.push_back(
-            std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(),
-                                                    url_downloader.get()));
+        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get()));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
                 {mp::release_remote,
@@ -184,7 +181,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                      &admits_snapcraft_image,
                                      std::make_optional<QString>(mp::mirror_key)}},
                 {mp::appliance_remote,
-                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
+                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}},
+                {mp::core_remote,
+                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/"}}},
             url_downloader.get()));
     }
     if (vault == nullptr)

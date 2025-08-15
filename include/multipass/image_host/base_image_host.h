@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include "multipass/vm_image_host.h"
+#include <multipass/image_host/vm_image_host.h>
+#include <multipass/url_downloader.h>
 
 #include <QStringList>
 #include <QTimer>
@@ -27,12 +28,14 @@
 namespace multipass
 {
 
-class CommonVMImageHost : public VMImageHost
+class BaseVMImageHost : public VMImageHost
 {
 public:
+    BaseVMImageHost(URLDownloader* downloader);
+
     void for_each_entry_do(const Action& action) final;
     VMImageInfo info_for_full_hash(const std::string& full_hash) final;
-    void update_manifests(const bool is_force_update_from_network);
+    void update_manifests(const bool force_update);
 
 protected:
     void on_manifest_update_failure(const std::string& details);
@@ -41,7 +44,9 @@ protected:
     virtual void for_each_entry_do_impl(const Action& action) = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) = 0;
     virtual void clear() = 0;
-    virtual void fetch_manifests(const bool is_force_update_from_network) = 0;
+    virtual void fetch_manifests(const bool force_update) = 0;
+
+    URLDownloader* const url_downloader;
 };
 
 } // namespace multipass

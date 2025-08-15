@@ -1,0 +1,12 @@
+errors:
+  []
+blueprints (deprecated):
+  anbox-cloud-appliance:
+    aliases:
+      []
+    os: ""
+    release: Anbox Cloud Appliance
+    version: latest
+    remote: ""
+images:
+  {}
