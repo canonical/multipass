@@ -45,6 +45,7 @@ service Rpc {
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
     rpc clone (stream CloneRequest) returns (stream CloneReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
+    rpc wait_ready (stream WaitReadyRequest) returns (stream WaitReadyReply);
 }
 
 message LaunchRequest {
@@ -549,4 +550,12 @@ message DaemonInfoReply {
     uint64 available_space = 2;
     uint32 cpus = 3;
     uint64 memory = 4;
+}
+
+message WaitReadyRequest {
+    int32 verbosity_level = 1;
+}
+
+message WaitReadyReply {
+    string log_line = 1;
 }

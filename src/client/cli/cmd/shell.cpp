@@ -151,7 +151,7 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 
     parser->addPositionalArgument("name", description, syntax);
 
-    mp::cmd::add_timeout(parser);
+    mp::cmd::add_instance_timeout(parser);
 
     auto status = parser->commandParse(this);
 
