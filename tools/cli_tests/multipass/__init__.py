@@ -40,6 +40,7 @@ from .helpers import (
     shell,
     snapshot_count,
     state,
+    info,
     default_driver_name,
     default_mount_gid,
     default_mount_uid,
