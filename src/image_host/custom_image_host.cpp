@@ -177,7 +177,7 @@ std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 
 void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
 {
-    for (const auto info : manifest.second->products)
+    for (const auto& info : manifest.second->products)
     {
         action(manifest.first, info);
     }
