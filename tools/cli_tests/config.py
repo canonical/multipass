@@ -21,3 +21,4 @@
 from types import SimpleNamespace
 
 config = SimpleNamespace()
+config.vm = SimpleNamespace()
