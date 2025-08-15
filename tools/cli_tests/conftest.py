@@ -162,34 +162,52 @@ def pytest_assertrepr_compare(op, left, right):
 
 
 def pytest_collection_modifyitems(config, items):
-    if (
-        config.getoption("--daemon-controller") == "standalone"
-        and config.getoption("--driver") == "qemu"
-    ):
-        ## Check if installed qemu supports uid/gid mapping
-        qemu = shutil.which("qemu-system-x86_64")
-        if qemu:
-            out = subprocess.check_output([qemu, "--help"], text=True)
-            if all(s in out for s in ["uid_map", "gid_map"]):
-                # Supports uid/gid mapping
-                return
-        skip_marker = pytest.mark.skip(
-            reason=f"Skipped -- QEMU in environment {qemu} does not support UID/GID mapping."
-        )
-    elif sys.platform == "win32":
-        # We cannot test native mounts in Windows (yet) since it requires
-        # password authentication.
-        skip_marker = pytest.mark.skip(
-            reason=f"Skipped -- Testing native mounts in Windows is not supported yet."
-        )
-    else:
-        # Non-standalone deployments use the Multipass-shipped QEMU.
-        return
+    def maybe_skip_mount_test(item):
+        callspec = getattr(item, "callspec", None)
+        if not item.get_closest_marker("mount"):
+            return
+        if not callspec.params.get("mount_type") == "native":
+            return
+
+        if sys.platform == "win32":
+            item.add_marker(
+                pytest.mark.skip(
+                    "Skipped -- Testing native mounts in Windows is not supported yet."
+                )
+            )
+            return
+
+        if (
+            config.getoption("--daemon-controller") == "standalone"
+            and config.getoption("--driver") == "qemu"
+        ):
+            qemu = shutil.which("qemu-system-x86_64")
+            if qemu:
+                out = subprocess.check_output([qemu, "--help"], text=True)
+                if all(s in out for s in ["uid_map", "gid_map"]):
+                    # Supports uid/gid mapping
+                    return
+            item.add_marker(
+                pytest.mark.skip(
+                    f"Skipped -- QEMU in environment ({qemu}) does not support UID/GID mapping."
+                )
+            )
+            return
+
+    def maybe_skip_clone_test(item):
+        if not item.get_closest_marker("clone"):
+            return
+
+        if config.getoption("--driver") == "lxd":
+            item.add_marker(
+                pytest.mark.skip(
+                    "Skipped -- LXD driver does not support the `clone` feature."
+                )
+            )
 
     for item in items:
-        mount = getattr(item, "callspec", None)
-        if mount and mount.params.get("mount_type") == "native":
-            item.add_marker(skip_marker)
+        maybe_skip_mount_test(item)
+        maybe_skip_clone_test(item)
 
 
 @pytest.fixture(autouse=True, scope="session")
