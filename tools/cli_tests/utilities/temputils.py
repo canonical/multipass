@@ -42,4 +42,4 @@ def TempDirectory(delete=True):
         tmp_root = get_snap_temp_root("multipass")
 
     with tempfile.TemporaryDirectory(dir=tmp_root, delete=delete) as tmp:
-        yield Path(tmp)
+        yield Path(tmp).resolve()
