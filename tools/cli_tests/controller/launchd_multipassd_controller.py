@@ -32,6 +32,7 @@ from cli_tests.utilities import get_sudo_tool, run_in_new_interpreter
 from .controller_exceptions import ControllerPrerequisiteError
 
 label: str = "com.canonical.multipassd"
+plist_path = f"/Library/LaunchDaemons/{label}.plist"
 
 
 def run_sync(*args: str, timeout: int = 30) -> tuple[int, str]:
@@ -46,19 +47,6 @@ def run_sync(*args: str, timeout: int = 30) -> tuple[int, str]:
         return proc.returncode, proc.stdout.decode("utf-8", "replace")
     except subprocess.TimeoutExpired as exc:
         return -1, exc.output.decode("utf-8", "replace") if exc.output else ""
-
-
-def get_plist_path() -> Optional[str]:
-    # Ask launchd where the job came from.
-    rc, out = run_sync("launchctl", "print", f"system/{label}", timeout=10)
-    if rc == 0:
-        m = re.search(r"^\s*path\s*=\s*(.+)$", out, flags=re.MULTILINE)
-        if m:
-            return m.group(1).strip()
-    # Fallback to canonical location:
-    default_path = f"/Library/LaunchDaemons/{label}.plist"
-    # We won’t stat here with sudo; launchd will complain on bootstrap if it’s wrong.
-    return default_path
 
 
 def make_owner_root_wheel(path):
@@ -95,18 +83,12 @@ class LaunchdMultipassdController:
 
     @staticmethod
     def setup_environment():
-        original_plist_path = get_plist_path()
-        logging.info(
-            f"LaunchdMultipassdController :: setup_environment {original_plist_path}"
-        )
+        logging.info(f"LaunchdMultipassdController :: setup_environment {plist_path}")
 
         # 1) Unload whatever is there (may be inactive; ignore failures)
         run_sync("launchctl", "bootout", f"system/{label}")
 
-        # 2) Generate override plist with KeepAlive=false
-        if not original_plist_path:
-            raise RuntimeError("Cannot determine original plist path for override.")
-        override_plist_path = make_override_plist(original_plist_path)
+        override_plist_path = make_override_plist(plist_path)
 
         # 3) Load the override into system domain
         rc, out = run_sync("launchctl", "bootstrap", "system", override_plist_path)
@@ -115,15 +97,14 @@ class LaunchdMultipassdController:
 
     @staticmethod
     def teardown_environment():
-        original_plist_path = get_plist_path()
         logging.info(
-            f"LaunchdMultipassdController :: teardown_environment {original_plist_path}"
+            f"LaunchdMultipassdController :: teardown_environment {plist_path}"
         )
 
         # Fully unload override so it doesn’t linger.
         run_sync("launchctl", "bootout", f"system/{label}")
         # Re-bootstrap original plist (restore system “shape”)
-        rc, out = run_sync("launchctl", "bootstrap", "system", original_plist_path)
+        rc, out = run_sync("launchctl", "bootstrap", "system", plist_path)
         if rc != 0:
             # Don’t leave the system broken—emit message but keep going.
             print(f"⚠️ restore bootstrap failed:\n{out}")
@@ -138,7 +119,6 @@ class LaunchdMultipassdController:
         self._sudo = list(get_sudo_tool())
         self._log_proc: Optional[asyncio.subprocess.Process] = None
         self._daemon_pid = None
-        self._original_plist_path = None
 
     async def _run(self, *args: str, timeout: int = 30) -> tuple[int, str]:
         proc = await asyncio.create_subprocess_exec(
