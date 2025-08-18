@@ -28,7 +28,7 @@ import subprocess
 import logging
 from typing import AsyncIterator, Optional
 
-from cli_tests.utilities import get_sudo_tool, run_as_subprocess
+from cli_tests.utilities import get_sudo_tool, run_in_new_interpreter
 from .controller_exceptions import ControllerPrerequisiteError
 
 label: str = "com.canonical.multipassd"
@@ -86,7 +86,7 @@ def make_override_plist(source_plist_path: str) -> str:
     with open(tmp_path, "wb") as f:
         plistlib.dump(data, f, sort_keys=False)
 
-    run_as_subprocess(make_owner_root_wheel, tmp_path, privileged=True)
+    run_in_new_interpreter(make_owner_root_wheel, tmp_path, privileged=True)
     return tmp_path
 
 

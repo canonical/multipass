@@ -26,7 +26,7 @@ from .threadutils import (
     wait_for_future,
 )
 from .functional import retry
-from .privutils import run_as_subprocess, get_sudo_tool
+from .privutils import run_in_new_interpreter, get_sudo_tool
 from .procutils import send_ctrl_c
 from .temputils import TempDirectory
 from .textutils import strip_ansi_escape, uuid4_str, is_valid_ipv4_addr

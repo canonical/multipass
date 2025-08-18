@@ -25,7 +25,7 @@ import pytest
 from cli_tests.multipass import (
     multipass,
 )
-from cli_tests.utilities import run_as_subprocess
+from cli_tests.utilities import run_in_new_interpreter
 
 LOCALES = [
     "C",
@@ -84,7 +84,7 @@ def locale_available(loc):
     import subprocess
 
     return (
-        run_as_subprocess(
+        run_in_new_interpreter(
             set_locale,
             loc,
             check=False,
