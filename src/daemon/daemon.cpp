@@ -2392,7 +2392,9 @@ try
                            name);
             continue;
         case VirtualMachine::State::unavailable:
-            fmt::format_to(std::back_inserter(start_errors), "Cannot start the instance '{}' while unavailable.", name);
+            fmt::format_to(std::back_inserter(start_errors),
+                           "Cannot start the instance '{}' while unavailable.",
+                           name);
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
@@ -2466,7 +2468,9 @@ try
         operation = [op = std::move(operation)](VirtualMachine& vm) {
             if (vm.current_state() == VirtualMachine::State::unavailable)
             {
-                mpl::log(mpl::Level::info, vm.vm_name, "Ignoring stop since instance is unavailable.");
+                mpl::log(mpl::Level::info,
+                         vm.vm_name,
+                         "Ignoring stop since instance is unavailable.");
                 return grpc::Status::OK;
             }
 
@@ -2510,7 +2514,9 @@ try
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
             if (vm.current_state() == VirtualMachine::State::unavailable)
             {
-                mpl::log(mpl::Level::info, vm.vm_name, "Ignoring suspend since instance is unavailable.");
+                mpl::log(mpl::Level::info,
+                         vm.vm_name,
+                         "Ignoring suspend since instance is unavailable.");
                 return grpc::Status::OK;
             }
 
@@ -2557,7 +2563,9 @@ try
     status = cmd_vms(instance_targets, [this](auto& vm) {
         if (vm.current_state() == VirtualMachine::State::unavailable)
         {
-            mpl::log(mpl::Level::info, vm.vm_name, "Ignoring restart since instance is unavailable.");
+            mpl::log(mpl::Level::info,
+                     vm.vm_name,
+                     "Ignoring restart since instance is unavailable.");
             return grpc::Status::OK;
         }
 
@@ -2643,7 +2651,9 @@ try
 
                 if (vm_it->second->current_state() == VirtualMachine::State::unavailable)
                 {
-                    mpl::log(mpl::Level::info, instance_name, "Ignoring delete since instance is unavailable.");
+                    mpl::log(mpl::Level::info,
+                             instance_name,
+                             "Ignoring delete since instance is unavailable.");
                     continue;
                 }
 
