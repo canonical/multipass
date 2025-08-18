@@ -218,6 +218,19 @@ def default_driver_name():
     raise NotImplementedError(f"Unsupported platform: {sys.platform}")
 
 
+def default_daemon_controller():
+    controller_mappings = {
+        "darwin": "launchd",
+        "linux": "snapd",
+        "win32": "winsvc",
+    }
+
+    if sys.platform in controller_mappings:
+        return controller_mappings[sys.platform]
+
+    return "standalone"
+
+
 def default_mount_gid():
     """Return default GID for mounted files inside the instance."""
     if sys.platform == "win32":

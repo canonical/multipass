@@ -20,6 +20,7 @@
 
 import subprocess
 import sys
+import logging
 
 import pexpect
 
@@ -136,6 +137,8 @@ def multipass(*args, **kwargs):
     if env_args:
         env.update(env_args)
 
+    logging.info(f"cmd: {[get_multipass_path(), *map(str, args)]}")
+
     if kwargs.get("interactive"):
         if sys.platform == "win32":
             return WinptySpawn(
@@ -148,7 +151,8 @@ def multipass(*args, **kwargs):
             )
 
         return pexpect.spawn(
-            f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
+            get_multipass_path(),
+            [*map(str, args)],
             logfile=(sys.stdout.buffer if config.print_cli_output else None),
             timeout=timeout,
             echo=echo,
@@ -170,8 +174,6 @@ def multipass(*args, **kwargs):
         def __init__(self):
             self.pexpect_child = None
             try:
-                pexpect_child_args = [get_multipass_path(), *map(str, args)]
-                print(f"pexpect_child_args: {pexpect_child_args}")
                 if not sys.platform == "win32":
                     self.pexpect_child = pexpect.spawn(
                         get_multipass_path(),

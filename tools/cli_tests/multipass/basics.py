@@ -25,7 +25,9 @@ from cli_tests.config import config
 
 
 SNAP_MULTIPASSD_STORAGE = "/var/snap/multipass/common/data/multipassd"
+LAUNCHD_MULTIPASSD_STORAGE = "/var/root/Library/Application Support/multipassd"
 SNAP_BIN_DIR = "/snap/bin"
+LAUNCHD_MULTIPASS_BIN_DIR = "/Library/Application Support/com.canonical.multipass/bin"
 
 
 def get_multipass_env():

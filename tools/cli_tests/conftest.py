@@ -25,6 +25,7 @@ import subprocess
 import shutil
 import logging
 from contextlib import contextmanager, ExitStack
+from functools import partial
 
 import pytest
 from pytest import Session
@@ -41,10 +42,13 @@ from cli_tests.multipass import (
     Output,
     multipass,
     default_driver_name,
+    default_daemon_controller,
     launch,
     nuke_all_instances,
     SNAP_MULTIPASSD_STORAGE,
+    LAUNCHD_MULTIPASSD_STORAGE,
     SNAP_BIN_DIR,
+    LAUNCHD_MULTIPASS_BIN_DIR,
 )
 
 from cli_tests.config import config
@@ -52,6 +56,7 @@ from cli_tests.controller import (
     MultipassdGovernor,
     SnapdMultipassdController,
     StandaloneMultipassdController,
+    LaunchdMultipassdController,
     ControllerPrerequisiteError,
 )
 
@@ -102,7 +107,7 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--daemon-controller",
-        default="standalone",
+        default=default_daemon_controller(),
         help="Daemon controller to use.",
     )
 
@@ -268,6 +273,9 @@ def store_config(request):
         elif config.daemon_controller == "snapd":
             config.data_root = SNAP_MULTIPASSD_STORAGE
             config.bin_dir = SNAP_BIN_DIR
+        elif config.daemon_controller == "launchd":
+            config.data_root = LAUNCHD_MULTIPASSD_STORAGE
+            config.bin_dir = LAUNCHD_MULTIPASS_BIN_DIR
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -307,18 +315,40 @@ def set_driver(controller):
 
 
 def make_daemon_controller(kind):
-    try:
-        if kind == "standalone":
-            return StandaloneMultipassdController(config.data_root)
-        if kind == "snapd":
-            return SnapdMultipassdController()
-        if kind == "none":
-            return None
-    except ControllerPrerequisiteError as exc:
-        Session.shouldfail = str(exc)
-        raise
+    # Return a partial so the controller can be instantiated on demand.
+    controllers = {
+        "standalone": partial(StandaloneMultipassdController, config.data_root),
+        "snapd": partial(SnapdMultipassdController),
+        "launchd": partial(LaunchdMultipassdController),
+        "none": lambda: None,
+    }
+
+    if kind in controllers:
+        return controllers[kind]
 
     raise NotImplementedError(f"No such daemon controller is known: `{kind}`")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def environment_setup(store_config):
+    cntrl = make_daemon_controller(config.daemon_controller)
+    controller_class = cntrl.func
+
+    def has_static_method(cls, name):
+        for base in cls.__mro__:
+            if name in base.__dict__:
+                return isinstance(base.__dict__[name], staticmethod)
+        return False
+
+    logging.info("environment_setup :: setup")
+    if has_static_method(controller_class, "setup_environment"):
+        controller_class.setup_environment()
+
+    yield
+
+    logging.info("environment_setup :: teardown")
+    if has_static_method(controller_class, "teardown_environment"):
+        controller_class.teardown_environment()
 
 
 @contextmanager
@@ -328,10 +358,16 @@ def multipassd_impl():
         yield None
         return
 
+    try:
+        controller = make_daemon_controller(config.daemon_controller)()
+    except ControllerPrerequisiteError as exc:
+        Session.shouldfail = str(exc)
+        raise
+
     with ExitStack() as stack:
         loop = stack.enter_context(BackgroundEventLoop())
         governor = MultipassdGovernor(
-            make_daemon_controller(config.daemon_controller),
+            controller,
             loop,
             config.print_daemon_output,
         )

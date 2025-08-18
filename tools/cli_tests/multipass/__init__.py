@@ -22,7 +22,9 @@ from .basics import (
     get_multipass_path,
     get_multipassd_path,
     SNAP_MULTIPASSD_STORAGE,
+    LAUNCHD_MULTIPASSD_STORAGE,
     SNAP_BIN_DIR,
+    LAUNCHD_MULTIPASS_BIN_DIR,
 )
 from .certutils import authenticate_client_cert, get_client_cert_path
 from .helpers import (
@@ -42,6 +44,7 @@ from .helpers import (
     state,
     info,
     default_driver_name,
+    default_daemon_controller,
     default_mount_gid,
     default_mount_uid,
     get_default_interface_name,
