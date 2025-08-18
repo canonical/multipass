@@ -484,8 +484,9 @@ grpc::Status mp::DaemonRpc::zones(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
-grpc::Status mp::DaemonRpc::zones_state(grpc::ServerContext* context,
-                                        grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server)
+grpc::Status mp::DaemonRpc::zones_state(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server)
 {
     ZonesStateRequest request;
     server->Read(&request);

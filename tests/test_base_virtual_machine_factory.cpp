@@ -44,14 +44,17 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     {
     }
 
-    MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir, mp::AvailabilityZoneManager& az_manager)
+    MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir,
+                    mp::AvailabilityZoneManager& az_manager)
         : mp::BaseVirtualMachineFactory{tmp_dir->path(), az_manager}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
     MOCK_METHOD(mp::VirtualMachine::UPtr,
                 create_virtual_machine,
-                (const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&),
+                (const mp::VirtualMachineDescription&,
+                 const mp::SSHKeyProvider&,
+                 mp::VMStatusMonitor&),
                 (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));
     MOCK_METHOD(void,

@@ -67,8 +67,9 @@ mpt::fetch_image_lambda(const std::string& release,
     };
 }
 
-std::function<
-    mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&, const mp::SSHKeyProvider&, mp::VMStatusMonitor&)>
+std::function<mp::VirtualMachine::UPtr(const mp::VirtualMachineDescription&,
+                                       const mp::SSHKeyProvider&,
+                                       mp::VMStatusMonitor&)>
 mpt::create_virtual_machine_lambda(const int& num_cores,
                                    const mp::MemorySize& mem_size,
                                    const mp::MemorySize& disk_space,

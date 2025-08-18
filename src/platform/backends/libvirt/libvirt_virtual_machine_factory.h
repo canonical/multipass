@@ -33,7 +33,8 @@ public:
     explicit LibVirtVirtualMachineFactory(const Path& data_dir,
                                           const std::string& libvirt_object_path,
                                           AvailabilityZoneManager& az_manager); // For testing
-    explicit LibVirtVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
+    explicit LibVirtVirtualMachineFactory(const Path& data_dir,
+                                          AvailabilityZoneManager& az_manager);
     ~LibVirtVirtualMachineFactory();
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,

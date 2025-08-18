@@ -32,7 +32,9 @@ ReturnCode Zones::run(ArgParser* parser)
         return Ok;
     };
 
-    auto on_failure = [this](const grpc::Status& status) { return standard_failure_handler_for(name(), cerr, status); };
+    auto on_failure = [this](const grpc::Status& status) {
+        return standard_failure_handler_for(name(), cerr, status);
+    };
 
     ZonesRequest request{};
     request.set_verbosity_level(parser->verbosityLevel());
@@ -63,7 +65,8 @@ ParseCode Zones::parse_args(ArgParser* parser)
 {
     QCommandLineOption formatOption{
         "format",
-        "Output list in the requested format.\nValid formats are: table (default), json, csv and yaml",
+        "Output list in the requested format.\nValid formats are: table (default), json, csv and "
+        "yaml",
         "format",
         "table",
     };

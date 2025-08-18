@@ -83,11 +83,6 @@ final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
 );
 
 final daemonAvailableProvider = Provider((ref) {
-  // Check provider availability first
-  if (!ref.watch(pollingProvider)) {
-    return false;
-  }
-
   final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
@@ -190,7 +185,7 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),
-      );
+      ));
     });
   }
 

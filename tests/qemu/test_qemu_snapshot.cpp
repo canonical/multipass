@@ -143,7 +143,8 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
     const auto parent = std::make_shared<mpt::MockSnapshot>();
 
     auto desc = mp::VirtualMachineDescription{};
-    auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider, zone};
+    auto vm =
+        NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider, zone};
 
     const auto snapshot = mp::QemuSnapshot{name, comment, instance_id, parent, specs, vm, desc};
     EXPECT_EQ(snapshot.get_name(), name);

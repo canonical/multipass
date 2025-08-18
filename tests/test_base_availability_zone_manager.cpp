@@ -50,7 +50,8 @@ struct BaseAvailabilityZoneManagerTest : public Test
 
 TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
+        .WillOnce(Return(QJsonObject{}));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
@@ -60,11 +61,14 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file)).WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, QString::fromStdString(zone_file.u8string())));
+        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
+            .WillOnce(Return(QJsonObject{}));
+        EXPECT_CALL(*mock_json_utils_guard.first,
+                    write_json(_, QString::fromStdString(zone_file.u8string())));
     }
 
-    // Manager file gets written with default zone (once in constructor and once in get_automatic_zone_name)
+    // Manager file gets written with default zone (once in constructor and once in
+    // get_automatic_zone_name)
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(2);
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
@@ -80,7 +84,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 
 TEST_F(BaseAvailabilityZoneManagerTest, AutomaticZoneRotation)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
+        .WillOnce(Return(QJsonObject{}));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
@@ -89,8 +94,10 @@ TEST_F(BaseAvailabilityZoneManagerTest, AutomaticZoneRotation)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file)).WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, QString::fromStdString(zone_file.u8string())))
+        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
+            .WillOnce(Return(QJsonObject{}));
+        EXPECT_CALL(*mock_json_utils_guard.first,
+                    write_json(_, QString::fromStdString(zone_file.u8string())))
             .Times(AnyNumber());
     }
 
@@ -120,7 +127,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, AutomaticZoneRotation)
 
 TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
+        .WillOnce(Return(QJsonObject{}));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -128,8 +136,10 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file)).WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, QString::fromStdString(zone_file.u8string())))
+        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
+            .WillOnce(Return(QJsonObject{}));
+        EXPECT_CALL(*mock_json_utils_guard.first,
+                    write_json(_, QString::fromStdString(zone_file.u8string())))
             .Times(AnyNumber());
     }
 
@@ -142,7 +152,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 
 TEST_F(BaseAvailabilityZoneManagerTest, CyclesThroughAvailableZones)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file)).WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
+        .WillOnce(Return(QJsonObject{}));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -150,8 +161,10 @@ TEST_F(BaseAvailabilityZoneManagerTest, CyclesThroughAvailableZones)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file)).WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, QString::fromStdString(zone_file.u8string())))
+        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
+            .WillOnce(Return(QJsonObject{}));
+        EXPECT_CALL(*mock_json_utils_guard.first,
+                    write_json(_, QString::fromStdString(zone_file.u8string())))
             .Times(AnyNumber());
     }
 

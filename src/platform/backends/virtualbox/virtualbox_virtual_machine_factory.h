@@ -24,7 +24,8 @@ namespace multipass
 class VirtualBoxVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit VirtualBoxVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
+    explicit VirtualBoxVirtualMachineFactory(const Path& data_dir,
+                                             AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,

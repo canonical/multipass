@@ -189,7 +189,8 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (override));
     MOCK_METHOD(grpc::Status,
                 zones,
-                (grpc::ServerContext * context, (grpc::ServerReaderWriter<mp::ZonesReply, mp::ZonesRequest> * server)),
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::ZonesReply, mp::ZonesRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
                 zones_state,
@@ -1266,10 +1267,14 @@ TEST_F(Client, launchCmdWithInvalidZoneFails)
     const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("invalid_zone"));
     mp::LaunchError launch_error;
     launch_error.add_error_codes(mp::LaunchError::INVALID_ZONE);
-    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
+    const auto failure =
+        grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
     EXPECT_CALL(mock_daemon, launch)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher, failure)));
-    EXPECT_THAT(send_command({"launch", "--zone", "invalid_zone"}), Eq(mp::ReturnCode::CommandFail));
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,
+                                                                                    failure)));
+    EXPECT_THAT(send_command({"launch", "--zone", "invalid_zone"}),
+                Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, launchCmdWithUnavailableZoneFails)
@@ -1277,10 +1282,14 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
     const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("unavailable_zone"));
     mp::LaunchError launch_error;
     launch_error.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
-    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
+    const auto failure =
+        grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
     EXPECT_CALL(mock_daemon, launch)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher, failure)));
-    EXPECT_THAT(send_command({"launch", "--zone", "unavailable_zone"}), Eq(mp::ReturnCode::CommandFail));
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,
+                                                                                    failure)));
+    EXPECT_THAT(send_command({"launch", "--zone", "unavailable_zone"}),
+                Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, launchCmdWithTimer)
@@ -4463,13 +4472,15 @@ TEST_F(Client, zones_cmd_succeeds_with_format_options)
 
 TEST_F(Client, zones_cmd_fails_with_invalid_format)
 {
-    EXPECT_THAT(send_command({"zones", "--format", "invalid"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"zones", "--format", "invalid"}),
+                Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, zones_cmd_fails_with_args)
 {
     std::stringstream cerr_stream;
-    EXPECT_THAT(send_command({"zones", "foo"}, trash_stream, cerr_stream), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"zones", "foo"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(cerr_stream.str(), HasSubstr("This command takes no arguments"));
 }
 
@@ -4479,7 +4490,8 @@ TEST_F(Client, zones_cmd_verbosity_forwarded)
     const auto request_matcher = make_request_verbosity_matcher<mp::ZonesRequest>(verbosity);
 
     EXPECT_CALL(mock_daemon, zones)
-        .WillOnce(WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(request_matcher, ok)));
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(request_matcher, ok)));
     EXPECT_THAT(send_command({"zones", "-vv"}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -4503,12 +4515,14 @@ TEST_F(Client, enable_zones_cmd_no_zones_fails)
 
 TEST_F(Client, enable_zones_cmd_passes_proper_request)
 {
-    const auto request_matcher = AllOf(Property(&mp::ZonesStateRequest::available, true),
-                                       Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+    const auto request_matcher =
+        AllOf(Property(&mp::ZonesStateRequest::available, true),
+              Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
 
     EXPECT_CALL(mock_daemon, zones_state)
-        .WillOnce(
-            WithArg<1>(check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher, ok)));
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher,
+                                                                                 ok)));
 
     EXPECT_THAT(send_command({"enable-zones", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
 }
@@ -4529,7 +4543,8 @@ TEST_F(Client, disable_zones_cmd_help_ok)
 TEST_F(Client, disable_zones_cmd_success)
 {
     EXPECT_CALL(mock_daemon, zones_state(_, _));
-    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}),
+                Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, disable_zones_cmd_no_zones_fails)
@@ -4540,14 +4555,17 @@ TEST_F(Client, disable_zones_cmd_no_zones_fails)
 
 TEST_F(Client, disable_zones_cmd_passes_proper_request)
 {
-    const auto request_matcher = AllOf(Property(&mp::ZonesStateRequest::available, false),
-                                       Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+    const auto request_matcher =
+        AllOf(Property(&mp::ZonesStateRequest::available, false),
+              Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
 
     EXPECT_CALL(mock_daemon, zones_state)
-        .WillOnce(
-            WithArg<1>(check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher, ok)));
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher,
+                                                                                 ok)));
 
-    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1", "zone2"}),
+                Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, disable_zones_cmd_with_force_option)
@@ -4572,14 +4590,16 @@ TEST_F(Client, disable_zones_cmd_confirm)
     EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term), Eq(mp::ReturnCode::Ok));
 
     cin.str("no\n");
-    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1"}, term),
+                Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, disable_zones_cmd_on_failure)
 {
     const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
     EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
-    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"disable-zones", "--force", "zone1"}),
+                Eq(mp::ReturnCode::CommandFail));
 }
 TEST_F(Client, disable_zones_cmd_not_live_term_fails)
 {
@@ -4604,13 +4624,16 @@ TEST_F(Client, disable_zones_cmd_confirm_multiple_zones)
     std::stringstream cerr_stream;
     ON_CALL(term, cerr()).WillByDefault(ReturnRef(cerr_stream));
 
-    EXPECT_CALL(mock_daemon,
-                zones_state(An<grpc::ServerContext*>(),
-                            An<grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>*>()))
+    EXPECT_CALL(
+        mock_daemon,
+        zones_state(An<grpc::ServerContext*>(),
+                    An<grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>*>()))
         .WillOnce(Return(grpc::Status::OK));
-    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1", "zone2", "zone3"}, term), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(setup_client_and_run({"disable-zones", "zone1", "zone2", "zone3"}, term),
+                Eq(mp::ReturnCode::Ok));
     EXPECT_THAT(cout_stream.str(),
-                HasSubstr("This operation will forcefully stop the VMs in zone1, zone2 and zone3. Are you sure you "
+                HasSubstr("This operation will forcefully stop the VMs in zone1, zone2 and zone3. "
+                          "Are you sure you "
                           "want to continue? (Yes/no)"));
 }
 

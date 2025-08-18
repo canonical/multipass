@@ -163,7 +163,7 @@ TEST_F(LXDMountHandlerTestFixture, startThrowsIfVMIsRunning)
                                            bridge_name,
                                            default_storage_pool,
                                            key_provider,
-                                        zone};
+                                           zone};
     mp::LXDMountHandler lxd_mount_handler(&mock_network_access_manager,
                                           &lxd_vm,
                                           &key_provider,
