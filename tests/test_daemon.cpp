@@ -2073,10 +2073,10 @@ TEST_F(Daemon, skipsOverInstanceGhostsInDb)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
     EXPECT_CALL(*mock_factory,
-                create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id1), _, _, _))
+                create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id1), _, _))
         .Times(1);
     EXPECT_CALL(*mock_factory,
-                create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id2), _, _, _))
+                create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id2), _, _))
         .Times(1);
 
     mp::Daemon daemon{config_builder.build()};
@@ -2121,13 +2121,13 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(
         *mock_factory,
-        create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, stayed), _, _, _))
+        create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, stayed), _, _))
         .Times(1)
         .WillRepeatedly(WithArg<0>([](const auto& desc) {
             return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
         }));
     EXPECT_CALL(*mock_factory,
-                create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _, _))
+                create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
     EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
@@ -2156,7 +2156,7 @@ TEST_P(ListIP, listsWithIp)
 
     mp::Daemon daemon{config_builder.build()};
 
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock", zone);
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -2303,9 +2303,9 @@ TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
         return Field(&mp::VirtualMachineDescription::extra_interfaces,
                      Contains(Field(&mp::NetworkInterface::mac_address, mac)));
     };
-    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac1), _, _, _)).Times(1);
-    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac2), _, _, _)).Times(1);
-    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac3), _, _, _))
+    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac1), _, _)).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac2), _, _)).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine(mac_matcher(mac3), _, _))
         .Times(2); // this one gets reused
 
     send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac1), "--name", "vm1"});
@@ -2327,7 +2327,7 @@ TEST_P(DaemonLaunchTimeoutValueTestSuite, usesCorrectLaunchTimeout)
 {
     auto mock_factory = use_a_mock_vm_factory();
     auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock", zone);
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -2696,7 +2696,7 @@ TEST_F(Daemon, addBridgedInterfaceWorks)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
@@ -2721,7 +2721,7 @@ TEST_F(Daemon, addBridgedInterfaceWarnsAndNoopIfAlreadyBridged)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
@@ -2743,7 +2743,7 @@ TEST_F(Daemon, addBridgedInterfaceHonorsPreparedBridge)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     std::vector<mp::NetworkInterfaceInfo> net_info{
         {if_name, "Ethernet", "A regular adapter", {}, false}};
@@ -2762,7 +2762,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfBackendThrows)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
@@ -2789,7 +2789,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsOnBadBridgedNetworkSetting)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     std::vector<mp::NetworkInterfaceInfo> net_info{
         {"eth9", "Ethernet", "An invalid network adapter", {}, false}};
@@ -2811,7 +2811,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfNeedsAuthorization)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     std::vector<mp::NetworkInterfaceInfo> net_info{
         {"eth8", "Ethernet", "A network adapter", {}, true}};
@@ -2854,7 +2854,7 @@ TEST_P(DaemonIsBridged, isBridgedWorks)
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(host_nets));
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name, zone);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
 
     EXPECT_EQ(daemon.test_is_bridged(instance_name, specs), result);
 }
@@ -3030,7 +3030,8 @@ TEST_F(Daemon, setsUpPermissionInheritance)
 
 TEST_F(Daemon, zones_state_cmd_disable_all_zones)
 {
-    auto mock_az_manager = std::make_unique<NiceMock<multipass::test::MockAvailabilityZoneManager>>();
+    auto mock_az_manager =
+        std::make_unique<NiceMock<multipass::test::MockAvailabilityZoneManager>>();
     auto zone1 = std::make_unique<NiceMock<multipass::test::MockAvailabilityZone>>();
     auto zone2 = std::make_unique<NiceMock<multipass::test::MockAvailabilityZone>>();
 
@@ -3047,7 +3048,8 @@ TEST_F(Daemon, zones_state_cmd_disable_all_zones)
 
     ON_CALL(*mock_az_manager, get_zones())
         .WillByDefault(
-            Return(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{*zone1.get(), *zone2.get()}));
+            Return(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{*zone1.get(),
+                                                                                   *zone2.get()}));
     ON_CALL(*mock_az_manager, get_zone("zone1")).WillByDefault(ReturnRef(*zone1.get()));
     ON_CALL(*mock_az_manager, get_zone("zone2")).WillByDefault(ReturnRef(*zone2.get()));
 

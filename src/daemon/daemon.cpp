@@ -537,8 +537,8 @@ void validate_image(const mp::LaunchRequest* request,
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
 {
-    assert(config && config->factory && config->blueprint_provider && config->vault && config->az_manager &&
-           "null ptr somewhere...");
+    assert(config && config->factory && config->blueprint_provider && config->vault &&
+           config->az_manager && "null ptr somewhere...");
     validate_image(request, *config->vault, *config->blueprint_provider);
 
     static const auto min_mem = try_mem_size(mp::min_memory_size);
@@ -1419,12 +1419,12 @@ void lxd_and_libvirt_deprecation_warning(grpc::ServerReaderWriterInterface<Reply
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
-      vm_instance_specs{load_db(
-          mp::utils::backend_directory_path(config->data_directory,
-                                            config->factory->get_backend_directory_name()),
-          mp::utils::backend_directory_path(config->cache_directory,
-                                            config->factory->get_backend_directory_name()),
-                                                      *config->az_manager)},
+      vm_instance_specs{
+          load_db(mp::utils::backend_directory_path(config->data_directory,
+                                                    config->factory->get_backend_directory_name()),
+                  mp::utils::backend_directory_path(config->cache_directory,
+                                                    config->factory->get_backend_directory_name()),
+                  *config->az_manager)},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
       instance_mod_handler{register_instance_mod(
           vm_instance_specs,
@@ -3113,8 +3113,7 @@ try
                                            destination_name,
                                            dest_vm_image,
                                            *config->ssh_key_provider,
-                                           *this,
-                                           *config->az_manager);
+                                           *this);
         ++src_spec.clone_count;
         // preparing instance is done
         preparing_instances.erase(destination_name);
@@ -3225,9 +3224,10 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::zones_state(const ZonesStateRequest* request,
-                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
-                             std::promise<grpc::Status>* status_promise) // clang-format off
+void mp::Daemon::zones_state(
+    const ZonesStateRequest* request,
+    grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+    std::promise<grpc::Status>* status_promise) // clang-format off
 try // clang-format on
 {
     mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
@@ -3405,8 +3405,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                           blueprint_name,
                           *config->name_generator,
                           operative_instances);
-    auto zone_name =
-        checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name() : checked_args.zone_name;
+    auto zone_name = checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name()
+                                                    : checked_args.zone_name;
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3468,8 +3468,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 operative_instances[name] =
                     config->factory->create_virtual_machine(vm_desc,
                                                             *config->ssh_key_provider,
-                                                            *this,
-                                                            *config->az_manager);
+                                                            *this);
                 preparing_instances.erase(name);
 
                 persist_instances();
@@ -3482,8 +3481,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
                     operative_instances[name]->start();
 
-                    auto future_watcher =
-                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces, zone = vm_desc.zone] {
+                    auto future_watcher = create_future_watcher(
+                        [this, server, name, vm_aliases, vm_workspaces, zone = vm_desc.zone] {
                             LaunchReply reply;
                             reply.set_vm_instance_name(name);
                             config->update_prompt->populate_if_time_to_show(
@@ -3550,7 +3549,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         });
 
     auto make_vm_description =
-        [this, server, request, name, zone_name, checked_args, log_level]() mutable -> VMFullDescription {
+        [this, server, request, name, zone_name, checked_args, log_level]() mutable
+        -> VMFullDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try

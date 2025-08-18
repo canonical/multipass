@@ -272,8 +272,9 @@ std::string error_msg_helper(const std::string& msg_core, const QString& ps_outp
 
 mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir,
                                                              AvailabilityZoneManager& az_manager)
-    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
-                                az_manager)
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
 {
 }
 
