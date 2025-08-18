@@ -28,7 +28,12 @@ import subprocess
 import logging
 from typing import AsyncIterator, Optional
 
-from cli_tests.utilities import get_sudo_tool, run_in_new_interpreter
+from cli_tests.utilities import (
+    get_sudo_tool,
+    run_in_new_interpreter,
+    AsyncSubprocess,
+    sudo,
+)
 from .controller_exceptions import ControllerPrerequisiteError
 
 label: str = "com.canonical.multipassd"
@@ -199,33 +204,20 @@ class LaunchdMultipassdController:
             raise RuntimeError(f"restart (kickstart) failed:\n{out}")
 
     async def follow_output(self) -> AsyncIterator[str]:
-        if self._log_proc and self._log_proc.returncode is None:
-            with contextlib.suppress(ProcessLookupError):
-                self._log_proc.terminate()
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._log_proc.wait(), timeout=3)
-
-        self._log_proc = await asyncio.create_subprocess_exec(
-            *self._sudo,
-            "tail",
-            "-f",
-            "/Library/Logs/Multipass/multipassd.log",
+        async with AsyncSubprocess(
+            *sudo(
+                "tail",
+                "-f",
+                "/Library/Logs/Multipass/multipassd.log",
+            ),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
-        )
-
-        try:
+        ) as tail:
             while True:
-                line = await self._log_proc.stdout.readline()
+                line = await tail.stdout.readline()
                 if not line:
                     break
                 yield line.decode("utf-8", "replace")
-        except asyncio.CancelledError:
-            with contextlib.suppress(ProcessLookupError):
-                self._log_proc.terminate()
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._log_proc.wait(), timeout=2)
-            raise
 
     async def is_active(self) -> bool:
         _STATE_RE = re.compile(r"^\s*state\s*=\s*(\w+)", re.M)
