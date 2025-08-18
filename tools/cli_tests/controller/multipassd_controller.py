@@ -18,8 +18,15 @@
 
 from typing import AsyncIterator, Protocol, Optional
 
+
 class MultipassdController(Protocol):
     """Abstracts how multipassd is run/controlled."""
+
+    @staticmethod
+    def setup_environment() -> None: ...
+
+    @staticmethod
+    def teardown_environment() -> None: ...
 
     async def start(self) -> None: ...
     async def stop(self, graceful=True) -> None: ...
