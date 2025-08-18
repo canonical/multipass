@@ -91,6 +91,8 @@ struct LXDBackend : public Test
     std::unique_ptr<StrictMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
     const QString default_storage_pool{"default"};
+    mpt::StubAvailabilityZone zone{};
+    mpt::StubAvailabilityZoneManager az_manager{};
 };
 
 struct LXDInstanceStatusTestSuite : LXDBackend, WithParamInterface<LXDInstanceStatusParamType>
