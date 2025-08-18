@@ -35,8 +35,9 @@ ReturnCode DisableZones::run(ArgParser* parser)
     if (ask_for_confirmation)
     {
         if (!term->is_live())
-            throw std::runtime_error{"Unable to query client for confirmation. Use '--force' to forcefully make "
-                                     "unavailable all instances in the specified zones."};
+            throw std::runtime_error{
+                "Unable to query client for confirmation. Use '--force' to forcefully make "
+                "unavailable all instances in the specified zones."};
 
         if (!confirm())
             return ReturnCode::CommandFail;
@@ -44,16 +45,18 @@ ReturnCode DisableZones::run(ArgParser* parser)
 
     AnimatedSpinner spinner{cout};
     const auto use_all_zones = request.zones().empty();
-    const auto message =
-        use_all_zones ? "Disabling all zones" : fmt::format("Disabling {}", fmt::join(request.zones(), ", "));
+    const auto message = use_all_zones
+                             ? "Disabling all zones"
+                             : fmt::format("Disabling {}", fmt::join(request.zones(), ", "));
     spinner.start(message);
 
     const auto on_success = [&](const ZonesStateReply&) {
         spinner.stop();
-        const auto output_message = use_all_zones ? "All zones disabled"
-                                                  : fmt::format("Zone{} disabled: {}",
-                                                                request.zones_size() == 1 ? "" : "s",
-                                                                fmt::join(request.zones(), ", "));
+        const auto output_message = use_all_zones
+                                        ? "All zones disabled"
+                                        : fmt::format("Zone{} disabled: {}",
+                                                      request.zones_size() == 1 ? "" : "s",
+                                                      fmt::join(request.zones(), ", "));
         cout << output_message << std::endl;
         return Ok;
     };
@@ -63,7 +66,8 @@ ReturnCode DisableZones::run(ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    const auto streaming_callback = make_logging_spinner_callback<ZonesStateRequest, ZonesStateReply>(spinner, cerr);
+    const auto streaming_callback =
+        make_logging_spinner_callback<ZonesStateRequest, ZonesStateReply>(spinner, cerr);
 
     return dispatch(&RpcMethod::zones_state, request, on_success, on_failure, streaming_callback);
 }
@@ -80,14 +84,17 @@ QString DisableZones::short_help() const
 
 QString DisableZones::description() const
 {
-    return QStringLiteral("Makes the given availability zones unavailable. Instances therein are "
-                          "forcefully switched off and remain unavailable until their zone is re-enabled "
-                          "(simulating a loss of availability on a cloud provider).");
+    return QStringLiteral(
+        "Makes the given availability zones unavailable. Instances therein are "
+        "forcefully switched off and remain unavailable until their zone is re-enabled "
+        "(simulating a loss of availability on a cloud provider).");
 }
 
 ParseCode DisableZones::parse_args(ArgParser* parser)
 {
-    parser->addPositionalArgument("zone", "Name of the zones to make unavailable", "<zone> [<zone> ...]");
+    parser->addPositionalArgument("zone",
+                                  "Name of the zones to make unavailable",
+                                  "<zone> [<zone> ...]");
 
     QCommandLineOption all_option(all_option_name, "Disable all zones");
     QCommandLineOption forceOption{"force", "Do not ask for confirmation"};
@@ -96,7 +103,8 @@ ParseCode DisableZones::parse_args(ArgParser* parser)
     if (const auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
 
-    if (const auto status = check_for_name_and_all_option_conflict(parser, cerr); status != ParseCode::Ok)
+    if (const auto status = check_for_name_and_all_option_conflict(parser, cerr);
+        status != ParseCode::Ok)
         return status;
 
     request.set_available(false);
@@ -123,9 +131,10 @@ bool DisableZones::confirm() const
             return request.zones(0);
 
         const auto last_zone = request.zones_size() - 1;
-        return fmt::format("{} and {}",
-                           fmt::join(request.zones().begin(), request.zones().begin() + last_zone, ", "),
-                           request.zones(last_zone));
+        return fmt::format(
+            "{} and {}",
+            fmt::join(request.zones().begin(), request.zones().begin() + last_zone, ", "),
+            request.zones(last_zone));
     };
     const auto message = "This operation will forcefully stop the VMs in " + format_zones() +
                          ". Are you sure you want to continue? (Yes/no)";

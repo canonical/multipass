@@ -283,7 +283,8 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 

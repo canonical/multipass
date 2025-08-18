@@ -34,7 +34,8 @@ constexpr auto log_category = "base factory";
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    explicit BaseVirtualMachineFactory(const Path& instances_dir, AvailabilityZoneManager& az_manager);
+    explicit BaseVirtualMachineFactory(const Path& instances_dir,
+                                       AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                        const VMSpecs& dest_spec,
                                        const std::string& src_name,

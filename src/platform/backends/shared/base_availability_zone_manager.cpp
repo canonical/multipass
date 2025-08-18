@@ -40,9 +40,12 @@ constexpr auto automatic_zone_key = "automatic_zone";
     using namespace multipass;
 
     std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
-    std::transform(default_zone_names.begin(), default_zone_names.end(), zones.begin(), [&](const auto& zone_name) {
-        return std::make_unique<BaseAvailabilityZone>(zone_name, zones_directory);
-    });
+    std::transform(default_zone_names.begin(),
+                   default_zone_names.end(),
+                   zones.begin(),
+                   [&](const auto& zone_name) {
+                       return std::make_unique<BaseAvailabilityZone>(zone_name, zones_directory);
+                   });
     return zones;
 };
 
@@ -136,7 +139,8 @@ void BaseAvailabilityZoneManager::serialize() const
     MP_JSONUTILS.write_json(json, QString::fromStdString(m.file_path.u8string()));
 }
 
-const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray& BaseAvailabilityZoneManager::zones() const
+const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray&
+BaseAvailabilityZoneManager::zones() const
 {
     return m.zone_collection.zones;
 }
@@ -144,7 +148,8 @@ const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray& BaseAvailabilityZo
 BaseAvailabilityZoneManager::ZoneCollection::ZoneCollection(
     std::array<AvailabilityZone::UPtr, default_zone_names.size()>&& _zones,
     std::string last_used)
-    : zones{std::move(_zones)}, automatic_zone{std::find_if(zones.begin(), zones.end(), [&last_used](const auto& zone) {
+    : zones{std::move(_zones)},
+      automatic_zone{std::find_if(zones.begin(), zones.end(), [&last_used](const auto& zone) {
           return zone->get_name() == last_used;
       })}
 {

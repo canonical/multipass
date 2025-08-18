@@ -40,8 +40,8 @@ public:
     // this returns a computed zone name, using an algorithm e.g. round-robin
     // not to be confused with [get_default_zone_name]
     virtual std::string get_automatic_zone_name() = 0;
-    // this always returns the same zone name, to be given to VMs that were not assigned to a zone in the past
-    // not to be confused with [get_automatic_zone]
+    // this always returns the same zone name, to be given to VMs that were not assigned to a zone
+    // in the past not to be confused with [get_automatic_zone]
     virtual std::string get_default_zone_name() const = 0;
 };
 } // namespace multipass

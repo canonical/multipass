@@ -119,10 +119,12 @@ mp::NetworkInterfaceInfo list_vbox_network(
 }
 } // namespace
 
-mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::Path& data_dir,
-                                                                     AvailabilityZoneManager& az_manager)
-    : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
-                                az_manager)
+mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(
+    const mp::Path& data_dir,
+    AvailabilityZoneManager& az_manager)
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
 {
 }
 
@@ -279,10 +281,11 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(src_name,
-                                                          dest_vm_desc,
-                                                          monitor,
-                                                          key_provider,
-                                                          az_manager.get_zone(dest_vm_desc.zone),
-                                                          get_instance_directory(dest_vm_desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(
+        src_name,
+        dest_vm_desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(dest_vm_desc.zone),
+        get_instance_directory(dest_vm_desc.vm_name));
 }

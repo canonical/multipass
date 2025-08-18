@@ -42,7 +42,8 @@ public:
 private:
     void serialize() const;
 
-    // we store all the data in one struct so that it can be created from one function call in the initializer list
+    // we store all the data in one struct so that it can be created from one function call in the
+    // initializer list
     struct data
     {
         const std::string name{};
@@ -50,7 +51,8 @@ private:
         const std::string subnet{};
         bool available{};
         std::vector<std::reference_wrapper<VirtualMachine>> vms{};
-        // we don't have designated initializers, so mutex remains last so it doesn't need to be manually initialized
+        // we don't have designated initializers, so mutex remains last so it doesn't need to be
+        // manually initialized
         mutable std::recursive_mutex mutex{};
     } m;
 

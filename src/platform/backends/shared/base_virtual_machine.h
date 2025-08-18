@@ -56,7 +56,8 @@ public:
 
     void set_available(bool available) override
     {
-        // TODO make vm unavailable by force stopping if running or available by starting again if it was running
+        // TODO make vm unavailable by force stopping if running or available by starting again if
+        // it was running
         throw NotImplementedOnThisBackendException("unavailability");
     }
 
