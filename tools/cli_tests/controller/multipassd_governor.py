@@ -22,7 +22,7 @@ from cli_tests.multipass import (
 from cli_tests.utilities import (
     BooleanLatch,
     AsyncSubprocess,
-    run_as_subprocess,
+    run_in_new_interpreter,
 )
 
 from .multipassd_controller import MultipassdController
@@ -154,7 +154,7 @@ class MultipassdGovernor:
         # run_as_privileged.
         cert_path = get_client_cert_path()
         # Authenticate the client against the daemon
-        run_as_subprocess(
+        run_in_new_interpreter(
             authenticate_client_cert, str(cert_path), config.data_root, privileged=True
         )
 
