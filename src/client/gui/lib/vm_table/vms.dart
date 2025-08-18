@@ -174,8 +174,8 @@ class Vms extends ConsumerWidget {
             finalRow: infos.isNotEmpty ? totalUsageRow : null,
             emptyContent: emptyTableContent,
           ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }
