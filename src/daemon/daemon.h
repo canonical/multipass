@@ -169,9 +169,10 @@ public slots:
     virtual void zones(const ZonesRequest* request,
                        grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
                        std::promise<grpc::Status>* status_promise);
-    virtual void zones_state(const ZonesStateRequest* request,
-                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
-                             std::promise<grpc::Status>* status_promise);
+    virtual void zones_state(
+        const ZonesStateRequest* request,
+        grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+        std::promise<grpc::Status>* status_promise);
 
     virtual void wait_ready(
         const WaitReadyRequest* request,

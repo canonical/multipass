@@ -70,7 +70,8 @@ catch (const std::ios_base::failure& e)
 namespace multipass
 {
 
-BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::string& name, const fs::path& file_path)
+BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::string& name,
+                                                                const fs::path& file_path)
 {
     mpl::trace(name, "reading AZ from file '{}'", file_path);
 

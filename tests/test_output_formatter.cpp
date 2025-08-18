@@ -1147,11 +1147,15 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "Comment:        Captured by EHT\n",
      "table_info_multiple_mixed_instances_and_snapshots"},
 
-    {&csv_formatter, &empty_list_reply, "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n", "csv_list_empty"},
+    {&csv_formatter,
+     &empty_list_reply,
+     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n",
+     "csv_list_empty"},
     {&csv_formatter,
      &single_instance_list_reply,
      "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
-     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",zone1,true\n",
+     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,Ubuntu 16.04 "
+     "LTS,\"10.168.32.2,200.3.123.30\",zone1,true\n",
      "csv_list_single"},
     {&csv_formatter,
      &multiple_instances_list_reply,
@@ -1189,9 +1193,11 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
     {&csv_formatter,
      &single_instance_info_reply,
-     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
+     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk "
+     "usage,Disk total,Memory "
      "usage,Memory "
-     "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,zone1,true,10.168.32.2,2001:67c:1562:8007::aac:423a,Ubuntu "
+     "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,zone1,true,10.168.32.2,2001:67c:1562:8007:"
+     ":aac:423a,Ubuntu "
      "16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
      "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
@@ -1219,8 +1225,11 @@ const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
      "csv_info_multiple_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_instances_info_reply,
-     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk total,Memory "
-     "usage,Memory total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,zone1,true,10.21.124.56,,Ubuntu "
+     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk "
+     "usage,Disk total,Memory "
+     "usage,Memory "
+     "total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,zone1,true,10.21.124.56,,"
+     "Ubuntu "
      "16.04.3 "
      "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
      "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
