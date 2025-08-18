@@ -88,6 +88,8 @@ struct LXDBackend : public Test
     mpt::TempDir data_dir;
     mpt::TempDir instance_dir;
     mpt::StubSSHKeyProvider key_provider;
+    mpt::StubAvailabilityZoneManager az_manager{};
+    mpt::StubAvailabilityZone zone{};
     std::unique_ptr<StrictMock<mpt::MockNetworkAccessManager>> mock_network_access_manager;
     QUrl base_url{"unix:///foo@1.0"};
     const QString default_storage_pool{"default"};
