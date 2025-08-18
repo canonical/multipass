@@ -33,7 +33,7 @@ from pytest import Session
 from cli_tests.utilities import (
     wait_for_future,
     get_sudo_tool,
-    run_as_subprocess,
+    run_in_new_interpreter,
     BackgroundEventLoop,
     TempDirectory,
 )
@@ -379,7 +379,7 @@ def multipassd_impl():
         wait_for_future(loop.run(governor.stop()))
 
         if config.remove_all_instances:
-            run_as_subprocess(nuke_all_instances, config.data_root, privileged=True)
+            run_in_new_interpreter(nuke_all_instances, config.data_root, privileged=True)
 
         # Start the governor
         wait_for_future(loop.run(governor.start()))
