@@ -50,6 +50,9 @@ def get_sudo_tool():
     return [result] + default_args
 
 
+def sudo(*args):
+    return [*get_sudo_tool(), *args]
+
 def run_in_new_interpreter(
     py_func, *args, check=True, stdout=None, stderr=None, privileged=False
 ):
