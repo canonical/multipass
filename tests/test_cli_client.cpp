@@ -3344,6 +3344,15 @@ TEST_F(Client, waitReadyCmdFailsWhenDaemonFails)
     EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, waitReadyCmdWithTimeoutFailsWhenDaemonFails)
+{
+    grpc::Status daemon_failure(grpc::StatusCode::FAILED_PRECONDITION, "");
+
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(daemon_failure));
+
+    EXPECT_THAT(send_command({"wait-ready", "--timeout", "10"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 // get/set cli tests
 struct TestGetSetHelp : Client, WithParamInterface<std::string>
 {
