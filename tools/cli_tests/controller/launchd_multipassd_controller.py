@@ -33,6 +33,7 @@ from cli_tests.utilities import (
     run_in_new_interpreter,
     AsyncSubprocess,
     sudo,
+    TempDirectory,
 )
 from .controller_exceptions import ControllerPrerequisiteError
 
@@ -73,13 +74,13 @@ def make_override_plist(source_plist_path: str) -> str:
     # Remove any complex KeepAlive dicts and force boolean False.
     data["KeepAlive"] = {"SuccessfulExit": False}  # Mimic Linux systemd behavior
 
-    # Write to a secure temp file; launchd can bootstrap from arbitrary path.
-    tmp_dir = tempfile.mkdtemp(prefix="mpd-launchd-")
-    tmp_path = os.path.join(tmp_dir, f"{label}.plist")
-    with open(tmp_path, "wb") as f:
-        plistlib.dump(data, f, sort_keys=False)
+    with TempDirectory(delete=False) as tmp_dir:
+        tmp_path = os.path.join(tmp_dir, f"{label}.plist")
+        with open(tmp_path, "wb") as f:
+            plistlib.dump(data, f, sort_keys=False)
 
     run_in_new_interpreter(make_owner_root_wheel, tmp_path, privileged=True)
+    print(f"make_override_plist: {tmp_path}")
     return tmp_path
 
 
