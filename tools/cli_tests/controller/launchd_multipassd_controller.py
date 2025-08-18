@@ -78,7 +78,7 @@ def make_override_plist(source_plist_path: str) -> str:
     # Normalize label and ensure KeepAlive disabled.
     data["Label"] = label
     # Remove any complex KeepAlive dicts and force boolean False.
-    data["KeepAlive"] = False
+    data["KeepAlive"] = {"SuccessfulExit": False}  # Mimic Linux systemd behavior
 
     # Write to a secure temp file; launchd can bootstrap from arbitrary path.
     tmp_dir = tempfile.mkdtemp(prefix="mpd-launchd-")
