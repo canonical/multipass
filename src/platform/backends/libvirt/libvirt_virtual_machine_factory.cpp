@@ -133,8 +133,7 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& d
 mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
     const SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor,
-    AvailabilityZoneManager& az_manager)
+    VMStatusMonitor& monitor)
 {
     if (bridge_name.empty())
         bridge_name = enable_libvirt_network(data_dir, libvirt_wrapper);

@@ -3112,8 +3112,7 @@ try
                                            destination_name,
                                            dest_vm_image,
                                            *config->ssh_key_provider,
-                                           *this,
-                                           *config->az_manager);
+                                           *this);
         ++src_spec.clone_count;
         // preparing instance is done
         preparing_instances.erase(destination_name);
@@ -3427,8 +3426,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 operative_instances[name] =
                     config->factory->create_virtual_machine(vm_desc,
                                                             *config->ssh_key_provider,
-                                                            *this,
-                                                            *config->az_manager);
+                                                            *this);
                 preparing_instances.erase(name);
 
                 persist_instances();

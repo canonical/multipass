@@ -77,7 +77,7 @@ protected:
 
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
-        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        using ReplyType = std::decay_t<Arg0Type>;
         ReplyType reply;
         auto handle_failure = adapt_failure_handler(on_failure, reply);
 
@@ -146,7 +146,7 @@ protected:
     {
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
-        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        using ReplyType = std::decay_t<Arg0Type>;
         return dispatch(rpc_func,
                         request,
                         on_success,
