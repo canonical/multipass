@@ -129,10 +129,11 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}\n",
-                   "Zone:",
-                   fmt::format("{}({})", item.zone().name(), item.zone().available() ? "a" : "u/a"));
+    fmt::format_to(
+        std::back_inserter(buf),
+        "{:<16}{}\n",
+        "Zone:",
+        fmt::format("{}({})", item.zone().name(), item.zone().available() ? "a" : "u/a"));
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -281,10 +282,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                        state_column_width,
                        ipv4_size ? instance.ipv4(0) : "--",
                        ip_column_width,
-                       instance.current_release().empty() ? "Not Available"
-                                                          : fmt::format("Ubuntu {}", instance.current_release()),
+                       instance.current_release().empty()
+                           ? "Not Available"
+                           : fmt::format("Ubuntu {}", instance.current_release()),
                        image_column_width,
-                       fmt::format("{}({})", instance.zone().name(), instance.zone().available() ? "a" : "u/a"));
+                       fmt::format("{}({})",
+                                   instance.zone().name(),
+                                   instance.zone().available() ? "a" : "u/a"));
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -605,7 +609,11 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
         name_col_header.length());
 
     const auto row_format = "{:<{}}{:<}\n";
-    fmt::format_to(std::back_inserter(buf), row_format, name_col_header, name_column_width, "State");
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   name_col_header,
+                   name_column_width,
+                   "State");
 
     for (const auto& zone : zones)
     {

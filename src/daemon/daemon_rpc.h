@@ -216,7 +216,8 @@ protected:
         grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server) override;
     grpc::Status zones(grpc::ServerContext* context,
                        grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server) override;
-    grpc::Status zones_state(grpc::ServerContext* context,
-                             grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server) override;
+    grpc::Status zones_state(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server) override;
 };
 } // namespace multipass

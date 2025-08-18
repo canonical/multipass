@@ -399,7 +399,8 @@ std::string mp::platform::default_server_address()
     return "unix:" + base_dir + "/multipass_socket";
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
 {
     const auto& driver = MP_SETTINGS.get(mp::driver_key);
     if (driver == QStringLiteral("qemu"))

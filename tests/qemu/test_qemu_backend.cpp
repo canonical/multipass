@@ -204,9 +204,9 @@ TEST_F(QemuBackend, createsInOffState)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
@@ -216,9 +216,9 @@ TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 
     machine->shutdown();
@@ -232,11 +232,11 @@ TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
     });
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     process_factory->register_callback(handle_qemu_system);
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_resume());
@@ -256,11 +256,11 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
     });
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     process_factory->register_callback(handle_qemu_system);
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_resume());
@@ -289,9 +289,9 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start();
     ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
@@ -331,9 +331,9 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
     });
 
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start();
 
@@ -369,9 +369,9 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start(); // we need this so that Process signals get connected to their handlers
     EXPECT_EQ(machine->state, mp::VirtualMachine::State::starting);
@@ -409,11 +409,11 @@ TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
     });
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     process_factory->register_callback(handle_qemu_system);
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_resume());
@@ -436,9 +436,9 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->state = mp::VirtualMachine::State::suspended;
 
@@ -458,9 +458,9 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->state = mp::VirtualMachine::State::suspending;
 
@@ -481,9 +481,9 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->state = mp::VirtualMachine::State::starting;
 
@@ -527,9 +527,9 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Killed");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Force stopped");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start(); // we need this so that Process signals get connected to their handlers
 
@@ -552,9 +552,9 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->state = mp::VirtualMachine::State::unknown;
 
@@ -585,10 +585,10 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -614,10 +614,10 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
     logger_scope.mock_logger->expect_log(mpl::Level::warning,
                                          "Image has no suspension snapshot, but the state is 7");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -648,10 +648,10 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
     logger_scope.mock_logger->expect_log(mpl::Level::warning,
                                          "Image has a suspension snapshot, but the state is 4");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->state = mp::VirtualMachine::State::running;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -672,9 +672,9 @@ TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
     });
 
     auto factory = mpt::StubProcessFactory::Inject();
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -708,9 +708,9 @@ TEST_F(QemuBackend, verifySomeCommonQemuArguments)
         }
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -733,9 +733,9 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
 
     process_factory->register_callback(handle_external_process_calls);
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -765,9 +765,9 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
         .WillRepeatedly(Return(QJsonObject({{"machine_type", machine_type}})));
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -808,9 +808,9 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
         .WillRepeatedly(
             Return(QJsonObject({{"arguments", QJsonArray{"-hi_there", "-hows_it_going"}}})));
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
@@ -849,7 +849,7 @@ TEST_F(QemuBackend, returnsVersionString)
 
     process_factory->register_callback(callback);
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     EXPECT_EQ(backend.get_backend_version_string(), "qemu-2.11.1");
 }
@@ -876,7 +876,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenFailedParsing)
 
     process_factory->register_callback(callback);
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
 }
@@ -901,7 +901,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenErrored)
 
     process_factory->register_callback(callback);
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
 }
@@ -925,7 +925,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenExecFailed)
 
     process_factory->register_callback(callback);
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     EXPECT_EQ(backend.get_backend_version_string(), "qemu-unknown");
 }
@@ -1098,7 +1098,7 @@ TEST_F(QemuBackend, networksReturnsSupportedNetworks)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const std::map<std::string, mp::NetworkInterfaceInfo> networks{
         {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
@@ -1129,7 +1129,7 @@ TEST_F(QemuBackend, removeResourcesForCallsQemuPlatform)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     backend.remove_resources_for(test_name);
 
@@ -1148,7 +1148,7 @@ TEST_F(QemuBackend, hypervisorHealthCheckCallsQemuPlatform)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     backend.hypervisor_health_check();
 
@@ -1172,7 +1172,7 @@ TEST_F(QemuBackend, getBackendDirectoryNameCallsQemuPlatform)
         return std::move(mock_qemu_platform);
     });
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const auto dir_name = backend.get_backend_directory_name();
 
@@ -1189,9 +1189,9 @@ TEST_F(QemuBackend, addNetworkInterface)
     const auto [mock_cloud_init_file_ops, _] = mpt::MockCloudInitFileOps::inject();
     EXPECT_CALL(*mock_cloud_init_file_ops, add_extra_interface_to_cloud_init).Times(1);
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor, az_manager);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_NO_THROW(machine->add_network_interface(0, "", {"", "", true}));
 }
 
@@ -1202,7 +1202,7 @@ TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
     });
     EXPECT_CALL(*mock_qemu_platform, needs_network_prep()).Times(1).WillRepeatedly(Return(true));
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth1", "52:54:00:00:00:00", true}};
     EXPECT_NO_THROW(backend.prepare_networking(extra_interfaces));
@@ -1233,7 +1233,7 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
 
     process_factory->register_callback(snapshot_list_callback);
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const mp::QemuVirtualMachine machine{
         default_description,
@@ -1266,7 +1266,7 @@ TEST_F(QemuBackend, cloneCopiesRelevantFiles)
     });
 
     mpt::StubVMStatusMonitor stub_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_identifiers(_, _, _, _)).Times(1);
@@ -1296,7 +1296,7 @@ TEST_F(QemuBackend, cloneCopiesRelevantFiles)
     }
 
     EXPECT_TRUE(
-        backend.clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, key_provider, stub_monitor, az_manager));
+        backend.clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, key_provider, stub_monitor));
 
     std::unordered_set<std::string> actual_files;
     for (const auto& file : fs::directory_iterator(dest_vm_dir))

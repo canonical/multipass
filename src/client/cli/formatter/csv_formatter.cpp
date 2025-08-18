@@ -89,7 +89,8 @@ std::string generate_instance_details(const mp::InfoReply reply)
 
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk "
+                   "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image "
+                   "release,Load,Disk usage,Disk "
                    "total,Memory usage,Memory "
                    "total,Mounts,AllIPv4,CPU(s){}\n",
                    have_num_snapshots ? ",Snapshots" : "");
@@ -128,7 +129,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
-    fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n");
+    fmt::format_to(std::back_inserter(buf),
+                   "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
@@ -138,8 +140,9 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                        mp::format::status_string_for(instance.instance_status()),
                        instance.ipv4_size() ? instance.ipv4(0) : "",
                        instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release().empty() ? "Not Available"
-                                                          : fmt::format("Ubuntu {}", instance.current_release()),
+                       instance.current_release().empty()
+                           ? "Not Available"
+                           : fmt::format("Ubuntu {}", instance.current_release()),
                        fmt::join(instance.ipv4(), ","),
                        instance.zone().name(),
                        instance.zone().available());
