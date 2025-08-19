@@ -161,6 +161,11 @@ class AsyncSubprocess:
         self.args = args
         self.kwargs = kwargs
         self.proc = None
+        self.kwargs = self._default_kwargs
+        self.kwargs.update(kwargs)
+
+    def _default_kwargs(self) -> dict:
+        return {}
 
     async def __aenter__(self):
         # Shield the spawn so it completes even if we get cancelled mid-await.
@@ -211,6 +216,24 @@ class AsyncSubprocess:
             raise
         # return False -> propagate any exception from the 'with' body
         return False
+
+
+class StdoutAsyncSubprocess(AsyncSubprocess):
+    def _default_kwargs(self) -> dict:
+        return {
+            "stdin": asyncio.subprocess.DEVNULL,
+            "stdout": asyncio.subprocess.PIPE,
+            "stderr": asyncio.subprocess.STDOUT,
+        }
+
+
+class SilentAsyncSubprocess(AsyncSubprocess):
+    def _default_kwargs(self) -> dict:
+        return {
+            "stdin": asyncio.subprocess.DEVNULL,
+            "stdout": asyncio.subprocess.DEVNULL,
+            "stderr": asyncio.subprocess.DEVNULL,
+        }
 
 
 def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):

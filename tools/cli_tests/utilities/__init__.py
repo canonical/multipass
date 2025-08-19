@@ -23,6 +23,8 @@ from .threadutils import (
     BooleanLatch,
     BackgroundEventLoop,
     AsyncSubprocess,
+    SilentAsyncSubprocess,
+    StdoutAsyncSubprocess,
     wait_for_future,
 )
 from .functional import retry
