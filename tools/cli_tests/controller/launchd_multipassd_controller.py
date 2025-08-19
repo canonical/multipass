@@ -254,7 +254,7 @@ class LaunchdMultipassdController:
                 if result == "(never exited)":
                     return 0
                 return int(result)
-            except ValueError:
+            except Exception:
                 pass
 
         return None
