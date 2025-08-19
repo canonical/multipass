@@ -161,7 +161,7 @@ class AsyncSubprocess:
         self.args = args
         self.kwargs = kwargs
         self.proc = None
-        self.kwargs = self._default_kwargs
+        self.kwargs = self._default_kwargs()
         self.kwargs.update(kwargs)
 
     def _default_kwargs(self) -> dict:
