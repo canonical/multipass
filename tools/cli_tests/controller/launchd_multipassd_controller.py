@@ -125,7 +125,7 @@ class LaunchdMultipassdController:
         self._daemon_pid = None
 
     async def _get_service_property(self, prop_name) -> str:
-        _regex = re.compile(rf"^\s*{prop_name}\s*=\s*(\w+)", re.M)
+        _regex = re.compile(rf"^\s*{prop_name}\s*=\s*(.*)$", re.M)
 
         async with StdoutAsyncSubprocess(
             "launchctl", "print", f"system/{label}"
@@ -136,7 +136,7 @@ class LaunchdMultipassdController:
 
             m = _regex.search(stdout.decode(encoding="utf-8", errors="replace"))
             if m:
-                return m.group(1)
+                return m.group(1).strip()
 
         return None
 
@@ -247,7 +247,10 @@ class LaunchdMultipassdController:
 
         for prop_name in props_to_look_for:
             try:
-                return int(await self._get_service_property(prop_name))
+                result = await self._get_service_property(prop_name)
+                if result == "(never exited)":
+                    return 0
+                return int(result)
             except ValueError:
                 pass
 
