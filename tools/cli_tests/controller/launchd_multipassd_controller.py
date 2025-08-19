@@ -18,11 +18,9 @@
 
 from __future__ import annotations
 import asyncio
-import contextlib
 import sys
 import re
 import os
-import tempfile
 import plistlib
 import subprocess
 import logging
@@ -31,7 +29,8 @@ from typing import AsyncIterator, Optional
 from cli_tests.utilities import (
     get_sudo_tool,
     run_in_new_interpreter,
-    AsyncSubprocess,
+    StdoutAsyncSubprocess,
+    SilentAsyncSubprocess,
     sudo,
     TempDirectory,
 )
@@ -122,40 +121,29 @@ class LaunchdMultipassdController:
             raise ControllerPrerequisiteError(
                 "LaunchdMultipassdController requires macOS."
             )
-        self._sudo = list(get_sudo_tool())
         self._log_proc: Optional[asyncio.subprocess.Process] = None
         self._daemon_pid = None
 
-    async def _run(self, *args: str, timeout: int = 30) -> tuple[int, str]:
-        proc = await asyncio.create_subprocess_exec(
-            *self._sudo,
-            *args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        try:
-            await asyncio.wait_for(proc.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
-            with contextlib.suppress(ProcessLookupError):
-                proc.kill()
-            await proc.wait()
-            raise
-        out = (
-            (await proc.stdout.read()).decode("utf-8", "replace") if proc.stdout else ""
-        )
-        return proc.returncode, out
+
+
+    async def _get_service_property(self, prop_name):
+        _regex = re.compile(rf"^\s*{prop_name}\s*=\s*(\w+)", re.M)
+
+        async with StdoutAsyncSubprocess("launchctl", "print", f"system/{label}") as proc:
+            stdout, _ = await proc.communicate()
+            if proc.returncode != 0:
+                return False
+
+            m = _regex.search(stdout)
+            if m:
+                return m.group(1)
+
+        return None
 
     async def _get_pid(self) -> Optional[int]:
-        rc, out = await self._run("launchctl", "print", f"system/{label}", timeout=10)
-        if rc != 0:
-            return None
-        for line in out.splitlines():
-            s = line.strip()
-            if s.startswith("pid ="):
-                try:
-                    return int(s.split("=", 1)[1].strip())
-                except ValueError:
-                    return None
+        prop = await self._get_service_property("pid")
+        if prop:
+            return int(prop.strip())
         return None
 
     async def _wait_inactive(self, timeout_s: float = 20.0) -> bool:
@@ -170,9 +158,14 @@ class LaunchdMultipassdController:
 
     async def start(self) -> None:
         # 4) Start (soft): kickstart (no -k)
-        rc, out = await self._run("launchctl", "kickstart", f"system/{label}")
-        if rc != 0:
-            raise RuntimeError(f"kickstart failed:\n{out}")
+        async with StdoutAsyncSubprocess(
+            *sudo("launchctl", "kickstart", f"system/{label}")
+        ) as start:
+            stdout, _ = await start.communicate()
+            if start.returncode == 0:
+                self._daemon_pid = await self._get_pid()
+                return
+            raise RuntimeError(f"kickstart failed:\n{stdout}")
 
         self._daemon_pid = await self._get_pid()
 
@@ -180,39 +173,41 @@ class LaunchdMultipassdController:
         # Soft stop: TERM via launchctl stop; wait until inactive.
         # KeepAlive may respawn; we’ll wait a bit, then nudge once with kill TERM.
         old_pid = await self._get_pid()
-        await self._run("launchctl", "stop", f"system/{label}")
+        async with SilentAsyncSubprocess(
+            "launchctl", "stop", f"system/{label}"
+        ) as stop:
+            await stop.communicate()
 
         if await self._wait_inactive(timeout_s=6.0):
             return
 
         # Still active? If KeepAlive respawned, ask again with a TERM nudge.
         if old_pid is not None:
-            await self._run("launchctl", "kill", "SIGTERM", f"system/{label}")
-            await self._wait_inactive(timeout_s=6.0)
+            async with SilentAsyncSubprocess(
+                "launchctl", "kill", "SIGTERM", f"system/{label}"
+            ) as kill:
+                kill.communicate()
 
-        # Stop log streaming if active
-        if self._log_proc and self._log_proc.returncode is None:
-            with contextlib.suppress(ProcessLookupError):
-                self._log_proc.terminate()
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._log_proc.wait(), timeout=3)
+            await self._wait_inactive(timeout_s=6.0)
 
     async def restart(self) -> None:
         await self.stop()
-        # If KeepAlive raced us and it’s already up, kickstart (no -k) is harmless.
-        rc, out = await self._run("launchctl", "kickstart", f"system/{label}")
-        if rc != 0:
-            raise RuntimeError(f"restart (kickstart) failed:\n{out}")
+
+        async with StdoutAsyncSubprocess(
+            *sudo("launchctl", "kickstart", f"system/{label}")
+        ) as start:
+            stdout, _ = await start.communicate()
+            if start.returncode == 0:
+                return
+            raise RuntimeError(f"restart (kickstart) failed:\n{stdout}")
 
     async def follow_output(self) -> AsyncIterator[str]:
-        async with AsyncSubprocess(
+        async with StdoutAsyncSubprocess(
             *sudo(
                 "tail",
                 "-f",
                 "/Library/Logs/Multipass/multipassd.log",
-            ),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            )
         ) as tail:
             while True:
                 line = await tail.stdout.readline()
@@ -221,15 +216,11 @@ class LaunchdMultipassdController:
                 yield line.decode("utf-8", "replace")
 
     async def is_active(self) -> bool:
-        _STATE_RE = re.compile(r"^\s*state\s*=\s*(\w+)", re.M)
-        rc, out = await self._run("launchctl", "print", f"system/{label}", timeout=10)
-        if rc != 0:
+        prop = await self._get_service_property("state")
+        if not prop:
             return False
 
-        m = _STATE_RE.search(out)
-        if m:
-            return m.group(1).lower() == "running"
-        return False
+        return prop.tolower() == "running"
 
     async def wait_exit(self) -> Optional[int]:
         """Return exit code if available; else None. Should return promptly if stopped."""
@@ -257,30 +248,20 @@ class LaunchdMultipassdController:
           - the job is currently running, or
           - launchctl doesn't report an exit status.
         """
-        rc, out = await self._run("launchctl", "print", f"system/{label}", timeout=10)
-        if rc != 0:
+
+        if await self.is_active():
             return None
 
-        # If it's running, there is no final exit code yet.
-        if re.search(r"^\s*state\s*=\s*running\b", out, flags=re.MULTILINE):
-            return None
+        props_to_look_for = [
+            "last exit code",
+            "last exit status",
+            "termination status",
+        ]
 
-        # Common fields seen in launchctl output across macOS versions:
-        #   "last exit code = <n>"
-        #   "last exit status = <n>"     (older variants)
-        #   "termination status = <n>"   (seen in some states)
-        for pat in (
-            r"last exit code\s*=\s*(-?\d+)",
-            r"last exit status\s*=\s*(-?\d+)",
-            r"termination status\s*=\s*(-?\d+)",
-        ):
-            m = re.search(pat, out, flags=re.IGNORECASE)
-            if m:
-                try:
-                    return int(m.group(1))
-                except ValueError:
-                    pass
+        for prop_name in props_to_look_for:
+            try:
+                return int(await self._get_service_property(prop_name))
+            except ValueError:
+                pass
 
         return None
-
-    # raise NotImplementedError()
