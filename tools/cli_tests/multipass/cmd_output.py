@@ -19,6 +19,7 @@
 import re
 
 from cli_tests.multipass.cmd_json_output import JsonOutput
+from cli_tests.utilities import strip_ansi_escape
 from cli_tests.config import config
 
 
@@ -38,8 +39,8 @@ class Output:
     def __init__(self, content, exitstatus):
         if config.driver == "lxd":
             content = strip_lxd_deprecation_notice(content)
-
-        self.content = content.strip()
+        # Strip ansi escape codes.
+        self.content = strip_ansi_escape(content.strip())
         self.exitstatus = exitstatus
 
     def __contains__(self, pattern):
