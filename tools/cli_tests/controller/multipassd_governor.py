@@ -136,7 +136,7 @@ class MultipassdGovernor:
         self._reset_state()
         if needs_restarting:
             logging.info("multipassd-governor :: daemon auto-restarting")
-            self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start()))
+            self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start_async()))
 
     async def _ensure_client_certs_are_created(self):
         # Call multipass cli to create the client certs
@@ -158,7 +158,7 @@ class MultipassdGovernor:
             authenticate_client_cert, str(cert_path), config.data_root, privileged=True
         )
 
-    async def start(self):
+    async def start_async(self):
         """Start the multipassd daemon"""
         logging.info("multipassd-governor :: start called")
 
@@ -214,7 +214,7 @@ class MultipassdGovernor:
         self.monitor_task = monitor_task
         self.daemon_ready_event.set()
 
-    async def stop(self):
+    async def stop_async(self):
         """Stop the multipassd daemon"""
         logging.info("multipassd-governor :: stop called")
         self.graceful_exit_initiated = True
@@ -234,12 +234,21 @@ class MultipassdGovernor:
                 print(f"💥 monitor_task failed: {e}")
 
     async def restart_async(self):
-        await self.stop()
-        await self.start()
+        await self.stop_async()
+        await self.start_async()
 
     def restart(self, timeout=60):
         """Restart the daemon"""
         self.asyncio_loop.run(self.restart_async()).result(timeout=timeout)
+
+    def start(self, timeout=60):
+        """Start the daemon"""
+        self.asyncio_loop.run(self.start_async()).result(timeout=timeout)
+
+    def stop(self, timeout=60):
+        """Stop the daemon"""
+        self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
+
 
     def wait_for_shutdown(self, timeout=60):
         self.daemon_ready_event.wait_until(False, timeout=timeout)
