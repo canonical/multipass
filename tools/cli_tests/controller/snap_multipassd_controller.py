@@ -22,22 +22,12 @@ import subprocess
 from asyncio.subprocess import Process
 from typing import AsyncIterator, Optional
 
-from cli_tests.utilities import sudo, AsyncSubprocess
+from cli_tests.utilities import (
+    sudo,
+    StdoutAsyncSubprocess,
+    SilentAsyncSubprocess,
+)
 from .controller_exceptions import ControllerPrerequisiteError
-
-
-def devnull():
-    return {
-        "stdout": asyncio.subprocess.DEVNULL,
-        "stderr": asyncio.subprocess.DEVNULL,
-    }
-
-
-def pipe():
-    return {
-        "stdout": asyncio.subprocess.PIPE,
-        "stderr": asyncio.subprocess.STDOUT,
-    }
 
 
 class SnapdMultipassdController:
@@ -64,8 +54,8 @@ class SnapdMultipassdController:
             )
 
     async def _get_status(self):
-        async with AsyncSubprocess(
-            *sudo("snap", "services", self.daemon_service_name), **pipe()
+        async with StdoutAsyncSubprocess(
+            *sudo("snap", "services", self.daemon_service_name)
         ) as proc:
             stdout, _ = await proc.communicate()
 
@@ -83,8 +73,8 @@ class SnapdMultipassdController:
             return properties["current"]
 
     async def start(self) -> None:
-        async with AsyncSubprocess(
-            *sudo("snap", "start", self.snap_name), **devnull()
+        async with SilentAsyncSubprocess(
+            *sudo("snap", "start", self.snap_name)
         ) as proc:
             await proc.communicate()
 
@@ -93,22 +83,20 @@ class SnapdMultipassdController:
         )
 
     async def stop(self, graceful=True) -> None:
-        async with AsyncSubprocess(
-            *sudo("snap", "stop", self.snap_name), **devnull()
-        ) as proc:
+        async with SilentAsyncSubprocess(*sudo("snap", "stop", self.snap_name)) as proc:
             await proc.communicate()
 
     async def restart(self) -> None:
-        async with AsyncSubprocess(
-            *sudo("snap", "restart", self.snap_name), **devnull()
+        async with SilentAsyncSubprocess(
+            *sudo("snap", "restart", self.snap_name)
         ) as proc:
             await proc.communicate()
 
     async def follow_output(self) -> AsyncIterator[str]:
         """Yield decoded log lines (utf-8, replace errors)."""
 
-        async with AsyncSubprocess(
-            *sudo("snap", "logs", self.snap_name, "-f"), **pipe()
+        async with StdoutAsyncSubprocess(
+            *sudo("snap", "logs", self.snap_name, "-f")
         ) as logs_proc:
             while True:
                 line = await logs_proc.stdout.readline()
@@ -142,9 +130,8 @@ class SnapdMultipassdController:
     async def _get_systemctl_property(
         self, service_name, property_name
     ) -> Optional[str]:
-        async with AsyncSubprocess(
-            *sudo("systemctl", "show", "-p", property_name, "--value", service_name),
-            **pipe(),
+        async with StdoutAsyncSubprocess(
+            *sudo("systemctl", "show", "-p", property_name, "--value", service_name)
         ) as sysctl:
             stdout, _ = await sysctl.communicate()
             if sysctl.returncode == 0:
