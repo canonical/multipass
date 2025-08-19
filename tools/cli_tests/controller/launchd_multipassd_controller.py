@@ -25,6 +25,7 @@ import plistlib
 import subprocess
 import logging
 from typing import AsyncIterator, Optional
+from contextlib import suppress
 
 from cli_tests.utilities import (
     get_sudo_tool,
@@ -168,8 +169,9 @@ class LaunchdMultipassdController:
         ) as stop:
             await stop.communicate()
 
-        if await asyncio.wait_for(self.wait_exit(), 30):
-            return
+        with suppress(asyncio.TimeoutError):
+            if await asyncio.wait_for(self.wait_exit(), 5):
+                return
 
         async with SilentAsyncSubprocess(
             "launchctl", "kill", "SIGTERM", f"system/{label}"
