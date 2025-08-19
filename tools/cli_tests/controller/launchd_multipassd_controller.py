@@ -124,17 +124,17 @@ class LaunchdMultipassdController:
         self._log_proc: Optional[asyncio.subprocess.Process] = None
         self._daemon_pid = None
 
-
-
-    async def _get_service_property(self, prop_name):
+    async def _get_service_property(self, prop_name) -> str:
         _regex = re.compile(rf"^\s*{prop_name}\s*=\s*(\w+)", re.M)
 
-        async with StdoutAsyncSubprocess("launchctl", "print", f"system/{label}") as proc:
+        async with StdoutAsyncSubprocess(
+            "launchctl", "print", f"system/{label}"
+        ) as proc:
             stdout, _ = await proc.communicate()
             if proc.returncode != 0:
                 return False
 
-            m = _regex.search(stdout)
+            m = _regex.search(stdout.decode(encoding="utf-8", errors="replace"))
             if m:
                 return m.group(1)
 
@@ -220,7 +220,7 @@ class LaunchdMultipassdController:
         if not prop:
             return False
 
-        return prop.tolower() == "running"
+        return prop.lower() == "running"
 
     async def wait_exit(self) -> Optional[int]:
         """Return exit code if available; else None. Should return promptly if stopped."""
