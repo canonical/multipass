@@ -38,7 +38,7 @@ def launch(cfg_override=None):
         "cpus": config.vm.cpus,
         "memory": config.vm.memory,
         "disk": config.vm.disk,
-        "retry": 3,
+        "retry": getattr(config.retries, "launch", 0),
         "image": config.vm.image,
         "autopurge": True,
         "assert": {"purge": True},

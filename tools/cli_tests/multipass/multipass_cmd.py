@@ -35,34 +35,6 @@ if sys.platform == "win32":
     from cli_tests.utilities import WinptySpawn
 
 
-def get_default_timeout_for(cmd):
-    """Return the default timeout (in seconds) for a given Multipass command, or 30 if not listed."""
-    default_timeouts = {
-        "launch": 600,
-        "stop": 180,
-        "mount": 180,
-        "restart": 120,
-        "delete": 90,
-        "exec": 90,
-        "start": 90,
-        "umount": 45,
-    }
-    if cmd in default_timeouts:
-        return default_timeouts[cmd]
-    return 30
-
-
-def get_default_retry_count_for(cmd):
-    """Return the default retry count for a given Multipass command, or None if not listed."""
-    default_retry_counts = {
-        # Sometimes launch may fail due to temporary issues in remote. Be more forgiving.
-        "launch": 3,
-    }
-    if cmd in default_retry_counts:
-        return default_retry_counts[cmd]
-    return None
-
-
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context manager support.
 
@@ -98,13 +70,15 @@ def multipass(*args, **kwargs):
         - You can use `in` or `bool()` checks on the result proxy.
     """
 
+    DEFAULT_CMD_TIMEOUT = 30
+
     timeout = (
         kwargs.get("timeout")
         if "timeout" in kwargs
-        else get_default_timeout_for(args[0])
+        else getattr(config.timeouts, args[0], DEFAULT_CMD_TIMEOUT)
     )
     echo = kwargs.get("echo") or False
-    retry_count = kwargs.get("retry", get_default_retry_count_for(args[0]))
+    retry_count = kwargs.get("retry", getattr(config.retries, args[0], None))
 
     if retry_count and retry_count > 0:
 
