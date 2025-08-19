@@ -146,14 +146,6 @@ class LaunchdMultipassdController:
             return int(prop.strip())
         return None
 
-    async def _wait_inactive(self, timeout_s: float = 20.0) -> bool:
-        end = asyncio.get_event_loop().time() + timeout_s
-        while asyncio.get_event_loop().time() < end:
-            if not await self.is_active():
-                return True
-            await asyncio.sleep(0.2)
-        return False
-
     # --- DaemonBackend API ---
 
     async def start(self) -> None:
@@ -170,25 +162,20 @@ class LaunchdMultipassdController:
         self._daemon_pid = await self._get_pid()
 
     async def stop(self) -> None:
-        # Soft stop: TERM via launchctl stop; wait until inactive.
-        # KeepAlive may respawn; we’ll wait a bit, then nudge once with kill TERM.
-        old_pid = await self._get_pid()
         async with SilentAsyncSubprocess(
             "launchctl", "stop", f"system/{label}"
         ) as stop:
             await stop.communicate()
 
-        if await self._wait_inactive(timeout_s=6.0):
+        if await asyncio.wait_for(self.wait_exit(), 30):
             return
 
-        # Still active? If KeepAlive respawned, ask again with a TERM nudge.
-        if old_pid is not None:
-            async with SilentAsyncSubprocess(
-                "launchctl", "kill", "SIGTERM", f"system/{label}"
-            ) as kill:
-                kill.communicate()
+        async with SilentAsyncSubprocess(
+            "launchctl", "kill", "SIGTERM", f"system/{label}"
+        ) as kill:
+            await kill.communicate()
 
-            await self._wait_inactive(timeout_s=6.0)
+        await asyncio.wait_for(self.wait_exit(), 10)
 
     async def restart(self) -> None:
         await self.stop()
