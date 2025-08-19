@@ -52,6 +52,17 @@ def get_default_timeout_for(cmd):
     return 30
 
 
+def get_default_retry_count_for(cmd):
+    """Return the default retry count for a given Multipass command, or None if not listed."""
+    default_retry_counts = {
+        # Sometimes launch may fail due to temporary issues in remote. Be more forgiving.
+        "launch": 3,
+    }
+    if cmd in default_retry_counts:
+        return default_retry_counts[cmd]
+    return None
+
+
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context manager support.
 
@@ -93,13 +104,14 @@ def multipass(*args, **kwargs):
         else get_default_timeout_for(args[0])
     )
     echo = kwargs.get("echo") or False
-    # print(f"timeout is {timeout} for {multipass_path} {' '.join(args)}")
-    retry_count = kwargs.pop("retry", None)
-    if retry_count is not None:
+    retry_count = kwargs.get("retry", get_default_retry_count_for(args[0]))
+
+    if retry_count and retry_count > 0:
 
         @retry(retries=retry_count, delay=2.0)
         def retry_wrapper():
-            return multipass(*args, **kwargs)
+            # Pass retry "0" to prevent further recursion
+            return multipass(*args, **{**kwargs, "retry": 0})
 
         return retry_wrapper()
 
@@ -131,13 +143,13 @@ def multipass(*args, **kwargs):
                 self.terminate()
 
     env = get_multipass_env()
-
     env_args = kwargs.get("env")
 
     if env_args:
         env.update(env_args)
 
-    logging.info(f"cmd: {[get_multipass_path(), *map(str, args)]}")
+    cmd_args = [get_multipass_path(), *map(str, args)]
+    logging.info(f"cmd: {cmd_args}")
 
     if kwargs.get("interactive"):
         if sys.platform == "win32":
@@ -174,7 +186,7 @@ def multipass(*args, **kwargs):
         def __init__(self):
             self.pexpect_child = None
             try:
-                if not sys.platform == "win32":
+                if sys.platform != "win32":
                     self.pexpect_child = pexpect.spawn(
                         get_multipass_path(),
                         [*map(str, args)],
@@ -204,9 +216,7 @@ def multipass(*args, **kwargs):
                 raise
             finally:
                 if self.pexpect_child and self.pexpect_child.isalive():
-                    sys.stderr.write(
-                        f"\n❌🔥 Terminating {' '.join(pexpect_child_args)}\n"
-                    )
+                    sys.stderr.write(f"\n❌🔥 Terminating {' '.join(cmd_args)}\n")
                     sys.stdout.flush()
                     sys.stderr.flush()
                     self.pexpect_child.terminate()
