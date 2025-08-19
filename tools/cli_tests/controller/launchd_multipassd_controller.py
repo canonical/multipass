@@ -165,7 +165,7 @@ class LaunchdMultipassdController:
 
     async def stop(self) -> None:
         async with SilentAsyncSubprocess(
-            "launchctl", "stop", f"system/{label}"
+            *sudo("launchctl", "stop", f"system/{label}")
         ) as stop:
             await stop.communicate()
 
@@ -174,7 +174,7 @@ class LaunchdMultipassdController:
                 return
 
         async with SilentAsyncSubprocess(
-            "launchctl", "kill", "SIGKILL", f"system/{label}"
+            *sudo("launchctl", "kill", "SIGKILL", f"system/{label}")
         ) as kill:
             await kill.communicate()
 
