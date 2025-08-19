@@ -34,7 +34,8 @@ class TestVersion:
     # https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
     version_format_regex = r"^(\w+)\s+(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?\r?$"
 
-    def test_version_no_daemon(self):
+    def test_version_no_daemon(self, multipassd):
+        multipassd.stop()
         with multipass("version") as output:
             assert output
             matches = re.findall(
