@@ -182,6 +182,11 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::CloneReply, mp::CloneRequest> * server)),
                 (override));
+    MOCK_METHOD(grpc::Status,
+                wait_ready,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::WaitReadyReply, mp::WaitReadyRequest> * server)),
+                (override));
 };
 
 struct Client : public Test
@@ -3288,6 +3293,66 @@ TEST_F(Client, findCmdHelpOk)
     EXPECT_THAT(send_command({"find", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
+// wait-ready cli tests
+TEST_F(Client, waitReadyCmdNoArgsOk)
+{
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
+    EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, waitReadyCmdHelpOk)
+{
+    EXPECT_THAT(send_command({"wait-ready", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, waitReadyCmdPollsDaemonOk)
+{
+    grpc::Status daemon_not_ready(grpc::StatusCode::NOT_FOUND,
+                                  "cannot connect to the multipass socket");
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(daemon_not_ready));
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
+
+    EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, waitReadyCmdPollsOnImageServerConnectionFailure)
+{
+    grpc::Status daemon_not_connected_to_image_servers(grpc::StatusCode::NOT_FOUND,
+                                                       "cannot connect to the image servers");
+
+    InSequence seq;
+    EXPECT_CALL(mock_daemon, wait_ready(_, _))
+        .WillOnce(Return(daemon_not_connected_to_image_servers));
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
+
+    EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, waitReadyCmdFailsWithUnknownArg)
+{
+    EXPECT_THAT(send_command({"wait-ready", "--unknown"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, waitReadyCmdFailsWhenDaemonFails)
+{
+    grpc::Status daemon_failure(grpc::StatusCode::FAILED_PRECONDITION, "");
+
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(daemon_failure));
+
+    EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, waitReadyCmdWithTimeoutFailsWhenDaemonFails)
+{
+    grpc::Status daemon_failure(grpc::StatusCode::FAILED_PRECONDITION, "");
+
+    EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(daemon_failure));
+
+    EXPECT_THAT(send_command({"wait-ready", "--timeout", "10"}), Eq(mp::ReturnCode::CommandFail));
+}
+
 // get/set cli tests
 struct TestGetSetHelp : Client, WithParamInterface<std::string>
 {
@@ -3867,7 +3932,11 @@ TEST_F(AuthenticateCommandClient, authenticateCmdNoPassphrasePrompterFailsReturn
     EXPECT_EQ(cerr.str(), "Failed to read value\n");
 }
 
-const std::vector<std::string> timeout_commands{"launch", "start", "restart", "shell"};
+const std::vector<std::string> timeout_commands{"launch",
+                                                "start",
+                                                "restart",
+                                                "shell",
+                                                "wait-ready"};
 const std::vector<std::string> valid_timeouts{"120", "1234567"};
 const std::vector<std::string> invalid_timeouts{"-1", "0", "a", "3min", "15.51", ""};
 
@@ -3883,6 +3952,7 @@ TEST_P(TimeoutCorrectSuite, cmdsWithTimeoutOk)
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
     EXPECT_THAT(send_command({command, "--timeout", timeout}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -3934,6 +4004,8 @@ struct TimeoutSuite : Client, WithParamInterface<std::string>
             .WillByDefault(request_sleeper<mp::RestartRequest, mp::RestartReply>);
         ON_CALL(mock_daemon, ssh_info)
             .WillByDefault(request_sleeper<mp::SSHInfoRequest, mp::SSHInfoReply>);
+        ON_CALL(mock_daemon, wait_ready)
+            .WillByDefault(request_sleeper<mp::WaitReadyRequest, mp::WaitReadyReply>);
     }
 
     template <typename RequestType, typename ReplyType>
@@ -3952,6 +4024,7 @@ TEST_P(TimeoutSuite, commandExitsOnTimeout)
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
     EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
 
     send_command({GetParam(), "--timeout", "1"});
@@ -3963,6 +4036,7 @@ TEST_P(TimeoutSuite, commandCompletesWithoutTimeout)
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
 
     EXPECT_EQ(send_command({GetParam(), "--timeout", "5"}), mp::ReturnCode::Ok);
 }
@@ -3985,6 +4059,8 @@ struct ClientLogMessageSuite : Client, WithParamInterface<std::vector<std::strin
             .WillByDefault(reply_log_message<mp::RestartReply, mp::RestartRequest>);
         ON_CALL(mock_daemon, version)
             .WillByDefault(reply_log_message<mp::VersionReply, mp::VersionRequest>);
+        ON_CALL(mock_daemon, wait_ready)
+            .WillByDefault(reply_log_message<mp::WaitReadyReply, mp::WaitReadyRequest>);
     }
 
     template <typename ReplyType, typename RequestType>
@@ -4008,6 +4084,7 @@ TEST_P(ClientLogMessageSuite, clientPrintsOutExpectedLogMessage)
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, version).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
 
     std::stringstream cerr_stream;
 
@@ -4023,7 +4100,8 @@ INSTANTIATE_TEST_SUITE_P(Client,
                                 std::vector<std::string>{"start"},
                                 std::vector<std::string>{"version"},
                                 std::vector<std::string>{"restart"},
-                                std::vector<std::string>{"version"}));
+                                std::vector<std::string>{"version"},
+                                std::vector<std::string>{"wait-ready"}));
 
 TEST_F(ClientAlias, aliasCreatesAlias)
 {

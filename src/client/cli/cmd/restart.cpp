@@ -114,7 +114,7 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
 
-    mp::cmd::add_timeout(parser);
+    mp::cmd::add_instance_timeout(parser);
 
     auto status = parser->commandParse(this);
 
