@@ -174,7 +174,7 @@ class LaunchdMultipassdController:
                 return
 
         async with SilentAsyncSubprocess(
-            "launchctl", "kill", "SIGTERM", f"system/{label}"
+            "launchctl", "kill", "SIGKILL", f"system/{label}"
         ) as kill:
             await kill.communicate()
 
