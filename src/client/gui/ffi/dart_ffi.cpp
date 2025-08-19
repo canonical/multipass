@@ -95,6 +95,26 @@ struct KeyCertificatePair get_cert_pair()
     }
 }
 
+char* get_root_cert()
+{
+    static constexpr auto error = "failed retrieving root certificate";
+    try
+    {
+        const auto cert = MP_UTILS.contents_of(MP_PLATFORM.get_root_cert_path().u8string().c_str());
+        return strdup(cert.c_str());
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
+        return nullptr;
+    }
+    catch (...)
+    {
+        mpl::warn(category, error);
+        return nullptr;
+    }
+}
+
 static std::once_flag initialize_settings_once_flag;
 
 char* settings_file()

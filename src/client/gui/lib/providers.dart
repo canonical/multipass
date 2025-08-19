@@ -29,11 +29,13 @@ final grpcClientProvider = Provider((ref) {
 
   final address = getServerAddress();
   final certPair = getCertPair();
+  final rootCert = getRootCert();
 
   var channelCredentials = CustomChannelCredentials(
     authority: 'localhost',
     certificate: certPair.cert,
     certificateKey: certPair.key,
+    rootCertificate: rootCert,
   );
 
   return GrpcClient(

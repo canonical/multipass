@@ -137,6 +137,11 @@ class KeyCertificatePair {
 final _getCertPair = _lib.lookupFunction<_NativeKeyCertificatePair Function(),
     _NativeKeyCertificatePair Function()>('get_cert_pair');
 
+final _getRootCert = _lib
+    .lookupFunction<ffi.Pointer<Utf8> Function(), ffi.Pointer<Utf8> Function()>(
+  'get_root_cert',
+);
+
 String get multipassVersion => _multipassVersion().toDartString();
 
 String generatePetname([Iterable<String> existing = const []]) {
@@ -167,6 +172,10 @@ KeyCertificatePair getCertPair() {
   final cert = utf8.encode(pair.pem_cert.string);
   final key = utf8.encode(pair.pem_cert_key.string);
   return KeyCertificatePair(cert, key);
+}
+
+List<int> getRootCert() {
+  return utf8.encode(_getRootCert().string);
 }
 
 String settingsFile() => _settingsFile().string;
