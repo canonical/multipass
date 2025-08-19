@@ -24,6 +24,7 @@ import sys
 import subprocess
 import shutil
 import logging
+import threading
 from contextlib import contextmanager, ExitStack
 from functools import partial
 
@@ -337,20 +338,43 @@ def ensure_sudo_auth():
             check=False,
         )
 
-        if result.returncode == 0:
-            return
+        if result.returncode != 0:
+            message = (
+                "🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒\n"
+                "Multipass CLI tests require `sudo` authentication.\n"
+                "This only needs to be done once per session.\n"
+                "You'll be prompted to enter your password now.\n"
+                "🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒\n"
+            )
 
-        message = (
-            "🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒\n"
-            "Multipass CLI tests require `sudo` authentication.\n"
-            "This only needs to be done once per session.\n"
-            "You'll be prompted to enter your password now.\n"
-            "🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒🔒\n"
-        )
+            sys.stdout.write(f"\n\n{message}")
+            sys.stdout.flush()
 
-        sys.stdout.write(f"\n\n{message}")
-        sys.stdout.flush()
-        subprocess.run([*get_sudo_tool(), "-v"], check=True)
+            subprocess.run([*get_sudo_tool(), "-v"], check=True)
+
+        stop_keepalive = threading.Event()
+
+        # Renew the sudo credentials ticket by issuing sudo periodically.
+        def _keep_sudo_alive():
+            """Background thread that periodically refreshes sudo auth"""
+            while not stop_keepalive.is_set():
+                try:
+                    subprocess.run(
+                        [*get_sudo_tool(), "-n", "-v"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                    )
+                except Exception:
+                    # Don't crash tests if sudo -v fails, just break
+                    break
+                stop_keepalive.wait(60)  # refresh every minute
+
+        sudo_keepalive_thread = threading.Thread(target=_keep_sudo_alive)
+        sudo_keepalive_thread.start()
+        yield
+        stop_keepalive.set()
+        sudo_keepalive_thread.join()
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
 
