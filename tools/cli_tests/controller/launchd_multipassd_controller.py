@@ -88,7 +88,7 @@ class LaunchdMultipassdController:
 
     @staticmethod
     def setup_environment():
-        logging.info(f"LaunchdMultipassdController :: setup_environment {plist_path}")
+        logging.debug(f"LaunchdMultipassdController :: setup_environment {plist_path}")
 
         # 1) Unload whatever is there (may be inactive; ignore failures)
         run_sync("launchctl", "bootout", f"system/{label}")
@@ -102,7 +102,7 @@ class LaunchdMultipassdController:
 
     @staticmethod
     def teardown_environment():
-        logging.info(
+        logging.debug(
             f"LaunchdMultipassdController :: teardown_environment {plist_path}"
         )
 
