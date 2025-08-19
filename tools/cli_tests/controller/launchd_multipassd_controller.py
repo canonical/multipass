@@ -71,7 +71,7 @@ def make_override_plist(source_plist_path: str) -> str:
     # Normalize label and ensure KeepAlive disabled.
     data["Label"] = label
     # Remove any complex KeepAlive dicts and force boolean False.
-    data["KeepAlive"] = {"SuccessfulExit": False}  # Mimic Linux systemd behavior
+    data["KeepAlive"] = False
 
     with TempDirectory(delete=False) as tmp_dir:
         tmp_path = os.path.join(tmp_dir, f"{label}.plist")
@@ -79,7 +79,7 @@ def make_override_plist(source_plist_path: str) -> str:
             plistlib.dump(data, f, sort_keys=False)
 
     run_in_new_interpreter(make_owner_root_wheel, tmp_path, privileged=True)
-    print(f"make_override_plist: {tmp_path}")
+
     return tmp_path
 
 
@@ -108,6 +108,7 @@ class LaunchdMultipassdController:
 
         # Fully unload override so it doesn’t linger.
         run_sync("launchctl", "bootout", f"system/{label}")
+
         # Re-bootstrap original plist (restore system “shape”)
         rc, out = run_sync("launchctl", "bootstrap", "system", plist_path)
         if rc != 0:
@@ -217,17 +218,17 @@ class LaunchdMultipassdController:
         return await self.exit_code()
 
     def supports_self_autorestart(self) -> bool:
-        return True
+        return False
 
-    async def wait_for_self_autorestart(self, timeout=60):
-        async def _wait():
-            current = self._daemon_pid
-            while current == self._daemon_pid:
-                current = await self._get_pid()
-                await asyncio.sleep(0.3)  # polling interval
-            self._daemon_pid = current
+    # async def wait_for_self_autorestart(self, timeout=60):
+    #     async def _wait():
+    #         current = self._daemon_pid
+    #         while current == self._daemon_pid:
+    #             current = await self._get_pid()
+    #             await asyncio.sleep(0.3)  # polling interval
+    #         self._daemon_pid = current
 
-        await asyncio.wait_for(_wait(), timeout)
+    #     await asyncio.wait_for(_wait(), timeout)
 
     async def exit_code(self) -> Optional[int]:
         """
