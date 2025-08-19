@@ -277,6 +277,10 @@ class TestMount:
             else:
                 pytest.fail(f"Unknown restart type {restart_type}")
 
+            # The instance should be auto-started by the daemon after restart.
+            # We're doing this to just to wait until it does.
+
+            assert multipass("start", instance)
             assert mounts(instance) == {
                 str(mount_dst): {
                     "gid_mappings": [f"{default_mount_gid()}:default"],
