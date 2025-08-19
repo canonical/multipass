@@ -31,8 +31,8 @@ namespace mpu = multipass::utils;
 
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir)
-    : instances_dir{instances_dir} {};
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir, AvailabilityZoneManager& az_manager)
+    : az_manager{az_manager}, instances_dir{instances_dir} {};
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
@@ -88,14 +88,13 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
     }
 }
 
-mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
-    const VMSpecs& src_spec,
-    const VMSpecs& dest_spec,
-    const std::string& src_name,
-    const std::string& dest_name,
-    const VMImage& dest_image,
-    const multipass::SSHKeyProvider& key_provider,
-    VMStatusMonitor& monitor)
+mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(const VMSpecs& src_spec,
+                                                                      const VMSpecs& dest_spec,
+                                                                      const std::string& src_name,
+                                                                      const std::string& dest_name,
+                                                                      const VMImage& dest_image,
+                                                                      const multipass::SSHKeyProvider& key_provider,
+                                                                      VMStatusMonitor& monitor)
 {
     const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
     const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
@@ -114,6 +113,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                dest_spec.mem_size,
                                                dest_spec.disk_space,
                                                dest_name,
+                                               dest_spec.zone,
                                                dest_spec.default_mac_address,
                                                dest_spec.extra_interfaces,
                                                dest_spec.ssh_username,
@@ -124,10 +124,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance =
-        clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
-
-    return cloned_instance;
+    return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }
 
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(

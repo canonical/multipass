@@ -133,6 +133,12 @@ signals:
     void on_daemon_info(const DaemonInfoRequest* request,
                         grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server,
                         std::promise<grpc::Status>* status_promise);
+    void on_zones(const ZonesRequest* request,
+                  grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server,
+                  std::promise<grpc::Status>* status_promise);
+    void on_zones_state(const ZonesStateRequest* request,
+                        grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -202,5 +208,9 @@ protected:
     grpc::Status daemon_info(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server) override;
+    grpc::Status zones(grpc::ServerContext* context,
+                       grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server) override;
+    grpc::Status zones_state(grpc::ServerContext* context,
+                             grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server) override;
 };
 } // namespace multipass

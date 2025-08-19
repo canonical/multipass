@@ -21,6 +21,8 @@
 #include "cmd/authenticate.h"
 #include "cmd/clone.h"
 #include "cmd/delete.h"
+#include "cmd/disable_zones.h"
+#include "cmd/enable_zones.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -46,6 +48,7 @@
 #include "cmd/umount.h"
 #include "cmd/unalias.h"
 #include "cmd/version.h"
+#include "cmd/zones.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
@@ -87,6 +90,8 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Authenticate>();
     add_command<cmd::Launch>(aliases);
     add_command<cmd::Purge>(aliases);
+    add_command<cmd::DisableZones>();
+    add_command<cmd::EnableZones>();
     add_command<cmd::Exec>(aliases);
     add_command<cmd::Find>();
     add_command<cmd::Get>();
@@ -111,6 +116,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
+    add_command<cmd::Zones>();
 
     sort_commands();
 

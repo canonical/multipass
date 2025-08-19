@@ -24,6 +24,7 @@
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
@@ -230,7 +231,8 @@ auto name_from(const std::string& requested_name,
 }
 
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
-                                                     const mp::Path& cache_path)
+                                                     const mp::Path& cache_path,
+                                                     const mp::AvailabilityZoneManager& az_manager)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -268,6 +270,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         auto deleted = record["deleted"].toBool();
         auto metadata = record["metadata"].toObject();
         auto clone_count = record["clone_count"].toInt();
+        auto zone = record["zone"].toString().toStdString();
+        zone = zone.empty() ? az_manager.get_default_zone_name() : zone;
 
         if (!num_cores && !deleted && ssh_username.empty() && metadata.isEmpty() &&
             !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
@@ -308,7 +312,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
             mounts,
             deleted,
             metadata,
-            clone_count};
+            clone_count,
+            zone,
+        };
     }
     return reconstructed_records;
 }
@@ -341,6 +347,7 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
 
     json.insert("mounts", json_mounts);
     json.insert("clone_count", specs.clone_count);
+    json.insert("zone", QString::fromStdString(specs.zone));
 
     return json;
 }
@@ -530,7 +537,7 @@ void validate_image(const mp::LaunchRequest* request,
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
 {
-    assert(config && config->factory && config->blueprint_provider && config->vault &&
+    assert(config && config->factory && config->blueprint_provider && config->vault && config->az_manager &&
            "null ptr somewhere...");
     validate_image(request, *config->vault, *config->blueprint_provider);
 
@@ -541,6 +548,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     auto mem_size_str = request->mem_size();
     auto disk_space_str = request->disk_space();
     auto instance_name = request->instance_name();
+    auto zone_name = request->zone();
     auto option_errors = mp::LaunchError{};
 
     const auto opt_mem_size =
@@ -571,6 +579,16 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
+    try
+    {
+        if (!zone_name.empty() && !config->az_manager->get_zone(zone_name).is_available())
+            option_errors.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
+    }
+    catch (const mp::AvailabilityZoneNotFound& e)
+    {
+        option_errors.add_error_codes(mp::LaunchError::INVALID_ZONE);
+    }
+
     std::vector<std::string> nets_need_bridging;
     auto extra_interfaces =
         validate_extra_interfaces(request, *config->factory, nets_need_bridging, option_errors);
@@ -580,15 +598,19 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         mp::MemorySize mem_size;
         std::optional<mp::MemorySize> disk_space;
         std::string instance_name;
+        std::string zone_name;
         std::vector<mp::NetworkInterface> extra_interfaces;
         std::vector<std::string> nets_need_bridging;
         mp::LaunchError option_errors;
-    } ret{std::move(mem_size),
-          std::move(disk_space),
-          std::move(instance_name),
-          std::move(extra_interfaces),
-          std::move(nets_need_bridging),
-          std::move(option_errors)};
+    } ret{
+        std::move(mem_size),
+        std::move(disk_space),
+        std::move(instance_name),
+        std::move(zone_name),
+        std::move(extra_interfaces),
+        std::move(nets_need_bridging),
+        std::move(option_errors),
+    };
     return ret;
 }
 
@@ -619,6 +641,8 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
     QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_zones, &daemon, &mp::Daemon::zones);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_zones_state, &daemon, &mp::Daemon::zones_state);
 }
 
 enum class InstanceGroup
@@ -1398,7 +1422,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           mp::utils::backend_directory_path(config->data_directory,
                                             config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory,
-                                            config->factory->get_backend_directory_name()))},
+                                            config->factory->get_backend_directory_name()),
+                                                      *config->az_manager)},
       daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
       instance_mod_handler{register_instance_mod(
           vm_instance_specs,
@@ -1474,6 +1499,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec.mem_size,
                                               spec.disk_space,
                                               name,
+                                              spec.zone,
                                               spec.default_mac_address,
                                               spec.extra_interfaces,
                                               spec.ssh_username,
@@ -2008,6 +2034,9 @@ try
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
+        const auto zone = entry->mutable_zone();
+        zone->set_name(vm.get_zone().get_name());
+        zone->set_available(vm.get_zone().is_available());
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
@@ -3130,6 +3159,64 @@ catch (const std::exception& e)
     status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
+void mp::Daemon::zones(const ZonesRequest* request,
+                       grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
+                       std::promise<grpc::Status>* status_promise) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    ZonesReply response{};
+
+    for (const auto& zone : config->az_manager->get_zones())
+    {
+        const auto reply_zone = response.add_zones();
+        reply_zone->set_name(zone.get().get_name());
+        reply_zone->set_available(zone.get().is_available());
+    }
+
+    server->Write(response);
+    status_promise->set_value(grpc::Status{});
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::zones_state(const ZonesStateRequest* request,
+                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+                             std::promise<grpc::Status>* status_promise) // clang-format off
+try // clang-format on
+{
+    mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
+
+    auto& az_manager = *config->az_manager;
+    if (request->zones().empty())
+    {
+        for (auto&& zone : az_manager.get_zones())
+        {
+            az_manager.get_zone(zone.get().get_name()).set_available(request->available());
+        }
+    }
+    else
+    {
+        for (const auto& zone_name : request->zones())
+        {
+            az_manager.get_zone(zone_name).set_available(request->available());
+        }
+    }
+
+    status_promise->set_value(grpc::Status{});
+}
+catch (const AvailabilityZoneNotFound& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
 void mp::Daemon::on_shutdown()
 {
 }
@@ -3276,6 +3363,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                           blueprint_name,
                           *config->name_generator,
                           operative_instances);
+    auto zone_name =
+        checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name() : checked_args.zone_name;
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3320,16 +3409,20 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 auto& vm_aliases = vm_client_data.aliases_to_be_created;
                 auto& vm_workspaces = vm_client_data.workspaces_to_be_created;
 
-                vm_instance_specs[name] = {vm_desc.num_cores,
-                                           vm_desc.mem_size,
-                                           vm_desc.disk_space,
-                                           vm_desc.default_mac_address,
-                                           vm_desc.extra_interfaces,
-                                           config->ssh_username,
-                                           VirtualMachine::State::off,
-                                           {},
-                                           false,
-                                           QJsonObject()};
+                vm_instance_specs[name] = {
+                    vm_desc.num_cores,
+                    vm_desc.mem_size,
+                    vm_desc.disk_space,
+                    vm_desc.default_mac_address,
+                    vm_desc.extra_interfaces,
+                    config->ssh_username,
+                    VirtualMachine::State::off,
+                    {},
+                    false,
+                    QJsonObject(),
+                    0,
+                    vm_desc.zone,
+                };
                 operative_instances[name] =
                     config->factory->create_virtual_machine(vm_desc,
                                                             *config->ssh_key_provider,
@@ -3347,11 +3440,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     operative_instances[name]->start();
 
                     auto future_watcher =
-                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
+                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces, zone = vm_desc.zone] {
                             LaunchReply reply;
                             reply.set_vm_instance_name(name);
                             config->update_prompt->populate_if_time_to_show(
                                 reply.mutable_update_info());
+
+                            reply.set_zone(zone);
 
                             // Attach the aliases to be created by the CLI to the last message.
                             for (const auto& blueprint_alias : vm_aliases)
@@ -3412,13 +3507,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         });
 
     auto make_vm_description =
-        [this, server, request, name, checked_args, log_level]() mutable -> VMFullDescription {
+        [this, server, request, name, zone_name, checked_args, log_level]() mutable -> VMFullDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
         {
             CreateReply reply;
-            reply.set_create_message("Creating " + name);
+            reply.set_create_message(fmt::format("Creating {} in {}", name, zone_name));
             server->Write(reply);
 
             Query query;
@@ -3427,6 +3522,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
                 MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
                 name,
+                zone_name,
                 "",
                 {},
                 config->ssh_username,
@@ -4052,6 +4148,10 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     const auto& name = vm.vm_name;
     info->set_name(name);
+    const auto zone = info->mutable_zone();
+    const auto& az = vm.get_zone();
+    zone->set_name(az.get_name());
+    zone->set_available(az.is_available());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
