@@ -420,10 +420,10 @@ def multipassd_impl():
         )
 
         # Ensure that the governor.stop() is called on context exit.
-        stack.callback(lambda: wait_for_future(loop.run(governor.stop())))
+        stack.callback(lambda: wait_for_future(loop.run(governor.stop_async())))
 
         # Stop the governor if already running (for cleanup)
-        wait_for_future(loop.run(governor.stop()))
+        wait_for_future(loop.run(governor.stop_async()))
 
         if config.remove_all_instances:
             run_in_new_interpreter(
@@ -431,7 +431,7 @@ def multipassd_impl():
             )
 
         # Start the governor
-        wait_for_future(loop.run(governor.start()))
+        wait_for_future(loop.run(governor.start_async()))
 
         # Ensure the right driver is set
         set_driver(governor)
