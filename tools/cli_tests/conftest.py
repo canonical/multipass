@@ -322,7 +322,7 @@ def store_config(request):
             config.data_root = LAUNCHD_MULTIPASSD_STORAGE
             config.bin_dir = LAUNCHD_MULTIPASS_BIN_DIR
 
-    logging.info(f"store_config :: final config {config}")
+    logging.debug(f"store_config :: final config {config}")
 
 
 @pytest.fixture(autouse=True, scope="session")

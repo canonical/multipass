@@ -61,7 +61,7 @@ class MultipassdGovernor:
 
     async def _read_stream(self):
         """Read from stream line by line and print if enabled"""
-        logging.info("multipassd-governor :: read_stream start")
+        logging.debug("multipassd-governor :: read_stream start")
         try:
             async for line in self.controller.follow_output():
                 if self.print_daemon_output:
@@ -77,7 +77,7 @@ class MultipassdGovernor:
         except Exception as e:
             if self.print_daemon_output:
                 print(f"Error in log reader: {e}", file=sys.stderr)
-        logging.info("multipassd-governor :: read_stream finish")
+        logging.debug("multipassd-governor :: read_stream finish")
 
     async def _monitor(self):
         """Monitor the daemon process"""
@@ -121,7 +121,7 @@ class MultipassdGovernor:
             raise
 
     async def on_monitor_exit(self, task):
-        logging.info(
+        logging.debug(
             f"multipassd-governor :: monitor task exited (cancelled: {task.cancelled()})"
         )
         if task.cancelled():
@@ -135,7 +135,7 @@ class MultipassdGovernor:
         )
         self._reset_state()
         if needs_restarting:
-            logging.info("multipassd-governor :: daemon auto-restarting")
+            logging.debug("multipassd-governor :: daemon auto-restarting")
             self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start_async()))
 
     async def _ensure_client_certs_are_created(self):
@@ -160,7 +160,7 @@ class MultipassdGovernor:
 
     async def start_async(self):
         """Start the multipassd daemon"""
-        logging.info("multipassd-governor :: start called")
+        logging.debug("multipassd-governor :: start called")
 
         def _cancel(t: asyncio.Task | None):
             if t and not t.done():
@@ -216,7 +216,7 @@ class MultipassdGovernor:
 
     async def stop_async(self):
         """Stop the multipassd daemon"""
-        logging.info("multipassd-governor :: stop called")
+        logging.debug("multipassd-governor :: stop called")
         self.graceful_exit_initiated = True
         await self.controller.stop()
 
@@ -249,7 +249,6 @@ class MultipassdGovernor:
         """Stop the daemon"""
         self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
 
-
     def wait_for_shutdown(self, timeout=60):
         self.daemon_ready_event.wait_until(False, timeout=timeout)
 
@@ -261,7 +260,7 @@ class MultipassdGovernor:
         # self auto-restart. We need to ensure that the daemon is ready, though.
         if self.controller.supports_self_autorestart():
             self.asyncio_loop.run(self.controller.wait_for_self_autorestart()).result()
-            logging.info("multipassd-governor :: daemon auto-restart detected")
+            logging.debug("multipassd-governor :: daemon auto-restart detected")
             # Wait until daemon is ready
             self.asyncio_loop.run(self.wait_for_multipassd_ready()).result()
             return
