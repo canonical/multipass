@@ -22,3 +22,5 @@ from types import SimpleNamespace
 
 config = SimpleNamespace()
 config.vm = SimpleNamespace()
+config.retries = SimpleNamespace()
+config.timeouts = SimpleNamespace()

@@ -63,6 +63,11 @@ from cli_tests.controller import (
 
 def pytest_addoption(parser):
     """Populate command line args for the CLI tests."""
+
+    def kv_option_type(arg):
+        name, n = arg.split("=", 1)
+        return (name, int(n))
+
     parser.addoption(
         "--bin-dir",
         action="store",
@@ -109,6 +114,7 @@ def pytest_addoption(parser):
         "--daemon-controller",
         default=default_daemon_controller(),
         help="Daemon controller to use.",
+        choices=["standalone", "snapd", "launchd", "none"],
     )
 
     parser.addoption(
@@ -133,6 +139,39 @@ def pytest_addoption(parser):
         "--vm-image",
         default="noble",
         help="Default image to use for launching test VMs.",
+    )
+
+    parser.addoption(
+        "--cmd-retries",
+        action="extend",
+        nargs="+",
+        dest="cmd_retries",
+        type=kv_option_type,
+        metavar="CMD=N[ CMD=N...]",
+        default=[("launch", 3)],
+        help="Per-command retry override; may be given multiple times. "
+        "Example: --retries launch=3 delete=1",
+    )
+
+    parser.addoption(
+        "--cmd-timeouts",
+        action="extend",
+        nargs="+",
+        dest="cmd_timeouts",
+        type=kv_option_type,
+        metavar="CMD=N[,CMD=N...]",
+        default=[
+            ("launch", 600),
+            ("stop", 180),
+            ("mount", 180),
+            ("restart", 120),
+            ("delete", 90),
+            ("exec", 90),
+            ("start", 90),
+            ("umount", 45),
+        ],
+        help="Per-command timeout override; may be given multiple times. "
+        "Example: --timeouts launch=180 start=60",
     )
 
 
@@ -248,6 +287,12 @@ def store_config(request):
     config.vm.disk = request.config.getoption("--vm-disk")
     config.vm.image = request.config.getoption("--vm-image")
 
+    for name, value in request.config.getoption("cmd_retries"):
+        setattr(config.retries, name, value)
+
+    for name, value in request.config.getoption("cmd_timeouts"):
+        setattr(config.timeouts, name, value)
+
     # If user gave --data-root, use it
     if not config.data_root:
         if config.daemon_controller == "standalone":
@@ -276,6 +321,8 @@ def store_config(request):
         elif config.daemon_controller == "launchd":
             config.data_root = LAUNCHD_MULTIPASSD_STORAGE
             config.bin_dir = LAUNCHD_MULTIPASS_BIN_DIR
+
+    logging.info(f"store_config :: final config {config}")
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -340,13 +387,13 @@ def environment_setup(store_config):
                 return isinstance(base.__dict__[name], staticmethod)
         return False
 
-    logging.info("environment_setup :: setup")
+    logging.debug("environment_setup :: setup")
     if has_static_method(controller_class, "setup_environment"):
         controller_class.setup_environment()
 
     yield
 
-    logging.info("environment_setup :: teardown")
+    logging.debug("environment_setup :: teardown")
     if has_static_method(controller_class, "teardown_environment"):
         controller_class.teardown_environment()
 
@@ -379,7 +426,9 @@ def multipassd_impl():
         wait_for_future(loop.run(governor.stop()))
 
         if config.remove_all_instances:
-            run_in_new_interpreter(nuke_all_instances, config.data_root, privileged=True)
+            run_in_new_interpreter(
+                nuke_all_instances, config.data_root, privileged=True
+            )
 
         # Start the governor
         wait_for_future(loop.run(governor.start()))
