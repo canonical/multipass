@@ -330,6 +330,9 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: ccache --show-stats --zero-stats
 
+    - name: Test Rust crates
+      run: ${{ env.ARCH_WRAPPER }} cargo test --all
+
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |

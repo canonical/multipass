@@ -205,6 +205,16 @@ jobs:
         # we need to override it at the runner level.
         sudo bash -c 'echo "/coredump/%e.%p.%t" > /proc/sys/kernel/core_pattern'
 
+    - name: Test Rust crates
+      if: ${{ matrix.build-type == 'Debug' }}
+      run: |
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        /snap/bin/lxc --project snapcraft start $instance_name
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          source /root/.cargo/env && \
+          cd /root/parts/multipass/src && \
+          cargo test --all"
+
     - name: Test
       id: test
       if: ${{ matrix.build-type == 'Debug' }}
