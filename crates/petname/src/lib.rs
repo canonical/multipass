@@ -1,9 +1,9 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-const ADJECTIVES: &str = include_str!("../../../src/petname/adjectives.txt");
-const ADVERBS: &str = include_str!("../../../src/petname/adverbs.txt");
-const NAMES: &str = include_str!("../../../src/petname/names.txt");
+const ADJECTIVES: &str = include_str!("adjectives.txt");
+const ADVERBS: &str = include_str!("adverbs.txt");
+const NAMES: &str = include_str!("names.txt");
 
 pub enum NumWords {
     One,
