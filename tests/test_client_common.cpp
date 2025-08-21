@@ -24,12 +24,14 @@
 #include "mock_daemon.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
+#include "mock_settings.h"
 #include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "stub_terminal.h"
 #include "temp_dir.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -61,6 +63,13 @@ struct TestClientCommon : public mpt::DaemonTestFixture
             });
     }
 
+    void SetUp() override
+    {
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("qemu"));
+    }
+
     mpt::MockDaemon make_secure_server()
     {
         EXPECT_CALL(*mock_cert_provider, PEM_certificate()).Times(1);
@@ -80,6 +89,9 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     const std::string server_address{"localhost:50052"};
     mpt::TempDir temp_dir;
