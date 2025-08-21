@@ -25,7 +25,7 @@
 #include "multipass/utils.h"
 #include "multipass/version.h"
 
-#include <multipass-petname/src/lib.rs.h>
+#include <petname_cxx/lib.h>
 
 #include <QStorageInfo>
 
