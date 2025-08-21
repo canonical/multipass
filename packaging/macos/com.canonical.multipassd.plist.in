@@ -21,17 +21,6 @@
     <key>KeepAlive</key>
     <true/>
 
-    <key>Sockets</key>
-    <dict>
-       <key>Listeners</key>
-       <dict>
-            <key>SockServiceName</key>
-            <string>50051</string>
-            <key>SockType</key>
-            <string>stream</string>
-        </dict>
-    </dict>
-
     <key>StandardOutPath</key>
     <string>/Library/Logs/Multipass/multipassd.log</string>
     <key>StandardErrorPath</key>
