@@ -1,0 +1,56 @@
+name: Verify Commits
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  CheckCommits:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify commit messages
+        run: |
+          set -e -o pipefail
+
+          # Get the base and head commits for the PR
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          COUNTER=1
+          echo "0" > fail.txt  # use a file to track failure status, as the while loop below runs in
+                               # a subshell and can't update variables outside
+
+          # loop over all commits in the PR (excluding merge base)
+          git rev-list --reverse $BASE_SHA..$HEAD_SHA | while read -r COMMIT_SHA; do
+            echo "-- Verifying commit $COUNTER: $COMMIT_SHA --"
+
+            MSG="$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"
+            echo "$MSG"
+
+            if ! ./git-hooks/commit-msg.py - <<< "$MSG"; then
+              echo "❌"
+              echo "1" > fail.txt
+            else
+              echo "✅"
+            fi
+
+            COUNTER=$((COUNTER + 1))
+          done
+
+          echo -e "\n-- Finished verifying commits --\n"
+
+          FAIL=$(cat fail.txt)
+          rm fail.txt
+
+          if [ $FAIL -eq 1 ]; then
+            echo "One or more commits failed validation"
+            exit 1
+          else
+            echo "All commits passed validation"
+          fi
