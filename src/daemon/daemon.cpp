@@ -21,7 +21,6 @@
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
-#include <multipass-petname/src/lib.rs.h>
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
@@ -56,6 +55,8 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
+
+#include <multipass-petname/src/lib.rs.h>
 
 #include <scope_guard.hpp>
 
