@@ -14,25 +14,32 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-set(PETNAME_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/petname)
-set(PETNAME_GENERATED_HEADER ${PETNAME_GENERATED_SOURCE_DIR}/names.h)
-file(MAKE_DIRECTORY ${PETNAME_GENERATED_SOURCE_DIR})
+# Set the crate directory (Corrosion is already available from root CMakeLists.txt)
+set(PETNAME_CRATE_DIR ${CMAKE_SOURCE_DIR}/crates/petname)
 
-add_executable(text_to_string_array
-  text_to_string_array.cpp)
+# Import the petname crate using Corrosion
+corrosion_import_crate(MANIFEST_PATH ${PETNAME_CRATE_DIR}/Cargo.toml)
 
-add_custom_command(
-  OUTPUT "${PETNAME_GENERATED_HEADER}"
-  COMMAND $<TARGET_FILE:text_to_string_array>
-  ARGS ${CMAKE_CURRENT_SOURCE_DIR}/adjectives.txt ${CMAKE_CURRENT_SOURCE_DIR}/adverbs.txt
-       ${CMAKE_CURRENT_SOURCE_DIR}/names.txt ${PETNAME_GENERATED_HEADER}
-  DEPENDS text_to_string_array
-  COMMENT "Converting petnames to c++ header"
-  VERBATIM)
+# Add cxxbridge support for C++ interop (experimental feature)
+corrosion_add_cxxbridge(petname_cxx
+    CRATE multipass_petname
+    REGEN_TARGET petname_cxx_regen
+    FILES lib.rs
+)
 
-set_source_files_properties(${PETNAME_GENERATED_HEADER} PROPERTIES GENERATED TRUE)
+# Fix macOS build issue: Apple Clang treats '$' in identifiers as non-standard extension
+# cxxbridge generates identifiers with '$' from Rust namespaces (multipass::petname -> multipass$petname$...)
+if(APPLE)
+    target_compile_options(petname_cxx PRIVATE -Wno-dollar-in-identifier-extension)
+endif()
 
-add_library(petname STATIC
-  ${PETNAME_GENERATED_HEADER}
-  petname.cpp
-  make_name_generator.cpp)
+# Create an interface library that wraps the Rust library and cxx bindings
+add_library(petname INTERFACE)
+
+# Link the Rust static library (Corrosion automatically handles the target naming)
+target_link_libraries(petname INTERFACE multipass_petname petname_cxx)
+
+# On Windows, link required system libraries for Rust std
+if(WIN32)
+  target_link_libraries(petname INTERFACE ntdll ws2_32 userenv bcrypt)
+endif()
