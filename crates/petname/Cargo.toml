@@ -6,7 +6,7 @@ resolver = "2"
 
 [lib]
 path = "src/lib.rs"
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"]
 
 [dependencies]
 cxx = { workspace = true }
