@@ -20,19 +20,19 @@ class ZoneDropdown extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final zones = ref.watch(zonesProvider);
     final hasAvailableZones = zones.any((z) => z.available);
+    const defaultZone = 'zone1';
 
-    // If selected zone is unavailable and there are no available zones, force auto selection
-    if (!hasAvailableZones && value != 'auto') {
+    // If selected zone is unavailable and there are no available zones, force default zone selection
+    if (!hasAvailableZones && value != defaultZone) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        onChanged?.call('auto');
+        onChanged?.call(defaultZone);
       });
     }
 
     String? errorText;
     if (!hasAvailableZones) {
       errorText = 'All zones are unavailable';
-    } else if (!zones.any((z) => z.name == value && z.available) &&
-        value != 'auto') {
+    } else if (!zones.any((z) => z.name == value && z.available)) {
       errorText = '$value is unavailable';
     }
 
@@ -60,7 +60,6 @@ class ZoneDropdown extends ConsumerWidget {
           enabled: enabled,
           onChanged: onChanged,
           items: {
-            'auto': 'Auto (assign automatically)',
             for (final zone in zones)
               zone.name:
                   '${zone.name}${zone.available ? '' : ' (unavailable)'}',

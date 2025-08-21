@@ -60,6 +60,7 @@ class ImageCard extends ConsumerWidget {
                 OutlinedButton(
                   onPressed: () {
                     final name = ref.read(randomNameProvider);
+                    const defaultZone = 'zone1';
                     final aliasInfo = image.aliasesInfo.first;
                     final launchRequest = LaunchRequest(
                       instanceName: name,
@@ -67,6 +68,7 @@ class ImageCard extends ConsumerWidget {
                       numCores: defaultCpus,
                       memSize: '${defaultRam}B',
                       diskSpace: '${defaultDisk}B',
+                      zone: defaultZone,
                       remoteName: aliasInfo.hasRemoteName()
                           ? aliasInfo.remoteName
                           : null,
