@@ -14,54 +14,26 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-# Build the petname Rust crate as a standalone library
-if(WIN32)
-  set(RUST_LIB_NAME "multipass_petname.lib")
-  set(CARGO_PATH_ENV "PATH=%USERPROFILE%\\.cargo\\bin;$ENV{PATH}")
-else()
-  set(RUST_LIB_NAME "libmultipass_petname.a")
-  set(CARGO_PATH_ENV "PATH=$ENV{HOME}/.cargo/bin:$ENV{PATH}")
-endif()
-
-# Set the target directory for this specific crate
-set(PETNAME_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/petname-target)
+# Set the crate directory (Corrosion is already available from root CMakeLists.txt)
 set(PETNAME_CRATE_DIR ${CMAKE_SOURCE_DIR}/crates/petname)
 
-add_custom_command(
-  OUTPUT
-    ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME}
-    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.h
-    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.cc
-  COMMAND ${CMAKE_COMMAND} -E env "${CARGO_PATH_ENV}"
-    cargo build --release --manifest-path ${PETNAME_CRATE_DIR}/Cargo.toml --target-dir ${PETNAME_TARGET_DIR}
-  DEPENDS
-    ${PETNAME_CRATE_DIR}/Cargo.toml
-    ${PETNAME_CRATE_DIR}/src/lib.rs
-    ${PETNAME_CRATE_DIR}/build.rs
-    ${CMAKE_SOURCE_DIR}/src/petname/adjectives.txt
-    ${CMAKE_SOURCE_DIR}/src/petname/adverbs.txt
-    ${CMAKE_SOURCE_DIR}/src/petname/names.txt
-  COMMENT "Building petname Rust crate"
-  VERBATIM)
+# Import the petname crate using Corrosion
+corrosion_import_crate(MANIFEST_PATH ${PETNAME_CRATE_DIR}/Cargo.toml)
 
-# Create a target for the petname Rust library
-add_custom_target(multipass_petname_crate ALL
-  DEPENDS
-    ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME}
-    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.h
-    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.cc)
+# Add cxxbridge support for C++ interop (experimental feature)
+corrosion_add_cxxbridge(petname_cxx
+    CRATE multipass_petname
+    REGEN_TARGET petname_cxx_regen
+    FILES lib.rs
+)
 
-# Create an interface library that links the petname Rust static library
+# Create an interface library that wraps the Rust library and cxx bindings
 add_library(petname INTERFACE)
-target_include_directories(petname INTERFACE
-  ${PETNAME_TARGET_DIR}/cxxbridge
-  ${PETNAME_TARGET_DIR}/cxxbridge/rust)
-target_link_libraries(petname INTERFACE ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME})
+
+# Link the Rust static library (Corrosion automatically handles the target naming)
+target_link_libraries(petname INTERFACE multipass_petname petname_cxx)
 
 # On Windows, link required system libraries for Rust std
 if(WIN32)
   target_link_libraries(petname INTERFACE ntdll ws2_32 userenv bcrypt)
 endif()
-
-# Add the Rust library as a dependency for the petname library
-add_dependencies(petname multipass_petname_crate)

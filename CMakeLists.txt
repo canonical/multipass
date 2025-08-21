@@ -180,6 +180,16 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
 
+# Corrosion for Rust + CMake integration (needed for oxidizing Multipass)
+include(FetchContent)
+
+FetchContent_Declare(
+    Corrosion
+    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG v0.5 # Use stable version
+)
+FetchContent_MakeAvailable(Corrosion)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
