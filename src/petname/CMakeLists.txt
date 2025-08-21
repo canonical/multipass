@@ -27,6 +27,12 @@ corrosion_add_cxxbridge(petname_cxx
     FILES lib.rs
 )
 
+# Fix macOS build issue: Apple Clang treats '$' in identifiers as non-standard extension
+# cxxbridge generates identifiers with '$' from Rust namespaces (multipass::petname -> multipass$petname$...)
+if(APPLE)
+    target_compile_options(petname_cxx PRIVATE -Wno-dollar-in-identifier-extension)
+endif()
+
 # Create an interface library that wraps the Rust library and cxx bindings
 add_library(petname INTERFACE)
 
