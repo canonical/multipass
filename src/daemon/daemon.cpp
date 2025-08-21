@@ -19,7 +19,6 @@
 #include "base_cloud_init_config.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
-#include "rust/cxx.h"
 #include "snapshot_settings_handler.h"
 
 #include <multipass-petname/src/lib.rs.h>
