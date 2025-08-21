@@ -20,32 +20,32 @@
 #include "common.h"
 
 #include "rust/cxx.h"
-#include <multipass/src/lib.rs.h>
+#include <multipass-petname/src/lib.rs.h>
 
 using namespace testing;
 
 // These tests now call the Rust test functions through FFI
 TEST(Petname, generatesTheRequestedNumWords)
 {
-    EXPECT_TRUE(multipass::test_generates_the_requested_num_words());
+    EXPECT_TRUE(multipass::petname::test_generates_the_requested_num_words());
 }
 
 TEST(Petname, usesCustomSeparator)
 {
-    EXPECT_TRUE(multipass::test_uses_custom_separator());
+    EXPECT_TRUE(multipass::petname::test_uses_custom_separator());
 }
 
 TEST(Petname, generatesTwoTokensByDefault)
 {
-    EXPECT_TRUE(multipass::test_generates_two_tokens_by_default());
+    EXPECT_TRUE(multipass::petname::test_generates_two_tokens_by_default());
 }
 
 TEST(Petname, canGenerateAtLeastHundredUniqueNames)
 {
-    EXPECT_TRUE(multipass::test_can_generate_at_least_hundred_unique_names());
+    EXPECT_TRUE(multipass::petname::test_can_generate_at_least_hundred_unique_names());
 }
 
 TEST(Petname, ffiIntegrationTest)
 {
-    EXPECT_TRUE(multipass::test_ffi_integration_test());
+    EXPECT_TRUE(multipass::petname::test_ffi_integration_test());
 }
