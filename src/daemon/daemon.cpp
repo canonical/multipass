@@ -3689,13 +3689,16 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     if (vm.state == VirtualMachine::State::delayed_shutdown)
         delayed_shutdown_instances.erase(vm.vm_name);
 
-    if (!MP_UTILS.is_running(vm.current_state()))
-        return grpc::Status{
-            grpc::StatusCode::FAILED_PRECONDITION,
-            fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
-                        "Try to stop and start it instead.",
-                        vm.vm_name),
-            ""};
+    if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
+    {
+        auto msg = st == VirtualMachine::State::unknown
+                       ? "Instance '{0}' is already running, but in an unknown state.\n"
+                         "Try to stop and start it instead."
+                       : "Instance '{0}' is not running";
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format(msg, vm.vm_name),
+                            ""};
+    }
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
     return ssh_reboot(vm);
