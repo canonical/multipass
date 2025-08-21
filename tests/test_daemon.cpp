@@ -44,10 +44,10 @@
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>
 
+#include <multipass-petname/src/lib.rs.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/signal.h>
-#include <multipass/src/lib.rs.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>

@@ -14,34 +14,54 @@
 #
 # Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
 
-# Build the Rust static library and generate CXX bridge headers
+# Build the petname Rust crate as a standalone library
 if(WIN32)
-  set(RUST_LIB_NAME "multipass.lib")
+  set(RUST_LIB_NAME "multipass_petname.lib")
   set(CARGO_PATH_ENV "PATH=%USERPROFILE%\\.cargo\\bin;$ENV{PATH}")
 else()
-  set(RUST_LIB_NAME "libmultipass.a")
+  set(RUST_LIB_NAME "libmultipass_petname.a")
   set(CARGO_PATH_ENV "PATH=$ENV{HOME}/.cargo/bin:$ENV{PATH}")
 endif()
 
+# Set the target directory for this specific crate
+set(PETNAME_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/petname-target)
+set(PETNAME_CRATE_DIR ${CMAKE_SOURCE_DIR}/crates/petname)
+
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release/${RUST_LIB_NAME} ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.cc
-  COMMAND ${CMAKE_COMMAND} -E env "${CARGO_PATH_ENV}" cargo build --release --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_CURRENT_BINARY_DIR}
-  DEPENDS ${CMAKE_SOURCE_DIR}/Cargo.toml ${CMAKE_SOURCE_DIR}/src/lib.rs ${CMAKE_SOURCE_DIR}/src/petname/mod.rs
-  COMMENT "Building petname Rust library"
+  OUTPUT
+    ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME}
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.h
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.cc
+  COMMAND ${CMAKE_COMMAND} -E env "${CARGO_PATH_ENV}"
+    cargo build --release --manifest-path ${PETNAME_CRATE_DIR}/Cargo.toml --target-dir ${PETNAME_TARGET_DIR}
+  DEPENDS
+    ${PETNAME_CRATE_DIR}/Cargo.toml
+    ${PETNAME_CRATE_DIR}/src/lib.rs
+    ${PETNAME_CRATE_DIR}/build.rs
+    ${CMAKE_SOURCE_DIR}/src/petname/adjectives.txt
+    ${CMAKE_SOURCE_DIR}/src/petname/adverbs.txt
+    ${CMAKE_SOURCE_DIR}/src/petname/names.txt
+  COMMENT "Building petname Rust crate"
   VERBATIM)
 
-# Create a target for the Rust library
-add_custom_target(multipass_petname ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release/${RUST_LIB_NAME} ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/lib.rs.cc)
+# Create a target for the petname Rust library
+add_custom_target(multipass_petname_crate ALL
+  DEPENDS
+    ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME}
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.h
+    ${PETNAME_TARGET_DIR}/cxxbridge/src/lib.rs.cc)
 
-# Create an interface library that just links the Rust static library
+# Create an interface library that links the petname Rust static library
 add_library(petname INTERFACE)
-target_include_directories(petname INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge)
-target_link_libraries(petname INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/release/${RUST_LIB_NAME})
+target_include_directories(petname INTERFACE
+  ${PETNAME_TARGET_DIR}/cxxbridge
+  ${PETNAME_TARGET_DIR}/cxxbridge/rust)
+target_link_libraries(petname INTERFACE ${PETNAME_TARGET_DIR}/release/${RUST_LIB_NAME})
 
 # On Windows, link required system libraries for Rust std
 if(WIN32)
-  target_link_libraries(petname INTERFACE ntdll userenv ws2_32 bcrypt)
+  target_link_libraries(petname INTERFACE ntdll ws2_32 userenv bcrypt)
 endif()
 
 # Add the Rust library as a dependency for the petname library
-add_dependencies(petname multipass_petname)
+add_dependencies(petname multipass_petname_crate)
