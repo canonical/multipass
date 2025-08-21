@@ -55,7 +55,7 @@
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
 
-#include <multipass-petname/src/lib.rs.h>
+#include <petname_cxx/lib.h>
 
 #include <scope_guard.hpp>
 
