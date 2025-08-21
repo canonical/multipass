@@ -17,14 +17,12 @@
 
 #pragma once
 
-#include "common_image_host.h"
+#include <multipass/image_host/base_image_host.h>
+#include <multipass/vm_image_info.h>
 
 #include <QString>
 
-#include <memory>
 #include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 namespace multipass
@@ -39,10 +37,10 @@ struct CustomManifest
     CustomManifest(std::vector<VMImageInfo>&& images);
 };
 
-class CustomVMImageHost final : public CommonVMImageHost
+class CustomVMImageHost final : public BaseVMImageHost
 {
 public:
-    CustomVMImageHost(const QString& arch, URLDownloader* downloader);
+    CustomVMImageHost(URLDownloader* downloader);
 
     std::optional<VMImageInfo> info_for(const Query& query) override;
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
@@ -53,13 +51,12 @@ public:
 private:
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
-    void fetch_manifests(const bool is_force_update_from_network) override;
+    void fetch_manifests(const bool force_update) override;
     void clear() override;
     CustomManifest* manifest_from(const std::string& remote_name);
 
     const QString arch;
-    URLDownloader* const url_downloader;
-    std::unordered_map<std::string, std::unique_ptr<CustomManifest>> custom_image_info;
-    std::vector<std::string> remotes;
+    std::pair<std::string, std::unique_ptr<CustomManifest>> manifest;
+    std::string remote;
 };
 } // namespace multipass

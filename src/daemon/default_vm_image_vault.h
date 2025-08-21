@@ -18,9 +18,9 @@
 #pragma once
 
 #include <multipass/days.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <shared/base_vm_image_vault.h>
 
 #include <QDir>

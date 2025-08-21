@@ -15,12 +15,12 @@
  *
  */
 
-#include "ubuntu_image_host.h"
-
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
@@ -43,14 +43,12 @@ constexpr auto index_path = "streams/v1/index.json";
 
 auto download_manifest(const QString& host_url,
                        mp::URLDownloader* url_downloader,
-                       const bool is_force_update_from_network)
+                       const bool force_update)
 {
-    auto json_index =
-        url_downloader->download({host_url + index_path}, is_force_update_from_network);
+    auto json_index = url_downloader->download({host_url + index_path}, force_update);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
-    auto json_manifest =
-        url_downloader->download({host_url + index.manifest_path}, is_force_update_from_network);
+    auto json_manifest = url_downloader->download({host_url + index.manifest_path}, force_update);
     return json_manifest;
 }
 
@@ -82,7 +80,7 @@ auto key_from(const std::string& search_string)
 mp::UbuntuVMImageHost::UbuntuVMImageHost(
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
     URLDownloader* downloader)
-    : url_downloader{downloader}, remotes{std::move(remotes)}
+    : BaseVMImageHost{downloader}, remotes{std::move(remotes)}
 {
 }
 
@@ -179,9 +177,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
         }
     }
 
-    // TODO: Throw a specific exception type here so callers can be more specific about what to
-    // catch and what to allow through.
-    throw std::runtime_error(
+    throw mp::ImageNotFoundException(
         fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 }
 
@@ -237,25 +233,23 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_network)
+void mp::UbuntuVMImageHost::fetch_manifests(const bool force_update)
 {
-    auto fetch_one_remote = [this, is_force_update_from_network](
-                                const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
+    auto fetch_one_remote =
+        [this, force_update](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
         -> std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>> {
         const auto& [remote_name, remote_info] = remote_pair;
         try
         {
             auto official_site = remote_info.get_official_url();
             auto manifest_bytes_from_official =
-                download_manifest(official_site, url_downloader, is_force_update_from_network);
+                download_manifest(official_site, url_downloader, force_update);
 
             auto mirror_site = remote_info.get_mirror_url();
             std::optional<QByteArray> manifest_bytes_from_mirror = std::nullopt;
             if (mirror_site)
             {
-                auto bytes = download_manifest(mirror_site.value(),
-                                               url_downloader,
-                                               is_force_update_from_network);
+                auto bytes = download_manifest(mirror_site.value(), url_downloader, force_update);
                 manifest_bytes_from_mirror = std::make_optional(bytes);
             }
 
