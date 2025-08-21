@@ -180,7 +180,7 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
 
-# Corrosion for Rust + CMake integration (needed for oxidizing Multipass)
+# Corrosion for Rust + CMake integration
 include(FetchContent)
 
 FetchContent_Declare(
