@@ -37,7 +37,7 @@ def make_test_tmp_dir_for_snap(snap_name):
 @contextmanager
 def TempDirectory(delete=True):
     tmp_root = None
-    if config.daemon_controller == "snapd":
+    if config.daemon_controller == "snap":
         run_in_new_interpreter(make_test_tmp_dir_for_snap, "multipass", privileged=True)
         tmp_root = get_snap_temp_root("multipass")
 

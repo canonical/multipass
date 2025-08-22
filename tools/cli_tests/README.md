@@ -42,5 +42,5 @@ cd multipass/
 # Installs all the deps needed for the tests
 pip install -e ./tools/cli_tests/ --break-system-packages
 # Run the tests!
-pytest -s tools/cli_tests --remove-all-instances --print-all-output --daemon-controller=snapd -vv
+pytest -s tools/cli_tests --remove-all-instances --print-all-output --daemon-controller=snap -vv
 ```
