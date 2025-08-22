@@ -30,7 +30,7 @@ from cli_tests.utilities import (
 from .controller_exceptions import ControllerPrerequisiteError
 
 
-class SnapdMultipassdController:
+class SnapMultipassdController:
     snap_name: str = "multipass"
     daemon_service_name: str = "multipass.multipassd"
 
