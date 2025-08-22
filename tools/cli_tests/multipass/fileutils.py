@@ -23,37 +23,24 @@ import sys
 import subprocess
 from pathlib import Path
 
-from .basics import SNAP_MULTIPASSD_STORAGE, LAUNCHD_MULTIPASSD_STORAGE, WIN_MULTIPASSD_STORAGE
-
-
 def _nuke_vbox_frontends():
     if sys.platform != "win32":
         return
     # We cannot remove the instances folder while the instances are in use.
     subprocess.run(["taskkill", "/IM", "VBoxHeadless.exe", "/F"], check=False)
 
-def nuke_all_instances(data_root, driver):
+def nuke_all_instances(data_dir, driver):
     """Remove the instances directory and clean all instance records at the
     specified data root."""
 
-    data_root = Path(data_root)
+    data_dir = Path(data_dir)
 
-    backend_dirs = []
+    backend_dirs = [data_dir / "qemu", data_dir / "virtualbox"]
 
     if driver == "virtualbox":
         _nuke_vbox_frontends()
 
-    if data_root not in [
-        Path(SNAP_MULTIPASSD_STORAGE),
-        Path(LAUNCHD_MULTIPASSD_STORAGE),
-    ]:
-        data_root /= "data"
-
-    if data_root in [Path(LAUNCHD_MULTIPASSD_STORAGE), Path(WIN_MULTIPASSD_STORAGE) / "data"]:
-        backend_dirs.append(data_root / "qemu")
-        backend_dirs.append(data_root / "virtualbox")
-
-    for instance_root in [data_root, *backend_dirs]:
+    for instance_root in [data_dir, *backend_dirs]:
         vault_dir = instance_root / "vault"
         instance_records_file = vault_dir / "multipassd-instance-image-records.json"
         instances_dir = vault_dir / "instances"
