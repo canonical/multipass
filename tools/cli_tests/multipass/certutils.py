@@ -24,8 +24,6 @@ import sys
 from pathlib import Path
 
 from cli_tests.config import config
-from .basics import SNAP_MULTIPASSD_STORAGE
-
 
 def get_client_cert_path():
     """Return the default location of the Multipass client certificate for the current OS."""
@@ -50,17 +48,11 @@ def authenticate_client_cert(client_cert_path, data_root):
     Append the given client certificate to the authenticated certs bundle
     under <data_root>/data/authenticated-certs/multipass_client_certs.pem.
     """
-    if data_root == SNAP_MULTIPASSD_STORAGE:
-        dst_path = (
-            Path(data_root) / "authenticated-certs" / "multipass_client_certs.pem"
-        )
-    else:
-        dst_path = (
-            Path(data_root)
-            / "data"
-            / "authenticated-certs"
-            / "multipass_client_certs.pem"
-        )
+
+    dst_path = (
+        Path(data_root) / "authenticated-certs" / "multipass_client_certs.pem"
+    )
+   
     # Ensure the destination directory exists
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     # Ensure the file exists (like `tee -a`, which creates it if missing)
