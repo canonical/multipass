@@ -25,6 +25,9 @@
     <string>/Library/Logs/Multipass/multipassd.log</string>
     <key>StandardErrorPath</key>
     <string>/Library/Logs/Multipass/multipassd.log</string>
+
+    <key>ExitTimeOut</key>
+    <integer>45</integer>
 </dict>
 
 </plist>
