@@ -46,12 +46,9 @@ from cli_tests.multipass import (
     default_daemon_controller,
     launch,
     nuke_all_instances,
-    SNAP_MULTIPASSD_STORAGE,
-    LAUNCHD_MULTIPASSD_STORAGE,
-    WIN_MULTIPASSD_STORAGE,
-    SNAP_BIN_DIR,
-    LAUNCHD_MULTIPASS_BIN_DIR,
-    WIN_BIN_DIR
+    determine_storage_dir,
+    determine_bin_dir,
+    determine_data_dir
 )
 
 from cli_tests.config import config
@@ -79,9 +76,9 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
-        "--data-root",
+        "--storage-dir",
         action="store",
-        help="Data root directory for multipass.",
+        help="Storage directory for multipass.",
     )
 
     parser.addoption(
@@ -268,13 +265,34 @@ def pytest_collection_modifyitems(config, items):
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
 
+def make_temporary_storage_dir(request):
+    # Otherwise, create a temp dir for the whole session
+    with TempDirectory(delete=False) as tmpdir:
+
+        def cleanup():
+            """Since the daemon owns the data_root on startup
+            a non-root user cannot remove it. Therefore, try
+            privilege escalation if nuking as normal fails."""
+            try:
+                shutil.rmtree(str(tmpdir))
+                print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
+            except PermissionError:
+                print(
+                    f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}"
+                )
+                subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
+
+        # Register finalizer to cleanup on exit
+        request.addfinalizer(cleanup)
+        return str(tmpdir)
+
 
 @pytest.fixture(autouse=True, scope="session")
 def store_config(request):
     """Store the given command line args in a global variable so
     they would be accessible to all functions in the module."""
     config.bin_dir = request.config.getoption("--bin-dir")
-    config.data_root = request.config.getoption("--data-root")
+    config.storage_dir = request.config.getoption("--storage-dir")
     config.print_daemon_output = request.config.getoption("--print-daemon-output")
     config.print_cli_output = request.config.getoption("--print-cli-output")
 
@@ -297,37 +315,16 @@ def store_config(request):
     for name, value in request.config.getoption("cmd_timeouts"):
         setattr(config.timeouts, name, value)
 
-    # If user gave --data-root, use it
-    if not config.data_root:
+    # If user gave --storage-dir, use it
+    if not config.storage_dir:
         if config.daemon_controller == "standalone":
-            # Otherwise, create a temp dir for the whole session
-            with TempDirectory(delete=False) as tmpdir:
+            config.storage_dir = make_temporary_storage_dir(request)
+        else:
+            config.storage_dir = determine_storage_dir()
 
-                def cleanup():
-                    """Since the daemon owns the data_root on startup
-                    a non-root user cannot remove it. Therefore, try
-                    privilege escalation if nuking as normal fails."""
-                    try:
-                        shutil.rmtree(str(tmpdir))
-                        print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
-                    except PermissionError:
-                        print(
-                            f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}"
-                        )
-                        subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
-
-                # Register finalizer to cleanup on exit
-                request.addfinalizer(cleanup)
-                config.data_root = str(tmpdir)
-        elif config.daemon_controller == "snapd":
-            config.data_root = SNAP_MULTIPASSD_STORAGE
-            config.bin_dir = SNAP_BIN_DIR
-        elif config.daemon_controller == "launchd":
-            config.data_root = LAUNCHD_MULTIPASSD_STORAGE
-            config.bin_dir = LAUNCHD_MULTIPASS_BIN_DIR
-        elif config.daemon_controller == "winsvc":
-            config.data_root = WIN_MULTIPASSD_STORAGE
-            config.bin_dir = WIN_BIN_DIR
+    assert config.storage_dir
+    config.bin_dir = determine_bin_dir()
+    config.data_dir = determine_data_dir()
 
     logging.debug(f"store_config :: final config {config}")
 
@@ -394,7 +391,7 @@ def set_driver(controller):
 def make_daemon_controller(kind):
     # Return a partial so the controller can be instantiated on demand.
     controllers = {
-        "standalone": partial(StandaloneMultipassdController, config.data_root),
+        "standalone": partial(StandaloneMultipassdController, config.storage_dir),
         "snapd": partial(SnapdMultipassdController),
         "launchd": partial(LaunchdMultipassdController),
         "winsvc": partial(WindowsServiceMultipassdController),
@@ -458,7 +455,7 @@ def multipassd_impl():
 
         if config.remove_all_instances:
             run_in_new_interpreter(
-                nuke_all_instances, config.data_root, config.driver, privileged=True
+                nuke_all_instances, config.data_dir, config.driver, privileged=True
             )
 
         # Start the governor

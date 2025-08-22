@@ -21,12 +21,9 @@ from .basics import (
     get_multipass_env,
     get_multipass_path,
     get_multipassd_path,
-    SNAP_MULTIPASSD_STORAGE,
-    LAUNCHD_MULTIPASSD_STORAGE,
-    WIN_MULTIPASSD_STORAGE,
-    SNAP_BIN_DIR,
-    WIN_BIN_DIR,
-    LAUNCHD_MULTIPASS_BIN_DIR,
+    determine_storage_dir,
+    determine_data_dir,
+    determine_bin_dir,
 )
 from .certutils import authenticate_client_cert, get_client_cert_path
 from .helpers import (

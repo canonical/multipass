@@ -155,7 +155,7 @@ class MultipassdGovernor:
         cert_path = get_client_cert_path()
         # Authenticate the client against the daemon
         run_in_new_interpreter(
-            authenticate_client_cert, str(cert_path), config.data_root, privileged=True
+            authenticate_client_cert, str(cert_path), config.data_dir, privileged=True
         )
 
     async def start_async(self):
