@@ -24,6 +24,7 @@
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
+#include <multipass/fake_availability_zone_manager.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
@@ -161,9 +162,19 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (az_manager == nullptr)
+    {
+        // Create a default AZ manager first
         az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
+    }
+
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
+
+    // Check if this is Hyper-V backend and replace AZ manager if needed
+    if (factory->get_backend_directory_name() == "hyperv")
+    {
+        az_manager = std::make_unique<FakeAvailabilityZoneManager>();
+    }
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())

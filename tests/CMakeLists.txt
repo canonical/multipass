@@ -56,6 +56,7 @@ add_executable(multipass_tests
   test_argparser.cpp
   test_base_availability_zone.cpp
   test_base_availability_zone_manager.cpp
+  test_fake_availability_zone_manager.cpp
   test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
