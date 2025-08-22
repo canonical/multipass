@@ -185,6 +185,39 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
         mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }
 
+TEST_F(TestJsonUtils, readObjectFromFileReadsFromFile)
+{
+    auto filedata = std::make_unique<std::stringstream>();
+    *filedata << "{ \"test\": 123 }";
+
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
+    const auto json = MP_JSONUTILS.read_object_from_file(":)");
+
+    ASSERT_NE(json.find("test"), json.end());
+    ASSERT_TRUE(json.find("test").value().isDouble());
+    EXPECT_EQ(json.find("test").value().toInt(), 123);
+}
+
+TEST_F(TestJsonUtils, readObjectFromFileThrowsOnFailbit)
+{
+    auto filedata = std::make_unique<std::stringstream>();
+    filedata->setstate(std::ios_base::failbit);
+
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
+
+    EXPECT_THROW(MP_JSONUTILS.read_object_from_file(":("), std::ios_base::failure);
+}
+
+TEST_F(TestJsonUtils, readObjectFromFileThrowsOnBadbit)
+{
+    auto filedata = std::make_unique<std::stringstream>();
+    filedata->setstate(std::ios_base::badbit);
+
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
+
+    EXPECT_THROW(MP_JSONUTILS.read_object_from_file(":("), std::ios_base::failure);
+}
+
 struct ExtraInterfacesRead : public TestJsonUtils,
                              public WithParamInterface<std::vector<mp::NetworkInterface>>
 {
