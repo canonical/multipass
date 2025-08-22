@@ -25,6 +25,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_vm_image_vault.h"
+#include "multipass/exceptions/availability_zone_exceptions.h"
 
 #include <src/daemon/daemon.h>
 
@@ -46,6 +47,8 @@ struct TestDaemonZones : public mpt::DaemonTestFixture
         ON_CALL(*zone1, get_name()).WillByDefault(ReturnRef(zone1_name));
         ON_CALL(*zone2, get_name()).WillByDefault(ReturnRef(zone2_name));
 
+        ON_CALL(*mock_az_manager, get_zone(_))
+            .WillByDefault(Throw(multipass::AvailabilityZoneNotFound{"test_error"}));
         ON_CALL(*mock_az_manager, get_zone(zone1_name)).WillByDefault(ReturnRef(*zone1.get()));
         ON_CALL(*mock_az_manager, get_zone(zone2_name)).WillByDefault(ReturnRef(*zone2.get()));
 
@@ -100,6 +103,124 @@ TEST_F(TestDaemonZones, zonesStateCmdDisablesAll)
     const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
 
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdDisablesOne)
+{
+    ON_CALL(*zone1, is_available()).WillByDefault(Return(true));
+    EXPECT_CALL(*zone1, set_available(_)).Times(0);
+
+    ON_CALL(*zone2, is_available()).WillByDefault(Return(true));
+    EXPECT_CALL(*zone2, set_available(false)).Times(1);
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    request.add_zones(zone2_name);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdFailsOnDisableNonexistentZone)
+{
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    request.add_zones("But this is not a perfect world.");
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), HasSubstr("test_error"));
+}
+
+// multipass enable-zones
+TEST_F(TestDaemonZones, zonesStateCmdEnablesAll)
+{
+    ON_CALL(*zone1, is_available()).WillByDefault(Return(false));
+    EXPECT_CALL(*zone1, set_available(true)).Times(1);
+
+    ON_CALL(*zone2, is_available()).WillByDefault(Return(false));
+    EXPECT_CALL(*zone2, set_available(true)).Times(1);
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(true);
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdEnablesOne)
+{
+    ON_CALL(*zone1, is_available()).WillByDefault(Return(false));
+    EXPECT_CALL(*zone1, set_available(true)).Times(1);
+
+    ON_CALL(*zone2, is_available()).WillByDefault(Return(false));
+    EXPECT_CALL(*zone2, set_available(_)).Times(0);
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(true);
+    request.add_zones(zone1_name);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdFailsOnEnableNonexistentZone)
+{
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(true);
+    request.add_zones("In a perfect world, zones like this would not exist.");
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(status.error_message(), HasSubstr("test_error"));
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdFailsOnException)
+{
+    EXPECT_CALL(*mock_az_manager, get_zones())
+        .WillOnce(Throw(std::runtime_error("test_exception")));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(true);
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_THAT(status.error_message(), HasSubstr("test_exception"));
 }
 
 // multipass zones
@@ -170,6 +291,6 @@ TEST_F(TestDaemonZones, zonesCmdFailsOnException)
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::zones, request, mock_server);
 
-    ASSERT_TRUE(!status.ok());
+    ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.error_message(), HasSubstr("test_error"));
 }
