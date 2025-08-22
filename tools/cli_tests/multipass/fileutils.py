@@ -19,13 +19,20 @@
 
 import shutil
 import contextlib
-import logging
+import sys
+import subprocess
 from pathlib import Path
 
-from .basics import SNAP_MULTIPASSD_STORAGE, LAUNCHD_MULTIPASSD_STORAGE
+from .basics import SNAP_MULTIPASSD_STORAGE, LAUNCHD_MULTIPASSD_STORAGE, WIN_MULTIPASSD_STORAGE
 
 
-def nuke_all_instances(data_root):
+def _nuke_vbox_frontends():
+    if sys.platform != "win32":
+        return
+    # We cannot remove the instances folder while the instances are in use.
+    subprocess.run(["taskkill", "/IM", "VBoxHeadless.exe", "/F"], check=False)
+
+def nuke_all_instances(data_root, driver):
     """Remove the instances directory and clean all instance records at the
     specified data root."""
 
@@ -33,13 +40,16 @@ def nuke_all_instances(data_root):
 
     backend_dirs = []
 
+    if driver == "virtualbox":
+        _nuke_vbox_frontends()
+
     if data_root not in [
         Path(SNAP_MULTIPASSD_STORAGE),
         Path(LAUNCHD_MULTIPASSD_STORAGE),
     ]:
         data_root /= "data"
 
-    if data_root == Path(LAUNCHD_MULTIPASSD_STORAGE):
+    if data_root in [Path(LAUNCHD_MULTIPASSD_STORAGE), Path(WIN_MULTIPASSD_STORAGE) / "data"]:
         backend_dirs.append(data_root / "qemu")
         backend_dirs.append(data_root / "virtualbox")
 
@@ -48,11 +58,15 @@ def nuke_all_instances(data_root):
         instance_records_file = vault_dir / "multipassd-instance-image-records.json"
         instances_dir = vault_dir / "instances"
 
-        shutil.rmtree(str(instances_dir), ignore_errors=True)
+        print(f"{instances_dir.resolve()}")
 
+        try:
+            shutil.rmtree(instances_dir.resolve())
+        except Exception as e:
+            print(f"Remove error :{e}")
         # Opening via w might override the permissions. Doing it via r+ preserves
         # the existing permissions.
         with contextlib.suppress(FileNotFoundError):
             with open(instance_records_file, "r+", encoding="utf-8") as f:
                 f.truncate(0)
-                logging.debug(f"truncated {instance_records_file}")
+                print(f"truncated {instance_records_file}")
