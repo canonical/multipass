@@ -48,8 +48,10 @@ from cli_tests.multipass import (
     nuke_all_instances,
     SNAP_MULTIPASSD_STORAGE,
     LAUNCHD_MULTIPASSD_STORAGE,
+    WIN_MULTIPASSD_STORAGE,
     SNAP_BIN_DIR,
     LAUNCHD_MULTIPASS_BIN_DIR,
+    WIN_BIN_DIR
 )
 
 from cli_tests.config import config
@@ -58,6 +60,7 @@ from cli_tests.controller import (
     SnapdMultipassdController,
     StandaloneMultipassdController,
     LaunchdMultipassdController,
+    WindowsServiceMultipassdController,
     ControllerPrerequisiteError,
 )
 
@@ -115,7 +118,7 @@ def pytest_addoption(parser):
         "--daemon-controller",
         default=default_daemon_controller(),
         help="Daemon controller to use.",
-        choices=["standalone", "snapd", "launchd", "none"],
+        choices=["standalone", "snapd", "launchd", "winsvc", "none"],
     )
 
     parser.addoption(
@@ -322,6 +325,9 @@ def store_config(request):
         elif config.daemon_controller == "launchd":
             config.data_root = LAUNCHD_MULTIPASSD_STORAGE
             config.bin_dir = LAUNCHD_MULTIPASS_BIN_DIR
+        elif config.daemon_controller == "winsvc":
+            config.data_root = WIN_MULTIPASSD_STORAGE
+            config.bin_dir = WIN_BIN_DIR
 
     logging.debug(f"store_config :: final config {config}")
 
@@ -391,6 +397,7 @@ def make_daemon_controller(kind):
         "standalone": partial(StandaloneMultipassdController, config.data_root),
         "snapd": partial(SnapdMultipassdController),
         "launchd": partial(LaunchdMultipassdController),
+        "winsvc": partial(WindowsServiceMultipassdController),
         "none": lambda: None,
     }
 
@@ -451,7 +458,7 @@ def multipassd_impl():
 
         if config.remove_all_instances:
             run_in_new_interpreter(
-                nuke_all_instances, config.data_root, privileged=True
+                nuke_all_instances, config.data_root, config.driver, privileged=True
             )
 
         # Start the governor
