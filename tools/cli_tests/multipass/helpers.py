@@ -221,7 +221,7 @@ def default_driver_name():
 def default_daemon_controller():
     controller_mappings = {
         "darwin": "launchd",
-        "linux": "snapd",
+        "linux": "snap",
         "win32": "winsvc",
     }
 
