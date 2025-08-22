@@ -54,7 +54,7 @@ from cli_tests.multipass import (
 from cli_tests.config import config
 from cli_tests.controller import (
     MultipassdGovernor,
-    SnapdMultipassdController,
+    SnapMultipassdController,
     StandaloneMultipassdController,
     LaunchdMultipassdController,
     WindowsServiceMultipassdController,
@@ -115,7 +115,7 @@ def pytest_addoption(parser):
         "--daemon-controller",
         default=default_daemon_controller(),
         help="Daemon controller to use.",
-        choices=["standalone", "snapd", "launchd", "winsvc", "none"],
+        choices=["standalone", "snap", "launchd", "winsvc", "none"],
     )
 
     parser.addoption(
@@ -392,7 +392,7 @@ def make_daemon_controller(kind):
     # Return a partial so the controller can be instantiated on demand.
     controllers = {
         "standalone": partial(StandaloneMultipassdController, config.storage_dir),
-        "snapd": partial(SnapdMultipassdController),
+        "snap": partial(SnapMultipassdController),
         "launchd": partial(LaunchdMultipassdController),
         "winsvc": partial(WindowsServiceMultipassdController),
         "none": lambda: None,
