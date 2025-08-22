@@ -18,6 +18,7 @@
 #include "blueprint_test_lambdas.h"
 #include "common.h"
 #include "daemon_test_fixture.h"
+
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
 #include "json_test_utils.h"
@@ -44,6 +45,8 @@
 #include "stub_availability_zone_manager.h"
 #include "stub_virtual_machine.h"
 #include "tracking_url_downloader.h"
+#include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/fake_availability_zone_manager.h>
 
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>
@@ -3032,3 +3035,69 @@ TEST_F(Daemon, setsUpPermissionInheritance)
 }
 
 } // namespace
+
+TEST_F(Daemon, zones_state_cmd_disable_all_zones)
+{
+    auto mock_az_manager =
+        std::make_unique<NiceMock<multipass::test::MockAvailabilityZoneManager>>();
+    auto zone1 = std::make_unique<NiceMock<multipass::test::MockAvailabilityZone>>();
+    auto zone2 = std::make_unique<NiceMock<multipass::test::MockAvailabilityZone>>();
+
+    const std::string zone1_name = "zone1";
+    const std::string zone2_name = "zone2";
+
+    ON_CALL(*zone1, get_name()).WillByDefault(ReturnRef(zone1_name));
+    ON_CALL(*zone1, is_available()).WillByDefault(Return(true));
+    EXPECT_CALL(*zone1, set_available(false)).Times(1);
+
+    ON_CALL(*zone2, get_name()).WillByDefault(ReturnRef(zone2_name));
+    ON_CALL(*zone2, is_available()).WillByDefault(Return(true));
+    EXPECT_CALL(*zone2, set_available(false)).Times(1);
+
+    ON_CALL(*mock_az_manager, get_zones())
+        .WillByDefault(
+            Return(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{*zone1.get(),
+                                                                                   *zone2.get()}));
+    ON_CALL(*mock_az_manager, get_zone("zone1")).WillByDefault(ReturnRef(*zone1.get()));
+    ON_CALL(*mock_az_manager, get_zone("zone2")).WillByDefault(ReturnRef(*zone2.get()));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    std::promise<grpc::Status> status_promise;
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    daemon.zones_state(&request, &mock_server, &status_promise);
+    EXPECT_TRUE(status_promise.get_future().get().ok());
+}
+
+TEST_F(Daemon, fake_availability_zone_manager_throws_not_implemented)
+{
+    // Create a fake availability zone manager that throws NotImplementedOnThisBackendException
+    auto fake_az_manager = std::make_unique<mp::FakeAvailabilityZoneManager>();
+    config_builder.az_manager = std::move(fake_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    // Test that zones request returns UNIMPLEMENTED status
+    mp::ZonesRequest zones_request;
+    std::promise<grpc::Status> zones_status_promise;
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesReply, mp::ZonesRequest>> zones_mock_server;
+
+    daemon.zones(&zones_request, &zones_mock_server, &zones_status_promise);
+    auto zones_status = zones_status_promise.get_future().get();
+    EXPECT_EQ(zones_status.error_code(), grpc::StatusCode::UNIMPLEMENTED);
+    EXPECT_THAT(zones_status.error_message(), HasSubstr("availability zones"));
+
+    // Test that zones state request returns UNIMPLEMENTED status
+    mp::ZonesStateRequest zones_state_request;
+    std::promise<grpc::Status> zones_state_status_promise;
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>>
+        zones_state_mock_server;
+
+    daemon.zones_state(&zones_state_request, &zones_state_mock_server, &zones_state_status_promise);
+    auto zones_state_status = zones_state_status_promise.get_future().get();
+    EXPECT_EQ(zones_state_status.error_code(), grpc::StatusCode::UNIMPLEMENTED);
+    EXPECT_THAT(zones_state_status.error_message(), HasSubstr("availability zones"));
+}
