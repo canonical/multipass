@@ -21,6 +21,6 @@ from .multipassd_governor import MultipassdGovernor
 from .multipassd_controller import MultipassdController
 from .standalone_mulitpassd_controller import StandaloneMultipassdController
 from .snap_multipassd_controller import SnapdMultipassdController
-from .winsvc_multipassd_controller import WinsvcMultipassdController
+from .winsvc_multipassd_controller import WindowsServiceMultipassdController
 from .launchd_multipassd_controller import LaunchdMultipassdController
 from .controller_exceptions import ControllerPrerequisiteError
