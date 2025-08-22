@@ -19,16 +19,19 @@
 """Helpers for resolving Multipass executables and environment settings."""
 
 import os
+import sys
 import shutil
+from pathlib import Path
 
 from cli_tests.config import config
 
 
 SNAP_MULTIPASSD_STORAGE = "/var/snap/multipass/common/data/multipassd"
 LAUNCHD_MULTIPASSD_STORAGE = "/var/root/Library/Application Support/multipassd"
+WIN_MULTIPASSD_STORAGE = str(Path(os.getenv("PROGRAMDATA")) / "Multipass") if sys.platform == "win32" else None
 SNAP_BIN_DIR = "/snap/bin"
 LAUNCHD_MULTIPASS_BIN_DIR = "/Library/Application Support/com.canonical.multipass/bin"
-
+WIN_BIN_DIR = None # Use env
 
 def get_multipass_env():
     """Return an environment dict for running Multipass with a custom storage root."""
