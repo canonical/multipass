@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/fake_availability_zone_manager.h>
 #include <shared/base_virtual_machine_factory.h>
 
 namespace multipass
