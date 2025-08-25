@@ -99,9 +99,9 @@ conflict fixes.<br>
 Guidelines for how we use and handle pull requests.
 
 **PR1.** Concrete modifications of Multipass can be proposed
-via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) (
-AKA PRs) targeting the `main` branch.<br>
-**PR2.** Prefer small, single issue PRs.<br>
+via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests)
+(AKA PRs) targeting the `main` branch.<br>
+**PR2.** Prefer small, single-issue PRs.<br>
 **PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
 abstraction.<br>
 **PR4.** The `main` branch is modified exclusively via PRs, except for an empty commit after
@@ -148,7 +148,7 @@ there should be two commits instead.<br>
 **GIT3.** Strive to preserve a clean but detailed git history.<br>
 **GIT4.** Avoid squashing.<br>
 **GIT5.** Prefer additional commits during review (easier for reviewers to see the diff).<br>
-**GIT6.** Avoid merging the target branch back into topic. Rebase instead.<br>
+**GIT6.** Avoid merging the target branch back into the topic branch. Rebase instead.<br>
 **GIT7.** External contributors are encouraged to
 [sign their commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits),
 while Multipass team members are required to do so.<br>
@@ -182,7 +182,7 @@ try to find a generic unifying category, or choose the most relevant.<br>
 **MSG13.** Use the body to explain *what* and *why*, rather than *how*.<br>
 **MSG14.** Be descriptive but succinct and avoid filler text.<br>
 **MSG15.** Omit the body if the subject is self-explanatory.<br>
-**MSG16.** Common abbreviations are fine (e.g. "msg" or "var")<br>
+**MSG16.** Common abbreviations are fine (e.g. "msg" or "var").<br>
 
 #### Examples
 
@@ -227,7 +227,7 @@ tension and have to be balanced.
 **COD5.** Don't repeat yourself ([DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)).<br>
 **COD6.** Don't reinvent the wheel.<br>
 **COD7.** Don't
-over-engineer ([YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)).<br>
+overengineer ([YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)).<br>
 **COD8.** Avoid coupling functionality that isn't logically coupled.<br>
 **COD9.** Encapsulate, within each unit, all information that other units don't need.<br>
 **COD10.** Encapsulate data with dependent behavior.<br>
@@ -254,7 +254,7 @@ directly or indirectly).<br>
 **CPP5.** For such types, define only constructors that fully initialize objects. Avoid a default
 constructor unless the object needs no parameterization.<br>
 **CPP6.** Make copyable
-types [semi-regular](https://en.cppreference.com/w/cpp/concepts/semiregular).<br>
+types [semiregular](https://en.cppreference.com/w/cpp/concepts/semiregular).<br>
 **CPP7.** Avoid two-stage initialization. Initialize objects fully in the constructor.<br>
 **CPP8.** Avoid const by-value params (e.g. no `void foo(const bool flag);`)<br>
 **CPP9.** Encapsulate platform-dependent functionality in dedicated units (types, functions) and do
