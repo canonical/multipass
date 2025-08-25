@@ -35,10 +35,6 @@ struct StubAvailabilityZoneManager final : public AvailabilityZoneManager
     {
         return zone;
     }
-    std::string get_automatic_zone_name() override
-    {
-        return "zone1";
-    }
     std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() override
     {
         return {zone};

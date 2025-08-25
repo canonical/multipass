@@ -36,11 +36,9 @@ public:
 
     AvailabilityZone& get_zone(const std::string& name) override;
     std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() override;
-    std::string get_automatic_zone_name() override;
     std::string get_default_zone_name() const override;
 
 private:
-    void serialize() const;
 
     class ZoneCollection
     {
@@ -51,9 +49,7 @@ private:
 
         const ZoneArray zones{};
 
-        ZoneCollection(ZoneArray&& zones, std::string last_used);
-        [[nodiscard]] std::string next_available();
-        [[nodiscard]] std::string last_used() const;
+        ZoneCollection(ZoneArray&& zones, std::string);
 
     private:
         ZoneArray::const_iterator automatic_zone;

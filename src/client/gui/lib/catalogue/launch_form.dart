@@ -52,16 +52,13 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   final launchRequest = LaunchRequest();
   final mountRequests = <MountRequest>[];
   var addingMount = false;
-  var selectedZoneAvailable = true; // Default to true for 'auto'
+  var selectedZoneAvailable = true; // Default to true for 'zone1'
   final scrollController = ScrollController();
 
   void updateZoneAvailability() {
     final zones = ref.read(zonesProvider);
-    final hasAvailableZones = zones.any((z) => z.available);
     final isCurrentZoneAvailable =
-        launchRequest.zone.isEmpty || launchRequest.zone == ''
-            ? hasAvailableZones // "auto" is available if any zone is available
-            : zones.any((z) => z.name == launchRequest.zone && z.available);
+        zones.any((z) => z.name == launchRequest.zone && z.available);
 
     setState(() {
       selectedZoneAvailable = isCurrentZoneAvailable;
@@ -97,14 +94,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final networks = ref.watch(networksProvider);
     final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
     final zones = ref.watch(zonesProvider);
+    const defaultZone = 'zone1';
 
     // Update availability whenever zones change
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final hasAvailableZones = zones.any((z) => z.available);
-      if (hasAvailableZones != selectedZoneAvailable ||
-          (hasAvailableZones &&
-              !zones.any((z) => z.name == launchRequest.zone && z.available))) {
+      if (!zones.any((z) => z.name == launchRequest.zone && z.available)) {
         updateZoneAvailability();
       }
     });
@@ -126,9 +121,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final zoneDropdown = FormField<String>(
-      initialValue: 'auto',
-      onSaved: (value) =>
-          launchRequest.zone = value == 'auto' ? '' : value ?? '',
+      initialValue: defaultZone,
+      onSaved: (value) => launchRequest.zone = value ?? defaultZone,
       builder: (field) {
         final hasAvailableZones = zones.any((z) => z.available);
         return ZoneDropdown(
@@ -136,7 +130,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           enabled: hasAvailableZones,
           onChanged: (value) {
             field.didChange(value);
-            launchRequest.zone = value == 'auto' ? '' : value ?? '';
+            launchRequest.zone = value ?? defaultZone;
             updateZoneAvailability();
           },
         );

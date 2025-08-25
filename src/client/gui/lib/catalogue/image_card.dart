@@ -61,12 +61,14 @@ class ImageCard extends ConsumerWidget {
                   onPressed: () {
                     final name = ref.read(randomNameProvider);
                     final aliasInfo = image.aliasesInfo.first;
+                    const defaultZone = 'zone1';
                     final launchRequest = LaunchRequest(
                       instanceName: name,
                       image: aliasInfo.alias,
                       numCores: defaultCpus,
                       memSize: '${defaultRam}B',
                       diskSpace: '${defaultDisk}B',
+                      zone: defaultZone,
                       remoteName: aliasInfo.hasRemoteName()
                           ? aliasInfo.remoteName
                           : null,

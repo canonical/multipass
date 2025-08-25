@@ -37,7 +37,6 @@ struct MockAvailabilityZoneManager : public mp::AvailabilityZoneManager
                 get_zones,
                 (),
                 (override));
-    MOCK_METHOD(std::string, get_automatic_zone_name, (), (override));
     MOCK_METHOD(std::string, get_default_zone_name, (), (const, override));
 };
 

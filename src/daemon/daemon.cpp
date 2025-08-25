@@ -3405,8 +3405,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                           blueprint_name,
                           *config->name_generator,
                           operative_instances);
-    auto zone_name = checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name()
-                                                    : checked_args.zone_name;
+    auto zone_name = checked_args.zone_name.empty() ? "zone1" : checked_args.zone_name;
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
