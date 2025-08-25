@@ -57,11 +57,14 @@ pull requests.<br>
 
 ### Core principles (MU)
 
-Principles for the members of the Multipass team. Many of these are inspired by Canonical's values,
+Principles for the members of the Multipass team. Many of these are inspired
+by [Canonical's values](https://discourse.canonical.com/t/reaffirming-our-company-values/4525),
 which we should keep in mind.
 
 **MU1.** Aim at excellence.<br>
-**MU2.** Follow best practices (refer to other pertinent documents, e.g.CppCoreGuidelines).<br>
+**MU2.**
+Follow best practices (refer to other pertinent documents,
+e.g. [CppCoreGuidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)).<br>
 **MU3.** Think critically (even about best practices).<br>
 **MU4.** Favor collaboration.<br>
 **MU5.** Be open to feedback.<br>
@@ -94,8 +97,9 @@ conflict fixes.<br>
 
 Guidelines for how we use and handle pull requests.
 
-**PR1.** Concrete modifications of Multipass can be proposed via Pull Requests (AKA PRs) targeting
-the main branch.<br>
+**PR1.** Concrete modifications of Multipass can be proposed
+via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) (
+AKA PRs) targeting the main branch.<br>
 **PR2.** Prefer small, single issue PRs.<br>
 **PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
 abstraction.<br>
@@ -142,15 +146,20 @@ there should be two commits instead.<br>
 **GIT4.** Avoid squashing.<br>
 **GIT5.** Prefer additional commits during review (easier for reviewers to see the diff).<br>
 **GIT6.** Avoid merging the target branch back into topic. Rebase instead.<br>
-**GIT7.** External contributors are encouraged to sign their commits, while Multipass team members
-are required to do so.<br>
+**GIT7.** External contributors are encouraged to
+[sign their commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits),
+while Multipass team members are required to do so.<br>
 **GIT8.** Use kebab-case branch names (i.e. lower-case-words-separated-with-hyphens).<br>
 **GIT9.** Do not introduce whitespace errors.<br>
 
 ### Commit messages (MSG)
 
-Guidelines for writing commit messages for non-merge commits. They are inspired by this and other
-posts. The category prefix is the main originality.
+Guidelines for writing commit messages for non-merge commits. They are inspired by
+[this](https://cbea.ms/git-commit/)
+[and](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+[other](https://preslav.me/2015/02/21/what-s-with-the-50-72-rule/)
+[posts](https://stackoverflow.com/questions/2290016/git-commit-messages-50-72-formatting).
+The category prefix is the main originality.
 
 **MSG1.** Begin with a subject line.<br>
 **MSG2.** Start the subject line with a lower-case, single-word category, within square brackets
@@ -208,12 +217,14 @@ tension and have to be balanced.
 
 **COD1.** Avoid duplicate sources of truth.<br>
 **COD2.** Prefer small units, be they functions, classes, files, etc.<br>
-**COD3.** Follow SOLID principles.<br>
-**COD4.** Pay special attention to the principles of single responsibility and separation of
-concerns.<br>
-**COD5.** Don't repeat yourself (DRY).<br>
+**COD3.** Follow [SOLID principles](https://en.wikipedia.org/wiki/SOLID).<br>
+**COD4.** Pay special attention to the principles of
+[single responsibility](https://en.wikipedia.org/wiki/Single-responsibility_principle) and
+[separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns).<br>
+**COD5.** Don't repeat yourself ([DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)).<br>
 **COD6.** Don't reinvent the wheel.<br>
-**COD7.** Don't over-engineer (YAGNI).<br>
+**COD7.** Don't
+over-engineer ([YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)).<br>
 **COD8.** Avoid coupling functionality that isn't logically coupled.<br>
 **COD9.** Encapsulate, within each unit, all information that other units don't need.<br>
 **COD10.** Encapsulate data with dependent behavior.<br>
@@ -238,7 +249,8 @@ concerns.<br>
 directly or indirectly).<br>
 **CPP5.** For such types, define only constructors that fully initialize objects. Avoid a default
 constructor unless the object needs no parameterization.<br>
-**CPP6.** Make copyable types semi-regular.<br>
+**CPP6.** Make copyable
+types [semi-regular](https://en.cppreference.com/w/cpp/concepts/semiregular).<br>
 **CPP7.** Avoid two-stage initialization. Initialize objects fully in the constructor.<br>
 **CPP8.** Avoid const by-value params (e.g. no void foo(const bool flag);)<br>
 **CPP9.** Encapsulate platform-dependent functionality in dedicated units (types, functions) and do
