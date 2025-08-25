@@ -35,17 +35,17 @@ with governance goals.
 
 **META1.** Everyone in the team can propose additional guidelines.<br>
 **META2.** Everyone in the team can question and propose changes to guidelines.<br>
-**META3.** Before the first set of guidelines is established, everyone in the team is invited to
+**META3.** Before the *first* set of guidelines is established, everyone in the team is invited to
 participate in live discussions about them.<br>
 **META4.** Before a new version of these guidelines is established, everyone in the team reviews it
 independently, except if away on prolonged absence.<br>
-**META5.** Ideally, all team members come to agree on any given version of these guidelines before
+**META5.** Ideally, all team members come to *agree* on any given version of these guidelines before
 it is established.<br>
-**META6.** Where that is not possible, preferably a majority of the team agrees with any given
+**META6.** Where that is not possible, preferably a majority of the team *agrees* with any given
 version of these guidelines before it is established.<br>
-**META7.** Preferably, all team members accept the latest established version of these guidelines,
+**META7.** Preferably, all team members *accept* the latest established version of these guidelines,
 until the team agrees to modify it.<br>
-**META8.** In any case, all team members abide by the latest established version of these
+**META8.** In any case, all team members *abide* by the latest established version of these
 guidelines, until the team agrees to modify it.<br>
 **META9.** Established guidelines are taken seriously, but with a grain of salt. They are guidelines
 after all, not absolute rules.<br>
@@ -83,15 +83,16 @@ e.g. [CppCoreGuidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuide
 
 Descriptive rules of how releases are obtained from Git.
 
-**REL1.** The trunk of Multipass development happens in the main branch, which releases branch out
+**REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
 of.<br>
-**REL2.** Preferably, release branches contain only commits that are directly reachable from main or
-cherry-picked from it.<br>
+**REL2.** Preferably, release branches contain only commits that are directly reachable from `main`
+or cherry-picked from it.<br>
 **REL3.** Cherry-picked commits in release branches may differ from the original ones only where
 necessary to avoid or fix conflicts.<br>
 **REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
 conflict fixes.<br>
-**REL5.** After a release is published, the corresponding release branch is merged back into main.<br>
+**REL5.** After a release is published, the corresponding release branch is merged back into
+`main`.<br>
 
 ### Pull Requests (PR)
 
@@ -99,16 +100,17 @@ Guidelines for how we use and handle pull requests.
 
 **PR1.** Concrete modifications of Multipass can be proposed
 via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) (
-AKA PRs) targeting the main branch.<br>
+AKA PRs) targeting the `main` branch.<br>
 **PR2.** Prefer small, single issue PRs.<br>
 **PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
 abstraction.<br>
-**PR4.** The main branch is modified exclusively via PRs, except for an empty commit after branching
-for release.<br>
-**PR5.** PRs accepted into main are merged with merge commits.<br>
-**PR6.** PRs to main should typically be covered by automated tests.<br>
+**PR4.** The `main` branch is modified exclusively via PRs, except for an empty commit after
+branching for release.<br>
+**PR5.** PRs accepted into `main` are merged with merge commits.<br>
+**PR6.** PRs to `main` should typically be covered by automated tests.<br>
 **PR7.** If a PR is valuable on its own, does not depend on others, and does not involve dead code,
-target the main branch, even if it is part of a larger task. This should be the most common case.<br>
+target the `main` branch, even if it is part of a larger task. This should be the most common
+case.<br>
 **PR8.** If your PR relies on another one, target the other's branch.<br>
 **PR9.** When working on a larger set of changes with cohesive interdependence, consider using a
 feature branch.<br>
@@ -132,9 +134,10 @@ is mandatory for external PRs (authored or committed from outside the Multipass 
 Renovate bot).<br>
 **RVW6.** After a PR is approved by multiple people, small updates require only a single additional
 approval (i.e. after multiple approvals are dismissed).<br>
-**RVW7.** Notably trivial PRs by the Multipass team may be merged after a single primary approval.<br>
+**RVW7.** Notably trivial PRs by the Multipass team may be merged after a single primary
+approval.<br>
 **RVW8.** Renovate PRs may be merged after a single primary approval.<br>
-**RVW9.** Review comments should be acknowledged by the author, but resolved by the reviewer.<br>
+**RVW9.** Review comments should be acknowledged by the author, but *resolved* by the reviewer.<br>
 
 ### Versioning (GIT)
 
@@ -176,7 +179,7 @@ try to find a generic unifying category, or choose the most relevant.<br>
 **MSG10.** Do not include more than 1 consecutive blank line.<br>
 **MSG11.** Use punctuation normally in the body.<br>
 **MSG12.** Wrap the body at 72 characters.<br>
-**MSG13.** Use the body to explain what and why, rather than how.<br>
+**MSG13.** Use the body to explain *what* and *why*, rather than *how*.<br>
 **MSG14.** Be descriptive but succinct and avoid filler text.<br>
 **MSG15.** Omit the body if the subject is self-explanatory.<br>
 **MSG16.** Common abbreviations are fine (e.g. "msg" or "var")<br>
@@ -197,15 +200,15 @@ code injection (now or in the future).
 
 #### Helper tools
 
-- Consider setting your commit template to the .gitmessage file in the repository root:
-  * `git config --local commit.template .gitmessage`
-- Consider adding the commit-msg file in the repository root as a git hook (in .git/hooks)
-  * `ln -s ../../git-hooks/commit-msg.py .git/hooks/commit-msg`
+- Consider setting your commit template to the `.gitmessage` file in the repository root:
+    * `git config --local commit.template .gitmessage`
+- Consider adding the `commit-msg` file in the repository root as a git hook (in `.git/hooks`)
+    * `ln -s ../../git-hooks/commit-msg.py .git/hooks/commit-msg`
 
 ### Dependencies (DEP)
 
 **DEP1.** Acceptable mechanisms to adopt source-code dependencies are, in decreasing order of
-preference: vcpkg (for C++) > FetchContent > submodule.<br>
+preference: Vcpkg (for C++) > FetchContent > submodule.<br>
 **DEP2.** Avoid vendoring (copied source code).<br>
 
 ### Code
@@ -234,7 +237,8 @@ over-engineer ([YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)
 **COD14.** All else being equal, less code is better code.<br>
 **COD15.** Don't try to maximize LoC metrics.<br>
 **COD16.** Aim for consistency.<br>
-**COD17.** If it is all the same otherwise, follow a single approach (see how it is done elsewhere).<br>
+**COD17.** If it is all the same otherwise, follow a single approach (see how it is done
+elsewhere).<br>
 **COD18.** Be creative. If you have a better approach, propose it and discuss it openly.<br>
 **COD19.** Prioritize. Balance idealism with pragmatism.<br>
 **COD20.** Document public, user-facing interfaces.<br>
@@ -242,24 +246,24 @@ over-engineer ([YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)
 
 #### C++ (CPP)
 
-**CPP1.** Stick to standard C++17, with the exception of #pragma once.<br>
-**CPP2.** Prefer "#pragma once" to header guards<br>
+**CPP1.** Stick to standard C++17, with the exception of `#pragma once`.<br>
+**CPP2.** Prefer `#pragma once` to header guards<br>
 **CPP3.** Prefer enforcing correct usage (prevent misuse) at compilation time.<br>
-**CPP4.** If a type isn't meant to be copied or moved, inherit from DisabledCopyMove (either
+**CPP4.** If a type isn't meant to be copied or moved, inherit from `DisabledCopyMove` (either
 directly or indirectly).<br>
 **CPP5.** For such types, define only constructors that fully initialize objects. Avoid a default
 constructor unless the object needs no parameterization.<br>
 **CPP6.** Make copyable
 types [semi-regular](https://en.cppreference.com/w/cpp/concepts/semiregular).<br>
 **CPP7.** Avoid two-stage initialization. Initialize objects fully in the constructor.<br>
-**CPP8.** Avoid const by-value params (e.g. no void foo(const bool flag);)<br>
+**CPP8.** Avoid const by-value params (e.g. no `void foo(const bool flag);`)<br>
 **CPP9.** Encapsulate platform-dependent functionality in dedicated units (types, functions) and do
-not use platform #ifdefs (or other platform-conditional logic) outside of those units.<br>
-**CPP10.** Use CamelCase for types, but snake_case for variables and functions.<br>
+not use platform `#ifdef`s (or other platform-conditional logic) outside of those units.<br>
+**CPP10.** Use `CamelCase` for types, but `snake_case` for variables and functions.<br>
 **CPP11.** Avoid magic numbers.<br>
 **CPP12.** Declare generic constants in a dedicated header.<br>
 **CPP13.** Avoid compilation warnings.<br>
-**CPP14.** To mock free functions and external APIs, wrap them with MockableSingleton<br>
+**CPP14.** To mock free functions and external APIs, wrap them with `MockableSingleton`.<br>
 
 # Further Information
 
