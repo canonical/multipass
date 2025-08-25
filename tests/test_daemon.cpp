@@ -263,6 +263,14 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         .WillOnce(
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
+    EXPECT_CALL(daemon, zones)
+        .WillOnce(
+            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
+    EXPECT_CALL(daemon, zones_state)
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            &daemon,
+            &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_keys"},
@@ -288,7 +296,10 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
                    {"umount", "instance"},
                    {"networks"},
                    {"clone", "foo"},
-                   {"wait-ready"}});
+                   {"wait-ready"},
+                   {"zones"},
+                   {"enable-zones", "foo"},
+                   {"disable-zones", "foo", "--force"}});
 }
 
 TEST_F(Daemon, providesVersion)
