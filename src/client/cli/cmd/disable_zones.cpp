@@ -143,7 +143,7 @@ bool DisableZones::confirm() const
     auto answer = prompter.prompt(message);
     while (!answer.empty() && !std::regex_match(answer, client::yes_answer) &&
            !std::regex_match(answer, client::no_answer))
-        answer = prompter.prompt("Please answer (Yes/No)");
+        answer = prompter.prompt("Please answer (Yes/no)");
 
     return answer.empty() || std::regex_match(answer, client::yes_answer);
 }
