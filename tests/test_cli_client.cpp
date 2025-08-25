@@ -4471,6 +4471,29 @@ TEST_F(Client, zonesCmdVerbosityForwarded)
     EXPECT_EQ(send_command({"zones", "-vv"}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, zonesCmdFormatIsCorrectCSV)
+{
+    mp::ZonesReply reply{};
+    const auto reply_zone1 = reply.add_zones();
+    reply_zone1->set_name("zone1");
+    reply_zone1->set_available(true);
+    const auto reply_zone2 = reply.add_zones();
+    reply_zone2->set_name("zone2");
+    reply_zone2->set_available(false);
+
+    std::stringstream cout, cerr;
+    mpt::MockTerminal term;
+    EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+    EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
+
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, reply)));
+    EXPECT_EQ(setup_client_and_run({"zones", "--format", "csv"}, term), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout.str(), HasSubstr("Name,Available\nzone1,true\nzone2,false"));
+}
+
 // enable_zones tests
 TEST_F(Client, enableZonesCmdHelpOk)
 {
