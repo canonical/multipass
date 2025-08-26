@@ -82,7 +82,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
     EXPECT_EQ(manager.get_automatic_zone_name(), *mp::default_zone_names.begin());
 }
 
-TEST_F(BaseAvailabilityZoneManagerTest, AutomaticZoneRotation)
+TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 {
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
         .WillOnce(Return(QJsonObject{}));
@@ -101,21 +101,25 @@ TEST_F(BaseAvailabilityZoneManagerTest, AutomaticZoneRotation)
             .Times(AnyNumber());
     }
 
-    // Manager file will be written multiple times during rotation
+    // Manager file will be written multiple times
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
-    // First automatic zone should be the first zone
+    // First automatic zone should be zone1
     const auto first_zone = manager.get_automatic_zone_name();
-    EXPECT_EQ(first_zone, *mp::default_zone_names.begin());
+    EXPECT_EQ(first_zone, "zone1");
 
-    // Mark first zone as unavailable
-    manager.get_zone(first_zone).set_available(false);
-
-    // Next automatic zone should be second zone
+    // Even after multiple calls, should always return zone1 when available
     const auto second_zone = manager.get_automatic_zone_name();
-    EXPECT_NE(second_zone, first_zone);
+    EXPECT_EQ(second_zone, "zone1");
+
+    // Mark zone1 as unavailable
+    manager.get_zone("zone1").set_available(false);
+
+    // Next automatic zone should be zone2
+    const auto third_zone = manager.get_automatic_zone_name();
+    EXPECT_EQ(third_zone, "zone2");
 
     // Mark all zones unavailable
     for (const auto& zone : manager.get_zones())
@@ -150,7 +154,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
     EXPECT_THROW(manager.get_zone("nonexistent-zone"), mp::AvailabilityZoneNotFound);
 }
 
-TEST_F(BaseAvailabilityZoneManagerTest, CyclesThroughAvailableZones)
+TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
 {
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
         .WillOnce(Return(QJsonObject{}));
@@ -172,22 +176,36 @@ TEST_F(BaseAvailabilityZoneManagerTest, CyclesThroughAvailableZones)
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
-    // First call returns initial zone (zone1)
+    // All zones available - should always return zone1
     auto zone = manager.get_automatic_zone_name();
     EXPECT_EQ(zone, "zone1");
 
-    // Make zone2 unavailable
-    manager.get_zone("zone2").set_available(false);
-
-    // Second call follows pointer to zone2 (unavailable), so moves to and returns zone3
-    zone = manager.get_automatic_zone_name();
-    EXPECT_EQ(zone, "zone3");
-
-    // Third call follows pointer to zone1 and returns it
     zone = manager.get_automatic_zone_name();
     EXPECT_EQ(zone, "zone1");
 
-    // Fourth call follows pointer to zone2 (unavailable), so moves to and returns zone3
+    zone = manager.get_automatic_zone_name();
+    EXPECT_EQ(zone, "zone1");
+
+    // Make zone1 unavailable - should return zone2
+    manager.get_zone("zone1").set_available(false);
+
+    zone = manager.get_automatic_zone_name();
+    EXPECT_EQ(zone, "zone2");
+
+    zone = manager.get_automatic_zone_name();
+    EXPECT_EQ(zone, "zone2");
+
+    // Make zone2 unavailable too - should return zone3
+    manager.get_zone("zone2").set_available(false);
+
     zone = manager.get_automatic_zone_name();
     EXPECT_EQ(zone, "zone3");
+
+    zone = manager.get_automatic_zone_name();
+    EXPECT_EQ(zone, "zone3");
+
+    // Make all zones unavailable - should throw exception
+    manager.get_zone("zone3").set_available(false);
+
+    EXPECT_THROW(manager.get_automatic_zone_name(), mp::NoAvailabilityZoneAvailable);
 }
