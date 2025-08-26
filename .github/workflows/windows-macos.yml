@@ -2,12 +2,6 @@ name: WindowsMacOS
 
 on:
   workflow_call:
-  workflow_dispatch:
-    inputs:
-      host-my-apple:
-        description: "Run on HostMyApple MacOS 12 runners"
-        required: false
-        default: "false"
 
 permissions:
   contents: read
@@ -43,14 +37,7 @@ jobs:
         MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
         MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
         MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64", "mono": ""},'
-
-        if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.host-my-apple }}" == "true" ]]; then
-          MATRIX+='{"runs-on": "multipass-macos-12-x64", "arch": "x86_64"},'
-          MATRIX+='{"runs-on": "multipass-macos-12-arm", "arch": "arm64"},'
-        fi
-
-        MATRIX=${MATRIX%,}
+        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64", "mono": ""}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
