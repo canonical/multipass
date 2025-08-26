@@ -21,18 +21,35 @@ class ZoneDropdown extends ConsumerWidget {
     final zones = ref.watch(zonesProvider);
     final hasAvailableZones = zones.any((z) => z.available);
 
-    // If selected zone is unavailable and there are no available zones, force auto selection
-    if (!hasAvailableZones && value != 'auto') {
+    // Determine the default zone based on availability
+    String defaultZone = '';
+    for (final zone in zones) {
+      if (zone.available) {
+        defaultZone = zone.name;
+        break;
+      }
+    }
+
+    // If no zone is selected and we have a default, set it
+    if (value.isEmpty && defaultZone.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        onChanged?.call('auto');
+        onChanged?.call(defaultZone);
+      });
+    }
+
+    // If selected zone is unavailable, select the default zone
+    if (value.isNotEmpty &&
+        !zones.any((z) => z.name == value && z.available) &&
+        defaultZone.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onChanged?.call(defaultZone);
       });
     }
 
     String? errorText;
     if (!hasAvailableZones) {
       errorText = 'All zones are unavailable';
-    } else if (!zones.any((z) => z.name == value && z.available) &&
-        value != 'auto') {
+    } else if (!zones.any((z) => z.name == value && z.available)) {
       errorText = '$value is unavailable';
     }
 
@@ -56,11 +73,10 @@ class ZoneDropdown extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Dropdown<String>(
-          value: value,
+          value: value.isNotEmpty ? value : defaultZone,
           enabled: enabled,
           onChanged: onChanged,
           items: {
-            'auto': 'Auto (assign automatically)',
             for (final zone in zones)
               zone.name:
                   '${zone.name}${zone.available ? '' : ' (unavailable)'}',
