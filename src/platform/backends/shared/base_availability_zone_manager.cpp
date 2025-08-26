@@ -158,21 +158,18 @@ BaseAvailabilityZoneManager::ZoneCollection::ZoneCollection(
 std::string BaseAvailabilityZoneManager::ZoneCollection::next_available()
 {
     std::unique_lock lock{mutex};
-    const auto start = automatic_zone;
-    auto current = start;
-    do
+
+    // Iterate through all zones starting with zone1 to find an available one
+    for (auto zone_it = zones.begin(); zone_it != zones.end(); ++zone_it)
     {
-        const auto& az = *current->get();
-        if (++current == zones.end())
-            current = zones.begin();
-
-        if (az.is_available())
+        if ((*zone_it)->is_available())
         {
-            automatic_zone = current;
-            return az.get_name();
+            automatic_zone = zone_it;
+            return (*zone_it)->get_name();
         }
-    } while (current != start);
+    }
 
+    // If none are available, throw an exception
     throw NoAvailabilityZoneAvailable{};
 }
 
