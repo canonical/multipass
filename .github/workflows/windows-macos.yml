@@ -64,7 +64,6 @@ jobs:
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
 
     runs-on: ${{ matrix.runs-on }}
-    continue-on-error: ${{ contains(matrix.runs-on, 'macos-13') || contains(matrix.runs-on, 'macos-14') || contains(matrix.runs-on, 'macos-15') }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
