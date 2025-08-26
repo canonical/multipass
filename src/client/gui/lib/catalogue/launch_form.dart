@@ -71,10 +71,11 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   void updateZoneAvailability() {
     final zones = ref.read(zonesProvider);
     final hasAvailableZones = zones.any((z) => z.available);
-    final isCurrentZoneAvailable =
-        launchRequest.zone.isEmpty || launchRequest.zone == ''
-            ? hasAvailableZones // "auto" is available if any zone is available
-            : zones.any((z) => z.name == launchRequest.zone && z.available);
+
+    // Check if the currently selected zone is available
+    final isCurrentZoneAvailable = launchRequest.zone.isEmpty
+        ? hasAvailableZones // Empty zone means we'll use the default
+        : zones.any((z) => z.name == launchRequest.zone && z.available);
 
     setState(() {
       selectedZoneAvailable = isCurrentZoneAvailable;
@@ -148,9 +149,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final zoneDropdown = FormField<String>(
-      initialValue: 'auto',
-      onSaved: (value) =>
-          launchRequest.zone = value == 'auto' ? '' : value ?? '',
+      initialValue: '', // Start with empty to let ZoneDropdown set the default
+      onSaved: (value) => launchRequest.zone = value ?? '',
       builder: (field) {
         final hasAvailableZones = zones.any((z) => z.available);
         return ZoneDropdown(
@@ -158,7 +158,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           enabled: hasAvailableZones,
           onChanged: (value) {
             field.didChange(value);
-            launchRequest.zone = value == 'auto' ? '' : value ?? '';
+            launchRequest.zone = value ?? '';
             updateZoneAvailability();
           },
         );
