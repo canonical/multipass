@@ -64,6 +64,7 @@ private:
     const Path network_dir;
     const Subnets subnets;
     DNSMasqServer::UPtr dnsmasq_server;
-    std::unordered_map<std::string, std::tuple<QString, std::string, QString>> name_to_net_device_map;
+    std::unordered_map<std::string, std::tuple<QString, std::string, QString>>
+        name_to_net_device_map;
 };
 } // namespace multipass
