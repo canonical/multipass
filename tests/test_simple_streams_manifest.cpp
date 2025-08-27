@@ -54,7 +54,7 @@ TEST_F(TestSimpleStreamsManifest, canParseImageInfo)
     EXPECT_THAT(manifest->updated_at, Eq("Wed, 20 May 2020 16:47:50 +0000"));
     EXPECT_THAT(manifest->products.size(), Eq(2u));
 
-    const auto info = manifest->image_records["default"];
+    const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
     EXPECT_FALSE(info->image_location.isEmpty());
 }
@@ -70,7 +70,7 @@ TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
         QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img")
             .arg(MANIFEST_ARCH);
 
-    const auto info = manifest->image_records[expected_id];
+    const auto info = manifest->image_records.at(expected_id);
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
@@ -117,7 +117,7 @@ TEST_F(TestSimpleStreamsManifest, choosesNewestVersion)
     const QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
     const QString expected_location{"newest_image.img"};
 
-    const auto info = manifest->image_records["default"];
+    const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
@@ -136,7 +136,7 @@ TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 
     for (const auto& hash : all_known_hashes)
     {
-        const auto info = manifest->image_records[hash];
+        const auto info = manifest->image_records.at(hash);
         EXPECT_THAT(info, NotNull());
     }
 }
@@ -150,7 +150,7 @@ TEST_F(TestSimpleStreamsManifest, lXDDriverReturnsExpectedData)
 
     EXPECT_EQ(manifest->products.size(), 2u);
 
-    const auto xenial_info = manifest->image_records["xenial"];
+    const auto xenial_info = manifest->image_records.at("xenial");
 
     // combined_disk1-img_sha256 for xenial product
     const QString expected_xenial_id{
@@ -158,7 +158,7 @@ TEST_F(TestSimpleStreamsManifest, lXDDriverReturnsExpectedData)
     EXPECT_EQ(xenial_info->id, expected_xenial_id);
 
     // combined_disk-img_sha256 despite -kvm being available (canonical/multipass#2491)
-    const auto bionic_info = manifest->image_records["bionic"];
+    const auto bionic_info = manifest->image_records.at("bionic");
 
     const QString expected_bionic_id{
         "09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
