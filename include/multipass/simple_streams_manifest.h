@@ -23,7 +23,6 @@
 #include "vm_image_info.h"
 
 #include <QByteArray>
-#include <QMap>
 #include <QString>
 
 #include <memory>
@@ -42,7 +41,7 @@ struct SimpleStreamsManifest
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;
-    const QMap<QString, const VMImageInfo*> image_records;
+    const std::unordered_map<QString, const VMImageInfo*> image_records;
 
     SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images);
 };
