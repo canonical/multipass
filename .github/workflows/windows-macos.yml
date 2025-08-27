@@ -172,7 +172,7 @@ jobs:
         fi
 
     - name: Install nuget
-      if: ${{ contains(matrix.runs-on, 'macos-latest') || contains(matrix.runs-on, 'macos-14') }}
+      if: ${{ matrix.arch == 'arm64' }}
       run: |
         brew install nuget mono
 
