@@ -279,14 +279,14 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
     const QString& key,
     const mp::SimpleStreamsManifest& manifest) const
 {
-    auto it = manifest.image_records.find(key);
-    if (it != manifest.image_records.end())
+    if (auto it = manifest.image_records.find(key); it != manifest.image_records.end())
     {
-        return it.value();
+        return it->second;
     }
 
     return nullptr;
 }
+
 const mp::UbuntuVMImageRemote& mp::UbuntuVMImageHost::get_remote(
     const std::string& remote_name) const
 {
