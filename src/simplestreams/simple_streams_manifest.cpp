@@ -183,7 +183,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
                 image_key = "disk1.img";
 
             image = items[image_key].toObject();
-            image_location = image["path"].toString();
+            image_location = host_url + image["path"].toString();
             sha256 = image["sha256"].toString();
             size = image["size"].toInt(-1);
 
