@@ -27,11 +27,20 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
-mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
-                                         const QStringList& platform_args,
-                                         const mp::QemuVirtualMachine::MountArgs& mount_args,
-                                         const std::optional<ResumeData>& resume_data)
-    : desc{desc}, platform_args{platform_args}, mount_args{mount_args}, resume_data{resume_data}
+mp::QemuVMProcessSpec::QemuVMProcessSpec(
+    const mp::VirtualMachineDescription& desc,
+    const QStringList& platform_args,
+    const mp::QemuVirtualMachine::MountArgs& mount_args,
+    const std::optional<ResumeData>& resume_data,
+    const QStringList& additional_args,
+    const std::unordered_map<std::string, multipass::QemuVirtualMachine::AttachedBlockDevice>&
+        block_devices)
+    : desc{desc},
+      platform_args{platform_args},
+      mount_args{mount_args},
+      resume_data{resume_data},
+      additional_args{additional_args},
+      block_devices{block_devices}
 {
 }
 
@@ -102,6 +111,9 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         const auto& [__, mount_args] = mount_data;
         args << mount_args;
     }
+
+    // Add any additional arguments (e.g., for block devices)
+    args << additional_args;
 
     return args;
 }
@@ -189,6 +201,9 @@ profile %1 flags=(attach_disconnected) {
   %6 rwk,  # QCow2 filesystem image
   %7 rk,   # cloud-init ISO
 
+  # Additional block devices
+  %9
+
   # allow full access just to user-specified mount directories on the host
   %8
 }
@@ -219,6 +234,16 @@ profile %1 flags=(attach_disconnected) {
         firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
     }
 
+    // Build block device permissions
+    QString block_device_perms;
+    for (const auto& [name, info] : block_devices)
+    {
+        if (!block_device_perms.isEmpty())
+            block_device_perms += "\n  ";
+        block_device_perms += QString::fromStdString(info.path) +
+                              " rwk,  # Block device: " + QString::fromStdString(name);
+    }
+
     return profile_template.arg(apparmor_profile_name(),
                                 signal_peer,
                                 firmware,
@@ -226,7 +251,8 @@ profile %1 flags=(attach_disconnected) {
                                 program(),
                                 desc.image.image_path,
                                 desc.cloud_init_iso,
-                                mount_dirs);
+                                mount_dirs,
+                                block_device_perms);
 }
 
 QString mp::QemuVMProcessSpec::identifier() const

@@ -624,6 +624,8 @@ struct DaemonAliasTestsuite
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+            .WillRepeatedly(Return("qemu")); // TODO lxd and libvirt migration, remove
     }
 
     mpt::MockSettings::GuardedMock mock_settings_injection =
