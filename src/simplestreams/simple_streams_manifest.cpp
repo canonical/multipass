@@ -65,10 +65,10 @@ QString latest_version_in(const QJsonObject& versions)
     return max_version;
 }
 
-QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(
+std::unordered_map<QString, const mp::VMImageInfo*> map_aliases_to_vm_info_for(
     const std::vector<mp::VMImageInfo>& images)
 {
-    QMap<QString, const mp::VMImageInfo*> map;
+    std::unordered_map<QString, const mp::VMImageInfo*> map;
 
     for (const auto& image : images)
     {
@@ -88,7 +88,7 @@ mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at,
                                                  std::vector<VMImageInfo>&& images)
     : updated_at{updated_at},
       products{std::move(images)},
-      image_records{qmap_aliases_to_vm_info_for(products)}
+      image_records{map_aliases_to_vm_info_for(products)}
 {
 }
 
