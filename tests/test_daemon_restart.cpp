@@ -33,6 +33,9 @@ using namespace testing;
 struct TestDaemonRestart : public mpt::DaemonTestFixture
 {
     using VMState = mp::VirtualMachine::State;
+    using ServerMock =
+        StrictMock<mpt::MockServerReaderWriter<mp::RestartReply, mp::RestartRequest>>;
+
     void SetUp() override
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
@@ -83,7 +86,7 @@ TEST_F(TestDaemonRestart, successfulRestartOkStatus)
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
     auto [daemon, instance] = build_daemon_with_mock_instance(VMState::running);
 
-    StrictMock<mpt::MockServerReaderWriter<mp::RestartReply, mp::RestartRequest>> mock_server{};
+    ServerMock mock_server{};
     EXPECT_CALL(mock_server, Write(_, _)).Times(1);
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
@@ -98,11 +101,7 @@ TEST_F(TestDaemonRestart, restartFailsOnMissingInstance)
     request.mutable_instance_names()->add_instance_name(missing_instance_name);
 
     auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
-    auto status = call_daemon_slot(
-        *daemon,
-        &mp::Daemon::restart,
-        request,
-        StrictMock<mp::test::MockServerReaderWriter<mp::RestartReply, mp::RestartRequest>>());
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
 
     EXPECT_EQ(status.error_code(), grpc::NOT_FOUND);
     EXPECT_THAT(status.error_message(),
