@@ -46,7 +46,9 @@ public:
     void set_authorization(std::vector<NetworkInterfaceInfo>& networks) override;
 
 private:
-    struct Subnet : DisabledCopyMove
+    // explicitly naming DisabledCopyMove since the private one derived from QemuPlatform takes
+    // precedence in lookup
+    struct Subnet : private multipass::DisabledCopyMove
     {
         const QString bridge_name;
         const std::string subnet;
