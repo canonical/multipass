@@ -90,14 +90,16 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
 
     const QString dummy_bridge{"dummy-bridge"};
     const std::string default_subnet{"192.168.64"};
-    const std::string error_subnet{"0.0.0"}; // This forces the mock dnsmasq process to exit with error
+    const std::string error_subnet{
+        "0.0.0"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
     const std::string expected_ip{"10.177.224.22"};
     const std::string lease_entry =
         "0 "s + hw_addr + " "s + expected_ip +
         " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
 
-    [[nodiscard]] static mp::SubnetList make_subnets(const QString& bridge, const std::string& subnet)
+    [[nodiscard]] static mp::SubnetList make_subnets(const QString& bridge,
+                                                     const std::string& subnet)
     {
         return {{bridge, subnet}};
     }
@@ -110,13 +112,15 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
 
 TEST_F(DNSMasqServer, startsDnsmasqProcess)
 {
-    EXPECT_NO_THROW(mp::DNSMasqServer dns(data_dir.path(), make_subnets(dummy_bridge, default_subnet)));
+    EXPECT_NO_THROW(
+        mp::DNSMasqServer dns(data_dir.path(), make_subnets(dummy_bridge, default_subnet)));
 }
 
 TEST_F(DNSMasqServer, factory_creates_dnsmasq_process)
 {
     EXPECT_NO_THROW(
-        MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(data_dir.path(), make_subnets(dummy_bridge, default_subnet)));
+        MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(data_dir.path(),
+                                                      make_subnets(dummy_bridge, default_subnet)));
 }
 
 TEST_F(DNSMasqServer, findsIp)
