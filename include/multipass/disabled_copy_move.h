@@ -25,7 +25,7 @@ namespace multipass
  *
  * To use, inherit privately, Like so:
  * @code
- *  class Foo : private DisabledCopyMove {...};`
+ *  class Foo : private DisabledCopyMove {...};
  * @endcode
  */
 class DisabledCopyMove
