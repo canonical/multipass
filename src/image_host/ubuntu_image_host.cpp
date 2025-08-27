@@ -52,22 +52,6 @@ auto download_manifest(const QString& host_url,
     return json_manifest;
 }
 
-mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
-{
-    return {info.aliases,
-            info.os,
-            info.release,
-            info.release_title,
-            info.release_codename,
-            info.supported,
-            host_url + info.image_location,
-            info.id,
-            info.stream_location,
-            info.version,
-            info.size,
-            info.verify};
-}
-
 auto key_from(const std::string& search_string)
 {
     auto key = QString::fromStdString(search_string);
@@ -133,10 +117,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
 
-            images.push_back(std::make_pair(
-                remote_name,
-                with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)),
-                                             *info)));
+            images.push_back(std::make_pair(remote_name, *info));
         }
         else
         {
@@ -148,11 +129,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
                     (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
                 {
-                    images.push_back(
-                        std::make_pair(remote_name,
-                                       with_location_fully_resolved(
-                                           QString::fromStdString(remote_url_from(remote_name)),
-                                           entry)));
+                    images.push_back(std::make_pair(remote_name, entry));
                     found_hashes.insert(entry.id.toStdString());
                 }
             }
@@ -170,9 +147,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
         {
             if (product.id.toStdString() == full_hash)
             {
-                return with_location_fully_resolved(
-                    QString::fromStdString(remote_url_from(manifest.first)),
-                    product);
+                return product;
             }
         }
     }
@@ -191,9 +166,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
     {
         if ((entry.supported || allow_unsupported) && get_remote(remote_name).admits_image(entry))
         {
-            images.push_back(
-                with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)),
-                                             entry));
+            images.push_back(entry);
         }
     }
 
@@ -212,10 +185,7 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
         {
             if (get_remote(remote_name).admits_image(product))
             {
-                action(remote_name,
-                       with_location_fully_resolved(
-                           QString::fromStdString(remote_url_from(remote_name)),
-                           product));
+                action(remote_name, product);
             }
         }
     }
