@@ -107,3 +107,30 @@ TEST_F(TestDaemonRestart, restartFailsOnMissingInstance)
     EXPECT_THAT(status.error_message(),
                 AllOf(HasSubstr(missing_instance_name), HasSubstr("does not exist")));
 }
+
+TEST_F(TestDaemonRestart, restartFailsOnStoppedInstance)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    auto [daemon, instance] = build_daemon_with_mock_instance(VMState::stopped);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
+
+    EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr(mock_instance_name), HasSubstr("is not running")));
+}
+
+TEST_F(TestDaemonRestart, restartFailsOnUnknownInstanceState)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    auto [daemon, instance] = build_daemon_with_mock_instance(VMState::unknown);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
+
+    EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr(mock_instance_name),
+                      HasSubstr("is already running, but in an unknown state")));
+}
