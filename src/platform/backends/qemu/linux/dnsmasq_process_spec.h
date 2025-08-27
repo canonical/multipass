@@ -30,7 +30,9 @@ namespace multipass
 class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
-    explicit DNSMasqProcessSpec(const Path& data_dir, const SubnetList& subnets, const QString& conf_file_path);
+    explicit DNSMasqProcessSpec(const Path& data_dir,
+                                const SubnetList& subnets,
+                                const QString& conf_file_path);
 
     QString program() const override;
     QStringList arguments() const override;

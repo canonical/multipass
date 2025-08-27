@@ -128,7 +128,8 @@ mp::QemuPlatformDetail::Subnet::~Subnet()
     delete_virtual_switch(bridge_name);
 }
 
-[[nodiscard]] mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(const Path& network_dir)
+[[nodiscard]] mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(
+    const Path& network_dir)
 {
     Subnets subnets{};
     subnets.reserve(default_zone_names.size());
@@ -209,8 +210,9 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     const QString& bridge_name = subnets.at(vm_desc.zone).bridge_name;
     create_tap_device(tap_device_name, bridge_name);
 
-    name_to_net_device_map.emplace(vm_desc.vm_name,
-                                   std::make_tuple(tap_device_name, vm_desc.default_mac_address, bridge_name));
+    name_to_net_device_map.emplace(
+        vm_desc.vm_name,
+        std::make_tuple(tap_device_name, vm_desc.default_mac_address, bridge_name));
 
     QStringList opts;
 
