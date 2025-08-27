@@ -36,7 +36,8 @@ namespace
         const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
 
         out << QString("--interface=%1").arg(bridge_name)
-            << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string())) << "--dhcp-range"
+            << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
+            << "--dhcp-range"
             << QString("%1,%2,infinite")
                    .arg(QString::fromStdString(start_ip.as_string()))
                    .arg(QString::fromStdString(end_ip.as_string()));
@@ -67,7 +68,8 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
                              << "--except-interface=lo"
                              << "--dhcp-no-override"
                              << "--dhcp-ignore-clid"
-                             << "--dhcp-authoritative" << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
+                             << "--dhcp-authoritative"
+                             << QString("--dhcp-leasefile=%1/dnsmasq.leases").arg(data_dir)
                              << QString("--dhcp-hostsfile=%1/dnsmasq.hosts").arg(data_dir)
                              // This is to prevent it trying to read /etc/dnsmasq.conf
                              << QString("--conf-file=%1").arg(conf_file_path);

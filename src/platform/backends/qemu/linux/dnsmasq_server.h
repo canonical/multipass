@@ -66,6 +66,7 @@ public:
     DNSMasqServerFactory(const Singleton<DNSMasqServerFactory>::PrivatePass& pass) noexcept
         : Singleton<DNSMasqServerFactory>::Singleton{pass} {};
 
-    virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir, const SubnetList& subnets) const;
+    virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir,
+                                                    const SubnetList& subnets) const;
 };
 } // namespace multipass
