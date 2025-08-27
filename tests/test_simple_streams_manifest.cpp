@@ -53,7 +53,7 @@ TEST_F(TestSimpleStreamsManifest, canParseImageInfo)
     EXPECT_THAT(manifest->updated_at, Eq("Wed, 20 May 2020 16:47:50 +0000"));
     EXPECT_THAT(manifest->products.size(), Eq(2u));
 
-    const auto info = manifest->image_records["default"];
+    const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
     EXPECT_FALSE(info->image_location.isEmpty());
 }
@@ -69,7 +69,7 @@ TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
         QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img")
             .arg(MANIFEST_ARCH);
 
-    const auto info = manifest->image_records[expected_id];
+    const auto info = manifest->image_records.at(expected_id);
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
@@ -116,7 +116,7 @@ TEST_F(TestSimpleStreamsManifest, choosesNewestVersion)
     const QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
     const QString expected_location{"newest_image.img"};
 
-    const auto info = manifest->image_records["default"];
+    const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
@@ -135,7 +135,7 @@ TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 
     for (const auto& hash : all_known_hashes)
     {
-        const auto info = manifest->image_records[hash];
+        const auto info = manifest->image_records.at(hash);
         EXPECT_THAT(info, NotNull());
     }
 }
