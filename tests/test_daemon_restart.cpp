@@ -90,3 +90,21 @@ TEST_F(TestDaemonRestart, successfulRestartOkStatus)
 
     EXPECT_EQ(status.error_code(), grpc::OK);
 }
+
+TEST_F(TestDaemonRestart, restartFailsOnMissingInstance)
+{
+    static constexpr auto missing_instance_name = "missing-instance";
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(missing_instance_name);
+
+    auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
+    auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::restart,
+        request,
+        StrictMock<mp::test::MockServerReaderWriter<mp::RestartReply, mp::RestartRequest>>());
+
+    EXPECT_EQ(status.error_code(), grpc::NOT_FOUND);
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr(missing_instance_name), HasSubstr("does not exist")));
+}
