@@ -34,10 +34,10 @@ jobs:
         set -euo pipefail
 
         MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest", "mono": ""},'
+        MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "mono": ""},'
-        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64", "mono": ""}'
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
+        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -172,7 +172,7 @@ jobs:
         fi
 
     - name: Install nuget
-      if: ${{ contains(matrix.runs-on, 'macos-15') || contains(matrix.runs-on, 'macos-14') }}
+      if: ${{ contains(matrix.runs-on, 'macos-latest') || contains(matrix.runs-on, 'macos-14') }}
       run: |
         brew install nuget mono
 
