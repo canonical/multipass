@@ -22,5 +22,6 @@
 namespace multipass::image_mutators
 {
 bool snapcraft_mutator(VMImageInfo& info);
+bool core_mutator(VMImageInfo& info);
 bool release_mutator(VMImageInfo& info);
 } // namespace multipass::image_mutators

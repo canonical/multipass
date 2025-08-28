@@ -164,7 +164,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 {mp::appliance_remote,
                  UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}},
                 {mp::core_remote,
-                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/"}}},
+                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/",
+                                     "ubuntu-core/",
+                                     mp::image_mutators::core_mutator}}},
             url_downloader.get()));
     }
     if (vault == nullptr)
