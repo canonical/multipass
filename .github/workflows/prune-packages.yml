@@ -1,0 +1,46 @@
+name: Prune packages
+
+on:
+  workflow_dispatch:
+  schedule:
+  # 04:11 UTC on the first day of each month
+  - cron: '11 4 1 * *'
+
+jobs:
+  list-packages:
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.make-matrix.outputs.matrix }}
+
+    steps:
+      - name: Build package-name matrix
+        id: make-matrix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Fetch all container packages in this org/user
+            const response = await github.paginate(
+              "GET /orgs/{org}/packages",
+              { org: context.repo.owner, package_type: "container", per_page: 100 }
+            );
+            // Extract unique names
+            const names = [...new Set(response.map(p => p.name))];
+            // Build matrix: one entry per package-name
+            const matrix = { include: names.map(n => ({ "package-name": n })) };
+            core.setOutput("matrix", JSON.stringify(matrix));
+
+  prune:
+    needs: list-packages
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix: ${{ fromJSON(needs.list-packages.outputs.matrix) }}
+
+    steps:
+      - name: Delete old packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package-name }}
+          package-type: nuget
+          min-versions-to-keep: 1
