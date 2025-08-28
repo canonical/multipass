@@ -159,7 +159,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                      mp::image_mutators::snapcraft_mutator,
                                      std::make_optional<QString>(mp::mirror_key)}},
                 {mp::core_remote,
-                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/"}}},
+                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/",
+                                     "ubuntu-core/",
+                                     mp::image_mutators::core_mutator}}},
             url_downloader.get()));
     }
     if (vault == nullptr)
