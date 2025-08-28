@@ -39,4 +39,14 @@ bool snapcraft_mutator(VMImageInfo& info)
                        supported_snapcraft_aliases.end(),
                        [&aliases](const auto& alias) { return aliases.contains(alias); });
 }
+
+bool release_mutator(VMImageInfo& info)
+{
+    if (info.aliases.contains("lts"))
+    {
+        info.aliases << "ubuntu";
+    }
+
+    return true;
+}
 } // namespace multipass::image_mutators

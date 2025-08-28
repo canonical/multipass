@@ -147,6 +147,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 {mp::release_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
                                      "releases/",
+                                     mp::image_mutators::release_mutator,
                                      std::make_optional<QString>(mp::mirror_key)}},
                 {mp::daily_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
