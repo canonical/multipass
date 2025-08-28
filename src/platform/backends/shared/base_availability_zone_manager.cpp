@@ -159,14 +159,16 @@ std::string BaseAvailabilityZoneManager::ZoneCollection::next_available()
 {
     std::unique_lock lock{mutex};
 
-    // Iterate through all zones starting with zone1 to find an available one
-    for (auto zone_it = zones.begin(); zone_it != zones.end(); ++zone_it)
+    // Locate the first available zone
+    auto zone_it = std::find_if(zones.begin(), zones.end(), [](const auto& zone) {
+        return zone->is_available();
+    });
+
+    // Check if an available zone was found
+    if (zone_it != zones.end())
     {
-        if ((*zone_it)->is_available())
-        {
-            automatic_zone = zone_it;
-            return (*zone_it)->get_name();
-        }
+        automatic_zone = zone_it;
+        return (*zone_it)->get_name();
     }
 
     // If none are available, throw an exception
