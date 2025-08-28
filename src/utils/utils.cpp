@@ -616,8 +616,7 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
 
 QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
-    if (QDir::isRelativePath(
-            target_mount_path)) // relying on Qt to understand Linux paths on Windows
+    if (QDir::isRelativePath(target_mount_path)) // rely on Qt to understand Linux paths on Windows
         target_mount_path.prepend(QString{home_in_instance} + '/');
 
     return QDir::cleanPath(target_mount_path);
