@@ -31,6 +31,7 @@ namespace multipass
 {
 class URLDownloader;
 class UbuntuVMImageRemote;
+
 class UbuntuVMImageHost final : public BaseVMImageHost
 {
 public:
@@ -57,6 +58,7 @@ private:
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
     QString index_path;
 };
+
 class UbuntuVMImageRemote
 {
 public:
@@ -65,19 +67,19 @@ public:
                         std::optional<QString> mirror_key = std::nullopt);
     UbuntuVMImageRemote(std::string official_host,
                         std::string uri,
-                        std::function<bool(const VMImageInfo&)> custom_image_admitter,
+                        std::function<bool(VMImageInfo&)> custom_image_mutator,
                         std::optional<QString> mirror_key = std::nullopt);
     const QString get_url() const;
     const QString get_official_url() const;
     const std::optional<QString> get_mirror_url() const;
-    bool admits_image(const VMImageInfo& info) const;
+    bool apply_image_mutator(VMImageInfo& info) const;
 
 private:
-    static bool default_image_admitter(const VMImageInfo&);
+    static bool default_image_mutator(VMImageInfo&);
 
     const std::string official_host;
     const std::string uri;
-    const std::function<bool(const VMImageInfo&)> image_admitter;
+    const std::function<bool(VMImageInfo&)> image_mutator;
     const std::optional<QString> mirror_key;
 };
 } // namespace multipass
