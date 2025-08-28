@@ -37,15 +37,6 @@ class ZoneDropdown extends ConsumerWidget {
       });
     }
 
-    // If selected zone is unavailable, select the default zone
-    if (value.isNotEmpty &&
-        !zones.any((z) => z.name == value && z.available) &&
-        defaultZone.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        onChanged?.call(defaultZone);
-      });
-    }
-
     String? errorText;
     if (!hasAvailableZones) {
       errorText = 'All zones are unavailable';
