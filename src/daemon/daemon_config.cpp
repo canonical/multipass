@@ -21,6 +21,7 @@
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
 #include <multipass/image_host/custom_image_host.h>
+#include <multipass/image_host/image_mutators.h>
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
@@ -92,27 +93,6 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
 
     return proxy_ptr;
 }
-
-bool admits_snapcraft_image(const mp::VMImageInfo& info)
-{
-    static constexpr auto supported_snapcraft_aliases = {
-        "core18",
-        "18.04",
-        "core20",
-        "20.04",
-        "core22",
-        "22.04",
-        "core24",
-        "24.04",
-        "devel",
-    };
-
-    const auto& aliases = info.aliases;
-    return aliases.empty() ||
-           std::any_of(supported_snapcraft_aliases.begin(),
-                       supported_snapcraft_aliases.end(),
-                       [&aliases](const auto& alias) { return aliases.contains(alias); });
-}
 } // namespace
 
 mp::DaemonConfig::~DaemonConfig()
@@ -178,7 +158,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                 {mp::snapcraft_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
                                      "buildd/daily/",
-                                     &admits_snapcraft_image,
+                                     mp::image_mutators::snapcraft_mutator,
                                      std::make_optional<QString>(mp::mirror_key)}},
                 {mp::appliance_remote,
                  UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}},
