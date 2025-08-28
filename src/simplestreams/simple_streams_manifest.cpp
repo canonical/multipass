@@ -95,7 +95,8 @@ mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at,
 std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
     const QByteArray& json_from_official,
     const std::optional<QByteArray>& json_from_mirror,
-    const QString& host_url)
+    const QString& host_url,
+    std::function<bool(VMImageInfo&)> mutator)
 {
     const auto manifest_from_official = parse_manifest(json_from_official);
     const auto updated = manifest_from_official["updated"].toString();
@@ -206,18 +207,24 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
             // Aliases always alias to the latest version
             const QStringList& aliases =
                 version_string == latest_version ? product_aliases : QStringList();
-            products.push_back({aliases,
-                                "Ubuntu",
-                                release,
-                                release_title,
-                                release_codename,
-                                supported,
-                                image_location,
-                                sha256,
-                                host_url,
-                                version_string,
-                                size,
-                                true});
+
+            VMImageInfo info{aliases,
+                             "Ubuntu",
+                             release,
+                             release_title,
+                             release_codename,
+                             supported,
+                             image_location,
+                             sha256,
+                             host_url,
+                             version_string,
+                             size,
+                             true};
+
+            if (mutator(info))
+            {
+                products.push_back(std::move(info));
+            }
         }
     }
 
