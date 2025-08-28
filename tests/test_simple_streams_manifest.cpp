@@ -67,7 +67,8 @@ TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
 
     const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
     const QString expected_location =
-        QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img")
+        QString("http://stream/urlserver/releases/xenial/release-20170516/"
+                "ubuntu-16.04-server-cloudimg-%1-disk1.img")
             .arg(MANIFEST_ARCH);
 
     const auto info = manifest->image_records.at(expected_id);
