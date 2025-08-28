@@ -40,6 +40,17 @@ bool snapcraft_mutator(VMImageInfo& info)
                        [&aliases](const auto& alias) { return aliases.contains(alias); });
 }
 
+bool core_mutator(VMImageInfo& info)
+{
+    info.aliases = {"core" + info.release_codename};
+    info.os = "Ubuntu";
+    info.release = "core-" + info.release_codename;
+    info.release_title = "Core " + info.release_codename;
+    info.release_codename = info.release_title;
+
+    return info.supported && info.version == "current";
+}
+
 bool release_mutator(VMImageInfo& info)
 {
     if (info.aliases.contains("lts"))
