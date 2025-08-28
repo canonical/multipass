@@ -37,7 +37,7 @@ struct SimpleStreamsManifest
         const QByteArray& json,
         const std::optional<QByteArray>& json_from_mirror,
         const QString& host_url,
-        std::function<bool(VMImageInfo&)> mutator = {});
+        std::function<bool(VMImageInfo&)> mutator = [](VMImageInfo&) { return true; });
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;
