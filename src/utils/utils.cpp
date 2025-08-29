@@ -618,14 +618,16 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
 
 mp::Path mp::Utils::default_mount_target(const Path& source) const
 {
-    return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
+    return source.isEmpty()
+               ? ""
+               : QDir{QDir::cleanPath(source)}.dirName().prepend(QString{home_in_instance} + '/');
 }
 
 QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
     if (QDir::isRelativePath(
             target_mount_path)) // relying on Qt to understand Linux paths on Windows
-        target_mount_path.prepend("/home/ubuntu/");
+        target_mount_path.prepend(QString{home_in_instance} + '/');
 
     return QDir::cleanPath(target_mount_path);
 }

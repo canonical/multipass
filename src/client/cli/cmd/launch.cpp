@@ -251,9 +251,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
     QCommandLineOption mountOption(
         "mount",
-        "Mount a local directory inside the instance. If <target> is omitted, the "
-        "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
-        "the name of the <source> directory.",
+        QStringLiteral(
+            "Mount a local directory inside the instance. If <target> is omitted, the mount point "
+            "will be "
+            "under %1/<source-dir>, where <source-dir> is the name of the <source> directory.")
+            .arg(home_in_instance),
         "source>:<target");
 
     parser->addOptions({cpusOption,
