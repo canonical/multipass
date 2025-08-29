@@ -38,6 +38,7 @@
 
 #include <sstream>
 #include <string>
+#include <tuple>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -640,3 +641,34 @@ TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
 
     EXPECT_GE(bytes_available, 0);
 }
+
+using NormalizeMountTargetParam = std::tuple<std::string, std::string>;
+
+class NormalizeMountTargetTest : public TestWithParam<NormalizeMountTargetParam>
+{
+};
+
+TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    auto result = MP_UTILS.normalize_mount_target(QString::fromStdString(input));
+    EXPECT_EQ(result.toStdString(), expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Utils,
+    NormalizeMountTargetTest,
+    Values(std::make_tuple("Documents", "/home/ubuntu/Documents"),
+           std::make_tuple("./folder", "/home/ubuntu/folder"),
+           std::make_tuple("../folder", "/home/folder"),
+           std::make_tuple("../..//folder", "/folder"),
+           std::make_tuple("/usr/local/bin//.././/.//bin/././", "/usr/local/bin"),
+           std::make_tuple("folder//subfolder", "/home/ubuntu/folder/subfolder"),
+           std::make_tuple("./Documents/../Downloads", "/home/ubuntu/Downloads"),
+           std::make_tuple("", "/home/ubuntu"),
+           std::make_tuple(".", "/home/ubuntu"),
+           std::make_tuple("..", "/home"),
+           std::make_tuple("folder/./subfolder", "/home/ubuntu/folder/subfolder"),
+           std::make_tuple("folder/../other-folder", "/home/ubuntu/other-folder"),
+           std::make_tuple("//", "/")));
