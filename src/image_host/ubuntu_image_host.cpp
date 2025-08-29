@@ -15,12 +15,12 @@
  *
  */
 
-#include "ubuntu_image_host.h"
-
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/settings.h>
@@ -43,31 +43,13 @@ constexpr auto index_path = "streams/v1/index.json";
 
 auto download_manifest(const QString& host_url,
                        mp::URLDownloader* url_downloader,
-                       const bool is_force_update_from_network)
+                       const bool force_update)
 {
-    auto json_index =
-        url_downloader->download({host_url + index_path}, is_force_update_from_network);
+    auto json_index = url_downloader->download({host_url + index_path}, force_update);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
-    auto json_manifest =
-        url_downloader->download({host_url + index.manifest_path}, is_force_update_from_network);
+    auto json_manifest = url_downloader->download({host_url + index.manifest_path}, force_update);
     return json_manifest;
-}
-
-mp::VMImageInfo with_location_fully_resolved(const QString& host_url, const mp::VMImageInfo& info)
-{
-    return {info.aliases,
-            info.os,
-            info.release,
-            info.release_title,
-            info.release_codename,
-            info.supported,
-            host_url + info.image_location,
-            info.id,
-            info.stream_location,
-            info.version,
-            info.size,
-            info.verify};
 }
 
 auto key_from(const std::string& search_string)
@@ -82,7 +64,7 @@ auto key_from(const std::string& search_string)
 mp::UbuntuVMImageHost::UbuntuVMImageHost(
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
     URLDownloader* downloader)
-    : url_downloader{downloader}, remotes{std::move(remotes)}
+    : BaseVMImageHost{downloader}, remotes{std::move(remotes)}
 {
 }
 
@@ -125,20 +107,13 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
     for (const auto& remote_name : remotes_to_search)
     {
         auto* manifest = manifest_from(remote_name);
-        const auto& remote = get_remote(remote_name);
 
         if (const auto* info = match_alias(key, *manifest); info)
         {
-            if (!remote.admits_image(*info))
-                continue;
-
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
 
-            images.push_back(std::make_pair(
-                remote_name,
-                with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)),
-                                             *info)));
+            images.push_back(std::make_pair(remote_name, *info));
         }
         else
         {
@@ -146,15 +121,10 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
             for (const auto& entry : manifest->products)
             {
-                if (entry.id.startsWith(key) && remote.admits_image(entry) &&
-                    (entry.supported || query.allow_unsupported) &&
+                if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
                 {
-                    images.push_back(
-                        std::make_pair(remote_name,
-                                       with_location_fully_resolved(
-                                           QString::fromStdString(remote_url_from(remote_name)),
-                                           entry)));
+                    images.push_back(std::make_pair(remote_name, entry));
                     found_hashes.insert(entry.id.toStdString());
                 }
             }
@@ -172,16 +142,12 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
         {
             if (product.id.toStdString() == full_hash)
             {
-                return with_location_fully_resolved(
-                    QString::fromStdString(remote_url_from(manifest.first)),
-                    product);
+                return product;
             }
         }
     }
 
-    // TODO: Throw a specific exception type here so callers can be more specific about what to
-    // catch and what to allow through.
-    throw std::runtime_error(
+    throw mp::ImageNotFoundException(
         fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
 }
 
@@ -193,11 +159,9 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
 
     for (const auto& entry : manifest->products)
     {
-        if ((entry.supported || allow_unsupported) && get_remote(remote_name).admits_image(entry))
+        if (entry.supported || allow_unsupported)
         {
-            images.push_back(
-                with_location_fully_resolved(QString::fromStdString(remote_url_from(remote_name)),
-                                             entry));
+            images.push_back(entry);
         }
     }
 
@@ -214,13 +178,7 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     {
         for (const auto& product : manifest->products)
         {
-            if (get_remote(remote_name).admits_image(product))
-            {
-                action(remote_name,
-                       with_location_fully_resolved(
-                           QString::fromStdString(remote_url_from(remote_name)),
-                           product));
-            }
+            action(remote_name, product);
         }
     }
 }
@@ -237,32 +195,35 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests(const bool is_force_update_from_network)
+void mp::UbuntuVMImageHost::fetch_manifests(const bool force_update)
 {
-    auto fetch_one_remote = [this, is_force_update_from_network](
-                                const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
+    auto fetch_one_remote =
+        [this, force_update](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
         -> std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>> {
-        const auto& [remote_name, remote_info] = remote_pair;
+        const auto& remote_name = remote_pair.first;
+        const auto& remote_info = remote_pair.second;
+
         try
         {
             auto official_site = remote_info.get_official_url();
             auto manifest_bytes_from_official =
-                download_manifest(official_site, url_downloader, is_force_update_from_network);
+                download_manifest(official_site, url_downloader, force_update);
 
             auto mirror_site = remote_info.get_mirror_url();
             std::optional<QByteArray> manifest_bytes_from_mirror = std::nullopt;
             if (mirror_site)
             {
-                auto bytes = download_manifest(mirror_site.value(),
-                                               url_downloader,
-                                               is_force_update_from_network);
+                auto bytes = download_manifest(mirror_site.value(), url_downloader, force_update);
                 manifest_bytes_from_mirror = std::make_optional(bytes);
             }
 
-            auto manifest =
-                mp::SimpleStreamsManifest::fromJson(manifest_bytes_from_official,
-                                                    manifest_bytes_from_mirror,
-                                                    mirror_site.value_or(official_site));
+            auto manifest = mp::SimpleStreamsManifest::fromJson(
+                manifest_bytes_from_official,
+                manifest_bytes_from_mirror,
+                mirror_site.value_or(official_site),
+                [&remote_info](VMImageInfo& info) {
+                    return remote_info.apply_image_mutator(info);
+                });
 
             return std::make_pair(remote_name, std::move(manifest));
         }
@@ -315,14 +276,14 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
     const QString& key,
     const mp::SimpleStreamsManifest& manifest) const
 {
-    auto it = manifest.image_records.find(key);
-    if (it != manifest.image_records.end())
+    if (auto it = manifest.image_records.find(key); it != manifest.image_records.end())
     {
-        return it.value();
+        return it->second;
     }
 
     return nullptr;
 }
+
 const mp::UbuntuVMImageRemote& mp::UbuntuVMImageHost::get_remote(
     const std::string& remote_name) const
 {
@@ -356,7 +317,7 @@ mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
                                              std::optional<QString> mirror_key)
     : UbuntuVMImageRemote(std::move(official_host),
                           std::move(uri),
-                          &default_image_admitter,
+                          &default_image_mutator,
                           std::move(mirror_key))
 {
 }
@@ -364,11 +325,11 @@ mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
 multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
     std::string official_host,
     std::string uri,
-    std::function<bool(const VMImageInfo&)> custom_image_admitter,
+    std::function<bool(VMImageInfo&)> custom_image_mutator,
     std::optional<QString> mirror_key)
     : official_host(std::move(official_host)),
       uri(std::move(uri)),
-      image_admitter{custom_image_admitter},
+      image_mutator{custom_image_mutator},
       mirror_key(std::move(mirror_key))
 {
 }
@@ -401,12 +362,12 @@ const std::optional<QString> mp::UbuntuVMImageRemote::get_mirror_url() const
     return std::nullopt;
 }
 
-bool multipass::UbuntuVMImageRemote::admits_image(const VMImageInfo& info) const
+bool mp::UbuntuVMImageRemote::apply_image_mutator(VMImageInfo& info) const
 {
-    return image_admitter(info);
+    return image_mutator(info);
 }
 
-bool multipass::UbuntuVMImageRemote::default_image_admitter(const VMImageInfo&)
+bool multipass::UbuntuVMImageRemote::default_image_mutator(VMImageInfo& image)
 {
     return true;
 }

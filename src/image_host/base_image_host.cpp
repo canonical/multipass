@@ -15,11 +15,9 @@
  *
  */
 
-#include "common_image_host.h"
-
-#include <multipass/logging/log.h>
-
 #include <multipass/format.h>
+#include <multipass/image_host/base_image_host.h>
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 
 namespace mp = multipass;
@@ -30,28 +28,32 @@ namespace
 constexpr auto category = "VMImageHost";
 }
 
-void mp::CommonVMImageHost::for_each_entry_do(const Action& action)
+mp::BaseVMImageHost::BaseVMImageHost(URLDownloader* downloader) : url_downloader(downloader)
+{
+}
+
+void mp::BaseVMImageHost::for_each_entry_do(const Action& action)
 {
     for_each_entry_do_impl(action);
 }
 
-auto mp::CommonVMImageHost::info_for_full_hash(const std::string& full_hash) -> VMImageInfo
+auto mp::BaseVMImageHost::info_for_full_hash(const std::string& full_hash) -> VMImageInfo
 {
     return info_for_full_hash_impl(full_hash);
 }
 
-void mp::CommonVMImageHost::update_manifests(const bool is_force_update_from_network)
+void mp::BaseVMImageHost::update_manifests(const bool force_update)
 {
     clear();
-    fetch_manifests(is_force_update_from_network);
+    fetch_manifests(force_update);
 }
 
-void mp::CommonVMImageHost::on_manifest_empty(const std::string& details)
+void mp::BaseVMImageHost::on_manifest_empty(const std::string& details)
 {
     mpl::log(mpl::Level::info, category, details);
 }
 
-void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& details)
+void mp::BaseVMImageHost::on_manifest_update_failure(const std::string& details)
 {
     mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: {}", details));
 }

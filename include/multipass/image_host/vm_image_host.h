@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include "disabled_copy_move.h"
-#include "vm_image_info.h"
+#include <multipass/disabled_copy_move.h>
+#include <multipass/vm_image_info.h>
 
 #include <functional>
 #include <optional>
@@ -43,7 +43,7 @@ public:
                                                     const bool allow_unsupported) = 0;
     virtual void for_each_entry_do(const Action& action) = 0;
     virtual std::vector<std::string> supported_remotes() = 0;
-    virtual void update_manifests(const bool is_force_update_from_network) = 0;
+    virtual void update_manifests(const bool force_update) = 0;
 
 protected:
     VMImageHost() = default;
