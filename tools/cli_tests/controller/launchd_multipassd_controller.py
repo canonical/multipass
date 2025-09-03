@@ -148,8 +148,6 @@ class LaunchdMultipassdController:
             return int(prop.strip())
         return None
 
-    # --- DaemonBackend API ---
-
     async def start(self) -> None:
         # 4) Start (soft): kickstart (no -k)
         async with StdoutAsyncSubprocess(
@@ -221,16 +219,6 @@ class LaunchdMultipassdController:
 
     def supports_self_autorestart(self) -> bool:
         return False
-
-    # async def wait_for_self_autorestart(self, timeout=60):
-    #     async def _wait():
-    #         current = self._daemon_pid
-    #         while current == self._daemon_pid:
-    #             current = await self._get_pid()
-    #             await asyncio.sleep(0.3)  # polling interval
-    #         self._daemon_pid = current
-
-    #     await asyncio.wait_for(_wait(), timeout)
 
     async def exit_code(self) -> Optional[int]:
         """
