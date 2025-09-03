@@ -16,7 +16,7 @@
 #
 #
 
-"""Random goofy name generator for the test VMs with a touch of middle-earth."""
+"""Random name generator for the test VMs with a touch of middle-earth."""
 
 import random
 
@@ -111,4 +111,7 @@ suffixes = [
 
 
 def random_vm_name():
+    """
+    Generate random VM name.
+    """
     return f"{random.choice(prefixes)}-{random.choice(middles)}-{random.choice(suffixes)}-{random.randint(0, 9999):04d}"
