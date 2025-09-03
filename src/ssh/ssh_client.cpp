@@ -154,5 +154,9 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
 
     handle_ssh_events();
 
-    return ssh_channel_get_exit_status(channel.get());
+    uint32_t exit_status = static_cast<uint32_t>(-1);
+    char* exit_signal_status = nullptr;
+    int result = ssh_channel_get_exit_state(channel.get(), &exit_status, &exit_signal_status);
+    
+    return result == SSH_OK ? exit_status : -1;
 }
