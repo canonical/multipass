@@ -47,10 +47,9 @@ def nuke_all_instances(data_dir, driver):
 
         print(f"{instances_dir.resolve()}")
 
-        try:
+        with contextlib.suppress(Exception):
             shutil.rmtree(instances_dir.resolve())
-        except Exception as e:
-            print(f"Remove error :{e}")
+
         # Opening via w might override the permissions. Doing it via r+ preserves
         # the existing permissions.
         with contextlib.suppress(FileNotFoundError):
