@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   run-cli-tests:
+    name: CLI Tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out cli-tests
@@ -35,7 +36,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: pytest -s tools/cli_tests --remove-all-instances --daemon-controller=snap --junitxml=reports/junit.xml -m authenticate
+        run: pytest -s tools/cli_tests --remove-all-instances --daemon-controller=snap --junitxml=reports/junit.xml
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
