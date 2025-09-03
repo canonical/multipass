@@ -36,9 +36,11 @@ if sys.platform == "win32":
 
 
 def multipass(*args, **kwargs):
-    """Run a Multipass CLI command with optional retry, timeout, and context manager support.
+    """Run a Multipass CLI command with optional retry, timeout, and context
+    manager support.
 
     This function wraps Multipass CLI invocations using `pexpect`. It supports:
+
     - Retry logic on failure
     - Interactive vs. non-interactive execution
     - Context manager usage (`with` statement)
@@ -48,9 +50,12 @@ def multipass(*args, **kwargs):
         *args: Positional CLI arguments to pass to the `multipass` command.
 
     Keyword Args:
-        timeout (int, optional): Maximum time in seconds to wait for command completion.Defaults to 30.
-        interactive (bool, optional): If True, returns a live interactive `pexpect.spawn` object for manual interaction.
-        retry (int, optional): Number of retry attempts on failure. Uses exponential backoff (2s delay).
+        timeout (int, optional): Maximum time in seconds to wait for command 
+        completion.Defaults to 30.
+        interactive (bool, optional): If True, returns a live interactive 
+        `pexpect.spawn` object for manual interaction.
+        retry (int, optional): Number of retry attempts on failure. Uses
+        exponential backoff (2s delay).
 
     Returns:
         - If `interactive=True`: a `pexpect.spawn` object.
