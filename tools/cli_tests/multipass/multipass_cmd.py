@@ -123,7 +123,7 @@ def multipass(*args, **kwargs):
         env.update(env_args)
 
     cmd_args = [get_multipass_path(), *map(str, args)]
-    logging.info(f"cmd: {cmd_args}")
+    logging.debug(f"cmd: {cmd_args}")
 
     if kwargs.get("interactive"):
         if sys.platform == "win32":
