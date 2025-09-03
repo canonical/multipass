@@ -26,7 +26,8 @@ from .multipass_cmd import multipass
 
 
 def _retrieve_info_field(name, key):
-    """Run `multipass info` for the given instance and return the specified field from the JSON output."""
+    """Run `multipass info` for the given instance and return the specified
+    field from the JSON output."""
 
     info_r = info(name)
 
@@ -44,6 +45,9 @@ def debug_interactive_shell(name):
 
 
 def info(name):
+    """
+    Get 'multipass info' JSON for instance.
+    """
     with multipass("info", "--format=json", f"{name}").json() as output:
         assert output, f"info({name}) failed ({output.exitstatus}): {str(output)}"
         assert "info" in output, (
@@ -89,6 +93,10 @@ def read_file(vm_name, path):
 
 
 def create_directory(vm_name, path):
+    """
+    Create directory inside VM.
+    """
+
     return bool(
         multipass(
             "exec",
@@ -102,6 +110,10 @@ def create_directory(vm_name, path):
 
 
 def write_file(vm_name, path, contents):
+    """
+    Write file inside VM.
+    """
+
     return bool(
         multipass(
             "exec",
@@ -115,6 +127,10 @@ def write_file(vm_name, path, contents):
 
 
 def move_path(vm_name, src, dst):
+    """
+    Move path inside VM.
+    """
+
     return bool(
         multipass(
             "exec", vm_name, "--", "mv", Path(src).as_posix(), Path(dst).as_posix()
@@ -171,11 +187,17 @@ def get_core_count(name):
 
 
 def get_cloudinit_instance_id(name):
+    """
+    Get cloud-init instance ID from VM.
+    """
     assert path_exists(name, "/var/lib/cloud/data/instance-id")
     return read_file(name, "/var/lib/cloud/data/instance-id")
 
 
 def get_default_interface_name(name):
+    """
+    Get default network interface of VM.
+    """
     with multipass("exec", name, "--", "ip", "-o", "route", "get", "1") as result:
         assert result, f"Failed: {result.content} ({result.exitstatus})"
         # 1.0.0.0 via 192.168.35.1 dev br0 src 192.168.35.83 uid 1000 \    cache
@@ -183,6 +205,9 @@ def get_default_interface_name(name):
 
 
 def get_mac_addr_of(name, interface_name):
+    """
+    Get MAC address of VM interface.
+    """
     with multipass(
         "exec", name, "--", "cat", f"/sys/class/net/{interface_name}/address"
     ) as result:
@@ -219,6 +244,10 @@ def default_driver_name():
 
 
 def default_daemon_controller():
+    """
+    Get default daemon controller for platform.
+    """
+
     controller_mappings = {
         "darwin": "launchd",
         "linux": "snap",
