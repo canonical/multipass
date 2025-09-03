@@ -36,6 +36,7 @@ jobs:
 
     strategy:
       matrix: ${{ fromJSON(needs.list-packages.outputs.matrix) }}
+      max-parallel: 4
 
     steps:
       - name: Delete old packages
