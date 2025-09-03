@@ -19,15 +19,26 @@
 """Helpers for resolving Multipass executables and environment settings."""
 
 import os
-import sys
 import shutil
 from pathlib import Path
 
 from cli_tests.config import config
 
-# temporary
 
 def default_storage_dir_for_backend(backend):
+    """
+    Get default storage dir for a backend.
+
+    Args:
+        backend (str): "snap", "launchd", "winsvc", or "standalone".
+
+    Returns:
+        str: Storage path.
+
+    Raises:
+        RuntimeError | AssertionError
+    """
+
     if backend == "snap":
         return "/var/snap/multipass/common/data/multipassd"
     if backend == "launchd":
@@ -38,17 +49,29 @@ def default_storage_dir_for_backend(backend):
             raise RuntimeError("Cannot get %PROGRAMDATA% path!")
         return str(Path(progdata) / "Multipass")
     if backend == "standalone":
-        assert False, "The storage directory must be explicitly specified when `standalone` backend is used!"
-    raise RuntimeError(f"No default storage directory defined for daemon backend {backend}!")
+        assert False, (
+            "The storage directory must be explicitly specified when `standalone` backend is used!"
+        )
+    raise RuntimeError(
+        f"No default storage directory defined for daemon backend {backend}!"
+    )
+
 
 def determine_storage_dir():
-    # Use the specified storage dir when it's explicitly specified
+    """
+    Resolve storage dir: use config.storage_dir if set, else backend default.
+    """
+
     if config.storage_dir:
         return config.storage_dir
 
     return default_storage_dir_for_backend(config.daemon_controller)
 
+
 def determine_data_dir():
+    """
+    Get backend-specific data dir from storage dir.
+    """
     if config.daemon_controller == "standalone":
         return str(Path(determine_storage_dir()) / "data")
     if config.daemon_controller == "snap":
@@ -57,15 +80,23 @@ def determine_data_dir():
         return determine_storage_dir()
     if config.daemon_controller == "winsvc":
         return str(Path(determine_storage_dir()) / "data")
-    raise RuntimeError(f"No data root directory defined for daemon backend {config.daemon_controller}!")
+    raise RuntimeError(
+        f"No data root directory defined for daemon backend {config.daemon_controller}!"
+    )
 
 
 def determine_bin_dir():
+    """
+    Get bin dir: use config.bin_dir or backend default.
+    """
+
     if config.bin_dir:
         return config.bin_dir
 
     if config.daemon_controller == "standalone":
-        raise RuntimeError("--bin-dir must be explicitly provided when 'standalone' backend is used!")
+        raise RuntimeError(
+            "--bin-dir must be explicitly provided when 'standalone' backend is used!"
+        )
 
     if config.daemon_controller == "snap":
         return "/snap/bin"
@@ -75,10 +106,15 @@ def determine_bin_dir():
         # Use environment
         return None
 
+
 def get_multipass_env():
     """Return an environment dict for running Multipass with a custom storage root."""
     multipass_env = os.environ.copy()
-    if config.daemon_controller == "standalone" or config.storage_dir != default_storage_dir_for_backend(config.daemon_controller):
+    if (
+        config.daemon_controller == "standalone"
+        or config.storage_dir
+        != default_storage_dir_for_backend(config.daemon_controller)
+    ):
         multipass_env["MULTIPASS_STORAGE"] = config.storage_dir
     return multipass_env
 
