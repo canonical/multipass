@@ -26,6 +26,5 @@ def is_within_tolerance(actual, expected, lb_tolerance=0.1, ub_tolerance=0.02):
 
     lower_bound = int(expected * (1 - tol))
     upper_bound = int(expected * (1 + ub_tolerance))
-    print(f"{lower_bound} <= {actual} <= {upper_bound}")
 
     return lower_bound <= int(actual) <= upper_bound
