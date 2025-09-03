@@ -46,8 +46,9 @@ class CommitMsgRulesChecker:
 
         self.enough = False
 
-        # Strip comments
+        # Strip comments and trailing whitespace
         self.msg = re.sub(r"^#.*\n?", "", msg, flags=re.MULTILINE)
+        self.msg = self.msg.rstrip()
 
         self.lines = self.msg.splitlines() if msg else []
         self.subject = self.lines[0].rstrip() if self.lines else ""
@@ -372,6 +373,8 @@ def run_tests():
 def main():
     """
     Entry point for the commit-msg hook.
+
+    Assumes that commits are made with `--cleanup=strip` (when used as a hook).
 
     Supports --tests flag to run unit tests, otherwise expects a single argument:
     the path to the commit message file. Use a single dash (-) for stdin.
