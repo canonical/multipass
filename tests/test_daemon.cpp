@@ -21,6 +21,8 @@
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
 #include "json_test_utils.h"
+#include "mock_availability_zone.h"
+#include "mock_availability_zone_manager.h"
 #include "mock_cert_provider.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
@@ -38,6 +40,8 @@
 #include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
 #include "path.h"
+#include "stub_availability_zone.h"
+#include "stub_availability_zone_manager.h"
 #include "stub_virtual_machine.h"
 #include "tracking_url_downloader.h"
 
@@ -128,6 +132,8 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_platform, bridge_nomenclature)
             .Times(AnyNumber())
             .WillRepeatedly(Return("notabridge"));
+
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     void SetUp() override
@@ -162,6 +168,8 @@ a few more tests for `false`, since there are different portions of code dependi
     const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
         mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
+
+    mpt::StubAvailabilityZone zone{};
 };
 
 TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
@@ -255,6 +263,14 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         .WillOnce(
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
+    EXPECT_CALL(daemon, zones)
+        .WillOnce(
+            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
+    EXPECT_CALL(daemon, zones_state)
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            &daemon,
+            &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_keys"},
@@ -280,7 +296,10 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
                    {"umount", "instance"},
                    {"networks"},
                    {"clone", "foo"},
-                   {"wait-ready"}});
+                   {"wait-ready"},
+                   {"zones"},
+                   {"enable-zones", "foo"},
+                   {"disable-zones", "foo", "--force"}});
 }
 
 TEST_F(Daemon, providesVersion)
@@ -2152,6 +2171,7 @@ TEST_P(ListIP, listsWithIp)
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
     EXPECT_CALL(*instance_ptr, ensure_vm_is_running())
         .WillRepeatedly(Throw(std::runtime_error("Not running")));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
 
