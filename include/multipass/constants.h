@@ -68,10 +68,8 @@ constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {petenv_key, driver_key, mounts_key};
-
 constexpr auto petenv_default = "primary";
-
 constexpr auto timeout_exit_code = 5;
-
 constexpr auto authenticated_certs_dir = "authenticated-certs";
+constexpr auto home_in_instance = "/home/ubuntu";
 } // namespace multipass
