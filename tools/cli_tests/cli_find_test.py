@@ -74,14 +74,14 @@ class TestFind:
                     '.images | with_entries(select(.value.aliases | index("lts")))'
                 ).first()
                 assert len(current_lts) == 1
-                logging.info(f"Current LTS is {current_lts}")
+                logging.debug(f"Current LTS is {current_lts}")
 
                 # Verify that find has only one image aliased with "devel"
                 current_devel = output.jq(
                     '.images | with_entries(select(.value.aliases | index("devel")))'
                 ).first()
                 assert len(current_devel) == 1
-                logging.info(f"Current devel is {current_devel}")
+                logging.debug(f"Current devel is {current_devel}")
 
                 # Check appliances
                 appliances = output.jq(
