@@ -50,8 +50,6 @@ class TestLaunch:
         """Try to launch an Ubuntu 24.04 VM with 2 CPUs 1GiB RAM and 6G disk.
         Then, validate the basics."""
 
-        print(f"which image: {instance.image}")
-
         validate_list_output(
             instance,
             {
