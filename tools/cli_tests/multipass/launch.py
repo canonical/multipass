@@ -31,7 +31,8 @@ from .helpers import mounts, multipass, state
 
 @contextmanager
 def launch(cfg_override=None):
-    """Launch a VM with defaults (optionally overridden) and yield a handle, purging on exit by default."""
+    """Launch a VM with defaults (optionally overridden) and yield a
+    handle, purging on exit by default."""
 
     # Default configuration
     default_cfg = {
@@ -88,7 +89,9 @@ def launch(cfg_override=None):
 
     assert mounts(cfg["name"]) == {}
     assert state(cfg["name"]) == "Running"
+
     yield VMHandle(cfg)
+
     if cfg["autopurge"]:
         with multipass("delete", cfg["name"], "--purge") as result:
             if cfg["assert"]["purge"]:
