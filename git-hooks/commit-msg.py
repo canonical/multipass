@@ -45,7 +45,9 @@ class CommitMsgRulesChecker:
         ]
 
         self.enough = False
-        self.msg = msg
+
+        # Strip comments
+        self.msg = re.sub(r"^#.*\n?", "", msg, flags=re.MULTILINE)
 
         self.lines = self.msg.splitlines() if msg else []
         self.subject = self.lines[0].rstrip() if self.lines else ""
@@ -322,6 +324,16 @@ class TestCommitMsgRulesChecker:
         ]
         for msg in invalid_messages:
             self._test_rule("MSG12", msg, expect_failure=True)
+
+    def test_rule12_body_line_comment_exceeds_72_chars(self):
+        invalid_messages = [
+            "[msg] Subject\n\n"
+            "# This body line (comment) is clearly over 72 characters long, so it is longer than expected.",
+            "[msg] Subject\n\n"
+            "# This comment line is barely over 72 characters long, surpassing the limit...",
+        ]
+        for msg in invalid_messages:
+            self._test_rule("MSG12", msg, expect_failure=False)
 
     @staticmethod
     def _test_valid_msgs(valid_messages):
