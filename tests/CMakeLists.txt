@@ -72,6 +72,7 @@ add_executable(multipass_tests
   test_daemon_find.cpp
   test_daemon_launch.cpp
   test_daemon_mount.cpp
+  test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
   test_daemon_start.cpp
   test_daemon_suspend.cpp
