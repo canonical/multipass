@@ -136,6 +136,21 @@ signals:
     void on_wait_ready(const WaitReadyRequest* request,
                        grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server,
                        std::promise<grpc::Status>* status_promise);
+   void on_create_block(const CreateBlockRequest* request,
+                       grpc::ServerReaderWriter<CreateBlockReply, CreateBlockRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+   void on_delete_block(const DeleteBlockRequest* request,
+                       grpc::ServerReaderWriter<DeleteBlockReply, DeleteBlockRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+   void on_attach_block(const AttachBlockRequest* request,
+                       grpc::ServerReaderWriter<AttachBlockReply, AttachBlockRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+   void on_detach_block(const DetachBlockRequest* request,
+                       grpc::ServerReaderWriter<DetachBlockReply, DetachBlockRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+   void on_list_blocks(const ListBlocksRequest* request,
+                      grpc::ServerReaderWriter<ListBlocksReply, ListBlocksRequest>* server,
+                      std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -208,5 +223,15 @@ protected:
     grpc::Status wait_ready(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server) override;
+   grpc::Status create_block(grpc::ServerContext* context,
+                           grpc::ServerReaderWriter<CreateBlockReply, CreateBlockRequest>* server) override;
+   grpc::Status delete_block(grpc::ServerContext* context,
+                           grpc::ServerReaderWriter<DeleteBlockReply, DeleteBlockRequest>* server) override;
+   grpc::Status attach_block(grpc::ServerContext* context,
+                           grpc::ServerReaderWriter<AttachBlockReply, AttachBlockRequest>* server) override;
+   grpc::Status detach_block(grpc::ServerContext* context,
+                           grpc::ServerReaderWriter<DetachBlockReply, DetachBlockRequest>* server) override;
+   grpc::Status list_blocks(grpc::ServerContext* context,
+                          grpc::ServerReaderWriter<ListBlocksReply, ListBlocksRequest>* server) override;
 };
 } // namespace multipass

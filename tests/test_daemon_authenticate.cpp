@@ -42,6 +42,8 @@ struct TestDaemonAuthenticate : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler(_)).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+            .WillRepeatedly(Return("qemu")); // TODO lxd and libvirt migration, remove
     }
 
     mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
