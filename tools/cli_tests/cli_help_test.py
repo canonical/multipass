@@ -88,8 +88,8 @@ def locale_available(loc):
             set_locale,
             loc,
             check=False,
-            stdout=None,
-            stderr=None,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         ).returncode
         == 0
     )
