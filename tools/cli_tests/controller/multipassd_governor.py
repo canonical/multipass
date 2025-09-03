@@ -29,11 +29,11 @@ from .multipassd_controller import MultipassdController
 
 
 class TestSessionFailure(RuntimeError):
-    pass
+    """Raised to signal that the test session should be aborted with a failure."""
 
 
 class TestCaseFailure(RuntimeError):
-    pass
+    """Raised to signal that the current test case has failed."""
 
 
 class MultipassdGovernor:

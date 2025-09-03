@@ -25,6 +25,7 @@ from pathlib import Path
 
 from cli_tests.config import config
 
+
 def get_client_cert_path():
     """Return the default location of the Multipass client certificate for the current OS."""
     if sys.platform == "win32":
@@ -49,10 +50,8 @@ def authenticate_client_cert(client_cert_path, data_root):
     under <data_root>/data/authenticated-certs/multipass_client_certs.pem.
     """
 
-    dst_path = (
-        Path(data_root) / "authenticated-certs" / "multipass_client_certs.pem"
-    )
-   
+    dst_path = Path(data_root) / "authenticated-certs" / "multipass_client_certs.pem"
+
     # Ensure the destination directory exists
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     # Ensure the file exists (like `tee -a`, which creates it if missing)

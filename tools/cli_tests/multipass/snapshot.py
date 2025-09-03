@@ -57,6 +57,18 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
 
 
 def build_snapshot_tree(vm_name, tree, parent=""):
+    """
+    Recursively build a snapshot tree for a VM.
+
+    Takes snapshots according to the given hierarchy and restores
+    to parent snapshots between branches to enforce structure.
+
+    Args:
+        vm_name (str): Target VM name.
+        tree (dict): Nested dict representing snapshot structure.
+        parent (str, optional): Parent snapshot name.
+    """
+
     for name, children in tree.items():
         take_snapshot(vm_name, name, parent)
         build_snapshot_tree(vm_name, children, name)
@@ -65,6 +77,16 @@ def build_snapshot_tree(vm_name, tree, parent=""):
 
 
 def collapse_to_snapshot_tree(flat_map):
+    """
+    Convert a flat snapshot map into a nested tree.
+
+    Args:
+        flat_map (dict): Mapping of snapshot names to metadata dicts.
+
+    Returns:
+        dict: Nested snapshot tree.
+    """
+
     tree = {}
     children = defaultdict(dict)
     roots = []

@@ -99,6 +99,10 @@ def validate_info_snapshot_output(name, properties):
 
 
 def validate_info_output(name, properties):
+    """
+    Validate 'multipass info' JSON output for a VM.
+    """
+
     return validate_output(
         "info",
         "--format=json",

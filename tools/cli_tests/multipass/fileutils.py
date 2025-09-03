@@ -25,6 +25,10 @@ from pathlib import Path
 
 
 def _nuke_vbox_frontends():
+    """
+    Kill VBoxHeadless processes on Windows.
+    """
+
     if sys.platform != "win32":
         return
     # We cannot remove the instances folder while the instances are in use.

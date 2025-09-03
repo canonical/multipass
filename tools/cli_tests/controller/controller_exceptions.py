@@ -18,4 +18,6 @@
 
 
 class ControllerPrerequisiteError(Exception):
-    pass
+    """
+    Raised when a daemon controller prerequisite has not met.
+    """
