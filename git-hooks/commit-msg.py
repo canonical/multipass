@@ -374,6 +374,8 @@ def main():
     """
     Entry point for the commit-msg hook.
 
+    Assumes that commits are made with `--cleanup=strip` (when used as a hook).
+
     Supports --tests flag to run unit tests, otherwise expects a single argument:
     the path to the commit message file. Use a single dash (-) for stdin.
     """
