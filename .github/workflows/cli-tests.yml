@@ -33,4 +33,13 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: pytest -s tools/cli_tests --remove-all-instances --print-cli-output  --daemon-controller=snap -vv
+        run: pytest -s tools/cli_tests --remove-all-instances --daemon-controller=snap --junitxml=reports/junit.xml
+
+      - name: Report cli-tests results to Github Checks
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: CLI Test results (Ubuntu 24.04)
+          path: reports/junit.xml
+          reporter: jest-junit   # understands standard JUnit
+          fail-on-error: true    # fail job if there are test failures
