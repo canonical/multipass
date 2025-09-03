@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  checks: write
 
 concurrency:
   group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
