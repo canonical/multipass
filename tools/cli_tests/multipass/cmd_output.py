@@ -24,7 +24,10 @@ from cli_tests.config import config
 
 
 def strip_lxd_deprecation_notice(text: str) -> str:
-    # Remove both parts in sequence
+    """
+    Strip LXD driver deprecation warning from text.
+    """
+
     return re.sub(
         r"\*\*\* Warning! The .*? driver is deprecated.*?remain in LXD\.(?:\r\n|\r|\n){2}",
         "",
