@@ -33,7 +33,7 @@ jobs:
             MSG="$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"
             echo "$MSG"
 
-            if ! ./git-hooks/commit-msg.py - <<< "$MSG"; then
+            if ! ./git-hooks/commit-msg.py --strict - <<< "$MSG"; then
               echo "❌"
               echo "1" > fail.txt
             else
