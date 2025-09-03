@@ -23,11 +23,13 @@ import sys
 import subprocess
 from pathlib import Path
 
+
 def _nuke_vbox_frontends():
     if sys.platform != "win32":
         return
     # We cannot remove the instances folder while the instances are in use.
     subprocess.run(["taskkill", "/IM", "VBoxHeadless.exe", "/F"], check=False)
+
 
 def nuke_all_instances(data_dir, driver):
     """Remove the instances directory and clean all instance records at the
@@ -45,8 +47,6 @@ def nuke_all_instances(data_dir, driver):
         instance_records_file = vault_dir / "multipassd-instance-image-records.json"
         instances_dir = vault_dir / "instances"
 
-        print(f"{instances_dir.resolve()}")
-
         with contextlib.suppress(Exception):
             shutil.rmtree(instances_dir.resolve())
 
@@ -55,4 +55,3 @@ def nuke_all_instances(data_dir, driver):
         with contextlib.suppress(FileNotFoundError):
             with open(instance_records_file, "r+", encoding="utf-8") as f:
                 f.truncate(0)
-                print(f"truncated {instance_records_file}")
