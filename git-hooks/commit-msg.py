@@ -46,8 +46,11 @@ class CommitMsgRulesChecker:
 
         self.enough = False
 
+        self.msg = msg
         # Strip comments and trailing whitespace
-        self.msg = re.sub(r"^#.*\n?", "", msg, flags=re.MULTILINE)
+        self.msg = re.sub(r"^#.*\n?", "", self.msg, flags=re.MULTILINE)
+        # Strip verbatim text (rules should not apply)
+        self.msg = re.sub(r"^>.*\n?", "", self.msg, flags=re.MULTILINE)
         self.msg = self.msg.rstrip()
 
         self.lines = self.msg.splitlines() if msg else []
@@ -332,6 +335,16 @@ class TestCommitMsgRulesChecker:
             "# This body line (comment) is clearly over 72 characters long, so it is longer than expected.",
             "[msg] Subject\n\n"
             "# This comment line is barely over 72 characters long, surpassing the limit...",
+        ]
+        for msg in invalid_messages:
+            self._test_rule("MSG12", msg, expect_failure=False)
+
+    def test_rule12_body_line_contains_verbatim_text(self):
+        invalid_messages = [
+            "[msg] Subject\n\n"
+            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
+            "[msg] Subject\n\n"
+            "> This verbatim line is barely over 72 characters long, surpassing the limit...",
         ]
         for msg in invalid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
