@@ -83,7 +83,24 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 
     void with_minimally_mocked_libvirt(std::function<void()> test_contents)
     {
-        mp::LibvirtWrapper libvirt_wrapper{""};
+        // Override the libvirt path with "" so the wrapper would load the mock
+        // implementation during the test. It's hacky, but good enough for now
+        // since we're going to remove the libvirt backend anyway.
+        struct OverrideLibvirtPath
+        {
+            OverrideLibvirtPath()
+                : prev(multipass::LibVirtVirtualMachineFactory::default_libvirt_object_path)
+            {
+                multipass::LibVirtVirtualMachineFactory::default_libvirt_object_path = "";
+            }
+            ~OverrideLibvirtPath()
+            {
+                multipass::LibVirtVirtualMachineFactory::default_libvirt_object_path = prev;
+            }
+
+        private:
+            std::string prev;
+        } const b;
         test_contents();
     }
 
