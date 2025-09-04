@@ -832,9 +832,9 @@ TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
                 auto const& growpart_stanza = desc.vendor_data_config["growpart"];
 
                 EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
-                EXPECT_THAT(
-                    growpart_stanza,
-                    YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
+                EXPECT_THAT(growpart_stanza,
+                            YAMLNodeContainsStringArray("devices",
+                                                        std::vector<std::string>({"/", "/dev"})));
                 EXPECT_THAT(growpart_stanza,
                             YAMLNodeContainsString("ignore_growroot_disabled", "false"));
             }
