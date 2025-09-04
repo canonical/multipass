@@ -147,9 +147,12 @@ jobs:
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
       run: |
+        # Avoid reinstalling cmake
+        ${{ env.ARCH_WRAPPER }} brew list cmake > /dev/null || \
+            ${{ env.ARCH_WRAPPER }} brew install cmake
+
         ${{ env.ARCH_WRAPPER }} \
         brew install \
-          cmake \
           coreutils \
           dylibbundler \
           git \
