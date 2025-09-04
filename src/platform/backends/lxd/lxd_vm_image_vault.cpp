@@ -273,6 +273,10 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
         }
         else
         {
+            if (image_url.host().size() != 0)
+                throw std::runtime_error(
+                    fmt::format("Invalid file URL `{}`; did you forget a slash?", query.release));
+
             if (!QFile::exists(image_url.path()))
                 throw std::runtime_error(
                     fmt::format("Custom image `{}` does not exist.", image_url.path()));

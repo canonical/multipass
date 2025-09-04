@@ -1454,7 +1454,36 @@ TEST_F(LXDImageVault, fileBasedFetchCopiesImageAndReturnsExpectedInfo)
     EXPECT_TRUE(image_time >= current_time);
 }
 
-TEST_F(LXDImageVault, invalidLocalFileImageThrows)
+TEST_F(LXDImageVault, invalidFileURLThrows)
+{
+    ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault([](auto...) {
+        return new mpt::MockLocalSocketReply(mpt::not_found_data,
+                                             QNetworkReply::ContentNotFoundError);
+    });
+
+    mp::LXDVMImageVault image_vault{hosts,
+                                    &stub_url_downloader,
+                                    mock_network_access_manager.get(),
+                                    base_url,
+                                    cache_dir.path(),
+                                    mp::days{0}};
+
+    const std::string invalid_url{"file://path/to/image"};
+    const mp::Query query{"", invalid_url, false, "", mp::Query::Type::LocalFile};
+
+    MP_EXPECT_THROW_THAT(
+        image_vault.fetch_image(mp::FetchType::ImageOnly,
+                                query,
+                                stub_prepare,
+                                stub_monitor,
+                                std::nullopt,
+                                save_dir.path()),
+        std::runtime_error,
+        mpt::match_what(
+            StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
+}
+
+TEST_F(LXDImageVault, nonexistentLocalFileImageThrows)
 {
     ON_CALL(*mock_network_access_manager, createRequest(_, _, _)).WillByDefault([](auto...) {
         return new mpt::MockLocalSocketReply(mpt::not_found_data,
