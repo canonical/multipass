@@ -398,28 +398,44 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    auto images = retrieve_image_list();
+    const auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
         auto image_info = image.toObject();
         auto properties = image_info["properties"].toObject();
 
-        auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
-            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs)
-                .toMSecsSinceEpoch()));
+        std::optional<std::chrono::system_clock::time_point> last_used{std::nullopt};
 
-        // If the image has been downloaded but never used, then check if we added a "last_used_at"
-        // property during update
-        if (last_used < std::chrono::system_clock::time_point(0ms) &&
-            properties.contains("last_used_at"))
+        std::array<std::reference_wrapper<const QJsonObject>, 2> qjson_targets{image_info,
+                                                                               properties};
+
+        for (const auto& target : qjson_targets)
         {
-            last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
-                QDateTime::fromString(properties["last_used_at"].toString(), Qt::ISODateWithMs)
-                    .toMSecsSinceEpoch()));
+            const QJsonObject& json = target.get();
+            if (!json.contains("last_used_at"))
+                continue;
+
+            const auto qtime =
+                QDateTime::fromString(json["last_used_at"].toString(), Qt::ISODateWithMs);
+
+            // This can happen if the date is before 01-01-1970
+            if (qtime.isValid() && qtime.toMSecsSinceEpoch() >= 0)
+            {
+                const std::chrono::milliseconds msecs_since_epoch{qtime.toMSecsSinceEpoch()};
+                last_used = std::chrono::system_clock::time_point{msecs_since_epoch};
+                break;
+            }
         }
 
-        if (last_used + days_to_expire <= std::chrono::system_clock::now())
+        if (!last_used.has_value())
+        {
+            mpl::warn(category,
+                      "Source image `{}` does not have `last_used_at` property, skipping it!");
+            continue;
+        }
+
+        if (last_used.value() + days_to_expire <= std::chrono::system_clock::now())
         {
             mpl::log(mpl::Level::info,
                      category,
