@@ -281,6 +281,12 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
         QUrl image_url(QString::fromStdString(query.release));
         VMImage source_image, vm_image;
 
+        if (image_url.host().size() != 0)
+            throw std::runtime_error(fmt::format("Unexpected hostname in file URL; did you mean "
+                                                 "`file:///{}/{}`? (Note the third slash.)",
+                                                 image_url.host(),
+                                                 image_url.path()));
+
         if (!QFile::exists(image_url.path()))
             throw std::runtime_error(
                 fmt::format("Custom image `{}` does not exist.", image_url.path()));
