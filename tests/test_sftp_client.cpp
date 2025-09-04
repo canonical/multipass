@@ -40,6 +40,7 @@ using namespace testing;
 
 namespace
 {
+
 sftp_file get_dummy_sftp_file(sftp_session sftp = nullptr)
 {
     auto file = static_cast<sftp_file_struct*>(calloc(1, sizeof(struct sftp_file_struct)));
@@ -57,6 +58,15 @@ sftp_attributes get_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
     attr->name = strdup(name.u8string().c_str());
     attr->permissions = perms;
     return attr;
+}
+
+auto make_unique_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
+                                 const fs::path& name = "",
+                                 mode_t perms = 0777)
+{
+    return std::unique_ptr<sftp_attributes_struct, decltype(&sftp_attributes_free)>(
+        get_dummy_sftp_attr(type, name, perms),
+        sftp_attributes_free);
 }
 
 struct SFTPClient : public testing::Test
@@ -798,12 +808,13 @@ TEST_F(SFTPClient, pullDirSuccessRegular)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, source_path / "file"))));
+        .WillOnce(
+            Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, source_path / "file")));
 
     std::string test_data = "test_data";
     std::stringstream test_file;
-    EXPECT_CALL(*mock_file_ops, open_write).WillOnce(Return(std::make_unique<std::ostream>(test_file.rdbuf())));
+    EXPECT_CALL(*mock_file_ops, open_write)
+        .WillOnce(Return(std::make_unique<std::ostream>(test_file.rdbuf())));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
     auto mocked_sftp_read = [&, read = false](auto, const void* data, auto size) mutable {
@@ -854,8 +865,8 @@ TEST_F(SFTPClient, pullDirSuccessDir)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "source/path/dir"))));
+        .WillOnce(
+            Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "source/path/dir")));
     EXPECT_CALL(*mock_file_ops, create_directory(target_path / "dir", _));
     EXPECT_CALL(mock_platform, set_permissions(_, _, _)).Times(2).WillRepeatedly(Return(true));
 
@@ -877,8 +888,8 @@ TEST_F(SFTPClient, pullDirFailDir)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, source_path / "dir"))));
+        .WillOnce(
+            Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, source_path / "dir")));
 
     auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mock_file_ops, create_directory(target_path / "dir", _))
@@ -912,8 +923,8 @@ TEST_F(SFTPClient, pullDirSuccessSymlink)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
+        .WillOnce(Return(
+            make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return (char*)malloc(10); });
     EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));
@@ -939,8 +950,8 @@ TEST_F(SFTPClient, pullDirCannotReadSymlink)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path.u8string() + "/symlink"))));
+        .WillOnce(Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK,
+                                                     source_path.u8string() + "/symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return nullptr; });
     auto err = "SFTP server: Permission denied";
@@ -969,8 +980,8 @@ TEST_F(SFTPClient, pullDirCannotCreateSymlink)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
+        .WillOnce(Return(
+            make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return (char*)malloc(10); });
     EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));
@@ -1001,8 +1012,8 @@ TEST_F(SFTPClient, pullDirSymlinkOverDir)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink"))));
+        .WillOnce(Return(
+            make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return (char*)malloc(10); });
     EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(true));
@@ -1029,8 +1040,8 @@ TEST_F(SFTPClient, pullDirUnknownFileType)
         .WillOnce(Return(std::move(iter)));
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
-        .WillOnce(Return(std::unique_ptr<sftp_attributes_struct>(
-            get_dummy_sftp_attr(SSH_FILEXFER_TYPE_UNKNOWN, source_path.u8string() + "/unknown"))));
+        .WillOnce(Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_UNKNOWN,
+                                                     source_path.u8string() + "/unknown")));
     EXPECT_CALL(mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
     auto sftp_client = make_sftp_client();
