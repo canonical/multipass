@@ -32,7 +32,12 @@ class CommitMsgRulesChecker:
         RULE12 =  "MSG12. Wrap the body at 72 characters."
         # fmt: on
 
-    def __init__(self, msg):
+    def __init__(self, msg, *, strict=False):
+        """
+        Perform validation of the specified commit message.
+
+        If strict is False, allow autostash keywords in the commit message.
+        """
         self.rules = [
             (self.Rules.RULE1, self.validate_rule1),
             (self.Rules.RULE2, self.validate_rule2),
@@ -44,6 +49,7 @@ class CommitMsgRulesChecker:
             (self.Rules.RULE12, self.validate_rule12),
         ]
 
+        self.strict = strict
         self.enough = False
 
         # Strip comments and trailing whitespace
@@ -53,6 +59,10 @@ class CommitMsgRulesChecker:
         self.lines = self.msg.splitlines() if msg else []
         self.subject = self.lines[0].rstrip() if self.lines else ""
         self.body = self.lines[1:]
+
+        if not self.strict:
+            # In non-strict mode, allow special keywords used by `git rebase --autosquash`
+            self.subject = re.sub(r"^(fixup|squash)! ", "", self.subject)
 
         self.errors = self.validate_all()
 
@@ -93,13 +103,13 @@ class CommitMsgRulesChecker:
         return all(len(line) <= 72 for line in self.body)
 
 
-def validate(msg):
+def validate(msg, *, strict=False):
     """
     Validate the commit message against the defined rules.
 
     Returns a list of error messages for any rule violations.
     """
-    return CommitMsgRulesChecker(msg).errors
+    return CommitMsgRulesChecker(msg, strict=strict).errors
 
 
 def handle_errors(errors):
@@ -161,6 +171,19 @@ class TestCommitMsgRulesChecker:
         ]
 
         self._test_valid_msgs(valid_messages)
+
+    def test_autosquash_keywords(self):
+        autosquash_messages = [
+            "fixup! [category] This is a valid subject line",
+            "squash! [good] Another one",
+        ]
+
+        for msg in autosquash_messages:
+            loose_checker = CommitMsgRulesChecker(msg)
+            assert not loose_checker.errors, f"Loose validation should pass for: {msg!r} - Errors: {checker.errors}"
+
+            strict_checker = CommitMsgRulesChecker(msg, strict=True)
+            assert strict_checker.errors, f"Strict validation should fail for: {msg!r}"
 
     def test_rule1_subject_line_required_observed(self):
         valid_messages = [
@@ -343,8 +366,8 @@ class TestCommitMsgRulesChecker:
             assert not checker.errors, f"Valid message failed: {msg!r} - Errors: {checker.errors}"
 
     @staticmethod
-    def _test_rule(rule, msg, expect_failure):
-        checker = CommitMsgRulesChecker(msg)
+    def _test_rule(rule, msg, expect_failure, *, strict=False):
+        checker = CommitMsgRulesChecker(msg, strict=strict)
         rule_broken = any(rule in error for error in checker.errors)
         error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
 
@@ -381,6 +404,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description="Git commit message validator")
     parser.add_argument("--tests", action="store_true", help="Run unit tests")
+    parser.add_argument("--strict", action="store_true", help="Enable strict validation checks")
     parser.add_argument("commit_msg_file", nargs="?", help="Path to commit message file")
 
     args = parser.parse_args()  # exits on error
@@ -402,7 +426,7 @@ def main():
         print(f"Error reading commit msg: {e}", file=sys.stderr)
         sys.exit(2)
 
-    sys.exit(handle_errors(validate(msg)))
+    sys.exit(handle_errors(validate(msg, strict=args.strict)))
 
 
 if __name__ == "__main__":
