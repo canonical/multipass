@@ -152,6 +152,13 @@ jobs:
             ${{ env.ARCH_WRAPPER }} brew install cmake
 
         ${{ env.ARCH_WRAPPER }} \
+        brew update
+
+        # Avoid reinstalling cmake
+        ${{ env.ARCH_WRAPPER }} brew list cmake > /dev/null || \
+            ${{ env.ARCH_WRAPPER }} brew install cmake
+
+        ${{ env.ARCH_WRAPPER }} \
         brew install \
           coreutils \
           dylibbundler \
@@ -309,10 +316,43 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: ccache --show-stats --zero-stats
 
+    - name: Enable coredump
+      if: ${{ runner.os == 'macOS' }}
+      working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
+      run : |
+        # Allow core dumps and set size to unlimited for this shell
+        sudo sysctl -w kern.coredump=1
+        # This entitlement is needed for a proc to produce a coredump
+        /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
+        # Code-sign the test executable to grant core dump entitlement
+        codesign -s - -f --entitlements segv.entitlements bin/multipass_tests
+        # Ensure destination exists and is writable
+        sudo mkdir -p /cores || true
+        sudo chmod 1777 /cores
+
+    - name: Print syctl coredump parameters
+      if: ${{ runner.os == 'macOS' }}
+      run : |
+        sysctl kern.coredump kern.corefile
+        ulimit -a
+
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
       run: |
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        ulimit -c unlimited
         ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v4
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
+      with:
+        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
+        path: |
+          /cores/**
+          bin/multipass_tests
 
     - name: Package
       id: cmake-package
