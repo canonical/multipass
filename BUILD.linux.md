@@ -93,6 +93,12 @@ Optionally, enable auto-complete in Bash:
 source <multipass>/completions/bash/multipass
 ```
 
+To be able to use the binaries without specifying their path:
+
+```
+export PATH=<build-dir>/bin
+```
+
 Now you can use the `multipass` command from your terminal (for example
 `<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command
 `<multipass>/build/bin/multipass.gui`.
