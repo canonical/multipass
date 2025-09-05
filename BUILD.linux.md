@@ -84,7 +84,7 @@ Copy the desktop file that Multipass clients expect to find in your home:
 
 ```
 mkdir -p ~/.local/share/multipass/
-cp <multipass>/data/multipass.gui.autostart.desktop ~/.local/share/multipass/
+cp <multipass>/src/client/gui/assets/multipass.gui.autostart.desktop ~/.local/share/multipass/
 ```
 
 Optionally, enable auto-complete in Bash:
