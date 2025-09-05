@@ -275,10 +275,33 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: ccache --show-stats --zero-stats
 
+    - name: Enable coredump
+      if: ${{ runner.os == 'macOS' }}
+      run : |
+        # Allow core dumps and set size to unlimited for this shell
+        sudo sysctl -w kern.coredump=1
+        ulimit -c unlimited
+
+        # Ensure destination exists and is writable
+        sudo mkdir -p /cores
+        sudo chmod 1777 /cores
+
+        # Set filename pattern (macOS supports %N = process name, %P = pid)
+        sudo sysctl -w kern.corefile=/cores/%N.%P
+
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
       run: |
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v4
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
+      with:
+        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
+        path: /cores/**
 
     - name: Package
       id: cmake-package
