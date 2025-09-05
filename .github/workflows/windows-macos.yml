@@ -280,12 +280,20 @@ jobs:
       run : |
         # Allow core dumps and set size to unlimited for this shell
         sudo sysctl -w kern.coredump=1
-        launchctl limit core unlimited
-        ulimit -c unlimited
+        sudo launchctl limit core unlimited || true
+        ulimit -c unlimited || true
+
+        echo 'ulimit -Sc unlimited' >> "$BASH_ENV"
+
+        # This entitlement is needed for a proc to produce a coredump
+        /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
+
+        # Code-sign the test executable to grant core dump entitlement
+        codesign -s - -f --entitlements segv.entitlements bin/multipass_tests
 
         # Ensure destination exists and is writable
-        mkdir -p "$GITHUB_WORKSPACE/cores"
-        sudo sysctl kern.corefile="$GITHUB_WORKSPACE/cores/core.%N.%P"
+        sudo mkdir -p /cores || true
+        sudo chmod 1777 /cores
 
     - name: Print syctl coredump parameters
       if: ${{ runner.os == 'macOS' }}
@@ -306,7 +314,7 @@ jobs:
       with:
         name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
         path: |
-          cores/**
+          /cores/**
           bin/multipass_tests
 
     - name: Package
