@@ -277,6 +277,7 @@ jobs:
 
     - name: Enable coredump
       if: ${{ runner.os == 'macOS' }}
+      working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run : |
         # Allow core dumps and set size to unlimited for this shell
