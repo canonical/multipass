@@ -176,3 +176,15 @@ TEST_F(CustomImageHost, infoForFullHashReturnsEmptyImageInfo)
 
     EXPECT_THROW(host.info_for_full_hash("invalid-hash"), mp::ImageNotFoundException);
 }
+
+TEST_F(CustomImageHost, infoForFullHashFindsImageInfo)
+{
+    EXPECT_CALL(mock_url_downloader, download(_, _)).WillOnce(Return(payload));
+    mp::CustomVMImageHost host{&mock_url_downloader};
+
+    host.update_manifests(false);
+
+    const auto image = host.info_for_full_hash("debian-12-hash");
+
+    EXPECT_THAT(image.release, Eq("bookworm"));
+}
