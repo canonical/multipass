@@ -137,6 +137,16 @@ TEST_F(TestImageVaultUtils, verifyFileHashDoesntThrowOnGoodHash)
     EXPECT_NO_THROW(mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"));
 }
 
+TEST_F(TestImageVaultUtils, verifyFileHashParsesAlgo)
+{
+    auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
+    EXPECT_CALL(*mock_utils, compute_file_hash(test_path, QCryptographicHash::Sha512))
+        .WillOnce(Return("1234567890abcdef"));
+
+    EXPECT_NO_THROW(
+        mock_utils->ImageVaultUtils::verify_file_hash(test_path, "sha512:1234567890abcdef"));
+}
+
 TEST_F(TestImageVaultUtils, extractFileWillDeleteFile)
 {
     auto decoder = [](const QString&, const QString&) {};
