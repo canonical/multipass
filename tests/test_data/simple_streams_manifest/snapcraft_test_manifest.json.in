@@ -1,0 +1,115 @@
+{
+  "content_id": "com.ubuntu.cloud:daily:download",
+  "creator": "climdb-download-streams-export",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "https://ubuntu.com/legal/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud.daily:buildd:16.04:@MANIFEST_ARCH@": {
+      "aliases": "16.04,x,xenial,core",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-30",
+      "supported": false,
+      "version": "16.04",
+      "versions": {
+        "20210721": {
+          "items": {
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "6b91c14be4bccedc19074ccd353c5bd2347cab9afc1488dc0d31b105058c5014",
+              "size": 5062
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "5a9817001ef7478eee1340eb1b38d36f3ef69668af78097f5ddefd5d09bee9ed",
+              "size": 104022889
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "6b91c14be4bccedc19074ccd353c5bd2347cab9afc1488dc0d31b105058c5014",
+              "size": 5062
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "26e6115d3b22886e7a0112449f38d9fc2a01040cf663961314379887c51e245f",
+              "size": 104666236
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-xenial-daily-@MANIFEST_ARCH@-buildd-20210721"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:24.04:@MANIFEST_ARCH@": {
+      "aliases": "24.04,n,noble,lts,default,core24",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "noble",
+      "release_codename": "Noble Numbat",
+      "release_title": "24.04 LTS",
+      "support_eol": "2029-05-31",
+      "supported": true,
+      "version": "24.04",
+      "versions": {
+        "20250823": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-disk1.img",
+              "sha256": "640230c05a8ddb05a9e170d2ebeff4c63304c36f9873408e6bed0551bd70b60b",
+              "size": 385040384
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "61953b6acf6df258d0fc6273a23fce38c68008c4d9dae54fac409f4b1dfefde1",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "53a4cacf13964b1708d02fc6bdf680610ac85f03d3205a125d4bdae8e02a828e",
+              "size": 408
+            },
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
+              "size": 6044
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "5d298223a1f6b3040adc5fc6a3df74125fffa50e02bc56739842f42121f2d697",
+              "size": 181347374
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@.manifest",
+              "sha256": "b41bd25a1929d8cb799c07f5b83b1939e7eaa9fbc9e305c5b54266f826925aa8",
+              "size": 6722
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
+              "size": 6044
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "bfdd60d2db3fcdc1d9688cd9bb7358da8d1d79171e6e96232d7da023c26723e0",
+              "size": 182421332
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-@MANIFEST_ARCH@-buildd-20250823"
+        }
+      }
+    }
+  },
+  "updated": "Sat, 06 Sep 2025 03:59:48 +0000"
+}
