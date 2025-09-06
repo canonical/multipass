@@ -19,6 +19,7 @@
 #include "common.h"
 #include "file_operations.h"
 #include "image_host_remote_count.h"
+#include "mock_logger.h"
 #include "mock_url_downloader.h"
 #include "path.h"
 
@@ -187,4 +188,24 @@ TEST_F(CustomImageHost, infoForFullHashFindsImageInfo)
     const auto image = host.info_for_full_hash("debian-12-hash");
 
     EXPECT_THAT(image.release, Eq("bookworm"));
+}
+
+TEST_F(CustomImageHost, badJsonLogsAndReturnsEmptyImages)
+{
+    const auto bad_json = mpt::load_test_file("custom_image_host/malformed_manifest.json");
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(multipass::logging::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        multipass::logging::Level::warning,
+        "Failed to parse manifest: file does not contain a valid JSON object");
+
+    EXPECT_CALL(mock_url_downloader, download(_, _)).WillOnce(Return(bad_json));
+    mp::CustomVMImageHost host{&mock_url_downloader};
+
+    host.update_manifests(false);
+
+    auto images = host.all_images_for("", false);
+
+    EXPECT_EQ(images.size(), 0);
 }
