@@ -283,34 +283,6 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
     return nullptr;
 }
 
-const mp::UbuntuVMImageRemote& mp::UbuntuVMImageHost::get_remote(
-    const std::string& remote_name) const
-{
-    auto it =
-        std::find_if(remotes.cbegin(),
-                     remotes.cend(),
-                     [&remote_name](const std::pair<std::string, UbuntuVMImageRemote>& element) {
-                         return element.first == remote_name;
-                     });
-
-    if (it == remotes.cend())
-        throw std::out_of_range{fmt::format("Unknown remote \"{}\"", remote_name)};
-
-    return it->second;
-}
-
-std::string mp::UbuntuVMImageHost::remote_url_from(const std::string& remote_name)
-{
-    try
-    {
-        return get_remote(remote_name).get_url().toStdString();
-    }
-    catch (std::out_of_range&)
-    {
-        return {};
-    }
-}
-
 mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
                                              std::string uri,
                                              std::optional<QString> mirror_key)
@@ -331,11 +303,6 @@ multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
       image_mutator{custom_image_mutator},
       mirror_key(std::move(mirror_key))
 {
-}
-
-const QString mp::UbuntuVMImageRemote::get_url() const
-{
-    return get_mirror_url().value_or(get_official_url());
 }
 
 const QString mp::UbuntuVMImageRemote::get_official_url() const
