@@ -25,6 +25,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/query.h>
@@ -480,4 +481,27 @@ TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
         host.all_info_for(make_query(release, release_remote_spec.first)),
         mp::UnsupportedImageException,
         mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
+}
+
+TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    auto image_info =
+        host.info_for_full_hash("ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c");
+
+    EXPECT_EQ(image_info.release, "zesty");
+}
+
+TEST_F(UbuntuImageHost, unknownHashThrows)
+{
+    const auto bad_hash = "1234";
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    MP_EXPECT_THROW_THAT(
+        host.info_for_full_hash(bad_hash),
+        mp::ImageNotFoundException,
+        mpt::match_what(StrEq(fmt::format("Image with hash \"{}\" not found", bad_hash))));
 }
