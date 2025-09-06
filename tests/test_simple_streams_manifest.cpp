@@ -21,6 +21,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/manifest_exceptions.h>
+#include <multipass/image_host/image_mutators.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <optional>
@@ -166,4 +167,24 @@ TEST_F(TestSimpleStreamsManifest, lXDDriverReturnsExpectedData)
     EXPECT_EQ(bionic_info->id, expected_bionic_id);
 }
 
+TEST_F(TestSimpleStreamsManifest, correctlyMutatesCoreImages)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/core_test_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json,
+                                                        std::nullopt,
+                                                        "",
+                                                        mp::image_mutators::core_mutator);
+
+    EXPECT_THAT(manifest->updated_at, Eq("Fri, 05 Sep 2025 18:04:12 +0000"));
+    EXPECT_THAT(manifest->products.size(), Eq(2u));
+
+    const auto info = manifest->image_records.at("core22");
+    ASSERT_THAT(info, NotNull());
+
+    EXPECT_EQ(info->image_location.last(6), "img.xz");
+    EXPECT_EQ(info->os, "Ubuntu");
+    EXPECT_EQ(info->release, "core-22");
+    EXPECT_EQ(info->release_title, "Core 22");
+    EXPECT_EQ(info->release_codename, "Core 22");
+}
 } // namespace

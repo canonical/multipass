@@ -1,0 +1,126 @@
+{
+  "content_id": "com.ubuntu.cdimage:ubuntu-core",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "products": {
+    "com.ubuntu.cdimage:ubuntu-core:stable:22:@MANIFEST_ARCH@": {
+      "aliases": "22",
+      "arch": "@MANIFEST_ARCH@",
+      "image_type": "stable",
+      "os": "ubuntu-core",
+      "release": "22",
+      "release_codename": "22",
+      "release_title": "22 stable",
+      "version": "22",
+      "versions": {
+        "20230320.2": {
+          "items": {
+            "img.xz": {
+              "ftype": "img.xz",
+              "path": "22/stable/20230320.2/ubuntu-core-22-@MANIFEST_ARCH@.img.xz",
+              "sha256": "0c5461724d27aa7459320f72a6250e4b44de288c52c725af351331b94aae60d8",
+              "size": 427613512
+            },
+            "img.xz.zsync": {
+              "ftype": "img.xz.zsync",
+              "path": "22/stable/20230320.2/ubuntu-core-22-@MANIFEST_ARCH@.img.xz.zsync",
+              "sha256": "2dfd146d0078806f9f1d60d4ee70d6f80ddc32b114d499e3b5e24280accb6f75",
+              "size": 835410
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "22/stable/20230320.2/ubuntu-core-22-@MANIFEST_ARCH@.manifest",
+              "sha256": "a233e605584ff7324d5aeabc0e88e5d8b7194ede724149d72e562d894ccd5f74",
+              "size": 65
+            }
+          }
+        },
+        "current": {
+          "items": {
+            "img.xz": {
+              "ftype": "img.xz",
+              "path": "22/stable/current/ubuntu-core-22-@MANIFEST_ARCH@.img.xz",
+              "sha256": "7cc097041ac84dec267918f316bea90a5c490897c450485177f57c9f3337b812",
+              "size": 430624176
+            },
+            "img.xz.zsync": {
+              "ftype": "img.xz.zsync",
+              "path": "22/stable/current/ubuntu-core-22-@MANIFEST_ARCH@.img.xz.zsync",
+              "sha256": "fdedb9b9754f525f70b52364d7b2b6aa99c18b1121a5b29614ab134e628599b7",
+              "size": 841290
+            },
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "22/stable/current/ubuntu-core-22-@MANIFEST_ARCH@.lxd.tar.xz",
+              "sha256": "446e8e001ffbcb0f7f0966ef4c459e113033e2e018c8f0dee48fb8fb46b27312",
+              "size": 352
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "22/stable/current/ubuntu-core-22-@MANIFEST_ARCH@.manifest",
+              "sha256": "928a3c8bd4775bda171a9b81b8bc94de53e13216e5bdcab773f64949b984be93",
+              "size": 65
+            }
+          }
+        }
+      }
+    },
+    "com.ubuntu.cdimage:ubuntu-core:stable:24:@MANIFEST_ARCH@": {
+      "aliases": "24",
+      "arch": "@MANIFEST_ARCH@",
+      "image_type": "stable",
+      "os": "ubuntu-core",
+      "release": "24",
+      "release_codename": "24",
+      "release_title": "24 stable",
+      "version": "24",
+      "versions": {
+        "20240603.2": {
+          "items": {
+            "img.xz": {
+              "ftype": "img.xz",
+              "path": "24/stable/20240603.2/ubuntu-core-24-@MANIFEST_ARCH@.img.xz",
+              "sha256": "29d2791cdce3a1dd9c0909ada7f181a762b120aa514393456fb998f904179ea3",
+              "size": 452173132
+            },
+            "img.xz.zsync": {
+              "ftype": "img.xz.zsync",
+              "path": "24/stable/20240603.2/ubuntu-core-24-@MANIFEST_ARCH@.img.xz.zsync",
+              "sha256": "85aabe2ff5ea19f934c6428f95bb5137f5d1d0830cf6cbac37c765b47154bf99",
+              "size": 883378
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "24/stable/20240603.2/ubuntu-core-24-@MANIFEST_ARCH@.manifest",
+              "sha256": "9b5db21f097ff708270baf7f8fa150803cac6ee3223fdd2c6b8ed1bc49245b11",
+              "size": 61
+            }
+          }
+        },
+        "current": {
+          "items": {
+            "img.xz": {
+              "ftype": "img.xz",
+              "path": "24/stable/current/ubuntu-core-24-@MANIFEST_ARCH@.img.xz",
+              "sha256": "29d2791cdce3a1dd9c0909ada7f181a762b120aa514393456fb998f904179ea3",
+              "size": 452173132
+            },
+            "img.xz.zsync": {
+              "ftype": "img.xz.zsync",
+              "path": "24/stable/current/ubuntu-core-24-@MANIFEST_ARCH@.img.xz.zsync",
+              "sha256": "85aabe2ff5ea19f934c6428f95bb5137f5d1d0830cf6cbac37c765b47154bf99",
+              "size": 883378
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "24/stable/current/ubuntu-core-24-@MANIFEST_ARCH@.manifest",
+              "sha256": "9b5db21f097ff708270baf7f8fa150803cac6ee3223fdd2c6b8ed1bc49245b11",
+              "size": 61
+            }
+          }
+        }
+      }
+    }
+  },
+  "updated": "Fri, 05 Sep 2025 18:04:12 +0000"
+}
