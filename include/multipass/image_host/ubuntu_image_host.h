@@ -51,8 +51,6 @@ private:
     void clear() override;
     SimpleStreamsManifest* manifest_from(const std::string& remote);
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
-    const UbuntuVMImageRemote& get_remote(const std::string& remote_name) const;
-    std::string remote_url_from(const std::string& remote_name);
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
@@ -69,7 +67,6 @@ public:
                         std::string uri,
                         std::function<bool(VMImageInfo&)> custom_image_mutator,
                         std::optional<QString> mirror_key = std::nullopt);
-    const QString get_url() const;
     const QString get_official_url() const;
     const std::optional<QString> get_mirror_url() const;
     bool apply_image_mutator(VMImageInfo& info) const;
