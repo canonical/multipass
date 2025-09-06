@@ -124,6 +124,23 @@ TEST_F(TestSimpleStreamsManifest, choosesNewestVersion)
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
+TEST_F(TestSimpleStreamsManifest, ltsReceivesUbuntuAlias)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json,
+                                                        std::nullopt,
+                                                        "",
+                                                        mp::image_mutators::release_mutator);
+
+    auto info = manifest->image_records.at("lts");
+    ASSERT_THAT(info, NotNull());
+    EXPECT_THAT(info->aliases.indexOf("ubuntu"), Gt(0));
+
+    info = manifest->image_records.at("zesty");
+    ASSERT_THAT(info, NotNull());
+    EXPECT_THAT(info->aliases.indexOf("ubuntu"), Lt(0));
+}
+
 TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 {
     auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
