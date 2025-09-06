@@ -193,8 +193,7 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
         }
     }
 
-    throw mp::ImageNotFoundException(
-        fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
+    throw mp::ImageNotFoundException(full_hash);
 }
 
 void mp::CustomVMImageHost::fetch_manifests(const bool force_update)

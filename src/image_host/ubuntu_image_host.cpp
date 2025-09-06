@@ -147,8 +147,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
         }
     }
 
-    throw mp::ImageNotFoundException(
-        fmt::format("Unable to find an image matching hash \"{}\"", full_hash));
+    throw mp::ImageNotFoundException(full_hash);
 }
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
