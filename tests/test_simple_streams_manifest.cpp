@@ -141,6 +141,21 @@ TEST_F(TestSimpleStreamsManifest, ltsReceivesUbuntuAlias)
     EXPECT_THAT(info->aliases.indexOf("ubuntu"), Lt(0));
 }
 
+TEST_F(TestSimpleStreamsManifest, filtersSnapcraftImages)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/snapcraft_test_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json,
+                                                        std::nullopt,
+                                                        "",
+                                                        mp::image_mutators::snapcraft_mutator);
+
+    auto info = manifest->image_records.find("24.04");
+    EXPECT_NE(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("16.04");
+    EXPECT_EQ(info, manifest->image_records.end());
+}
+
 TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 {
     auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
