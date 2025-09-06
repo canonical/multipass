@@ -313,6 +313,18 @@ TEST_F(UbuntuImageHost, allImagesForReleaseUnsupportedReturnsFiveMatches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
+TEST_F(UbuntuImageHost, allImagesForThrowsForUnknownRemote)
+{
+    const auto remote_name = "unknown_remote";
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    MP_EXPECT_THROW_THAT(host.all_images_for(remote_name, false),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(
+                             fmt::format("Remote \"{}\" is unknown or unreachable", remote_name))));
+}
+
 TEST_F(UbuntuImageHost, allImagesForDailyReturnsAllMatches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
