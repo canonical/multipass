@@ -350,7 +350,7 @@ jobs:
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
-      timeout-minutes: 30
+      timeout-minutes: 90
       with:
         limit-access-to-actor: true
 
