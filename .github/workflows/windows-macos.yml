@@ -279,7 +279,7 @@ jobs:
 
     - name: Install cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.1.0
+      uses: lukka/get-cmake@v4.1.1
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
