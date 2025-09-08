@@ -114,6 +114,12 @@ jobs:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
 
+    # Use specific xcode version in macos-15
+    - uses: maxim-lobanov/setup-xcode@v1
+      if: ${{ contains(matrix.runs-on, 'macos-15') }}
+      with:
+        xcode-version: '16.0'
+
     - name: Enable symlinks
       if: ${{ runner.os == 'Windows' }}
       run: git config --local core.symlinks true
