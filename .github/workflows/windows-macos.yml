@@ -304,6 +304,13 @@ jobs:
         ulimit -c unlimited
         ${{ env.ARCH_WRAPPER }} bin/multipass_tests
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
+      timeout-minutes: 15
+      with:
+        limit-access-to-actor: true
+
     - name: Upload test coredump
       uses: actions/upload-artifact@v4
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
