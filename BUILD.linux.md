@@ -96,7 +96,7 @@ source <multipass>/completions/bash/multipass
 To be able to use the binaries without specifying their path:
 
 ```
-export PATH=<build-dir>/bin
+export PATH=<multipass>/build/bin
 ```
 
 Now you can use the `multipass` command from your terminal (for example
