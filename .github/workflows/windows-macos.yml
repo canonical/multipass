@@ -308,7 +308,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
       with:
-        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
+        name: buildandtest-test-crash-${{ matrix.runs-on }}-${{ matrix.build-type }}
         path: |
           /cores/**
           bin/multipass_tests
