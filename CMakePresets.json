@@ -150,13 +150,34 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "clang-sanitizers-debug",
+            "displayName": "Debug with ASan/UBSan/Leak Sanitizers",
+            "inherits": [
+                "common",
+                "debug"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_C_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG -fsanitize-undefined-trap-on-error",
+                "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize=pointer-compare,pointer-subtract -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG -fsanitize-undefined-trap-on-error",
+                "CMAKE_EXE_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error",
+                "CMAKE_SHARED_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error",
+                "VCPKG_TARGET_TRIPLET": "x64-linux-sanitizers"
+            },
+            "environment": {
+                "CC": "clang",
+                "CXX": "clang++"
+            }
         }
     ],
     "buildPresets": [
         {
             "name": "configured-at-present",
-            "description":
-                "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
             "configurePreset": "common"
         }
     ]
