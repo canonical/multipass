@@ -104,16 +104,28 @@ Container multipass::format::sorted(const Container& items)
             if constexpr (std::is_same_v<T, multipass::DetailedInfoItem>)
             {
                 if (a.has_snapshot_info() && a.name() == b.name())
-                    return TimeUtil::TimestampToNanoseconds(
-                               a.snapshot_info().fundamentals().creation_timestamp()) <
-                           TimeUtil::TimestampToNanoseconds(
-                               b.snapshot_info().fundamentals().creation_timestamp());
+                {
+                    const auto lhs = a.snapshot_info().fundamentals().creation_timestamp();
+                    const auto rhs = b.snapshot_info().fundamentals().creation_timestamp();
+                    if (TimeUtil::IsTimestampValid(lhs) && TimeUtil::IsTimestampValid(rhs))
+                    {
+                        return TimeUtil::TimestampToNanoseconds(lhs) <
+                               TimeUtil::TimestampToNanoseconds(rhs);
+                    }
+                }
             }
             else if constexpr (std::is_same_v<T, multipass::ListVMSnapshot>)
             {
                 if (a.name() == b.name())
-                    return TimeUtil::TimestampToNanoseconds(a.fundamentals().creation_timestamp()) <
-                           TimeUtil::TimestampToNanoseconds(b.fundamentals().creation_timestamp());
+                {
+                    const auto lhs = a.fundamentals().creation_timestamp();
+                    const auto rhs = b.fundamentals().creation_timestamp();
+                    if (TimeUtil::IsTimestampValid(lhs) && TimeUtil::IsTimestampValid(rhs))
+                    {
+                        return TimeUtil::TimestampToNanoseconds(lhs) <
+                               TimeUtil::TimestampToNanoseconds(rhs);
+                    }
+                }
             }
 
             // Lastly, sort by name
