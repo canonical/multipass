@@ -81,7 +81,7 @@ jobs:
     #
     # https://github.com/protocolbuffers/protobuf/issues/21447
     - uses: maxim-lobanov/setup-xcode@v1
-      if: ${{ contains(matrix.runs-on, 'macos-15') }}
+      if: ${{ contains(matrix.runs-on, 'macos-latest') }}
       with:
         xcode-version: '16.2'
 
