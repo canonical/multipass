@@ -24,6 +24,7 @@
 #include <QDir>
 #include <QFileDevice>
 #include <QFileInfoList>
+#include <QLockFile>
 #include <QSaveFile>
 #include <QString>
 #include <QTextStream>
@@ -88,6 +89,10 @@ public:
 
     // QSaveFile operations
     virtual bool commit(QSaveFile& file) const;
+
+    // QLockFile operations
+    virtual void setStaleLockTime(QLockFile& lock, std::chrono::milliseconds time) const;
+    virtual bool tryLock(QLockFile& lock, std::chrono::milliseconds timeout) const;
 
     // posix operations
     virtual std::unique_ptr<NamedFd> open_fd(const fs::path& path, int flags, int perms) const;

@@ -1114,6 +1114,10 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundDoesNotMountUnwrittableWo
         .WillOnce(Return(temp_dir.path()));
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, setStaleLockTime(_, _)).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_file_ops, tryLock(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
+    EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
     EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));
@@ -1172,6 +1176,8 @@ TEST_F(DaemonCreateLaunchAliasTestSuite, blueprintFoundButCannotMount)
         .WillOnce(Return(temp_dir.path()));
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, setStaleLockTime(_, _)).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_file_ops, tryLock(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillRepeatedly(Return(1234));
     EXPECT_CALL(*mock_file_ops, commit(_)).WillRepeatedly(Return(true));

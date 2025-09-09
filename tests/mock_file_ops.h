@@ -64,6 +64,10 @@ public:
     // QSaveFile mock methods
     MOCK_METHOD(bool, commit, (QSaveFile&), (const, override));
 
+    // QLockFile mock methods
+    MOCK_METHOD(void, setStaleLockTime, (QLockFile&, std::chrono::milliseconds), (const, override));
+    MOCK_METHOD(bool, tryLock, (QLockFile&, std::chrono::milliseconds), (const, override));
+
     // posix mock methods
     MOCK_METHOD((std::unique_ptr<NamedFd>),
                 open_fd,
