@@ -1,7 +1,7 @@
 (explanation-authentication)=
 # Authentication
 
-> See also: [How to authenticate clients with the Multipass service](/how-to-guides/customise-multipass/authenticate-clients-with-the-multipass-service)
+> See also: [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 
 Before executing any commands, Multipass requires clients to authenticate with the service. Multipass employs an authentication process based on x509 certificates signed by elliptic curve (EC) keys, powered by OpenSSL, to authenticate clients. When a client connects, Multipass verifies the client's certificate, ensuring only authenticated clients can communicate with the service.
 
