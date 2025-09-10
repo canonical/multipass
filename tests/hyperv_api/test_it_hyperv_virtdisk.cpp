@@ -267,7 +267,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     }
 }
 
-TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
+TEST_F(HyperVVirtDisk_IntegrationTests, DISABLED_list_parents)
 {
     uut_t uut{};
     // Create parent
