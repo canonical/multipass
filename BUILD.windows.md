@@ -4,10 +4,10 @@
 
 ### Chocolatey
 
-Install chocolatey, a package manager, to download the rest of the dependencies: <https://chocolatey.org/>
+Install chocolatey, a package manager, to download the rest of the dependencies: <https://chocolatey.org/>.
 
 Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey instructions to "Install with
-Powershell.exe"
+Powershell.exe".
 
 ### Dependencies
 After chocolatey is installed you can now install the rest of the dependencies from the Powershell(Admin). To get the best results, in the following order:
@@ -19,8 +19,7 @@ choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
 ```
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker. Search for
-Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable
-Real-time protection.
+Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable Real-time protection.
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any new compiler tool
 updates so choco upgrade will report no new updates available. To update the compiler and related tooling or fix a broken `visualstudio2019buildtools` installation do the following:
@@ -67,32 +66,31 @@ Search for "Edit environment variables for your account" then edit your Path var
 
 Cmder is a sane terminal emulator for windows, which includes git and SSH support among other things.
 
-Install with `chocolatey`:
+Install with chocolatey:
 ```
 choco install cmder -yfd
 ```
 
 The following will setup a task that you can use to build things with the VS2019 compiler toolchain.
 
-Run cmder which should be installed by default on C:\tools\cmder\Cmder.exe
-Click on the green "+" sign on the right lower corner of cmder
-Select "Setup tasks..."
-Click the "+" button to add a new task
-In the task parameters box add (basically copying from cmd:Cmder task):
-``/icon "%CMDER_ROOT%\icons\cmder.ico"``
-In the commands box, add:
-``cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%``
+1. Run cmder which should be installed by default on C:\tools\cmder\Cmder.exe
+2. Click on the green "+" sign on the right lower corner of cmder
+3. Select "Setup tasks..."
+4. Click the "+" button to add a new task
+5. In the task parameters box add (basically copying from cmd:Cmder task):
+    ``/icon "%CMDER_ROOT%\icons\cmder.ico"``
+6. In the commands box, add:
 
-Give the task a name (first box), such as vs2019 and click Save Settings.
-
-Now run cmder, click on the green "+" and click on the vs2019 task
+    ``cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%``
+7. Give the task a name (first box), such as vs2019 and click Save Settings.
+8. Now run cmder, click on the green "+" and click on the vs2019 task
 This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler. Go to the [Building](./BUILD.windows.md#building) section.
 
 #### x64 Native Tools Command Prompt
 
 x64 Native Tools Command Prompt is the native console from the MVSC installation. On startup it updates its environment variables to include all tools installed via MSVC for 64-bit. If you are using 32-bit, use the x86 Native Tools Command Prompt.
 
-If you want to use the environment variables in a different console, look at: https://learn.microsoft.com/nb-no/cpp/build/building-on-the-command-line?view=msvc-170
+If you want to use the environment variables in a different console, look at: https://learn.microsoft.com/nb-no/cpp/build/building-on-the-command-line?view=msvc-170.
 
 ## Building
 
@@ -109,8 +107,8 @@ cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-pa
 cmake --build .
 ```
 
-This builds multipass and multipassd.
-To create an installer, run `ninja package`
+This builds `multipass` and `multipassd`.
+To create an installer, run `ninja package`.
 
 ## Building (alternative, PowerShell only)
 
@@ -130,37 +128,37 @@ Enter-VsDevShell -VsInstallPath "$VSPath" -DevCmdArguments '-arch=x64'
 
 Then, follow the steps in the previous "Building" step to build the project.
 
-## Running multipass
+## Running `multipass`
 
 ### Enable Hyper-V
 
-Before starting multipassd, you'll have to enable the Hyper-V functionality in Windows 10 Pro.
+Before starting `multipassd`, you'll have to enable the Hyper-V functionality in Windows 10/11 Pro.
 See: https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v
 
-    Press Windows Key + X, Select Windows PowerShell (Admin)
-    Run "Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All"
+Press Windows Key + X, Select Windows PowerShell (Admin)and run:
+```
+Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
+```
+### Start the daemon (`multipassd`)
 
-### Start the daemon (multipassd)
+1. Press Windows Key + X, Select Windows PowerShell (Admin)
+2. Run `multipassd` (for example: `multipassd --logger=stderr`)
+3. Alternatively, you can install `multipassd` as a Windows Service (Run `multipassd /install` in a Powershell(Admin)). Installing `multipassd` as a Windows Service is a must for Windows 11
+4. To stop and uninstall the Windows service, Run `multipassd /uninstall`
 
-    Press Windows Key + X, Select Windows PowerShell (Admin)
-    Run multipassd (for example: multipassd --logger=stderr)
-    Alternatively, you can install multipassd as a Windows Service (Run multipassd /install in a Powershell(Admin)). Installing multipassd as a Windows Service is a must for Windows 11.
-    To stop and uninstall the Windows service, Run "multipassd /uninstall"
+### Run `multipass`
 
-### Run multipass
+With the `multipassd` daemon now running on another shell (or as a windows service) you can now run `multipass`.
+Press Windows Key + X, Select Windows PowerShell, or alternatively run cmd.exe on the search bar. Then, try `multipass help`.
 
-    With the multipassd daemon now running on another shell (or as a windows service) you can now run multipass.
-    Press Windows Key + X, Select Windows PowerShell, or alternatively run cmd.exe on the search bar
-    Try "multipass help"
+### Permissions/privileges for `multipassd`
 
-### Permissions/privileges for multipassd
+`multipassd` needs Administrator privileges in order to create symlinks when using mounts and to manage Hyper-V instances.
 
-multipassd needs Administrator privileges in order to create symlinks when using mounts and to manage Hyper-V instances.
-
-If you don't need symlink support you can run multipassd on a less privileged shell but your user account
+If you don't need symlink support you can run `multipassd` on a less privileged shell but your user account
 needs to be part of the Hyper-V Administrators group:
 
-    Press Windows key + X, Select "Computer Management"
-    Under System Tools->Local Users and Groups->Groups
-    Select on Hyper-V Administrators, add your account
-    Sign out or reboot for changes to take effect
+1. Press Windows key + X, Select "Computer Management"
+2. Under System Tools->Local Users and Groups->Groups
+3. Select on Hyper-V Administrators, add your account
+4. Sign out or reboot for changes to take effect
