@@ -1,7 +1,7 @@
 (how-to-guides-customise-multipass-authenticate-clients-with-the-multipass-service)=
 # Authenticate clients with the Multipass service
 
-> See also: [`authenticate`](/reference/command-line-interface/authenticate), [local.passphrase](/reference/settings/local-passphrase), [Service](/explanation/service)
+> See also: [`authenticate`](reference-command-line-interface-authenticate), [local.passphrase](reference-settings-local-passphrase), [Service](explanation-service)
 
 Multipass requires clients to be authenticated with the service before allowing commands to
 complete. The installing user is automatically authenticated.
