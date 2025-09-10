@@ -49,7 +49,7 @@ def _fetch_items(codename, version):
                     items[label] = {
                         "image_location": image_url,
                         "id": sha512_hex,
-                        "version": labels.get("cloud.debian.org/version"),
+                        "version": labels.get("cloud.debian.org/version").split("-")[0],
                         "size": int(size) if size is not None else None,
                     }
                 break  # stop after finding qcow2
