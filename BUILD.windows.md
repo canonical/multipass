@@ -149,7 +149,7 @@ See: https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-st
 
     Press Windows Key + X, Select Windows PowerShell (Admin)
     Run multipassd (for example: multipassd --logger=stderr)
-    Alternatively, you can install multipassd as a Windows Service (Run "multipassd /install")
+    Alternatively, you can install multipassd as a Windows Service (Run multipassd /install in a Powershell(Admin)). Installing multipassd as a Windows Service is a must for Windows 11.
     To stop and uninstall the Windows service, Run "multipassd /uninstall"
 
 ### Run multipass
