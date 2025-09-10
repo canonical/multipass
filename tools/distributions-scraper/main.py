@@ -1,6 +1,5 @@
 import importlib
 import pkgutil
-import datetime
 import asyncio
 import json
 import pathlib
@@ -8,6 +7,14 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from scraper.base import BaseScraper
 import scraper
+
+
+OUTPUT_FILE = (
+    pathlib.Path(__file__).resolve().parent.parent.parent
+    / "data"
+    / "distributions"
+    / "distribution-info.json"
+)
 
 
 def load_scrapers():
@@ -52,6 +59,8 @@ async def main():
         elif data:
             output[name] = data
 
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     # Only include errors if there are any
     if errors:
         output["errors"] = errors
@@ -59,13 +68,13 @@ async def main():
         for name, err in errors.items():
             print(f"- {name}: {err}")
         # Write partial output for debugging
-        pathlib.Path("scraper-output.json").write_text(json.dumps(output, indent=2, sort_keys=True))
+        print(f"Output:\n{json.dumps(output, indent=2, sort_keys=True)}")
         sys.exit(1)
     else:
         # Write final JSON output
         json_str = json.dumps(output, indent=2, sort_keys=True) + "\n"
-        pathlib.Path("scraper-output.json").write_text(json_str)
-        print("All scrapers succeeded. JSON output written to scraper-output.json")
+        OUTPUT_FILE.write_text(json_str)
+        print(f"All scrapers succeeded. JSON output written to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
