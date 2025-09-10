@@ -1,8 +1,6 @@
-Build instructions for Windows 10
-=================================
+# Build instructions for Windows 10/11 Pro
 
-Environment Setup
------------------
+## Environment Setup
 
 ### Chocolatey
 
@@ -96,8 +94,7 @@ x64 Native Tools Command Prompt is the native console from the MVSC installation
 
 If you want to use the environment variables in a different console, look at: https://learn.microsoft.com/nb-no/cpp/build/building-on-the-command-line?view=msvc-170
 
-Building
----------------------------------------
+## Building
 
 ```
 cd <multipass>
@@ -115,8 +112,7 @@ cmake --build .
 This builds multipass and multipassd.
 To create an installer, run `ninja package`
 
-Building (alternative, PowerShell only)
----------------------------------------
+## Building (alternative, PowerShell only)
 
 Using a Visual-Studio command-prompt-enabled PowerShell to build the project is also possible.
 Open a new PowerShell terminal, then invoke the following commands:
@@ -134,8 +130,7 @@ Enter-VsDevShell -VsInstallPath "$VSPath" -DevCmdArguments '-arch=x64'
 
 Then, follow the steps in the previous "Building" step to build the project.
 
-Running multipass
----------------------------------------
+## Running multipass
 
 ### Enable Hyper-V
 
