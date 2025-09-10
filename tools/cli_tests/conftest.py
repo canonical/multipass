@@ -151,7 +151,7 @@ def pytest_addoption(parser):
         metavar="CMD=N[ CMD=N...]",
         default=[("launch", 3)],
         help="Per-command retry override; may be given multiple times. "
-        "Example: --retries launch=3 delete=1",
+        "Example: --cmd-retries launch=3 delete=1",
     )
 
     parser.addoption(
@@ -172,7 +172,7 @@ def pytest_addoption(parser):
             ("umount", 45),
         ],
         help="Per-command timeout override; may be given multiple times. "
-        "Example: --timeouts launch=180 start=60",
+        "Example: --cmd-timeouts launch=180 start=60",
     )
 
 
