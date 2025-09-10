@@ -47,10 +47,7 @@ class CommitMsgRulesChecker:
         self.enough = False
 
         self.msg = msg
-        # Strip comments and trailing whitespace
-        self.msg = re.sub(r"^#.*\n?", "", self.msg, flags=re.MULTILINE)
-        # Strip verbatim text (rules should not apply)
-        self.msg = re.sub(r"^>.*\n?", "", self.msg, flags=re.MULTILINE)
+        # Strip trailing whitespace
         self.msg = self.msg.rstrip()
 
         self.lines = self.msg.splitlines() if msg else []
@@ -58,6 +55,9 @@ class CommitMsgRulesChecker:
         self.body = self.lines[1:]
 
         self.errors = self.validate_all()
+
+    def should_ignore_line(self, line):
+        return bool(re.match("(#|>).*\n?", line))
 
     def validate_all(self):
         if self.msg.lstrip().startswith("Merge"):
@@ -93,7 +93,7 @@ class CommitMsgRulesChecker:
         return not any(both_blank(l1, l2) for l1, l2 in zip(self.body, self.body[1:]))
 
     def validate_rule12(self):
-        return all(len(line) <= 72 for line in self.body)
+        return all(len(line) <= 72 for line in self.body if not self.should_ignore_line(line))
 
 
 def validate(msg):
@@ -345,6 +345,31 @@ class TestCommitMsgRulesChecker:
             "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
             "[msg] Subject\n\n"
             "> This verbatim line is barely over 72 characters long, surpassing the limit...",
+        ]
+        for msg in invalid_messages:
+            self._test_rule("MSG12", msg, expect_failure=False)
+
+    def test_rule12_body_line_contains_verbatim_text_with_regular_empty_lines_between(self):
+        invalid_messages = [
+            "[msg] Subject\n\n"
+            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
+            "",
+            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
+            "",
+            "Regular text"
+        ]
+        for msg in invalid_messages:
+            self._test_rule("MSG12", msg, expect_failure=False)
+
+    def test_rule12_body_line_contains_verbatim_empty_lines(self):
+        invalid_messages = [
+            "[msg] Subject\n\n"
+            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
+            ">",
+            ">",
+            ">",
+            "",
+            "Regular text"
         ]
         for msg in invalid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
