@@ -38,6 +38,10 @@ class TestCaseFailure(RuntimeError):
 
 
 class MultipassdGovernor:
+    """
+    Orchestrates the lifecycle of the **multipassd** daemon during tests.
+    """
+
     def __init__(
         self, controller: MultipassdController, asyncio_loop, print_daemon_output=True
     ):
