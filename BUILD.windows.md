@@ -25,25 +25,34 @@ Windows Defender Security Center, go to Virus & threat protection, then Virus an
 Real-time protection.
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any new compiler tool
-updates so choco upgrade will report no new updates available. To update the compiler and related tooling, you will need
-to search for "Add or remove programs", find "Microsoft Visual Studio Installer" and click "Modify".
+updates so choco upgrade will report no new updates available. To update the compiler and related tooling or fix a broken `visualstudio2019buildtools` installation do the following:
+1. Go to "Add or remove programs"
+2. Search for the Microsoft Visual Studio Installer
+3. Click Modify
+4. Click Modify in the Installer interface
+5. (W11) Add "C++/CLI support for v142 build tools" in the "Desktop development with C++" kit
+6. Complete the installation
+
 
 ### Git
 
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
+(Windows 11)
+1. Go to "Developer Settings"
+2. Enable "Developer mode"
+
 ### Qt6
 
-Install the latest stable version of Qt6 (6.2.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
-
-In the online installer, under Qt, select MSVC 2019 64-bit.
-
-If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
-
-Alternatively, download the
-[qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.2.4-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
-and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.2.4`).
+To install Qt6, use `aqt`. First install it with chocolatey:
+```
+choco install aqt -yfd
+```
+Then specify the following options in the installation command:
+```
+aqt install-qt windows desktop 6.2.4 win64_msvc2019_64 -O C:/Qt
+```
 
 ### Path setup
 
