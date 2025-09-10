@@ -98,12 +98,19 @@ If you want to use the environment variables in a different console, look at: ht
 
 Building
 ---------------------------------------
-    cd <multipass>
-    git submodule update --init --recursive
-    mkdir build
-    cd build
-    cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../
-    ninja
+
+```
+cd <multipass>
+git submodule update --init --recursive
+mkdir build
+cd build
+```
+```
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2019_64\ ../
+```
+```
+cmake --build .
+```
 
 This builds multipass and multipassd.
 To create an installer, run `ninja package`
