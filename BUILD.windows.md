@@ -11,9 +11,14 @@ Install chocolatey, a package manager, to download the rest of the dependencies:
 Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey instructions to "Install with
 Powershell.exe"
 
-After chocolatey is installed you can now install the rest of the dependencies:
-
-    choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img openssl -yfd
+### Dependencies
+After chocolatey is installed you can now install the rest of the dependencies from the Powershell(Admin). To get the best results, in the following order:
+```
+choco install cmake ninja qemu openssl git -yfd
+```
+```
+choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
+```
 
 You may have to disable Windows Defender Real-time protection if you want the packages to install quicker. Search for
 Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable
