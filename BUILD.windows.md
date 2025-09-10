@@ -63,9 +63,16 @@ Search for "Edit environment variables for your account" then edit your Path var
 - `C:\Program Files\CMake\bin`
 - `C:\Qt\6.2.4\msvc2019_64\bin`
 
-### Cmder setup
+### Console setup
+
+#### Cmder
 
 Cmder is a sane terminal emulator for windows, which includes git and SSH support among other things.
+
+Install with `chocolatey`:
+```
+choco install cmder -yfd
+```
 
 The following will setup a task that you can use to build things with the VS2019 compiler toolchain.
 
@@ -80,12 +87,17 @@ In the commands box, add:
 
 Give the task a name (first box), such as vs2019 and click Save Settings.
 
+Now run cmder, click on the green "+" and click on the vs2019 task
+This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler. Go to the [Building](./BUILD.windows.md#building) section.
+
+#### x64 Native Tools Command Prompt
+
+x64 Native Tools Command Prompt is the native console from the MVSC installation. On startup it updates its environment variables to include all tools installed via MSVC for 64-bit. If you are using 32-bit, use the x86 Native Tools Command Prompt.
+
+If you want to use the environment variables in a different console, look at: https://learn.microsoft.com/nb-no/cpp/build/building-on-the-command-line?view=msvc-170
+
 Building
 ---------------------------------------
-
-Run cmder, click on the green "+" and click on the vs2019 task
-This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler.
-
     cd <multipass>
     git submodule update --init --recursive
     mkdir build
