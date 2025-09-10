@@ -27,7 +27,7 @@ updates so choco upgrade will report no new updates available. To update the com
 2. Search for the Microsoft Visual Studio Installer
 3. Click Modify
 4. Click Modify in the Installer interface
-5. (W11) Add "C++/CLI support for v142 build tools" in the "Desktop development with C++" kit
+5. For Windows 11, add "C++/CLI support for v142 build tools" in the "Desktop development with C++" kit
 6. Complete the installation
 
 
@@ -36,7 +36,7 @@ updates so choco upgrade will report no new updates available. To update the com
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
-(Windows 11)
+For Windows 11:
 1. Go to "Developer Settings"
 2. Enable "Developer mode"
 
