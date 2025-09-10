@@ -21,7 +21,8 @@ from cli_tests.multipass import (
 )
 from cli_tests.utilities import (
     BooleanLatch,
-    AsyncSubprocess,
+    SilentAsyncSubprocess,
+    StdoutAsyncSubprocess,
     run_in_new_interpreter,
 )
 
@@ -140,11 +141,9 @@ class MultipassdGovernor:
 
     async def _ensure_client_certs_are_created(self):
         # Call multipass cli to create the client certs
-        async with AsyncSubprocess(
+        async with SilentAsyncSubprocess(
             get_multipass_path(),
             "version",
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
             env=get_multipass_env(),
         ) as version_proc:
             await asyncio.wait_for(version_proc.wait(), timeout=10)
@@ -278,13 +277,10 @@ class MultipassdGovernor:
             try:
                 find_stdout = None
                 find_exitcode = 0
-                async with AsyncSubprocess(
+                async with StdoutAsyncSubprocess(
                     get_multipass_path(),
                     "find",
                     "noble",
-                    stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT,
                     env=get_multipass_env(),
                 ) as find_proc:
                     find_stdout, _ = await find_proc.communicate()
@@ -301,11 +297,9 @@ class MultipassdGovernor:
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
-                async with AsyncSubprocess(
+                async with StdoutAsyncSubprocess(
                     get_multipass_path(),
                     "version",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT,
                     env=get_multipass_env(),
                 ) as version_proc:
                     stdout, _ = await version_proc.communicate()
