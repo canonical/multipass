@@ -92,6 +92,22 @@ x64 Native Tools Command Prompt is the native console from the MVSC installation
 
 If you want to use the environment variables in a different console, look at: https://learn.microsoft.com/nb-no/cpp/build/building-on-the-command-line?view=msvc-170.
 
+#### Powershell only
+
+Using a Visual-Studio command-prompt-enabled PowerShell to build the project is also possible.
+Open a new PowerShell terminal, then invoke the following commands:
+
+```pwsh
+# Try to determine the Visual Studio install path
+$VSPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -products Microsoft.VisualStudio.Product.BuildTools -latest -property installationPath
+
+# Import the PowerShell module
+Import-Module "$VSPath\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+
+# Enable VS developer PowerShell
+Enter-VsDevShell -VsInstallPath "$VSPath" -DevCmdArguments '-arch=x64'
+```
+
 ## Building
 
 ```
@@ -109,24 +125,6 @@ cmake --build .
 
 This builds `multipass` and `multipassd`.
 To create an installer, run `ninja package`.
-
-## Building (alternative, PowerShell only)
-
-Using a Visual-Studio command-prompt-enabled PowerShell to build the project is also possible.
-Open a new PowerShell terminal, then invoke the following commands:
-
-```pwsh
-# Try to determine the Visual Studio install path
-$VSPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -products Microsoft.VisualStudio.Product.BuildTools -latest -property installationPath
-
-# Import the PowerShell module
-Import-Module "$VSPath\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-
-# Enable VS developer PowerShell
-Enter-VsDevShell -VsInstallPath "$VSPath" -DevCmdArguments '-arch=x64'
-```
-
-Then, follow the steps in the previous "Building" step to build the project.
 
 ## Running `multipass`
 
