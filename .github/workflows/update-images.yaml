@@ -1,0 +1,43 @@
+name: Update Cloud Images
+
+on:
+  workflow_dispatch:
+  schedule:
+  # 04:11 UTC every Sunday
+  - cron: 11 4 * * 0
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Python dependencies
+        uses: BSFishy/pip-action@v1
+        with:
+          requirements: tools/distributions-scraper/requirements.txt
+
+      - name: Check for updated Cloud Images
+        run: tools/distributions-scraper/main.py
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "[distro] Update Cloud Images info"
+          branch: "update-cloud-images"
+          title: "[distro] Update Cloud Images information"
+          body: "Automatic update of cloud image information."
+          sign-commits: true
+          add-paths: |
+            data/distributions/distribution-info.json
