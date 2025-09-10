@@ -159,23 +159,27 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
-    config["packages"].push_back("pollinate");
 
-    auto pollinate_user_agent_string =
-        fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
-    pollinate_user_agent_string +=
-        fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
-    pollinate_user_agent_string += fmt::format("multipass/host/{} # written by Multipass\n",
-                                               multipass::platform::host_version());
-    pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
-                                               !remote_name.empty() ? remote_name + ":" : "",
-                                               pollinate_alias);
+    if (request->image() != "fedora")
+    {
+        config["packages"].push_back("pollinate");
 
-    YAML::Node pollinate_user_agent_node;
-    pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
-    pollinate_user_agent_node["content"] = pollinate_user_agent_string;
+        auto pollinate_user_agent_string =
+            fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
+        pollinate_user_agent_string +=
+            fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
+        pollinate_user_agent_string += fmt::format("multipass/host/{} # written by Multipass\n",
+                                                   multipass::platform::host_version());
+        pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
+                                                   !remote_name.empty() ? remote_name + ":" : "",
+                                                   pollinate_alias);
 
-    config["write_files"].push_back(pollinate_user_agent_node);
+        YAML::Node pollinate_user_agent_node;
+        pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
+        pollinate_user_agent_node["content"] = pollinate_user_agent_string;
+
+        config["write_files"].push_back(pollinate_user_agent_node);
+    }
 
     return config;
 }
