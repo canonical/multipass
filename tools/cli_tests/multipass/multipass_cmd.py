@@ -50,9 +50,9 @@ def multipass(*args, **kwargs):
         *args: Positional CLI arguments to pass to the `multipass` command.
 
     Keyword Args:
-        timeout (int, optional): Maximum time in seconds to wait for command 
+        timeout (int, optional): Maximum time in seconds to wait for command
         completion.Defaults to 30.
-        interactive (bool, optional): If True, returns a live interactive 
+        interactive (bool, optional): If True, returns a live interactive
         `pexpect.spawn` object for manual interaction.
         retry (int, optional): Number of retry attempts on failure. Uses
         exponential backoff (2s delay).
