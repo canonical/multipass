@@ -206,8 +206,6 @@ jobs:
     - name: Measure coverage
       id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       timeout-minutes: 5
       run: |
 
@@ -237,7 +235,14 @@ jobs:
           ulimit -c unlimited && \
           env CTEST_OUTPUT_ON_FAILURE=1 \
             cmake --build /root/parts/multipass/build --target covreport"
-        bash <(curl -s https://codecov.io/bash) -Z -s ${{ steps.coverage-setup.outputs.build }}
+
+    - name: Upload coverage
+      if: ${{ matrix.build-type == 'Coverage' }}
+      uses: codecov/codecov-action@v5
+      with:
+        directory: ${{ steps.coverage-setup.outputs.build }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Pull coredump and executable from LXC container
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0'}}
