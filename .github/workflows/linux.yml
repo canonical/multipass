@@ -158,7 +158,9 @@ jobs:
               curl -L -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe\
               ln -sf /usr/local/bin/nuget.exe /usr/local/bin/nuget\
               export PATH=$PATH:/usr/local/bin\
-              mono /usr/local/bin/nuget.exe sources add -name GitHubPackages -source "${FEED_URL}" -username "${USERNAME}" -password "${GITHUB_TOKEN}" -storePasswordInClearText\
+              if ! mono /usr/local/bin/nuget.exe sources list -format short | grep ${FEED_URL} &> /dev/null; then\
+                mono /usr/local/bin/nuget.exe sources add -name GitHubPackages -source "${FEED_URL}" -username "${USERNAME}" -password "${GITHUB_TOKEN}" -storePasswordInClearText\
+              fi\
               mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
           }' snap/snapcraft.yaml
         fi
