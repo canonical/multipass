@@ -39,4 +39,4 @@ jobs:
         contents: ${{ secrets.LAUNCHPAD_CREDENTIALS }}
 
     - name: Check for USNs
-      run: tools/process_snaps.py lp_credentials
+      run: tools/process-snaps/process_snaps.py lp_credentials
