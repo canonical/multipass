@@ -85,7 +85,7 @@ def make_override_plist(source_plist_path: str) -> str:
 
 
 class LaunchdMultipassdController:
-    """Soft launchd controller for multipassd on macOS."""
+    """launchd controller for `multipassd` on macOS."""
 
     @staticmethod
     def setup_environment():
