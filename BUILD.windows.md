@@ -14,7 +14,7 @@ Powershell.exe"
 ### Dependencies
 After chocolatey is installed you can now install the rest of the dependencies from the Powershell(Admin). To get the best results, in the following order:
 ```
-choco install cmake ninja qemu openssl git -yfd
+choco install cmake ninja qemu openssl git wget unzip -yfd
 ```
 ```
 choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
