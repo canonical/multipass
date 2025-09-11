@@ -1,4 +1,4 @@
-use multipass_petname::*;
+use super::*;
 use std::collections::HashSet;
 
 fn split_name<'a>(name: &'a str, separator: &str) -> Vec<&'a str> {
