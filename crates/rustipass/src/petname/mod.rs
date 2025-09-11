@@ -91,12 +91,5 @@ pub fn make_name(petname: &mut Petname) -> Result<String, PetnameError> {
     petname.make_name()
 }
 
-// CXX FFI Bridge for this module
-#[cxx::bridge(namespace = "multipass::petname")]
-mod ffi {
-    extern "Rust" {
-        type Petname;
-        fn new_petname(num_words: i32, separator: &str) -> Result<Box<Petname>>;
-        fn make_name(petname: &mut Petname) -> Result<String>;
-    }
-}
+#[cfg(test)]
+mod tests;
