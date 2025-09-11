@@ -177,15 +177,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "multipass-petname"
-version = "0.1.0"
-dependencies = [
- "cxx",
- "cxx-build",
- "rand",
-]
-
-[[package]]
 name = "ppv-lite86"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,6 +231,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "rustipass"
+version = "0.1.0"
+dependencies = [
+ "cxx",
+ "cxx-build",
+ "rand",
 ]
 
 [[package]]

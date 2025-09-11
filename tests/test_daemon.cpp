@@ -52,7 +52,7 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_info.h>
 
-#include <petname_cxx/lib.h>
+#include <rustipass_cxx/lib.h>
 
 #include <yaml-cpp/yaml.h>
 
