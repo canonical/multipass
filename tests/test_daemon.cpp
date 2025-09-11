@@ -53,7 +53,7 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
 
-#include <petname_cxx/lib.h>
+#include <rustipass_cxx/lib.h>
 
 #include <yaml-cpp/yaml.h>
 

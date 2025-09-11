@@ -1,11 +1,6 @@
 [workspace]
-members = [
-    "crates/petname",
-    # Future oxidized modules will be added here:
-    # "crates/utils",
-    # "crates/network",
-    # etc.
-]
+members = ["crates/rustipass"]
+resolver = "2"
 
 # Root workspace configuration
 [workspace.dependencies]
