@@ -177,7 +177,7 @@ cmake --build .
 ```
 
 This builds `multipass` and `multipassd`.
-To create an installer, run `ninja package`.
+To create an installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
 
