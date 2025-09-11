@@ -74,6 +74,9 @@ If you installed the VS2022 toolchain, use the following options:
 aqt install-qt windows desktop 6.2.4 win64_msvc2022_64 -O C:/Qt
 ```
 
+Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.2.4-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
+and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.2.4`).
+
 ### Path setup
 
 You'll have to manually add CMake and Qt to your account's PATH variable.
