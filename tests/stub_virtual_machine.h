@@ -197,6 +197,18 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 0;
     }
 
+    // Block device operations - stub implementations
+    void attach_block_device(const std::string& name, const BlockDevice& device) override
+    {
+    }
+    void detach_block_device(const std::string& name) override
+    {
+    }
+    bool has_block_device(const std::string& name) const override
+    {
+        return false;
+    }
+
     StubSnapshot snapshot;
     std::unique_ptr<TempDir> tmp_dir;
 };
