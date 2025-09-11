@@ -22,13 +22,20 @@ choco install cmake ninja qemu openssl git wget unzip -yfd
 choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
 ```
 
+Alternatively, install the more recent VS2022 toolchain:
+
+```[pwsh]
+choco install visualstudio2022buildtools visualstudio2022-workload-vctools -yfd
+```
+
 You may have to disable Windows Defender Real-time protection if you want the packages to install
 quicker. Search for Windows Defender Security Center, go to Virus & threat protection, then Virus
 and thread protection settings, disable Real-time protection.
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any
 new compiler tool updates so choco upgrade will report no new updates available. To update the
-compiler and related tooling or fix a broken `visualstudio2019buildtools` installation do the following:
+compiler and related tooling or fix a broken `visualstudio2019buildtools` or
+`visualstudio2022buildtools` installation do the following:
 
 1. Go to "Add or remove programs"
 2. Search for the Microsoft Visual Studio Installer
@@ -61,6 +68,12 @@ Then specify the following options in the installation command:
 aqt install-qt windows desktop 6.2.4 win64_msvc2019_64 -O C:/Qt
 ```
 
+If you installed the VS2022 toolchain, use the following options:
+
+```[pwsh]
+aqt install-qt windows desktop 6.2.4 win64_msvc2022_64 -O C:/Qt
+```
+
 ### Path setup
 
 You'll have to manually add CMake and Qt to your account's PATH variable.
@@ -69,6 +82,11 @@ Search for "Edit environment variables for your account" then edit your Path var
 
 - `C:\Program Files\CMake\bin`
 - `C:\Qt\6.2.4\msvc2019_64\bin`
+
+If you installed the VS2022 toolchain, the pahts are instead:
+
+- `C:\Program Files\CMake\bin`
+- `C:\Qt\6.2.4\msvc2022_64\bin`
 
 ### Console setup
 
@@ -100,6 +118,12 @@ The following will setup a task that you can use to build things with the VS2019
 8. Now run cmder, click on the green "+" and click on the vs2019 task
 This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler.
 Go to the [Building](./BUILD.windows.md#building) section.
+
+If you installed the VS2022 toolchain instead, the command in step 6 should be:
+
+```[]
+cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
+```
 
 #### x64 Native Tools Command Prompt
 
@@ -137,6 +161,12 @@ cd build
 
 ```[batch]
 cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2019_64\ ../
+```
+
+If you are using the VS2022 toolchain, change the previous command to:
+
+```[batch]
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2022_64\ ../
 ```
 
 ```[batch]
