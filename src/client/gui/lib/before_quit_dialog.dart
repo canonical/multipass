@@ -43,14 +43,20 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
           const SizedBox(height: 24),
           Row(
             children: [
-              Checkbox(
-                value: remember,
-                onChanged: (value) => setState(() => remember = value!),
-              ),
-              const SizedBox(width: 8),
-              const Text('Do not ask me again'),
-            ],
-          ),
+               Checkbox(
+                   value: remember,
+                   onChanged: (value) => setState(() => remember = value!),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Remember my choice and do not ask me again when quitting with running instances.',
+                      style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+
         ],
       ),
       actionText: 'Stop instances',
