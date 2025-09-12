@@ -959,6 +959,44 @@ TEST_F(LXDImageVault, pruneUsesLastUpdatePropertyOnNewUnusedImage)
     EXPECT_TRUE(delete_requested);
 }
 
+TEST_F(LXDImageVault, pruneDoesNotHappenWhenLastUsedAtIsMissing)
+{
+    bool delete_requested{false};
+
+    ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))
+        .WillByDefault([&delete_requested](auto, auto request, auto) {
+            auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
+            auto url = request.url().toString();
+
+            if (op == "GET" && url.contains("1.0/images"))
+            {
+                return new mpt::MockLocalSocketReply(mpt::image_info_without_last_used_at);
+            }
+            else if (op == "DELETE" &&
+                     url.contains(
+                         "1.0/images/"
+                         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
+            {
+                delete_requested = true;
+                return new mpt::MockLocalSocketReply(mpt::image_delete_task_data);
+            }
+
+            return new mpt::MockLocalSocketReply(mpt::not_found_data,
+                                                 QNetworkReply::ContentNotFoundError);
+        });
+
+    mp::LXDVMImageVault image_vault{hosts,
+                                    &stub_url_downloader,
+                                    mock_network_access_manager.get(),
+                                    base_url,
+                                    cache_dir.path(),
+                                    mp::days{0}};
+
+    image_vault.prune_expired_images();
+
+    EXPECT_FALSE(delete_requested);
+}
+
 TEST_F(LXDImageVault, pruneExpiredImageNoProjectDoesNotThrow)
 {
     ON_CALL(*mock_network_access_manager.get(), createRequest(_, _, _))

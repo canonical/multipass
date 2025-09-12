@@ -398,28 +398,47 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 
 void mp::LXDVMImageVault::prune_expired_images()
 {
-    auto images = retrieve_image_list();
+    const auto images = retrieve_image_list();
 
     for (const auto image : images)
     {
         auto image_info = image.toObject();
         auto properties = image_info["properties"].toObject();
 
-        auto last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
-            QDateTime::fromString(image_info["last_used_at"].toString(), Qt::ISODateWithMs)
-                .toMSecsSinceEpoch()));
+        using msecs_timepoint_t =
+            std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
 
-        // If the image has been downloaded but never used, then check if we added a "last_used_at"
-        // property during update
-        if (last_used < std::chrono::system_clock::time_point(0ms) &&
-            properties.contains("last_used_at"))
+        std::optional<msecs_timepoint_t> last_used{std::nullopt};
+
+        for (const auto& target : {std::cref(image_info), std::cref(properties)})
         {
-            last_used = std::chrono::system_clock::time_point(std::chrono::milliseconds(
-                QDateTime::fromString(properties["last_used_at"].toString(), Qt::ISODateWithMs)
-                    .toMSecsSinceEpoch()));
+            const QJsonObject& json = target.get();
+
+            if (!json.contains("last_used_at"))
+                continue;
+
+            if (const auto qtime =
+                    QDateTime::fromString(json["last_used_at"].toString(), Qt::ISODateWithMs);
+                qtime.isValid())
+            {
+                last_used = msecs_timepoint_t{std::chrono::milliseconds{qtime.toMSecsSinceEpoch()}};
+                break;
+            }
         }
 
-        if (last_used + days_to_expire <= std::chrono::system_clock::now())
+        if (!last_used.has_value())
+        {
+            mpl::warn(category,
+                      "Source image `{}` does not have `last_used_at` property, skipping it!");
+            continue;
+        }
+
+        if (last_used.value() + days_to_expire <=
+            // Ensure that this part is in milliseconds to ensure that last_used
+            // won't be converted to nanoseconds -- it may contain values that are
+            // too big (or small) to be represented in nanoseconds.
+            std::chrono::time_point_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now()))
         {
             mpl::log(mpl::Level::info,
                      category,
