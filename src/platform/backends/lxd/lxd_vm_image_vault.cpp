@@ -405,25 +405,23 @@ void mp::LXDVMImageVault::prune_expired_images()
         auto image_info = image.toObject();
         auto properties = image_info["properties"].toObject();
 
-        std::optional<std::chrono::system_clock::time_point> last_used{std::nullopt};
+        using msecs_timepoint_t =
+            std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
 
-        std::array<std::reference_wrapper<const QJsonObject>, 2> qjson_targets{image_info,
-                                                                               properties};
+        std::optional<msecs_timepoint_t> last_used{std::nullopt};
 
-        for (const auto& target : qjson_targets)
+        for (const auto& target : {std::cref(image_info), std::cref(properties)})
         {
             const QJsonObject& json = target.get();
+
             if (!json.contains("last_used_at"))
                 continue;
 
-            const auto qtime =
-                QDateTime::fromString(json["last_used_at"].toString(), Qt::ISODateWithMs);
-
-            // This can happen if the date is before 01-01-1970
-            if (qtime.isValid() && qtime.toMSecsSinceEpoch() >= 0)
+            if (const auto qtime =
+                    QDateTime::fromString(json["last_used_at"].toString(), Qt::ISODateWithMs);
+                qtime.isValid())
             {
-                const std::chrono::milliseconds msecs_since_epoch{qtime.toMSecsSinceEpoch()};
-                last_used = std::chrono::system_clock::time_point{msecs_since_epoch};
+                last_used = msecs_timepoint_t{std::chrono::milliseconds{qtime.toMSecsSinceEpoch()}};
                 break;
             }
         }
@@ -435,7 +433,12 @@ void mp::LXDVMImageVault::prune_expired_images()
             continue;
         }
 
-        if (last_used.value() + days_to_expire <= std::chrono::system_clock::now())
+        if (last_used.value() + days_to_expire <=
+            // Ensure that this part is in milliseconds to ensure that last_used
+            // won't be converted to nanoseconds -- it may contain values that are
+            // too big (or small) to be represented in nanoseconds.
+            std::chrono::time_point_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now()))
         {
             mpl::log(mpl::Level::info,
                      category,
