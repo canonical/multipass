@@ -18,6 +18,8 @@ struct KeyCertificatePair
 
 struct KeyCertificatePair get_cert_pair();
 
+char* get_root_cert();
+
 enum SettingResult
 {
     Ok,
