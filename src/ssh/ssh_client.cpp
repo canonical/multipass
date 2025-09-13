@@ -151,7 +151,7 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
                             "[ssh client] exec request failed",
                             ssh_channel_request_exec,
                             cmd_line.c_str());
-    
+
     handle_ssh_events();
     
     uint32_t exit_status = static_cast<uint32_t>(-1);
