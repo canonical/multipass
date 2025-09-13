@@ -20,7 +20,7 @@ namespace multipass
 {
 constexpr auto base_cloud_init_config = "growpart:\n"
                                         "    mode: auto\n"
-                                        "    devices: [\"/\"]\n"
+                                        "    devices: [\"/\", \"/dev\"]\n"
                                         "    ignore_growroot_disabled: false\n"
                                         "users:\n"
                                         "    - default\n"
