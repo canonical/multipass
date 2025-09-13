@@ -1,7 +1,7 @@
 (how-to-guides-customise-multipass-configure-multipass-default-logging-level)=
 # Configure Multipass’s default logging level
 
-> See also: [Logging levels](/reference/logging-levels)
+> See also: [Logging levels](reference-logging-levels)
 
 This document demonstrates how to configure the default logging level of the Multipass service. Changing the logging level can be useful, for example, if you want to decrease the size of logging files or get more detailed information about what the daemon is doing. Logging levels can be set to one of the following: `error`, `warning`, `info`, `debug`, or `trace`, with case sensitivity.
 
