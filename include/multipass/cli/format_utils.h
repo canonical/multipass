@@ -38,13 +38,13 @@ namespace format
 static constexpr int col_buffer = 3;
 
 std::string status_string_for(const InstanceStatus& status);
-std::string image_string_for(const multipass::FindReply_AliasInfo& alias);
+std::string image_string_for(const std::string& remote_name, const std::string& alias);
 Formatter* formatter_for(const std::string& format);
 
 template <typename Container>
 Container sorted(const Container& items);
 
-void filter_aliases(google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases);
+void filter_aliases(google::protobuf::RepeatedPtrField<std::string>& aliases);
 
 // Computes the column width needed to display all the elements of a range [begin, end). get_width
 // is a function which takes as input the element in the range and returns its width in columns.
@@ -135,22 +135,3 @@ Container multipass::format::sorted(const Container& items)
 
     return ret;
 }
-
-namespace fmt
-{
-template <>
-struct formatter<multipass::FindReply_AliasInfo>
-{
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    auto format(const multipass::FindReply_AliasInfo& a, FormatContext& ctx) const
-    {
-        return format_to(ctx.out(), "{}", a.alias());
-    }
-};
-} // namespace fmt

@@ -21,6 +21,7 @@ configure_file(
 add_subdirectory(cert)
 add_subdirectory(client)
 add_subdirectory(daemon)
+add_subdirectory(image_host)
 add_subdirectory(iso)
 add_subdirectory(logging)
 add_subdirectory(network)

@@ -1,0 +1,87 @@
+errors:
+  - ~
+bogus-instance:
+  - state: Running
+    snapshot_count: 2
+    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac
+    image_release: Ubuntu 16.04 LTS
+    release: Ubuntu 16.04.3 LTS
+    cpu_count: 4
+    load:
+      - 0.03
+      - 0.10
+      - 0.15
+    disks:
+      - sda1:
+          used: 1932735284
+          total: 6764573492
+    memory:
+      usage: 38797312
+      total: 1610612736
+    ipv4:
+      - 10.21.124.56
+    mounts:
+      source:
+        uid_mappings:
+          - "1000:501"
+        gid_mappings:
+          - "1000:501"
+        source_path: /home/user/source
+    snapshots:
+      - snapshot1:
+          size: ~
+          cpu_count: 2
+          disk_space: 4.9GiB
+          memory_size: 0.9GiB
+          mounts: ~
+          created: "1972-01-01T09:59:59.021Z"
+          parent: ~
+          children:
+            []
+          comment: ~
+      - snapshot2:
+          size: ~
+          cpu_count: 2
+          disk_space: 4.9GiB
+          memory_size: 0.9GiB
+          mounts:
+            source:
+              source_path: /home/user/source
+            Home:
+              source_path: /home/user
+          created: "1972-01-01T10:00:20.021Z"
+          parent: snapshot1
+          children:
+            - snapshot3
+            - snapshot4
+          comment: ~
+bombastic:
+  - state: Stopped
+    snapshot_count: 3
+    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509
+    image_release: Ubuntu 18.04 LTS
+    release: ~
+    cpu_count: ~
+    disks:
+      - sda1:
+          used: ~
+          total: ~
+    memory:
+      usage: ~
+      total: ~
+    ipv4:
+      []
+    mounts: ~
+messier-87:
+  - snapshots:
+      - black-hole:
+          size: ~
+          cpu_count: 1
+          disk_space: 1024GiB
+          memory_size: 128GiB
+          mounts: ~
+          created: "2019-04-10T11:59:59Z"
+          parent: ~
+          children:
+            []
+          comment: Captured by EHT

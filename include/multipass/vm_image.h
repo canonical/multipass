@@ -31,6 +31,7 @@ public:
     std::string original_release;
     std::string current_release;
     std::string release_date;
+    std::string os;
     std::vector<std::string> aliases;
 };
 } // namespace multipass
