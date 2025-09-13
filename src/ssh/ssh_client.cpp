@@ -171,10 +171,10 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
             ssh_string_free_char(exit_signal_status);
         }
         return static_cast<int>(exit_status);
-    } else {
-        if (exit_signal_status != nullptr) {
-            ssh_string_free_char(exit_signal_status);
-        }
-        return -1;
     }
+    
+    if (exit_signal_status != nullptr) {
+        ssh_string_free_char(exit_signal_status);
+    }
+    return -1;
 }
