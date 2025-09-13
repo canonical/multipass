@@ -1,7 +1,7 @@
 (explanation-about-security)=
 # About security
 
-> See also: [Authentication](/explanation/authentication), [How to authenticate clients with the Multipass service](/how-to-guides/customise-multipass/authenticate-clients-with-the-multipass-service), [`authenticate`](/reference/command-line-interface/authenticate), [`local.passphrase`](/reference/settings/local-passphrase)
+> See also: [Authentication](/explanation/authentication), [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service), [`authenticate`](/reference/command-line-interface/authenticate), [`local.passphrase`](/reference/settings/local-passphrase)
 
 ```{caution}
 **WARNING**
