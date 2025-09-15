@@ -176,6 +176,7 @@ private:
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)
     mutable std::recursive_mutex snapshot_mutex;
+    bool was_running{false};
 };
 
 } // namespace multipass
