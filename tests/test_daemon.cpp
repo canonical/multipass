@@ -471,7 +471,7 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("yakety-yak");
     EXPECT_CALL(*mock_vm, current_state)
-        .Times(2)
+        .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
@@ -506,7 +506,7 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state)
-        .Times(2)
+        .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, update_state).Times(1);
@@ -529,7 +529,7 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state)
-        .Times(2)
+        .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, update_state).Times(1);
@@ -552,7 +552,7 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state)
-        .Times(2)
+        .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, update_state).Times(1);
