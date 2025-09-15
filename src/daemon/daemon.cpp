@@ -2207,7 +2207,7 @@ try
 
         if (vm->current_state() == VirtualMachine::State::unavailable)
         {
-            mpl::log(mpl::Level::info, name, "Ignoring mount since instance unavailable.");
+            add_fmt_to(errors, "instance '{}' is not available", name);
             continue;
         }
 
@@ -2561,14 +2561,6 @@ try
 
     const auto& instance_targets = instance_selection.operative_selection;
     status = cmd_vms(instance_targets, [this](auto& vm) {
-        if (vm.current_state() == VirtualMachine::State::unavailable)
-        {
-            mpl::log(mpl::Level::info,
-                     vm.vm_name,
-                     "Ignoring restart since instance is unavailable.");
-            return grpc::Status::OK;
-        }
-
         stop_mounts(vm.vm_name);
 
         return reboot_vm(vm);
@@ -4041,11 +4033,6 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             return fmt::to_string(errors);
         }
         const auto vm = it->second;
-
-        if (vm->current_state() == VirtualMachine::State::unavailable)
-        {
-            return fmt::to_string(errors);
-        }
 
         vm->wait_until_ssh_up(timeout);
 

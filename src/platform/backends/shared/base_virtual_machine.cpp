@@ -59,7 +59,7 @@ constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped(St state)
 {
-    assert(state == St::off || state == St::stopped || state == St::unavailable);
+    assert(state == St::off || state == St::stopped);
 }
 
 mp::Path derive_head_path(const QDir& snapshot_dir)

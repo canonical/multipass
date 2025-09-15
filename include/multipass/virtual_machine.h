@@ -137,7 +137,6 @@ public:
 
 protected:
     const QDir instance_dir;
-    bool was_running{false};
 
     VirtualMachine(VirtualMachine::State state,
                    const std::string& vm_name,
