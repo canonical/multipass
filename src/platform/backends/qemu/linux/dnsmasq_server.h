@@ -32,16 +32,18 @@ namespace multipass
 {
 class Process;
 
+using SubnetList = std::vector<std::pair<QString, std::string>>;
+
 class DNSMasqServer : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<DNSMasqServer>;
 
-    DNSMasqServer(const Path& data_dir, const QString& bridge_name, const std::string& subnet);
+    DNSMasqServer(const Path& data_dir, const SubnetList& subnets);
     virtual ~DNSMasqServer(); // inherited by mock for testing
 
     virtual std::optional<IPAddress> get_ip_for(const std::string& hw_addr);
-    virtual void release_mac(const std::string& hw_addr);
+    virtual void release_mac(const std::string& hw_addr, const QString& bridge_name);
     virtual void check_dnsmasq_running();
 
 protected:
@@ -51,8 +53,6 @@ private:
     void start_dnsmasq();
 
     const QString data_dir;
-    const QString bridge_name;
-    const std::string subnet;
     std::unique_ptr<Process> dnsmasq_cmd;
     QMetaObject::Connection finish_connection;
     QTemporaryFile conf_file;
@@ -67,7 +67,6 @@ public:
         : Singleton<DNSMasqServerFactory>::Singleton{pass} {};
 
     virtual DNSMasqServer::UPtr make_dnsmasq_server(const Path& network_dir,
-                                                    const QString& bridge_name,
-                                                    const std::string& subnet) const;
+                                                    const SubnetList& subnets) const;
 };
 } // namespace multipass
