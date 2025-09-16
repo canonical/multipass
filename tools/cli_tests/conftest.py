@@ -337,7 +337,7 @@ def ensure_sudo_auth():
         result = subprocess.run(
             [*get_sudo_tool(), "-n", "true"],
             capture_output=True,
-            timeout=1,
+            timeout=90,
             check=False,
         )
 
