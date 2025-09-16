@@ -30,6 +30,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_virtdisk.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_bb_cit_hyperv.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_virtual_machine.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_virtual_machine_factory.cpp
     )
 
     target_link_libraries(multipass_tests hyperv_api_backend)
