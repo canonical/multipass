@@ -453,6 +453,7 @@ void HCSVirtualMachine::start()
     // Create the compute system, if not created yet.
     maybe_create_compute_system();
 
+    const auto prev_state = current_state();
     state = VirtualMachine::State::starting;
     update_state();
     // Resume and start are the same thing in Multipass terms
@@ -480,7 +481,7 @@ void HCSVirtualMachine::start()
 
     if (!status)
     {
-        state = VirtualMachine::State::stopped;
+        state = prev_state;
         update_state();
         throw StartComputeSystemException{"Could not start the VM: {}", status};
     }
