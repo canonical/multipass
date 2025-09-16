@@ -38,7 +38,7 @@ namespace multipass::hyperv
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
  */
-struct HCSVirtualMachine final : public BaseVirtualMachine
+struct HCSVirtualMachine : public BaseVirtualMachine
 {
     HCSVirtualMachine(hcs_sptr_t hcs_w,
                       hcn_sptr_t hcn_w,
