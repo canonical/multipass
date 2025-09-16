@@ -50,6 +50,11 @@ struct HcsRequestType
         return HcsRequestType{"Update"};
     }
 
+    bool operator==(const HcsRequestType& rhs) const
+    {
+        return value == rhs.value;
+    }
+
 private:
     constexpr HcsRequestType(std::string_view v) : value(v)
     {
