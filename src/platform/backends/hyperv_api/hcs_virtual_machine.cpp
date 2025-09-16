@@ -526,7 +526,9 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     auto on_timeout = [] {
         throw std::runtime_error("timed out waiting for initialization to complete");
     };
+
     multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+        set_state(fetch_state_from_api());
         switch (current_state())
         {
         case VirtualMachine::State::stopped:
