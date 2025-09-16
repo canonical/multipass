@@ -48,7 +48,7 @@ from cli_tests.multipass import (
     nuke_all_instances,
     determine_storage_dir,
     determine_bin_dir,
-    determine_data_dir
+    determine_data_dir,
 )
 
 from cli_tests.config import config
@@ -265,6 +265,7 @@ def pytest_collection_modifyitems(config, items):
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
 
+
 def make_temporary_storage_dir(request):
     # Otherwise, create a temp dir for the whole session
     with TempDirectory(delete=False) as tmpdir:
@@ -277,9 +278,7 @@ def make_temporary_storage_dir(request):
                 shutil.rmtree(str(tmpdir))
                 print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
             except PermissionError:
-                print(
-                    f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}"
-                )
+                print(f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}")
                 subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
 
         # Register finalizer to cleanup on exit
@@ -333,6 +332,14 @@ def store_config(request):
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
     try:
+        if sys.platform == "win32":
+            # Enable credential caching
+            subprocess.run(
+                [*get_sudo_tool(), "cache", "on"],
+                capture_output=True,
+                timeout=90,
+                check=False,
+            )
         # Test if sudo is already authenticated
         result = subprocess.run(
             [*get_sudo_tool(), "-n", "true"],
