@@ -369,10 +369,9 @@ TEST_F(PowerShellTest, execReturnsCmdOutput)
             InSequence seq;
             auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
 
-            EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+            EXPECT_CALL(*process, start).WillOnce(emit_ready_read);
             EXPECT_CALL(*process, read_all_standard_output)
-                .WillOnce(
-                    DoAll(Invoke(emit_ready_read), Return(datum2))) // the invoke needs to be 1st
+                .WillOnce(DoAll(emit_ready_read, Return(datum2))) // the invoke needs to be 1st
                 .WillOnce(Return(datum1)); // which results in the last return happening 1st
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
         },
