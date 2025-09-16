@@ -121,6 +121,11 @@ struct HcnNetworkType
         return HcnNetworkType{"ConstrainedICS"};
     }
 
+    bool operator==(const HcnNetworkType& rhs) const
+    {
+        return value == rhs.value;
+    }
+
 private:
     constexpr HcnNetworkType(std::string_view v) : value(v)
     {
