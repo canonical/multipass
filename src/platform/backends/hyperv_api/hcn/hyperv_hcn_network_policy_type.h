@@ -154,6 +154,11 @@ struct HcnNetworkPolicyType
         return HcnNetworkPolicyType{"NetworkACL"};
     }
 
+    bool operator==(const HcnNetworkPolicyType& rhs) const
+    {
+        return value == rhs.value;
+    }
+
 private:
     constexpr HcnNetworkPolicyType(std::string_view v) : value(v)
     {
