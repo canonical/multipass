@@ -86,7 +86,7 @@ Search for "Edit environment variables for your account" then edit your Path var
 - `C:\Program Files\CMake\bin`
 - `C:\Qt\6.2.4\msvc2019_64\bin`
 
-If you installed the VS2022 toolchain, the pahts are instead:
+If you installed the VS2022 toolchain, the paths are instead:
 
 - `C:\Program Files\CMake\bin`
 - `C:\Qt\6.2.4\msvc2022_64\bin`
