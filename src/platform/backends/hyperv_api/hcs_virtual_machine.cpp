@@ -593,7 +593,17 @@ std::string HCSVirtualMachine::ipv6()
 }
 void HCSVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] { return state != State::off; };
+    auto is_vm_running = [this] {
+        switch (current_state())
+        {
+        case State::stopped:
+        case State::off:
+            return false;
+        default:
+            return true;
+        }
+    };
+
     multipass::backend::ensure_vm_is_running_for(this,
                                                  is_vm_running,
                                                  "Instance shutdown during start");
