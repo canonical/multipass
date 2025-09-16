@@ -106,7 +106,7 @@ choco install cmder -yfd
 The following will setup a task that you can use to build things with the VS2019 compiler toolchain.
 
 1. Run cmder which should be installed by default on C:\tools\cmder\Cmder.exe
-2. Click on the green "+" sign on the right lower corner of cmder
+2. Click the dropdown arrow next to the green "+" sign in the lower right corner of cmder
 3. Select "Setup tasks..."
 4. Click the "+" button to add a new task
 5. In the task parameters box add (basically copying from cmd:Cmder task):
