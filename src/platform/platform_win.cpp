@@ -716,20 +716,13 @@ mp::platform::Platform::get_network_interfaces_info() const
     auto adapter_type_to_str = [](int type) {
         switch (type)
         {
-        case MIB_IF_TYPE_OTHER:
-            return "Other";
-        case MIB_IF_TYPE_ETHERNET:
+        // ipifcons.h
+        case IF_TYPE_ETHERNET_CSMACD:
             return "Ethernet";
-        case MIB_IF_TYPE_TOKENRING:
-            return "Token Ring";
-        case MIB_IF_TYPE_FDDI:
-            return "FDDI";
-        case MIB_IF_TYPE_PPP:
-            return "PPP";
-        case MIB_IF_TYPE_LOOPBACK:
+        case IF_TYPE_SOFTWARE_LOOPBACK:
             return "Loopback";
-        case MIB_IF_TYPE_SLIP:
-            return "Slip";
+        case IF_TYPE_IEEE80211:
+            return "IEEE 802.11";
         default:
             return "Unknown";
         }
