@@ -64,7 +64,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
+    std::string ssh_hostname(std::chrono::milliseconds timeout = {}) override;
     std::string ssh_username() override;
     std::string management_ipv4() override;
     std::string ipv6() override;
