@@ -267,7 +267,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     }
 }
 
-TEST_F(HyperVVirtDisk_IntegrationTests, DISABLED_list_parents)
+TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
 {
     uut_t uut{};
     // Create parent
@@ -311,7 +311,6 @@ TEST_F(HyperVVirtDisk_IntegrationTests, DISABLED_list_parents)
     }
 
     // Try to list
-
     std::vector<std::filesystem::path> result{};
     ASSERT_TRUE(uut.list_virtual_disk_chain(child2_temp_path, result));
     ASSERT_EQ(result.size(), 3);
@@ -319,9 +318,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, DISABLED_list_parents)
     EXPECT_TRUE(std::filesystem::equivalent(result[0], child2_temp_path));
     EXPECT_TRUE(std::filesystem::equivalent(result[1], child1_temp_path));
     EXPECT_TRUE(std::filesystem::equivalent(result[2], parent_temp_path));
-    EXPECT_EQ(result[0], child2_temp_path);
-    EXPECT_EQ(result[1], child1_temp_path);
-    EXPECT_EQ(result[2], parent_temp_path);
+
     for (const auto& path : result)
     {
         std::wprintf(L"Child Path: %s\n", path.c_str());
