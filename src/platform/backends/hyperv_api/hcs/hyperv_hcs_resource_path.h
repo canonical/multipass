@@ -52,6 +52,11 @@ struct HcsResourcePath
         return std::string{"VirtualMachine/Devices/Plan9/Shares"};
     }
 
+    bool operator==(const HcsResourcePath& rhs) const
+    {
+        return value == rhs.value;
+    }
+
 private:
     HcsResourcePath(std::string v) : value(v)
     {
