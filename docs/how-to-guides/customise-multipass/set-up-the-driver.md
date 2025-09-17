@@ -33,39 +33,6 @@ By default, Multipass on Windows uses the `hyperv` driver.
 
 `````{tabs}
 
-````{group-tab} Linux
-```{warning}
-Support for libvirt driver will be deprecated and removed in a future release.
-```
-If you want more control over your VMs after they are launched, you can also use the experimental [libvirt](https://libvirt.org/) driver.
-
-To install libvirt, run the following command (or use the equivalent for your Linux distribution):
-
-```{code-block} text
-sudo apt install libvirt-daemon-system
-```
-
-Now you can switch the Multipass driver to libvirt. First, enable Multipass to use your local libvirt by connecting to the libvirt interface/plug:
-
-```{code-block} text
-sudo snap connect multipass:libvirt
-```
-
-Then, stop all instances and tell Multipass to use libvirt, running the following commands:
-
-```{code-block} text
-multipass stop --all
-multipass set local.driver=libvirt
-```
-
-All your existing instances will be migrated and can be used straight away.
-
-```{note}
-You can still use the `multipass` client and the tray icon, and any changes you make to the configuration of the instance in libvirt will be persistent. They may not be represented in Multipass commands such as `multipass info`, though.
-```
-
-````
-
 ````{group-tab} macOS
 
 An alternative option is to use VirtualBox.
@@ -106,6 +73,7 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 `````{tabs}
 
+<<<<<<< HEAD
 ````{group-tab} Linux
 
 You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
@@ -136,6 +104,8 @@ Alternatively, to use the `virt-manager` GUI, ...
 
 ````
 
+=======
+>>>>>>> c64a829a2 ([docs] Remove libvirt related how-tos)
 ````{group-tab} macOS
 
 Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
@@ -370,9 +340,6 @@ multipass set local.driver=qemu
 
 Here, too, existing instances will be migrated.
 
-```{note}
-This will make you lose any customisations you made to the instance in `libvirt`.
-[/note]
 
 ````
 
