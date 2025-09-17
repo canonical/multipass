@@ -3590,21 +3590,6 @@ TEST_F(Client, setCmdRejectsBadValues)
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-#ifdef MULTIPASS_PLATFORM_LINUX // These tests concern linux-specific behavior for qemu<->libvirt
-                                // switching
-
-TEST_F(Client, setCmdTogglePetenv)
-{
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
-
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
-    EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}),
-                Eq(mp::ReturnCode::Ok));
-}
-
-#endif // MULTIPASS_PLATFORM_LINUX
-
 // general help tests
 TEST_F(Client, helpReturnsOkReturnCode)
 {
