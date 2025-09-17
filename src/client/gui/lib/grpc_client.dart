@@ -239,20 +239,22 @@ class GrpcClient {
 class CustomChannelCredentials extends ChannelCredentials {
   final List<int> certificateChain;
   final List<int> certificateKey;
+  final List<int> rootCertificate;
 
   CustomChannelCredentials({
     super.authority,
     required List<int> certificate,
     required this.certificateKey,
+    required this.rootCertificate,
   })  : certificateChain = certificate,
         super.secure(
           certificates: certificate,
-          onBadCertificate: allowBadCertificates,
         );
 
   @override
   SecurityContext get securityContext {
     final ctx = super.securityContext!;
+    ctx.setTrustedCertificatesBytes(rootCertificate);
     ctx.useCertificateChainBytes(certificateChain);
     ctx.usePrivateKeyBytes(certificateKey);
     return ctx;
