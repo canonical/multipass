@@ -26,23 +26,3 @@ index 07b85ba..157fbca 100644
 +      EOF
 +
 +      apt-get update
-   libvirt:
-     plugin: nil
-     stage-packages:
-@@ -139,6 +159,7 @@ parts:
-     build-packages:
-     - on arm64: [libgles2-mesa-dev]
-     - build-essential
-+    - ccache
-     - git
-     - libapparmor-dev
-     - libgl1-mesa-dev
-@@ -220,6 +241,8 @@ parts:
-     - -DMULTIPASS_ENABLE_TESTS=off
-     - -DMULTIPASS_UPSTREAM=origin
-     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
-+    - -DCMAKE_C_COMPILER_LAUNCHER=ccache
-+    - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-     override-build: |
-       craftctl default
-       set -e
