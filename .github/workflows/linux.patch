@@ -4,7 +4,7 @@ index 559eb56f6..c5fe7d48c 100644
 +++ b/snap/snapcraft.yaml
 @@ -105,6 +105,26 @@ apps:
        - x11
- 
+
  parts:
 +  inject-apt-mirrors:
 +    plugin: nil
