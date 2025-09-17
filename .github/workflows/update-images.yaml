@@ -41,3 +41,15 @@ jobs:
           sign-commits: true
           add-paths: |
             data/distributions/distribution-info.json
+
+      - name: Report workflow failure
+        if: ${{ failure() }}
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: multipass
+          TEXT: |
+            :red_circle: @mp
+            Scheduled [Update Cloud Images](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow failed.
+          MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
