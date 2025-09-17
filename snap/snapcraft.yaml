@@ -128,7 +128,6 @@ parts:
     - libgl1-mesa-dev
     - libsystemd-dev
     - libssl-dev
-    - libvirt-dev
     - pkg-config
     - qt6-base-dev
     - qt6-base-dev-tools
