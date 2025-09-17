@@ -27,8 +27,6 @@
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
-#include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
-#include <src/platform/backends/libvirt/libvirt_wrapper.h>
 #include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 
 #include "tests/qemu/linux/mock_dnsmasq_server.h"
@@ -81,12 +79,6 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return(driver));
     }
 
-    void with_minimally_mocked_libvirt(std::function<void()> test_contents)
-    {
-        mp::LibvirtWrapper libvirt_wrapper{""};
-        test_contents();
-    }
-
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
     mpt::SetEnvScope disable_apparmor{"DISABLE_APPARMOR", "1"};
@@ -136,22 +128,9 @@ TEST_F(PlatformLinux, testDefaultDriverProducesCorrectFactory)
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
 }
 
-TEST_F(PlatformLinux, testLibvirtDriverProducesCorrectFactory)
-{
-    auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
-    with_minimally_mocked_libvirt(test);
-}
-
 TEST_F(PlatformLinux, testLxdDriverProducesCorrectFactory)
 {
     aux_test_driver_factory<mp::LXDVirtualMachineFactory>("lxd");
-}
-
-TEST_F(PlatformLinux, testQemuInEnvVarIsIgnored)
-{
-    mpt::SetEnvScope env(mp::driver_env_var, "QEMU");
-    auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
-    with_minimally_mocked_libvirt(test);
 }
 
 TEST_F(PlatformLinux, testLibvirtInEnvVarIsIgnored)
