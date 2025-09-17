@@ -59,7 +59,6 @@ apps:
       - all-home
       - firewall-control
       - kvm
-      - libvirt
       - multipass-support
       - network-bind
       - network-control
@@ -106,21 +105,6 @@ apps:
       - x11
 
 parts:
-  libvirt:
-    plugin: nil
-    stage-packages:
-    - libvirt0
-    stage:
-    - -usr/lib/*/libssh*  # this avoids extra libssh libs in the snap
-    - -usr/lib/*/libvirt-* # No need to include extra libvirt objects in snap
-    - -usr/lib/**/sasl2
-    - -usr/lib/*/libicuio.so.*
-    - -usr/lib/*/libicutest.so.*
-    - -usr/lib/*/libicutu.so.*
-    - -usr/share/doc*
-    - -usr/share/libvirt
-    - -usr/share/lintian
-
   qt-ssl-plugin:
     plugin: nil
     stage-packages:
