@@ -12,6 +12,7 @@ IPs
 Junos
 Kaspersky
 misconfiguration
+mysqldump
 NIC
 NICs
 overallocate
