@@ -636,7 +636,7 @@ auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& ne
 }
 
 std::string deprecation_warning_message_driver_concatenated(
-    const QString driver_name) // TODO lxd and libvirt migration, remove
+    const QString driver_name) // TODO lxd migration, remove
 {
     constexpr auto driver_deprecation_warning_template_common_part =
         "*** Warning! The {0} driver is deprecated and will be removed in an future "
@@ -646,13 +646,6 @@ std::string deprecation_warning_message_driver_concatenated(
         "Instances will no longer be available in Multipass then, "
         "but they will remain in LXD.\n\n";
 
-    constexpr auto driver_deprecation_warning_libvirt_part =
-        "Instances will remain available with the QEMU driver.\n\n";
-
-    const std::string deprecation_warning_message_driver_specific_part =
-        driver_name == "lxd" ? driver_deprecation_warning_lxd_part
-                             : driver_deprecation_warning_libvirt_part;
-
     return fmt::format(driver_deprecation_warning_template_common_part, driver_name) +
-           deprecation_warning_message_driver_specific_part;
+           driver_deprecation_warning_lxd_part;
 }
