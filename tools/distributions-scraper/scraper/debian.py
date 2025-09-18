@@ -1,88 +1,180 @@
 import base64
+import logging
 import requests
+from typing import Dict, Optional
 from email.parser import Parser
 from scraper.base import BaseScraper
 
+logger = logging.getLogger(__name__)
 
-def _fetch_items(codename, version):
+RELEASE_FILE_URL = "https://deb.debian.org/debian/dists/stable/Release"
+MANIFEST_URL_TEMPLATE = (
+    "https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"
+)
+IMAGE_BASE_URL = "https://cloud.debian.org/images/cloud/"
+DEFAULT_TIMEOUT = 10
+
+
+def _fetch_text(url: str, timeout: int = DEFAULT_TIMEOUT):
+    """GET a URL and return its text. Raises requests.HTTPError on bad response."""
+    logger.info("Fetching Debian releases from %s", url)
+    resp = requests.get(url, timeout=timeout)
+    resp.raise_for_status()
+    return resp.text
+
+
+def _fetch_json(url: str, timeout: int = DEFAULT_TIMEOUT):
+    """GET a URL and return JSON-decoded content."""
+    logger.info("Fetching Debian manifest from %s", url)
+    resp = requests.get(url, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _parse_release_file(content: str):
+    """Parse RFC822-style Release file and return important fields.
+
+    Returns a dict with keys: Version, Codename
+    """
+    parser = Parser()
+    parsed = parser.parsestr(content)
+    version = parsed.get("Version")
+    codename = parsed.get("Codename")
+    logger.info("Parsed Release file: Version=%s, Codename=%s", version, codename)
+    return {"Version": version, "Codename": codename}
+
+
+def _head_content_length(url: str, timeout: int = DEFAULT_TIMEOUT):
+    """HEAD the URL and return Content-Length as int if present, otherwise None.
+
+    Raises requests.HTTPError on non-2xx responses.
+    """
+    logger.info("Sending HEAD request to %s", url)
+    resp = requests.head(url, allow_redirects=True, timeout=timeout)
+    resp.raise_for_status()
+    length = resp.headers.get("Content-Length")
+    if length is None:
+        return None
+    try:
+        return int(length)
+    except (TypeError, ValueError):
+        logger.warning("Invalid Content-Length header: %s", length)
+        return None
+
+
+def _decode_sha512_b64_to_hex(digest_annotation: Optional[str]):
+    """Convert a digest annotation like 'sha512:BASE64' to 'sha512:<hex>' or return None.
+
+    Handles missing padding in base64 and logs errors instead of crashing.
+    """
+    if not digest_annotation:
+        return None
+
+    prefix = "sha512:"
+    if not digest_annotation.startswith(prefix):
+        logger.info("Unexpected digest format: %s", digest_annotation)
+        return None
+
+    b64 = digest_annotation[len(prefix):]
+    # Add missing padding if necessary
+    missing_padding = len(b64) % 4
+    if missing_padding:
+        b64 += "=" * (4 - missing_padding)
+
+    try:
+        decoded = base64.b64decode(b64)
+        return f"{prefix}{decoded.hex()}"
+    except TypeError as exc:
+        logger.warning("Failed to decode base64 digest: %s (%s)", digest_annotation, exc)
+        return None
+
+
+def _find_qcow2_upload(manifest: Dict):
+    """Search a manifest for the first Upload entry with qcow2 image-format.
+
+    Returns the matching item dict or None if not found.
+    """
+    for item in manifest.get("items") or []:
+        kind = item.get("kind")
+        metadata = item.get("metadata") or {}
+        labels = metadata.get("labels") or {}
+        if kind == "Upload" and labels.get("upload.cloud.debian.org/image-format") == "qcow2":
+            return item
+    return None
+
+
+def _fetch_items(codename: str, version: str):
+    """Fetch image manifests for known arches and build the items mapping.
+
+    Preserves original mapping and output structure.
+    """
     arch_map = {
         "amd64": "x86_64",
         "arm64": "arm64",
     }
 
-    items = {}
+    items: Dict[str, Dict] = {}
     for arch, label in arch_map.items():
-        url = f"https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        manifest = response.json()
+        manifest_url = MANIFEST_URL_TEMPLATE.format(codename=codename, version=version, arch=arch)
+        manifest = _fetch_json(manifest_url)
 
-        # Find qcow2 upload entry
-        for item in manifest.get("items"):
-            kind = item.get("kind")
-            labels = item.get("metadata").get("labels")
-            annotations = item.get("metadata").get("annotations")
-            data = item.get("data")
+        upload_item = _find_qcow2_upload(manifest)
+        if not upload_item:
+            logger.info("No qcow2 upload found for %s %s", codename, arch)
+            continue
 
-            if kind == "Upload" and labels.get("upload.cloud.debian.org/image-format") == "qcow2":
-                image_ref = data.get("ref")
-                if image_ref:
-                    # Construct the full image URL
-                    image_url = f"https://cloud.debian.org/images/cloud/{image_ref}"
+        metadata = upload_item.get("metadata") or {}
+        labels = metadata.get("labels") or {}
+        annotations = metadata.get("annotations") or {}
+        data = upload_item.get("data") or {}
 
-                    # HEAD request to get size
-                    head_resp = requests.head(image_url, timeout=10, allow_redirects=True)
-                    head_resp.raise_for_status()
-                    size = head_resp.headers.get("Content-Length")
+        image_ref = data.get("ref")
+        if not image_ref:
+            logger.warning("Upload item missing data.ref for %s %s", codename, arch)
+            continue
 
-                    # Convert base64 to hex
-                    sha512_b64 = annotations.get("cloud.debian.org/digest")
-                    sha512_b64 = sha512_b64[len("sha512:"):]
+        image_url = IMAGE_BASE_URL + image_ref
+        size = _head_content_length(image_url)
+        sha512_hex = _decode_sha512_b64_to_hex(annotations.get("cloud.debian.org/digest"))
 
-                    # Add missing padding if necessary
-                    missing_padding = len(sha512_b64) % 4
-                    if missing_padding:
-                        sha512_b64 += "=" * (4 - missing_padding)
+        # Take the version label as in the original implementation (split on '-')
+        raw_version_label = labels.get("cloud.debian.org/version")
+        short_version = None
+        if raw_version_label:
+            short_version = raw_version_label.split("-")[0]
 
-                    sha512_hex = f"sha512:{base64.b64decode(sha512_b64).hex()}"
-
-                    items[label] = {
-                        "image_location": image_url,
-                        "id": sha512_hex,
-                        "version": labels.get("cloud.debian.org/version").split("-")[0],
-                        "size": int(size) if size is not None else None,
-                    }
-                break  # stop after finding qcow2
+        items[label] = {
+            "image_location": image_url,
+            "id": sha512_hex,
+            "version": short_version,
+            "size": size,
+        }
 
     return items
 
 
 class DebianScraper(BaseScraper):
     @property
-    def name(self):
+    def name(self) -> str:
         return "Debian"
 
-    def fetch(self):
-        url = "https://deb.debian.org/debian/dists/stable/Release"
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-
-        # Parse RFC822-style metadata
-        content = response.text
-        parser = Parser()
-        parsed = parser.parsestr(content)
+    def fetch(self) -> Dict:
+        release_text = _fetch_text(RELEASE_FILE_URL)
+        parsed = _parse_release_file(release_text)
 
         raw_version = parsed.get("Version")
-        release = parsed.get("Codename")
-        version = raw_version.split(".")[0] if raw_version else None
+        codename = parsed.get("Codename")
+        if not codename:
+            raise RuntimeError("Could not determine Debian codename from Release file")
 
-        items = _fetch_items(release, version)
+        version = raw_version.split(".")[0] if raw_version else None
+        items = _fetch_items(codename, version)
 
         return {
-            "aliases": f"debian, {release}",
+            "aliases": f"debian, {codename}",
             "os": "Debian",
-            "release": release,
-            "release_codename": release.capitalize(),
+            "release": codename,
+            "release_codename": codename.capitalize(),
             "release_title": version,
-            "items": items
+            "items": items,
         }

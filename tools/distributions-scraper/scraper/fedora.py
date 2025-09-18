@@ -1,64 +1,115 @@
+import logging
 import requests
-from scraper.base import BaseScraper
+from typing import Dict, List, Optional, Tuple
 from dateutil import parser as dateparser
+from scraper.base import BaseScraper
+
+
+logger = logging.getLogger(__name__)
+
+RELEASES_URL = "https://fedoraproject.org/releases.json"
+DEFAULT_TIMEOUT = 10
+
+
+def _parse_version(version: str):
+    try:
+        return int(version)
+    except ValueError:
+        logger.info("Failed to parse version '%s' as int", version)
+        return -1
+
+
+def _is_cloud_base_generic(artifact: Dict):
+    """Return True if the artifact matches the Fedora Cloud Base Generic pattern."""
+    return (
+        artifact.get("variant") == "Cloud"
+        and artifact.get("subvariant") == "Cloud_Base"
+        and "Fedora-Cloud-Base-Generic" in artifact.get("link", "")
+    )
+
+
+def _fetch_artifacts(url: str = RELEASES_URL, timeout: int = DEFAULT_TIMEOUT):
+    """Fetch the releases JSON and return the parsed artifacts list."""
+    logger.info("Fetching Fedora releases from %s", url)
+    resp = requests.get(url, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _find_latest_version(images: List[Dict]):
+    """Find the latest version string among a list of images."""
+    if not images:
+        raise RuntimeError("No images to determine latest version")
+
+    latest = max(images, key=lambda a: _parse_version(a.get("version", "0")))
+    version = latest.get("version", "")
+    logger.info("Determined latest version: %s", version)
+    return version
+
+
+def _map_arch_label(arch: str):
+    """Map Fedora architecture names to the labels used in our items output.
+
+    Returns None for unsupported arches.
+    """
+    if arch == "aarch64":
+        return "arm64"
+    if arch == "x86_64":
+        return "x86_64"
+    return None
+
+
+def _get_last_modified_for_url(url: str, timeout: int = DEFAULT_TIMEOUT):
+    """HEAD the URL and return a parsed Last-Modified header if present."""
+    logger.info("Sending HEAD request to %s", url)
+    resp = requests.head(url, timeout=timeout, allow_redirects=True)
+    resp.raise_for_status()
+    last_mod = resp.headers.get("Last-Modified")
+    if last_mod:
+        try:
+            return dateparser.parse(last_mod)
+        except (ValueError, TypeError) as exc:
+            logger.debug("Failed to parse Last-Modified header '%s': %s", last_mod, exc)
+    return None
 
 
 class FedoraScraper(BaseScraper):
     @property
-    def name(self):
+    def name(self) -> str:
         return "Fedora"
 
     def fetch(self):
-        url = "https://fedoraproject.org/releases.json"
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        artifacts = response.json()
+        """Main entrypoint: fetch Fedora Cloud Base Generic images and return normalized metadata."""
+        artifacts = _fetch_artifacts()
 
-        # Filter only Cloud Base Generic images
-        images = [
-            a for a in artifacts
-            if a.get("variant") == "Cloud"
-               and a.get("subvariant") == "Cloud_Base"
-               and "Fedora-Cloud-Base-Generic" in a.get("link", "")
-        ]
-
+        images = [a for a in artifacts if _is_cloud_base_generic(a)]
         if not images:
             raise RuntimeError("No Fedora Cloud Base Generic images found")
 
-        # Find latest version (parse version as int, fall back to string compare)
-        def version_key(a):
-            v = a.get("version", "0")
-            try:
-                return tuple(map(int, v.replace("-", ".").split(".")))
-            except ValueError:
-                return (0,)
+        latest_version = _find_latest_version(images)
+        latest_images = [a for a in images if a.get("version") == latest_version]
+        if not latest_images:
+            raise RuntimeError(f"No images found for latest version {latest_version}")
 
-        latest_version = max(images, key=version_key)["version"]
-
-        # Keep only latest version
-        latest_images = [a for a in images if a["version"] == latest_version]
-
-        items = {}
+        items: Dict[str, Dict] = {}
         for img in latest_images:
-            arch = img["arch"]
-            if arch == "aarch64":
-                label = "arm64"
-            elif arch == "x86_64":
-                label = "x86_64"
-            else:
-                continue  # ignore unsupported arches
+            arch = img.get("arch")
+            label = _map_arch_label(arch)
+            if not label:
+                logger.info("Skipping unsupported architecture: %s", arch)
+                continue
 
-            # HEAD request to get size
-            head_resp = requests.head(img["link"], timeout=10, allow_redirects=True)
-            head_resp.raise_for_status()
-            last_modified = head_resp.headers.get("Last-Modified")
-            if last_modified:
-                last_modified = dateparser.parse(last_modified)
+            last_modified = None
+            link = img.get("link")
+            if link:
+                last_modified = _get_last_modified_for_url(link)
 
+            # Compose item entry
             items[label] = {
-                "image_location": img["link"],
-                "id": img["sha256"],
-                "version": last_modified.strftime("%Y%m%d"),
+                "image_location": link,
+                "id": img.get("sha256"),
+                # match previous behaviour: use parsed Last-Modified date formatted as YYYYMMDD
+                "version": last_modified.strftime("%Y%m%d") if last_modified else "",
                 "size": int(img.get("size", 0)),
             }
 
