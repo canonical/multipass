@@ -46,6 +46,11 @@ service Rpc {
     rpc clone (stream CloneRequest) returns (stream CloneReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
     rpc wait_ready (stream WaitReadyRequest) returns (stream WaitReadyReply);
+    rpc list_disks (stream ListDisksRequest) returns (stream ListDisksReply);
+    rpc create_disk (stream CreateDiskRequest) returns (stream CreateDiskReply);
+    rpc delete_disk (stream DeleteDiskRequest) returns (stream DeleteDiskReply);
+    rpc attach_disk (stream AttachDiskRequest) returns (stream AttachDiskReply);
+    rpc detach_disk (stream DetachDiskRequest) returns (stream DetachDiskReply);
 }
 
 message LaunchRequest {
@@ -557,5 +562,62 @@ message WaitReadyRequest {
 }
 
 message WaitReadyReply {
+    string log_line = 1;
+}
+
+message ListDisksRequest {
+    int32 verbosity_level = 1;
+}
+
+message BlockDevice {
+    string name = 1;
+    string size = 2;
+    string path = 3;
+    string attached_to = 4;
+}
+
+message ListDisksReply {
+    repeated BlockDevice block_devices = 1;
+    string log_line = 2;
+}
+
+message CreateDiskRequest {
+    string name = 1;
+    string size = 2;
+    int32 verbosity_level = 3;
+}
+
+message CreateDiskReply {
+    string disk_name = 1;
+    string disk_size = 2;
+    string log_line = 3;
+}
+
+message DeleteDiskRequest {
+    string name = 1;
+    int32 verbosity_level = 2;
+}
+
+message DeleteDiskReply {
+    string log_line = 1;
+}
+
+message AttachDiskRequest {
+    string disk_name = 1;
+    string instance_name = 2;
+    int32 verbosity_level = 3;
+}
+
+message AttachDiskReply {
+    string log_line = 1;
+}
+
+message DetachDiskRequest {
+    string disk_name = 1;
+    string instance_name = 2;
+    int32 verbosity_level = 3;
+}
+
+message DetachDiskReply {
     string log_line = 1;
 }

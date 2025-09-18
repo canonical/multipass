@@ -453,5 +453,86 @@ public:
                 PrepareAsyncwait_readyRaw,
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
+
+    // Block storage / disk operations
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::ListDisksRequest,
+                                                   multipass::ListDisksReply>*),
+                list_disksRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ListDisksRequest,
+                                                        multipass::ListDisksReply>*),
+                Asynclist_disksRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::ListDisksRequest,
+                                                        multipass::ListDisksReply>*),
+                PrepareAsynclist_disksRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::CreateDiskRequest,
+                                                   multipass::CreateDiskReply>*),
+                create_diskRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::CreateDiskRequest,
+                                                        multipass::CreateDiskReply>*),
+                Asynccreate_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::CreateDiskRequest,
+                                                        multipass::CreateDiskReply>*),
+                PrepareAsynccreate_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::DeleteDiskRequest,
+                                                   multipass::DeleteDiskReply>*),
+                delete_diskRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DeleteDiskRequest,
+                                                        multipass::DeleteDiskReply>*),
+                Asyncdelete_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DeleteDiskRequest,
+                                                        multipass::DeleteDiskReply>*),
+                PrepareAsyncdelete_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::AttachDiskRequest,
+                                                   multipass::AttachDiskReply>*),
+                attach_diskRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::AttachDiskRequest,
+                                                        multipass::AttachDiskReply>*),
+                Asyncattach_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::AttachDiskRequest,
+                                                        multipass::AttachDiskReply>*),
+                PrepareAsyncattach_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
+
+    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::DetachDiskRequest,
+                                                   multipass::DetachDiskReply>*),
+                detach_diskRaw,
+                (grpc::ClientContext * context),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DetachDiskRequest,
+                                                        multipass::DetachDiskReply>*),
+                Asyncdetach_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::DetachDiskRequest,
+                                                        multipass::DetachDiskReply>*),
+                PrepareAsyncdetach_diskRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
 };
 } // namespace multipass::test

@@ -17,19 +17,30 @@
 
 #pragma once
 
-#include <multipass/cli/formatter.h>
+#include <multipass/cli/command.h>
 
 namespace multipass
 {
-class CSVFormatter final : public Formatter
+namespace cmd
+{
+class DeleteDisk final : public Command
 {
 public:
-    std::string format(const InfoReply& info) const override;
-    std::string format(const ListReply& list) const override;
-    std::string format(const NetworksReply& list) const override;
-    std::string format(const FindReply& list) const override;
-    std::string format(const VersionReply& list, const std::string& client_version) const override;
-    std::string format(const AliasDict& aliases) const override;
-    std::string format(const ListDisksReply& reply) const override;
+    using Command::Command;
+    ReturnCode run(ArgParser* parser) override;
+
+    std::string name() const override;
+    std::vector<std::string> aliases() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    ParseCode parse_args(ArgParser* parser);
+    std::string generate_disk_delete_msg() const;
+    bool confirm_disk_delete() const;
+
+    DeleteDiskRequest request;
+    bool delete_all = false;
 };
+} // namespace cmd
 } // namespace multipass

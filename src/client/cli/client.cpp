@@ -20,7 +20,10 @@
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
 #include "cmd/clone.h"
+#include "cmd/create_disk.h"
 #include "cmd/delete.h"
+#include "cmd/delete_disk.h"
+#include "cmd/disks.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -109,6 +112,9 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Unalias>(aliases);
     add_command<cmd::Restart>();
     add_command<cmd::Delete>(aliases);
+    add_command<cmd::CreateDisk>();
+    add_command<cmd::DeleteDisk>();
+    add_command<cmd::Disks>();
     add_command<cmd::Umount>();
     add_command<cmd::Version>();
     add_command<cmd::Clone>();

@@ -323,6 +323,22 @@ std::string mp::YamlFormatter::format(const VersionReply& reply,
     return mpu::emit_yaml(version);
 }
 
+std::string mp::YamlFormatter::format(const ListDisksReply& reply) const
+{
+    YAML::Node list;
+
+    for (const auto& device : reply.block_devices())
+    {
+        YAML::Node device_node;
+        device_node["size"] = device.size();
+        device_node["attached_to"] = device.attached_to().empty() ? "--" : device.attached_to();
+
+        list[device.name()].push_back(device_node);
+    }
+
+    return mpu::emit_yaml(list);
+}
+
 std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
