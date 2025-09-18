@@ -120,10 +120,9 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument(
         "target",
         QStringLiteral("Target mount points, in <name>[:<path>] format, where <name> is an "
-                       "instance name, and optional "
-                       "<path> is the mount point. If omitted, the mount point will be under "
-                       "%1/<source-dir>, where "
-                       "<source-dir> is the name of the <source> directory.")
+                       "instance name, and optional <path> is the mount point. If omitted, the "
+                       "mount point will be under %1/<source-dir>, where <source-dir> is the name "
+                       "of the <source> directory.")
             .arg(home_in_instance),
         "<target> [<target> ...]");
 
