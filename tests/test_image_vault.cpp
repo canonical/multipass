@@ -296,6 +296,28 @@ TEST_F(ImageVault, nonexistentLocalFileImageThrows)
         mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
 }
 
+TEST_F(ImageVault, DISABLE_ON_UNIX(imageFileNameWithDriveLetter))
+{
+    mpt::TempFile file;
+    // Verify that our temp file has a drive letter.
+    EXPECT_TRUE(file.name().at(1) == u':');
+
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    const mp::Query query{"", file.url().toStdString(), false, "", mp::Query::Type::LocalFile};
+
+    EXPECT_NO_THROW(vault.fetch_image(mp::FetchType::ImageOnly,
+                                      query,
+                                      stub_prepare,
+                                      stub_monitor,
+                                      std::nullopt,
+                                      save_dir.path()));
+}
+
 TEST_F(ImageVault, imageCloneFailOnNonExistSrcImage)
 {
     mp::DefaultVMImageVault vault{hosts,
