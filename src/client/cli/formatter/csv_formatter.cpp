@@ -281,6 +281,24 @@ std::string mp::CSVFormatter::format(const VersionReply& reply,
     return fmt::to_string(buf);
 }
 
+std::string mp::CSVFormatter::format(const ListDisksReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "Name,Size,Attached To\n");
+
+    for (const auto& device : reply.block_devices())
+    {
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{}\n",
+                       device.name(),
+                       device.size(),
+                       device.attached_to().empty() ? "--" : device.attached_to());
+    }
+
+    return fmt::to_string(buf);
+}
+
 std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 {
     fmt::memory_buffer buf;

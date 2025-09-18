@@ -473,6 +473,66 @@ grpc::Status mp::DaemonRpc::wait_ready(
         client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::list_disks(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<ListDisksReply, ListDisksRequest>* server)
+{
+    ListDisksRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_list_disks, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
+grpc::Status mp::DaemonRpc::create_disk(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<CreateDiskReply, CreateDiskRequest>* server)
+{
+    CreateDiskRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_create_disk, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
+grpc::Status mp::DaemonRpc::delete_disk(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<DeleteDiskReply, DeleteDiskRequest>* server)
+{
+    DeleteDiskRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_delete_disk, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
+grpc::Status mp::DaemonRpc::attach_disk(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<AttachDiskReply, AttachDiskRequest>* server)
+{
+    AttachDiskRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_attach_disk, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
+grpc::Status mp::DaemonRpc::detach_disk(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<DetachDiskReply, DetachDiskRequest>* server)
+{
+    DetachDiskRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_detach_disk, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
 template <typename OperationSignal>
 grpc::Status mp::DaemonRpc::verify_client_and_dispatch_operation(OperationSignal signal,
                                                                  const std::string& client_cert)
