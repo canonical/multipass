@@ -64,7 +64,7 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
         {
             // This is the expected state for when the daemon is not yet ready
             // Sleep for a short duration and signal to retry
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            MP_UTILS.sleep_for(std::chrono::milliseconds(500));
             return ReturnCode::Retry;
         }
 
