@@ -312,6 +312,7 @@ jobs:
     - name: Publish package on S3
       id: s3-upload
       uses: canonical/actions/s3-upload@release
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
       with:
         path: ${{ steps.cmake-package.outputs.path }}
         bucket: ${{ env.S3_BUCKET }}
@@ -407,7 +408,7 @@ jobs:
         retention-days: 7
 
     - name: Publish combined macOS package on S3
-      if: ${{ steps.combine-package.outputs.path }}
+      if: ${{ steps.combine-package.outputs.path && env.AWS_ACCESS_KEY_ID }}
       id: s3-upload
       uses: canonical/actions/s3-upload@release
       with:
