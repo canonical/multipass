@@ -88,13 +88,13 @@ jobs:
         installTics: true
 
     - name: Report workflow failure
-      if: ${{ failure() }}
+      if: ${{ failure() || cancelled() }}
       uses: mattermost/action-mattermost-notify@master
       with:
         MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
         MATTERMOST_CHANNEL: multipass
         TEXT: |
           :red_circle: @mp
-          Scheduled [TICS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow failed.
+          Scheduled [TICS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
