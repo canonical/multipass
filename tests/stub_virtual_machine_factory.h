@@ -94,6 +94,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 
     void require_suspend_support() const override
     {
+        // TODO: remove after LXD migration
         throw NotImplementedOnThisBackendException{"suspend"};
     }
 
