@@ -5,7 +5,7 @@ The following guides provide step-by-step instructions on how to customise Multi
 
 - [Set up the driver](set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](migrate-from-hyperkit-to-qemu-on-macos)
-- [Authenticate clients with the Multipass service](authenticate-clients-with-the-multipass-service)
+- [Authenticate users with the Multipass service](authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](build-multipass-images-with-packer)
 - [Set up a graphical interface](set-up-a-graphical-interface)
 - [Use a different terminal from the system icon](use-a-different-terminal-from-the-system-icon)
@@ -25,7 +25,7 @@ The following guides provide step-by-step instructions on how to customise Multi
 
 set-up-the-driver
 migrate-from-hyperkit-to-qemu-on-macos
-authenticate-clients-with-the-multipass-service
+authenticate-users-with-the-multipass-service
 build-multipass-images-with-packer
 set-up-a-graphical-interface
 use-a-different-terminal-from-the-system-icon
