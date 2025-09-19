@@ -143,9 +143,7 @@ TEST_F(TestPassphrasePrompters, newPassPhraseWrongPassphraseThrows)
         return cin;
     };
 
-    EXPECT_CALL(mock_terminal, cin())
-        .WillOnce(Invoke(good_passphrase))
-        .WillOnce(Invoke(bad_passphrase));
+    EXPECT_CALL(mock_terminal, cin()).WillOnce(good_passphrase).WillOnce(bad_passphrase);
 
     mp::NewPassphrasePrompter prompter{&mock_terminal};
 

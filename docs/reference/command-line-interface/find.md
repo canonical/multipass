@@ -13,11 +13,6 @@ core22                                        20230717         Ubuntu Core 22
 22.04                       jammy,lts         20240126         Ubuntu 22.04 LTS
 23.10                       mantic            20240206         Ubuntu 23.10
 daily:24.04                 noble,devel       20240129         Ubuntu 24.04 LTS
-appliance:adguard-home                        20200812         Ubuntu AdGuard Home Appliance
-appliance:mosquitto                           20200812         Ubuntu Mosquitto Appliance
-appliance:nextcloud                           20200812         Ubuntu Nextcloud Appliance
-appliance:openhab                             20200812         Ubuntu openHAB Home Appliance
-appliance:plexmediaserver                     20200812         Ubuntu Plex Media Server Appliance
 
 Blueprint                   Aliases           Version          Description
 anbox-cloud-appliance                         latest           Anbox Cloud Appliance
