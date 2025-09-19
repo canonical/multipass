@@ -38,7 +38,6 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -56,6 +55,8 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
+
+#include <rustipass_cxx/lib.h>
 
 #include <scope_guard.hpp>
 
@@ -204,7 +205,6 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 template <typename T>
 auto name_from(const std::string& requested_name,
                const std::string& blueprint_name,
-               mp::NameGenerator& name_gen,
                const T& currently_used_names)
 {
     if (!requested_name.empty())
@@ -217,12 +217,17 @@ auto name_from(const std::string& requested_name,
     }
     else
     {
-        auto name = name_gen.make_name();
+        // Create a Rust petname generator with 2 words and "-" separator
+        auto petname_generator = multipass::petname::new_petname(2, "-");
+        std::string name = std::string(multipass::petname::make_name(*petname_generator));
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
             if (currently_used_names.find(name) != currently_used_names.end())
+            {
+                name = std::string(multipass::petname::make_name(*petname_generator));
                 continue;
+            }
             return name;
         }
         throw std::runtime_error("unable to generate a unique name");
@@ -3313,10 +3318,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         server->Write(reply);
     }
 
-    auto name = name_from(checked_args.instance_name,
-                          blueprint_name,
-                          *config->name_generator,
-                          operative_instances);
+    auto name = name_from(checked_args.instance_name, blueprint_name, operative_instances);
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,

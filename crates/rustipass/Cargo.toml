@@ -1,0 +1,15 @@
+[package]
+name = "rustipass"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+cxx = { workspace = true }
+rand = { workspace = true }
+
+[build-dependencies]
+cxx-build = { workspace = true }
