@@ -42,19 +42,34 @@ std::string format_images(
                    "Aliases",
                    "Version",
                    "Description");
-    for (const auto& image : images_info)
+
+    std::vector<const mp::FindReply_ImageInfo*> sorted_images;
+    sorted_images.reserve(static_cast<size_t>(images_info.size()));
+    for (const auto& img : images_info)
     {
-        auto aliases = image.aliases_info();
+        sorted_images.push_back(&img);
+    }
+
+    std::stable_sort(sorted_images.begin(),
+                     sorted_images.end(),
+                     [](const mp::FindReply_ImageInfo* a, const mp::FindReply_ImageInfo* b) {
+                         return a->remote_name() > b->remote_name();
+                     });
+
+    for (const auto* image : sorted_images)
+    {
+        auto aliases = image->aliases();
         mp::format::filter_aliases(aliases);
 
         fmt::format_to(
             std::back_inserter(buf),
             "{:<28}{:<18}{:<17}{:<}\n",
-            mp::format::image_string_for(aliases[0]),
+            mp::format::image_string_for(image->remote_name(), aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
-            image.version(),
-            fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
+            image->version(),
+            fmt::format("{}{}", image->os().empty() ? "" : image->os() + " ", image->release()));
     }
+
     fmt::format_to(std::back_inserter(buf), "\n");
 
     return fmt::to_string(buf);
@@ -184,9 +199,9 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
         fmt::format_to(std::back_inserter(buf),
                        "{}{}\n",
                        instance_details.id().substr(0, 12),
-                       !instance_details.image_release().empty()
-                           ? fmt::format(" (Ubuntu {})", instance_details.image_release())
-                           : "");
+                       instance_details.image_release().empty()
+                           ? ""
+                           : fmt::format(" ({})", instance_details.image_release()));
 
     fmt::format_to(std::back_inserter(buf),
                    "{:<16}{}\n",
@@ -304,9 +319,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                        state_column_width,
                        ipv4_size ? instance.ipv4(0) : "--",
                        ip_column_width,
-                       instance.current_release().empty()
-                           ? "Not Available"
-                           : fmt::format("Ubuntu {}", instance.current_release()));
+                       instance.current_release().empty() ? "Not Available"
+                                                          : instance.current_release());
 
         for (int i = 1; i < ipv4_size; ++i)
         {

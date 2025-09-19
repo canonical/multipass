@@ -47,7 +47,7 @@ auto make_map()
 }
 
 const std::map<std::string, std::unique_ptr<mp::Formatter>> formatters{make_map()};
-const std::set<std::string> unwanted_aliases{"ubuntu", "default"};
+const std::set<std::string> unwanted_aliases{"default"};
 
 } // namespace
 
@@ -88,10 +88,11 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     return status_val;
 }
 
-std::string mp::format::image_string_for(const mp::FindReply_AliasInfo& alias)
+std::string mp::format::image_string_for(const std::string& remote_name, const std::string& alias)
 {
-    return alias.remote_name().empty() ? alias.alias()
-                                       : fmt::format("{}:{}", alias.remote_name(), alias);
+    return remote_name.empty() || remote_name == mp::release_remote
+               ? alias
+               : fmt::format("{}:{}", remote_name, alias);
 }
 
 mp::Formatter* mp::format::formatter_for(const std::string& format)
@@ -102,16 +103,15 @@ mp::Formatter* mp::format::formatter_for(const std::string& format)
     return nullptr;
 }
 
-void mp::format::filter_aliases(
-    google::protobuf::RepeatedPtrField<multipass::FindReply_AliasInfo>& aliases)
+void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<std::string>& aliases)
 {
     for (auto i = aliases.size() - 1; i >= 0; i--)
     {
         if (aliases.size() == 1) // Keep at least the first entry
             break;
-        if (aliases[i].alias().length() == 1)
+        if (aliases[i].length() == 1)
             aliases.DeleteSubrange(i, 1);
-        else if (unwanted_aliases.find(aliases[i].alias()) != unwanted_aliases.end())
+        else if (unwanted_aliases.find(aliases[i]) != unwanted_aliases.end())
             aliases.DeleteSubrange(i, 1);
     }
 }

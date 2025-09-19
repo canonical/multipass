@@ -16,8 +16,8 @@
  */
 #pragma once
 
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 
 namespace multipass
 {
@@ -57,7 +57,7 @@ struct StubVMImageHost final : public multipass::VMImageHost
         return {};
     }
 
-    void update_manifests(const bool is_force_update_from_network) override
+    void update_manifests(const bool force_update) override
     {
     }
 };
