@@ -81,9 +81,9 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
-    void require_snapshots_support() const override;
-    void require_suspend_support() const override;
-    void require_clone_support() const override;
+    void require_snapshots_support() const override; // TODO: remove after LXD migration
+    void require_suspend_support() const override;   // TODO: remove after LXD migration
+    void require_clone_support() const override;     // TODO: remove after LXD migration
 
 protected:
     static const Path instances_subdir;
@@ -122,15 +122,18 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
 
 inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() const
 {
+    // TODO: remove function after LXD migration
     throw NotImplementedOnThisBackendException{"snapshots"};
 }
 
 inline void multipass::BaseVirtualMachineFactory::require_suspend_support() const
 {
+    // TODO: remove function after LXD migration
 }
 
 inline void multipass::BaseVirtualMachineFactory::require_clone_support() const
 {
+    // TODO: remove function after LXD migration
     throw NotImplementedOnThisBackendException{"clone"};
 }
 
