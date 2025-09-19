@@ -45,8 +45,37 @@ means to obtain these dependencies is with Homebrew <https://brew.sh/>.
 Building
 ---------------------------------------
 
+### Additional configuration
+
+If you encounter errors about missing `pkg-config` or `ninja`, install them with:
+
+    brew install pkg-config ninja
+
+This is required for CMake to find all necessary build tools and dependencies.
+
+If you encounter Python errors about missing `tomli` during the QEMU build step, install it with:
+
+    pip3 install tomli
+
+This is required for Python-based build scripts.
+
+#### Xcode setup
+
+After installing Xcode, you may need to configure the command line tools and complete the initial setup:
+
+    sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+    sudo xcodebuild -runFirstLaunch
+
+The first command sets the active developer directory to your Xcode installation. This is necessary when xcodebuild is not found in the PATH or when there are multiple Xcode installations.
+
+The second command runs Xcode's first launch setup, which installs additional components and tools required for building iOS and macOS applications. This may be needed if you encounter errors about missing Xcode tools or frameworks during the build process.
+
+### Install Submodules
+
     cd <multipass>
     git submodule update --init --recursive
+
+### Build Multipass
 
 To build with official Qt sources do:
 
