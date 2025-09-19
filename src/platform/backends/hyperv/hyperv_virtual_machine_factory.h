@@ -43,8 +43,8 @@ public:
         return "hyperv";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
-    void require_snapshots_support() const override;
-    void require_clone_support() const override
+    void require_snapshots_support() const override; // TODO: remove after LXD migration
+    void require_clone_support() const override      // TODO: remove after LXD migration
     {
     }
 
@@ -68,4 +68,5 @@ private:
 
 inline void multipass::HyperVVirtualMachineFactory::require_snapshots_support() const
 {
+    // TODO: remove after LXD migration
 }
