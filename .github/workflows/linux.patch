@@ -1,8 +1,8 @@
 diff --git a/snap/snapcraft.yaml b/snap/snapcraft.yaml
-index 07b85ba..157fbca 100644
+index 559eb56f6..c5fe7d48c 100644
 --- a/snap/snapcraft.yaml
 +++ b/snap/snapcraft.yaml
-@@ -106,6 +106,26 @@ apps:
+@@ -105,6 +105,26 @@ apps:
        - x11
 
  parts:
@@ -26,10 +26,10 @@ index 07b85ba..157fbca 100644
 +      EOF
 +
 +      apt-get update
-   libvirt:
+   qt-ssl-plugin:
      plugin: nil
      stage-packages:
-@@ -139,6 +159,7 @@ parts:
+@@ -123,6 +143,7 @@ parts:
      build-packages:
      - on arm64: [libgles2-mesa-dev]
      - build-essential
@@ -37,7 +37,7 @@ index 07b85ba..157fbca 100644
      - git
      - libapparmor-dev
      - libgl1-mesa-dev
-@@ -220,6 +241,8 @@ parts:
+@@ -203,6 +224,8 @@ parts:
      - -DMULTIPASS_ENABLE_TESTS=off
      - -DMULTIPASS_UPSTREAM=origin
      - -DMULTIPASS_ENABLE_FLUTTER_GUI=on

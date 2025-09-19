@@ -1261,7 +1261,7 @@ mp::SettingsHandler* register_snapshot_mod(
 {
     try
     {
-        vm_factory.require_snapshots_support();
+        vm_factory.require_snapshots_support(); // TODO: remove function after LXD migration
         return MP_SETTINGS.register_handler(
             std::make_unique<mp::SnapshotSettingsHandler>(operative_instances,
                                                           deleted_instances,
@@ -1378,12 +1378,12 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 }
 
 template <typename Reply, typename Request>
-void lxd_and_libvirt_deprecation_warning(grpc::ServerReaderWriterInterface<Reply, Request>&
-                                             server) // TODO lxd and libvirt migration, remove
+void lxd_deprecation_warning(
+    grpc::ServerReaderWriterInterface<Reply, Request>& server) // TODO lxd migration, remove
 {
 #ifdef MULTIPASS_PLATFORM_LINUX
     const auto current_driver = MP_SETTINGS.get(mp::driver_key);
-    if (current_driver == "lxd" || current_driver == "libvirt")
+    if (current_driver == "lxd")
     {
         Reply reply{};
         reply.set_log_line(deprecation_warning_message_driver_concatenated(current_driver));
@@ -1677,7 +1677,7 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         std::promise<grpc::Status>* status_promise)
 try
 {
-    lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
+    lxd_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<LaunchReply, LaunchRequest> logger{
         mpl::level_from(request->verbosity_level()),
         *config->logger,
@@ -1883,7 +1883,7 @@ void mp::Daemon::info(const InfoRequest* request,
                       std::promise<grpc::Status>* status_promise)
 try
 {
-    lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
+    lxd_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()),
                                                      *config->logger,
                                                      server};
@@ -1896,7 +1896,7 @@ try
     response.set_snapshots(snapshots_only);
 
     if (snapshots_only)
-        config->factory->require_snapshots_support();
+        config->factory->require_snapshots_support(); // TODO: remove after LXD migration
 
     auto process_snapshot_pick = [&response, &have_mounts, snapshots_only](
                                      VirtualMachine& vm,
@@ -1985,7 +1985,7 @@ void mp::Daemon::list(const ListRequest* request,
                       std::promise<grpc::Status>* status_promise)
 try
 {
-    lxd_and_libvirt_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
+    lxd_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()),
                                                      *config->logger,
                                                      server};
@@ -1996,7 +1996,7 @@ try
     // empty response
     if (request->snapshots())
     {
-        config->factory->require_snapshots_support();
+        config->factory->require_snapshots_support(); // TODO: remove after LXD migration
         response.mutable_snapshot_list();
     }
     else
@@ -2456,7 +2456,7 @@ try
 
     if (status.ok())
     {
-        config->factory->require_suspend_support();
+        config->factory->require_suspend_support(); // TODO: remove after LXD migration
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
             stop_mounts(vm.vm_name);
 
@@ -2888,7 +2888,7 @@ try
         *config->logger,
         server};
 
-    config->factory->require_snapshots_support();
+    config->factory->require_snapshots_support(); // TODO: remove after LXD migration
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3028,7 +3028,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                        std::promise<grpc::Status>* status_promise)
 try
 {
-    config->factory->require_clone_support();
+    config->factory->require_clone_support(); // TODO: remove after LXD migration
     mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
                                                        *config->logger,
                                                        server};
