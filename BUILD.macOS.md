@@ -53,6 +53,12 @@ If you encounter errors about missing `pkg-config` or `ninja`, install them with
 
 This is required for CMake to find all necessary build tools and dependencies.
 
+If you encounter Python errors about missing `tomli` during the QEMU build step, install it with:
+
+    pip3 install tomli
+
+This is required for Python-based build scripts.
+
 ### Install Submodules
 
     cd <multipass>
