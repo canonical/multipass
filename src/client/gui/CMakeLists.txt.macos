@@ -18,9 +18,13 @@ set(MULTIPASS_GUI_BUNDLE_RELATIVE "Multipass.app")
 set(MULTIPASS_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE Contents/MacOS)
 set(MULTIPASS_GUI_EXECUTABLE multipass_gui)
 
-set(MULTIPASS_GUI_BUILD_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-cmake_path(RELATIVE_PATH MULTIPASS_GUI_BUILD_DIR)
+# Calculate relative path from Flutter working directory to build output directory
+# Flutter requires a relative path for --build-dir
+file(RELATIVE_PATH MULTIPASS_GUI_BUILD_DIR_RELATIVE
+     ${CMAKE_SOURCE_DIR}/src/client/gui
+     ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
+set(MULTIPASS_GUI_BUILD_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(MULTIPASS_GUI_PATH ${MULTIPASS_GUI_BUILD_DIR}/${MULTIPASS_GUI_PREFIX})
 set(MULTIPASS_GUI_BUNDLE ${MULTIPASS_GUI_PATH}/${MULTIPASS_GUI_BUNDLE_RELATIVE})
 set(MULTIPASS_GUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/client/gui)
@@ -36,7 +40,7 @@ add_custom_command(OUTPUT ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
   WORKING_DIRECTORY ${MULTIPASS_GUI_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} -E make_directory lib/generated
   COMMAND $<TARGET_FILE:protobuf::protoc> --plugin=protoc-gen-dart=${DART_PROTOC_PLUGIN} --dart_out=grpc:lib/generated -I ../../rpc ../../rpc/multipass.proto google/protobuf/timestamp.proto
-  COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=${MULTIPASS_GUI_BUILD_DIR}
+  COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=${MULTIPASS_GUI_BUILD_DIR_RELATIVE}
   COMMAND ${FLUTTER_EXECUTABLE} build ${MULTIPASS_GUI_TARGET} ${FLUTTER_BUILD_ARGS}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=
 )
