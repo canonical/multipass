@@ -73,7 +73,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 ogp_site_url = "https://documentation.ubuntu.com/multipass/en/latest/"
 
 html_baseurl = "https://documentation.ubuntu.com/multipass/"  # for sitemap.xml, the trailing slash is important
-sitemap_url_scheme = "en/latest/{link}"
+sitemap_url_scheme = "latest/{link}"
 
 # Preview name of the documentation website
 #
@@ -208,6 +208,7 @@ linkcheck_ignore = [
     "https://sourceforge.net/projects/xming/",
     "http://www.straightrunning.com/XmingNotes/",
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
+    "https://developer.hashicorp.com/packer"
 ]
 
 linkcheck_retries = 3
