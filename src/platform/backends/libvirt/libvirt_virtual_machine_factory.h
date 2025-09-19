@@ -47,6 +47,8 @@ public:
     // Making this public makes this modifiable which is necessary for testing
     LibvirtWrapper::UPtr libvirt_wrapper;
 
+    inline static std::string default_libvirt_object_path{"libvirt.so.0"};
+
 protected:
     void remove_resources_for_impl(const std::string& name) override;
 
