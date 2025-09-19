@@ -73,6 +73,36 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 `````{tabs}
 
+````{group-tab} Linux
+
+You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
+
+To use the `virsh` CLI, launch an instance and then run the command `virsh list` (see [`man virsh`](https://manpages.ubuntu.com/manpages/questing/en/man1/virsh.1.html) for a command reference):
+
+```{code-block} text
+virsh list
+```
+
+The output will be similar to the following:
+
+```{code-block} text
+ Id   Name                   State
+--------------------------------------
+ 1    unaffected-gyrfalcon   running
+```
+Alternatively, to use the `virt-manager` GUI, ...
+
+```{figure} /images/multipass-virt-manager-gui.png
+   :width: 584px
+   :alt: Virtual Machine Manager GUI
+```
+
+<!-- Original image on the Asset Manager
+![Virtual Machine Manager GUI|584x344](https://assets.ubuntu.com/v1/51cf2c57-multipass-virt-manager-gui.png)
+-->
+
+````
+
 ````{group-tab} macOS
 
 Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
