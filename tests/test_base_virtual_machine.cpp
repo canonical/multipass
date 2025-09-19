@@ -211,6 +211,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     void require_snapshots_support() const override // pretend we support it here
     {
+        // TODO: remove after LXD migration
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;

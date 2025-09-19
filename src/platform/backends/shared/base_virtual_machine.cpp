@@ -353,7 +353,7 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
 
 auto mp::BaseVirtualMachine::view_snapshots() const -> SnapshotVista
 {
-    require_snapshots_support();
+    require_snapshots_support(); // TODO: remove after LXD migration
     SnapshotVista ret;
 
     const std::unique_lock lock{snapshot_mutex};
@@ -369,7 +369,7 @@ auto mp::BaseVirtualMachine::view_snapshots() const -> SnapshotVista
 std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(
     const std::string& name) const
 {
-    require_snapshots_support();
+    require_snapshots_support(); // TODO: remove after LXD migration
     const std::unique_lock lock{snapshot_mutex};
     try
     {
@@ -383,7 +383,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(
 
 std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(int index) const
 {
-    require_snapshots_support();
+    require_snapshots_support(); // TODO: remove after LXD migration
     const std::unique_lock lock{snapshot_mutex};
 
     auto index_matcher = [index](const auto& elem) { return elem.second->get_index() == index; };
@@ -441,7 +441,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
     const std::string& snapshot_name,
     const std::string& comment)
 {
-    require_snapshots_support();
+    require_snapshots_support(); // TODO: remove after LXD migration
 
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
@@ -627,7 +627,7 @@ void mp::BaseVirtualMachine::load_snapshots()
 
 std::vector<std::string> mp::BaseVirtualMachine::get_childrens_names(const Snapshot* parent) const
 {
-    require_snapshots_support();
+    require_snapshots_support(); // TODO: remove after LXD migration
     std::vector<std::string> children;
 
     for (const auto& snapshot : view_snapshots())

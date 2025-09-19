@@ -1081,7 +1081,7 @@ TEST_F(LXDBackend, factoryDoesNotSupportSuspend)
     mp::LXDVirtualMachineFactory backend{std::move(mock_network_access_manager),
                                          data_dir.path(),
                                          base_url};
-    MP_EXPECT_THROW_THAT(backend.require_suspend_support(),
+    MP_EXPECT_THROW_THAT(backend.require_suspend_support(), // TODO: remove after LXD migration
                          mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("suspend")));
 }

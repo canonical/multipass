@@ -53,7 +53,7 @@ public:
                                           const days& days_to_expire) override;
     void configure(VirtualMachineDescription& vm_desc) override;
     std::vector<NetworkInterfaceInfo> networks() const override;
-    void require_suspend_support() const override;
+    void require_suspend_support() const override; // TODO: remove after LXD migration
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
@@ -68,5 +68,6 @@ private:
 
 inline void multipass::LXDVirtualMachineFactory::require_suspend_support() const
 {
+    // TODO: remove after LXD migration
     throw NotImplementedOnThisBackendException{"suspend"};
 }
