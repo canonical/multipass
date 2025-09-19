@@ -281,11 +281,15 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
         QUrl image_url(QString::fromStdString(query.release));
         VMImage source_image, vm_image;
 
-        if (!QFile::exists(image_url.path()))
+        if (image_url.host().size() != 0)
             throw std::runtime_error(
-                fmt::format("Custom image `{}` does not exist.", image_url.path()));
+                fmt::format("Invalid file URL `{}`; did you forget a slash?", query.release));
 
-        source_image.image_path = image_url.path();
+        source_image.image_path = image_url.toLocalFile();
+
+        if (!QFile::exists(source_image.image_path))
+            throw std::runtime_error(
+                fmt::format("Custom image `{}` does not exist.", source_image.image_path));
 
         if (source_image.image_path.endsWith(".xz"))
         {
