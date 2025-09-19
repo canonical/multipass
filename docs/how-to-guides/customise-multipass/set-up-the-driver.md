@@ -110,7 +110,7 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
 
-To use the `virsh` CLI, launch an instance and then run the command `virsh list` (see [`man virsh`](https://manpages.ubuntu.com/manpages/xenial/man1/virsh.1.html) for a command reference):
+To use the `virsh` CLI, launch an instance and then run the command `virsh list` (see [`man virsh`](https://manpages.ubuntu.com/manpages/questing/en/man1/virsh.1.html) for a command reference):
 
 ```{code-block} text
 virsh list

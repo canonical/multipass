@@ -87,7 +87,7 @@ Boot failures are often caused by VM image corruption, which can happen when the
 Here are some options to attempt recovery:
 
 - If you took a [snapshot](/explanation/snapshot) before incurring this issue, you could try to restore it. However, snapshots are typically stored layers against an original image file, so they may not be enough.
-- **Run [`fsck`](https://manpages.ubuntu.com/manpages/oracular/en/man8/fsck.8.html) in the Serial Console:**
+- **Run [`fsck`](https://manpages.ubuntu.com/manpages/questing/en/man8/fsck.8.html) in the Serial Console:**
 
   The `fsck` tool (short for "file system consistency check") is used to scan the file system for errors and attempt repairs.
 
@@ -269,7 +269,7 @@ Alternatively, try deleting the `network-cache` folder and restart the Multipass
 
 The images that Multipass uses with the QEMU driver follow a standard format — QCOW2 — which other tools can read.
 
-One example is [`qemu-nbd`](https://manpages.ubuntu.com/manpages/oracular/en/man8/qemu-nbd.8.html), which allows mounting the image. This tool is not shipped with Multipass, so you would need to install it manually.
+One example is [`qemu-nbd`](https://manpages.ubuntu.com/manpages/questing/en/man8/qemu-nbd.8.html), which allows mounting the image. This tool is not shipped with Multipass, so you would need to install it manually.
 
 Once you have it, you can search the web for recipes to mount a QCOW2 image. For example, here is a [a recipe](https://askubuntu.com/a/4404).
 
