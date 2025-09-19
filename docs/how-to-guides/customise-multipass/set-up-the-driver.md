@@ -73,7 +73,6 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 `````{tabs}
 
-<<<<<<< HEAD
 ````{group-tab} Linux
 
 You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
@@ -104,8 +103,6 @@ Alternatively, to use the `virt-manager` GUI, ...
 
 ````
 
-=======
->>>>>>> c64a829a2 ([docs] Remove libvirt related how-tos)
 ````{group-tab} macOS
 
 Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
