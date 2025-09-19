@@ -45,8 +45,20 @@ means to obtain cmake is with Homebrew <https://brew.sh/>.
 Building
 ---------------------------------------
 
+### Additional dependencies for Apple Silicon
+
+If you encounter errors about missing `pkg-config` or `ninja`, install them with:
+
+    brew install pkg-config ninja
+
+This is required for CMake to find all necessary build tools and dependencies.
+
+### Install Submodules
+
     cd <multipass>
     git submodule update --init --recursive
+
+### Build Multipass
 
 To build with official Qt sources do:
 
