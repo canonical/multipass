@@ -45,7 +45,7 @@ means to obtain cmake is with Homebrew <https://brew.sh/>.
 Building
 ---------------------------------------
 
-### Additional dependencies for Apple Silicon
+### Additional configuration
 
 If you encounter errors about missing `pkg-config` or `ninja`, install them with:
 
@@ -58,6 +58,17 @@ If you encounter Python errors about missing `tomli` during the QEMU build step,
     pip3 install tomli
 
 This is required for Python-based build scripts.
+
+#### Xcode setup
+
+After installing Xcode, you may need to configure the command line tools and complete the initial setup:
+
+    sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+    sudo xcodebuild -runFirstLaunch
+
+The first command sets the active developer directory to your Xcode installation. This is necessary when xcodebuild is not found in the PATH or when there are multiple Xcode installations.
+
+The second command runs Xcode's first launch setup, which installs additional components and tools required for building iOS and macOS applications. This may be needed if you encounter errors about missing Xcode tools or frameworks during the build process.
 
 ### Install Submodules
 
