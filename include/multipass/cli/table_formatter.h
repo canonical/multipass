@@ -30,5 +30,6 @@ public:
     std::string format(const FindReply& list) const override;
     std::string format(const VersionReply& list, const std::string& client_version) const override;
     std::string format(const AliasDict& aliases) const override;
+    std::string format(const ListDisksReply& reply) const override;
 };
 } // namespace multipass

@@ -136,6 +136,21 @@ signals:
     void on_wait_ready(const WaitReadyRequest* request,
                        grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server,
                        std::promise<grpc::Status>* status_promise);
+    void on_list_disks(const ListDisksRequest* request,
+                       grpc::ServerReaderWriter<ListDisksReply, ListDisksRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+    void on_create_disk(const CreateDiskRequest* request,
+                        grpc::ServerReaderWriter<CreateDiskReply, CreateDiskRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
+    void on_delete_disk(const DeleteDiskRequest* request,
+                        grpc::ServerReaderWriter<DeleteDiskReply, DeleteDiskRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
+    void on_attach_disk(const AttachDiskRequest* request,
+                        grpc::ServerReaderWriter<AttachDiskReply, AttachDiskRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
+    void on_detach_disk(const DetachDiskRequest* request,
+                        grpc::ServerReaderWriter<DetachDiskReply, DetachDiskRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
 
 private:
     template <typename OperationSignal>
@@ -208,5 +223,20 @@ protected:
     grpc::Status wait_ready(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server) override;
+    grpc::Status list_disks(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<ListDisksReply, ListDisksRequest>* server) override;
+    grpc::Status create_disk(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<CreateDiskReply, CreateDiskRequest>* server) override;
+    grpc::Status delete_disk(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<DeleteDiskReply, DeleteDiskRequest>* server) override;
+    grpc::Status attach_disk(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<AttachDiskReply, AttachDiskRequest>* server) override;
+    grpc::Status detach_disk(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<DetachDiskReply, DetachDiskRequest>* server) override;
 };
 } // namespace multipass

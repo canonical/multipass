@@ -25,17 +25,31 @@ corrosion_add_cxxbridge(rustipass_cxx
     FILES lib.rs
 )
 
+# Create an interface library that wraps the Rust library and cxx bindings
+add_library(rustipass_lib STATIC
+    rust_block_device_manager.cpp
+)
+
 # Fix macOS build issue: Apple Clang treats '$' in identifiers as non-standard extension
 # cxxbridge generates identifiers with '$' from Rust namespaces (multipass::petname -> multipass$petname$...)
 if(APPLE)
     target_compile_options(rustipass_cxx PRIVATE -Wno-dollar-in-identifier-extension)
+    target_compile_options(rustipass_lib PRIVATE -Wno-dollar-in-identifier-extension)
 endif()
 
-# Create an interface library that wraps the Rust library and cxx bindings
-add_library(rustipass_lib INTERFACE)
-
 # Link the Rust static library (Corrosion automatically handles the target naming)
-target_link_libraries(rustipass_lib INTERFACE rustipass rustipass_cxx)
+target_link_libraries(rustipass_lib PUBLIC rustipass rustipass_cxx)
+
+# Include directories for the C++ wrapper
+target_include_directories(rustipass_lib PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# Link fmt for logging
+target_link_libraries(rustipass_lib PUBLIC
+    fmt::fmt-header-only
+    logger
+)
 
 # On Windows, link required system libraries for Rust std
 if(WIN32)

@@ -39,6 +39,7 @@ target_link_libraries(daemon
   petname
   platform
   rpc
+  rustipass_lib
   settings
   simplestreams
   ssh
