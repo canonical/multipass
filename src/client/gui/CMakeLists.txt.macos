@@ -42,7 +42,18 @@ add_custom_command(OUTPUT ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
 )
 
 add_custom_target(${MULTIPASS_GUI_EXECUTABLE} ALL
-  DEPENDS ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
+  DEPENDS ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH} dart_ffi
+)
+
+# Copy libdart_ffi.dylib to the app bundle's Frameworks directory after Flutter build
+add_custom_command(TARGET ${MULTIPASS_GUI_EXECUTABLE} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:dart_ffi>
+    ${MULTIPASS_GUI_BUNDLE}/Contents/Frameworks/libdart_ffi.dylib
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:dart_ffi>
+    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE}/Contents/Frameworks/libdart_ffi.dylib
+  COMMENT "Copying libdart_ffi.dylib to app bundles"
 )
 
 install(DIRECTORY ${MULTIPASS_GUI_BUNDLE}/Contents
