@@ -92,7 +92,7 @@ int reply_unsupported(sftp_client_message msg)
 
 fmt::memory_buffer& operator<<(fmt::memory_buffer& buf, const char* v)
 {
-    fmt::format_to(std::back_inserter(buf), v);
+    fmt::format_to(std::back_inserter(buf), "{}", v);
     return buf;
 }
 
