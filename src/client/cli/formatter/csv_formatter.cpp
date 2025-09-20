@@ -23,12 +23,11 @@ namespace mp = multipass;
 
 namespace
 {
-std::string format_images(
-    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-    std::string type)
+template <typename Dest>
+void format_images(Dest&& dest,
+                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                   std::string type)
 {
-    fmt::memory_buffer buf;
-
     for (const auto& image : images_info)
     {
         auto aliases = image.aliases_info();
@@ -39,7 +38,7 @@ std::string format_images(
                             ? aliases[0].alias()
                             : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
 
-        fmt::format_to(std::back_inserter(buf),
+        fmt::format_to(dest,
                        "{},{},{},{},{},{},{}\n",
                        image_id,
                        aliases[0].remote_name(),
@@ -49,27 +48,20 @@ std::string format_images(
                        image.version(),
                        type);
     }
-
-    return fmt::to_string(buf);
 }
 
-std::string format_mounts(const mp::MountInfo& mount_info)
+template <typename Dest>
+void format_mounts(Dest&& dest, const mp::MountInfo& mount_info)
 {
-    fmt::memory_buffer buf;
     const auto& mount_paths = mount_info.mount_paths();
 
     if (!mount_paths.size())
-        return {};
+        return;
 
     auto mount = mount_paths.cbegin();
     for (; mount != --mount_paths.cend(); ++mount)
-        fmt::format_to(std::back_inserter(buf),
-                       "{} => {};",
-                       mount->source_path(),
-                       mount->target_path());
-    fmt::format_to(std::back_inserter(buf), "{} => {}", mount->source_path(), mount->target_path());
-
-    return fmt::to_string(buf);
+        fmt::format_to(dest, "{} => {};", mount->source_path(), mount->target_path());
+    fmt::format_to(dest, "{} => {}", mount->source_path(), mount->target_path());
 }
 
 std::string generate_snapshot_details(const mp::InfoReply reply)
@@ -92,7 +84,7 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
                        info.disk_total(),
                        info.memory_total());
 
-        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
+        format_mounts(std::back_inserter(buf), info.mount_info());
 
         fmt::format_to(std::back_inserter(buf),
                        ",{},{},{},\"{}\"\n",
@@ -139,7 +131,7 @@ std::string generate_instance_details(const mp::InfoReply reply)
                        instance_details.memory_usage(),
                        info.memory_total());
 
-        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
+        format_mounts(std::back_inserter(buf), info.mount_info());
 
         fmt::format_to(std::back_inserter(buf),
                        ",{},{}",
@@ -256,9 +248,8 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
-    fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Cloud Image"));
-    fmt::format_to(std::back_inserter(buf),
-                   format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
+    format_images(std::back_inserter(buf), reply.images_info(), "Cloud Image");
+    format_images(std::back_inserter(buf), reply.blueprints_info(), "Blueprint (deprecated)");
 
     return fmt::to_string(buf);
 }
