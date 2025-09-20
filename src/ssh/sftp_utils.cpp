@@ -66,10 +66,10 @@ fs::path SFTPUtils::get_remote_file_target(sftp_session sftp,
 {
     auto target_full_path = target_path.empty() ? source_path.filename() : target_path;
 
-    auto target_attr = mp_sftp_stat(sftp, target_full_path.u8string().c_str());
+    auto target_attr = mp_sftp_stat(sftp, target_full_path.string().c_str());
     if (!target_attr)
     {
-        auto parent_path = target_full_path.parent_path().u8string();
+        auto parent_path = target_full_path.parent_path().string();
         parent_path = parent_path.empty() ? "." : parent_path;
         if (make_parent)
             mkdir_recursive(sftp, parent_path);
@@ -81,8 +81,8 @@ fs::path SFTPUtils::get_remote_file_target(sftp_session sftp,
     if (target_attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
         return target_full_path;
 
-    target_full_path += source_path.filename().u8string().insert(0, "/");
-    target_attr = mp_sftp_stat(sftp, target_full_path.u8string().c_str());
+    target_full_path += source_path.filename().string().insert(0, "/");
+    target_attr = mp_sftp_stat(sftp, target_full_path.string().c_str());
     if (target_attr && target_attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
         throw SFTPError{"cannot overwrite remote directory {:?} with non-directory",
                         target_full_path};
@@ -127,7 +127,7 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp,
                                           const fs::path& target_path,
                                           bool make_parent)
 {
-    auto target_path_string = target_path.u8string();
+    auto target_path_string = target_path.string();
     auto target_info = mp_sftp_stat(sftp, target_path_string.c_str());
 
     if (target_info && target_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
@@ -144,8 +144,8 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp,
         return target_path;
     }
 
-    fs::path child_path = target_path_string + '/' + source_path.filename().u8string();
-    auto child_path_string = child_path.u8string();
+    fs::path child_path = target_path.string() + '/' + source_path.filename().string();
+    auto child_path_string = child_path.string();
     auto child_info = mp_sftp_stat(sftp, child_path_string.c_str());
     if (child_info && child_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
         throw SFTPError{"cannot overwrite remote non-directory {:?} with directory", child_path};
@@ -166,13 +166,13 @@ void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
     std::partial_sum(path.begin(),
                      path.end(),
                      std::back_inserter(partial_paths),
-                     [](auto acc, auto curr) { return acc.u8string() + '/' + curr.u8string(); });
+                     [](auto acc, auto curr) { return acc.string() + '/' + curr.string(); });
     for (const auto& partial_path : partial_paths)
-        if (auto attr = mp_sftp_lstat(sftp, partial_path.u8string().c_str());
+        if (auto attr = mp_sftp_lstat(sftp, partial_path.string().c_str());
             attr && attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
             throw SFTPError{"cannot overwrite remote non-directory {:?} with directory",
                             partial_path};
-        else if (!attr && sftp_mkdir(sftp, partial_path.u8string().c_str(), 0777) != SSH_FX_OK)
+        else if (!attr && sftp_mkdir(sftp, partial_path.string().c_str(), 0777) != SSH_FX_OK)
             throw SFTPError{"cannot create remote directory {:?}: {}",
                             partial_path,
                             ssh_get_error(sftp->session)};
