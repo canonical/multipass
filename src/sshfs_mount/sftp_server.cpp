@@ -517,7 +517,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 
     const auto& [path, _] = *handle;
 
-    QFileInfo file_info(path.string().c_str());
+    QFileInfo file_info(QString::fromStdString(path.string()));
 
     if (file_info.isSymLink())
         file_info = QFileInfo(file_info.symLinkTarget());
@@ -1035,43 +1035,43 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     else
     {
         filename = sftp_client_message_get_filename(msg);
-        if (!validate_path(source_path, filename.u8string()))
+        if (!validate_path(source_path, filename.string()))
         {
             mpl::trace(category,
                        "{}: cannot validate path '{}' against source '{}'",
                        __FUNCTION__,
-                       filename.u8string(),
+                       filename.string(),
                        source_path);
             return reply_perm_denied(msg);
         }
 
-        QFileInfo file_info{QString::fromStdString(filename.u8string())};
+        QFileInfo file_info{QString::fromStdString(filename.string())};
         if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
         {
             mpl::trace(category,
                        "{}: cannot setstat '{}': no such file",
                        __FUNCTION__,
-                       filename.u8string());
+                       filename.string());
             return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
         }
     }
 
-    QFileInfo file_info{QString::fromStdString(filename.u8string())};
+    QFileInfo file_info{QString::fromStdString(filename.string())};
     if (!has_id_mappings_for(file_info))
     {
         mpl::trace(category,
                    "{}: cannot access path \'{}\' without id mapping: permission denied",
                    __FUNCTION__,
-                   filename.u8string());
+                   filename.string());
         return reply_perm_denied(msg);
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        QFile file{QString::fromStdString(filename.u8string())};
+        QFile file{QString::fromStdString(filename.string())};
         if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
-            mpl::trace(category, "{}: cannot resize '{}'", __FUNCTION__, filename.u8string());
+            mpl::trace(category, "{}: cannot resize '{}'", __FUNCTION__, filename.string());
             return reply_failure(msg);
         }
     }
@@ -1083,19 +1083,19 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             mpl::trace(category,
                        "{}: set permissions failed for '{}'",
                        __FUNCTION__,
-                       filename.u8string());
+                       filename.string());
             return reply_failure(msg);
         }
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
-        if (MP_PLATFORM.utime(filename.u8string().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
+        if (MP_PLATFORM.utime(filename.string().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
             mpl::trace(category,
                        "{}: cannot set modification date for '{}'",
                        __FUNCTION__,
-                       filename.u8string());
+                       filename.string());
             return reply_failure(msg);
         }
     }
@@ -1108,18 +1108,18 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             mpl::trace(category,
                        "{}: cannot set ownership for \'{}\' without id mapping",
                        __FUNCTION__,
-                       filename.u8string());
+                       filename.string());
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.chown(filename.u8string().c_str(),
+        if (MP_PLATFORM.chown(filename.string().c_str(),
                               reverse_uid_for(msg->attr->uid, msg->attr->uid),
                               reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
         {
             mpl::trace(category,
                        "{}: cannot set ownership for '{}'",
                        __FUNCTION__,
-                       filename.u8string());
+                       filename.string());
             return reply_failure(msg);
         }
     }

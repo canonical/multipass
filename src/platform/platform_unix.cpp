@@ -74,7 +74,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     {
         mpl::warn("permissions",
                   "failed to set permissions for {}: {}",
-                  path.u8string(),
+                  path.string(),
                   ec.message());
     }
 
@@ -83,7 +83,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    return this->chown(path.u8string().c_str(), 0, 0) == 0;
+    return this->chown(path.string().c_str(), 0, 0) == 0;
 }
 
 void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
