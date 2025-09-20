@@ -438,7 +438,7 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
 
 void mp::utils::process_throw_on_error(const QString& program,
                                        const QStringList& arguments,
-                                       const QString& message,
+                                       fmt::format_string<std::string> message,
                                        const QString& category,
                                        const int timeout)
 {
@@ -461,7 +461,7 @@ void mp::utils::process_throw_on_error(const QString& program,
                    process.exitCode());
 
         auto output = process.readAllStandardOutput();
-        throw std::runtime_error(fmt::format(message.toStdString(),
+        throw std::runtime_error(fmt::format(message,
                                              output.isEmpty() ? process.errorString().toStdString()
                                                               : output.toStdString()));
     }
@@ -469,7 +469,7 @@ void mp::utils::process_throw_on_error(const QString& program,
 
 bool mp::utils::process_log_on_error(const QString& program,
                                      const QStringList& arguments,
-                                     const QString& message,
+                                     fmt::format_string<std::string> message,
                                      const QString& category,
                                      mpl::Level level,
                                      const int timeout)
@@ -495,7 +495,7 @@ bool mp::utils::process_log_on_error(const QString& program,
         auto output = process.readAllStandardOutput();
         mpl::log(level,
                  category.toStdString(),
-                 message.toStdString(),
+                 message,
                  output.isEmpty() ? process.errorString().toStdString() : output.toStdString());
         return false;
     }

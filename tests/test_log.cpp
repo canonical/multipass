@@ -41,8 +41,8 @@ TEST_F(LogTests, testLevelsAsString)
 
 TEST_F(LogTests, testNonFormatOverload)
 {
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "no format whatsoever {}");
-    mpl::log(mpl::Level::error, "test_category", "no format whatsoever {}");
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "no format whatsoever");
+    mpl::log(mpl::Level::error, "test_category", "no format whatsoever");
 }
 
 TEST_F(LogTests, testFormatOverloadSingleArg)
@@ -60,7 +60,7 @@ TEST_F(LogTests, testFormatOverloadMultipleArgs)
 TEST_F(LogTests, testFormatOverloadMultipleArgsSuperfluous)
 {
     logger_scope.mock_logger->expect_log(mpl::Level::error, "with formatting 1 test");
-    // Superfluous arguments are ignored. This should be an error with C++20
+    // Superfluous arguments are ignored. See <https://fmt.dev/11.2/api/#compile-time-checks>.
     mpl::log(mpl::Level::error, "test_category", "with formatting {} {}", 1, "test", "superfluous");
 }
 
