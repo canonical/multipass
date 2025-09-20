@@ -281,7 +281,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -354,7 +354,7 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         [](const auto& snapshot) -> int { return snapshot.fundamentals().parent().length(); },
         parent_col_header.length());
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -466,7 +466,7 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
         [](const auto& interface) -> int { return interface.type().length(); },
         type_col_header.length());
 
-    const auto row_format = "{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -595,7 +595,7 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
         },
         context_col_header.length());
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
 
     fmt::format_to(std::back_inserter(buf),
                    row_format,

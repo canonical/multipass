@@ -428,7 +428,8 @@ void mp::LXDVMImageVault::prune_expired_images()
         if (!last_used.has_value())
         {
             mpl::warn(category,
-                      "Source image `{}` does not have `last_used_at` property, skipping it!");
+                      "Source image `{}` does not have `last_used_at` property, skipping it!",
+                      image_info["properties"].toObject()["release"].toString());
             continue;
         }
 
