@@ -66,10 +66,10 @@ TEST_F(LogTests, testFormatOverloadMultipleArgsSuperfluous)
 
 TEST_F(LogTests, testFormatOverloadMultipleArgsMissing)
 {
-    // Missing arguments are runtime error in C++17. This should be a compile
-    // time error with the C++20
-    EXPECT_THROW({ mpl::log(mpl::Level::error, "test_category", "with formatting {} {}", 1); },
-                 fmt::format_error);
+    // Missing arguments when using a runtime format string are a runtime error.
+    EXPECT_THROW(
+        { mpl::log(mpl::Level::error, "test_category", fmt::runtime("with formatting {} {}"), 1); },
+        fmt::format_error);
 }
 
 // ------------------------------------------------------------------------------
