@@ -97,10 +97,10 @@ constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
-const std::string sshfs_error_template =
+constexpr auto sshfs_error_template =
     "Error enabling mount support in '{}'"
     "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
-const std::string invalid_network_template =
+constexpr auto invalid_network_template =
     "Invalid network '{}' set as bridged interface, use `multipass set "
     "{}=<name>` to correct. See `multipass networks` for valid names.";
 
@@ -769,13 +769,13 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, Ts&&... fmt_params)
+auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
     -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
 
-    return fmt::format_to(std::back_inserter(buffer), std::forward<Ts>(fmt_params)...);
+    return fmt::format_to(std::back_inserter(buffer), fmt, std::forward<Ts>(fmt_params)...);
 }
 
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
@@ -1944,7 +1944,7 @@ try
         }
         catch (const NoSuchSnapshotException& e)
         {
-            add_fmt_to(errors, e.what());
+            add_fmt_to(errors, "{}", e.what());
         }
 
         return grpc_status_for(errors);
@@ -2072,7 +2072,7 @@ try
         }
         catch (const NoSuchSnapshotException& e)
         {
-            add_fmt_to(errors, e.what());
+            add_fmt_to(errors, "{}", e.what());
         }
 
         return grpc_status_for(errors);
@@ -2348,7 +2348,7 @@ try
                             "Try to stop it first.",
                             name);
             mpl::log(mpl::Level::warning, category, error_string);
-            fmt::format_to(std::back_inserter(start_errors), error_string);
+            start_errors.append(error_string);
             continue;
         }
         case VirtualMachine::State::suspending:
@@ -3693,13 +3693,14 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 
     if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
     {
-        auto msg = st == VirtualMachine::State::unknown
-                       ? "Instance '{0}' is already running, but in an unknown state.\n"
-                         "Try to stop and start it instead."
-                       : "Instance '{0}' is not running";
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                            fmt::format(msg, vm.vm_name),
-                            ""};
+        std::string msg;
+        if (st == VirtualMachine::State::unknown)
+            msg = fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
+                              "Try to stop and start it instead.",
+                              vm.vm_name);
+        else
+            msg = fmt::format("Instance '{0}' is not running", vm.vm_name);
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, std::move(msg), ""};
     }
 
     mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
@@ -3931,7 +3932,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                                            name,
                                            e.what());
                     mpl::log(mpl::Level::warning, category, msg);
-                    fmt::format_to(std::back_inserter(warnings), msg);
+                    warnings.append(msg);
                     invalid_mounts.push_back(target);
                 }
 
@@ -3954,7 +3955,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(std::back_inserter(errors), e.what());
+        fmt::format_to(std::back_inserter(errors), "{}", e.what());
     }
 
     return fmt::to_string(errors);
@@ -3996,7 +3997,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
     fmt::memory_buffer warnings;
 
-    fmt::format_to(std::back_inserter(warnings), "{}", start_warnings);
+    warnings.append(start_warnings);
 
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
@@ -4007,11 +4008,11 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     }
 
     fmt::memory_buffer errors;
-    fmt::format_to(std::back_inserter(errors), "{}", start_errors);
+    errors.append(start_errors);
 
     for (const auto& future : start_synchronizer.futures())
         if (auto error = future.result(); !error.empty())
-            add_fmt_to(errors, error);
+            add_fmt_to(errors, "{}", error);
 
     if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {

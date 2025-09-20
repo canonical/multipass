@@ -135,7 +135,7 @@ void cmd::Get::print_settings() const
 void multipass::cmd::Get::print_keys() const
 {
     const auto keys = MP_SETTINGS.keys();
-    const auto format = "{}\n";
+    constexpr auto format = "{}\n";
 
     if (arg.isEmpty())
         fmt::print(cout, format, fmt::join(keys, "\n"));
