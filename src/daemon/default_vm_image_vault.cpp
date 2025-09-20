@@ -421,8 +421,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                         }
                         catch (const std::exception& e)
                         {
-                            mpl::warn(category,
-                                      fmt::format("Cannot create instance image: {}", e.what()));
+                            mpl::warn(category, "Cannot create instance image: {}", e.what());
 
                             break;
                         }
@@ -502,8 +501,8 @@ void mp::DefaultVMImageVault::prune_expired_images()
             record.second.last_accessed + days_to_expire <= std::chrono::system_clock::now())
         {
             mpl::info(category,
-                      fmt::format("Source image {} is expired. Removing it from the cache.",
-                                  record.second.query.release));
+                      "Source image {} is expired. Removing it from the cache.",
+                      record.second.query.release);
             expired_keys.push_back(record.first);
             delete_image_dir(record.second.image.image_path);
         }
@@ -520,8 +519,8 @@ void mp::DefaultVMImageVault::prune_expired_images()
                          }) == prepared_image_records.cend())
         {
             mpl::info(category,
-                      fmt::format("Source image {} is no longer valid. Removing it from the cache.",
-                                  entry.absoluteFilePath()));
+                      "Source image {} is no longer valid. Removing it from the cache.",
+                      entry.absoluteFilePath());
             delete_image_dir(entry.absoluteFilePath());
         }
     }
@@ -560,11 +559,11 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
             }
             catch (const mp::UnsupportedImageException& e)
             {
-                mpl::warn(category, fmt::format("Skipping update: {}", e.what()));
+                mpl::warn(category, "Skipping update: {}", e.what());
             }
             catch (const mp::ImageNotFoundException& e)
             {
-                mpl::warn(category, fmt::format("Skipping update: {}", e.what()));
+                mpl::warn(category, "Skipping update: {}", e.what());
             }
         }
     }
@@ -572,8 +571,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
     for (const auto& key : keys_to_update)
     {
         const auto& record = prepared_image_records[key];
-        mpl::info(category,
-                  fmt::format("Updating {} source image to latest", record.query.release));
+        mpl::info(category, "Updating {} source image to latest", record.query.release);
         try
         {
             fetch_image(fetch_type,
@@ -591,9 +589,10 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
         }
         catch (const CreateImageException& e)
         {
-            mpl::warn(
-                category,
-                fmt::format("Cannot update source image {}: {}", record.query.release, e.what()));
+            mpl::warn(category,
+                      "Cannot update source image {}: {}",
+                      record.query.release,
+                      e.what());
         }
     }
 }
@@ -690,7 +689,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
         if (info.verify)
         {
-            mpl::debug(category, fmt::format("Verifying hash \"{}\"", id));
+            mpl::debug(category, "Verifying hash \"{}\"", id);
             monitor(LaunchProgress::VERIFY, -1);
             MP_IMAGE_VAULT_UTILS.verify_file_hash(source_image.image_path, id);
         }

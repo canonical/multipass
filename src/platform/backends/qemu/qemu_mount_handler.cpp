@@ -47,10 +47,10 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
     if (state == VirtualMachine::State::suspended && vm_mount_args.find(tag) != vm_mount_args.end())
     {
         mpl::info(category,
-                  fmt::format("Found native mount {} => {} in '{}' while suspended",
-                              source,
-                              target,
-                              vm->vm_name));
+                  "Found native mount {} => {} in '{}' while suspended",
+                  source,
+                  target,
+                  vm->vm_name);
         return;
     }
 
@@ -64,9 +64,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
         this->mount_spec.get_gid_mappings().size() > 1)
         throw std::runtime_error("Only one mapping per native mount allowed.");
 
-    mpl::info(
-        category,
-        fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
+    mpl::info(category, "initializing native mount {} => {} in '{}'", source, target, vm->vm_name);
 
     const auto uid_map = this->mount_spec.get_uid_mappings().empty()
                              ? std::make_pair(1000, 1000)
@@ -101,10 +99,10 @@ try
 catch (const std::exception& e)
 {
     mpl::warn(category,
-              fmt::format("Failed checking 9p mount \"{}\" in instance '{}': {}",
-                          target,
-                          vm->vm_name,
-                          e.what()));
+              "Failed checking 9p mount \"{}\" in instance '{}': {}",
+              target,
+              vm->vm_name,
+              e.what());
     return false;
 }
 
@@ -118,13 +116,19 @@ void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
     if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
     {
         const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -u"));
-        mpl::debug(
-            category,
-            fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, default_uid));
+        mpl::debug(category,
+                   "{}:{} {}(): `id -u` = {}",
+                   __FILE__,
+                   __LINE__,
+                   __FUNCTION__,
+                   default_uid);
         const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -g"));
-        mpl::debug(
-            category,
-            fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, default_gid));
+        mpl::debug(category,
+                   "{}:{} {}(): `id -g` = {}",
+                   __FILE__,
+                   __LINE__,
+                   __FUNCTION__,
+                   default_gid);
 
         mpu::make_target_dir(session, leading, missing);
         mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
@@ -140,8 +144,7 @@ void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 void QemuMountHandler::deactivate_impl(bool force)
 try
 {
-    mpl::info(category,
-              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
+    mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name);
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     MP_UTILS.run_in_ssh_session(
         session,
@@ -152,10 +155,10 @@ catch (const std::exception& e)
     if (!force)
         throw;
     mpl::warn(category,
-              fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
-                          target,
-                          vm->vm_name,
-                          e.what()));
+              "Failed to gracefully stop mount \"{}\" in instance '{}': {}",
+              target,
+              vm->vm_name,
+              e.what());
 }
 
 QemuMountHandler::~QemuMountHandler()

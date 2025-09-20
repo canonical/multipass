@@ -105,7 +105,7 @@ multipass::SSHSession::~SSHSession()
 mp::SSHProcess mp::SSHSession::exec(const std::string& cmd, bool whisper)
 {
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
-    mpl::log(lvl, "ssh session", fmt::format("Executing '{}'", cmd));
+    mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
 
     return {session.get(), cmd, std::unique_lock{mut}};
 }

@@ -74,8 +74,8 @@ public:
                 if (0 == AssignProcessToJobObject(ghJob, OpenProcess(PROCESS_ALL_ACCESS, 0, pid)))
                 {
                     mpl::warn(::category,
-                              fmt::format("Could not AssignProcessToObject the spawned process: {}",
-                                          GetLastErrorAsString()));
+                              "Could not AssignProcessToObject the spawned process: {}",
+                              GetLastErrorAsString());
                 }
             });
         }
@@ -116,8 +116,7 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
     bool bSuccess = IsProcessInJob(GetCurrentProcess(), nullptr, &alreadyInProcessJob);
     if (!bSuccess)
     {
-        mpl::warn(::category,
-                  fmt::format("IsProcessInJob failed: error {}", GetLastErrorAsString()));
+        mpl::warn(::category, "IsProcessInJob failed: error {}", GetLastErrorAsString());
     }
     if (alreadyInProcessJob)
     {
@@ -128,8 +127,7 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
     ghJob = CreateJobObject(nullptr, nullptr);
     if (ghJob == nullptr)
     {
-        mpl::warn(::category,
-                  fmt::format("Could not create job object: {}", GetLastErrorAsString()));
+        mpl::warn(::category, "Could not create job object: {}", GetLastErrorAsString());
     }
     else
     {
@@ -140,8 +138,7 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
         if (0 ==
             SetInformationJobObject(ghJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
         {
-            mpl::warn(::category,
-                      fmt::format("Could not SetInformationJobObject: {}", GetLastErrorAsString()));
+            mpl::warn(::category, "Could not SetInformationJobObject: {}", GetLastErrorAsString());
         }
     }
 }

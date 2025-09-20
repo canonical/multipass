@@ -40,8 +40,7 @@ void attempt_ssh_exec(mp::VirtualMachine& vm, const std::string& cmd)
     }
     catch (const mp::SSHException& e)
     {
-        mpl::info(vm.vm_name,
-                  fmt::format("Could not broadcast shutdown message in VM: {}", e.what()));
+        mpl::info(vm.vm_name, "Could not broadcast shutdown message in VM: {}", e.what());
     }
 }
 
@@ -96,10 +95,10 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
     {
         auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(delay).count();
         mpl::info(virtual_machine->vm_name,
-                  fmt::format("Shutdown request delayed for {} minute{}", // TODO say "under a
-                                                                          // minute" if < 1 minute
-                              minutes_left,
-                              num_plural(minutes_left) ? "s" : ""));
+                  "Shutdown request delayed for {} minute{}", // TODO say "under a
+                                                              // minute" if < 1 minute
+                  minutes_left,
+                  num_plural(minutes_left) ? "s" : "");
         write_shutdown_message(*virtual_machine, delay);
 
         time_remaining = delay;

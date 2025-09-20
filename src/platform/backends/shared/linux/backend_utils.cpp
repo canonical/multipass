@@ -98,8 +98,8 @@ auto virtual_switch_subnet(const QString& bridge_name)
     if (subnet.isNull())
     {
         mpl::info("daemon",
-                  fmt::format("Unable to determine subnet for the {} subnet",
-                              qUtf8Printable(bridge_name)));
+                  "Unable to determine subnet for the {} subnet",
+                  qUtf8Printable(bridge_name));
     }
     return subnet.toStdString();
 }
@@ -234,7 +234,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
 
     auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
     auto child_name = parent_name + "-child";
-    mpl::debug(log_category_create, fmt::format("Creating bridge: {}", parent_name));
+    mpl::debug(log_category_create, "Creating bridge: {}", parent_name);
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
     const auto& [arg1, arg2] =
@@ -266,7 +266,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     rollback_guard.dismiss(); // we succeeded!
 
     auto ret = parent_name.toStdString();
-    mpl::info(log_category_create, fmt::format("Created bridge: {}", ret));
+    mpl::info(log_category_create, "Created bridge: {}", ret);
 
     return ret;
 }

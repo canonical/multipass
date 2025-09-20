@@ -227,9 +227,7 @@ void mp::BasicProcess::handle_started()
 {
     pid = process.processId(); // save this, so we know it even after finished
     const auto& program = process_spec->program().toStdString();
-    mpl::debug(
-        program,
-        fmt::format("[{}] started: {} {}", pid, program, process_spec->arguments().join(' ')));
+    mpl::debug(program, "[{}] started: {} {}", pid, program, process_spec->arguments().join(' '));
 
     emit mp::Process::started();
 }

@@ -76,7 +76,7 @@ QString checked_get(mp::WrappedQSettings& qsettings,
     }
     catch (const mp::InvalidSettingException& e)
     {
-        mpl::warn("settings", fmt::format("{}. Resetting '{}'.", e.what(), key));
+        mpl::warn("settings", "{}. Resetting '{}'.", e.what(), key);
         qsettings.remove(key);
         qsettings.sync();
         check_status(qsettings, "reset");

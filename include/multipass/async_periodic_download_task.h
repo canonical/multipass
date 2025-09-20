@@ -80,8 +80,7 @@ public:
             }
             catch (const multipass::DownloadException& e)
             {
-                mpl::debug("async task",
-                           fmt::format("QFutureWatcher caught DownloadException {}", e.what()));
+                mpl::debug("async task", "QFutureWatcher caught DownloadException {}", e.what());
                 // failure case, trigger or continue the retry mechanism
                 timer.start(retry_current_delay_time);
                 retry_current_delay_time =

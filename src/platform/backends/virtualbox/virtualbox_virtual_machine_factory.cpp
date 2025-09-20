@@ -240,7 +240,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     // List to store the output of the query command; each element corresponds to one interface.
     QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), Qt::SkipEmptyParts));
 
-    mpl::info(log_category, fmt::format("VirtualBox found {} interface(s)", if_list.size()));
+    mpl::info(log_category, "VirtualBox found {} interface(s)", if_list.size());
 
     std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info =
         MP_PLATFORM.get_network_interfaces_info();

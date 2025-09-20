@@ -229,7 +229,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::warn(category, fmt::format("{} - returning blank image info", e.what()));
+        mpl::warn(category, "{} - returning blank image info", e.what());
         return VMImage{};
     }
     catch (const std::exception&)
@@ -368,7 +368,7 @@ void mp::LXDVMImageVault::remove(const std::string& name)
     }
     catch (const LXDNotFoundException&)
     {
-        mpl::warn(category, fmt::format("Instance \'{}\' does not exist: not removing", name));
+        mpl::warn(category, "Instance \'{}\' does not exist: not removing", name);
     }
 }
 
@@ -389,8 +389,7 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::warn(category,
-                  fmt::format("{} - Unable to determine if \'{}\' exists", e.what(), name));
+        mpl::warn(category, "{} - Unable to determine if \'{}\' exists", e.what(), name);
         // Assume instance exists until it knows for sure
         return true;
     }
@@ -441,8 +440,8 @@ void mp::LXDVMImageVault::prune_expired_images()
                 std::chrono::system_clock::now()))
         {
             mpl::info(category,
-                      fmt::format("Source image \'{}\' is expired. Removing it…",
-                                  image_info["properties"].toObject()["release"].toString()));
+                      "Source image \'{}\' is expired. Removing it…",
+                      image_info["properties"].toObject()["release"].toString());
 
             try
             {
@@ -488,8 +487,7 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type,
 
                 if (info->id != id)
                 {
-                    mpl::info(category,
-                              fmt::format("Updating {} source image to latest", query.release));
+                    mpl::info(category, "Updating {} source image to latest", query.release);
 
                     lxd_download_image(*info,
                                        query,

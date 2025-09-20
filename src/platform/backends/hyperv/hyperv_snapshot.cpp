@@ -47,7 +47,8 @@ bool snapshot_exists(mp::PowerShell& ps, const QString& vm_name, const QString& 
     if (!output_err.contains(expected_error))
     {
         mpl::warn(vm_name.toStdString(),
-                  fmt::format("Get-VMCheckpoint failed with unexpected output: {}", output_err));
+                  "Get-VMCheckpoint failed with unexpected output: {}",
+                  output_err);
         throw std::runtime_error{"Failure while looking for snapshot name"};
     }
 
@@ -103,8 +104,8 @@ void mp::HyperVSnapshot::erase_impl()
             "Could not delete snapshot");
     else
         mpl::warn(vm_name.toStdString(),
-                  fmt::format("Could not find underlying Hyper-V snapshot for \"{}\". Ignoring...",
-                              get_name()));
+                  "Could not find underlying Hyper-V snapshot for \"{}\". Ignoring...",
+                  get_name());
 }
 
 void mp::HyperVSnapshot::apply_impl()

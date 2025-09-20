@@ -42,8 +42,8 @@ public:
             if (state == QProcess::Starting)
             {
                 mpl::debug("daemon",
-                           fmt::format("Applied AppArmor policy: {}",
-                                       process_spec->apparmor_profile_name()));
+                           "Applied AppArmor policy: {}",
+                           process_spec->apparmor_profile_name());
             }
         });
     }
@@ -94,7 +94,7 @@ std::optional<mp::AppArmor> create_apparmor()
     }
     catch (mp::AppArmorException& e)
     {
-        mpl::warn("apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
+        mpl::warn("apparmor", "Failed to enable AppArmor: {}", e.what());
         return std::nullopt;
     }
 }

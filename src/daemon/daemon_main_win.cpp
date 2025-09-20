@@ -147,7 +147,7 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
                      &mp::Daemon::shutdown_grpc_server,
                      Qt::DirectConnection);
 
-    mpl::info("daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    mpl::info("daemon", "Daemon arguments: {}", app.arguments().join(" "));
     auto ret = QCoreApplication::exec();
     mpl::info("daemon", "Goodbye!");
     return ret;

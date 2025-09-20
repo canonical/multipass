@@ -111,7 +111,7 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
     auto ip = get_ip_for(hw_addr);
     if (!ip)
     {
-        mpl::warn("dnsmasq", fmt::format("attempting to release non-existent addr: {}", hw_addr));
+        mpl::warn("dnsmasq", "attempting to release non-existent addr: {}", hw_addr);
         return;
     }
 
@@ -120,21 +120,21 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
                      &QProcess::errorOccurred,
                      [&ip, &hw_addr](QProcess::ProcessError error) {
                          mpl::warn("dnsmasq",
-                                   fmt::format("failed to release ip addr {} with mac {}: {}",
-                                               ip.value().as_string(),
-                                               hw_addr,
-                                               utils::qenum_to_string(error)));
+                                   "failed to release ip addr {} with mac {}: {}",
+                                   ip.value().as_string(),
+                                   hw_addr,
+                                   utils::qenum_to_string(error));
                      });
 
     auto log_exit_status = [&ip, &hw_addr](int exit_code, QProcess::ExitStatus exit_status) {
         if (exit_code == 0 && exit_status == QProcess::NormalExit)
             return;
 
-        auto msg = fmt::format("failed to release ip addr {} with mac {}, exit_code: {}",
-                               ip.value().as_string(),
-                               hw_addr,
-                               exit_code);
-        mpl::warn("dnsmasq", msg);
+        mpl::warn("dnsmasq",
+                  "failed to release ip addr {} with mac {}, exit_code: {}",
+                  ip.value().as_string(),
+                  hw_addr,
+                  exit_code);
     };
     QObject::connect(
         &dhcp_release,

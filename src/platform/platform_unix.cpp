@@ -72,9 +72,10 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
     if (ec)
     {
-        mpl::warn(
-            "permissions",
-            fmt::format("failed to set permissions for {}: {}", path.u8string(), ec.message()));
+        mpl::warn("permissions",
+                  "failed to set permissions for {}: {}",
+                  path.u8string(),
+                  ec.message());
     }
 
     return !ec;
