@@ -175,17 +175,16 @@ std::string mp::SSHProcess::read_std_error()
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 {
     mpl::trace(category,
-               fmt::format("{}:{} {}(type = {}, timeout = {}): ",
-                           __FILE__,
-                           __LINE__,
-                           __FUNCTION__,
-                           static_cast<int>(type),
-                           timeout));
+               "{}:{} {}(type = {}, timeout = {}): ",
+               __FILE__,
+               __LINE__,
+               __FUNCTION__,
+               static_cast<int>(type),
+               timeout);
     // If the channel is closed there's no output to read
     if (ssh_channel_is_closed(channel.get()))
     {
-        mpl::trace(category,
-                   fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
+        mpl::trace(category, "{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__);
         return std::string();
     }
 
@@ -200,18 +199,23 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                                              buffer.size(),
                                              is_std_err,
                                              timeout);
-        mpl::trace(
-            category,
-            fmt::format("{}:{} {}(): num_bytes = {}", __FILE__, __LINE__, __FUNCTION__, num_bytes));
+        mpl::trace(category,
+                   "{}:{} {}(): num_bytes = {}",
+                   __FILE__,
+                   __LINE__,
+                   __FUNCTION__,
+                   num_bytes);
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
             if (ssh_channel_is_closed(channel.get()))
             {
-                mpl::trace(
-                    category,
-                    fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
+                mpl::trace(category,
+                           "{}:{} {}(): channel closed",
+                           __FILE__,
+                           __LINE__,
+                           __FUNCTION__);
                 return output.str();
             }
 

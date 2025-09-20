@@ -65,7 +65,7 @@ public:
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
-            mpl::info("daemon", fmt::format("Received signal {} ({})", sig, strsignal(sig)));
+            mpl::info("daemon", "Received signal {} ({})", sig, strsignal(sig));
 
         // In order to be able to gracefully end the application via QCoreApplication::quit()
         // the initialization (QT, Daemon) have to happen first. Otherwise, the application
@@ -103,8 +103,8 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
                      &mp::Daemon::shutdown_grpc_server,
                      Qt::DirectConnection);
 
-    mpl::info("daemon", fmt::format("Starting Multipass {}", mp::version_string));
-    mpl::info("daemon", fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    mpl::info("daemon", "Starting Multipass {}", mp::version_string);
+    mpl::info("daemon", "Daemon arguments: {}", app.arguments().join(" "));
 
     // Signal the signal handler that app has completed its basic initialization, and
     // ready to process signals.

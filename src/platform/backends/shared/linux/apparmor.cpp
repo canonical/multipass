@@ -98,7 +98,7 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::trace("daemon", fmt::format("Loading AppArmor policy:\n{}", aa_policy));
+    mpl::trace("daemon", "Loading AppArmor policy:\n{}", aa_policy);
 
     if (process.exitCode() != 0)
     {
@@ -118,7 +118,7 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::trace("daemon", fmt::format("Removing AppArmor policy:\n{}", aa_policy));
+    mpl::trace("daemon", "Removing AppArmor policy:\n{}", aa_policy);
 
     if (process.exitCode() != 0)
     {

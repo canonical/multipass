@@ -407,7 +407,7 @@ void mp::HyperVVirtualMachine::suspend()
     }
     else if (present_state == State::stopped)
     {
-        mpl::info(vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
     monitor->on_suspend();

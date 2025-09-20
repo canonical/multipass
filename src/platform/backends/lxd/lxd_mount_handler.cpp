@@ -59,9 +59,11 @@ void LXDMountHandler::activate_impl(ServerVariant /**/, std::chrono::millisecond
         throw mp::NativeMountNeedsStoppedVMException(vm->vm_name);
     }
 
-    mpl::info(
-        std::string(category),
-        fmt::format("initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
+    mpl::info(std::string(category),
+              "initializing native mount {} => {} in '{}'",
+              source,
+              target,
+              vm->vm_name);
     lxd_device_add();
 }
 
@@ -76,7 +78,9 @@ void LXDMountHandler::deactivate_impl(bool /*force*/)
     }
 
     mpl::info(std::string(category),
-              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
+              "Stopping native mount \"{}\" in instance '{}'",
+              target,
+              vm->vm_name);
     lxd_device_remove();
 }
 

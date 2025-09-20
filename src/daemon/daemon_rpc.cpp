@@ -117,8 +117,7 @@ void handle_socket_restrictions(const std::string& server_address, const bool re
     }
     catch (const std::exception& e)
     {
-        mpl::error(category,
-                   fmt::format("Fatal error: Cannot set server socket restrictions: {}", e.what()));
+        mpl::error(category, "Fatal error: Cannot set server socket restrictions: {}", e.what());
         MP_UTILS.exit(EXIT_FAILURE);
     }
 }
@@ -143,7 +142,7 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address,
 {
     handle_socket_restrictions(server_address, client_cert_store->empty());
 
-    mpl::info(category, fmt::format("gRPC listening on {}", server_address));
+    mpl::info(category, "gRPC listening on {}", server_address);
 }
 
 void mp::DaemonRpc::shutdown_and_wait()

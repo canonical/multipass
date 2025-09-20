@@ -55,9 +55,10 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
 {
     auto json_reply = lxd_request(manager, "GET", url);
     auto metadata = json_reply["metadata"].toObject();
-    mpl::trace(
-        name.toStdString(),
-        fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
+    mpl::trace(name.toStdString(),
+               "Got LXD container state: {} is {}",
+               name,
+               metadata["status"].toString());
 
     switch (metadata["status_code"].toInt(-1))
     {
@@ -80,9 +81,9 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
         return mp::VirtualMachine::State::unknown;
     default:
         mpl::error(name.toStdString(),
-                   fmt::format("Got unexpected LXD state: {} ({})",
-                               metadata["status"].toString(),
-                               metadata["status_code"].toInt()));
+                   "Got unexpected LXD state: {} ({})",
+                   metadata["status"].toString(),
+                   metadata["status_code"].toInt());
         return mp::VirtualMachine::State::unknown;
     }
 }
@@ -210,8 +211,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
     }
     catch (const LXDNotFoundException& e)
     {
-        mpl::debug(name.toStdString(),
-                   fmt::format("Creating instance with image id: {}", desc.image.id));
+        mpl::debug(name.toStdString(), "Creating instance with image id: {}", desc.image.id);
 
         QJsonObject virtual_machine{
             {"name", name},
@@ -261,7 +261,7 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
         }
         catch (const LXDNotFoundException& e)
         {
-            mpl::debug(vm_name, fmt::format("LXD object not found"));
+            mpl::debug(vm_name, "LXD object not found");
         }
     });
 }
@@ -270,7 +270,7 @@ void mp::LXDVirtualMachine::start()
 {
     if (state == State::suspended)
     {
-        mpl::info(vm_name, fmt::format("Resuming from a suspended state"));
+        mpl::info(vm_name, "Resuming from a suspended state");
         request_state("unfreeze");
     }
     else

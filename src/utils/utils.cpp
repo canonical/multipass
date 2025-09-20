@@ -271,8 +271,7 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
     if (auto ec = proc.exit_code() != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
-        mpl::debug(category,
-                   fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
+        mpl::debug(category, "failed to run '{}', error message: '{}'", cmd, error_msg);
         throw mp::SSHExecFailure(error_msg, ec);
     }
 
@@ -444,9 +443,10 @@ void mp::utils::process_throw_on_error(const QString& program,
                                        const int timeout)
 {
     QProcess process;
-    mpl::debug(
-        category.toStdString(),
-        fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    mpl::debug(category.toStdString(),
+               "Running: {}, {}",
+               program.toStdString(),
+               arguments.join(", ").toStdString());
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     auto success = process.waitForFinished(timeout);
@@ -454,11 +454,11 @@ void mp::utils::process_throw_on_error(const QString& program,
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
         mpl::debug(category.toStdString(),
-                   fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
-                               program.toStdString(),
-                               process.errorString().toStdString(),
-                               process.exitStatus(),
-                               process.exitCode()));
+                   "{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
+                   program.toStdString(),
+                   process.errorString().toStdString(),
+                   process.exitStatus(),
+                   process.exitCode());
 
         auto output = process.readAllStandardOutput();
         throw std::runtime_error(fmt::format(message.toStdString(),
@@ -475,9 +475,10 @@ bool mp::utils::process_log_on_error(const QString& program,
                                      const int timeout)
 {
     QProcess process;
-    mpl::debug(
-        category.toStdString(),
-        fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    mpl::debug(category.toStdString(),
+               "Running: {}, {}",
+               program.toStdString(),
+               arguments.join(", ").toStdString());
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     auto success = process.waitForFinished(timeout);
@@ -485,18 +486,17 @@ bool mp::utils::process_log_on_error(const QString& program,
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
         mpl::debug(category.toStdString(),
-                   fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
-                               program.toStdString(),
-                               process.errorString().toStdString(),
-                               process.exitStatus(),
-                               process.exitCode()));
+                   "{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
+                   program.toStdString(),
+                   process.errorString().toStdString(),
+                   process.exitStatus(),
+                   process.exitCode());
 
         auto output = process.readAllStandardOutput();
         mpl::log(level,
                  category.toStdString(),
-                 fmt::format(message.toStdString(),
-                             output.isEmpty() ? process.errorString().toStdString()
-                                              : output.toStdString()));
+                 message.toStdString(),
+                 output.isEmpty() ? process.errorString().toStdString() : output.toStdString());
         return false;
     }
 

@@ -64,7 +64,7 @@ auto instance_state_for(const QString& name)
     {
         auto state = vmstate_match.captured(1);
 
-        mpl::trace(name.toStdString(), fmt::format("Got VMState: {}", state.toStdString()));
+        mpl::trace(name.toStdString(), "Got VMState: {}", state.toStdString());
 
         if (state == "starting" || state == "restoring")
         {
@@ -89,13 +89,14 @@ auto instance_state_for(const QString& name)
         }
 
         mpl::error(name.toStdString(),
-                   fmt::format("Failed to parse instance state: {}",
-                               vmstate_match.captured().toStdString()));
+                   "Failed to parse instance state: {}",
+                   vmstate_match.captured().toStdString());
     }
     else if (vminfo.exitCode() == 0)
     {
         mpl::error(name.toStdString(),
-                   fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
+                   "Failed to parse info output: {}",
+                   vminfo_output.toStdString());
     }
 
     return mp::VirtualMachine::State::unknown;
@@ -439,7 +440,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
     }
     else if (present_state == State::stopped)
     {
-        mpl::info(vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
     monitor->on_suspend();

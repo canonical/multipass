@@ -45,21 +45,21 @@ void install_cifs_for(const std::string& name,
                       const std::chrono::milliseconds& timeout)
 try
 {
-    mpl::info(category, fmt::format("Installing cifs-utils in '{}'", name));
+    mpl::info(category, "Installing cifs-utils in '{}'", name);
 
     auto proc = session.exec("sudo apt-get update && sudo apt-get install -y cifs-utils");
     if (proc.exit_code(timeout) != 0)
     {
         auto error_msg = proc.read_std_error();
         mpl::warn(category,
-                  fmt::format("Failed to install 'cifs-utils', error message: '{}'",
-                              mp::utils::trim_end(error_msg)));
+                  "Failed to install 'cifs-utils', error message: '{}'",
+                  mp::utils::trim_end(error_msg));
         throw std::runtime_error("Failed to install cifs-utils");
     }
 }
 catch (const mp::ExitlessSSHProcessException&)
 {
-    mpl::info(category, fmt::format("Timeout while installing 'cifs-utils' in '{}'", name));
+    mpl::info(category, "Timeout while installing 'cifs-utils' in '{}'", name);
     throw std::runtime_error("Timeout installing cifs-utils");
 }
 } // namespace
@@ -121,7 +121,7 @@ void SmbManager::remove_share(const QString& share_name) const
 {
     auto wide_share_name = share_name.toStdWString();
     if (share_exists(share_name) && NetShareDel(nullptr, wide_share_name.data(), 0) != 0)
-        mpl::warn(category, fmt::format("Failed removing SMB share \"{}\"'", share_name));
+        mpl::warn(category, "Failed removing SMB share \"{}\"'", share_name);
 }
 
 void SmbMountHandler::remove_cred_files(const QString& user_id)
@@ -153,7 +153,7 @@ try
 }
 catch (const std::exception& e)
 {
-    mpl::warn(category, fmt::format("Failed to encrypt credentials to file: {}", e.what()));
+    mpl::warn(category, "Failed to encrypt credentials to file: {}", e.what());
 }
 
 std::string SmbMountHandler::decrypt_credentials_from_file(const QString& cred_filename,
@@ -171,7 +171,7 @@ try
 }
 catch (const std::exception& e)
 {
-    mpl::warn(category, fmt::format("Failed to decrypt credentials from file: {}", e.what()));
+    mpl::warn(category, "Failed to decrypt credentials from file: {}", e.what());
     return {};
 }
 
@@ -190,9 +190,7 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
       cred_dir{cred_dir},
       smb_manager{&smb_manager}
 {
-    mpl::info(
-        category,
-        fmt::format("Initializing native mount {} => {} in '{}'", source, target, vm->vm_name));
+    mpl::info(category, "Initializing native mount {} => {} in '{}'", source, target, vm->vm_name);
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
@@ -226,10 +224,10 @@ try
 catch (const std::exception& e)
 {
     mpl::warn(category,
-              fmt::format("Failed checking SSHFS mount \"{}\" in instance '{}': {}",
-                          target,
-                          vm->vm_name,
-                          e.what()));
+              "Failed checking SSHFS mount \"{}\" in instance '{}': {}",
+              target,
+              vm->vm_name,
+              e.what());
     return false;
 }
 
@@ -324,9 +322,9 @@ try
     auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
     if (rm_proc.exit_code() != 0)
         mpl::warn(category,
-                  fmt::format("Failed deleting credentials file in \'{}\': {}",
-                              vm->vm_name,
-                              rm_proc.read_std_error()));
+                  "Failed deleting credentials file in \'{}\': {}",
+                  vm->vm_name,
+                  rm_proc.read_std_error());
 
     if (mount_exit_code != 0)
     {
@@ -343,8 +341,7 @@ catch (...)
 void SmbMountHandler::deactivate_impl(bool force)
 try
 {
-    mpl::info(category,
-              fmt::format("Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name));
+    mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name);
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     MP_UTILS.run_in_ssh_session(
         session,
@@ -356,10 +353,10 @@ catch (const std::exception& e)
     if (!force)
         throw;
     mpl::warn(category,
-              fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
-                          target,
-                          vm->vm_name,
-                          e.what()));
+              "Failed to gracefully stop mount \"{}\" in instance '{}': {}",
+              target,
+              vm->vm_name,
+              e.what());
     smb_manager->remove_share(share_name);
 }
 

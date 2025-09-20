@@ -115,7 +115,7 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(
 
 void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
-    mpl::trace(category, fmt::format("No further resources to remove for \"{}\"", name));
+    mpl::trace(category, "No further resources to remove for \"{}\"", name);
 }
 
 auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage
@@ -159,11 +159,11 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
     {
-        mpl::debug(category, "Failed to authenticate to LXD:");
+        mpl::log(mpl::Level::debug, category, "Failed to authenticate to LXD:");
         mpl::debug(category,
-                   fmt::format("{}: {}",
-                               base_url.toString(),
-                               QJsonDocument(reply).toJson(QJsonDocument::Compact)));
+                   "{}: {}",
+                   base_url.toString(),
+                   QJsonDocument(reply).toJson(QJsonDocument::Compact));
         throw std::runtime_error("Failed to authenticate to LXD.");
     }
 
@@ -194,7 +194,7 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
                         QUrl(QString("%1/storage-pools/%2").arg(base_url.toString()).arg(pool)));
 
             storage_pool = pool;
-            mpl::debug(category, fmt::format("Using the \'{}\' storage pool.", pool));
+            mpl::debug(category, "Using the \'{}\' storage pool.", pool);
 
             break;
         }

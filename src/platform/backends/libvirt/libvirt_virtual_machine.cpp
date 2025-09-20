@@ -353,7 +353,7 @@ void mp::LibVirtVirtualMachine::start()
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
 
     if (state == State::suspended)
-        mpl::info(vm_name, fmt::format("Resuming from a suspended state"));
+        mpl::info(vm_name, "Resuming from a suspended state");
 
     state = State::starting;
     update_state();
@@ -460,7 +460,7 @@ void mp::LibVirtVirtualMachine::suspend()
     }
     else if (state == State::off)
     {
-        mpl::info(vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
     monitor->on_suspend();
