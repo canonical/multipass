@@ -799,8 +799,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     std::filesystem::permissions(path, perms, ec);
 
     // Rest handles ACLs
-    auto u8path = path.u8string();
-    LPSTR lpPath = u8path.data();
+    auto path_str = path.string();
+    LPSTR lpPath = path_str.data();
     auto success = true;
 
     auto newACL = new_ACL(lpPath);
@@ -838,8 +838,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    auto u8path = path.u8string();
-    LPSTR lpPath = u8path.data();
+    auto path_str = path.string();
+    LPSTR lpPath = path_str.data();
 
     return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
            ERROR_SUCCESS;

@@ -232,7 +232,7 @@ TEST_F(SFTPUtils, getFullRemoteFileTargetTargetIsDirChildIsToo)
         mp::SFTPError,
         mpt::match_what(
             StrEq(fmt::format("cannot overwrite remote directory \"{}\" with non-directory",
-                              target_path.u8string() + '/' + source_path.filename().u8string()))));
+                              target_path.string() + '/' + source_path.filename().string()))));
 }
 
 TEST_F(SFTPUtils, getFullLocalDirTargetTargetExistsNotDir)
@@ -400,7 +400,7 @@ TEST_F(SFTPUtils, getFullRemoteDirTargetTargetNotExistsCannotCreate)
 
 TEST_F(SFTPUtils, getFullRemoteDirTargetTargetIsDirChildIsNot)
 {
-    auto target_child_path = target_path.u8string() + '/' + source_path.filename().u8string();
+    auto target_child_path = target_path.string() + '/' + source_path.filename().string();
     REPLACE(sftp_stat, [&](auto, auto path) -> sftp_attributes {
         if (target_path == path)
             return get_dummy_attr(path, SSH_FILEXFER_TYPE_DIRECTORY);
@@ -441,8 +441,8 @@ TEST_F(SFTPUtils, getFullRemoteDirTargetTargetIsDirChildNotExistsCannotCreate)
     MP_EXPECT_THROW_THAT(MP_SFTPUTILS.get_remote_dir_target(&sftp, source_path, target_path, false),
                          mp::SFTPError,
                          mpt::match_what(StrEq(fmt::format(
-                             "cannot create remote directory \"{}\": {}",
-                             target_path.u8string() + '/' + source_path.filename().u8string(),
+                             "cannot create remote directory {:?}: {}",
+                             target_path.string() + '/' + source_path.filename().string(),
                              err))));
 }
 

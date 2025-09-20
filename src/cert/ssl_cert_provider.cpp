@@ -84,7 +84,7 @@ private:
         std::filesystem::create_directories(file_path_std.parent_path());
         // make sure the parent directory exist
 
-        const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
+        const auto raw_fp = fopen(file_path_std.string().c_str(), "wb");
         openssl_check(
             raw_fp,
             fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
