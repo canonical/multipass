@@ -473,7 +473,7 @@ void mp::utils::process_throw_on_error(const QString& program,
                              process.exitCode()));
 
         auto output = process.readAllStandardOutput();
-        throw std::runtime_error(fmt::format(message.toStdString(),
+        throw std::runtime_error(fmt::format(fmt::runtime(message.toStdString()),
                                              output.isEmpty() ? process.errorString().toStdString()
                                                               : output.toStdString()));
     }
@@ -508,7 +508,7 @@ bool mp::utils::process_log_on_error(const QString& program,
         auto output = process.readAllStandardOutput();
         mpl::log(level,
                  category.toStdString(),
-                 fmt::format(message.toStdString(),
+                 fmt::format(fmt::runtime(message.toStdString()),
                              output.isEmpty() ? process.errorString().toStdString()
                                               : output.toStdString()));
         return false;

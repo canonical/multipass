@@ -4145,9 +4145,11 @@ TEST_P(ClientAliasNameSuite, createsCorrectDefaultAliasName)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(
-        cout_stream.str(),
-        fmt::format(csv_header + "{},primary,{}{},default,default*\n", command, path, command));
+    EXPECT_THAT(cout_stream.str(),
+                fmt::format(fmt::runtime(csv_header + "{},primary,{}{},default,default*\n"),
+                            command,
+                            path,
+                            command));
 }
 
 INSTANTIATE_TEST_SUITE_P(

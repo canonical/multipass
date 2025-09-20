@@ -800,9 +800,11 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
                     const auto& instance_name = get_instance_name(instance_element);
 
                     if (status_code)
-                        add_fmt_to(errors, msg, instance_name);
+                        add_fmt_to(errors, fmt::runtime(msg), instance_name);
                     else
-                        mpl::log(mpl::Level::debug, category, fmt::format(msg, instance_name));
+                        mpl::log(mpl::Level::debug,
+                                 category,
+                                 fmt::format(fmt::runtime(msg), instance_name));
                 }
             }
         }
@@ -884,7 +886,7 @@ grpc::Status grpc_status_for_instance_trail(const InstanceTrail& trail,
     const auto& status_code = relevant_reaction_component->status_code;
     if (const auto& msg_opt = relevant_reaction_component->message_template; msg_opt)
     {
-        const auto& msg = fmt::format(*msg_opt, *instance_name);
+        const auto& msg = fmt::format(fmt::runtime(*msg_opt), *instance_name);
         if (status_code)
             return grpc::Status{status_code, msg, ""};
 
