@@ -106,7 +106,7 @@ char* get_root_cert()
     }
     catch (const std::exception& e)
     {
-        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return nullptr;
     }
     catch (...)

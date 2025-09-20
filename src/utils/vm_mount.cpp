@@ -97,14 +97,16 @@ mp::VMMount::VMMount(const std::string& sourcePath,
         !dup_uid_map.empty() || !dup_rev_uid_map.empty())
     {
         fmt::format_to(std::back_inserter(errors),
-                       fmt::format("\nuids: {}", print_mappings(dup_uid_map, dup_rev_uid_map)));
+                       "\nuids: {}",
+                       print_mappings(dup_uid_map, dup_rev_uid_map));
     }
 
     if (const auto& [dup_gid_map, dup_rev_gid_map] = mp::unique_id_mappings(gid_mappings);
         !dup_gid_map.empty() || !dup_rev_gid_map.empty())
     {
         fmt::format_to(std::back_inserter(errors),
-                       fmt::format("\ngids: {}", print_mappings(dup_gid_map, dup_rev_gid_map)));
+                       "\ngids: {}",
+                       print_mappings(dup_gid_map, dup_rev_gid_map));
     }
 
     if (errors.size())
