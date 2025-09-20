@@ -87,7 +87,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
                         continue;
                 }
 
-                fmt::format_to(std::back_inserter(details), err_fmt, pair.first);
+                fmt::format_to(std::back_inserter(details), fmt::runtime(err_fmt), pair.first);
             }
 
             if (details.empty())
