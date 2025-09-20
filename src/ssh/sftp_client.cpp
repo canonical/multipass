@@ -64,7 +64,7 @@ SFTPClient::SFTPClient(SSHSessionUPtr ssh_session)
 
 bool SFTPClient::is_remote_dir(const fs::path& path)
 {
-    auto attr = mp_sftp_stat(sftp.get(), path.u8string().c_str());
+    auto attr = mp_sftp_stat(sftp.get(), path.string().c_str());
     return attr && attr->type == SSH_FILEXFER_TYPE_DIRECTORY;
 }
 
@@ -150,7 +150,7 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
     std::error_code _;
     auto status = MP_FILEOPS.status(source_path, _);
     if (sftp_chmod(sftp.get(),
-                   target_path.u8string().c_str(),
+                   target_path.string().c_str(),
                    static_cast<mode_t>(status.permissions())) != SSH_FX_OK)
         throw SFTPError{"cannot set permissions for remote file {}: {}",
                         target_path,
@@ -169,7 +169,7 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
 
     do_pull_file(source_path, *local_file);
 
-    auto source_perms = mp_sftp_stat(sftp.get(), source_path.u8string().c_str())->permissions;
+    auto source_perms = mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions;
     if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
         throw SFTPError{"cannot set permissions for local file {}", target_path};
 
@@ -213,7 +213,7 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
             }
             case fs::file_type::directory:
             {
-                if (sftp_mkdir(sftp.get(), remote_file_path.u8string().c_str(), 0777) != SSH_OK &&
+                if (sftp_mkdir(sftp.get(), remote_file_path.string().c_str(), 0777) != SSH_OK &&
                     sftp_get_error(sftp.get()) != SSH_FX_FILE_ALREADY_EXISTS)
                     throw SFTPError{"cannot create remote directory {:?}: {}",
                                     remote_file_path,
@@ -229,16 +229,16 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
                     throw SFTPError{"cannot read local link {}: {}", entry.path(), err.message()};
 
                 auto remote_file_info =
-                    mp_sftp_lstat(sftp.get(), remote_file_path.u8string().c_str());
+                    mp_sftp_lstat(sftp.get(), remote_file_path.string().c_str());
                 if (remote_file_info && remote_file_info->type == SSH_FILEXFER_TYPE_DIRECTORY)
                     throw SFTPError{"cannot overwrite remote directory {:?} with non-directory",
                                     remote_file_path};
 
-                if ((sftp_unlink(sftp.get(), remote_file_path.u8string().c_str()) != SSH_FX_OK &&
+                if ((sftp_unlink(sftp.get(), remote_file_path.string().c_str()) != SSH_FX_OK &&
                      sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE) ||
                     sftp_symlink(sftp.get(),
-                                 link_target.u8string().c_str(),
-                                 remote_file_path.u8string().c_str()) != SSH_FX_OK)
+                                 link_target.string().c_str(),
+                                 remote_file_path.string().c_str()) != SSH_FX_OK)
                     throw SFTPError{"cannot create remote symlink {:?}: {}",
                                     remote_file_path,
                                     ssh_get_error(sftp->session)};
@@ -258,8 +258,7 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
     for (auto it = subdirectory_perms.crbegin(); it != subdirectory_perms.crend(); ++it)
     {
         const auto& [path, perms] = *it;
-        if (sftp_chmod(sftp.get(), path.u8string().c_str(), static_cast<mode_t>(perms)) !=
-            SSH_FX_OK)
+        if (sftp_chmod(sftp.get(), path.string().c_str(), static_cast<mode_t>(perms)) != SSH_FX_OK)
         {
             mpl::log(mpl::Level::error,
                      log_category,
@@ -281,7 +280,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
     auto remote_iter = MP_SFTPUTILS.make_SFTPDirIterator(sftp.get(), source_path);
 
     std::vector<std::pair<fs::path, mode_t>> subdirectory_perms{
-        {target_path, mp_sftp_stat(sftp.get(), source_path.u8string().c_str())->permissions}};
+        {target_path, mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions}};
 
     while (remote_iter->hasNext())
     {
@@ -369,7 +368,7 @@ void SFTPClient::to_cout(const fs::path& source_path, std::ostream& cout)
 void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 {
     auto remote_file = mp_sftp_open(sftp.get(),
-                                    target_path.u8string().c_str(),
+                                    target_path.string().c_str(),
                                     O_WRONLY | O_CREAT | O_TRUNC,
                                     file_mode);
     if (!remote_file)
@@ -390,7 +389,7 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 
 void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
 {
-    auto remote_file = mp_sftp_open(sftp.get(), source_path.u8string().c_str(), O_RDONLY, 0);
+    auto remote_file = mp_sftp_open(sftp.get(), source_path.string().c_str(), O_RDONLY, 0);
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}",
                         source_path,
