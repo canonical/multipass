@@ -30,34 +30,26 @@ namespace
 {
 const std::regex newline("(\r\n|\n)");
 
-std::string format_images(
-    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-    std::string type)
+template <typename Dest>
+void format_images(Dest&& dest,
+                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                   std::string type)
 {
-    fmt::memory_buffer buf;
-
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<28}{:<18}{:<17}{:<}\n",
-                   type,
-                   "Aliases",
-                   "Version",
-                   "Description");
+    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
     for (const auto& image : images_info)
     {
         auto aliases = image.aliases_info();
         mp::format::filter_aliases(aliases);
 
         fmt::format_to(
-            std::back_inserter(buf),
+            dest,
             "{:<28}{:<18}{:<17}{:<}\n",
             mp::format::image_string_for(aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
             fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
-    fmt::format_to(std::back_inserter(buf), "\n");
-
-    return fmt::to_string(buf);
+    fmt::format_to(dest, "\n");
 }
 
 std::string to_usage(const std::string& usage, const std::string& total)
@@ -69,153 +61,133 @@ std::string to_usage(const std::string& usage, const std::string& total)
                        mp::MemorySize{total}.human_readable());
 }
 
-std::string generate_snapshot_details(const mp::DetailedInfoItem& item)
+template <typename Dest>
+void generate_snapshot_details(Dest&& dest, const mp::DetailedInfoItem& item)
 {
-    fmt::memory_buffer buf;
     const auto& fundamentals = item.snapshot_info().fundamentals();
 
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}\n",
-                   "Snapshot:",
-                   fundamentals.snapshot_name());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Instance:", item.name());
+    fmt::format_to(dest, "{:<16}{}\n", "Snapshot:", fundamentals.snapshot_name());
+    fmt::format_to(dest, "{:<16}{}\n", "Instance:", item.name());
 
     if (!item.snapshot_info().size().empty())
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Size:", item.snapshot_info().size());
+        fmt::format_to(dest, "{:<16}{}\n", "Size:", item.snapshot_info().size());
 
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "CPU(s):", item.cpu_count());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Disk space:", item.disk_total());
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Memory size:", item.memory_total());
+    fmt::format_to(dest, "{:<16}{}\n", "CPU(s):", item.cpu_count());
+    fmt::format_to(dest, "{:<16}{}\n", "Disk space:", item.disk_total());
+    fmt::format_to(dest, "{:<16}{}\n", "Memory size:", item.memory_total());
 
     auto mount_paths = item.mount_info().mount_paths();
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}",
-                   "Mounts:",
-                   mount_paths.empty() ? "--\n" : "");
+    fmt::format_to(dest, "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
     {
         if (mount != mount_paths.cbegin())
-            fmt::format_to(std::back_inserter(buf), "{:<16}", "");
-        fmt::format_to(std::back_inserter(buf),
+            fmt::format_to(dest, "{:<16}", "");
+        fmt::format_to(dest,
                        "{:{}} => {}\n",
                        mount->source_path(),
                        item.mount_info().longest_path_len(),
                        mount->target_path());
     }
 
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Created:",
                    MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp()));
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Parent:",
                    fundamentals.parent().empty() ? "--" : fundamentals.parent());
 
     auto children = item.snapshot_info().children();
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}",
-                   "Children:",
-                   children.empty() ? "--\n" : "");
+    fmt::format_to(dest, "{:<16}{}", "Children:", children.empty() ? "--\n" : "");
     for (auto child = children.cbegin(); child != children.cend(); ++child)
     {
         if (child != children.cbegin())
-            fmt::format_to(std::back_inserter(buf), "{:<16}", "");
-        fmt::format_to(std::back_inserter(buf), "{}\n", *child);
+            fmt::format_to(dest, "{:<16}", "");
+        fmt::format_to(dest, "{}\n", *child);
     }
 
     /* TODO split and align string if it extends onto several lines; but actually better implement
        generic word-wrapping for all output, taking both terminal width and current indentation
        level into account */
     fmt::format_to(
-        std::back_inserter(buf),
+        dest,
         "{:<16}{}\n",
         "Comment:",
         fundamentals.comment().empty()
             ? "--"
             : std::regex_replace(fundamentals.comment(), newline, "$&" + std::string(16, ' ')));
-
-    return fmt::to_string(buf);
 }
 
-std::string generate_instance_details(const mp::DetailedInfoItem& item)
+template <typename Dest>
+void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
 {
-    fmt::memory_buffer buf;
     const auto& instance_details = item.instance_info();
 
-    fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "Name:", item.name());
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest, "{:<16}{}\n", "Name:", item.name());
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
 
     if (instance_details.has_num_snapshots())
-        fmt::format_to(std::back_inserter(buf),
-                       "{:<16}{}\n",
-                       "Snapshots:",
-                       instance_details.num_snapshots());
+        fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
 
     int ipv4_size = instance_details.ipv4_size();
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}\n",
-                   "IPv4:",
-                   ipv4_size ? instance_details.ipv4(0) : "--");
+    fmt::format_to(dest, "{:<16}{}\n", "IPv4:", ipv4_size ? instance_details.ipv4(0) : "--");
 
     for (int i = 1; i < ipv4_size; ++i)
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv4(i));
+        fmt::format_to(dest, "{:<16}{}\n", "", instance_details.ipv4(i));
 
     if (int ipv6_size = instance_details.ipv6_size())
     {
-        fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "IPv6:", instance_details.ipv6(0));
+        fmt::format_to(dest, "{:<16}{}\n", "IPv6:", instance_details.ipv6(0));
 
         for (int i = 1; i < ipv6_size; ++i)
-            fmt::format_to(std::back_inserter(buf), "{:<16}{}\n", "", instance_details.ipv6(i));
+            fmt::format_to(dest, "{:<16}{}\n", "", instance_details.ipv6(i));
     }
 
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Release:",
                    instance_details.current_release().empty() ? "--"
                                                               : instance_details.current_release());
-    fmt::format_to(std::back_inserter(buf), "{:<16}", "Image hash:");
+    fmt::format_to(dest, "{:<16}", "Image hash:");
     if (instance_details.id().empty())
-        fmt::format_to(std::back_inserter(buf), "{}\n", "Not Available");
+        fmt::format_to(dest, "{}\n", "Not Available");
     else
-        fmt::format_to(std::back_inserter(buf),
+        fmt::format_to(dest,
                        "{}{}\n",
                        instance_details.id().substr(0, 12),
                        !instance_details.image_release().empty()
                            ? fmt::format(" (Ubuntu {})", instance_details.image_release())
                            : "");
 
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "CPU(s):",
                    item.cpu_count().empty() ? "--" : item.cpu_count());
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Load:",
                    instance_details.load().empty() ? "--" : instance_details.load());
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Disk usage:",
                    to_usage(instance_details.disk_usage(), item.disk_total()));
-    fmt::format_to(std::back_inserter(buf),
+    fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Memory usage:",
                    to_usage(instance_details.memory_usage(), item.memory_total()));
 
     const auto& mount_paths = item.mount_info().mount_paths();
-    fmt::format_to(std::back_inserter(buf),
-                   "{:<16}{}",
-                   "Mounts:",
-                   mount_paths.empty() ? "--\n" : "");
+    fmt::format_to(dest, "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
 
     for (auto mount = mount_paths.cbegin(); mount != mount_paths.cend(); ++mount)
     {
         if (mount != mount_paths.cbegin())
-            fmt::format_to(std::back_inserter(buf), "{:<16}", "");
-        fmt::format_to(std::back_inserter(buf),
+            fmt::format_to(dest, "{:<16}", "");
+        fmt::format_to(dest,
                        "{:{}} => {}\n",
                        mount->source_path(),
                        item.mount_info().longest_path_len(),
@@ -230,7 +202,7 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
             auto host_uid = uid_map_pair.host_id();
             auto instance_uid = uid_map_pair.instance_id();
 
-            fmt::format_to(std::back_inserter(buf),
+            fmt::format_to(dest,
                            "{:>{}}{}:{}{}",
                            (i == 0) ? "UID map: " : "",
                            (i == 0) ? 29 : 0,
@@ -248,7 +220,7 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
             auto instance_gid = gid_mapping->instance_id();
 
             fmt::format_to(
-                std::back_inserter(buf),
+                dest,
                 "{:>{}}{}:{}{}{}",
                 (gid_mapping == mount_maps.gid_mappings().cbegin()) ? "GID map: " : "",
                 (gid_mapping == mount_maps.gid_mappings().cbegin()) ? 29 : 0,
@@ -258,8 +230,6 @@ std::string generate_instance_details(const mp::DetailedInfoItem& item)
                 (std::next(gid_mapping) == mount_maps.gid_mappings().cend()) ? "\n" : "");
         }
     }
-
-    return fmt::to_string(buf);
 }
 
 std::string generate_instances_list(const mp::InstancesList& instance_list)
@@ -405,13 +375,13 @@ std::string mp::TableFormatter::format(const InfoReply& reply) const
     {
         if (info.has_instance_info())
         {
-            fmt::format_to(std::back_inserter(buf), generate_instance_details(info));
+            generate_instance_details(std::back_inserter(buf), info);
         }
         else
         {
             assert(info.has_snapshot_info() &&
                    "either one of instance or snapshot details should be populated");
-            fmt::format_to(std::back_inserter(buf), generate_snapshot_details(info));
+            generate_snapshot_details(std::back_inserter(buf), info);
         }
 
         fmt::format_to(std::back_inserter(buf), "\n");
@@ -502,12 +472,12 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         else
         {
             if (!reply.images_info().empty())
-                fmt::format_to(std::back_inserter(buf),
-                               format_images(reply.images_info(), "Image"));
+                format_images(std::back_inserter(buf), reply.images_info(), "Image");
 
             if (!reply.blueprints_info().empty())
-                fmt::format_to(std::back_inserter(buf),
-                               format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
+                format_images(std::back_inserter(buf),
+                              reply.blueprints_info(),
+                              "Blueprint (deprecated)");
         }
     }
     else if (reply.show_images() && !reply.show_blueprints())
@@ -515,15 +485,16 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
         if (reply.images_info().empty())
             fmt::format_to(std::back_inserter(buf), "No images found.\n");
         else
-            fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
+            format_images(std::back_inserter(buf), reply.images_info(), "Image");
     }
     else if (!reply.show_images() && reply.show_blueprints())
     {
         if (reply.blueprints_info().empty())
             fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
         else
-            fmt::format_to(std::back_inserter(buf),
-                           format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
+            format_images(std::back_inserter(buf),
+                          reply.blueprints_info(),
+                          "Blueprint (deprecated)");
     }
 
     return fmt::to_string(buf);
