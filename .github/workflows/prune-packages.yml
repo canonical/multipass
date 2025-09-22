@@ -22,7 +22,7 @@ jobs:
             // Fetch all container packages in this org/user
             const response = await github.paginate(
               "GET /orgs/{org}/packages",
-              { org: context.repo.owner, package_type: "container", per_page: 100 }
+              { org: context.repo.owner, package_type: "nuget", per_page: 100 }
             );
             // Extract unique names
             const names = [...new Set(response.map(p => p.name))];
