@@ -60,6 +60,16 @@ QString get_arp_output()
     return QString{arp_process->read_all_standard_output()};
 }
 
+bool ping_ip(const mp::IPAddress& ip_addr)
+{
+    constexpr auto timeout = 500;
+    const auto arp_process = mp::platform::make_process(
+        mp::simple_process_spec("ping", {"-c", "1", QString::fromStdString(ip_addr.as_string())}));
+    const auto arp_exit_state = arp_process->execute(timeout);
+
+    return arp_exit_state.completed_successfully();
+}
+
 } // namespace
 
 std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& mac_address)
@@ -90,7 +100,7 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
         {
             mp::IPAddress current_ip{match.captured(1).toStdString()};
 
-            if (!best_match.has_value() || current_ip > best_match.value())
+            if ((!best_match.has_value() || current_ip > best_match.value()) && ping_ip(current_ip))
             {
                 best_match = current_ip;
             }
