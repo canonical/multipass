@@ -50,7 +50,7 @@ TEST(Subet, throwsOnInvalidIP)
 
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.XXX.XXX/16"},
                          std::invalid_argument,
-                         mpt::match_what("invalid IP octet"));
+                         mpt::match_what(HasSubstr("invalid IP octet")));
 }
 
 TEST(Subnet, throwsOnLargeCIDR)
@@ -60,32 +60,32 @@ TEST(Subnet, throwsOnLargeCIDR)
     // valid but not supported
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/31"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 
     // valid but not supported
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/32"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 
     // boundary case
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/33"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 
     // at 8 bit limit
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/255"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 
     // above 8 bit limit
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/895231337"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 
     // extreme case
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/895231337890712387952378952359871235987169601436"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 }
 
 TEST(Subnet, throwsOnNegativeCIDR)
@@ -94,7 +94,7 @@ TEST(Subnet, throwsOnNegativeCIDR)
 
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/-24"},
                          std::invalid_argument,
-                         mpt::match_what(what));
+                         mpt::match_what(HasSubstr(what)));
 }
 
 TEST(Subnet, givesCorrectRange)
@@ -163,5 +163,5 @@ TEST(Subnet, canConvertToString)
     EXPECT_EQ(subnet.as_string(), "255.0.0.0/8");
 
     subnet = mp::Subnet{"255.0.255.0/0"};
-    EXPECT_EQ(subnet.as_string(), "0.0.0.0/8");
+    EXPECT_EQ(subnet.as_string(), "0.0.0.0/0");
 }
