@@ -45,3 +45,20 @@ jobs:
           package-name: ${{ matrix.package-name }}
           package-type: nuget
           min-versions-to-keep: 1
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [list-packages, prune]
+    if: ${{ always() }}
+    steps:
+      - name: Report workflow failure
+        if: ${{ needs.list-packages.result != 'success' || needs.prune.result != 'success' }}
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: multipass
+          TEXT: |
+            :red_circle: @mp
+            Scheduled [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+          MATTERMOST_USERNAME: ${{ github.actor }}
+          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
