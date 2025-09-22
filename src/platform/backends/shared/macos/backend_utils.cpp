@@ -17,6 +17,7 @@
 
 #include "backend_utils.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 
@@ -24,6 +25,8 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto category = "backend-utils";
+
 QString simplify_mac_address(const QString& input_mac_address)
 {
     // Trim the (first) leading 0 of each segment of the a MAC address.
@@ -99,6 +102,11 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
         if (match.captured(2) == arp_format_mac_address)
         {
             mp::IPAddress current_ip{match.captured(1).toStdString()};
+
+            mpl::trace(category,
+                       "Found ip match \'{}\': for mac address: \'{}\'",
+                       current_ip.as_string(),
+                       mac_address);
 
             if ((!best_match.has_value() || current_ip > best_match.value()) && ping_ip(current_ip))
             {
