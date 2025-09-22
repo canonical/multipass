@@ -65,6 +65,11 @@ uint8_t mp::Subnet::get_CIDR() const
     return 0;
 }
 
+mp::IPAddress mp::Subnet::get_subnet_mask() const
+{
+    return mp::IPAddress{""};
+}
+
 // uses CIDR notation
 std::string mp::Subnet::as_string() const
 {
