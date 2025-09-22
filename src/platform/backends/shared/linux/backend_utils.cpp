@@ -79,7 +79,7 @@ bool subnet_used_locally(const std::string& subnet)
 
 bool can_reach_gateway(const std::string& ip)
 {
-    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "1", "-W", "1"});
 }
 
 auto virtual_switch_subnet(const QString& bridge_name)
