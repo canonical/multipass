@@ -58,7 +58,7 @@ class CommitMsgRulesChecker:
         self.errors = self.validate_all()
 
     def should_ignore_line(self, line):
-        return bool(re.match("(#|>).*\n?", line))
+        return bool(re.match("(>).*\n?", line))
 
     def validate_all(self):
         if self.msg.lstrip().startswith("Merge"):
