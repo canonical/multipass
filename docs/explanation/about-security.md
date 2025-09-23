@@ -15,6 +15,6 @@ Therefore, make sure to restrict access to the daemon to trusted users.
 
 ## Local access to the Multipass daemon
 
-The Multipass daemon runs as root and provides a Unix socket for local communication. Access control for Multipass is initially based on group membership and later by the client's TLS certificate when accepted by providing a set passphrase.
+The Multipass daemon runs as root and provides a Unix socket for local communication. Access control for Multipass is initially based on group membership and later by the users's TLS certificate when accepted by providing a set passphrase.
 
-The first client to connect that is a member of the `sudo` group (or `wheel`/`adm`, depending on the OS) will automatically have its TLS certificate imported into the Multipass daemon and will be authenticated to connect. After this, any other client connecting will need to [`authenticate`](/reference/command-line-interface/authenticate) first by providing a [passphrase](/reference/settings/local-passphrase) set by the administrator.
+The first user to connect that is a member of the `sudo` group (or `wheel`/`adm`, depending on the OS) will automatically have its TLS certificate imported into the Multipass daemon and will be authenticated to connect. After this, any other user connecting will need to [`authenticate`](/reference/command-line-interface/authenticate) first by providing a [passphrase](/reference/settings/local-passphrase) set by the administrator.
