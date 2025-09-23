@@ -120,9 +120,15 @@ jobs:
       ##################################################################
       # Platform-specific
       ##################################################################
+      # - name: Install prerequisites (Windows)
+      #   if: runner.os == 'Windows'
+      #   run: choco install gsudo -y
+
       - name: Install prerequisites (Windows)
-        if: runner.os == 'Windows'
-        run: choco install gsudo -y
+        if: ${{ runner.os == 'Windows' }}
+        uses: crazy-max/ghaction-chocolatey@v3
+        with:
+          args: install --yes gsudo
 
       - name: Check snap channel (Linux)
         if: runner.os == 'Linux'
