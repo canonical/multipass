@@ -146,7 +146,12 @@ jobs:
 
       - name: Install package (Windows)
         if: runner.os == 'Windows'
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart
+        run: |
+          $log  = "$Env:RUNNER_TEMP\multipass-install.log"
+          ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart /l*vx! "$log" ADDLOCAL=ALL ALLUSERS=1
+          $code = $LASTEXITCODE
+          Write-Host "msiexec exit code: $code"
+          Get-Content -Path $log -Tail 200
       ##################################################################
       # Platform-agnostic
       ##################################################################
