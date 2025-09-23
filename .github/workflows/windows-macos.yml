@@ -72,6 +72,7 @@ jobs:
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
+      windows-pkg-url: ${{ steps.publish_data.outputs.windows-latest-s3-url }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -333,6 +334,10 @@ jobs:
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
+        if [ -n "$S3_URL" ]; then
+          echo "${{ matrix.runs-on }}-${{ matrix.arch }}-s3-url=$S3_URL" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Save sccache
       uses: actions/cache/save@v4
       if: ${{ github.ref == 'refs/heads/main' }}
@@ -347,6 +352,9 @@ jobs:
     needs: [BuildAndTest]
 
     runs-on: macos-latest
+
+    outputs:
+      macos-pkg-url: ${{ steps.report-url.outputs.s3-url }}
 
     steps:
     - name: Check out code
@@ -415,8 +423,24 @@ jobs:
       timeout-minutes: 5
 
     - name: Report public URL
+      id: report-url
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+        echo "s3-url=$S3_URL" >> "$GITHUB_OUTPUT"
+
+  Dispatch-CLI-Tests-Workflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - CombineAndPublishMacOSPackage
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
+      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
 
   DeleteSeparateMacPackages:
     if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
