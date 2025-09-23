@@ -618,7 +618,7 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
     return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
 }
 
-int mp::Utils::random_int(int a, int b) const
+intmax_t mp::Utils::random_int(intmax_t a, intmax_t b) const
 {
     static std::default_random_engine gen = [] {
         // seed the rng with the time at first call
@@ -629,7 +629,7 @@ int mp::Utils::random_int(int a, int b) const
     if (a > b) // avoid undefined behavior, this can only happen by programmer error
         throw std::logic_error(fmt::format("random range [{}, {}] is invalid", a, b));
 
-    std::uniform_int_distribution<int> dist{a, b};
+    std::uniform_int_distribution<intmax_t> dist{a, b};
 
     return dist(gen);
 }
