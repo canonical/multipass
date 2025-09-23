@@ -66,10 +66,9 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     needs: [list-packages, prune]
-    if: ${{ always() }}
+    if: ${{ !success() }}
     steps:
       - name: Report workflow failure
-        if: ${{ needs.list-packages.result != 'success' || needs.prune.result != 'success' }}
         uses: mattermost/action-mattermost-notify@master
         with:
           MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
