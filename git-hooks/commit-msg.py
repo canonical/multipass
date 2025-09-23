@@ -9,6 +9,7 @@ import argparse
 import re
 import sys
 import textwrap
+import subprocess
 from enum import Enum
 from pathlib import Path
 
@@ -46,9 +47,9 @@ class CommitMsgRulesChecker:
 
         self.enough = False
 
-        self.msg = msg
-        # Strip trailing whitespace
-        self.msg = self.msg.rstrip()
+        self.msg = subprocess.check_output(
+            ["git", "stripspace", "-s"], input=msg, text=True
+        )
 
         self.lines = self.msg.splitlines() if msg else []
         self.subject = self.lines[0].rstrip() if self.lines else ""
