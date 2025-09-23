@@ -258,7 +258,7 @@ public:
     virtual Path normalize_mount_target(Path target_mount_path) const;
     virtual bool invalid_target_path(const Path& target_path) const; // needs normalized input path
 
-    virtual int random_int(int a, int b) const;
+    virtual intmax_t random_int(intmax_t a, intmax_t b) const;
 };
 } // namespace multipass
 
