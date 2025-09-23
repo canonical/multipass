@@ -22,10 +22,6 @@ choco install cmake ninja qemu openssl git wget unzip -yfd
 choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
 ```
 
-You may have to disable Windows Defender Real-time protection if you want the packages to install
-quicker. Search for Windows Defender Security Center, go to Virus & threat protection, then Virus
-and thread protection settings, disable Real-time protection.
-
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any
 new compiler tool updates so choco upgrade will report no new updates available. To update the
 compiler and related tooling or fix a broken `visualstudio2019buildtools` installation do the following:
