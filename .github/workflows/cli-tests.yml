@@ -87,7 +87,7 @@ jobs:
                 os: 'windows-latest',
                 label: 'Windows',
                 'daemon-controller': 'winsvc',
-                'sudo-cmd': '',
+                'sudo-cmd': 'gsudo',
                 'pkg-url': inputs['windows-pkg-url'],
                 'pkg-download-destination': '$RUNNER_TEMP/multipass.msi',
                 'cmd-prologue': ''
@@ -125,7 +125,8 @@ jobs:
         run: |
           choco install gsudo -y
           echo 'C:\ProgramData\chocolatey\bin' >> "$GITHUB_PATH"
-          refreshenv
+          & "C:\tools\gsudo\Current\gsudo.exe" -v
+          echo "C:\tools\gsudo\Current" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Check snap channel (Linux)
         if: runner.os == 'Linux'
