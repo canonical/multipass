@@ -6,6 +6,9 @@ on:
   # 04:11 UTC on the first day of each month
   - cron: '11 4 1 * *'
 
+permissions:
+  packages: write
+
 jobs:
   list-packages:
     runs-on: ubuntu-latest
@@ -43,6 +46,9 @@ jobs:
   prune:
     needs: list-packages
     runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
 
     strategy:
       matrix: ${{ fromJSON(needs.list-packages.outputs.matrix) }}
