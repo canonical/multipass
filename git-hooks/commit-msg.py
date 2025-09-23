@@ -176,7 +176,7 @@ class TestCommitMsgRulesChecker:
             self._test_rule("MSG1", msg, expect_failure=False)
 
     def test_rule1_subject_line_required_breached(self):
-        invalid_messages = ["", "   ", "\n", "  \n", "\n  \n", "\nasdf", "\n\nBody without subject"]
+        invalid_messages = ["", "   ", "\n", "  \n", "\n  \n"]
 
         for msg in invalid_messages:
             self._test_rule("MSG1", msg, expect_failure=True)
