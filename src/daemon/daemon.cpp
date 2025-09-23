@@ -1282,10 +1282,8 @@ bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
                            std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
 {
     auto removed = false;
-    auto handlers_it = vm_mounts.begin();
-    while (handlers_it != vm_mounts.end())
-    {
-        const auto& [target, handler] = *handlers_it;
+    std::erase_if(vm_mounts, [&](auto&& i) {
+        const auto& [target, handler] = i;
         if (auto specs_it = mount_specs.find(target);
             specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
         {
@@ -1295,13 +1293,11 @@ bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
                 handler->deactivate();
             }
 
-            handlers_it = vm_mounts.erase(handlers_it);
             removed = true;
+            return true;
         }
-        else
-            ++handlers_it;
-    }
-
+        return false;
+    });
     return removed;
 }
 
@@ -3813,10 +3809,8 @@ bool mp::Daemon::create_missing_mounts(
     mp::VirtualMachine* vm)
 {
     auto initial_mount_count = mount_specs.size();
-    auto specs_it = mount_specs.begin();
-    while (specs_it != mount_specs.end()) // TODO@C++20 replace with erase_if over mount_specs
-    {
-        const auto& [target, mount_spec] = *specs_it;
+    std::erase_if(mount_specs, [&](auto&& i) {
+        const auto& [target, mount_spec] = i;
         if (vm_mounts.find(target) == vm_mounts.end())
         {
             try
@@ -3833,13 +3827,11 @@ bool mp::Daemon::create_missing_mounts(
                                      vm->vm_name,
                                      e.what()));
 
-                specs_it = mount_specs.erase(
-                    specs_it); // unordered_map so only iterators to erased element invalidated
-                continue;
+                return true;
             }
         }
-        ++specs_it;
-    }
+        return false;
+    });
 
     assert(mount_specs.size() <= initial_mount_count);
     return mount_specs.size() != initial_mount_count;

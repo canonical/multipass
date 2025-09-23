@@ -131,8 +131,7 @@ std::string mp::platform::Platform::alias_path_message() const
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& server_address,
                                                             const bool restricted) const
 {
-    // With C++20 change to using enum
-    using namespace std::filesystem;
+    using enum std::filesystem::perms;
 
     auto tokens = mp::utils::split(server_address, ":");
     if (tokens.size() != 2u)
@@ -144,7 +143,7 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
         return;
 
     int gid{0};
-    auto mode{perms::owner_read | perms::owner_write | perms::group_read | perms::group_write};
+    auto mode{owner_read | owner_write | group_read | group_write};
 
     if (restricted)
     {
@@ -160,7 +159,7 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
     }
     else
     {
-        mode |= perms::others_read | perms::others_write;
+        mode |= others_read | others_write;
     }
 
     const auto socket_path = tokens[1];

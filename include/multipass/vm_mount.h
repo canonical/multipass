@@ -48,8 +48,7 @@ public:
     const id_mappings& get_uid_mappings() const noexcept;
     MountType get_mount_type() const noexcept;
 
-    friend bool operator==(const VMMount& a, const VMMount& b) noexcept;
-    friend bool operator!=(const VMMount& a, const VMMount& b) noexcept;
+    friend inline bool operator==(const VMMount& a, const VMMount& b) noexcept = default;
 
 private:
     std::string source_path;
@@ -76,17 +75,6 @@ inline const multipass::id_mappings& VMMount::get_uid_mappings() const noexcept
 inline VMMount::MountType VMMount::get_mount_type() const noexcept
 {
     return mount_type;
-}
-
-inline bool operator==(const VMMount& a, const VMMount& b) noexcept
-{
-    return std::tie(a.source_path, a.gid_mappings, a.uid_mappings, a.mount_type) ==
-           std::tie(b.source_path, b.gid_mappings, b.uid_mappings, b.mount_type);
-}
-
-inline bool operator!=(const VMMount& a, const VMMount& b) noexcept // TODO drop in C++20
-{
-    return !(a == b);
 }
 
 } // namespace multipass
