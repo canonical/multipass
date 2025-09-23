@@ -28,32 +28,13 @@ namespace multipass
 class StandardPaths : public Singleton<StandardPaths>
 {
 public:
-    // TODO try to replace all the stuff below with `using enum` in C++20 (P1099R5)
     using LocateOption = QStandardPaths::LocateOption;
-    static constexpr auto LocateFile = LocateOption::LocateFile;
-    static constexpr auto LocateDirectory = LocateOption::LocateDirectory;
+    using enum QStandardPaths::LocateOption;
+
     using LocateOptions = QStandardPaths::LocateOptions;
 
     using StandardLocation = QStandardPaths::StandardLocation;
-    static constexpr auto DesktopLocation = StandardLocation::DesktopLocation;
-    static constexpr auto DocumentsLocation = StandardLocation::DocumentsLocation;
-    static constexpr auto FontsLocation = StandardLocation::FontsLocation;
-    static constexpr auto ApplicationsLocation = StandardLocation::ApplicationsLocation;
-    static constexpr auto MusicLocation = StandardLocation::MusicLocation;
-    static constexpr auto MoviesLocation = StandardLocation::MoviesLocation;
-    static constexpr auto PicturesLocation = StandardLocation::PicturesLocation;
-    static constexpr auto TempLocation = StandardLocation::TempLocation;
-    static constexpr auto HomeLocation = StandardLocation::HomeLocation;
-    static constexpr auto CacheLocation = StandardLocation::CacheLocation;
-    static constexpr auto GenericCacheLocation = StandardLocation::GenericCacheLocation;
-    static constexpr auto GenericDataLocation = StandardLocation::GenericDataLocation;
-    static constexpr auto RuntimeLocation = StandardLocation::RuntimeLocation;
-    static constexpr auto ConfigLocation = StandardLocation::ConfigLocation;
-    static constexpr auto DownloadLocation = StandardLocation::DownloadLocation;
-    static constexpr auto GenericConfigLocation = StandardLocation::GenericConfigLocation;
-    static constexpr auto AppDataLocation = StandardLocation::AppDataLocation;
-    static constexpr auto AppLocalDataLocation = StandardLocation::AppLocalDataLocation;
-    static constexpr auto AppConfigLocation = StandardLocation::AppConfigLocation;
+    using enum QStandardPaths::StandardLocation;
 
     StandardPaths(const Singleton<StandardPaths>::PrivatePass&) noexcept;
 
