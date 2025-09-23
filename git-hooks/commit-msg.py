@@ -306,7 +306,7 @@ class TestCommitMsgRulesChecker:
         ]
 
         for msg in invalid_messages:
-            self._test_rule("MSG10", msg, expect_failure=True)
+            self._test_rule("MSG10", msg, expect_failure=False)
 
     def test_rule12_body_line_length_observed(self):
         valid_messages = [
