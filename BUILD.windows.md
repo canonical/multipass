@@ -19,18 +19,18 @@ choco install cmake ninja qemu openssl git wget unzip -yfd
 ```
 
 ```[pwsh]
-choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
+choco install visualstudio2022buildtools visualstudio2022-workload-vctools -yfd
 ```
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any
 new compiler tool updates so choco upgrade will report no new updates available. To update the
-compiler and related tooling or fix a broken `visualstudio2019buildtools` installation do the following:
+compiler and related tooling or fix a broken `visualstudio2022buildtools` installation do the following:
 
 1. Go to "Add or remove programs"
 2. Search for the Microsoft Visual Studio Installer
 3. Click Modify
 4. Click Modify in the Installer interface
-5. For Windows 11, add "C++/CLI support for v142 build tools" in the "Desktop development with C++" kit
+5. For Windows 11, add "C++/CLI support for v143 build tools" in the "Desktop development with C++" kit
 6. Complete the installation
 
 ### Git
@@ -81,7 +81,7 @@ Install with chocolatey:
 choco install cmder -yfd
 ```
 
-The following will setup a task that you can use to build things with the VS2019 compiler toolchain.
+The following will setup a task that you can use to build things with the VS2022 compiler toolchain.
 
 1. Run cmder which should be installed by default on C:\tools\cmder\Cmder.exe
 2. Click the dropdown arrow next to the green "+" sign in the lower right corner of cmder
@@ -92,12 +92,12 @@ The following will setup a task that you can use to build things with the VS2019
 6. In the commands box, add:
 
     ```[]
-    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
+    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
     ```
 
-7. Give the task a name (first box), such as vs2019 and click Save Settings.
-8. Now run cmder, click on the green "+" and click on the vs2019 task
-This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler.
+7. Give the task a name (first box), such as vs2022 and click Save Settings.
+8. Now run cmder, click on the green "+" and click on the vs2022 task
+This will open a new terminal tab and run the VS2022 setup. CMake can now find the VS compiler.
 Go to the [Building](./BUILD.windows.md#building) section.
 
 #### x64 Native Tools Command Prompt
