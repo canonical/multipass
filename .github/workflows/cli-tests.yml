@@ -3,6 +3,19 @@ name: CLI Tests
 on:
   push:
   workflow_call:
+    inputs:
+      snap-channel:
+        type: string
+        description: "Snap channel to install Multipass from"
+        default: "beta"
+        required: false
+  workflow_dispatch:
+    inputs:
+      snap-channel:
+        type: string
+        description: "Snap channel to install Multipass from"
+        required: false
+        default: "beta"
 
 permissions:
   contents: read
@@ -32,7 +45,7 @@ jobs:
 
       - name: Install snap
         id: install-snap
-        run: sudo snap install multipass --channel=beta
+        run: sudo snap install multipass --channel=${{ inputs.snap-channel }}
 
       - name: Run cli-tests
         id: run-cli-tests
