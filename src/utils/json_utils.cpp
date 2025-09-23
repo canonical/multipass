@@ -95,9 +95,7 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
         {
             auto get_jitter_amount = [] {
                 constexpr static auto kMaxJitter = 25;
-                thread_local std::mt19937 rng{std::random_device{}()};
-                thread_local std::uniform_int_distribution<int> jit(0, kMaxJitter);
-                return jit(rng);
+                return MP_UTILS.random_int(0, kMaxJitter);
             };
 
             // Delay with jitter + backoff. A typical series produced

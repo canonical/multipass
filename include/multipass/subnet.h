@@ -22,7 +22,7 @@
 
 #include "ip_address.h"
 
-#define MP_SUBNET_UTILS multipass::SubnetUtils::instance();
+#define MP_SUBNET_UTILS multipass::SubnetUtils::instance()
 
 namespace multipass
 {
