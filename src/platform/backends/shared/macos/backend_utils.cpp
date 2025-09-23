@@ -20,6 +20,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
+#include <shared/shared_backend_utils.h>
 
 namespace mp = multipass;
 
@@ -63,16 +64,6 @@ QString get_arp_output()
     return QString{arp_process->read_all_standard_output()};
 }
 
-bool ping_ip(const mp::IPAddress& ip_addr)
-{
-    constexpr auto timeout = 500;
-    const auto arp_process = mp::platform::make_process(
-        mp::simple_process_spec("ping", {"-c", "1", QString::fromStdString(ip_addr.as_string())}));
-    const auto arp_exit_state = arp_process->execute(timeout);
-
-    return arp_exit_state.completed_successfully();
-}
-
 } // namespace
 
 std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& mac_address)
@@ -108,7 +99,8 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
                        current_ip.as_string(),
                        mac_address);
 
-            if ((!best_match.has_value() || current_ip > best_match.value()) && ping_ip(current_ip))
+            if ((!best_match.has_value() || current_ip > best_match.value()) &&
+                mp::backend::can_reach_gateway(current_ip.as_string()))
             {
                 best_match = current_ip;
             }
