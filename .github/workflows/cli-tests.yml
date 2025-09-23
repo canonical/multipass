@@ -46,35 +46,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  determine-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.neo.outputs.matrix }}
+      has_targets: ${{ steps.neo.outputs.has_targets }}
+    steps:
+      - id: neo
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const inputs = context.payload.inputs;
+            const matrix = { include: [] };
+
+            if (inputs['snap-channel'] !== '<undefined>') {
+              matrix.include.push({
+                os: 'ubuntu-latest',
+                label: 'Snap',
+                'daemon-controller': 'snap',
+                'sudo-cmd': 'sudo',
+                'pkg-url': ''
+              });
+            }
+
+            if (inputs['macos-pkg-url'] !== '<undefined>') {
+              matrix.include.push({
+                os: 'macos-latest',
+                label: 'macOS',
+                'daemon-controller': 'launchd',
+                'sudo-cmd': 'sudo',
+                'pkg-url': inputs['macos-pkg-url'],
+                'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg'
+              });
+            }
+
+            if (inputs['windows-pkg-url'] !== '<undefined>') {
+              matrix.include.push({
+                os: 'windows-latest',
+                label: 'Windows',
+                'daemon-controller': 'winsvc',
+                'sudo-cmd': 'gsudo',
+                'pkg-url': inputs['windows-pkg-url'],
+                'pkg-download-destination': '$RUNNER_TEMP/multipass.exe'
+              });
+            }
+
+            core.setOutput('matrix', JSON.stringify(matrix));
+            core.setOutput('has_targets', String(matrix.include.length > 0));
   run-cli-tests:
     name: CLI Tests (${{ matrix.label }})
+    needs: determine-matrix
     runs-on: ${{ matrix.os }}
+    if: ${{ needs.determine-matrix.outputs.has_targets == 'true' }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            label: Snap
-            daemon-controller: snap
-            sudo-cmd: sudo
-            pkg-url: ""
-          - os: macos-latest
-            label: macOS
-            daemon-controller: launchd
-            sudo-cmd: sudo
-            pkg-url: ${{ inputs['macos-pkg-url'] }}
-            pkg-download-destination: "$RUNNER_TEMP/multipass.pkg"
-          - os: windows-latest
-            label: Windows
-            daemon-controller: winsvc
-            sudo-cmd: gsudo
-            pkg-url: ${{ inputs['windows-pkg-url'] }}
-            pkg-download-destination: "$RUNNER_TEMP/multipass.exe"
-
-        exclude:
-          - os: ${{ inputs.snap-channel == '<undefined>' && 'ubuntu-latest' || '' }}
-          - os: ${{ inputs.macos-pkg-url == '<undefined>' && 'macos-latest' || '' }}
-          - os: ${{ inputs.windows-pkg-url == '<undefined>' && 'windows-latest' || '' }}
+      matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
     steps:
       - name: Check out cli-tests
         uses: actions/checkout@v5
