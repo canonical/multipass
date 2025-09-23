@@ -428,7 +428,7 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
         echo "s3-url=$S3_URL" >> "$GITHUB_OUTPUT"
 
-  Dispatch-CLI-Tests-Workflow:
+  DispatchCLITestsWorkflow:
     permissions:
       contents: read
       actions: read
