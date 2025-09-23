@@ -8,11 +8,31 @@ on:
         description: "Snap channel to install Multipass from"
         required: false
         default: "<undefined>"
+      macos-pkg-url:
+        type: string
+        description: "URL to macOS package to install Multipass from"
+        required: false
+        default: "<undefined>"
+      windows-pkg-url:
+        type: string
+        description: "URL to Windows package to install Multipass from"
+        required: false
+        default: "<undefined>"
   workflow_dispatch:
     inputs:
       snap-channel:
         type: string
         description: "Snap channel to install Multipass from"
+        required: false
+        default: "<undefined>"
+      macos-pkg-url:
+        type: string
+        description: "URL to macOS package to install Multipass from"
+        required: false
+        default: "<undefined>"
+      windows-pkg-url:
+        type: string
+        description: "URL to Windows package to install Multipass from"
         required: false
         default: "<undefined>"
 
@@ -26,18 +46,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run-cli-tests-for-snap:
-    if: ${{ inputs.snap-channel != '<undefined>' }}
-    name: CLI Tests (Snap)
-    runs-on: ubuntu-latest
+  run-cli-tests:
+    name: CLI Tests (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Conditionally drop rows by returning the OS name or a falsy non-match.
+        exclude:
+          - os: ${{ (inputs.snap-channel == '<undefined>') && 'ubuntu-latest' }}
+          - os: ${{ (inputs.macos-pkg-url == '<undefined>') && 'macos-latest' }}
+          - os: ${{ (inputs.windows-pkg-url == '<undefined>') && 'windows-latest' }}
+        include:
+          - os: ubuntu-latest
+            label: Snap
+            daemon-controller: snap
+            sudo-cmd: sudo
+            pkg-url: ""
+          - os: macos-latest
+            label: macOS
+            daemon-controller: launchd
+            sudo-cmd: sudo
+            pkg-url: ${{ inputs['macos-pkg-url'] }}
+            pkg-download-destination: "$RUNNER_TEMP/multipass.pkg"
+          - os: windows-latest
+            label: Windows
+            daemon-controller: winsvc
+            sudo-cmd: gsudo
+            pkg-url: ${{ inputs['windows-pkg-url'] }}
+            pkg-download-destination: "$RUNNER_TEMP/multipass.exe"
     steps:
-      - name: Validate snap-channel
-        if: ${{ !cancelled() }}
-        run: |
-          if [ -z "${{ inputs.snap-channel }}" ]; then
-            echo "❌ snap-channel is empty"
-            exit 1
-          fi
       - name: Check out cli-tests
         uses: actions/checkout@v5
         with:
@@ -46,23 +84,56 @@ jobs:
           sparse-checkout: |
             tools/cli_tests
 
+      - name: Download package with cURL
+        if: ${{ matrix['pkg-url'] != '' }}
+        run: curl -fL "${{ matrix['pkg-url'] }}" -o ${{ matrix['pkg-download-destination'] }}
+
+      ##################################################################
+      # Platform-specific
+      ##################################################################
+      - name: Install prerequisites (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          winget install gerardog.gsudo `
+            --exact --silent `
+            --accept-source-agreements --accept-package-agreements
+
+      - name: Check snap channel (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          if [ -z "${{ inputs.snap-channel }}" ]; then
+            echo "❌ snap-channel is empty"
+            exit 1
+          fi
+
+      - name: Install package (Snap)
+        if: runner.os == 'Linux'
+        run: ${{ matrix.sudo-cmd }} snap install multipass --channel=${{ inputs['snap-channel'] }}
+
+      - name: Install package (macOS)
+        if: runner.os == 'macOS'
+        run: ${{ matrix.sudo-cmd }} installer -pkg ${{ matrix['pkg-download-destination'] }} -target /
+
+      - name: Install package (Windows)
+        if: runner.os == 'Windows'
+        run: ${{ matrix.sudo-cmd }} -n msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart
+      ##################################################################
+      # Platform-agnostic
+      ##################################################################
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
-        run: sudo pip install -e ./tools/cli_tests/ --break-system-packages
-
-      - name: Install snap
-        id: install-snap
-        run: sudo snap install multipass --channel=${{ inputs['snap-channel'] }}
+        run: ${{ matrix.sudo-cmd }} pip install -e ./tools/cli_tests/ --break-system-packages
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: pytest -s tools/cli_tests --remove-all-instances --daemon-controller=snap --junitxml=reports/junit.xml
+        run: pytest -s tools/cli_tests --remove-all-instances --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
         uses: dorny/test-reporter@v2
         with:
-          name: CLI Test results (Snap, ${{ runner.os }})
+          name: CLI Test results (${{ matrix.label }})
           path: reports/junit.xml
           reporter: java-junit # understands standard JUnit
           fail-on-error: true # fail job if there are test failures
