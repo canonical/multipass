@@ -55,12 +55,6 @@ Q_DECLARE_METATYPE(VariantMapMap) // for DBus
 
 namespace
 {
-std::default_random_engine gen = [] {
-    // seed the rng with the time at initialization
-    auto seed = std::chrono::system_clock::now().time_since_epoch().count();
-    return std::default_random_engine(seed);
-}();
-std::uniform_int_distribution<int> dist{0, 255};
 const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
 const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
 const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
@@ -201,7 +195,8 @@ std::string generate_random_subnet()
     // TODO don't rely on pure randomness
     for (auto i = 0; i < 100; ++i)
     {
-        auto subnet = fmt::format("10.{}.{}", dist(gen), dist(gen));
+        auto subnet =
+            fmt::format("10.{}.{}", MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255));
         if (subnet_used_locally(subnet))
             continue;
 

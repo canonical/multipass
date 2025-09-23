@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_utils.h"
 
 #include <multipass/subnet.h>
 
@@ -164,4 +165,14 @@ TEST(Subnet, canConvertToString)
 
     subnet = mp::Subnet{"255.0.255.0/0"};
     EXPECT_EQ(subnet.as_string(), "0.0.0.0/0");
+}
+
+TEST(SubnetUtils, generateRandomSubnetTriviallyWorks)
+{
+    mp::IPAddress ip{"10.1.2.0"};
+
+    mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(ip, ip, 24);
+
+    EXPECT_EQ(subnet.get_identifier(), ip);
+    EXPECT_EQ(subnet.get_CIDR(), 24);
 }
