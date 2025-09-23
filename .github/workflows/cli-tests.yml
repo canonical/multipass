@@ -49,14 +49,17 @@ jobs:
   run-cli-tests:
     name: CLI Tests (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
+    if: ${{
+      !cancelled()
+      && !(
+        (matrix.os == 'ubuntu-latest'  && inputs.snap-channel     == '<undefined>') ||
+        (matrix.os == 'macos-latest'   && inputs.macos-pkg-url   == '<undefined>') ||
+        (matrix.os == 'windows-latest' && inputs.windows-pkg-url == '<undefined>')
+      )
+      }}
     strategy:
       fail-fast: false
       matrix:
-        # Conditionally drop rows by returning the OS name or a falsy non-match.
-        exclude:
-          - os: ${{ (inputs.snap-channel == '<undefined>') && 'ubuntu-latest' }}
-          - os: ${{ (inputs.macos-pkg-url == '<undefined>') && 'macos-latest' }}
-          - os: ${{ (inputs.windows-pkg-url == '<undefined>') && 'windows-latest' }}
         include:
           - os: ubuntu-latest
             label: Snap
