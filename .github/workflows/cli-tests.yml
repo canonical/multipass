@@ -65,7 +65,8 @@ jobs:
                 label: 'Snap',
                 'daemon-controller': 'snap',
                 'sudo-cmd': 'sudo',
-                'pkg-url': ''
+                'pkg-url': '',
+                'cmd-prologue': ''
               });
             }
 
@@ -76,7 +77,8 @@ jobs:
                 'daemon-controller': 'launchd',
                 'sudo-cmd': 'sudo',
                 'pkg-url': inputs['macos-pkg-url'],
-                'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg'
+                'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg',
+                'cmd-prologue': 'arch -arch arm64'
               });
             }
 
@@ -87,7 +89,8 @@ jobs:
                 'daemon-controller': 'winsvc',
                 'sudo-cmd': 'gsudo',
                 'pkg-url': inputs['windows-pkg-url'],
-                'pkg-download-destination': '$RUNNER_TEMP/multipass.exe'
+                'pkg-download-destination': '$RUNNER_TEMP/multipass.msi',
+                'cmd-prologue': ''
               });
             }
 
@@ -120,10 +123,7 @@ jobs:
       - name: Install prerequisites (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          winget install gerardog.gsudo `
-            --exact --silent `
-            --accept-source-agreements --accept-package-agreements
+        run: choco install gsudo -y
 
       - name: Check snap channel (Linux)
         if: runner.os == 'Linux'
@@ -135,25 +135,25 @@ jobs:
 
       - name: Install package (Snap)
         if: runner.os == 'Linux'
-        run: ${{ matrix.sudo-cmd }} snap install multipass --channel=${{ inputs['snap-channel'] }}
+        run: ${{ matrix.cmd-prologue }}${{ matrix.sudo-cmd }} snap install multipass --channel=${{ inputs['snap-channel'] }}
 
       - name: Install package (macOS)
         if: runner.os == 'macOS'
-        run: ${{ matrix.sudo-cmd }} installer -pkg ${{ matrix['pkg-download-destination'] }} -target /
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} installer -pkg ${{ matrix['pkg-download-destination'] }} -target /
 
       - name: Install package (Windows)
         if: runner.os == 'Windows'
-        run: ${{ matrix.sudo-cmd }} -n msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} -n msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart
       ##################################################################
       # Platform-agnostic
       ##################################################################
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
-        run: ${{ matrix.sudo-cmd }} pip install -e ./tools/cli_tests/ --break-system-packages
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pip install -e ./tools/cli_tests/ --break-system-packages
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: pytest -s tools/cli_tests --remove-all-instances --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml
+        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --remove-all-instances --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
