@@ -56,7 +56,8 @@ struct SubnetUtils : Singleton<SubnetUtils>
 {
     using Singleton<SubnetUtils>::Singleton;
 
-    [[nodiscard]] virtual Subnet generate_random_subnet(IPAddress start, IPAddress end, uint8_t cidr) const;
+    [[nodiscard]] virtual Subnet generate_random_subnet(uint8_t cidr = 24,
+                                                        Subnet range = Subnet{"10.0.0.0/8"}) const;
     [[nodiscard]] virtual Subnet get_subnet(const Path& network_dir, const QString& bridge_name) const;
 };
 } // namespace multipass
