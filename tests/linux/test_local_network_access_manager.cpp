@@ -49,14 +49,11 @@ constexpr auto max_content{65536};
 auto generate_random_data(int length)
 {
     const std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::uniform_int_distribution<int> dist(0, str.size() - 1);
     QByteArray random_data;
 
     for (int i = 0; i < length; ++i)
     {
-        random_data += str[dist(generator)];
+        random_data += str[MP_UTILS.random_int(0, str.size() - 1)];
     }
 
     return random_data;
