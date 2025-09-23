@@ -87,7 +87,7 @@ catch (const std::out_of_range& e)
 }
 } // namespace
 
-mp::Subnet::Subnet(IPAddress ip, uint8_t cidr) : identifier(apply_mask(ip, cidr)), cidr(cidr)
+mp::Subnet::Subnet(IPAddress ip, uint8_t cidr) : id(apply_mask(ip, cidr)), cidr(cidr)
 {
     if (cidr >= 31)
     {
@@ -100,33 +100,33 @@ mp::Subnet::Subnet(const std::string& cidr_string) : Subnet(parse(cidr_string))
 {
 }
 
-mp::IPAddress mp::Subnet::get_min_address() const
+mp::IPAddress mp::Subnet::min_address() const
 {
-    return identifier + 1;
+    return id + 1;
 }
 
-mp::IPAddress mp::Subnet::get_max_address() const
+mp::IPAddress mp::Subnet::max_address() const
 {
     // identifier + 2^(32 - cidr) - 1 - 1
-    return identifier + ((1ull << (32ull - cidr)) - 2ull);
+    return id + ((1ull << (32ull - cidr)) - 2ull);
 }
 
-uint32_t mp::Subnet::get_address_count() const
+uint32_t mp::Subnet::address_count() const
 {
-    return get_max_address().as_uint32() - get_min_address().as_uint32() + 1;
+    return max_address().as_uint32() - min_address().as_uint32() + 1;
 }
 
-mp::IPAddress mp::Subnet::get_identifier() const
+mp::IPAddress mp::Subnet::identifier() const
 {
-    return identifier;
+    return id;
 }
 
-uint8_t mp::Subnet::get_CIDR() const
+uint8_t mp::Subnet::CIDR() const
 {
     return cidr;
 }
 
-mp::IPAddress mp::Subnet::get_subnet_mask() const
+mp::IPAddress mp::Subnet::subnet_mask() const
 {
     return ::get_subnet_mask(cidr);
 }
@@ -134,7 +134,23 @@ mp::IPAddress mp::Subnet::get_subnet_mask() const
 // uses CIDR notation
 std::string mp::Subnet::as_string() const
 {
-    return fmt::format("{}/{}", identifier.as_string(), cidr);
+    return fmt::format("{}/{}", id.as_string(), cidr);
+}
+
+// due to how subnets work overlap does not need consideration
+bool mp::Subnet::contains(Subnet other) const
+{
+    // can't possibly contain a larger subnet
+    if (other.CIDR() < CIDR())
+        return false;
+
+    return contains(other.identifier());
+}
+
+bool mp::Subnet::contains(IPAddress ip) const
+{
+    // since get_max_address doesn't include the broadcast address add 1 to it.
+    return identifier() <= ip && (max_address() + 1) >= ip;
 }
 
 mp::Subnet mp::SubnetUtils::generate_random_subnet(IPAddress start,
