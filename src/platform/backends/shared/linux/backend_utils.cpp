@@ -25,6 +25,7 @@
 #include <multipass/process/basic_process.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
+#include <shared/shared_backend_utils.h>
 
 #include <scope_guard.hpp>
 
