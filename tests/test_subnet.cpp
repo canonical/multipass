@@ -277,29 +277,74 @@ struct SubnetUtils : public Test
 
 TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
 {
-    mp::IPAddress ip{"10.1.2.0"};
+    const mp::Subnet range{"10.1.2.0/24"};
 
-    mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(ip, ip, 24);
+    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(Invoke([](auto a, auto b){ 
+        EXPECT_EQ(a, b);
+        return a;
+    }));
 
-    // @TODO mock backend calls
+    mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(24, range);
 
-    EXPECT_EQ(subnet.identifier(), ip);
+    EXPECT_EQ(subnet.identifier(), range.identifier());
     EXPECT_EQ(subnet.CIDR(), 24);
+}
+
+TEST_F(SubnetUtils, generateRandomSubnetFailsOnSmallRange)
+{
+    mp::Subnet range{"192.168.1.0/16"};
+
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(15, range), std::logic_error);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(0, range), std::logic_error);
+}
+
+TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadCIDR)
+{
+    mp::Subnet range{"0.0.0.0/0"};
+
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(31, range), std::invalid_argument);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(32, range),
+                 std::invalid_argument);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(33, range),
+                 std::invalid_argument);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(255, range),
+                 std::invalid_argument);
 }
 
 TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
 {
-    mp::IPAddress a{"10.1.2.0"}, b{"11.3.4.0"};
+    mp::Subnet range("192.168.0.0/16");
  
     auto [mock_utils, guard] = mpt::MockUtils::inject();
 
-    EXPECT_CALL(*mock_utils, random_int(a.as_uint32(), b.as_uint32()))
-        .WillOnce(Return(a.as_uint32()));
+    EXPECT_CALL(*mock_utils, random_int(_, _))
+        .WillOnce(ReturnArg<0>())
+        .WillOnce(ReturnArg<1>());
 
-    // @TODO mock backend calls
+    auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(24, range);
+    auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(24, range);
 
-    auto subnet = MP_SUBNET_UTILS.generate_random_subnet(a, b, 24);
+    EXPECT_EQ(subnetLow.identifier(), mp::IPAddress{"192.168.0.0"});
+    EXPECT_EQ(subnetLow.CIDR(), 24);
 
-    EXPECT_EQ(subnet.identifier(), a);
-    EXPECT_EQ(subnet.CIDR(), 24);
+    EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"192.168.255.0"});
+    EXPECT_EQ(subnetHigh.CIDR(), 24);
+}
+
+TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
+{
+    mp::Subnet range("0.0.0.0/0");
+
+    EXPECT_CALL(*mock_utils, random_int(_, _))
+        .WillOnce(ReturnArg<0>())
+        .WillOnce(ReturnArg<1>());
+
+    auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(30, range);
+    auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(30, range);
+
+    EXPECT_EQ(subnetLow.identifier(), mp::IPAddress{"0.0.0.0"});
+    EXPECT_EQ(subnetLow.CIDR(), 30);
+
+    EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"255.255.255.252"});
+    EXPECT_EQ(subnetHigh.CIDR(), 30);
 }

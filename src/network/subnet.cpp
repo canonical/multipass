@@ -16,6 +16,7 @@
  */
 
 #include <multipass/subnet.h>
+#include <multipass/utils.h>
 
 #include <fmt/format.h>
 
@@ -67,10 +68,12 @@ catch (const std::out_of_range& e)
         octets[i] = 0;
     }
 
-    for (size_t i = 0; i < remain; ++ i)
+    if (remain != 0)
     {
-        octets[start_octet] >>= 1;
-        octets[start_octet] |= 1 << (value_size - 1);
+        assert(start_octet < octets.size()); // sanity
+
+        // remain = 5, 1 << (8 - 5) = 00001000 -> 00000111 -> 11111000
+        octets[start_octet] = ~((1u << (value_size - remain)) - 1u);
     }
 
     return mp::IPAddress{octets};
@@ -137,7 +140,6 @@ std::string mp::Subnet::as_string() const
     return fmt::format("{}/{}", id.as_string(), cidr);
 }
 
-// due to how subnets work overlap does not need consideration
 bool mp::Subnet::contains(Subnet other) const
 {
     // can't possibly contain a larger subnet
@@ -153,11 +155,26 @@ bool mp::Subnet::contains(IPAddress ip) const
     return identifier() <= ip && (max_address() + 1) >= ip;
 }
 
-mp::Subnet mp::SubnetUtils::generate_random_subnet(IPAddress start,
-                                                      IPAddress end,
-                                                      uint8_t cidr) const
+mp::Subnet mp::SubnetUtils::generate_random_subnet(uint8_t cidr, Subnet range) const
 {
-    return mp::Subnet{""};
+    if (cidr >= 31)
+        throw std::invalid_argument(fmt::format(large_CIDR_err_fmt, cidr));
+    
+    if (cidr < range.CIDR())
+        throw std::logic_error(fmt::format("A subnet with cidr {} cannot be contained by {}", cidr, range.as_string()));
+
+    // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
+    const size_t possibleSubnets = std::size_t{1} << (cidr - range.CIDR());
+
+    // narrowing conversion, possibleSubnets is guarenteed to be < 2^31 (4 bytes is safe)
+    static_assert(sizeof(decltype(MP_UTILS.random_int(0, possibleSubnets))) >= 4);
+
+    const auto subnet = static_cast<size_t>(MP_UTILS.random_int(0, possibleSubnets - 1));
+
+    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
+    mp::IPAddress id = range.identifier() + (subnet * (std::size_t{1} << (32 - cidr)));
+
+    return mp::Subnet{id, cidr};
 }
 
 mp::Subnet mp::SubnetUtils::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
