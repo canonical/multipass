@@ -74,6 +74,7 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
     // ? (192.168.64.2) at 52:54:0:2a:12:b6 on bridge100 ifscope [bridge]
     // ? (192.168.64.3) at 52:54:0:85:72:55 on bridge100 ifscope [bridge]
     // ? (192.168.64.4) at 52:54:0:e1:cd:ab on bridge100 ifscope [bridge]
+    // ? (192.168.64.5) at 52:54:0:e1:cd:ab on bridge100 ifscope [bridge]
     // ? (192.168.64.255) at ff:ff:ff:ff:ff:ff on bridge100 ifscope [bridge]
     // ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet]
 
