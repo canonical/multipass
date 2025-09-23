@@ -84,8 +84,6 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
     const QString arp_format_mac_address =
         simplify_mac_address(QString::fromStdString(mac_address));
 
-    std::optional<mp::IPAddress> best_match;
-
     while (iter.hasNext())
     {
         QRegularExpressionMatch match = iter.next();
@@ -99,13 +97,12 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
                        current_ip.as_string(),
                        mac_address);
 
-            if ((!best_match.has_value() || current_ip > best_match.value()) &&
-                mp::backend::can_reach_gateway(current_ip.as_string()))
+            if (mp::backend::can_reach_gateway(current_ip.as_string()))
             {
-                best_match = current_ip;
+                return {mp::IPAddress{match.captured(1).toStdString()}};
             }
         }
     }
 
-    return best_match;
+    return std::nullopt;
 }
