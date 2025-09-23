@@ -87,7 +87,7 @@ Also, it's possible to use pytest keyword expression by `-k`:
 pytest -s tools/cli_tests "shell_test"
 
 # collected 310 items / 309 deselected / 1 selected
-# 
+#
 # cli_shell_test.py ✓                                                    100% ██████████
 #
 # Results (161.59s (0:02:41)):
