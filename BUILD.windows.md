@@ -30,15 +30,15 @@ You need to enable symlinks in Windows Git, have a look at
 
 ### Qt6
 
-Install the latest stable version of Qt6 (6.2.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
+Install the latest stable version of Qt6 (6.9.2 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
 
 In the online installer, under Qt, select MSVC 2019 64-bit.
 
 If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
 
 Alternatively, download the
-[qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.2.4-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
-and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.2.4`).
+[qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.9.2-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
+and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.9.2`).
 
 ### Path setup
 
@@ -47,7 +47,7 @@ You'll have to manually add CMake and Qt to your account's PATH variable.
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.2.4\msvc2019_64\bin`
+- `C:\Qt\6.9.2\msvc2019_64\bin`
 
 ### Cmder setup
 
