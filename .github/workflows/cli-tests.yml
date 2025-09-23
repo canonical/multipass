@@ -72,13 +72,13 @@ jobs:
 
             if (inputs['macos-pkg-url'] !== '<undefined>') {
               matrix.include.push({
-                os: 'macos-latest',
+                os: 'macos-13',
                 label: 'macOS',
                 'daemon-controller': 'launchd',
                 'sudo-cmd': 'sudo',
                 'pkg-url': inputs['macos-pkg-url'],
                 'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg',
-                'cmd-prologue': 'arch -arch arm64'
+                'cmd-prologue': 'arch -arch x86_64'
               });
             }
 
