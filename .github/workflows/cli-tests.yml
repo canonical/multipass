@@ -87,7 +87,7 @@ jobs:
                 os: 'windows-latest',
                 label: 'Windows',
                 'daemon-controller': 'winsvc',
-                'sudo-cmd': 'gsudo',
+                'sudo-cmd': '',
                 'pkg-url': inputs['windows-pkg-url'],
                 'pkg-download-destination': '$RUNNER_TEMP/multipass.msi',
                 'cmd-prologue': ''
@@ -145,7 +145,7 @@ jobs:
 
       - name: Install package (Windows)
         if: runner.os == 'Windows'
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} -n msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart
       ##################################################################
       # Platform-agnostic
       ##################################################################
