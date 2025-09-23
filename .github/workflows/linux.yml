@@ -354,7 +354,9 @@ jobs:
       actions: read
       checks:  write
     secrets: inherit
-    needs: Publish-Snap
+    needs:
+      - BuildAndTest
+      - Publish-Snap
     uses: ./.github/workflows/cli-tests.yml
     with:
       snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
