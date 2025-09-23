@@ -32,19 +32,23 @@ public:
     Subnet(IPAddress ip, uint8_t cidr);
     Subnet(const std::string& cidr_string);
     
-    [[nodiscard]] IPAddress get_min_address() const;
-    [[nodiscard]] IPAddress get_max_address() const;
-    [[nodiscard]] uint32_t get_address_count() const;
+    [[nodiscard]] IPAddress min_address() const;
+    [[nodiscard]] IPAddress max_address() const;
+    [[nodiscard]] uint32_t address_count() const;
 
-    [[nodiscard]] IPAddress get_identifier() const;
-    [[nodiscard]] uint8_t get_CIDR() const;
-    [[nodiscard]] IPAddress get_subnet_mask() const;
+    [[nodiscard]] IPAddress identifier() const;
+    [[nodiscard]] uint8_t CIDR() const;
+    [[nodiscard]] IPAddress subnet_mask() const;
 
     // uses CIDR notation
     [[nodiscard]] std::string as_string() const;
 
+    // Subnets are either disjoint or the smaller is a subset of the larger
+    [[nodiscard]] bool contains(Subnet other) const;
+    [[nodiscard]] bool contains(IPAddress ip) const;
+
 private:
-    IPAddress identifier;
+    IPAddress id;
     uint8_t cidr;
 };
 

@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_platform.h"
 #include "mock_utils.h"
 
 #include <multipass/subnet.h>
@@ -28,16 +29,16 @@ TEST(Subnet, canInitializeFromIpCidrPair)
 {
     mp::Subnet subnet{mp::IPAddress("192.168.0.0"), 24};
 
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress("192.168.0.0"));
-    EXPECT_EQ(subnet.get_CIDR(), 24);
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress("192.168.0.0"));
+    EXPECT_EQ(subnet.CIDR(), 24);
 }
 
 TEST(Subnet, canInitializeFromString)
 {
     mp::Subnet subnet{"192.168.0.0/24"};
 
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress("192.168.0.0"));
-    EXPECT_EQ(subnet.get_CIDR(), 24);
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress("192.168.0.0"));
+    EXPECT_EQ(subnet.CIDR(), 24);
 }
 
 TEST(Subet, throwsOnInvalidIP)
@@ -101,58 +102,58 @@ TEST(Subnet, throwsOnNegativeCIDR)
 TEST(Subnet, givesCorrectRange)
 {
     mp::Subnet subnet{"192.168.0.0/24"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"192.168.0.0"});
-    EXPECT_EQ(subnet.get_min_address(), mp::IPAddress{"192.168.0.1"});
-    EXPECT_EQ(subnet.get_max_address(), mp::IPAddress{"192.168.0.254"});
-    EXPECT_EQ(subnet.get_address_count(), 254);
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"192.168.0.0"});
+    EXPECT_EQ(subnet.min_address(), mp::IPAddress{"192.168.0.1"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"192.168.0.254"});
+    EXPECT_EQ(subnet.address_count(), 254);
 
     subnet = mp::Subnet{"121.212.1.152/11"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"121.192.0.0"});
-    EXPECT_EQ(subnet.get_min_address(), mp::IPAddress{"121.192.0.1"});
-    EXPECT_EQ(subnet.get_max_address(), mp::IPAddress{"121,223.255.254"});
-    EXPECT_EQ(subnet.get_address_count(), 2097150);
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"121.192.0.0"});
+    EXPECT_EQ(subnet.min_address(), mp::IPAddress{"121.192.0.1"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"121,223.255.254"});
+    EXPECT_EQ(subnet.address_count(), 2097150);
 
     subnet = mp::Subnet{"0.0.0.0/0"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"0.0.0.0"});
-    EXPECT_EQ(subnet.get_min_address(), mp::IPAddress{"0.0.0.1"});
-    EXPECT_EQ(subnet.get_max_address(), mp::IPAddress{"255,255.255.254"});
-    EXPECT_EQ(subnet.get_address_count(), 4294967294);
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"0.0.0.0"});
+    EXPECT_EQ(subnet.min_address(), mp::IPAddress{"0.0.0.1"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"255,255.255.254"});
+    EXPECT_EQ(subnet.address_count(), 4294967294);
 }
 
 TEST(Subnet, convertsToMaskedIP)
 {
     mp::Subnet subnet{"192.168.255.52/24"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"192.168.255.0"});
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"192.168.255.0"});
 
     subnet = mp::Subnet{"255.168.1.152/8"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"255.0.0.0"});
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"255.0.0.0"});
 
     subnet = mp::Subnet{"192.168.1.152/0"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"0.0.0.0"});
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"0.0.0.0"});
 
     subnet = mp::Subnet{"255.212.1.152/13"};
-    EXPECT_EQ(subnet.get_identifier(), mp::IPAddress{"255.208.0.0"});
+    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"255.208.0.0"});
 }
 
 TEST(Subnet, getSubnetMaskReturnsSubnetMask)
 {
     mp::Subnet subnet{"192.168.0.1/24"};
-    EXPECT_EQ(subnet.get_subnet_mask(), mp::IPAddress("255.255.255.0"));
+    EXPECT_EQ(subnet.subnet_mask(), mp::IPAddress("255.255.255.0"));
 
     subnet = mp::Subnet{"192.168.0.1/21"};
-    EXPECT_EQ(subnet.get_subnet_mask(), mp::IPAddress("255.255.248.0"));
+    EXPECT_EQ(subnet.subnet_mask(), mp::IPAddress("255.255.248.0"));
 
     subnet = mp::Subnet{"192.168.0.1/16"};
-    EXPECT_EQ(subnet.get_subnet_mask(), mp::IPAddress("255.255.0.0"));
+    EXPECT_EQ(subnet.subnet_mask(), mp::IPAddress("255.255.0.0"));
 
     subnet = mp::Subnet{"192.168.0.1/9"};
-    EXPECT_EQ(subnet.get_subnet_mask(), mp::IPAddress("255.128.0.0"));
+    EXPECT_EQ(subnet.subnet_mask(), mp::IPAddress("255.128.0.0"));
 
     subnet = mp::Subnet{"192.168.0.1/4"};
-    EXPECT_EQ(subnet.get_subnet_mask(), mp::IPAddress("240.0.0.0"));
+    EXPECT_EQ(subnet.subnet_mask(), mp::IPAddress("240.0.0.0"));
 
     subnet = mp::Subnet{"192.168.0.1/0"};
-    EXPECT_EQ(subnet.get_subnet_mask(), mp::IPAddress("0.0.0.0"));
+    EXPECT_EQ(subnet.subnet_mask(), mp::IPAddress("0.0.0.0"));
 }
 
 TEST(Subnet, canConvertToString)
@@ -167,12 +168,138 @@ TEST(Subnet, canConvertToString)
     EXPECT_EQ(subnet.as_string(), "0.0.0.0/0");
 }
 
-TEST(SubnetUtils, generateRandomSubnetTriviallyWorks)
+TEST(Subnet, containsWorksOnContainedSubnets)
+{
+    mp::Subnet container{"192.168.0.0/16"};
+
+    // self
+    EXPECT_TRUE(container.contains(container));
+
+    // bounds
+    mp::Subnet subnet{"192.168.0.0/17"};
+    EXPECT_TRUE(container.contains(subnet));
+
+    subnet = mp::Subnet{"192.168.128.0/17"};
+    EXPECT_TRUE(container.contains(subnet));
+
+    // sanity cases
+    subnet = mp::Subnet{"192.168.72.0/24"};
+    EXPECT_TRUE(container.contains(subnet));
+
+    subnet = mp::Subnet{"192.168.123.220/30"};
+    EXPECT_TRUE(container.contains(subnet));
+}
+
+TEST(Subnet, containsWorksOnUnContainedSubnets)
+{
+    mp::Subnet subnet{"172.17.0.0/16"};
+
+    // boundary (subset)
+    mp::Subnet container{"172.17.0.0/15"};
+    EXPECT_FALSE(subnet.contains(container));
+
+    // boundaries (disjoint)
+    container = mp::Subnet{"172.16.0.0/16"};
+    EXPECT_FALSE(subnet.contains(container));
+
+    container = mp::Subnet{"172.18.0.0/16"};
+    EXPECT_FALSE(subnet.contains(container));
+
+    // disjoint
+    container = mp::Subnet{"192.168.1.0/24"};
+    EXPECT_FALSE(subnet.contains(container));
+
+    container = mp::Subnet{"172.1.0.0/16"};
+    EXPECT_FALSE(subnet.contains(container));
+    
+    // subset
+    container = mp::Subnet{"0.0.0.0/0"};
+    EXPECT_FALSE(subnet.contains(container));
+
+    container = mp::Subnet{"172.0.0.0/8"};
+    EXPECT_FALSE(subnet.contains(container));
+}
+
+TEST(Subnet, containsWorksOnContainedIps)
+{
+    mp::Subnet subnet{"10.0.0.0/8"};
+
+    // boundaries
+    mp::IPAddress ip{"10.0.0.0"};
+    EXPECT_TRUE(subnet.contains(ip));
+
+    ip = mp::IPAddress{"10.255.255.255"};
+    EXPECT_TRUE(subnet.contains(ip));
+
+    // sanity
+    ip = mp::IPAddress{"10.1.2.3"};
+    EXPECT_TRUE(subnet.contains(ip));
+
+    ip = mp::IPAddress{"10.168.172.192"};
+    EXPECT_TRUE(subnet.contains(ip));
+}
+
+TEST(Subnet, containsWorksOnUnContainedIps)
+{
+    mp::Subnet subnet{"192.168.66.0/24"};
+
+    // boundaries
+    mp::IPAddress ip{"192.168.67.0"};
+    EXPECT_FALSE(subnet.contains(ip));
+
+    ip = mp::IPAddress{"192.168.65.255"};
+    EXPECT_FALSE(subnet.contains(ip));
+
+    // sanity
+    ip = mp::IPAddress{"0.0.0.0"};
+    EXPECT_FALSE(subnet.contains(ip));
+
+    ip = mp::IPAddress{"255.255.255.255"};
+    EXPECT_FALSE(subnet.contains(ip));
+
+    ip = mp::IPAddress{"192.168.1.72"};
+    EXPECT_FALSE(subnet.contains(ip));
+}
+
+struct SubnetUtils : public Test
+{
+    SubnetUtils()
+    {
+      
+    }
+
+    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<StrictMock>()};
+    mpt::MockUtils* mock_utils = mock_utils_injection.first;
+
+    mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<StrictMock>();
+    mpt::MockPlatform* mock_platform = mock_platform_injection.first;
+};
+
+TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
 {
     mp::IPAddress ip{"10.1.2.0"};
 
     mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(ip, ip, 24);
 
-    EXPECT_EQ(subnet.get_identifier(), ip);
-    EXPECT_EQ(subnet.get_CIDR(), 24);
+    // @TODO mock backend calls
+
+    EXPECT_EQ(subnet.identifier(), ip);
+    EXPECT_EQ(subnet.CIDR(), 24);
+}
+
+TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
+{
+    mp::IPAddress a{"10.1.2.0"}, b{"11.3.4.0"};
+ 
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, random_int(a.as_uint32(), b.as_uint32()))
+        .WillOnce(Return(a.as_uint32()));
+
+    // @TODO mock backend calls
+
+    auto subnet = MP_SUBNET_UTILS.generate_random_subnet(a, b, 24);
+
+    EXPECT_EQ(subnet.identifier(), a);
+    EXPECT_EQ(subnet.CIDR(), 24);
 }
