@@ -121,9 +121,13 @@ def get_multipass_env():
 
 def get_multipass_path():
     """Resolve the 'multipass' binary."""
-    return shutil.which("multipass", path=config.bin_dir)
+    path = shutil.which("multipass", path=config.bin_dir)
+    assert path, "Could not locate `multipass` binary!"
+    return path
 
 
 def get_multipassd_path():
     """Resolve the 'multipassd' binary."""
-    return shutil.which("multipassd", path=config.bin_dir)
+    path = shutil.which("multipassd", path=config.bin_dir)
+    assert path, "Could not locate `multipassd` binary!"
+    return path
