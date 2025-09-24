@@ -1687,7 +1687,6 @@ try
                                                      server};
     FindReply response;
     response.set_show_images(request->show_images());
-    response.set_show_blueprints(request->show_blueprints());
 
     const auto default_remote{"release"};
 
