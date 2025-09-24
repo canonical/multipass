@@ -140,7 +140,8 @@ message FindRequest {
     string remote_name = 2;
     int32 verbosity_level = 3;
     bool allow_unsupported = 4;
-    bool show_images = 5;
+    reserved 5; //show_images bool
+    reserved 6; //show_blueprints bool
     bool force_manifest_network_download = 7;
 }
 
@@ -156,8 +157,10 @@ message FindReply {
         repeated AliasInfo aliases_info = 4;
         string codename = 5;
     }
-    bool show_images = 1;
+    reserved 1; //show_images bool
+    reserved 2; //show_blueprints bool
     repeated ImageInfo images_info = 3;
+    reserved 4; //Blueprint data
     string log_line = 5;
 }
 
