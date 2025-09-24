@@ -270,3 +270,44 @@ long long mp::platform::Platform::get_total_ram() const
 {
     return static_cast<long long>(sysconf(_SC_PHYS_PAGES)) * sysconf(_SC_PAGESIZE);
 }
+
+bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
+{
+    const auto ipstr = ip.as_string();
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ipstr.c_str(), "-c", "1", "-W", "1"});
+}
+
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    // validation of the ip and cidr happen later, otherwise this regex would be massive.
+    static const QRegularExpression subnet_regex(R"(^((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
+
+    const auto output =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
+
+    QRegularExpressionMatchIterator i = subnet_regex.globalMatch(output);
+
+    while (i.hasNext())
+    {
+        QRegularExpressionMatch match = i.next();
+        
+        try
+        {
+            mp::Subnet found_net{match.captured(1).toStdString()};
+
+            // check for overlap
+            if (found_net.contains(subnet) || subnet.contains(found_net))
+            {
+                return true;
+            }
+        }
+        catch (const std::invalid_argument& e)
+        {
+            mpl::log(
+                mpl::Level::warning,
+                "network",
+                fmt::format("invalid subnet from ip command: {}", e.message()));
+        }
+    }
+    return false;
+}
