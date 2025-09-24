@@ -1686,7 +1686,6 @@ try
                                                      *config->logger,
                                                      server};
     FindReply response;
-    response.set_show_images(request->show_images());
 
     const auto default_remote{"release"};
 
@@ -1703,58 +1702,53 @@ try
             config->vault->image_host_for(remote_name);
         }
 
-        if (request->show_images())
+        wait_update_manifests_all_and_optionally_applied_force(
+            request->force_manifest_network_download());
+        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+
+        try
         {
-            wait_update_manifests_all_and_optionally_applied_force(
-                request->force_manifest_network_download());
-            std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+            vm_images_info = config->vault->all_info_for({"",
+                                                          request->search_string(),
+                                                          false,
+                                                          request->remote_name(),
+                                                          Query::Type::Alias,
+                                                          request->allow_unsupported()});
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category,
+                      "An unexpected error occurred while fetching images matching \"{}\": {}",
+                      request->search_string(),
+                      e.what());
+        }
 
-            try
-            {
-                vm_images_info = config->vault->all_info_for({"",
-                                                              request->search_string(),
-                                                              false,
-                                                              request->remote_name(),
-                                                              Query::Type::Alias,
-                                                              request->allow_unsupported()});
-            }
-            catch (const std::exception& e)
-            {
-                mpl::warn(category,
-                          "An unexpected error occurred while fetching images matching \"{}\": {}",
-                          request->search_string(),
-                          e.what());
-            }
+        for (auto& [remote, info] : vm_images_info)
+        {
+            if (info.aliases.contains(QString::fromStdString(request->search_string())))
+                info.aliases = QStringList({QString::fromStdString(request->search_string())});
+            else
+                info.aliases = QStringList({info.id.left(12)});
 
-            for (auto& [remote, info] : vm_images_info)
-            {
-                if (info.aliases.contains(QString::fromStdString(request->search_string())))
-                    info.aliases = QStringList({QString::fromStdString(request->search_string())});
-                else
-                    info.aliases = QStringList({info.id.left(12)});
+            auto remote_name = (!request->remote_name().empty() ||
+                                (request->remote_name().empty() && vm_images_info.size() > 1 &&
+                                 remote != default_remote))
+                                   ? remote
+                                   : "";
 
-                auto remote_name = (!request->remote_name().empty() ||
-                                    (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                     remote != default_remote))
-                                       ? remote
-                                       : "";
-
-                add_aliases(response.mutable_images_info(), remote_name, info, "");
-            }
+            add_aliases(response.mutable_images_info(), remote_name, info, "");
         }
     }
     else if (request->remote_name().empty())
     {
-        if (request->show_images())
+        wait_update_manifests_all_and_optionally_applied_force(
+            request->force_manifest_network_download());
+        for (const auto& image_host : config->image_hosts)
         {
-            wait_update_manifests_all_and_optionally_applied_force(
-                request->force_manifest_network_download());
-            for (const auto& image_host : config->image_hosts)
-            {
-                std::unordered_set<std::string> images_found;
-                auto action = [&images_found, &default_remote, request, &response](
-                                  const std::string& remote,
-                                  const mp::VMImageInfo& info) {
+            std::unordered_set<std::string> images_found;
+            auto action =
+                [&images_found, &default_remote, request, &response](const std::string& remote,
+                                                                     const mp::VMImageInfo& info) {
                     if (remote != mp::snapcraft_remote &&
                         (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
                         images_found.find(info.release_title.toStdString()) == images_found.end())
@@ -1764,8 +1758,7 @@ try
                     }
                 };
 
-                image_host->for_each_entry_do(action);
-            }
+            image_host->for_each_entry_do(action);
         }
     }
     else
