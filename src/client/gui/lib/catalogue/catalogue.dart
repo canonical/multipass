@@ -14,7 +14,7 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
   if (ref.watch(daemonAvailableProvider)) {
     final images = ref
         .watch(grpcClientProvider)
-        .find(blueprints: false)
+        .find()
         .then((r) => sortImages(r.imagesInfo));
     // artificial delay so that we can see the loading spinner a bit
     // otherwise the reply arrives too quickly and we only see a flash of the spinner
