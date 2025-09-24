@@ -24,6 +24,9 @@
 
 namespace multipass
 {
+
+// TODOn on LXD removal: Move all these functions to the qemu backend, since the only remaining
+// calling backend is LXD.
 class MemorySize;
 class QemuImgProcessSpec;
 
