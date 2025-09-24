@@ -55,16 +55,5 @@ create_virtual_machine_lambda(const int& num_cores,
                               const MemorySize& disk_space,
                               const std::string& name);
 
-std::function<Query(const std::string&, VirtualMachineDescription&, ClientLaunchData&)>
-fetch_blueprint_for_lambda(
-    const int& num_cores,
-    const MemorySize& mem_size,
-    const MemorySize& disk_space,
-    const std::string& release,
-    const std::string& remote,
-    std::optional<std::pair<std::string, AliasDefinition>> alias = std::nullopt,
-    std::optional<std::string> workspace = std::nullopt,
-    std::optional<std::string> sha256 = std::nullopt);
-
 } // namespace test
 } // namespace multipass

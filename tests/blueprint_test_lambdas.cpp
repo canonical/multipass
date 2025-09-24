@@ -89,33 +89,3 @@ mpt::create_virtual_machine_lambda(const int& num_cores,
         return std::make_unique<mpt::StubVirtualMachine>();
     };
 }
-
-std::function<mp::Query(const std::string&, mp::VirtualMachineDescription&, mp::ClientLaunchData&)>
-mpt::fetch_blueprint_for_lambda(const int& num_cores,
-                                const mp::MemorySize& mem_size,
-                                const mp::MemorySize& disk_space,
-                                const std::string& release,
-                                const std::string& remote,
-                                std::optional<std::pair<std::string, mp::AliasDefinition>> alias,
-                                std::optional<std::string> workspace,
-                                std::optional<std::string> sha256)
-{
-    return [&num_cores, &mem_size, &disk_space, &release, &remote, alias, workspace, sha256](
-               const auto&,
-               mp::VirtualMachineDescription& vm_desc,
-               mp::ClientLaunchData& l_data) -> mp::Query {
-        vm_desc.num_cores = num_cores;
-        vm_desc.mem_size = mem_size;
-        vm_desc.disk_space = disk_space;
-        if (sha256)
-            vm_desc.image.id = *sha256;
-
-        if (alias)
-            l_data.aliases_to_be_created.emplace(alias->first, alias->second);
-
-        if (workspace)
-            l_data.workspaces_to_be_created.push_back(*workspace);
-
-        return {"", release, false, remote, mp::Query::Type::Alias};
-    };
-}
