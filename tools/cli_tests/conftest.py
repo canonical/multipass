@@ -49,6 +49,8 @@ from cli_tests.multipass import (
     determine_storage_dir,
     determine_bin_dir,
     determine_data_dir,
+    get_multipass_path,
+    get_multipassd_path,
 )
 
 from cli_tests.config import config
@@ -326,6 +328,21 @@ def store_config(request):
     config.data_dir = determine_data_dir()
 
     logging.debug(f"store_config :: final config {config}")
+
+
+@pytest.fixture(autouse=True, scope="session")
+def ensure_multipass_binaries_are_present(store_config):
+    if not get_multipass_path():
+        pytest.exit(
+            "ERROR: Could not locate `multipass` binary!",
+            returncode=1,
+        )
+
+    if config.daemon_controller == "standalone" and not get_multipassd_path():
+        pytest.exit(
+            "ERROR: Could not locate `multipassd` binary!",
+            returncode=1,
+        )
 
 
 @pytest.fixture(autouse=True, scope="session")
