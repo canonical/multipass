@@ -180,6 +180,9 @@ jobs:
           if ($code -ne 0) {
             throw "MSI install failed with exit code $code"
           }
+
+          Import-Module "$env:ChocolateyInstall/helpers/chocolateyInstaller.psm1"
+          refreshenv
       ##################################################################
       # Platform-agnostic
       ##################################################################
@@ -189,7 +192,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ inputs.pytest-extra-args }}
+        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ inputs.pytest-extra-args }}
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
