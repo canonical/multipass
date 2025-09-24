@@ -18,6 +18,10 @@ on:
         description: "URL to Windows package to install Multipass from"
         required: false
         default: "<undefined>"
+      pytest-extra-args:
+        type: string
+        description: "Extra arguments to be passed to the pytest invocation"
+        default: ""
   workflow_dispatch:
     inputs:
       snap-channel:
@@ -35,6 +39,10 @@ on:
         description: "URL to Windows package to install Multipass from"
         required: false
         default: "<undefined>"
+      pytest-extra-args:
+        type: string
+        description: "Extra arguments to be passed to the pytest invocation"
+        default: ""
 
 permissions:
   contents: read
@@ -181,7 +189,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pytest -s tools/cli_tests --remove-all-instances --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ matrix.pytest-extra-args }}
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
