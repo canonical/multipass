@@ -76,7 +76,6 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     QCommandLineOption unsupportedOption("show-unsupported",
                                          "Show unsupported cloud images as well");
     QCommandLineOption imagesOnlyOption("only-images", "Show only images");
-    QCommandLineOption blueprintsOnlyOption("only-blueprints", "Show only blueprints");
     QCommandLineOption formatOption("format",
                                     "Output list in the requested format.\nValid formats are: "
                                     "table (default), json, csv and yaml",
@@ -85,11 +84,8 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     const QCommandLineOption force_manifest_network_download(
         "force-update",
         "Force the image information to update from the network");
-    parser->addOptions({unsupportedOption,
-                        imagesOnlyOption,
-                        blueprintsOnlyOption,
-                        formatOption,
-                        force_manifest_network_download});
+    parser->addOptions(
+        {unsupportedOption, imagesOnlyOption, formatOption, force_manifest_network_download});
 
     auto status = parser->commandParse(this);
 
@@ -97,21 +93,6 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     {
         return status;
     }
-
-    if (parser->isSet(imagesOnlyOption) && parser->isSet(blueprintsOnlyOption))
-    {
-        cerr << "Specify one of \"--only-images\", \"--only-blueprints\" or omit to fetch both\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (parser->isSet(force_manifest_network_download) && parser->isSet(blueprintsOnlyOption))
-    {
-        cerr << "Force updating blueprints is not currently supported\n";
-        return ParseCode::CommandLineError;
-    }
-
-    request.set_show_images(!parser->isSet(blueprintsOnlyOption));
-    request.set_show_blueprints(!parser->isSet(imagesOnlyOption));
 
     if (parser->positionalArguments().count() > 1)
     {
