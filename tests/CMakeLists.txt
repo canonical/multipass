@@ -122,7 +122,6 @@ add_executable(multipass_tests
   test_yaml_node_utils.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
-  test_blueprint_provider.cpp
   test_sftp_dir_iterator.cpp
   test_sftp_utils.cpp
   test_file_ops.cpp
