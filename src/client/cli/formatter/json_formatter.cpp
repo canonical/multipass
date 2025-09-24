@@ -366,7 +366,6 @@ std::string mp::JsonFormatter::format(const FindReply& reply) const
     QJsonObject find_json;
 
     find_json.insert("errors", QJsonArray());
-    find_json.insert("blueprints (deprecated)", format_images(reply.blueprints_info()));
     find_json.insert("images", format_images(reply.images_info()));
 
     return MP_JSONUTILS.json_to_string(find_json);
