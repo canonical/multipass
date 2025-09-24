@@ -63,19 +63,6 @@ const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Sett
 const auto nm_connection_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings.Connection");
 constexpr auto max_bridge_name_len = 15; // maximum number of characters in a bridge name
 
-bool subnet_used_locally(const std::string& subnet)
-{
-    // CLI equivalent: ip -4 route show | grep -q ${SUBNET}
-    const auto output =
-        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
-    return output.contains(QString::fromStdString(subnet));
-}
-
-bool can_reach_gateway(const std::string& ip)
-{
-    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "1", "-W", "1"});
-}
-
 auto virtual_switch_subnet(const QString& bridge_name)
 {
     // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3

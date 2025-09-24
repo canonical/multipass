@@ -891,6 +891,9 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -934,6 +937,9 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -1675,6 +1681,9 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 
 TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
@@ -1733,6 +1742,9 @@ TEST_F(Daemon, releasesMacsWhenLaunchFails)
 
 TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 

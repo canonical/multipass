@@ -18,6 +18,7 @@
 #include <tests/common.h>
 #include <tests/mock_environment_helpers.h>
 #include <tests/mock_platform.h>
+#include <tests/mock_utils.h>
 #include <tests/temp_file.h>
 
 #include "mock_libc_functions.h"
@@ -333,4 +334,74 @@ TEST_F(TestPlatformUnix, quitWatchdogSignalsItselfAsynchronously)
     EXPECT_EQ(watchdog([&times] { return times.load(std::memory_order_acquire) < 10; }),
               std::nullopt);
     EXPECT_GE(times.load(std::memory_order_acquire), 10);
+}
+
+TEST_F(TestPlatformUnix, canReachGatewayRunsPingWithIP)
+{
+    const mp::IPAddress testIP{"192.168.0.1"};
+    const auto testIPstr = testIP.as_string();
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject<StrictMock>();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), Contains(StrEq(testIPstr.c_str())), _)).WillOnce(Return(true)).WillOnce(Return(false));
+
+    EXPECT_TRUE(MP_PLATFORM.can_reach_gateway(testIP));
+    EXPECT_FALSE(MP_PLATFORM.can_reach_gateway(testIP));
+}
+
+TEST_F(TestPlatformUnix, subnetUsedLocallyDetectsUnused)
+{
+    const mp::IPAddress testSubnet{"192.168.1.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
+10.192.168.0/24 dev mpqemubr0 proto kernel scop link src 10.192.168.1 linkdown
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
+192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_FALSE(MP_PLATFORM.subnet_used_locally(testIP));
+}
+
+TEST_F(TestPlatformUnix, subnetUsedLocallyDetectsOverlapping)
+{
+    const mp::IPAddress testSubnet{"172.172.1.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
+10.192.168.0/24 dev mpqemubr0 proto kernel scop link src 10.192.168.1 linkdown
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
+192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testIP));
+}
+
+TEST_F(TestPlatformUnix, subnetUsedLocallyDetectsConflicting)
+{
+    const mp::IPAddress testSubnet{"10.20.30.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
+10.192.168.0/24 dev mpqemubr0 proto kernel scop link src 10.192.168.1 linkdown
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
+192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testIP));
 }

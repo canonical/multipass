@@ -649,6 +649,9 @@ TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
     const auto [mock_utils, guard] = mpt::MockUtils::inject<NiceMock>();
     EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
 
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_utils, random_int, mp::Utils);
+
     config_builder.vault = std::move(mock_image_vault);
     auto mock_factory = use_a_mock_vm_factory();
 

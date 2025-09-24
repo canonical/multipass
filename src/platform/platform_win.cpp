@@ -629,6 +629,18 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return "switch";
 }
 
+bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
+{
+    // ping
+    throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
+}
+
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    // Get-NetAdapter | Get-NetIPAddress | Format-Table IPAddress,PrefixLength
+    throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();
