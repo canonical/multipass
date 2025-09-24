@@ -68,6 +68,7 @@
 
 #include <memory>
 #include <ostream>
+#include <regex>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -678,8 +679,6 @@ TEST_P(DaemonCreateLaunchTestSuite, onCreationHandlesInstanceImagePreparationFai
 
 TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProvideOne)
 {
-    const std::string expected_name{"pied-piper-valley"};
-
     // Test now uses the actual Rust petname generation directly
     // Since we can't control the exact name generated, we just check that a name is generated
     use_a_mock_vm_factory();
@@ -689,8 +688,10 @@ TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProv
     send_command({GetParam()}, stream);
 
     // The stream should contain some generated name output (not the exact name since we can't
-    // control Rust petname generation)
-    EXPECT_THAT(stream.str(), Not(IsEmpty()));
+    // control Rust petname generation). We expect a pattern like "word-word"
+    // Use std::regex for proper cross-platform regex support instead of GoogleTest's limited regex
+    const std::regex petname_pattern(R"(\w+-\w+)");
+    EXPECT_TRUE(std::regex_search(stream.str(), petname_pattern));
 }
 
 MATCHER_P2(YAMLNodeContainsString, key, val, "")
