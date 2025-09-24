@@ -492,40 +492,14 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
 std::string mp::TableFormatter::format(const FindReply& reply) const
 {
     fmt::memory_buffer buf;
-
-    if (reply.show_images() && reply.show_blueprints())
+    if (reply.images_info().empty())
     {
-        if (reply.images_info().empty() && reply.blueprints_info().empty())
-        {
-            fmt::format_to(std::back_inserter(buf), "No images or blueprints found.\n");
-        }
-        else
-        {
-            if (!reply.images_info().empty())
-                fmt::format_to(std::back_inserter(buf),
-                               format_images(reply.images_info(), "Image"));
-
-            if (!reply.blueprints_info().empty())
-                fmt::format_to(std::back_inserter(buf),
-                               format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
-        }
+        fmt::format_to(std::back_inserter(buf), "No images found.\n");
     }
-    else if (reply.show_images() && !reply.show_blueprints())
+    else
     {
-        if (reply.images_info().empty())
-            fmt::format_to(std::back_inserter(buf), "No images found.\n");
-        else
-            fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
+        fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Image"));
     }
-    else if (!reply.show_images() && reply.show_blueprints())
-    {
-        if (reply.blueprints_info().empty())
-            fmt::format_to(std::back_inserter(buf), "No blueprints found.\n");
-        else
-            fmt::format_to(std::back_inserter(buf),
-                           format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
-    }
-
     return fmt::to_string(buf);
 }
 
