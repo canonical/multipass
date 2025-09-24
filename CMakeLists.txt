@@ -417,6 +417,20 @@ add_subdirectory(src)
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests)
+
+  # Add convenience targets for running tests
+  add_custom_target(test-all
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all_tests
+    COMMENT "Running all tests (C++ and Rust) via convenience target"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
+
+  # Add alias for compatibility
+  add_custom_target(check
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all_tests
+    COMMENT "Running all tests (alias for test-all)"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
