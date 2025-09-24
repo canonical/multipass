@@ -334,13 +334,13 @@ def store_config(request):
 def ensure_multipass_binaries_are_present(store_config):
     if not get_multipass_path():
         pytest.exit(
-            "ERROR: Could not locate `multipass` binary!",
+            "ERROR: Could not locate the `multipass` binary!",
             returncode=1,
         )
 
     if config.daemon_controller == "standalone" and not get_multipassd_path():
         pytest.exit(
-            "ERROR: Could not locate `multipassd` binary!",
+            "ERROR: Could not locate the `multipassd` binary!",
             returncode=1,
         )
 
