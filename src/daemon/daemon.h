@@ -227,8 +227,6 @@ private:
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
     void update_manifests_all(const bool is_force_update_from_network = false);
-    // it is applied in Daemon::find wherever the image info fetching is involved, aka
-    // non-only-blueprints case
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
 
