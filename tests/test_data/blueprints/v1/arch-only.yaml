@@ -1,9 +1,0 @@
-description: An arch-only blueprint
-version: 0.1
-
-runs-on:
-- arch
-
-instances:
-  arch-only:
-    image: "daily:bionic"
