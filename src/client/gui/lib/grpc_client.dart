@@ -193,10 +193,10 @@ class GrpcClient {
     );
   }
 
-  Future<FindReply> find({bool images = true, bool blueprints = true}) {
+  Future<FindReply> find() {
     return doRpc(
       _client.find,
-      FindRequest(showImages: images, showBlueprints: blueprints),
+      FindRequest(),
     ).then((r) => r!);
   }
 
