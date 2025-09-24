@@ -3361,46 +3361,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             ClientLaunchData client_launch_data;
 
-            try
-            {
-                auto image = request->image();
-                auto image_qstr = QString::fromStdString(image);
-
-                query.name = name;
-
-                // Aliases and default workspace are named in function of the instance name in the
-                // Blueprint. If the user asked for a different name, it will be necessary to change
-                // the alias definitions and the workspace name to reflect it.
-                if (name != image)
-                {
-                    for (auto& alias_to_define : client_launch_data.aliases_to_be_created)
-                        if (alias_to_define.second.instance == image)
-                        {
-                            mpl::trace(category,
-                                       "Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
-                                       alias_to_define.first,
-                                       alias_to_define.second.instance,
-                                       name);
-                            alias_to_define.second.instance = name;
-                        }
-
-                    for (auto& workspace_to_create : client_launch_data.workspaces_to_be_created)
-                        if (workspace_to_create == image)
-                        {
-                            mpl::trace(category,
-                                       "Renaming workspace \"{}\" to \"{}\"",
-                                       workspace_to_create,
-                                       name);
-                            workspace_to_create = name;
-                        }
-                }
-            }
-            catch (const std::out_of_range&)
-            {
-                // Blueprint not found, move on
-                query = query_from(request, name);
-                vm_desc.mem_size = checked_args.mem_size;
-            }
+            query = query_from(request, name);
+            vm_desc.mem_size = checked_args.mem_size;
 
             auto progress_monitor = [server](int progress_type, int percentage) {
                 CreateReply create_reply;
