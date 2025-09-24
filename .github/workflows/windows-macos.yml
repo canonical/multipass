@@ -265,7 +265,8 @@ jobs:
             rustup default stable
             rustup update
           else
-            echo "Warning: rustup not found, but continuing..."
+            echo "Error: rustup not found. Please ensure it is installed and in the PATH."
+            exit 1
           fi
         elif [[ "${{ runner.os }}" == "macOS" ]]; then
           # On macOS, initialize rustup-init
@@ -273,7 +274,8 @@ jobs:
             rustup-init -y --default-toolchain stable
             source ~/.cargo/env
           else
-            echo "Warning: rustup-init not found, but continuing..."
+            echo "Error: rustup-init not found. Please ensure it is installed and in the PATH."
+            exit 1
           fi
         fi
         # Add cargo bin to PATH for subsequent steps
@@ -300,9 +302,8 @@ jobs:
       run: ccache --show-stats --zero-stats
 
     - name: Test
-      working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+        ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }} --target all_tests
 
     - name: Package
       id: cmake-package

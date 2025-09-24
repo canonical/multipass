@@ -229,6 +229,9 @@ parts:
       # Ensure Rust is in PATH for this build
       export PATH="$HOME/.cargo/bin:$PATH"
 
+      # Run the rust tests
+      (cd ${CRAFT_PART_SRC}/crates && cargo test --all)
+
       craftctl default
       set -e
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
