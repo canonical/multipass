@@ -1202,13 +1202,10 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* co
     }
 }
 
-auto timeout_for(const int requested_timeout, const int blueprint_timeout)
+auto timeout_for(const int requested_timeout)
 {
     if (requested_timeout > 0)
         return std::chrono::seconds(requested_timeout);
-
-    if (blueprint_timeout > 0)
-        return std::chrono::seconds(blueprint_timeout);
 
     return mp::default_timeout;
 }
