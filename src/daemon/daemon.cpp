@@ -203,17 +203,12 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 
 template <typename T>
 auto name_from(const std::string& requested_name,
-               const std::string& blueprint_name,
                mp::NameGenerator& name_gen,
                const T& currently_used_names)
 {
     if (!requested_name.empty())
     {
         return requested_name;
-    }
-    else if (!blueprint_name.empty())
-    {
-        return blueprint_name;
     }
     else
     {
