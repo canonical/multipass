@@ -22,7 +22,6 @@
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
-#include <multipass/client_launch_data.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -3162,8 +3161,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                            std::promise<grpc::Status>* status_promise,
                            bool start)
 {
-    typedef typename std::pair<VirtualMachineDescription, ClientLaunchData> VMFullDescription;
-
     auto checked_args = validate_create_arguments(request, config.get());
 
     if (!checked_args.option_errors.error_codes().empty())
@@ -3214,12 +3211,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     preparing_instances.insert(name);
 
-    auto prepare_future_watcher = new QFutureWatcher<VMFullDescription>();
+    auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
     auto log_level = mpl::level_from(request->verbosity_level());
 
     QObject::connect(
         prepare_future_watcher,
-        &QFutureWatcher<VMFullDescription>::finished,
+        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
         [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
             mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level,
                                                                  *config->logger,
@@ -3227,11 +3224,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             try
             {
-                auto vm_desc_pair = prepare_future_watcher->future().result();
-                auto vm_desc = vm_desc_pair.first;
-                auto& vm_client_data = vm_desc_pair.second;
-                auto& vm_aliases = vm_client_data.aliases_to_be_created;
-                auto& vm_workspaces = vm_client_data.workspaces_to_be_created;
+                auto vm_desc = prepare_future_watcher->future().result();
 
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
@@ -3259,38 +3252,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
                     operative_instances[name]->start();
 
-                    auto future_watcher =
-                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
-                            LaunchReply reply;
-                            reply.set_vm_instance_name(name);
-                            config->update_prompt->populate_if_time_to_show(
-                                reply.mutable_update_info());
+                    auto future_watcher = create_future_watcher([this, server, name] {
+                        LaunchReply reply;
+                        reply.set_vm_instance_name(name);
+                        config->update_prompt->populate_if_time_to_show(
+                            reply.mutable_update_info());
 
-                            // Attach the aliases to be created by the CLI to the last message.
-                            for (const auto& blueprint_alias : vm_aliases)
-                            {
-                                mpl::debug(category,
-                                           "Adding alias '{}' to RPC reply",
-                                           blueprint_alias.first);
-                                auto alias = reply.add_aliases_to_be_created();
-                                alias->set_name(blueprint_alias.first);
-                                alias->set_instance(blueprint_alias.second.instance);
-                                alias->set_command(blueprint_alias.second.command);
-                                alias->set_working_directory(
-                                    blueprint_alias.second.working_directory);
-                            }
-
-                            // Now attach the workspaces.
-                            for (const auto& blueprint_workspace : vm_workspaces)
-                            {
-                                mpl::debug(category,
-                                           "Adding workspace '{}' to RPC reply",
-                                           blueprint_workspace);
-                                reply.add_workspaces_to_be_created(blueprint_workspace);
-                            }
-
-                            server->Write(reply);
-                        });
+                        server->Write(reply);
+                    });
                     future_watcher->setFuture(QtConcurrent::run(
                         &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
                         this,
@@ -3322,8 +3291,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             delete prepare_future_watcher;
         });
 
-    auto make_vm_description =
-        [this, server, request, name, checked_args, log_level]() mutable -> VMFullDescription {
+    auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable
+        -> mp::VirtualMachineDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
@@ -3351,8 +3320,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     config->factory->get_backend_version_string().toStdString(),
                     request),
                 YAML::Node{}};
-
-            ClientLaunchData client_launch_data;
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3436,7 +3403,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             // Everything went well, add the MAC addresses used in this instance.
             allocated_mac_addrs = std::move(new_macs);
 
-            return VMFullDescription{vm_desc, client_launch_data};
+            return vm_desc;
         }
         catch (const std::exception& e)
         {
