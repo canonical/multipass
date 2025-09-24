@@ -198,12 +198,13 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
         # Create the directory for the coredumps
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
-        # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
+        # Enable coredumps by setting the core dump size to "unlimited", and run the unified test target.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
-           ulimit -c unlimited &&        \
+           source /root/.cargo/env && \
+           ulimit -c unlimited && \
            env CTEST_OUTPUT_ON_FAILURE=1 \
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-           /root/parts/multipass/build/bin/multipass_tests"
+           cmake --build /root/parts/multipass/build --target all_tests"
 
     - name: Measure coverage
       id: measure-coverage
