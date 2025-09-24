@@ -190,6 +190,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Corrosion)
 
+# Register Rust build directories for cleaning
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES
+    "${CMAKE_BINARY_DIR}/cargo"
+    "${CMAKE_BINARY_DIR}/corrosion"
+)
+
+# Add custom target to also run cargo clean when needed
+add_custom_target(clean-rust
+    COMMAND cargo clean --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml
+    COMMENT "Cleaning Cargo workspace artifacts"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
