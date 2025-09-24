@@ -494,36 +494,20 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     return interfaces;
 }
 
-void validate_image(const mp::LaunchRequest* request,
-                    const mp::VMImageVault& vault,
-                    mp::VMBlueprintProvider& blueprint_provider)
+void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& vault)
 {
     // TODO: Refactor this in such a way that we can use info returned here instead of ignoring it
     // to avoid calls
     //       later that accomplish the same thing.
-    try
-    {
-        if (!blueprint_provider.info_for(request->image()))
-        {
-            auto image_query = query_from(request, "");
-            if (image_query.query_type == mp::Query::Type::Alias &&
-                vault.all_info_for(image_query).empty())
-                throw mp::ImageNotFoundException(request->image(), request->remote_name());
-        }
-    }
-    catch (const mp::IncompatibleBlueprintException&)
-    {
-        throw std::runtime_error(
-            fmt::format("The \"{}\" Blueprint is not compatible with this host.",
-                        request->image()));
-    }
+    auto image_query = query_from(request, "");
+    if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+        throw mp::ImageNotFoundException(request->image(), request->remote_name());
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
 {
-    assert(config && config->factory && config->blueprint_provider && config->vault &&
-           "null ptr somewhere...");
-    validate_image(request, *config->vault, *config->blueprint_provider);
+    assert(config && config->factory && config->vault && "null ptr somewhere...");
+    validate_image(request, *config->vault);
 
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
