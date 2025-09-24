@@ -8,6 +8,7 @@ import re
 import sys
 import time
 from contextlib import suppress
+from typing import Optional
 
 import pytest
 from pytest import Session
@@ -165,11 +166,11 @@ class MultipassdGovernor:
         """Start the multipassd daemon"""
         logging.debug("multipassd-governor :: start called")
 
-        def _cancel(t: asyncio.Task | None):
+        def _cancel(t: Optional[asyncio.Task]):
             if t and not t.done():
                 t.cancel()
 
-        async def _drain(t: asyncio.Task | None):
+        async def _drain(t: Optional[asyncio.Task]):
             if t:
                 with suppress(asyncio.CancelledError):
                     await t
