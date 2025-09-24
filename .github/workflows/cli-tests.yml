@@ -89,7 +89,7 @@ jobs:
                 'daemon-controller': 'winsvc',
                 'sudo-cmd': 'gsudo',
                 'pkg-url': inputs['windows-pkg-url'],
-                'pkg-download-destination': '$RUNNER_TEMP/multipass.msi',
+                'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
                 'cmd-prologue': ''
               });
             }
@@ -147,11 +147,31 @@ jobs:
       - name: Install package (Windows)
         if: runner.os == 'Windows'
         run: |
-          $log  = "$Env:RUNNER_TEMP\multipass-install.log"
-          ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} msiexec.exe /i ${{ matrix['pkg-download-destination'] }} /qn /norestart /l*vx! "$log" ADDLOCAL=ALL ALLUSERS=1
-          $code = $LASTEXITCODE
+          $msi = "${{ matrix['pkg-download-destination'] }}"
+          $log = Join-Path $env:RUNNER_TEMP 'multipass-install.log'
+          Write-Host "Expanded: $msi"
+
+          $args = @(
+            '/i', $msi,
+            '/qn', '/norestart',
+            '/l*vx!', $log,
+            'ADDLOCAL=ALL',
+            'ALLUSERS=1'
+          )
+
+          $proc = Start-Process -FilePath msiexec.exe -ArgumentList $args -Wait -PassThru
+          $code = $proc.ExitCode
+
           Write-Host "msiexec exit code: $code"
-          Get-Content -Path $log -Tail 200
+          if (Test-Path $log) {
+            Get-Content -Path $log -Tail 200
+          } else {
+            Write-Warning "Log not found at: $log"
+          }
+
+          if ($code -ne 0) {
+            throw "MSI install failed with exit code $code"
+          }
       ##################################################################
       # Platform-agnostic
       ##################################################################
