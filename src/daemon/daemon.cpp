@@ -1744,34 +1744,6 @@ try
                 add_aliases(response.mutable_images_info(), remote_name, info, "");
             }
         }
-
-        if (request->show_blueprints())
-        {
-            std::optional<VMImageInfo> info;
-            try
-            {
-                info = config->blueprint_provider->info_for(request->search_string());
-            }
-            catch (const std::exception& e)
-            {
-                mpl::warn(category,
-                          "An unexpected error occurred while fetching blueprints "
-                          "matching \"{}\": {}",
-                          request->search_string(),
-                          e.what());
-            }
-
-            if (info)
-            {
-                if ((*info).aliases.contains(QString::fromStdString(request->search_string())))
-                    (*info).aliases =
-                        QStringList({QString::fromStdString(request->search_string())});
-                else
-                    (*info).aliases = QStringList({(*info).id.left(12)});
-
-                add_aliases(response.mutable_blueprints_info(), "", *info, "");
-            }
-        }
     }
     else if (request->remote_name().empty())
     {
@@ -1796,14 +1768,6 @@ try
 
                 image_host->for_each_entry_do(action);
             }
-        }
-
-        if (request->show_blueprints())
-        {
-            auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
-
-            for (const auto& info : vm_blueprints_info)
-                add_aliases(response.mutable_blueprints_info(), "", info, "");
         }
     }
     else
@@ -3235,31 +3199,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                       create_error.SerializeAsString()});
     }
 
-    // TODO: We should only need to query the Blueprint Provider once for all info, so this (and
-    // timeout below) will need a refactoring to do so.
-    const std::string blueprint_name =
-        config->blueprint_provider->name_from_blueprint(request->image());
-    // if the launch target is a blueprint instead of an image, issues a deprecation warning
-    if (!blueprint_name.empty())
-    {
-        constexpr auto deprecation_warning =
-            "*** Warning! Blueprints are deprecated and will be removed in a future release. "
-            "***\n\n"
-            "You can achieve similar results with cloud-init and other launch options.\n"
-            "Run `multipass help launch` for more info, or find out more at:\n"
-            "- "
-            "https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/manage-instances/"
-            "launch-customized-instances-with-multipass-and-cloud-init/\n"
-            "- https://cloudinit.readthedocs.io\n\n";
-        CreateReply reply;
-        reply.set_log_line(deprecation_warning);
-        server->Write(reply);
-    }
-
-    auto name = name_from(checked_args.instance_name,
-                          blueprint_name,
-                          *config->name_generator,
-                          operative_instances);
+    auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3280,8 +3220,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     // TODO: We should only need to query the Blueprint Provider once for all info, so this (and
     // name above) will need a refactoring to do so.
-    auto timeout = timeout_for(request->timeout(),
-                               config->blueprint_provider->blueprint_timeout(blueprint_name));
+    auto timeout = timeout_for(request->timeout());
 
     preparing_instances.insert(name);
 
@@ -3429,28 +3368,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             {
                 auto image = request->image();
                 auto image_qstr = QString::fromStdString(image);
-
-                // If requesting to launch from a yaml file, we assume it contains a Blueprint.
-                if (image_qstr.startsWith("file://") && (image_qstr.toLower().endsWith(".yaml") ||
-                                                         image_qstr.toLower().endsWith(".yml")))
-                {
-                    auto file_info = QFileInfo(image_qstr.remove(0, 7));
-                    auto file_path = file_info.absoluteFilePath();
-
-                    auto chop = image_qstr.at(image_qstr.size() - 4) == '.' ? 4 : 5;
-                    image = file_info.fileName().chopped(chop).toStdString();
-
-                    query = config->blueprint_provider->blueprint_from_file(file_path.toStdString(),
-                                                                            image,
-                                                                            vm_desc,
-                                                                            client_launch_data);
-                }
-                else
-                {
-                    query = config->blueprint_provider->fetch_blueprint_for(image,
-                                                                            vm_desc,
-                                                                            client_launch_data);
-                }
 
                 query.name = name;
 
