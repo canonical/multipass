@@ -24,7 +24,6 @@
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
-#include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/image_vault_exceptions.h>

@@ -46,7 +46,6 @@ target_link_libraries(daemon
   utils
   Qt6::Core
   Qt6::Network
-  blueprint_provider
   xz_image_decoder
   yaml)
 
