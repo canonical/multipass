@@ -62,11 +62,6 @@ constexpr auto mount_arguments_key = "arguments";
 constexpr int shutdown_timeout = 300000;   // unit: ms, 5 minute timeout for shutdown/suspend
 constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for killing the process
 
-bool use_cdrom_set(const QJsonObject& metadata)
-{
-    return metadata.contains("use_cdrom") && metadata["use_cdrom"].toBool();
-}
-
 QString get_vm_machine(const QJsonObject& metadata)
 {
     QString machine;
@@ -125,7 +120,6 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
         const auto& data = resume_metadata.value();
         resume_data = mp::QemuVMProcessSpec::ResumeData{suspend_tag,
                                                         get_vm_machine(data),
-                                                        use_cdrom_set(data),
                                                         get_arguments(data)};
     }
 

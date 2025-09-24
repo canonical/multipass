@@ -90,7 +90,6 @@ TEST_F(TestQemuVMProcessSpec, resumeArgumentsTakenFromResumedata)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
                                                         "machine_type",
-                                                        false,
                                                         {"-one", "-two"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
@@ -117,7 +116,6 @@ TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
                                                         "machine_type",
-                                                        false,
                                                         {"vmnet-macos,mode=shared,foo"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
