@@ -343,7 +343,7 @@ TEST_F(TestPlatformUnix, canReachGatewayRunsPingWithIP)
 
     auto [mock_utils, guard] = mpt::MockUtils::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), Contains(StrEq(testIPstr.c_str())), _)).WillOnce(Return(true)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), Contains(QString::fromStdString(testIPstr)), _)).WillOnce(Return(true)).WillOnce(Return(false));
 
     EXPECT_TRUE(MP_PLATFORM.can_reach_gateway(testIP));
     EXPECT_FALSE(MP_PLATFORM.can_reach_gateway(testIP));
@@ -351,7 +351,7 @@ TEST_F(TestPlatformUnix, canReachGatewayRunsPingWithIP)
 
 TEST_F(TestPlatformUnix, subnetUsedLocallyDetectsUnused)
 {
-    const mp::IPAddress testSubnet{"192.168.1.0/24"};
+    const mp::Subnet testSubnet{"192.168.1.0/24"};
 
     auto [mock_utils, guard] = mpt::MockUtils::inject();
 
@@ -365,12 +365,12 @@ default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
 )"));
 
-    EXPECT_FALSE(MP_PLATFORM.subnet_used_locally(testIP));
+    EXPECT_FALSE(MP_PLATFORM.subnet_used_locally(testSubnet));
 }
 
 TEST_F(TestPlatformUnix, subnetUsedLocallyDetectsOverlapping)
 {
-    const mp::IPAddress testSubnet{"172.172.1.0/24"};
+    const mp::Subnet testSubnet{"172.172.1.0/24"};
 
     auto [mock_utils, guard] = mpt::MockUtils::inject();
 
@@ -384,12 +384,12 @@ default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
 )"));
 
-    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testIP));
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
 }
 
 TEST_F(TestPlatformUnix, subnetUsedLocallyDetectsConflicting)
 {
-    const mp::IPAddress testSubnet{"10.20.30.0/24"};
+    const mp::Subnet testSubnet{"10.20.30.0/24"};
 
     auto [mock_utils, guard] = mpt::MockUtils::inject();
 
@@ -403,5 +403,5 @@ default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
 )"));
 
-    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testIP));
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
 }

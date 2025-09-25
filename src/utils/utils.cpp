@@ -242,7 +242,7 @@ std::vector<std::string> mp::utils::split(const std::string& string, const std::
 
 std::string mp::utils::generate_mac_address()
 {
-    std::array<int, 3> octets{
+    std::array<intmax_t, 3> octets{
         {MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255)}};
     return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
 }

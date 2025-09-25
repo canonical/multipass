@@ -31,7 +31,7 @@ class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
     explicit DNSMasqProcessSpec(const Path& data_dir,
-                                const SubnetList& subnets,
+                                const BridgeSubnetList& subnets,
                                 const QString& conf_file_path);
 
     QString program() const override;
@@ -42,7 +42,7 @@ public:
 
 private:
     const Path data_dir;
-    const SubnetList subnets;
+    const BridgeSubnetList subnets;
     const QString conf_file_path;
 };
 

@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_file_ops.h"
 #include "mock_platform.h"
 #include "mock_utils.h"
 
@@ -265,13 +266,15 @@ struct SubnetUtils : public Test
 {
     SubnetUtils()
     {
-      
+        ON_CALL(*mock_platform, subnet_used_locally).WillByDefault(Return(false));
+        ON_CALL(*mock_platform, can_reach_gateway).WillByDefault(Return(false));
+        ON_CALL(*mock_platform, virtual_switch_subnet).WillByDefault(Return(std::nullopt));
     }
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<StrictMock>()};
     mpt::MockUtils* mock_utils = mock_utils_injection.first;
 
-    mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<StrictMock>();
+    mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform* mock_platform = mock_platform_injection.first;
 };
 
@@ -347,4 +350,66 @@ TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
 
     EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"255.255.255.252"});
     EXPECT_EQ(subnetHigh.CIDR(), 30);
+}
+
+TEST_F(SubnetUtils, generateRandomSubnetGivesUp)
+{
+    mp::Subnet range("0.0.0.0/0");
+
+    EXPECT_CALL(*mock_utils, random_int(_, _))
+        .WillRepeatedly(ReturnArg<0>());
+
+    EXPECT_CALL(*mock_platform, subnet_used_locally)
+        .WillRepeatedly(Return(true));
+
+    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(24, range),
+        std::runtime_error, mpt::match_what(HasSubstr("subnet")));
+}
+
+TEST_F(SubnetUtils, getSubnetBridgeExistsReturnsExpectedData)
+{
+    const mp::Subnet test_subnet{"10.102.12.0/24"};
+    const QString bridge_name{"test-bridge"};
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_platform, virtual_switch_subnet(bridge_name))
+        .WillOnce(Return(test_subnet));
+
+    EXPECT_EQ(MP_SUBNET_UTILS.get_subnet("foo", bridge_name).as_string(), test_subnet.as_string());
+}
+
+TEST_F(SubnetUtils, getSubnetInFileReturnsExpectedData)
+{
+    const mp::Subnet test_subnet{"10.102.12.0/24"};
+    const QString bridge_name{"test-bridge"};
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(1));
+    EXPECT_CALL(*mock_file_ops, read_all(_))
+        .WillOnce(Return(QByteArray::fromStdString(test_subnet.as_string())));
+
+    EXPECT_EQ(MP_SUBNET_UTILS.get_subnet("foo", bridge_name).as_string(), test_subnet.as_string());
+}
+
+TEST_F(SubnetUtils, getSubnetNotInFileWritesNewSubnetReturnsExpectedData)
+{
+    const QString bridge_name{"test-bridge"};
+    std::string generated_subnet;
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+
+    EXPECT_CALL(*mock_utils, random_int);
+
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(0));
+    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _))
+        .WillOnce([&generated_subnet](auto&, auto data, auto) {
+            generated_subnet = std::string(data);
+
+            return generated_subnet.length();
+        });
+
+    EXPECT_EQ(MP_SUBNET_UTILS.get_subnet("foo", bridge_name).as_string(), generated_subnet);
 }

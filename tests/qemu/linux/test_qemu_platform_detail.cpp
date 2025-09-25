@@ -23,6 +23,7 @@
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
+#include "tests/mock_subnet_utils.h"
 #include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
@@ -50,13 +51,13 @@ struct QemuPlatformDetail : public Test
 
         for (const auto& vswitch : switches)
         {
-            EXPECT_CALL(*mock_backend, get_subnet(_, vswitch.bridge_name))
+            EXPECT_CALL(*mock_subnet_utils, get_subnet(_, vswitch.bridge_name))
                 .WillOnce([subnet = vswitch.subnet](auto...) { return subnet; });
 
             EXPECT_CALL(*mock_firewall_config_factory,
                         make_firewall_config(vswitch.bridge_name, vswitch.subnet))
                 .WillOnce(
-                    [this, &vswitch](auto...) { return std::move(vswitch.mock_firewall_config); });
+                    [&vswitch](auto...) { return std::move(vswitch.mock_firewall_config); });
 
             EXPECT_CALL(
                 *mock_utils,
@@ -79,13 +80,13 @@ struct QemuPlatformDetail : public Test
     {
         QString bridge_name;
         std::string hw_addr;
-        std::string subnet;
+        mp::Subnet subnet;
         std::string name;
         mutable std::unique_ptr<multipass::test::MockFirewallConfig> mock_firewall_config;
 
         Switch(const QString& bridge_name,
                const std::string& hw_addr,
-               const std::string& subnet,
+               const mp::Subnet& subnet,
                const std::string& name)
             : bridge_name(bridge_name),
               hw_addr(hw_addr),
@@ -101,9 +102,9 @@ struct QemuPlatformDetail : public Test
         }
     };
     const std::vector<Switch> switches{
-        {"mpqemubrzone1", "52:54:00:6f:29:7e", "192.168.64", "foo"},
-        {"mpqemubrzone2", "52:54:00:6f:29:7f", "192.168.96", "bar"},
-        {"mpqemubrzone3", "52:54:00:6f:29:80", "192.168.128", "baz"}};
+        {"mpqemubrzone1", "52:54:00:6f:29:7e", mp::Subnet{"192.168.64.0/24"}, "foo"},
+        {"mpqemubrzone2", "52:54:00:6f:29:7f", mp::Subnet{"192.168.96.0/24"}, "bar"},
+        {"mpqemubrzone3", "52:54:00:6f:29:80", mp::Subnet{"192.168.128.0/24"}, "baz"}};
 
     mpt::TempDir data_dir;
 
@@ -111,6 +112,9 @@ struct QemuPlatformDetail : public Test
 
     mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils* mock_utils = utils_attr.first;
+
+    mpt::MockSubnetUtils::GuardedMock subnet_utils_attr{mpt::MockSubnetUtils::inject<NiceMock>()};
+    mpt::MockSubnetUtils* mock_subnet_utils = subnet_utils_attr.first;
 
     mpt::MockBackend::GuardedMock backend_attr{mpt::MockBackend::inject<NiceMock>()};
     mpt::MockBackend* mock_backend = backend_attr.first;
@@ -135,7 +139,8 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
 {
     for (const auto& vswitch : switches)
     {
-        const QString qstring_subnet{QString::fromStdString(vswitch.subnet)};
+        const auto subnet{vswitch.subnet.as_string()};
+        const auto broadcast = (vswitch.subnet.max_address() + 1).as_string();
 
         EXPECT_CALL(*mock_utils,
                     run_cmd_for_status(QString("ip"),
@@ -152,11 +157,11 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
                     run_cmd_for_status(QString("ip"),
                                        ElementsAre(QString("address"),
                                                    QString("add"),
-                                                   QString("%1.1/24").arg(qstring_subnet),
+                                                   QString::fromStdString(subnet),
                                                    QString("dev"),
                                                    vswitch.bridge_name,
                                                    "broadcast",
-                                                   QString("%1.255").arg(qstring_subnet)),
+                                                   QString::fromStdString(broadcast)),
                                        _))
             .WillOnce(Return(true));
 
@@ -176,7 +181,7 @@ TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
 {
     for (const auto& vswitch : switches)
     {
-        const mp::IPAddress ip_address{fmt::format("{}.5", vswitch.subnet)};
+        const mp::IPAddress ip_address{vswitch.subnet.min_address() + 4};
         EXPECT_CALL(*mock_dnsmasq_server, get_ip_for(vswitch.hw_addr))
             .WillOnce([ip = ip_address](auto...) { return ip; });
     }
@@ -185,7 +190,7 @@ TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
 
     for (const auto& vswitch : switches)
     {
-        const mp::IPAddress ip_address{fmt::format("{}.5", vswitch.subnet)};
+        const mp::IPAddress ip_address{vswitch.subnet.min_address() + 4};
         auto addr = qemu_platform_detail.get_ip_for(vswitch.hw_addr);
 
         ASSERT_TRUE(addr.has_value());

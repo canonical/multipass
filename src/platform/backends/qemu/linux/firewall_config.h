@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/singleton.h>
+#include <multipass/subnet.h>
 
 #include <string>
 
@@ -30,7 +31,7 @@ class FirewallConfig
 public:
     using UPtr = std::unique_ptr<FirewallConfig>;
 
-    FirewallConfig(const QString& bridge_name, const std::string& subnet);
+    FirewallConfig(const QString& bridge_name, const Subnet& subnet);
     virtual ~FirewallConfig();
 
     virtual void verify_firewall_rules();
@@ -59,6 +60,6 @@ public:
         : Singleton<FirewallConfigFactory>::Singleton{pass} {};
 
     virtual FirewallConfig::UPtr make_firewall_config(const QString& bridge_name,
-                                                      const std::string& subnet) const;
+                                                      const Subnet& subnet) const;
 };
 } // namespace multipass

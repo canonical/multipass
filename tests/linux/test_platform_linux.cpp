@@ -69,7 +69,7 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
         mpt::StubAvailabilityZoneManager az_manager{};
 
         decltype(mp::platform::vm_backend("", az_manager)) factory_ptr;
-        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path, az_manager););
+        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path, az_manager));
 
         EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
     }

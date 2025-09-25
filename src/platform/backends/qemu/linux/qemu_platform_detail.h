@@ -48,23 +48,23 @@ public:
 private:
     // explicitly naming DisabledCopyMove since the private one derived from QemuPlatform takes
     // precedence in lookup
-    struct Subnet : private multipass::DisabledCopyMove
+    struct BridgeSubnet : private multipass::DisabledCopyMove
     {
         const QString bridge_name;
-        const std::string subnet;
+        const Subnet subnet;
         FirewallConfig::UPtr firewall_config;
 
-        Subnet(const Path& network_dir, const std::string& name);
-        ~Subnet();
+        BridgeSubnet(const Path& network_dir, const std::string& name);
+        ~BridgeSubnet();
     };
-    using Subnets = std::unordered_map<std::string, Subnet>;
+    using BridgeSubnets = std::unordered_map<std::string, BridgeSubnet>;
 
-    [[nodiscard]] static Subnets get_subnets(const Path& network_dir);
+    [[nodiscard]] static BridgeSubnets get_subnets(const Path& network_dir);
 
-    [[nodiscard]] static SubnetList get_subnets_list(const Subnets&);
+    [[nodiscard]] static BridgeSubnetList get_subnets_list(const BridgeSubnets&);
 
     const Path network_dir;
-    const Subnets subnets;
+    const BridgeSubnets subnets;
     DNSMasqServer::UPtr dnsmasq_server;
     std::unordered_map<std::string, std::tuple<QString, std::string, QString>>
         name_to_net_device_map;

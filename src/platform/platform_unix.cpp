@@ -277,10 +277,38 @@ bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
     return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ipstr.c_str(), "-c", "1", "-W", "1"});
 }
 
+std::optional<mp::Subnet> mp::platform::Platform::virtual_switch_subnet(const QString& bridge_name) const
+{
+    // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3
+    QString subnet;
+
+    const auto output =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}))
+            .split('\n');
+    for (const auto& line : output)
+    {
+        if (line.contains(bridge_name))
+        {
+            subnet = line.section('.', 0, 2);
+            break;
+        }
+    }
+
+    if (subnet.isNull())
+    {
+        mpl::log(mpl::Level::info,
+                 "daemon",
+                 fmt::format("Unable to determine subnet for the {} subnet",
+                             qUtf8Printable(bridge_name)));
+        return std::nullopt;
+    }
+    return subnet.toStdString();
+}
+
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 {
     // validation of the ip and cidr happen later, otherwise this regex would be massive.
-    static const QRegularExpression subnet_regex(R"(^((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
+    static const QRegularExpression subnet_regex(R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
 
     const auto output =
         QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
@@ -306,7 +334,7 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
             mpl::log(
                 mpl::Level::warning,
                 "network",
-                fmt::format("invalid subnet from ip command: {}", e.message()));
+                fmt::format("invalid subnet from ip command: {}", e.what()));
         }
     }
     return false;

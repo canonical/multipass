@@ -39,7 +39,7 @@ struct MockFirewallConfigFactory : public FirewallConfigFactory
 
     MOCK_METHOD(FirewallConfig::UPtr,
                 make_firewall_config,
-                (const QString&, const std::string&),
+                (const QString&, const Subnet&),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFirewallConfigFactory, FirewallConfigFactory);

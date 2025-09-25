@@ -15,6 +15,9 @@
  *
  */
 
+#include "multipass/platform.h"
+
+#include <multipass/file_ops.h>
 #include <multipass/subnet.h>
 #include <multipass/utils.h>
 
@@ -88,6 +91,28 @@ catch (const std::out_of_range& e)
     }
     return ip;
 }
+
+mp::Subnet generate_random_subnet(uint8_t cidr, mp::Subnet range)
+{
+    if (cidr >= 31)
+        throw std::invalid_argument(fmt::format(large_CIDR_err_fmt, cidr));
+
+    if (cidr < range.CIDR())
+        throw std::logic_error(fmt::format("A subnet with cidr {} cannot be contained by {}", cidr, range.as_string()));
+
+    // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
+    const size_t possibleSubnets = std::size_t{1} << (cidr - range.CIDR());
+
+    // narrowing conversion, possibleSubnets is guaranteed to be < 2^31 (4 bytes is safe)
+    static_assert(sizeof(decltype(MP_UTILS.random_int(0, possibleSubnets))) >= 4);
+
+    const auto subnet = static_cast<size_t>(MP_UTILS.random_int(0, possibleSubnets - 1));
+
+    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
+    mp::IPAddress id = range.identifier() + (subnet * (std::size_t{1} << (32 - cidr)));
+
+    return mp::Subnet{id, cidr};
+}
 } // namespace
 
 mp::Subnet::Subnet(IPAddress ip, uint8_t cidr) : id(apply_mask(ip, cidr)), cidr(cidr)
@@ -155,29 +180,59 @@ bool mp::Subnet::contains(IPAddress ip) const
     return identifier() <= ip && (max_address() + 1) >= ip;
 }
 
+bool mp::Subnet::operator==(const Subnet& other) const
+{
+    return id == other.id && cidr == other.cidr;
+}
+
+bool mp::Subnet::operator<(const Subnet& other) const
+{
+    // note cidr comparison is flipped, smaller is bigger
+    return id < other.id || (id == other.id && cidr > other.cidr);
+}
+
+
 mp::Subnet mp::SubnetUtils::generate_random_subnet(uint8_t cidr, Subnet range) const
 {
-    if (cidr >= 31)
-        throw std::invalid_argument(fmt::format(large_CIDR_err_fmt, cidr));
-    
-    if (cidr < range.CIDR())
-        throw std::logic_error(fmt::format("A subnet with cidr {} cannot be contained by {}", cidr, range.as_string()));
+    // @TODO don't rely on pure randomness
+    for (auto i = 0; i < 100; ++i)
+    {
+        const auto subnet = ::generate_random_subnet(cidr, range);
+        if (MP_PLATFORM.subnet_used_locally(subnet))
+            continue;
 
-    // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
-    const size_t possibleSubnets = std::size_t{1} << (cidr - range.CIDR());
+        if (MP_PLATFORM.can_reach_gateway(subnet.min_address()))
+            continue;
 
-    // narrowing conversion, possibleSubnets is guarenteed to be < 2^31 (4 bytes is safe)
-    static_assert(sizeof(decltype(MP_UTILS.random_int(0, possibleSubnets))) >= 4);
+        if (MP_PLATFORM.can_reach_gateway(subnet.max_address()))
+            continue;
 
-    const auto subnet = static_cast<size_t>(MP_UTILS.random_int(0, possibleSubnets - 1));
+        return subnet;
+    }
 
-    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
-    mp::IPAddress id = range.identifier() + (subnet * (std::size_t{1} << (32 - cidr)));
-
-    return mp::Subnet{id, cidr};
+    throw std::runtime_error("Could not determine a subnet for networking.");
 }
 
 mp::Subnet mp::SubnetUtils::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
 {
-    return mp::Subnet{""};
+    if (auto subnet = MP_PLATFORM.virtual_switch_subnet(bridge_name))
+        return *subnet;
+
+    QFile subnet_file{network_dir + "/multipass_subnet_" + bridge_name};
+    MP_FILEOPS.open(subnet_file, QIODevice::ReadWrite | QIODevice::Text);
+    if (MP_FILEOPS.size(subnet_file) > 0)
+    {
+        const auto content = MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
+        if (content.find('/') != std::string::npos)
+        {
+            return Subnet{content};
+        }
+        // assume CIDR of 24 is missing (for backwards compatability)
+        return Subnet{IPAddress{content}, 24};
+    }
+
+    auto new_subnet = MP_SUBNET_UTILS.generate_random_subnet();
+    const auto subnet_str = new_subnet.as_string();
+    MP_FILEOPS.write(subnet_file, subnet_str.data(), subnet_str.size());
+    return new_subnet;
 }

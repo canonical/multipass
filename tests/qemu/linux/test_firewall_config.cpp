@@ -45,7 +45,7 @@ struct FirewallConfig : public Test
 
     const QString goodbr0{QStringLiteral("goodbr0")};
     const QString evilbr0{QStringLiteral("evilbr0")};
-    const std::string subnet{"192.168.2"};
+    const mp::Subnet subnet{"192.168.2.0/24"};
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
@@ -130,10 +130,10 @@ TEST_F(FirewallConfig, firewallErrorThrowsOnVerify)
 TEST_F(FirewallConfig, dtorDeletesKnownRules)
 {
     const QByteArray base_rule{
-        fmt::format("POSTROUTING -s {}.0/24 ! -d {}.0/24 -m comment --comment \"generated for "
+        fmt::format("POSTROUTING -s {} ! -d {} -m comment --comment \"generated for "
                     "Multipass network {}\" -j MASQUERADE",
-                    subnet,
-                    subnet,
+                    subnet.as_string(),
+                    subnet.as_string(),
                     goodbr0)
             .data()};
     const QByteArray full_rule{"-A " + base_rule};
@@ -165,10 +165,10 @@ TEST_F(FirewallConfig, dtorDeletesKnownRules)
 TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
 {
     const QByteArray base_rule{
-        fmt::format("POSTROUTING -s {}.0/24 ! -d {}.0/24 -m comment --comment \"generated for "
+        fmt::format("POSTROUTING -s {} ! -d {} -m comment --comment \"generated for "
                     "Multipass network {}\" -j MASQUERADE",
-                    subnet,
-                    subnet,
+                    subnet.as_string(),
+                    subnet.as_string(),
                     goodbr0)
             .data()};
     const QByteArray full_rule{"-A " + base_rule};
