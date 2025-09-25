@@ -168,13 +168,11 @@ int mp::AppArmor::aa_change_onexec_forksafe(const char* exec)
                             "/proc/thread-self/attr/exec",
                             "/proc/self/attr/exec"};
 
-    int last_err = ENOENT;
     for (size_t i = 0; i < 4; ++i)
     {
         int fd = ::open(paths[i], O_WRONLY | O_CLOEXEC);
         if (fd < 0)
         {
-            last_err = errno;
             continue;
         }
 
@@ -184,10 +182,8 @@ int mp::AppArmor::aa_change_onexec_forksafe(const char* exec)
         errno = saved;
 
         if (n == (ssize_t)len)
-            return 0;     // success
-        last_err = errno; // remember why it failed
+            return 0; // success
     }
 
-    errno = last_err;
     return errno;
 }
