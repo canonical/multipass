@@ -138,33 +138,10 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
-    send_command({"find", "default", "--only-images"}, stream);
+    send_command({"find", "default"}, stream);
 
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
-    EXPECT_THAT(stream.str(), Not(HasSubstr("No blueprints found.")));
-
-    EXPECT_EQ(total_lines_of_output(stream), 3);
-}
-
-TEST_F(DaemonFind, queryForBlueprintReturnsExpectedData)
-{
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
-
-    static constexpr auto blueprint_name = "foo";
-
-    config_builder.vault = std::move(mock_image_vault);
-    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
-    mp::Daemon daemon{config_builder.build()};
-
-    std::stringstream stream;
-    send_command({"find", blueprint_name, "--only-blueprints"}, stream);
-
-    EXPECT_THAT(
-        stream.str(),
-        AllOf(HasSubstr(blueprint_name), HasSubstr(blueprint_description_for(blueprint_name))));
-    EXPECT_THAT(stream.str(), Not(HasSubstr("No images found.")));
 
     EXPECT_EQ(total_lines_of_output(stream), 3);
 }
