@@ -392,10 +392,10 @@ QString detect_firewall()
 }
 } // namespace
 
-mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string& subnet)
+mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const mp::Subnet& subnet)
     : firewall{detect_firewall()},
       bridge_name{bridge_name},
-      cidr{QString("%1.0/24").arg(QString::fromStdString(subnet))},
+      cidr{QString::fromStdString(subnet.as_string())},
       comment{multipass_firewall_comment(bridge_name)}
 {
     try
@@ -437,7 +437,7 @@ void mp::FirewallConfig::clear_all_firewall_rules()
 
 mp::FirewallConfig::UPtr mp::FirewallConfigFactory::make_firewall_config(
     const QString& bridge_name,
-    const std::string& subnet) const
+    const mp::Subnet& subnet) const
 {
     return std::make_unique<mp::FirewallConfig>(bridge_name, subnet);
 }

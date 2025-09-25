@@ -66,13 +66,13 @@ void remove_tap_device(const QString& tap_device_name)
     }
 }
 
-void create_virtual_switch(const std::string& subnet, const QString& bridge_name)
+void create_virtual_switch(const mp::Subnet& subnet, const QString& bridge_name)
 {
     if (!MP_UTILS.run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
         const auto mac_address = mp::utils::generate_mac_address();
-        const auto cidr = fmt::format("{}.1/24", subnet);
-        const auto broadcast = fmt::format("{}.255", subnet);
+        const auto cidr = subnet.as_string();
+        const auto broadcast = (subnet.max_address() + 1).as_string();
 
         MP_UTILS.run_cmd_for_status(
             "ip",
@@ -100,7 +100,7 @@ void set_ip_forward()
     }
 }
 
-mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir, const mp::SubnetList& subnets)
+mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir, const mp::BridgeSubnetList& subnets)
 {
     set_ip_forward();
     return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, subnets);
@@ -115,23 +115,23 @@ void delete_virtual_switch(const QString& bridge_name)
 }
 } // namespace
 
-mp::QemuPlatformDetail::Subnet::Subnet(const Path& network_dir, const std::string& name)
+mp::QemuPlatformDetail::BridgeSubnet::BridgeSubnet(const Path& network_dir, const std::string& name)
     : bridge_name{multipass_bridge_name.arg(name.c_str())},
-      subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
+      subnet{MP_SUBNET_UTILS.get_subnet(network_dir, bridge_name)},
       firewall_config{MP_FIREWALL_CONFIG_FACTORY.make_firewall_config(bridge_name, subnet)}
 {
     create_virtual_switch(subnet, bridge_name);
 }
 
-mp::QemuPlatformDetail::Subnet::~Subnet()
+mp::QemuPlatformDetail::BridgeSubnet::~BridgeSubnet()
 {
     delete_virtual_switch(bridge_name);
 }
 
-[[nodiscard]] mp::QemuPlatformDetail::Subnets mp::QemuPlatformDetail::get_subnets(
+[[nodiscard]] mp::QemuPlatformDetail::BridgeSubnets mp::QemuPlatformDetail::get_subnets(
     const Path& network_dir)
 {
-    Subnets subnets{};
+    BridgeSubnets subnets{};
     subnets.reserve(default_zone_names.size());
 
     for (const auto& zone : default_zone_names)
@@ -144,9 +144,9 @@ mp::QemuPlatformDetail::Subnet::~Subnet()
     return subnets;
 }
 
-[[nodiscard]] mp::SubnetList mp::QemuPlatformDetail::get_subnets_list(const Subnets& subnets)
+[[nodiscard]] mp::BridgeSubnetList mp::QemuPlatformDetail::get_subnets_list(const BridgeSubnets& subnets)
 {
-    SubnetList out{};
+    BridgeSubnetList out{};
     out.reserve(subnets.size());
 
     for (const auto& [_, subnet] : subnets)

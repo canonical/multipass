@@ -47,6 +47,8 @@ public:
     [[nodiscard]] bool contains(Subnet other) const;
     [[nodiscard]] bool contains(IPAddress ip) const;
 
+    [[nodiscard]] bool operator==(const Subnet& other) const;
+    [[nodiscard]] bool operator<(const Subnet& other) const;
 private:
     IPAddress id;
     uint8_t cidr;
