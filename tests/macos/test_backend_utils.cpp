@@ -71,11 +71,7 @@ TEST_P(GetNeighbourIPValidInputsTests, validInputCases)
 
     EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), _, _))
         .WillRepeatedly([](const QString&, const QStringList& args, auto&&) {
-            if (args.contains("192.168.64.5"))
-            {
-                return false;
-            }
-            return true;
+            return !args.contains("192.168.64.5");
         });
 
     EXPECT_EQ(mp::backend::get_neighbour_ip(existed_mac).value().as_string(), expected_mapped_ip);
