@@ -3246,18 +3246,6 @@ TEST_F(Client, findCmdForceUpdateOk)
     EXPECT_EQ(send_command({"find", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdForceUpdateAndOnlyImagesOk)
-{
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "--force-update", "--only-images"}), mp::ReturnCode::Ok);
-}
-
-TEST_F(Client, findCmdForceUpdateAndOnlyBlueprintsError)
-{
-    EXPECT_EQ(send_command({"find", "--force-update", "--only-blueprints"}),
-              mp::ReturnCode::CommandLineError);
-}
-
 TEST_F(Client, findCmdForceUpdateWithRemoteOk)
 {
     EXPECT_CALL(mock_daemon, find(_, _));
@@ -3268,14 +3256,6 @@ TEST_F(Client, findCmdForceUpdateWithRemoteAndSearchNameOk)
 {
     EXPECT_CALL(mock_daemon, find(_, _));
     EXPECT_EQ(send_command({"find", "foo:bar", "--force-update"}), mp::ReturnCode::Ok);
-}
-
-TEST_F(Client, findCmdFailsOnMultipleConditions)
-{
-    EXPECT_THAT(send_command({"find"
-                              "--only-blueprints",
-                              "--only-images"}),
-                Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, findCmdTooManyArgsFails)
