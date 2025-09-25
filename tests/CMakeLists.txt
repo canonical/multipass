@@ -163,7 +163,6 @@ target_link_libraries(multipass_tests
   iso
   network
   petname
-  poco_utils
   settings
   simplestreams
   sftp_test
