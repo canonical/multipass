@@ -23,7 +23,6 @@
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_utils.h"
-#include "mock_vm_blueprint_provider.h"
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
@@ -35,14 +34,6 @@
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
-
-namespace
-{
-auto blueprint_description_for(const std::string& blueprint_name)
-{
-    return fmt::format("This is the {} blueprint", blueprint_name);
-}
-} // namespace
 
 struct DaemonFind : public mpt::DaemonTestFixture
 {
@@ -72,29 +63,9 @@ struct DaemonFind : public mpt::DaemonTestFixture
 TEST_F(DaemonFind, blankQueryReturnsAllData)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
-    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
-
-    static constexpr auto blueprint1_name = "foo";
-    static constexpr auto blueprint2_name = "bar";
-
-    EXPECT_CALL(*mock_blueprint_provider, all_blueprints()).WillOnce([] {
-        std::vector<mp::VMImageInfo> blueprint_info;
-        mp::VMImageInfo info1, info2;
-
-        info1.aliases.append(blueprint1_name);
-        info1.release_title = QString::fromStdString(blueprint_description_for(blueprint1_name));
-        blueprint_info.push_back(info1);
-
-        info2.aliases.append(blueprint2_name);
-        info2.release_title = QString::fromStdString(blueprint_description_for(blueprint2_name));
-        blueprint_info.push_back(info2);
-
-        return blueprint_info;
-    });
 
     config_builder.image_hosts.clear();
     config_builder.image_hosts.push_back(std::move(mock_image_host));
-    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -106,11 +77,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
                       HasSubstr(mpt::another_alias),
                       HasSubstr(mpt::another_release_info),
                       HasSubstr(fmt::format("{}:{}", mpt::custom_remote, mpt::custom_alias)),
-                      HasSubstr(mpt::custom_release_info),
-                      HasSubstr(blueprint1_name),
-                      HasSubstr(blueprint_description_for(blueprint1_name)),
-                      HasSubstr(blueprint2_name),
-                      HasSubstr(blueprint_description_for(blueprint2_name))));
+                      HasSubstr(mpt::custom_release_info)));
 
     EXPECT_THAT(
         stream.str(),
@@ -123,7 +90,6 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
 TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query& query) {
         mpt::MockImageHost mock_image_host;
@@ -134,7 +100,6 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     });
 
     config_builder.vault = std::move(mock_image_vault);
-    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -149,21 +114,17 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
 TEST_F(DaemonFind, unknownQueryReturnsEmpty)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_blueprint_provider = std::make_unique<NiceMock<mpt::MockVMBlueprintProvider>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
 
-    EXPECT_CALL(*mock_blueprint_provider, info_for(_)).WillOnce(Return(std::nullopt));
-
     config_builder.vault = std::move(mock_image_vault);
-    config_builder.blueprint_provider = std::move(mock_blueprint_provider);
     mp::Daemon daemon{config_builder.build()};
 
     constexpr auto phony_name = "phony";
     std::stringstream stream;
     send_command({"find", phony_name}, stream);
 
-    EXPECT_THAT(stream.str(), HasSubstr("No images or blueprints found."));
+    EXPECT_THAT(stream.str(), HasSubstr("No images found."));
 }
 
 TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
