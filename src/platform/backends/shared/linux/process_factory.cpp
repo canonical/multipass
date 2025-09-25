@@ -58,8 +58,9 @@ public:
         // This function runs after fork, but before exec, which is a perfect
         // place to reset the signal masks.
         //
-        // BEWARE: This function is called right in between fork and exec, which is a *very* special
-        // state. This is a critical section where only a handful of functions can be called:
+        // BEWARE: This function is called right in between fork and exec. Since this application is
+        // multithreaded, we need to be *very* careful; fork replicates the state of mutexes and
+        // other pthreads constructs, so we can only call async-signal-safe functions:
         //
         // https://man7.org/linux/man-pages/man7/signal-safety.7.html
         //
