@@ -79,8 +79,8 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
     // ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet]
 
     const QString arp_output = get_arp_output();
-    const QRegularExpression ip_and_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
-    QRegularExpressionMatchIterator iter = ip_and_mac_address_pair_regex.globalMatch(arp_output);
+    const QRegularExpression arp_reg(R"(\(([^)\s]+)\) at ([^\s]+))");
+    QRegularExpressionMatchIterator iter = arp_reg.globalMatch(arp_output);
 
     const QString arp_format_mac_address =
         simplify_mac_address(QString::fromStdString(mac_address));
@@ -100,7 +100,7 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
 
             if (mp::backend::can_reach_gateway(current_ip.as_string()))
             {
-                return {mp::IPAddress{match.captured(1).toStdString()}};
+                return current_ip;
             }
         }
     }
