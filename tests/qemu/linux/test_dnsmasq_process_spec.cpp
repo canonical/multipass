@@ -32,7 +32,7 @@ using namespace testing;
 struct TestDnsmasqProcessSpec : public Test
 {
     const QString data_dir{"/data"};
-    const mp::SubnetList subnets{{"bridgey", "1.2.3"}};
+    const mp::BridgeSubnetList subnets{{"bridgey", mp::Subnet{"1.2.3.0/24"}}};
     const QString conf_file_path{"/path/to/file.conf"};
 };
 

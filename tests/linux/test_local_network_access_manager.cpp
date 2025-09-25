@@ -27,6 +27,7 @@
 #include <multipass/exceptions/http_local_socket_exception.h>
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/network_access_manager.h>
+#include <multipass/utils.h>
 
 #include <QBuffer>
 #include <QEventLoop>

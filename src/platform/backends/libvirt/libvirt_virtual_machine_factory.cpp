@@ -37,23 +37,27 @@ constexpr auto logging_category = "libvirt factory";
 auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
     auto network_dir = MP_UTILS.make_dir(QDir(data_dir), "network");
-    auto subnet = MP_BACKEND.get_subnet(network_dir, QString::fromStdString(bridge_name));
+    auto subnet = MP_SUBNET_UTILS.get_subnet(network_dir, QString::fromStdString(bridge_name));
+
+    const auto range_start = subnet.min_address() + 1;
+    const auto range_end = subnet.max_address();
 
     return fmt::format("<network>\n"
                        "  <name>default</name>\n"
                        "  <bridge name=\"{}\"/>\n"
                        "  <domain name=\"multipass\" localOnly=\"yes\"/>\n"
                        "  <forward/>\n"
-                       "  <ip address=\"{}.1\" netmask=\"255.255.255.0\">\n"
+                       "  <ip address=\"{}\" netmask=\"{}\">\n"
                        "    <dhcp>\n"
-                       "      <range start=\"{}.2\" end=\"{}.254\"/>\n"
+                       "      <range start=\"{}\" end=\"{}\"/>\n"
                        "    </dhcp>\n"
                        "  </ip>\n"
                        "</network>",
                        bridge_name,
-                       subnet,
-                       subnet,
-                       subnet);
+                       subnet.min_address().as_string(),
+                       subnet.subnet_mask().as_string(),
+                       range_start.as_string(),
+                       range_end.as_string());
 }
 
 std::string enable_libvirt_network(const mp::Path& data_dir,
