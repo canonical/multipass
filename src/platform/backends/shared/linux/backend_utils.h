@@ -36,8 +36,6 @@ class ProcessFactory;
 
 namespace backend
 {
-std::string generate_random_subnet();
-
 class CreateBridgeException : public std::runtime_error
 {
 public:
@@ -53,7 +51,6 @@ public:
     using Singleton<Backend>::Singleton;
 
     virtual std::string create_bridge_with(const std::string& interface);
-    virtual std::string get_subnet(const Path& network_dir, const QString& bridge_name) const;
 
     // For detecting KVM
     virtual void check_for_kvm_support();
