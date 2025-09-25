@@ -36,8 +36,6 @@ class ProcessFactory;
 
 namespace backend
 {
-std::string generate_random_subnet();
-
 class CreateBridgeException : public std::runtime_error
 {
 public:
