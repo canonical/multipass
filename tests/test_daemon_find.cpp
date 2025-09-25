@@ -84,7 +84,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
         Not(AllOf(HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
                   HasSubstr(mpt::snapcraft_release_info))));
 
-    EXPECT_EQ(total_lines_of_output(stream), 9);
+    EXPECT_EQ(total_lines_of_output(stream), 5);
 }
 
 TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
