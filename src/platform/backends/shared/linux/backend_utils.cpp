@@ -76,7 +76,7 @@ bool subnet_used_locally(const std::string& subnet)
 
 bool can_reach_gateway(const std::string& ip)
 {
-    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "1", "-W", "1"});
 }
 
 auto virtual_switch_subnet(const QString& bridge_name)
@@ -193,9 +193,7 @@ auto make_bridge_rollback_guard(std::string_view log_category,
     });
 }
 
-} // namespace
-
-std::string mp::backend::generate_random_subnet()
+std::string generate_random_subnet()
 {
     gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
     for (auto i = 0; i < 100; ++i)
@@ -215,6 +213,8 @@ std::string mp::backend::generate_random_subnet()
 
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
+
+} // namespace
 
 // @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
@@ -283,7 +283,7 @@ std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& 
     if (MP_FILEOPS.size(subnet_file) > 0)
         return MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
 
-    auto new_subnet = mp::backend::generate_random_subnet();
+    auto new_subnet = generate_random_subnet();
     MP_FILEOPS.write(subnet_file, new_subnet.data(), new_subnet.length());
     return new_subnet;
 }
