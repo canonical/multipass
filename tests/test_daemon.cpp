@@ -1450,27 +1450,7 @@ INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless,
 
 TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
 {
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
-    auto mock_image_host_ptr = mock_image_host.get();
-
-    std::vector<mp::VMImageHost*> hosts;
-    hosts.push_back(mock_image_host_ptr);
-
-    mp::URLDownloader downloader(std::chrono::milliseconds(1));
-    mp::DefaultVMImageVault default_vault(hosts,
-                                          &downloader,
-                                          mp::Path("/"),
-                                          mp::Path("/"),
-                                          mp::days(1));
-
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_image_vault_ptr = mock_image_vault.get();
-
-    EXPECT_CALL(*mock_image_vault_ptr, all_info_for(_))
-        .WillOnce(
-            [&default_vault](const mp::Query& query) { return default_vault.all_info_for(query); });
-
-    config_builder.vault = std::move(mock_image_vault);
+    (void)mock_image_vault();
 
     mp::Daemon daemon{config_builder.build()};
 
