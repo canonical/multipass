@@ -1369,34 +1369,7 @@ TEST_F(Daemon, refusesLaunchWithInvalidNetworkInterface)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
 
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
-    auto mock_image_host_ptr = mock_image_host.get();
-
-    EXPECT_CALL(*mock_image_host_ptr, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-            std::pair<std::string, mp::VMImageInfo>{"default",
-                                                    mock_image_host->mock_bionic_image_info}}));
-    config_builder.image_hosts.clear();
-    config_builder.image_hosts.push_back(std::move(mock_image_host));
-
-    std::vector<mp::VMImageHost*> hosts;
-    hosts.push_back(mock_image_host_ptr);
-
-    mp::URLDownloader downloader(std::chrono::milliseconds(1));
-    mp::DefaultVMImageVault default_vault(hosts,
-                                          &downloader,
-                                          mp::Path("/"),
-                                          mp::Path("/"),
-                                          mp::days(1));
-
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    auto mock_image_vault_ptr = mock_image_vault.get();
-
-    EXPECT_CALL(*mock_image_vault_ptr, all_info_for(_))
-        .WillOnce(
-            [&default_vault](const mp::Query& query) { return default_vault.all_info_for(query); });
-
-    config_builder.vault = std::move(mock_image_vault);
+    (void)mock_image_vault();
 
     mp::Daemon daemon{config_builder.build()};
 
