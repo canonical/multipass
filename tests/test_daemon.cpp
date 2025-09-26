@@ -1383,6 +1383,7 @@ TEST_F(Daemon, refusesLaunchWithInvalidNetworkInterface)
 TEST_F(Daemon, refusesLaunchBecauseBridgingIsNotImplemented)
 {
     // Use the stub factory, which throws when networks() is called.
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;
@@ -1614,8 +1615,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
 
 TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 {
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
+    (void)mock_image_vault();
     std::string repeated_mac{"52:54:00:bd:19:41"};
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(repeated_mac, {}));
     config_builder.data_directory = temp_dir->path();
@@ -1634,8 +1634,7 @@ TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 
 TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 {
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
+    (void)mock_image_vault();
     std::string mac_addr("52:54:00:73:76:28");
     std::vector<mp::NetworkInterface> extra_interfaces{
         mp::NetworkInterface{"eth0", mac_addr, true}};
