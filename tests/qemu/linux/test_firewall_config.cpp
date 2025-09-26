@@ -81,7 +81,7 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
     logger_scope.mock_logger->expect_log(mpl::Level::warning,
                                          fmt::format("Failure: {}", error_msg));
 
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
+    mp::BasicFirewallConfig firewall_config{goodbr0, subnet};
 }
 
 TEST_F(FirewallConfig, firewallVerifyNoErrorDoesNotThrow)
@@ -98,7 +98,7 @@ TEST_F(FirewallConfig, firewallVerifyNoErrorDoesNotThrow)
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(firewall_callback);
 
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
+    mp::BasicFirewallConfig firewall_config{goodbr0, subnet};
 
     EXPECT_NO_THROW(firewall_config.verify_firewall_rules());
 }
@@ -120,7 +120,7 @@ TEST_F(FirewallConfig, firewallErrorThrowsOnVerify)
     auto factory = mpt::MockProcessFactory::Inject();
     factory->register_callback(firewall_callback);
 
-    mp::FirewallConfig firewall_config{evilbr0, subnet};
+    mp::BasicFirewallConfig firewall_config{evilbr0, subnet};
 
     MP_EXPECT_THROW_THAT(firewall_config.verify_firewall_rules(),
                          std::runtime_error,
@@ -156,7 +156,7 @@ TEST_F(FirewallConfig, dtorDeletesKnownRules)
     factory->register_callback(firewall_callback);
 
     {
-        mp::FirewallConfig firewall_config{goodbr0, subnet};
+        mp::BasicFirewallConfig firewall_config{goodbr0, subnet};
     }
 
     EXPECT_TRUE(delete_called);
@@ -198,7 +198,7 @@ TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
     logger_scope.mock_logger->expect_log(mpl::Level::error, msg.toStdString(), AnyNumber());
 
     {
-        mp::FirewallConfig firewall_config{goodbr0, subnet};
+        mp::BasicFirewallConfig firewall_config{goodbr0, subnet};
     }
 }
 
@@ -224,7 +224,7 @@ TEST_P(FirewallToUseTestSuite, usesExpectedFirewall)
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
     logger_scope.mock_logger->expect_log(mpl::Level::info, std::get<0>(param));
 
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
+    mp::BasicFirewallConfig firewall_config{goodbr0, subnet};
 }
 
 INSTANTIATE_TEST_SUITE_P(FirewallConfig,
@@ -262,7 +262,7 @@ TEST_P(KernelCheckTestSuite, usesIptablesAndLogsWithBadKernelInfo)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "iptables-legacy");
     logger_scope.mock_logger->expect_log(mpl::Level::warning, msg);
 
-    mp::FirewallConfig firewall_config{goodbr0, subnet};
+    mp::BasicFirewallConfig firewall_config{goodbr0, subnet};
 
     EXPECT_FALSE(nftables_called);
 }
