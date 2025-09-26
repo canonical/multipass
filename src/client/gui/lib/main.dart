@@ -184,9 +184,15 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     stopAllInstances() {
+      final runningVMs = ref
+          .read(vmStatusesProvider)
+          .entries
+          .where((entry) => entry.value == Status.RUNNING)
+          .map((entry) => entry.key)
+          .toList();
       final notificationsNotifier = ref.read(notificationsProvider.notifier);
       notificationsNotifier.addOperation(
-        ref.read(grpcClientProvider).stop([]),
+        ref.read(grpcClientProvider).stop(runningVMs),
         loading: 'Stopping all instances',
         onError: (error) => 'Failed to stop all instances: $error',
         onSuccess: (_) {
